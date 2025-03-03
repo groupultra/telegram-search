@@ -113,6 +113,7 @@ export interface ITelegramClientAdapter extends BaseTelegramAdapter {
    * Get user info
    */
   getUserInfo: (userId: string) => Promise<Api.users.UserFull>
+  getUsersInfo: (userIds: string[]) => Promise<Api.TypeUser[]>
 }
 
 export interface EmbeddingModelConfig {

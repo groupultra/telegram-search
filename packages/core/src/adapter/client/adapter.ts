@@ -208,4 +208,10 @@ export class ClientAdapter implements ITelegramClientAdapter {
       id: userId,
     }))
   }
+
+  async getUsersInfo(userIds: string[]): Promise<Api.TypeUser[]> {
+    return await this.connectionManager.getClient().invoke(new Api.users.GetUsers({
+      id: userIds,
+    }))
+  }
 }
