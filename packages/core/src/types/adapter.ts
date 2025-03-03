@@ -109,6 +109,10 @@ export interface ITelegramClientAdapter extends BaseTelegramAdapter {
    * Get history for a specific chat
    */
   getHistory: (chatId: number) => Promise<Api.messages.TypeMessages & { count: number }>
+  /**
+   * Get user info
+   */
+  getUserInfo: (userId: string) => Promise<Api.users.UserFull>
 }
 
 export interface EmbeddingModelConfig {
