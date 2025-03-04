@@ -40,7 +40,8 @@ export interface BaseTelegramAdapter {
    * Connect to Telegram
    */
   connect: (options?: ConnectOptions) => Promise<void>
-
+  getUserInfo: (userId: string) => Promise<Api.users.UserFull>
+  getUsersInfo: (userIds: string[]) => Promise<Api.TypeUser[]>
   /**
    * Disconnect from Telegram
    */
