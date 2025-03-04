@@ -63,3 +63,20 @@ export async function findMinMessageId(chatId: number): Promise<number | null> {
     return null
   }
 }
+
+/**
+ * Get count of message by ID for chat
+ */
+export async function getMessageCount(chatId: number): Promise<number | null> {
+  try {
+    const contentTable = await useMessageTable(chatId)
+    const [result] = await useDB()
+      .select({ count: sql<number>`COUNT(id)` })
+      .from(contentTable)
+      .where(sql`chat_id = ${chatId}`)
+    return result.count
+  }
+  catch {
+    return null
+  }
+}

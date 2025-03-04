@@ -5,7 +5,7 @@ import type { TelegramMessage } from '../types/message'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { getConfig, useLogger } from '@tg-search/common'
-import { createMessages, findMinMessageId, updateChat } from '@tg-search/db'
+import { createMessages, findMaxMessageId, findMinMessageId, getMessageCount, updateChat } from '@tg-search/db'
 
 const logger = useLogger()
 
@@ -145,7 +145,7 @@ export class ExportService {
     // Report progress
     onProgress?.(5, `已选择会话: ${chatMetadata.title}`)
 
-    const startId: number | undefined = minId
+    let startId: number | undefined = minId
     let exportMaxId = maxId // 使用新变量而不是修改参数
     const history = await this.client.getHistory(chatId)
 
@@ -157,6 +157,7 @@ export class ExportService {
       // 1. 导出比本地最小ID更早的消息（之前未导出的较旧消息）
       // 2. 导出本地已有消息中间的"缺口"（未完成的导出）
       const localMinId = await findMinMessageId(chatId)
+      const localMaxId = await findMaxMessageId(chatId)
       exportMaxId = (history as any).messages[0].id + 1
       // const localMaxId = await findMaxMessageId(chatId)
 
@@ -166,10 +167,10 @@ export class ExportService {
         // localMaxId,
       })
 
-      if (localMinId) {
+      if (localMinId && localMaxId) {
         // TODO: 未来可以实现更复杂的"缺口"检测逻辑
         // 比如通过SQL查询确定消息ID的连续性，找出缺失的ID区间
-
+        startId = Number(localMaxId)
         // 目前优先导出比本地最小ID更小的消息（历史消息）
 
         // 添加更多详细的日志
@@ -202,16 +203,24 @@ export class ExportService {
     let count = 0
     let failedCount = 0
     let messages: TelegramMessage[] = []
-    const total = limit || history.count - 1 || 100
 
+    const total = limit || history.count - 1 || 100
+    // if (incremental) {
+    //   let history_count = (await getMessageCount(chatId))
+    //   if (!history_count) {
+    //     history_count = 0
+    //   }
+    //   total = history.count - 1 - history_count
+    // }
+    logger.debug(`history info ${JSON.stringify(history)}`)
+    logger.debug(`history info ${await getMessageCount(chatId)} total:${total} startId:${startId} history count:${history.count}`)
     function isSkipMedia(type: DatabaseMessageType) {
       return !messageTypes.includes(type)
     }
-
     try {
       // Try to export messages
       for await (const message of this.client.getMessages(chatId, undefined, {
-        skipMedia: isSkipMedia('photo') || isSkipMedia('video') || isSkipMedia('document'),
+        skipMedia: isSkipMedia('photo') || isSkipMedia('video') || isSkipMedia('document') || isSkipMedia('sticker'),
         startTime,
         endTime,
         limit,
@@ -231,6 +240,7 @@ export class ExportService {
         }
 
         messages.push(message)
+        logger.debug(`message : ${message}`)
         count++
 
         // Process batch if needed
@@ -254,7 +264,7 @@ export class ExportService {
             limit,
             batchSize,
             method,
-            totalMessages: total,
+            totalMessages: incremental ? count : total,
             processedMessages: count,
             failedMessages: failedCount > 0 ? failedCount : undefined,
           })
@@ -296,7 +306,6 @@ export class ExportService {
         method,
         chatId,
       })
-
       // Process remaining messages
       if (messages.length > 0) {
         if (format === 'database') {
@@ -341,7 +350,7 @@ export class ExportService {
         limit,
         batchSize,
         method,
-        totalMessages: total,
+        totalMessages: incremental ? count : total,
         processedMessages: count,
         failedMessages: failedCount > 0 ? failedCount : undefined,
       })
@@ -369,7 +378,7 @@ export class ExportService {
             limit,
             batchSize,
             method,
-            totalMessages: total,
+            totalMessages: incremental ? count : total,
             processedMessages: count,
             failedMessages: failedCount > 0 ? failedCount : undefined,
           })
@@ -386,7 +395,7 @@ export class ExportService {
             waitSeconds,
             resumeTime: new Date(Date.now() + waitSeconds * 1000).toISOString(),
             remainingCount: total - count,
-            totalMessages: total,
+            totalMessages: incremental ? count : total,
             processedMessages: count,
             failedMessages: failedCount > 0 ? failedCount : undefined,
           })
