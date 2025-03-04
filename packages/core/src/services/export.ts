@@ -300,13 +300,13 @@ export class ExportService {
               waitSeconds,
               resumeTime: new Date(Date.now() + waitSeconds * 1000).toISOString(),
               remainingCount: total - count,
-              totalMessages: total,
+              totalMessages: incremental ? count : total,
               processedMessages: count,
             })
             await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000))
             logger.log('继续导出...')
             onProgress?.(progress, '继续导出...', {
-              totalMessages: total,
+              totalMessages: incremental ? count : total,
               processedMessages: count,
             })
           }

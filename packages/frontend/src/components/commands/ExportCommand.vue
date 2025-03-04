@@ -193,6 +193,7 @@ const exportDetails = computed(() => {
   }
 
   const metadata = currentCommand.value.metadata
+
   // TODO: interface
   return {
     totalMessages: metadata.totalMessages as number | undefined,
