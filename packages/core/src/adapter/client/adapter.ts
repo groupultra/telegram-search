@@ -100,18 +100,6 @@ export class ClientAdapter implements ITelegramClientAdapter {
     }
   }
 
-  async getUserInfo(userId: string): Promise<Api.users.UserFull> {
-    return await this.connectionManager.getClient().invoke(new Api.users.GetFullUser({
-      id: userId,
-    }))
-  }
-
-  async getUsersInfo(userIds: string[]): Promise<Api.TypeUser[]> {
-    return await this.connectionManager.getClient().invoke(new Api.users.GetUsers({
-      id: userIds,
-    }))
-  }
-
   /**
    * Send verification code to the user's phone
    * This is the first step of the authentication process
@@ -153,6 +141,18 @@ export class ClientAdapter implements ITelegramClientAdapter {
       )
       throw error
     }
+  }
+
+  async getUserInfo(userId: string): Promise<Api.users.UserFull> {
+    return await this.connectionManager.getClient().invoke(new Api.users.GetFullUser({
+      id: userId,
+    }))
+  }
+
+  async getUsersInfo(userIds: string[]): Promise<Api.TypeUser[]> {
+    return await this.connectionManager.getClient().invoke(new Api.users.GetUsers({
+      id: userIds,
+    }))
   }
 
   async getHistory(chatId: number): Promise<Api.messages.TypeMessages & { count: number }> {

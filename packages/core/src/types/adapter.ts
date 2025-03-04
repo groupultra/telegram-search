@@ -40,8 +40,7 @@ export interface BaseTelegramAdapter {
    * Connect to Telegram
    */
   connect: (options?: ConnectOptions) => Promise<void>
-  getUserInfo: (userId: string) => Promise<Api.users.UserFull>
-  getUsersInfo: (userIds: string[]) => Promise<Api.TypeUser[]>
+
   /**
    * Disconnect from Telegram
    */
@@ -70,7 +69,8 @@ export interface ITelegramClientAdapter extends BaseTelegramAdapter {
    * Check if the client is connected
    */
   isConnected: () => Promise<boolean>
-
+  getUserInfo: (userId: string) => Promise<Api.users.UserFull>
+  getUsersInfo: (userIds: string[]) => Promise<Api.TypeUser[]>
   /**
    * Send verification code
    */
