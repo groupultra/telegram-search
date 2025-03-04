@@ -217,6 +217,26 @@ export class ExportService {
     function isSkipMedia(type: DatabaseMessageType) {
       return !messageTypes.includes(type)
     }
+    if (incremental && exportMaxId && (exportMaxId - 1) === startId) {
+      onProgress?.(100, '无需导出', {
+        chatId,
+        format,
+        path: exportPath,
+        messageTypes,
+        startTime,
+        endTime,
+        minId,
+        maxId,
+        incremental,
+        limit,
+        batchSize,
+        method,
+        totalMessages: 0,
+        processedMessages: 0,
+        failedMessages: 0,
+      })
+      return { count: 0, failedCount: 0 }
+    }
     try {
       // Try to export messages
       for await (const message of this.client.getMessages(chatId, undefined, {
