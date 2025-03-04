@@ -218,6 +218,7 @@ export class ExportService {
       return !messageTypes.includes(type)
     }
     if (incremental && exportMaxId && (exportMaxId - 1) === startId) {
+      logger.debug('eweeeeeeeeeeeeeeeee')
       onProgress?.(100, '无需导出', {
         chatId,
         format,
@@ -260,7 +261,6 @@ export class ExportService {
         }
 
         messages.push(message)
-        logger.debug(`message : ${message}`)
         count++
 
         // Process batch if needed
