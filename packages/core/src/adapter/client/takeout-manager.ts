@@ -57,6 +57,7 @@ export class TakeoutManager {
         this.takeoutSession = result.data
         return this.takeoutSession
       }
+      this.logger.debug(`fail to init takeout session`)
       return null
     }
     catch (error: any) {
@@ -187,6 +188,7 @@ export class TakeoutManager {
     let offsetId = 0
     let hasMore = true
     let processedCount = 0
+    let hash: bigint = BigInt(0)
 
     try {
       // Initialize takeout session
@@ -196,6 +198,13 @@ export class TakeoutManager {
       }
 
       while (hasMore) {
+        // https://core.telegram.org/api/offsets
+        const id = BigInt(chatId)
+        hash = hash ^ (hash >> 21n)
+        hash = hash ^ (hash << 35n)
+        hash = hash ^ (hash >> 4n)
+        hash = hash + id
+        this.logger.debug(`get takeout message ${options?.minId}-${options?.maxId}`)
         // Get messages using takeout
         const query = new Api.messages.GetHistory({
           peer: await this.client.getInputEntity(chatId),
@@ -204,8 +213,9 @@ export class TakeoutManager {
           limit,
           maxId: options?.maxId || 0, // 支持到特定ID结束
           minId: options?.minId || 0, // 支持增量导出从特定ID开始
-          hash: bigInt(0),
+          hash: bigInt(hash.toString()),
         })
+        this.logger.debug(`message query ${JSON.stringify(query)}`)
 
         // Use error handler for API requests
         const apiResponse = await this.errorHandler.withRetry(

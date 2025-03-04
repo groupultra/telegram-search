@@ -5,7 +5,7 @@ import type { TelegramMessage } from '../types/message'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { getConfig, useLogger } from '@tg-search/common'
-import { createMessages, findMaxMessageId, findMinMessageId, updateChat } from '@tg-search/db'
+import { createMessages, findMinMessageId, updateChat } from '@tg-search/db'
 
 const logger = useLogger()
 
@@ -147,6 +147,7 @@ export class ExportService {
 
     const startId: number | undefined = minId
     let exportMaxId = maxId // 使用新变量而不是修改参数
+    const history = await this.client.getHistory(chatId)
 
     // 增量导出: 如果启用增量导出，尝试查找数据库中最大的消息ID
     if (incremental && !startId) {
@@ -156,27 +157,26 @@ export class ExportService {
       // 1. 导出比本地最小ID更早的消息（之前未导出的较旧消息）
       // 2. 导出本地已有消息中间的"缺口"（未完成的导出）
       const localMinId = await findMinMessageId(chatId)
-      const localMaxId = await findMaxMessageId(chatId)
+      exportMaxId = (history as any).messages[0].id + 1
+      // const localMaxId = await findMaxMessageId(chatId)
 
       logger.debug('增量导出调试信息', {
         chatId,
         localMinId,
-        localMaxId,
+        // localMaxId,
       })
 
-      if (localMinId && localMaxId) {
+      if (localMinId) {
         // TODO: 未来可以实现更复杂的"缺口"检测逻辑
         // 比如通过SQL查询确定消息ID的连续性，找出缺失的ID区间
 
         // 目前优先导出比本地最小ID更小的消息（历史消息）
-        exportMaxId = localMinId - 1
-        logger.debug(`增量导出: 获取消息ID小于 ${exportMaxId} 的历史消息`)
 
         // 添加更多详细的日志
         logger.debug('增量导出详细信息', {
           chatId,
           localMinId,
-          localMaxId,
+          // localMaxId,
           maxIdSet: exportMaxId,
           exportMethod: method,
           strategy: '导出更早的历史消息',
@@ -188,8 +188,7 @@ export class ExportService {
         onProgress?.(15, '未找到之前的消息记录，执行完整导出')
       }
     }
-
-    const history = await this.client.getHistory(chatId)
+    // logger.debug(`history maxID:${exportMaxId} ${JSON.stringify(history.messages)}`)
     // 添加更多历史记录信息
     logger.debug('获取到的聊天历史信息', {
       historyCount: history.count,
@@ -203,7 +202,7 @@ export class ExportService {
     let count = 0
     let failedCount = 0
     let messages: TelegramMessage[] = []
-    const total = limit || history.count || 100
+    const total = limit || history.count - 1 || 100
 
     function isSkipMedia(type: DatabaseMessageType) {
       return !messageTypes.includes(type)
