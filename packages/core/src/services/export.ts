@@ -5,7 +5,7 @@ import type { TelegramMessage } from '../types/message'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { getConfig, useLogger } from '@tg-search/common'
-import { createMessages, findMaxMessageId, findMinMessageId, getMessageCount, updateChat } from '@tg-search/db'
+import { createMessages, findMaxMessageId, findMinMessageId, updateChat } from '@tg-search/db'
 
 const logger = useLogger()
 
@@ -189,8 +189,7 @@ export class ExportService {
         onProgress?.(15, '未找到之前的消息记录，执行完整导出')
       }
     }
-    // logger.debug(`history maxID:${exportMaxId} ${JSON.stringify(history.messages)}`)
-    // 添加更多历史记录信息
+
     logger.debug('获取到的聊天历史信息', {
       historyCount: history.count,
       chatId,
@@ -205,20 +204,10 @@ export class ExportService {
     let messages: TelegramMessage[] = []
 
     const total = limit || history.count - 1 || 100
-    // if (incremental) {
-    //   let history_count = (await getMessageCount(chatId))
-    //   if (!history_count) {
-    //     history_count = 0
-    //   }
-    //   total = history.count - 1 - history_count
-    // }
-    logger.debug(`history info ${JSON.stringify(history)}`)
-    logger.debug(`history info ${await getMessageCount(chatId)} total:${total} startId:${startId} history count:${history.count}`)
     function isSkipMedia(type: DatabaseMessageType) {
       return !messageTypes.includes(type)
     }
     if (incremental && exportMaxId && (exportMaxId - 1) === startId) {
-      logger.debug('eweeeeeeeeeeeeeeeee')
       onProgress?.(100, '无需导出', {
         chatId,
         format,
