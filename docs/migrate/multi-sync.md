@@ -2,66 +2,98 @@
 
 ## 1. 概述
 
-多会话同步支持允许用户同时同步多个 Telegram 会话，通过优先级队列和资源管理来确保系统稳定性。
+多会话同步支持允许用户同时同步多个 Telegram 会话。系统中存在两种不同类型的同步：
+
+1. **Metadata 同步**
+
+   - 同步会话的元数据（标题、类型、头像等基本信息）
+   - 默认进行全量同步，确保数据一致性
+   - 资源消耗较低，可以支持更高的并发
+   - 通常作为消息同步的前置步骤
+
+2. **Messages 同步**
+   - 同步会话中的具体消息内容
+   - 支持增量同步和选择性同步
+   - 资源消耗较高，需要严格控制并发
+   - 可以根据用户需求配置同步选项
+
+系统通过优先级队列和资源管理来确保同步过程的稳定性。
 
 ## 2. 实现步骤
 
 ### 2.1 数据模型扩展
 
-1. 创建同步配置表:
-
-```sql
-CREATE TABLE sync_config_items (
-  id SERIAL PRIMARY KEY,
-  chat_id BIGINT NOT NULL,
-  folder_id BIGINT,
-  status VARCHAR(20) NOT NULL DEFAULT 'idle',
-  priority INTEGER DEFAULT 0,
-  last_sync_time TIMESTAMP,
-  last_message_id BIGINT,
-  last_error TEXT,
-  options JSONB DEFAULT '{}',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_sync_config_items_status ON sync_config_items(status);
-CREATE INDEX idx_sync_config_items_chat_id ON sync_config_items(chat_id);
-CREATE INDEX idx_sync_config_items_priority ON sync_config_items(priority);
-```
-
-2. 添加数据库迁移脚本 (`packages/db/migrations/xxx_create_sync_config_items.ts`):
+1. 修改数据库 Schema (`packages/db/src/schema.ts`):
 
 ```typescript
-import { Kysely } from 'kysely'
+import { bigint, index, integer, jsonb, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 
-export async function up(db: Kysely<any>) {
-  await db.schema
-    .createTable('sync_config_items')
-    .addColumn('id', 'serial', col => col.primaryKey())
-    .addColumn('chat_id', 'bigint', col => col.notNull())
-    .addColumn('folder_id', 'bigint')
-    .addColumn('status', 'varchar(20)', col => col.notNull().defaultTo('idle'))
-    .addColumn('priority', 'integer', col => col.defaultTo(0))
-    .addColumn('last_sync_time', 'timestamp')
-    .addColumn('last_message_id', 'bigint')
-    .addColumn('last_error', 'text')
-    .addColumn('options', 'jsonb', col => col.defaultTo('{}'))
-    .addColumn('created_at', 'timestamp', col =>
-      col.notNull().defaultTo(db.raw('CURRENT_TIMESTAMP')))
-    .addColumn('updated_at', 'timestamp', col =>
-      col.notNull().defaultTo(db.raw('CURRENT_TIMESTAMP')))
-    .execute()
-}
+export const syncConfigItems = pgTable('sync_config_items', {
+  id: serial('id').primaryKey(),
+  chatId: bigint('chat_id', { mode: 'number' }).notNull(),
+  syncType: varchar('sync_type', { length: 20 }).notNull(), // 'metadata' 或 'messages'
+  status: varchar('status', { length: 20 }).notNull().default('idle'),
+  priority: integer('priority').default(0),
+  lastSyncTime: timestamp('last_sync_time'),
+  lastMessageId: bigint('last_message_id', { mode: 'number' }),
+  metadataVersion: integer('metadata_version'), // 用于追踪元数据版本
+  lastError: text('last_error'),
+  options: jsonb('options').default({}),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, table => ({
+  chatTypeIdx: index('idx_sync_items_chat_type').on(table.chatId, table.syncType),
+  statusIdx: index('idx_sync_config_items_status').on(table.status),
+  priorityIdx: index('idx_sync_config_items_priority').on(table.priority),
+}))
 
-export async function down(db: Kysely<any>) {
-  await db.schema.dropTable('sync_config_items').execute()
-}
+// 生成类型
+export type SyncConfigItem = typeof syncConfigItems.$inferSelect
+export type NewSyncConfigItem = typeof syncConfigItems.$inferInsert
+```
+
+2. 生成迁移文件：
+
+```bash
+# 生成迁移文件
+pnpm db:generate
+
+# 执行迁移
+pnpm db:migrate
 ```
 
 ### 2.2 核心服务扩展
 
-1. 创建同步调度器 (`packages/core/src/services/sync/scheduler.ts`):
+1. 定义同步任务类型 (`packages/core/src/types/sync.ts`):
+
+```typescript
+export type SyncType = 'metadata' | 'messages'
+
+export interface SyncTask {
+  type: SyncType
+  chatId: number
+  priority: number
+  options?: {
+    // metadata 同步选项
+    // metadata 默认进行全量同步，无需额外选项
+
+    // messages 同步选项
+    incremental?: boolean
+    skipMedia?: boolean
+    fromMessageId?: number
+    toMessageId?: number
+  }
+}
+
+export interface MultiSyncOptions {
+  chatIds: number[]
+  type?: SyncType
+  priorities?: Record<number, number>
+  options?: Record<number, Record<string, any>>
+}
+```
+
+2. 创建同步调度器 (`packages/core/src/services/sync/scheduler.ts`):
 
 ```typescript
 import { useLogger } from '@tg-search/common'
@@ -170,115 +202,43 @@ export class SyncScheduler {
 }
 ```
 
-2. 创建优先级队列 (`packages/core/src/services/sync/priority-queue.ts`):
-
-```typescript
-export class PriorityQueue<T> {
-  private items: T[] = []
-
-  constructor(private compare: (a: T, b: T) => number) {}
-
-  push(item: T): void {
-    this.items.push(item)
-    this.bubbleUp(this.items.length - 1)
-  }
-
-  pop(): T | undefined {
-    if (this.isEmpty()) {
-      return undefined
-    }
-
-    const result = this.items[0]
-    const last = this.items.pop()!
-
-    if (this.items.length > 0) {
-      this.items[0] = last
-      this.bubbleDown(0)
-    }
-
-    return result
-  }
-
-  isEmpty(): boolean {
-    return this.items.length === 0
-  }
-
-  contains(predicate: (item: T) => boolean): boolean {
-    return this.items.some(predicate)
-  }
-
-  private bubbleUp(index: number): void {
-    while (index > 0) {
-      const parentIndex = Math.floor((index - 1) / 2)
-      if (this.compare(this.items[index], this.items[parentIndex]) <= 0) {
-        break
-      }
-      this.swap(index, parentIndex)
-      index = parentIndex
-    }
-  }
-
-  private bubbleDown(index: number): void {
-    while (true) {
-      let largest = index
-      const leftChild = 2 * index + 1
-      const rightChild = 2 * index + 2
-
-      if (leftChild < this.items.length
-        && this.compare(this.items[leftChild], this.items[largest]) > 0) {
-        largest = leftChild
-      }
-
-      if (rightChild < this.items.length
-        && this.compare(this.items[rightChild], this.items[largest]) > 0) {
-        largest = rightChild
-      }
-
-      if (largest === index) {
-        break
-      }
-
-      this.swap(index, largest)
-      index = largest
-    }
-  }
-
-  private swap(i: number, j: number): void {
-    [this.items[i], this.items[j]] = [this.items[j], this.items[i]]
-  }
-}
-```
-
 3. 扩展同步服务 (`packages/core/src/services/sync/service.ts`):
 
 ```typescript
 import type { ITelegramClientAdapter } from '../../types'
-import type { SyncTask } from './scheduler'
+import type { MultiSyncOptions, SyncTask, SyncType } from '../../types/sync'
 
 import { useLogger } from '@tg-search/common'
 import { db } from '@tg-search/db'
 
 import { SyncScheduler } from './scheduler'
 
-export interface MultiSyncOptions {
-  chatIds: number[]
-  priorities?: Record<number, number>
-  options?: Record<number, Record<string, any>>
-}
-
 export class MultiSyncService {
-  private scheduler: SyncScheduler
+  private metadataScheduler: SyncScheduler
+  private messageScheduler: SyncScheduler
   private logger = useLogger()
 
   constructor(
     private client: ITelegramClientAdapter,
-    maxConcurrent = 3
+    metadataConcurrent = 5, // metadata 同步支持更高并发
+    messageConcurrent = 3 // messages 同步需要控制并发
   ) {
-    this.scheduler = new SyncScheduler(maxConcurrent)
+    this.metadataScheduler = new SyncScheduler(metadataConcurrent)
+    this.messageScheduler = new SyncScheduler(messageConcurrent)
   }
 
   async startMultiSync(options: MultiSyncOptions): Promise<void> {
-    const { chatIds, priorities = {}, options: chatOptions = {} } = options
+    const {
+      chatIds,
+      type = 'messages', // 默认为消息同步
+      priorities = {},
+      options: chatOptions = {}
+    } = options
+
+    // 如果是消息同步，先确保元数据是最新的
+    if (type === 'messages') {
+      await this.syncMetadata(chatIds)
+    }
 
     // 验证所有会话是否存在
     const chats = await db.chats.findMany({
@@ -294,6 +254,7 @@ export class MultiSyncService {
 
     // 创建同步任务
     const tasks: SyncTask[] = chatIds.map(chatId => ({
+      type,
       chatId,
       priority: priorities[chatId] || 0,
       options: chatOptions[chatId] || {},
@@ -302,22 +263,50 @@ export class MultiSyncService {
     // 按优先级排序并提交任务
     tasks.sort((a, b) => b.priority - a.priority)
 
+    const scheduler = type === 'metadata'
+      ? this.metadataScheduler
+      : this.messageScheduler
+
     for (const task of tasks) {
-      await this.scheduler.schedule(task)
+      await scheduler.schedule(task)
     }
   }
 
-  async cancelSync(chatId: number): Promise<void> {
+  // 元数据同步总是全量进行
+  async syncMetadata(chatIds: number[], options?: Partial<MultiSyncOptions>) {
+    return this.startMultiSync({
+      chatIds,
+      type: 'metadata',
+      ...options,
+    })
+  }
+
+  // 消息同步支持更多选项
+  async syncMessages(chatIds: number[], options?: Partial<MultiSyncOptions>) {
+    return this.startMultiSync({
+      chatIds,
+      type: 'messages',
+      ...options,
+    })
+  }
+
+  async cancelSync(chatId: number, type?: SyncType): Promise<void> {
+    const where = type
+      ? { chatId, syncType: type }
+      : { chatId }
+
     await db.syncConfigItems.update({
-      where: { chatId },
+      where,
       data: { status: 'cancelled' },
     })
   }
 
-  async getSyncStatus(chatId: number) {
-    return await db.syncConfigItems.findFirst({
-      where: { chatId },
-    })
+  async getSyncStatus(chatId: number, type?: SyncType) {
+    const where = type
+      ? { chatId, syncType: type }
+      : { chatId }
+
+    return await db.syncConfigItems.findFirst({ where })
   }
 }
 ```
@@ -605,9 +594,11 @@ onUnmounted(() => {
 const client = await useTelegramClient()
 const syncService = new MultiSyncService(client)
 
-// 开始多会话同步
-await syncService.startMultiSync({
-  chatIds: [123, 456, 789],
+// 1. 仅同步元数据（全量）
+await syncService.syncMetadata([123, 456, 789])
+
+// 2. 同步消息（会自动先同步元数据）
+await syncService.syncMessages([123, 456, 789], {
   priorities: {
     123: 2, // 高优先级
     456: 1, // 中优先级
@@ -619,12 +610,12 @@ await syncService.startMultiSync({
   },
 })
 
-// 获取同步状态
-const status = await syncService.getSyncStatus(123)
-console.log(status)
+// 3. 获取特定类型的同步状态
+const metadataStatus = await syncService.getSyncStatus(123, 'metadata')
+const messagesStatus = await syncService.getSyncStatus(123, 'messages')
 
-// 取消同步
-await syncService.cancelSync(123)
+// 4. 取消特定类型的同步
+await syncService.cancelSync(123, 'messages')
 ```
 
 ## 4. 注意事项
