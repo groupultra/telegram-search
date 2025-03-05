@@ -7,6 +7,7 @@ import { routes } from 'vue-router/auto-routes'
 
 import App from './App.vue'
 import en from './languages/en'
+import zhCN from './languages/zhCN'
 import '@unocss/reset/tailwind.css'
 import './styles/main.css'
 import 'uno.css'
@@ -20,10 +21,11 @@ const router = createRouter({
 })
 
 const i18n = createI18n({
-  locale: 'en',
+  locale: 'zhCN',
   globalInjection: true,
   messages: {
     en,
+    zhCN,
   },
 })
 app.use(i18n)

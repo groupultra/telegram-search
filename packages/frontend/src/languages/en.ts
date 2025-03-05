@@ -155,7 +155,7 @@ export default {
       preparing_for_export: 'Preparing for export ...',
       export_task_started: 'Export task started',
       failure_export: 'Export failed',
-      export_error: '导出错误: {error}',
+      export_error: 'Export Error: {error}',
       unknown: 'Unknown',
       minutes: '{minutes}m{second}s',
       hours: '{hours}h{minutes}m',
