@@ -1,9 +1,8 @@
 <!-- Command Status Panel component -->
 <script setup lang="ts">
 import { computed } from 'vue'
-import ProgressBar from './ProgressBar.vue'
-import StatusBadge from './StatusBadge.vue'
-import { useI18n } from 'vue-i18n';
+import { useI18n } from 'vue-i18n'
+
 
 /**
  * Component for displaying command execution status and progress
