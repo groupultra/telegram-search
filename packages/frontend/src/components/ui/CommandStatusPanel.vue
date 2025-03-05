@@ -1,9 +1,9 @@
 <!-- Command Status Panel component -->
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import ProgressBar from './ProgressBar.vue'
 import StatusBadge from './StatusBadge.vue'
+import { useI18n } from 'vue-i18n';
 
 /**
  * Component for displaying command execution status and progress
@@ -40,8 +40,8 @@ const props = defineProps<{
    */
   completionMessage?: string
 }>()
-
-const { t } = useI18n()
+// why???
+const { t }: { t: (key: string) => string } = useI18n()
 
 /**
  * Human-readable status text
