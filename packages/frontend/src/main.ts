@@ -7,7 +7,12 @@ import { routes } from 'vue-router/auto-routes'
 
 import App from './App.vue'
 import en from './languages/en'
+import es from './languages/es'
+import fr from './languages/fr'
+import ja from './languages/ja'
+import ru from './languages/ru'
 import zhCN from './languages/zhCN'
+import zhHK from './languages/zhHK'
 import '@unocss/reset/tailwind.css'
 import './styles/main.css'
 import 'uno.css'
@@ -21,11 +26,16 @@ const router = createRouter({
 })
 
 const i18n = createI18n({
-  locale: 'zhCN',
+  locale: 'ru',
   globalInjection: true,
   messages: {
     en,
     zhCN,
+    fr,
+    zhHK,
+    es,
+    ru,
+    ja,
   },
 })
 app.use(i18n)
