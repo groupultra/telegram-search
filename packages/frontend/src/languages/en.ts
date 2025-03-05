@@ -218,4 +218,4 @@ export default {
       sync_success_data: 'Synchronization completed! Your data has been successfully synchronized.',
     },
   },
-}
+} as any
