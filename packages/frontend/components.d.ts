@@ -13,6 +13,7 @@ declare module 'vue' {
     CommandList: typeof import('./src/components/commands/CommandList.vue')['default']
     CommandStatusPanel: typeof import('./src/components/ui/CommandStatusPanel.vue')['default']
     Dialog: typeof import('./src/components/ui/Dialog.vue')['default']
+    DropdownMenu: typeof import('./src/components/DropdownMenu.vue')['default']
     ExportCommand: typeof import('./src/components/commands/ExportCommand.vue')['default']
     GridSelector: typeof import('./src/components/ui/GridSelector.vue')['default']
     HighlightText: typeof import('./src/components/HighlightText.vue')['default']
@@ -32,6 +33,7 @@ declare module 'vue' {
     StepIndicator: typeof import('./src/components/ui/StepIndicator.vue')['default']
     Switch: typeof import('./src/components/ui/Switch.vue')['default']
     SyncCommand: typeof import('./src/components/commands/SyncCommand.vue')['default']
+    SyncMetadata: typeof import('./src/components/commands/sync/SyncMetadata.vue')['default']
     ThemeToggle: typeof import('./src/components/ThemeToggle.vue')['default']
   }
 }

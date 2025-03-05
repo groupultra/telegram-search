@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useChats } from '../../../apis/useChats'
 import { useMultiSync } from '../../../composables/useMultiSync'
+import Dialog from '../../ui/Dialog.vue'
 import GridSelector from '../../ui/GridSelector.vue'
 
 const { t } = useI18n()
@@ -90,43 +91,59 @@ onMounted(async () => {
     />
 
     <!-- Priority Settings Dialog -->
-    <Dialog v-model="showPriorityDialog">
-      <div class="space-y-4">
-        <h3 class="text-lg font-medium dark:text-gray-100">
-          {{ t('component.sync_command.set_priorities') }}
-        </h3>
-        <div class="space-y-2">
-          <div
-            v-for="chatId in selectedChats"
-            :key="chatId"
-            class="flex items-center justify-between"
-          >
-            <span class="dark:text-gray-200">{{ getChatTitle(chatId) }}</span>
-            <input
-              v-model="priorities[chatId]"
-              type="number"
-              min="0"
-              max="100"
-              class="w-20 border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+    <Teleport to=".dialog-wrapper">
+      <Dialog v-model="showPriorityDialog">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between border-b border-gray-200 pb-4 dark:border-gray-700">
+            <h3 class="text-lg font-medium dark:text-gray-100">
+              {{ t('component.sync_command.set_priorities') }}
+            </h3>
+            <button
+              class="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
+              @click="showPriorityDialog = false"
             >
+              <div class="i-carbon-close h-5 w-5" />
+            </button>
+          </div>
+
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            {{ t('component.sync_command.priority_tip') }}
+          </p>
+
+          <div class="max-h-[60vh] overflow-y-auto space-y-3">
+            <div
+              v-for="chatId in selectedChats"
+              :key="chatId"
+              class="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50"
+            >
+              <span class="dark:text-gray-200">{{ getChatTitle(chatId) }}</span>
+              <input
+                v-model="priorities[chatId]"
+                type="number"
+                min="0"
+                max="100"
+                class="w-24 border-gray-300 rounded-md dark:border-gray-600 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 focus:ring-blue-500"
+              >
+            </div>
+          </div>
+
+          <div class="flex justify-end border-t border-gray-200 pt-4 space-x-3 dark:border-gray-700">
+            <button
+              class="border border-gray-300 rounded-md bg-white px-4 py-2 text-sm text-gray-700 font-medium shadow-sm dark:border-gray-600 dark:bg-gray-800 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+              @click="showPriorityDialog = false"
+            >
+              {{ t('pages.settings.cancel') }}
+            </button>
+            <button
+              class="border border-transparent rounded-md bg-blue-500 px-4 py-2 text-sm text-white font-medium shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              @click="confirmPriorities"
+            >
+              {{ t('pages.settings.confirm') }}
+            </button>
           </div>
         </div>
-        <div class="flex justify-end space-x-2">
-          <button
-            class="rounded-md bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
-            @click="showPriorityDialog = false"
-          >
-            {{ t('pages.settings.cancel') }}
-          </button>
-          <button
-            class="rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-            @click="confirmPriorities"
-          >
-            {{ t('pages.settings.confirm') }}
-          </button>
-        </div>
-      </div>
-    </Dialog>
+      </Dialog>
+    </Teleport>
   </div>
 </template>
 

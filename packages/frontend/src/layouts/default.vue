@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useAuth } from '../apis/useAuth'
+import DropdownMenu from '../components/DropdownMenu.vue'
 import { useDarkStore } from '../composables/dark'
 import { useLanguage } from '../composables/useLanguage'
 import { useSession } from '../composables/useSession'
@@ -18,8 +19,10 @@ const { supportedLanguages, setLanguage, locale } = useLanguage()
 const { t } = useI18n()
 const showUserMenu = ref(false)
 const showLanguageMenu = ref(false)
+const showCommandMenu = ref(false)
 const userMenuRef = ref<HTMLElement | null>(null)
 const languageMenuRef = ref<HTMLElement | null>(null)
+const commandMenuRef = ref<HTMLElement | null>(null)
 const userInfo = ref<UserInfoResponse | null>(null)
 
 // Use VueUse's onClickOutside to handle closing the menus
@@ -29,6 +32,10 @@ onClickOutside(userMenuRef, () => {
 
 onClickOutside(languageMenuRef, () => {
   showLanguageMenu.value = false
+})
+
+onClickOutside(commandMenuRef, () => {
+  showCommandMenu.value = false
 })
 
 // Check if user is logged in and get user info
@@ -82,38 +89,32 @@ function handleLanguageChange(langCode: string) {
         </router-link>
 
         <div class="flex items-center gap-4">
-          <ThemeToggle />
-
-          <!-- Language switcher -->
-          <div ref="languageMenuRef" class="relative">
-            <IconButton
-              icon="i-carbon-language"
-              aria-label="Language"
-              @click="showLanguageMenu = !showLanguageMenu"
-            />
-
-            <!-- Language menu -->
-            <div
-              v-if="showLanguageMenu"
-              class="absolute right-0 z-50 mt-2 w-48 border border-gray-200 rounded-md bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
-            >
-              <button
-                v-for="lang in supportedLanguages"
-                :key="lang.code"
-                class="w-full flex items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                @click="handleLanguageChange(lang.code)"
-              >
-                <span>{{ lang.name }}</span>
-                <span v-if="locale === lang.code" class="i-carbon-checkmark h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          <IconButton
+          <!-- Commands dropdown -->
+          <DropdownMenu
             icon="i-carbon-mac-command"
-            aria-label="{{$t('header.commands')}}"
-            @click="router.push('/commands')"
-          />
+            :label="$t('header.commands')"
+          >
+            <router-link
+              v-for="tab in ['export', 'sync']"
+              :key="tab"
+              :to="`/commands/${tab}`"
+              class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors duration-150 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              <div class="flex items-center">
+                <div
+                  class="mr-2 h-4 w-4" :class="[
+                    {
+                      'i-carbon-upload': tab === 'export',
+                      'i-carbon-download': tab === 'import',
+                      'i-carbon-sync-settings': tab === 'sync',
+                      'i-carbon-view': tab === 'watch',
+                    },
+                  ]"
+                />
+                <span>{{ $t(`pages.commands.${tab}`) }}</span>
+              </div>
+            </router-link>
+          </DropdownMenu>
 
           <IconButton
             icon="i-carbon-settings"
@@ -122,60 +123,119 @@ function handleLanguageChange(langCode: string) {
             @click="router.push('/settings')"
           />
 
-          <!-- User avatar and dropdown menu -->
-          <div ref="userMenuRef" class="relative">
-            <IconButton
-              icon="i-carbon-user"
-              size="md"
-              custom-class="rounded-full"
-              aria-label="{{ $t('header.usermenu') }}"
-              @click="showUserMenu = !showUserMenu"
-            />
-
-            <!-- User menu -->
-            <div
-              v-if="showUserMenu"
-              class="absolute right-0 z-50 mt-2 w-48 border border-gray-200 rounded-md bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
-            >
-              <div v-if="userInfo" class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
-                <div>{{ userInfo.firstName }} {{ userInfo.lastName }}</div>
-                <div class="text-xs text-gray-500">
-                  @{{ userInfo.username }}
-                </div>
+          <!-- User menu -->
+          <DropdownMenu
+            icon="i-carbon-user"
+            :label="$t('header.usermenu')"
+          >
+            <div v-if="userInfo" class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
+              <div>{{ userInfo.firstName }} {{ userInfo.lastName }}</div>
+              <div class="text-xs text-gray-500">
+                @{{ userInfo.username }}
               </div>
-
-              <div class="border-b border-gray-200 dark:border-gray-700 my-2" />
-
-              <button
-                v-if="!isConnected"
-                class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                @click="handleLogin"
-              >
-                <div class="flex items-center">
-                  <div class="i-carbon-login mr-2 h-4 w-4" />
-                  <span>{{ $t('header.login') }}</span>
-                </div>
-              </button>
-
-              <button
-                v-if="isConnected"
-                class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                @click="handleLogout"
-              >
-                <div class="flex items-center">
-                  <div class="i-carbon-logout mr-2 h-4 w-4" />
-                  <span>{{ $t('header.logout') }}</span>
-                </div>
-              </button>
             </div>
-          </div>
+
+            <div class="my-2 border-b border-gray-200 dark:border-gray-700" />
+
+            <button
+              v-if="!isConnected"
+              class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+              @click="handleLogin"
+            >
+              <div class="flex items-center">
+                <div class="i-carbon-login mr-2 h-4 w-4" />
+                <span>{{ $t('header.login') }}</span>
+              </div>
+            </button>
+
+            <button
+              v-if="isConnected"
+              class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+              @click="handleLogout"
+            >
+              <div class="flex items-center">
+                <div class="i-carbon-logout mr-2 h-4 w-4" />
+                <span>{{ $t('header.logout') }}</span>
+              </div>
+            </button>
+          </DropdownMenu>
+
+          <!-- Language switcher -->
+          <DropdownMenu
+            icon="i-carbon-language"
+            :label="$t('header.language')"
+          >
+            <button
+              v-for="lang in supportedLanguages"
+              :key="lang.code"
+              class="w-full flex items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+              @click="handleLanguageChange(lang.code)"
+            >
+              <span>{{ lang.name }}</span>
+              <span v-if="locale === lang.code" class="i-carbon-checkmark h-4 w-4" />
+            </button>
+          </DropdownMenu>
+
+          <ThemeToggle />
         </div>
       </div>
     </header>
 
     <!-- Main content -->
-    <main class="mx-auto bg-white transition-colors duration-300 container dark:bg-gray-900">
+    <main class="mx-auto bg-white p-4 transition-colors duration-300 container dark:bg-gray-900">
       <slot />
     </main>
+
+    <!-- Global Dialog Wrapper -->
+    <div class="dialog-wrapper">
+      <slot name="dialog" />
+    </div>
   </div>
 </template>
+
+<style scoped>
+.dialog-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.dialog-wrapper :deep(dialog) {
+  pointer-events: auto;
+}
+
+/* 添加菜单动画 */
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes menu-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.menu-enter-active {
+  animation: menu-in 0.2s ease-out;
+}
+
+.menu-leave-active {
+  animation: menu-out 0.2s ease-in;
+}
+</style>

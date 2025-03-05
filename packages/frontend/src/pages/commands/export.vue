@@ -7,18 +7,8 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useExport } from '../../apis/commands/useExport'
+import { useChats } from '../../apis/useChats'
 import { useSession } from '../../composables/useSession'
-import CheckboxGroup from '../ui/CheckboxGroup.vue'
-import ProgressBar from '../ui/ProgressBar.vue'
-import RadioGroup from '../ui/RadioGroup.vue'
-import SearchSelect from '../ui/SearchSelect.vue'
-import SelectDropdown from '../ui/SelectDropdown.vue'
-import StatusBadge from '../ui/StatusBadge.vue'
-
-// Props
-const props = defineProps<{
-  chats: TelegramChat[]
-}>()
 
 const {
   executeExport,
@@ -50,6 +40,8 @@ const enableIncremental = ref<boolean>(false)
 const customMinId = ref<number | undefined>(undefined)
 
 // const canExport = computed(() => isConnected.value && selectedChatId.value && selectedMessageTypes.value.length > 0)
+
+const { chats, loadChats } = useChats()
 
 // Chat type options
 const chatTypeOptions = [
@@ -100,7 +92,7 @@ function formatNumber(num: number | undefined): string {
 
 // Filtered chats based on selected type
 const filteredChats = computed(() => {
-  return props.chats.filter((chat: TelegramChat) => chat.type === selectedChatType.value)
+  return chats.value.filter((chat: TelegramChat) => chat.type === selectedChatType.value)
 })
 
 // Format chat options for SearchSelect
@@ -137,6 +129,7 @@ const exportStatus = computed((): string => {
 
 // 检查连接状态
 onMounted(async () => {
+  loadChats()
   await checkConnection(false) // 不自动跳转到登录页
 })
 

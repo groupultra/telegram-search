@@ -18,14 +18,11 @@ import './styles/main.css'
 import 'uno.css'
 
 const app = createApp(App)
-
 const pinia = createPinia()
-
 const router = createRouter({
   routes,
   history: createWebHistory(import.meta.env.BASE_URL),
 })
-
 const i18n = createI18n({
   locale: 'zhCN',
   globalInjection: true,
