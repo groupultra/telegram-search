@@ -50,7 +50,7 @@ async function handleLogin() {
     <header class="sticky top-0 z-50 border-b bg-white transition-colors duration-300 dark:border-gray-800 dark:bg-gray-900">
       <div class="mx-auto h-14 flex items-center justify-between px-4 container">
         <router-link to="/" class="text-lg font-semibold transition-colors duration-300 dark:text-white">
-          Telegram Search
+          {{ $t('header.title') }}
         </router-link>
 
         <div class="flex items-center gap-4">
@@ -58,14 +58,14 @@ async function handleLogin() {
 
           <IconButton
             icon="i-carbon-mac-command"
-            aria-label="命令中心"
+            aria-label="{{$t('header.commands')}}"
             @click="router.push('/commands')"
           />
 
           <IconButton
             icon="i-carbon-settings"
             with-transition
-            aria-label="设置"
+            aria-label="{{$t('header.setting')}}"
             @click="router.push('/settings')"
           />
 
@@ -75,7 +75,7 @@ async function handleLogin() {
               icon="i-carbon-user"
               size="md"
               custom-class="rounded-full"
-              aria-label="用户菜单"
+              aria-label="{{ $t('header.usermenu') }}"
               @click="showUserMenu = !showUserMenu"
             />
 
@@ -91,7 +91,7 @@ async function handleLogin() {
               >
                 <div class="flex items-center">
                   <div class="i-carbon-login mr-2 h-4 w-4" />
-                  <span>登录</span>
+                  <span>{{ $t('header.login') }}</span>
                 </div>
               </button>
 
@@ -102,7 +102,7 @@ async function handleLogin() {
               >
                 <div class="flex items-center">
                   <div class="i-carbon-logout mr-2 h-4 w-4" />
-                  <span>退出登录</span>
+                  <span>{{ $t('header.logout') }}</span>
                 </div>
               </button>
             </div>

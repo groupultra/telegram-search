@@ -3,6 +3,7 @@
 import type { TelegramMessage } from '@tg-search/core'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   message: TelegramMessage & { highlight?: boolean }
@@ -12,6 +13,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'jumpToMessage', messageId: number): void
 }>()
+
+const { t } = useI18n()
 
 // Get avatar letter from name
 const avatarLetter = computed(() => {
@@ -138,11 +141,11 @@ function formatFileSize(bytes: number): string {
         </template>
         <template v-else-if="message.mediaInfo">
           <span class="text-gray-500 italic">
-            <template v-if="message.mediaInfo.type === 'photo'">[图片]</template>
-            <template v-else-if="message.mediaInfo.type === 'video'">[视频]</template>
-            <template v-else-if="message.mediaInfo.type === 'document'">[文档]</template>
-            <template v-else-if="message.mediaInfo.type === 'sticker'">[贴纸]</template>
-            <template v-else>[媒体]</template>
+            <template v-if="message.mediaInfo.type === 'photo'">[{{ t('component.message_bubble.photo') }}]</template>
+            <template v-else-if="message.mediaInfo.type === 'video'">[{{ t('component.message_bubble.video') }}]</template>
+            <template v-else-if="message.mediaInfo.type === 'document'">[{{ t('component.message_bubble.document') }}]</template>
+            <template v-else-if="message.mediaInfo.type === 'sticker'">[{{ t('component.message_bubble.sticker') }}]</template>
+            <template v-else>[{{ t('component.message_bubble.media') }}]</template>
           </span>
         </template>
       </div>
@@ -193,7 +196,7 @@ function formatFileSize(bytes: number): string {
             download
             class="rounded bg-gray-200 px-3 py-1.5 text-sm dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500"
           >
-            Download
+            {{ t('component.message_bubble.download') }}
           </a>
         </div>
 
@@ -211,7 +214,7 @@ function formatFileSize(bytes: number): string {
         <span>{{ formatTime(message.createdAt) }}</span>
         <span class="inline-flex items-center">
           <Icon icon="carbon:id" class="mr-1 h-4 w-4" />
-          ID: {{ message.id }}
+          {{ t('component.message_bubble.id', { id: message.id }) }}
         </span>
         <span v-if="message.views" class="inline-flex items-center">
           <Icon icon="carbon:view" class="mr-1 h-4 w-4" />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useAuthWs } from '../apis/useAuthWs' // 新版基于WebSocket的验证
@@ -9,6 +10,8 @@ import { ErrorCode } from '../types/error'
 
 // 定义登录流程的各个步骤
 type LoginStep = 'phone' | 'code' | 'code_2fa' | 'complete'
+
+const { t } = useI18n()
 
 // 登录状态类型定义
 interface LoginState {
@@ -87,7 +90,7 @@ const needCode2FA = computed(() => state.value.currentStep === 'code_2fa')
 // 监听WebSocket连接状态
 watch(connectionStatus, (newStatus) => {
   if (newStatus === ConnectionStatus.CLOSED || newStatus === ConnectionStatus.CLOSING) {
-    toast.error('服务器连接已断开，请刷新页面重试')
+    toast.error(t('pages.login.connection_status_close'))
   }
 })
 
@@ -105,7 +108,7 @@ watch(wsError, (newError) => {
 watch(needsVerificationCode, (newNeedsCode) => {
   if (newNeedsCode && state.value.currentStep !== 'code') {
     goToNextStep('code')
-    toast.info('请输入验证码')
+    toast.info(t('pages.login.enter_code'))
   }
 })
 
@@ -117,11 +120,11 @@ watch(progress, (newProgress) => {
     switch (newProgress.step) {
       case 'CODE_REQUIRED':
         goToNextStep('code')
-        toast.info('请输入验证码')
+        toast.info(t('pages.login.enter_code'))
         break
       case 'PASSWORD_REQUIRED':
         goToNextStep('code_2fa')
-        toast.info('需要输入两步验证密码')
+        toast.info(t('pages.login.enter_2fa_code'))
         break
     }
   }
@@ -145,7 +148,7 @@ watch(needsPassword, (newNeedsPassword) => {
   console.warn('需要2FA密码状态变更:', newNeedsPassword)
   if (newNeedsPassword && state.value.currentStep !== 'code_2fa') {
     goToNextStep('code_2fa')
-    toast.info('需要输入两步验证密码以完成登录')
+    toast.info(t('pages.login.alert_two_verify_code'))
   }
 })
 
@@ -232,7 +235,7 @@ async function startLogin() {
     // 接下来的步骤由WebSocket消息触发
   }
   catch (err) {
-    handleError(err, '开始登录失败，请重试')
+    handleError(err, t('pages.login.login_failure'))
   }
   finally {
     state.value.isLoading = false
@@ -255,7 +258,7 @@ async function submitCode() {
     // 结果会通过WebSocket回调处理
   }
   catch (err) {
-    handleError(err, '验证码提交失败')
+    handleError(err, t('pages.login.verify_code_submit_error'))
   }
   finally {
     state.value.isLoading = false
@@ -278,7 +281,7 @@ async function submitTwoFactorPassword() {
     // 结果会通过WebSocket回调处理
   }
   catch (err) {
-    handleError(err, '两步验证失败')
+    handleError(err, t('pages.login.two_step_verify_failure'))
   }
   finally {
     state.value.isLoading = false
@@ -304,7 +307,7 @@ function getApiOptions() {
 function handleSuccessfulConnection() {
   // 登录成功时记录日志 (只允许warn和error方法)
   console.warn('登录成功，准备重定向到', returnPath.value)
-  toast.success('连接成功！')
+  toast.success(t('pages.login.connection_success'))
   state.value.isConnected = true
   goToNextStep('complete')
 
@@ -394,10 +397,10 @@ function toggleAdvancedSettings() {
       <!-- 标题 -->
       <div class="text-center">
         <h2 class="text-3xl text-gray-900 font-extrabold tracking-tight dark:text-white">
-          连接 Telegram
+          {{ t('pages.login.connect_to_telegram') }}
         </h2>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          连接您的 Telegram 账户以同步和导出消息
+          {{ t('pages.login.connect_to_your_telegram') }}
         </p>
       </div>
 
@@ -410,10 +413,10 @@ function toggleAdvancedSettings() {
             </div>
             <div class="ml-3">
               <p class="text-sm text-green-800 font-medium dark:text-green-200">
-                已成功连接到 Telegram
+                {{ t('pages.login.connect_to_telegram_success') }}
               </p>
               <p class="mt-2 text-sm text-green-700 dark:text-green-300">
-                正在返回...
+                {{ t('pages.login.returning') }}
               </p>
             </div>
           </div>
@@ -430,7 +433,7 @@ function toggleAdvancedSettings() {
                 </div>
                 <div class="ml-3">
                   <h3 class="text-sm text-red-800 font-medium dark:text-red-200">
-                    连接出错
+                    {{ t('pages.login.connection_error') }}
                   </h3>
                   <div class="mt-2 text-sm text-red-700 dark:text-red-300">
                     <p>{{ state.error }}</p>
@@ -452,7 +455,7 @@ function toggleAdvancedSettings() {
                   >
                     <div class="i-carbon-phone-filled h-4 w-4" />
                   </div>
-                  <span class="mt-1 text-xs text-gray-600 dark:text-gray-400">手机号</span>
+                  <span class="mt-1 text-xs text-gray-600 dark:text-gray-400"> {{ t('pages.login.phone_number') }}</span>
                 </div>
                 <div class="h-0.5 w-6 bg-gray-200 dark:bg-gray-700" :class="{ 'bg-green-500 dark:bg-green-600': state.currentStep === 'code' || state.currentStep === 'code_2fa' || state.currentStep === 'complete' }" />
                 <div class="flex flex-col items-center">
@@ -465,7 +468,7 @@ function toggleAdvancedSettings() {
                   >
                     <div class="i-carbon-chat h-4 w-4" />
                   </div>
-                  <span class="mt-1 text-xs text-gray-600 dark:text-gray-400">验证码</span>
+                  <span class="mt-1 text-xs text-gray-600 dark:text-gray-400"> {{ t('pages.login.code') }}</span>
                 </div>
                 <div class="h-0.5 w-6 bg-gray-200 dark:bg-gray-700" :class="{ 'bg-green-500 dark:bg-green-600': state.currentStep === 'code_2fa' || state.currentStep === 'complete' }" />
                 <div class="flex flex-col items-center">
@@ -478,7 +481,7 @@ function toggleAdvancedSettings() {
                   >
                     <div class="i-carbon-locked h-4 w-4" />
                   </div>
-                  <span class="mt-1 text-xs text-gray-600 dark:text-gray-400">密码</span>
+                  <span class="mt-1 text-xs text-gray-600 dark:text-gray-400"> {{ t('pages.login.password') }}</span>
                 </div>
               </div>
             </div>
@@ -486,7 +489,7 @@ function toggleAdvancedSettings() {
             <!-- 手机号输入框 (步骤1) -->
             <div v-if="needPhoneNumber">
               <label for="phone" class="block text-sm text-gray-700 font-medium dark:text-gray-300">
-                Telegram 手机号
+                {{ t('pages.login.telegram_phone_number') }}
               </label>
               <div class="mt-1">
                 <input
@@ -500,14 +503,14 @@ function toggleAdvancedSettings() {
                 >
               </div>
               <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                请输入您的 Telegram 账户关联的手机号，包含国家/地区代码
+                {{ t('pages.login.alert_telegram_phone_number') }}
               </p>
             </div>
 
             <!-- 验证码输入框 (步骤2) -->
             <div v-if="needCode || needCode2FA">
               <label for="code" class="block text-sm text-gray-700 font-medium dark:text-gray-300">
-                验证码
+                {{ t('pages.login.code') }}
               </label>
               <div class="mt-1">
                 <input
@@ -521,18 +524,18 @@ function toggleAdvancedSettings() {
                   :readonly="needCode2FA"
                   class="block w-full appearance-none border border-gray-300 rounded-md px-3 py-2 shadow-sm dark:border-gray-600 focus:border-blue-500 dark:bg-gray-700 sm:text-sm dark:text-white focus:outline-none focus:ring-blue-500 placeholder-gray-400"
                   :class="{ 'bg-gray-100 dark:bg-gray-600': needCode2FA }"
-                  placeholder="请输入您收到的验证码"
+                  placeholder="{{ t('pages.login.placeholder_code') }}"
                 >
               </div>
               <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Telegram 已向您的设备发送了验证码，请输入以继续
+                {{ t('pages.login.sent_code_next_step') }}
               </p>
             </div>
 
             <!-- 两步验证密码输入框 (作为验证码的补充，同屏显示) -->
             <div v-if="needCode2FA">
               <label for="password" class="block text-sm text-gray-700 font-medium dark:text-gray-300">
-                两步验证密码
+                {{ t('pages.login.two_step_code') }}
               </label>
               <div class="mt-1">
                 <input
@@ -543,11 +546,11 @@ function toggleAdvancedSettings() {
                   autocomplete="current-password"
                   required
                   class="block w-full appearance-none border border-gray-300 rounded-md px-3 py-2 shadow-sm dark:border-gray-600 focus:border-blue-500 dark:bg-gray-700 sm:text-sm dark:text-white focus:outline-none focus:ring-blue-500 placeholder-gray-400"
-                  placeholder="请输入您的两步验证密码"
+                  placeholder="{{t('pages.login.placeholder_two_step_code')}}"
                 >
               </div>
               <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                需要您的两步验证密码以完成登录
+                {{ t("pages.login.alert_two_step_code") }}
               </p>
             </div>
 
@@ -566,7 +569,7 @@ function toggleAdvancedSettings() {
                       ]"
                     />
                   </span>
-                  高级设置
+                  {{ t('pages.login.advanced_settings') }}
                 </button>
               </div>
 
@@ -575,7 +578,7 @@ function toggleAdvancedSettings() {
                   <!-- API ID 输入 -->
                   <div>
                     <label for="apiId" class="block text-sm text-gray-700 font-medium dark:text-gray-300">
-                      API ID
+                      {{ t('pages.login.api_id') }}
                     </label>
                     <div class="mt-1">
                       <input
@@ -584,7 +587,7 @@ function toggleAdvancedSettings() {
                         name="apiId"
                         type="text"
                         class="block w-full appearance-none border border-gray-300 rounded-md px-3 py-2 shadow-sm dark:border-gray-600 focus:border-blue-500 dark:bg-gray-700 sm:text-sm dark:text-white focus:outline-none focus:ring-blue-500 placeholder-gray-400"
-                        :placeholder="config?.api?.telegram?.apiId || '请输入 API ID'"
+                        :placeholder="config?.api?.telegram?.apiId || t('pages.login.alert_api_id')"
                       >
                     </div>
                   </div>
@@ -592,7 +595,7 @@ function toggleAdvancedSettings() {
                   <!-- API Hash 输入 -->
                   <div>
                     <label for="apiHash" class="block text-sm text-gray-700 font-medium dark:text-gray-300">
-                      API Hash
+                      {{ t('pages.login.api_hash') }}
                     </label>
                     <div class="mt-1">
                       <input
@@ -601,13 +604,13 @@ function toggleAdvancedSettings() {
                         name="apiHash"
                         type="password"
                         class="block w-full appearance-none border border-gray-300 rounded-md px-3 py-2 shadow-sm dark:border-gray-600 focus:border-blue-500 dark:bg-gray-700 sm:text-sm dark:text-white focus:outline-none focus:ring-blue-500 placeholder-gray-400"
-                        :placeholder="config?.api?.telegram?.apiHash ? '******' : '请输入 API Hash'"
+                        :placeholder="config?.api?.telegram?.apiHash ? '******' : t('pages.login.alert_api_hash')"
                       >
                     </div>
                   </div>
 
                   <p class="text-xs text-gray-500 dark:text-gray-400">
-                    如果您有自己的 Telegram API 密钥，请在此处输入。如果不确定，请保留为空以使用默认值（配置文件中的值）。
+                    {{ t('pages.login.alert_api') }}
                   </p>
                 </div>
               </div>
@@ -622,7 +625,7 @@ function toggleAdvancedSettings() {
                 <span v-if="state.isLoading" class="mr-2">
                   <div class="i-carbon-circle-dash inline-block h-4 w-4 animate-spin" />
                 </span>
-                {{ needPhoneNumber ? '发送验证码' : needCode ? '下一步' : '提交验证' }}
+                {{ needPhoneNumber ? t("pages.login.send_code") : needCode ? t("pages.login.next_step") : t("pages.login.submit_code") }}
               </button>
             </div>
 
@@ -635,7 +638,7 @@ function toggleAdvancedSettings() {
                 @click="goToPreviousStep"
               >
                 <div class="i-carbon-arrow-left mr-1 h-4 w-4" />
-                返回上一步
+                {{ t("pages.login.go_back") }}
               </button>
               <button
                 v-if="!needPhoneNumber"
@@ -644,7 +647,7 @@ function toggleAdvancedSettings() {
                 @click="resetLogin"
               >
                 <div class="i-carbon-reset mr-1 h-4 w-4" />
-                重新开始
+                {{ t("pages.login.restart") }}
               </button>
             </div>
           </form>

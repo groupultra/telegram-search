@@ -1,5 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const props = withDefaults(defineProps<Props<any>>(), {
+  placeholder: 'Searching...',
+  disabled: false,
+  label: '',
+})
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: any): void
+}>()
+
+const { t } = useI18n()
 
 interface Option<T> {
   id: T
@@ -14,16 +27,6 @@ interface Props<T> {
   disabled?: boolean
   label?: string
 }
-
-const props = withDefaults(defineProps<Props<any>>(), {
-  placeholder: '搜索...',
-  disabled: false,
-  label: '',
-})
-
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: any): void
-}>()
 
 const searchQuery = ref('')
 const isDropdownOpen = ref(false)
@@ -139,13 +142,13 @@ watch(isDropdownOpen, (isOpen) => {
           </div>
         </div>
         <div v-if="filteredOptions.length === 0" class="px-4 py-2.5 text-sm text-gray-500 dark:text-gray-400">
-          无匹配选项
+          {{ t('component.search_select.no_match') }}
         </div>
       </div>
 
       <!-- Selected option display -->
       <div v-if="selectedOption" class="mt-2 flex items-center justify-between rounded-md bg-blue-50 px-3 py-2 text-sm dark:bg-blue-900/20">
-        <span>已选择: {{ selectedOption.label }}</span>
+        <span>{{ t('component.search_select.selected', { selected: selectedOption.label }) }}</span>
         <button
           class="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400"
           :disabled="disabled"

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Toaster } from 'vue-sonner'
 import { useChats } from '../apis/useChats'
 import { useCommandHandler } from '../composables/useCommands'
 
+const { t } = useI18n()
 // API composables
 const { chats, error: apiError, loadChats } = useChats()
 const { commands, error: commandError, cleanup } = useCommandHandler()
@@ -13,10 +15,10 @@ const activeCommandType = ref<'export' | 'import' | 'sync' | 'watch'>('export')
 
 // Command type options
 const commandTypeOptions = [
-  { label: '导出', value: 'export' as const },
-  { label: '导入', value: 'import' as const, disabled: true },
-  { label: '同步', value: 'sync' as const },
-  { label: '监控', value: 'watch' as const, disabled: true },
+  { label: t('pages.commands.export'), value: 'export' as const },
+  { label: t('pages.commands.import'), value: 'import' as const, disabled: true },
+  { label: t('pages.commands.sync'), value: 'sync' as const },
+  { label: t('pages.commands.watch'), value: 'watch' as const, disabled: true },
 ]
 
 // Lifecycle hooks
@@ -34,7 +36,7 @@ onUnmounted(() => {
     <!-- Header -->
     <div class="mb-4">
       <h1 class="mb-4 text-2xl font-bold">
-        命令管理
+        {{ t('pages.commands.command_manage') }}
       </h1>
 
       <!-- Command type selection -->

@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const props = withDefaults(defineProps<Props>(), {
+  status: 'default',
+  showPercentage: true,
+})
+
+const { t } = useI18n()
 
 interface Props {
   progress: number
   status?: 'default' | 'waiting' | 'running' | 'completed' | 'failed'
   showPercentage?: boolean
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  status: 'default',
-  showPercentage: true,
-})
 
 const statusClasses = computed(() => {
   const classes = {
@@ -35,7 +38,7 @@ const statusClasses = computed(() => {
       />
     </div>
     <div v-if="showPercentage" class="mt-2 flex justify-between text-sm text-gray-600 dark:text-gray-400">
-      <span>进度</span>
+      <span>{{ t('component.progress_bar.progress') }}</span>
       <span class="font-medium">{{ progress }}%</span>
     </div>
   </div>

@@ -4,6 +4,7 @@ import type { TelegramChat } from '@tg-search/core'
 import type { DatabaseMessageType } from '@tg-search/db'
 import type { ExportDetails } from '@tg-search/server'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useExport } from '../../apis/commands/useExport'
 import { useSession } from '../../composables/useSession'
@@ -33,6 +34,8 @@ onUnmounted(() => {
   cleanup()
 })
 
+const { t } = useI18n()
+
 // Selected chat type
 const selectedChatType = ref<'user' | 'group' | 'channel'>('user')
 // Selected chat
@@ -50,19 +53,19 @@ const customMinId = ref<number | undefined>(undefined)
 
 // Chat type options
 const chatTypeOptions = [
-  { label: '私聊', value: 'user' },
-  { label: '群组', value: 'group' },
-  { label: '频道', value: 'channel' },
+  { label: t('component.export_command.user_chat'), value: 'user' },
+  { label: t('component.export_command.group_chat'), value: 'group' },
+  { label: t('component.export_command.channels_chat'), value: 'channel' },
 ]
 
 // Message type options
 const messageTypeOptions = [
-  { label: '文本消息', value: 'text' },
-  { label: '图片', value: 'photo' },
-  { label: '视频', value: 'video' },
-  { label: '文档', value: 'document' },
-  { label: '贴纸', value: 'sticker' },
-  { label: '其他', value: 'other' },
+  { label: t('component.export_command.text'), value: 'text' },
+  { label: t('component.export_command.photo'), value: 'photo' },
+  { label: t('component.export_command.video'), value: 'video' },
+  { label: t('component.export_command.document'), value: 'document' },
+  { label: t('component.export_command.sticker'), value: 'sticker' },
+  { label: t('component.export_command.other'), value: 'other' },
 ]
 
 // Export method options
@@ -118,15 +121,15 @@ const commandStatus = computed((): 'waiting' | 'running' | 'completed' | 'failed
 // Human-readable export status
 const exportStatus = computed((): string => {
   if (!currentCommand.value) {
-    return '准备导出'
+    return t('component.export_command.preparation_guide')
   }
 
   const statusMap: Record<string, string> = {
-    running: '导出中',
-    waiting: '等待中',
-    completed: '导出完成',
-    failed: '导出失败',
-    default: '准备导出',
+    running: t('component.export_command.running'),
+    waiting: t('component.export_command.waiting'),
+    completed: t('component.export_command.completed'),
+    failed: t('component.export_command.failed'),
+    default: t('component.export_command.preparation_guide'),
   }
 
   return statusMap[currentCommand.value.status] || statusMap.default
@@ -141,22 +144,22 @@ onMounted(async () => {
 async function handleExport() {
   // 检查是否已连接到Telegram
   if (!isConnected.value) {
-    toast.error('请先连接Telegram以使用导出功能')
+    toast.error(t('component.export_command.not_connect'))
     return
   }
 
   // 验证所选项
   if (!selectedChatId.value) {
-    toast.error('请选择要导出的聊天')
+    toast.error(t('component.export_command.select_chat_v'))
     return
   }
 
   if (selectedMessageTypes.value.length === 0) {
-    toast.error('请至少选择一种消息类型')
+    toast.error(t('component.export_command.select_one_chat'))
     return
   }
 
-  const toastId = toast.loading('正在准备导出...')
+  const toastId = toast.loading(t('component.export_command.preparing_for_export'))
 
   // 准备导出参数
   const params = {
@@ -170,14 +173,14 @@ async function handleExport() {
   try {
     const result = await executeExport(params)
     if (result.success) {
-      toast.success('导出任务已开始', { id: toastId })
+      toast.success(t('component.export_command.export_task_started'), { id: toastId })
     }
     else {
-      toast.error((result.error as Error)?.message || '导出失败', { id: toastId })
+      toast.error((result.error as Error)?.message || t('component.export_command.failure_export'), { id: toastId })
     }
   }
   catch (error) {
-    toast.error(`导出错误: ${error instanceof Error ? error.message : '未知错误'}`, { id: toastId })
+    toast.error(t('component.export_command.export_error', { error: error instanceof Error ? error.message : '未知错误' }), { id: toastId })
   }
 }
 
@@ -254,7 +257,7 @@ function formatTime(seconds: number | string): string {
   }
 
   if (!seconds || seconds < 0)
-    return '未知'
+    return t('component.export_command.unknown')
 
   if (seconds < 60) {
     return `${Math.floor(seconds)}秒`
@@ -263,12 +266,18 @@ function formatTime(seconds: number | string): string {
   if (seconds < 3600) {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = Math.floor(seconds % 60)
-    return `${minutes}分${remainingSeconds > 0 ? `${remainingSeconds}秒` : ''}`
+    return t('component.export_command.minutes', {
+      minutes,
+      second: remainingSeconds,
+    })
   }
 
   const hours = Math.floor(seconds / 3600)
   const remainingMinutes = Math.floor((seconds % 3600) / 60)
-  return `${hours}小时${remainingMinutes > 0 ? `${remainingMinutes}分` : ''}`
+  return t('component.export_command.hours', {
+    minutes: remainingMinutes,
+    hours,
+  })
 }
 
 // Format speed (messages per second) to human-readable string
@@ -278,11 +287,15 @@ function formatSpeed(messagesPerSecond: number | string): string {
   }
 
   if (messagesPerSecond >= 1) {
-    return `${messagesPerSecond.toFixed(1)} 消息/秒`
+    return t('component.export_command.per_second', {
+      per_second: messagesPerSecond,
+    })
   }
 
   const messagesPerMinute = messagesPerSecond * 60
-  return `${messagesPerMinute.toFixed(1)} 消息/分钟`
+  return t('component.export_command.per_second', {
+    per_minute: messagesPerMinute,
+  })
 }
 </script>
 
@@ -296,17 +309,17 @@ function formatSpeed(messagesPerSecond: number | string): string {
         </div>
         <div class="ml-3">
           <h3 class="text-sm text-yellow-800 font-medium dark:text-yellow-200">
-            未连接到Telegram
+            {{ t("component.export_command.no_connect") }}
           </h3>
           <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-            <p>要使用导出功能，您需要先连接到Telegram。</p>
+            <p>{{ t("component.export_command.must_connect") }}</p>
           </div>
           <div class="mt-3">
             <router-link
               to="/login"
               class="rounded-md bg-yellow-50 px-2 py-1.5 text-sm text-yellow-800 font-medium dark:bg-yellow-900/50 hover:bg-yellow-100 dark:text-yellow-200 dark:hover:bg-yellow-800/50"
             >
-              去连接
+              {{ t("component.export_command.tp_connect") }}
             </router-link>
           </div>
         </div>
@@ -317,7 +330,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
     <div class="overflow-hidden rounded-lg bg-white shadow-md dark:bg-gray-800 dark:text-gray-100">
       <div class="p-5">
         <h2 class="mb-3 text-lg font-semibold">
-          导出设置
+          {{ t("component.export_command.export_settings") }}
         </h2>
 
         <!-- Chat Type Selection -->
@@ -325,7 +338,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
           <SelectDropdown
             v-model="selectedChatType"
             :options="chatTypeOptions"
-            label="会话类型"
+            :label="t('component.export_command.chat_type')"
             :disabled="isExporting"
           />
         </div>
@@ -335,8 +348,8 @@ function formatSpeed(messagesPerSecond: number | string): string {
           <SearchSelect
             v-model="selectedChatId"
             :options="chatOptions"
-            label="选择会话"
-            placeholder="搜索会话..."
+            :label="t('component.export_command.select_chat')"
+            :placeholder="t('component.export_command.placeholder_search')"
             :disabled="isExporting"
           />
         </div>
@@ -346,7 +359,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
           <CheckboxGroup
             v-model="selectedMessageTypes"
             :options="messageTypeOptions"
-            label="消息类型"
+            :label="t('component.export_command.message_type')"
             :disabled="isExporting"
           />
         </div>
@@ -356,7 +369,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
           <RadioGroup
             v-model="selectedMethod"
             :options="exportMethodOptions"
-            label="导出方式"
+            :label="t('component.export_command.export_method')"
             :disabled="isExporting"
           />
         </div>
@@ -370,19 +383,19 @@ function formatSpeed(messagesPerSecond: number | string): string {
               class="h-4 w-4 border-gray-300 rounded text-blue-600 focus:ring-blue-500"
               :disabled="isExporting"
             >
-            <span class="text-sm">增量导出 (仅导出上次导出之后的新消息)</span>
+            <span class="text-sm">{{ t('component.export_command.incremental_export') }}</span>
           </label>
         </div>
 
         <!-- Custom Min ID -->
         <div v-if="!enableIncremental" class="mb-5">
           <label class="mb-2 block text-sm text-gray-700 font-medium dark:text-gray-300">
-            自定义起始消息ID (可选)
+            {{ t('component.export_command.custom_id') }}
           </label>
           <input
             v-model="customMinId"
             type="number"
-            placeholder="从此ID开始导出（留空则从最新消息开始）"
+            :placeholder="t('component.export_command.placeholder_id')"
             class="w-full border border-gray-300 rounded-md p-2.5 text-gray-700 dark:border-gray-600 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:border-blue-500 dark:focus:ring-blue-700/30"
             :disabled="isExporting"
           >
@@ -396,11 +409,11 @@ function formatSpeed(messagesPerSecond: number | string): string {
         >
           <span v-if="isExporting" class="flex items-center justify-center">
             <span class="mr-2 inline-block animate-spin">⟳</span>
-            <span>导出中...</span>
+            <span>{{ t('component.export_command.exporting') }}</span>
           </span>
           <span v-else class="flex items-center justify-center">
             <span class="mr-2">↻</span>
-            <span>开始导出</span>
+            <span>{{ t('component.export_command.start_export') }}</span>
           </span>
           <span
             class="absolute bottom-0 left-0 h-1 bg-blue-400 transition-all duration-500"
@@ -418,7 +431,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
       <div class="p-5">
         <div class="mb-4 flex items-center justify-between">
           <h2 class="flex items-center text-lg font-semibold">
-            <span class="mr-2">导出状态</span>
+            <span class="mr-2">{{ t('component.export_command.export_status') }}</span>
             <span
               v-if="currentCommand.status === 'running'"
               class="inline-block animate-spin text-yellow-500"
@@ -443,14 +456,14 @@ function formatSpeed(messagesPerSecond: number | string): string {
         <div v-if="isWaiting" class="animate-fadeIn mb-5 rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
           <p class="flex items-center">
             <span class="mr-2 text-lg">⏱</span>
-            <span>Telegram API 限制中...将在 {{ waitingTimeLeft }} 秒后恢复。</span>
+            <span>{{ t('component.export_command.telegram_limit', { waitingTimeLeft }) }}</span>
           </p>
         </div>
 
         <!-- Status message -->
         <div v-if="currentCommand.message" class="mb-4 text-sm text-gray-700 dark:text-gray-300">
           <p class="mb-1 font-medium">
-            当前状态:
+            {{ t('component.export_command.current_state') }}
           </p>
           <p>
             {{ currentCommand.message }}
@@ -459,13 +472,13 @@ function formatSpeed(messagesPerSecond: number | string): string {
                 v-if="!!totalMessages && !!processedMessages"
                 class="text-blue-600 font-medium dark:text-blue-400"
               >
-                ({{ formatNumber(processedMessages) }} / {{ formatNumber(totalMessages) }} 条)
+                ({{ formatNumber(processedMessages) }} / {{ formatNumber(totalMessages) }} {{ t('component.export_command.item') }})
               </span>
               <span
                 v-else-if="exportDetails?.totalMessages"
                 class="text-blue-600 font-medium dark:text-blue-400"
               >
-                (共 {{ formatNumber(exportDetails.totalMessages) }} 条)
+                ({{ t('component.export_command.total') }} {{ formatNumber(exportDetails.totalMessages) }} {{ t('component.export_command.item') }})
               </span>
             </template>
           </p>
@@ -474,18 +487,18 @@ function formatSpeed(messagesPerSecond: number | string): string {
         <!-- Export details -->
         <div v-if="exportDetails" class="mt-6 space-y-4">
           <h3 class="text-gray-800 font-medium dark:text-gray-200">
-            导出详情
+            {{ t('component.export_command.export_detail') }}
           </h3>
 
           <div class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
             <div class="text-sm space-y-3">
               <div v-if="exportDetails.totalMessages !== undefined" class="flex items-center justify-between">
-                <span class="text-gray-600 dark:text-gray-300">总消息数：</span>
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.total_message') }}</span>
                 <span class="font-medium">{{ formatNumber(exportDetails.totalMessages) }}</span>
               </div>
 
               <div v-if="exportDetails.processedMessages !== undefined" class="flex items-center justify-between">
-                <span class="text-gray-600 dark:text-gray-300">已处理消息：</span>
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.processed_message') }} </span>
                 <span class="flex items-center font-medium">
                   {{ formatNumber(exportDetails.processedMessages) }}
                   <template v-if="exportDetails.totalMessages !== undefined">
@@ -495,12 +508,12 @@ function formatSpeed(messagesPerSecond: number | string): string {
               </div>
 
               <div v-if="exportDetails.failedMessages" class="flex items-center justify-between text-red-600 dark:text-red-400">
-                <span>失败消息：</span>
+                <span>{{ t('component.export_command.failure_message') }}</span>
                 <span class="font-medium">{{ formatNumber(exportDetails.failedMessages) }}</span>
               </div>
 
               <div v-if="exportDetails.currentBatch && exportDetails.totalBatches" class="flex items-center justify-between">
-                <span class="text-gray-600 dark:text-gray-300">当前批次：</span>
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.current_batch') }}</span>
                 <span class="font-medium">{{ exportDetails.currentBatch }} / {{ exportDetails.totalBatches }}</span>
               </div>
             </div>
@@ -509,17 +522,17 @@ function formatSpeed(messagesPerSecond: number | string): string {
           <div class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
             <div class="text-sm space-y-3">
               <div v-if="exportDetails.currentSpeed" class="flex items-center justify-between">
-                <span class="text-gray-600 dark:text-gray-300">当前速度：</span>
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.current_speed') }}</span>
                 <span class="font-medium">{{ formatSpeed(exportDetails.currentSpeed) }}</span>
               </div>
 
               <div v-if="exportDetails.estimatedTimeRemaining" class="flex items-center justify-between">
-                <span class="text-gray-600 dark:text-gray-300">预计剩余时间：</span>
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.estimated_remaining_time') }}</span>
                 <span class="font-medium">{{ formatTime(exportDetails.estimatedTimeRemaining) }}</span>
               </div>
 
               <div v-if="exportDetails.totalDuration" class="flex items-center justify-between">
-                <span class="text-gray-600 dark:text-gray-300">总耗时：</span>
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.total_time') }}</span>
                 <span class="font-medium">{{ formatTime(exportDetails.totalDuration) }}</span>
               </div>
             </div>
@@ -527,7 +540,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
 
           <div v-if="exportDetails.error" class="animate-fadeIn mt-4 rounded-md bg-red-50 p-4 text-red-700 dark:bg-red-900/50 dark:text-red-100">
             <p class="mb-2 font-medium">
-              错误信息:
+              {{ t('component.export_command.error_message') }}
             </p>
             <div v-if="typeof exportDetails.error === 'string'" class="text-sm">
               {{ exportDetails.error }}
@@ -546,7 +559,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
         >
           <p class="flex items-center">
             <span class="mr-2 text-lg">✓</span>
-            <span>导出已完成！您可以在数据库中查看导出的消息。</span>
+            <span>{{ t('component.export_command.export_success') }}</span>
           </p>
         </div>
       </div>

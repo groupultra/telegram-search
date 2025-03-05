@@ -1,13 +1,14 @@
 <!-- Chat list page -->
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useChats } from '../apis/useChats'
 
 // Initialize API client and router
 const { loading, error, chats, loadChats } = useChats()
 const router = useRouter()
-
+const { t } = useI18n()
 // Computed properties for filtered and categorized chats
 const nonEmptyChats = computed(() => chats.value.filter(chat => chat.messageCount && chat.messageCount > 0))
 const privateChats = computed(() => nonEmptyChats.value.filter(chat => chat.type === 'user'))
@@ -28,12 +29,12 @@ onMounted(async () => {
 <template>
   <div class="p-4">
     <h1 class="mb-4 text-2xl font-bold">
-      Chats
+      {{ t('pages.index.chats') }}
     </h1>
 
     <!-- Loading state -->
     <div v-if="loading" class="text-gray-500">
-      Loading...
+      {{ t('pages.index.loading') }}
     </div>
 
     <!-- Error state -->
@@ -46,7 +47,7 @@ onMounted(async () => {
       <!-- Private Chats -->
       <div v-if="privateChats.length > 0">
         <h2 class="mb-2 text-xl font-semibold">
-          Private Chats
+          {{ t('pages.index.private_chats') }}
         </h2>
         <div class="space-y-2">
           <div
@@ -57,12 +58,12 @@ onMounted(async () => {
           >
             <h2 class="text-left text-lg font-semibold">
               {{ chat.title }}
-              <span class="ml-2 text-xs text-gray-500 font-normal">ID: {{ chat.id }}</span>
+              <span class="ml-2 text-xs text-gray-500 font-normal">{{ t('pages.index.id', { id: chat.id }) }}</span>
             </h2>
             <div class="mt-2 flex items-center gap-4 text-sm text-gray-500">
-              <span>{{ chat.messageCount }} messages</span>
+              <span>{{ t('pages.index.messages_count', { count: chat.messageCount }) }}</span>
               <span v-if="chat.lastMessageDate">
-                Last message: {{ new Date(chat.lastMessageDate).toLocaleString() }}
+                {{ t('pages.index.last_message', { date: new Date(chat.lastMessageDate).toLocaleString() }) }}
               </span>
             </div>
           </div>
@@ -72,7 +73,7 @@ onMounted(async () => {
       <!-- Group Chats -->
       <div v-if="groupChats.length > 0">
         <h2 class="mb-2 text-xl font-semibold">
-          Group Chats
+          {{ t('pages.index.group_chats') }}
         </h2>
         <div class="space-y-2">
           <div
@@ -83,12 +84,12 @@ onMounted(async () => {
           >
             <h2 class="text-left text-lg font-semibold">
               {{ chat.title }}
-              <span class="ml-2 text-xs text-gray-500 font-normal">ID: {{ chat.id }}</span>
+              <span class="ml-2 text-xs text-gray-500 font-normal">{{ t('pages.index.id', { id: chat.id }) }}</span>
             </h2>
             <div class="mt-2 flex items-center gap-4 text-sm text-gray-500">
-              <span>{{ chat.messageCount }} messages</span>
+              <span>{{ t('pages.index.messages_count', { count: chat.messageCount }) }}</span>
               <span v-if="chat.lastMessageDate">
-                Last message: {{ new Date(chat.lastMessageDate).toLocaleString() }}
+                {{ t('pages.index.last_message', { date: new Date(chat.lastMessageDate).toLocaleString() }) }}
               </span>
             </div>
           </div>
@@ -98,7 +99,7 @@ onMounted(async () => {
       <!-- Channel Chats -->
       <div v-if="channelChats.length > 0">
         <h2 class="mb-2 text-xl font-semibold">
-          Channels
+          {{ t('pages.index.channels') }}
         </h2>
         <div class="space-y-2">
           <div
@@ -109,12 +110,12 @@ onMounted(async () => {
           >
             <h2 class="text-left text-lg font-semibold">
               {{ chat.title }}
-              <span class="ml-2 text-xs text-gray-500 font-normal">ID: {{ chat.id }}</span>
+              <span class="ml-2 text-xs text-gray-500 font-normal">{{ t('pages.index.id', { id: chat.id }) }}</span>
             </h2>
             <div class="mt-2 flex items-center gap-4 text-sm text-gray-500">
-              <span>{{ chat.messageCount }} messages</span>
+              <span>{{ t('pages.index.messages_count', { count: chat.messageCount }) }}</span>
               <span v-if="chat.lastMessageDate">
-                Last message: {{ new Date(chat.lastMessageDate).toLocaleString() }}
+                {{ t('pages.index.last_message', { date: new Date(chat.lastMessageDate).toLocaleString() }) }}
               </span>
             </div>
           </div>
@@ -123,7 +124,7 @@ onMounted(async () => {
 
       <!-- Empty state -->
       <div v-if="nonEmptyChats.length === 0" class="text-gray-500">
-        No chats found
+        {{ t('pages.index.no_chats_found') }}
       </div>
     </div>
   </div>

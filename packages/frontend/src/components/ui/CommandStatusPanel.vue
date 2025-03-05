@@ -1,6 +1,7 @@
 <!-- Command Status Panel component -->
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ProgressBar from './ProgressBar.vue'
 import StatusBadge from './StatusBadge.vue'
 
@@ -40,17 +41,19 @@ const props = defineProps<{
   completionMessage?: string
 }>()
 
+const { t } = useI18n()
+
 /**
  * Human-readable status text
  */
 const statusText = computed((): string => {
   const statusMap: Record<CommandStatus, string> = {
-    running: '运行中',
-    waiting: '等待中',
-    completed: '已完成',
-    failed: '失败',
+    running: t('component.command_status_panel.running'),
+    waiting: t('component.command_status_panel.waiting'),
+    completed: t('component.command_status_panel.completed'),
+    failed: t('component.command_status_panel.failed'),
   }
-  return statusMap[props.status] || '准备中'
+  return statusMap[props.status] || t('component.command_status_panel.in_preparation')
 })
 
 /**
@@ -72,7 +75,7 @@ const statusIcon = computed((): string => {
     <div class="p-5">
       <div class="mb-4 flex items-center justify-between">
         <h2 class="flex items-center text-lg font-semibold">
-          <span class="mr-2">{{ title || '命令状态' }}</span>
+          <span class="mr-2">{{ title || t('component.command_status_panel.command_status') }}</span>
           <span
             v-if="status === 'running'"
             class="inline-block animate-spin text-yellow-500"
@@ -96,7 +99,7 @@ const statusIcon = computed((): string => {
       <!-- Status message -->
       <div v-if="message" class="mb-4 text-sm text-gray-700 dark:text-gray-300">
         <p class="mb-1 font-medium">
-          当前状态:
+          {{ t('component.command_status_panel.current_status') }}
         </p>
         <p>{{ message }}</p>
       </div>
@@ -107,7 +110,7 @@ const statusIcon = computed((): string => {
         class="animate-fadeIn mt-4 rounded-md bg-red-50 p-4 text-red-700 dark:bg-red-900/50 dark:text-red-100"
       >
         <p class="mb-2 font-medium">
-          错误信息:
+          {{ t('component.command_status_panel.error_message') }}
         </p>
         <div v-if="typeof error === 'string'" class="text-sm">
           {{ error }}
@@ -125,7 +128,7 @@ const statusIcon = computed((): string => {
       >
         <p class="flex items-center">
           <span class="mr-2 text-lg">✓</span>
-          <span>{{ completionMessage || '命令已成功完成！' }}</span>
+          <span>{{ completionMessage || t('component.command_status_panel.command_success') }}</span>
         </p>
       </div>
 
