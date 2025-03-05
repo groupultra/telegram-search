@@ -38,7 +38,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^22.13.8",
+    "@types/node": "^22.13.9",
     "unbuild": "^3.5.0",
     "vitest": "^3.0.7"
   }

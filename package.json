@@ -27,7 +27,7 @@
     "bump:deps": "taze -I -f -w -r"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.3.0",
+    "@antfu/eslint-config": "^4.5.1",
     "bumpp": "^10.0.3",
     "eslint": "^9.21.0",
     "eslint-plugin-format": "^1.0.1",
