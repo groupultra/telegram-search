@@ -40,19 +40,6 @@ importers:
         specifier: ^5.8.2
         version: 5.8.2
 
-  libs/pg-vector:
-    dependencies:
-      drizzle-orm:
-        specifier: ^0.40.0
-        version: 0.40.0(@types/pg@8.11.11)(gel@2.0.0)(pg@8.13.3)(postgres@3.4.5)
-    devDependencies:
-      typescript:
-        specifier: ^5.8.2
-        version: 5.8.2
-      unbuild:
-        specifier: ^3.5.0
-        version: 3.5.0(typescript@5.8.2)(vue-tsc@2.2.8(typescript@5.8.2))(vue@3.5.13(typescript@5.8.2))
-
   packages/cli:
     dependencies:
       '@inquirer/prompts':
@@ -189,7 +176,7 @@ importers:
         version: link:../common
       '@tg-search/pg-vector':
         specifier: workspace:*
-        version: link:../../libs/pg-vector
+        version: link:../pg-vector
       drizzle-kit:
         specifier: ^0.30.5
         version: 0.30.5
@@ -345,6 +332,19 @@ importers:
       vue-tsc:
         specifier: ^2.2.8
         version: 2.2.8(typescript@5.8.2)
+
+  packages/pg-vector:
+    dependencies:
+      drizzle-orm:
+        specifier: ^0.40.0
+        version: 0.40.0(@types/pg@8.11.11)(gel@2.0.0)(pg@8.13.3)(postgres@3.4.5)
+    devDependencies:
+      typescript:
+        specifier: ^5.8.2
+        version: 5.8.2
+      unbuild:
+        specifier: ^3.5.0
+        version: 3.5.0(typescript@5.8.2)(vue-tsc@2.2.8(typescript@5.8.2))(vue@3.5.13(typescript@5.8.2))
 
   packages/server:
     dependencies:
@@ -6936,7 +6936,7 @@ snapshots:
 
   '@unocss/eslint-plugin@66.0.0(eslint@9.21.0(jiti@2.4.2))(typescript@5.8.2)':
     dependencies:
-      '@typescript-eslint/utils': 8.25.0(eslint@9.21.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/utils': 8.26.0(eslint@9.21.0(jiti@2.4.2))(typescript@5.8.2)
       '@unocss/config': 66.0.0
       '@unocss/core': 66.0.0
       '@unocss/rule-utils': 66.0.0

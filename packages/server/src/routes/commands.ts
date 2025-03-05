@@ -1,7 +1,9 @@
 import type { App, H3Event } from 'h3'
 
 import { useLogger } from '@tg-search/common'
+import { MultiSyncService } from '@tg-search/core'
 import { createRouter, defineEventHandler, readBody } from 'h3'
+import { z } from 'zod'
 
 import { exportCommandSchema } from '../services/commands/export'
 import { CommandManager } from '../services/commands/manager'
@@ -10,6 +12,14 @@ import { useTelegramClient } from '../services/telegram'
 import { createSSEResponse } from '../utils/sse'
 
 const logger = useLogger()
+
+// 验证模式
+const multiSyncSchema = z.object({
+  chatIds: z.array(z.number()),
+  type: z.enum(['metadata', 'messages']).optional(),
+  priorities: z.record(z.string(), z.number()).optional(),
+  options: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
+})
 
 /**
  * Setup command routes
@@ -32,6 +42,34 @@ export function setupCommandRoutes(app: App) {
       await commandManager.executeCommand('sync', client, params, controller)
     })
   }))
+
+  // Add multi-sync route
+  router.post('/multi-sync', defineEventHandler(async (event: H3Event) => {
+    const body = await readBody(event)
+    const validatedBody = multiSyncSchema.parse(body)
+
+    logger.withFields(validatedBody).debug('Multi-sync request received')
+
+    const client = await useTelegramClient()
+    if (!await client.isConnected()) {
+      await client.connect()
+    }
+
+    const service = new MultiSyncService(client)
+    return createSSEResponse(async (controller) => {
+      try {
+        await service.startMultiSync(validatedBody)
+        controller.send({ type: 'success' })
+      }
+      catch (error) {
+        controller.send({
+          type: 'error',
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+    })
+  }))
+
   router.post('/export', defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const validatedBody = exportCommandSchema.parse(body)

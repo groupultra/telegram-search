@@ -1,0 +1,21 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "error": "Error"
+  },
+  "sync_command": {
+    "select_chats": "Select Chats to Sync",
+    "start_sync": "Start Sync",
+    "set_priorities": "Set Priorities",
+    "sync_status": "Sync Status",
+    "status": {
+      "idle": "Idle",
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  }
+} 

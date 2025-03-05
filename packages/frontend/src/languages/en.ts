@@ -110,6 +110,9 @@ export default {
     },
   },
   component: {
+    grid_selector: {
+      type: 'Type',
+    },
     message_bubble: {
       photo: 'Photo',
       video: 'Video',
@@ -220,6 +223,22 @@ export default {
       folder_sync: 'Folder synchronization:',
       error_message: 'Error Message:',
       sync_success_data: 'Synchronization completed! Your data has been successfully synchronized.',
+      multi_sync: 'Multi-Session Sync',
+      select_chats: 'Select Chats to Sync',
+      set_priorities: 'Set Priorities',
+      status: {
+        idle: 'Idle',
+        queued: 'Queued',
+        running: 'Running',
+        completed: 'Completed',
+        failed: 'Failed',
+        cancelled: 'Cancelled',
+      },
+      multi_sync_error: 'Multi-session sync failed: {error}',
+      multi_sync_success: 'Multi-session sync started',
+      multi_sync_tip: 'Select multiple chats to sync, you can set sync priorities',
+      no_chats_selected: 'Please select at least one chat',
+      priority_tip: 'Priority range: 0-100, higher number means higher priority',
     },
   },
 } as any

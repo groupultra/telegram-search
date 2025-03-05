@@ -110,6 +110,9 @@ export default {
     },
   },
   component: {
+    grid_selector: {
+      type: '类型',
+    },
     message_bubble: {
       photo: '照片',
       video: '视频',
@@ -220,6 +223,24 @@ export default {
       folder_sync: '文件夹同步：',
       error_message: '错误信息：',
       sync_success_data: '同步完成！您的数据已成功同步。',
+      multi_sync: '多会话同步',
+      select_chats: '选择要同步的会话',
+      set_priorities: '设置优先级',
+      status: {
+        idle: '等待中',
+        queued: '排队中',
+        running: '同步中',
+        completed: '已完成',
+        failed: '失败',
+        cancelled: '已取消',
+      },
+      multi_sync_error: '多会话同步失败：{error}',
+      multi_sync_success: '多会话同步已开始',
+      multi_sync_tip: '选择多个会话进行同步，可以设置同步优先级',
+      no_sync_task: '暂无同步任务',
+      no_chats_selected: '请至少选择一个会话',
+      priority_tip: '优先级范围：0-100，数字越大优先级越高',
+      selected_count: '已选择 {count} 个会话',
     },
   },
 } as any
