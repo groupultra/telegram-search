@@ -26,7 +26,7 @@ const router = createRouter({
 })
 
 const i18n = createI18n({
-  locale: 'ru',
+  locale: 'en',
   globalInjection: true,
   messages: {
     en,
