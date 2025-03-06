@@ -5,8 +5,8 @@ import { vector } from '@tg-search/pg-vector'
 import { sql } from 'drizzle-orm'
 import { bigint, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
-import { tsvector } from './tsvector'
 import { databaseMessageTypeEnum } from './types'
+import { tsvector } from './utils/tsvector'
 
 /**
  * Get table name for a chat partition

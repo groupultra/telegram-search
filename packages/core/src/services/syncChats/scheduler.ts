@@ -1,9 +1,11 @@
 import type { SyncConfigItem } from '@tg-search/db'
 import type { SyncTask, SyncType } from '../../types'
+import type { ITelegramClientAdapter } from '../../types/adapter'
 
 import { useLogger } from '@tg-search/common'
 import { cancelSyncConfig, getSyncConfigByChatId, getSyncConfigByChatIdAndType, updateSyncStatus, upsertSyncConfig } from '@tg-search/db'
 
+import { ExportService } from '../export'
 import { PriorityQueue } from './priority-queue'
 
 export class SyncScheduler {
@@ -12,7 +14,10 @@ export class SyncScheduler {
   private active = new Set<number>()
   private logger = useLogger()
 
-  constructor(maxConcurrent = 3) {
+  constructor(
+    private client: ITelegramClientAdapter,
+    maxConcurrent = 3,
+  ) {
     this.maxConcurrent = maxConcurrent
     this.queue = new PriorityQueue((a, b) => b.priority - a.priority)
   }
@@ -78,10 +83,50 @@ export class SyncScheduler {
     }
   }
 
-  private async executeMetadataSync(_task: SyncTask): Promise<void> {
-    // 实际的同步逻辑将在 MetadataSyncServices 中实现
-    // 这里只是一个占位符
-    throw new Error('Not implemented')
+  private async executeMetadataSync(task: SyncTask): Promise<void> {
+    const { chatId } = task
+    const logger = useLogger()
+
+    try {
+      // Get chat metadata first
+      const chats = await this.client.getDialogs()
+      const chat = chats.find(c => c.id === chatId)
+      if (!chat) {
+        throw new Error(`Chat ${chatId} not found`)
+      }
+
+      // Create export service instance
+      const exportService = new ExportService(this.client)
+
+      // Execute export with metadata-only configuration
+      await exportService.exportMessages({
+        chatId,
+        chatMetadata: {
+          id: chat.id,
+          title: chat.title,
+          type: chat.type,
+        },
+        // Set minimal message export to update metadata
+        messageTypes: [],
+        limit: 1,
+        format: 'database',
+        method: 'getMessage',
+        onProgress: (progress, message, metadata) => {
+          logger.debug('Metadata sync progress', {
+            progress,
+            message,
+            metadata,
+            chatId,
+          })
+        },
+      })
+
+      logger.log(`Successfully synced metadata for chat ${chatId}`)
+    }
+    catch (error) {
+      logger.withError(error).error(`Failed to sync metadata for chat ${chatId}`)
+      throw error
+    }
   }
 
   async cancelSync(chatId: number, type?: SyncType): Promise<void> {

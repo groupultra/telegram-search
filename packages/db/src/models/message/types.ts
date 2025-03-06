@@ -1,5 +1,5 @@
 import type { DatabaseMediaInfo, DatabaseMessageType } from '../../schema'
-import type { tsvector } from '../../schema/tsvector'
+import type { tsvector } from '../../schema/utils/tsvector'
 
 /**
  * Base message fields shared across interfaces

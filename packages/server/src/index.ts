@@ -8,7 +8,6 @@ import wsAdapter from 'crossws/adapters/node'
 import {
   createApp,
   eventHandler,
-  getRequestHeader,
   setResponseHeaders,
   toNodeListener,
 } from 'h3'
@@ -73,18 +72,15 @@ function configureServer(logger: ReturnType<typeof useLogger>) {
     onRequest(event) {
       const path = event.path
       const method = event.method
-      const userAgent = getRequestHeader(event, 'user-agent')
 
       logger.withFields({
         method,
         path,
-        userAgent,
       }).debug('Request started')
     },
     onError(error, event) {
       const path = event.path
       const method = event.method
-      const userAgent = getRequestHeader(event, 'user-agent')
 
       const status = error instanceof Error && 'statusCode' in error
         ? (error as { statusCode: number }).statusCode
@@ -95,7 +91,6 @@ function configureServer(logger: ReturnType<typeof useLogger>) {
         path,
         status,
         error: error instanceof Error ? error.message : 'Unknown error',
-        userAgent,
       }).error('Request failed')
 
       return createErrorResponse(error)

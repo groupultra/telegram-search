@@ -24,8 +24,8 @@ export class ChatsSyncServices {
     metadataConcurrent = 5, // metadata 同步支持更高并发
     messageConcurrent = 3, // messages 同步需要控制并发
   ) {
-    this.metadataScheduler = new SyncScheduler(metadataConcurrent)
-    this.messageScheduler = new SyncScheduler(messageConcurrent)
+    this.metadataScheduler = new SyncScheduler(client, metadataConcurrent)
+    this.messageScheduler = new SyncScheduler(client, messageConcurrent)
   }
 
   async startMultiSync(options: ChatsSyncOptions): Promise<void> {
