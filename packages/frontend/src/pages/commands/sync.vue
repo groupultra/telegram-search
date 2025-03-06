@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useChats } from '../../apis/useChats'
 import MultiSyncStatus from '../../components/commands/sync/MultiSyncStatus.vue'
+import SelectDropdown from '../../components/ui/SelectDropdown.vue'
+import Pagination from '../../components/ui/Pagination.vue'
 import { useMultiSync } from '../../composables/useMultiSync'
 import { useSession } from '../../composables/useSession'
 
@@ -18,6 +20,12 @@ const selectedChats = ref<number[]>([])
 const priorities = ref<Record<number, number>>({})
 const showPriorityDialog = ref(false)
 const showConnectButton = ref(false)
+
+// Grid selector states
+const selectedType = ref<string>('user')
+const searchQuery = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 12
 
 // Chat type options
 const chatTypeOptions = [
@@ -34,8 +42,67 @@ const gridOptions = computed(() => chats.value.map(chat => ({
   type: chat.type,
 })))
 
-// 计算选中的会话数量
+// Filtered options based on type and search query
+const filteredOptions = computed(() => {
+  let filtered = gridOptions.value
+
+  // Filter by type if type is selected
+  if (selectedType.value) {
+    filtered = filtered.filter(option => option.type === selectedType.value)
+  }
+
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(option =>
+      option.title.toLowerCase().includes(query)
+      || option.subtitle?.toLowerCase().includes(query)
+      || option.id.toString().includes(query),
+    )
+  }
+
+  // Sort by selection status
+  return filtered.sort((a, b) => {
+    const aSelected = selectedChats.value.includes(a.id)
+    const bSelected = selectedChats.value.includes(b.id)
+    if (aSelected && !bSelected)
+      return -1
+    if (!aSelected && bSelected)
+      return 1
+    return 0
+  })
+})
+
+// Paginated options
+const paginatedOptions = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  return filteredOptions.value.slice(startIndex, endIndex)
+})
+
+// Total pages
+const totalPages = computed(() =>
+  Math.ceil(filteredOptions.value.length / itemsPerPage),
+)
+
+// Selected count
 const selectedCount = computed(() => selectedChats.value.length)
+
+function isSelected(id: number): boolean {
+  return selectedChats.value.includes(id)
+}
+
+function toggleSelection(id: number): void {
+  const index = selectedChats.value.indexOf(id)
+  if (index === -1)
+    selectedChats.value.push(id)
+  else
+    selectedChats.value.splice(index, 1)
+}
+
+function changePage(page: number): void {
+  currentPage.value = page
+}
 
 function getChatTitle(chatId: number) {
   return chats.value.find(c => c.id === chatId)?.title || chatId
@@ -76,6 +143,11 @@ function goToLogin(): void {
   const currentPath = router.currentRoute.value.fullPath
   router.push(`/login?redirect=${encodeURIComponent(currentPath)}`)
 }
+
+// Reset page when filters change
+watch([selectedType, searchQuery], () => {
+  currentPage.value = 1
+})
 
 onMounted(async () => {
   await loadChats()
@@ -130,13 +202,76 @@ onMounted(async () => {
       </div>
     </div>
 
-    <GridSelector
-      v-model="selectedChats"
-      :options="gridOptions"
-      :type-options="chatTypeOptions"
-      :search-placeholder="t('component.export_command.placeholder_search')"
-      :no-results-text="t('pages.index.not_chats_found')"
-    />
+    <div class="space-y-4">
+      <!-- Filters -->
+      <div class="flex flex-col items-start gap-4 md:flex-row md:items-end">
+        <!-- Type Selection -->
+        <div class="w-full md:w-48">
+          <SelectDropdown
+            v-model="selectedType"
+            :options="chatTypeOptions"
+            :label="t('component.grid_selector.type')"
+          />
+        </div>
+
+        <!-- Search Input -->
+        <div class="flex-1">
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="w-full border border-gray-300 rounded-md px-4 py-2 dark:border-gray-600 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            :placeholder="t('component.export_command.placeholder_search')"
+          >
+        </div>
+      </div>
+
+      <!-- Grid List -->
+      <TransitionGroup
+        name="grid-list"
+        tag="div"
+        class="grid gap-4 lg:grid-cols-3 md:grid-cols-2"
+      >
+        <button
+          v-for="option in paginatedOptions"
+          :key="option.id"
+          class="grid-item relative w-full flex cursor-pointer items-center border rounded-lg p-4 text-left space-x-3 hover:shadow-md"
+          :class="{
+            'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md selected': isSelected(option.id),
+            'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600': !isSelected(option.id),
+          }"
+          @click="toggleSelection(option.id)"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="focus:outline-none">
+              <p class="flex items-center gap-2 text-sm text-gray-900 font-medium dark:text-gray-100">
+                {{ option.title }}
+                <TransitionGroup name="fade">
+                  <span v-if="isSelected(option.id)" :key="`check${option.id}`" class="text-blue-500 dark:text-blue-400">
+                    <div class="i-lucide-circle-check h-4 w-4" />
+                  </span>
+                </TransitionGroup>
+              </p>
+              <p v-if="option.subtitle" class="truncate text-sm text-gray-500 dark:text-gray-400">
+                {{ option.subtitle }}
+              </p>
+            </div>
+          </div>
+        </button>
+      </TransitionGroup>
+
+      <!-- Pagination -->
+      <Pagination
+        v-if="totalPages > 1"
+        v-model="currentPage"
+        :total="totalPages"
+        theme="blue"
+      />
+
+      <!-- No Results Message -->
+      <div v-if="filteredOptions.length === 0" class="py-8 text-center text-gray-500 dark:text-gray-400">
+        {{ t('pages.index.not_chats_found') }}
+      </div>
+    </div>
 
     <!-- Priority Settings Dialog -->
     <Teleport to=".dialog-wrapper">
@@ -198,32 +333,32 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.chat-item {
+.grid-item {
   transition: all 0.3s ease-in-out;
 }
 
-.chat-item.selected {
+.grid-item.selected {
   transform: scale(1.02);
 }
 
-/* 列表项移动动画 */
-.chat-list-move,
-.chat-list-enter-active,
-.chat-list-leave-active {
+/* Grid list animations */
+.grid-list-move,
+.grid-list-enter-active,
+.grid-list-leave-active {
   transition: all 0.3s ease;
 }
 
-.chat-list-enter-from,
-.chat-list-leave-to {
+.grid-list-enter-from,
+.grid-list-leave-to {
   opacity: 0;
   transform: translateY(30px);
 }
 
-.chat-list-leave-active {
+.grid-list-leave-active {
   position: absolute;
 }
 
-/* 勾选图标淡入淡出动画 */
+/* Checkmark animations */
 .fade-enter-active,
 .fade-leave-active {
   transition: all 0.2s ease;
@@ -235,22 +370,12 @@ onMounted(async () => {
   transform: scale(0.8);
 }
 
-/* 移除之前的动画，因为我们现在使用 Vue 的 transition 系统 */
-.transform {
-  animation: none;
-}
-
-button:not(.transform) {
-  animation: none;
-}
-
-/* 悬停效果 */
-.chat-item:hover:not(.selected) {
+/* Hover effects */
+.grid-item:hover:not(.selected) {
   transform: translateY(-2px);
 }
 
-/* 点击效果 */
-.chat-item:active {
+.grid-item:active {
   transform: scale(0.98);
 }
 </style>
