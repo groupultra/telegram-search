@@ -87,7 +87,7 @@
   ],
   // i18n-ally
   "i18n-ally.localesPaths": [
-    "packages/frontend/src/languages"
+    "packages/frontend/src/locales"
   ],
   "i18n-ally.enabledFrameworks": [
     "vue"
