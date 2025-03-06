@@ -46,7 +46,7 @@ telegram-search/
 
 #### 命令相关 API (apis/commands)
 
-- `useMultiSync.ts`: 多聊天同步 Hook
+- `useSyncChats.ts`: 多聊天同步 Hook
   - 功能：
     - 管理多个聊天的同步状态
     - 处理同步进度和错误

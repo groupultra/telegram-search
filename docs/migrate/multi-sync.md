@@ -448,11 +448,11 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Dialog } from '@headlessui/vue'
 import { useChats } from '../../composables/useChats'
-import { useMultiSync } from '../../composables/useMultiSync'
+import { useSyncChats } from '../../composables/useSyncChats'
 
 const { t } = useI18n()
 const { chats } = useChats()
-const { executeMultiSync } = useMultiSync()
+const { executeMultiSync } = useSyncChats()
 
 const selectedChats = ref<number[]>([])
 const priorities = ref<Record<number, number>>({})
@@ -542,11 +542,11 @@ const confirmPriorities = async () => {
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useChats } from '../../composables/useChats'
-import { useMultiSync } from '../../composables/useMultiSync'
+import { useSyncChats } from '../../composables/useSyncChats'
 
 const { t } = useI18n()
 const { chats } = useChats()
-const { getSyncStatus, cancelSync } = useMultiSync()
+const { getSyncStatus, cancelSync } = useSyncChats()
 
 const syncStatus = ref<Array<{
   chatId: number

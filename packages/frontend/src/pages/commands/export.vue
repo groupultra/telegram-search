@@ -20,44 +20,26 @@ const {
   exportProgress,
   cleanup,
 } = useExport()
-
 const { checkConnection, isConnected } = useSession()
 
-// Cleanup when component is unmounted
-onUnmounted(() => {
-  cleanup()
-})
-
 const { t } = useI18n()
-
-// Selected chat type
-const selectedChatType = ref<'user' | 'group' | 'channel'>('user')
-// Selected chat
-const selectedChatId = ref<number>()
-// Selected message types
-const selectedMessageTypes = ref<DatabaseMessageType[]>(['text'])
-// Selected export method
-const selectedMethod = ref<'getMessage' | 'takeout'>('getMessage')
-// 增量导出选项
-const enableIncremental = ref<boolean>(false)
-// 自定义开始消息ID
-const customMinId = ref<number | undefined>(undefined)
-
-// const canExport = computed(() => isConnected.value && selectedChatId.value && selectedMessageTypes.value.length > 0)
-
 const { chats, loadChats } = useChats()
-
 const chatTypeOptions = useChatTypeOptions()
 const messageTypeOptions = useMessageTypeOptions()
 const exportMethodOptions = useExportMethodOptions()
 const { statusText, statusIcon } = useStatus(currentCommand.value?.status)
 
-// Filtered chats based on selected type
+const selectedChatType = ref<'user' | 'group' | 'channel'>('user')
+const selectedChatId = ref<number>()
+const selectedMessageTypes = ref<DatabaseMessageType[]>(['text'])
+const selectedMethod = ref<'getMessage' | 'takeout'>('getMessage')
+const enableIncremental = ref<boolean>(false)
+const customMinId = ref<number | undefined>(undefined)
+
 const filteredChats = computed(() => {
   return chats.value.filter((chat: TelegramChat) => chat.type === selectedChatType.value)
 })
 
-// Format chat options for SearchSelect
 const chatOptions = computed(() => {
   return filteredChats.value.map(chat => ({
     id: chat.id,
@@ -65,17 +47,13 @@ const chatOptions = computed(() => {
   }))
 })
 
-// Command status for UI display
-const commandStatus = computed((): 'waiting' | 'running' | 'completed' | 'failed' => {
-  if (!currentCommand.value)
-    return 'waiting'
-  return currentCommand.value.status as any
-})
-
-// 检查连接状态
 onMounted(async () => {
   loadChats()
-  await checkConnection(false) // 不自动跳转到登录页
+  await checkConnection(false)
+})
+
+onUnmounted(() => {
+  cleanup()
 })
 
 // Export operation
@@ -315,12 +293,12 @@ watch(() => currentCommand.value?.status, (status) => {
         <div class="mb-5">
           <ProgressBar
             :progress="exportProgress"
-            :status="commandStatus"
+            :status="statusText"
           />
         </div>
 
         <!-- 等待提示 -->
-        <div v-if="isWaiting" class="animate-fadeIn mb-5 rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+        <div v-if="isWaiting" class="mb-5 animate-fade-in rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
           <p class="flex items-center">
             <span class="mr-2 text-lg">⏱</span>
             <span>{{ t('component.export_command.telegram_limit', { waitingTimeLeft }) }}</span>
@@ -405,7 +383,7 @@ watch(() => currentCommand.value?.status, (status) => {
             </div>
           </div>
 
-          <div v-if="exportDetails.error" class="animate-fadeIn mt-4 rounded-md bg-red-50 p-4 text-red-700 dark:bg-red-900/50 dark:text-red-100">
+          <div v-if="exportDetails.error" class="mt-4 animate-fade-in rounded-md bg-red-50 p-4 text-red-700 dark:bg-red-900/50 dark:text-red-100">
             <p class="mb-2 font-medium">
               {{ t('component.export_command.error_message') }}
             </p>
@@ -422,7 +400,7 @@ watch(() => currentCommand.value?.status, (status) => {
         <!-- Completion message -->
         <div
           v-if="currentCommand.status === 'completed'"
-          class="animate-fadeIn mt-5 rounded-md bg-green-50 p-3 text-green-700 dark:bg-green-900/50 dark:text-green-100"
+          class="mt-5 animate-fade-in rounded-md bg-green-50 p-3 text-green-700 dark:bg-green-900/50 dark:text-green-100"
         >
           <p class="flex items-center">
             <span class="mr-2 text-lg">✓</span>
@@ -433,45 +411,3 @@ watch(() => currentCommand.value?.status, (status) => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-.animate-spin {
-  animation: spin 1.5s linear infinite;
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-</style>

@@ -4,7 +4,7 @@ import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { useMultiSync } from '../../apis/commands/useMultiSync'
+import { useSyncChats } from '../../apis/commands/useSyncChats'
 import { useSyncMetadata } from '../../apis/commands/useSyncMetadata'
 import { useChats } from '../../apis/useChats'
 import NeedLogin from '../../components/NeedLogin.vue'
@@ -18,14 +18,12 @@ import { useSession } from '../../composables/useSession'
 import { useStatus } from '../../composables/useStatus'
 import { formatNumberToReadable } from '../../helper'
 
-// Composables
 const { t } = useI18n()
 const { chats, loadChats } = useChats()
-const { executeMultiSync, currentCommand: multiCommand, syncProgress: multiProgress, updateCommand: updateMultiCommand } = useMultiSync()
+const { executeMultiSync, currentCommand: multiCommand, syncProgress: multiProgress, updateCommand: updateMultiCommand } = useSyncChats()
 const { executeSync, currentCommand: syncCommand, syncProgress: metaProgress, updateCommand: updateSyncCommand } = useSyncMetadata()
 const { checkConnection, isConnected } = useSession()
 
-// State
 const selectedChats = ref<number[]>([])
 const priorities = ref<Record<number, number>>({})
 const showPriorityDialog = ref(false)
@@ -37,7 +35,6 @@ const waitingTimeLeft = ref(0)
 
 const CHAT_TYPE_OPTIONS = useChatTypeOptions()
 
-// Computed
 const currentCommand = computed(() => multiCommand.value || syncCommand.value)
 const commandProgress = computed(() => multiProgress.value || metaProgress.value || 0)
 const isSyncing = computed(() => currentCommand.value?.status === 'running')
@@ -311,9 +308,9 @@ onMounted(async () => {
         <button
           v-for="option in paginatedOptions"
           :key="option.id"
-          class="grid-item relative w-full flex cursor-pointer items-center border rounded-lg p-4 text-left space-x-3 hover:shadow-md"
+          class="relative w-full flex cursor-pointer items-center border rounded-lg p-4 text-left transition-all duration-300 active:scale-98 space-x-3 hover:shadow-md hover:-translate-y-0.5"
           :class="{
-            'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md selected': isSelected(option.id),
+            'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md scale-102': isSelected(option.id),
             'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600': !isSelected(option.id),
           }"
           @click="toggleSelection(option.id)"
@@ -434,7 +431,7 @@ onMounted(async () => {
         </div>
 
         <!-- 等待提示 -->
-        <div v-if="isWaiting" class="animate-fadeIn mb-5 rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+        <div v-if="isWaiting" class="mb-5 animate-fade-in rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
           <p class="flex items-center">
             <span class="mr-2 text-lg">⏱</span>
             <span>{{ t('component.sync_command.telegram_limit', { waitingTimeLeft }) }}</span>
@@ -480,7 +477,7 @@ onMounted(async () => {
           </div>
 
           <!-- Error message -->
-          <div v-if="currentCommand.error" class="animate-fadeIn mt-4 rounded-md bg-red-50 p-4 text-red-700 dark:bg-red-900/50 dark:text-red-100">
+          <div v-if="currentCommand.error" class="mt-4 animate-fade-in rounded-md bg-red-50 p-4 text-red-700 dark:bg-red-900/50 dark:text-red-100">
             <p class="mb-2 font-medium">
               {{ t('component.sync_command.error_message') }}
             </p>
@@ -497,7 +494,7 @@ onMounted(async () => {
         <!-- Completion message -->
         <div
           v-if="currentCommand.status === 'completed'"
-          class="animate-fadeIn mt-5 rounded-md bg-green-50 p-3 text-green-700 dark:bg-green-900/50 dark:text-green-100"
+          class="mt-5 animate-fade-in rounded-md bg-green-50 p-3 text-green-700 dark:bg-green-900/50 dark:text-green-100"
         >
           <p class="flex items-center">
             <span class="mr-2 text-lg">✓</span>
@@ -508,91 +505,3 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.grid-item {
-  transition: all 0.3s ease-in-out;
-}
-
-.grid-item.selected {
-  transform: scale(1.02);
-}
-
-/* Grid list animations */
-.grid-list-move,
-.grid-list-enter-active,
-.grid-list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.grid-list-enter-from,
-.grid-list-leave-to {
-  opacity: 0;
-  transform: translateY(30px);
-}
-
-.grid-list-leave-active {
-  position: absolute;
-}
-
-/* Checkmark animations */
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-/* Hover effects */
-.grid-item:hover:not(.selected) {
-  transform: translateY(-2px);
-}
-
-.grid-item:active {
-  transform: scale(0.98);
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-.animate-spin {
-  animation: spin 1.5s linear infinite;
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-</style>
