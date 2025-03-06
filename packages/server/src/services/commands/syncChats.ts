@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 const logger = useLogger()
 
-export const multiSyncSchema = z.object({
+export const syncChatsCommandSchema = z.object({
   chatIds: z.array(z.number()),
   type: z.enum(['metadata', 'messages']).optional(),
   priorities: z.record(z.number(), z.number()).optional(),

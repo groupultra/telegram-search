@@ -1,9 +1,9 @@
-import type { Command } from '@tg-search/server'
+import type { CommandStatus } from '@tg-search/server'
 
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-export function useStatus(status: Command['status']) {
+export function useStatus(status: CommandStatus) {
   const statusText = computed((): string => {
     const { t } = useI18n()
 
@@ -26,15 +26,15 @@ export function useStatus(status: Command['status']) {
     if (!status)
       return ''
 
-    const iconMap: Record<string, string> = {
-      running: 'i-lucide-loader',
-      waiting: 'i-lucide-clock',
-      completed: 'i-lucide-check',
-      failed: 'i-lucide-x',
-      default: 'i-lucide-refresh-cw',
+    const iconMap: Record<CommandStatus, string> = {
+      pending: 'lucide:refresh-cw',
+      running: 'lucide:loader',
+      waiting: 'lucide:clock',
+      completed: 'lucide:check',
+      failed: 'lucide:x',
     }
 
-    return iconMap[status] || iconMap.default
+    return iconMap[status]
   })
 
   return {

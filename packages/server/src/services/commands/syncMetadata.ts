@@ -1,20 +1,13 @@
-import type { ITelegramClientAdapter } from '@tg-search/core'
+import type { ITelegramClientAdapter, MetadataSyncOptions } from '@tg-search/core'
 import type { Command, CommandOptions } from '../../types'
 
 import { useLogger } from '@tg-search/common'
-import { ChatsSyncServices } from '@tg-search/core'
+import { MetadataSyncServices } from '@tg-search/core'
 import { z } from 'zod'
 
 const logger = useLogger()
 
-/**
- * Sync metadata command schema
- */
-export const syncMetadataCommandSchema = z.object({
-  chatIds: z.array(z.number()),
-  priorities: z.record(z.number(), z.number()).optional(),
-  options: z.record(z.number(), z.record(z.string(), z.any())).optional(),
-})
+export const syncMetadataCommandSchema = z.object({})
 
 /**
  * Sync metadata command handler
@@ -59,21 +52,26 @@ export class SyncMetadataCommandHandler {
     this.options?.onProgress(this.command)
   }
 
-  async execute(client: ITelegramClientAdapter, params: z.infer<typeof syncMetadataCommandSchema>) {
+  async execute(client: ITelegramClientAdapter, params: MetadataSyncOptions) {
     try {
-      logger.debug('执行同步元数据命令')
-      const syncService = new ChatsSyncServices(client)
-
-      await syncService.syncMetadata(params.chatIds, {
-        priorities: params.priorities,
-        options: params.options,
+      logger.debug('执行同步命令')
+      const syncService = new MetadataSyncServices(client)
+      const result = await syncService.syncChats({
+        ...params,
+        onProgress: (progress, message, metadata) => {
+          if (metadata?.type === 'waiting') {
+            this.updateWaiting(progress, message, metadata.waitSeconds)
+          }
+          else {
+            this.updateProgress(progress, message, metadata)
+          }
+        },
       })
-
       this.command = {
         ...this.command,
         status: 'completed',
         progress: 100,
-        message: '元数据同步完成',
+        result,
       }
       this.options?.onComplete(this.command)
     }

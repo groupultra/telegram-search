@@ -16,7 +16,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
-const { statusText, statusIcon } = useStatus(props.command?.status)
+const { statusText, statusIcon } = useStatus(props.command?.status || 'waiting')
 
 const commandStatus = computed((): 'waiting' | 'running' | 'completed' | 'failed' => {
   if (!props.command)
@@ -28,7 +28,10 @@ const isWaiting = computed(() => props.command?.status === 'waiting')
 </script>
 
 <template>
-  <div v-if="command" class="overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 dark:bg-gray-800 dark:text-gray-100">
+  <div
+    v-if="command"
+    class="overflow-hidden rounded-lg bg-white transition-all duration-300 dark:bg-gray-800 dark:text-gray-100"
+  >
     <div class="p-5">
       <div class="mb-4 flex items-center justify-between">
         <h2 class="flex items-center text-lg font-semibold">
@@ -58,8 +61,10 @@ const isWaiting = computed(() => props.command?.status === 'waiting')
       <!-- 等待提示 -->
       <div v-if="isWaiting" class="mb-5 animate-fade-in rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
         <p class="flex items-center">
-          <span class="mr-2 text-lg">⏱</span>
-          <span>{{ t('component.sync_command.telegram_limit', { waitingTimeLeft }) }}</span>
+          <span class="mr-2 text-lg">
+            <Icon icon="lucide:clock" />
+          </span>
+          <span>{{ t('component.export_command.telegram_limit', { waitingTimeLeft }) }}</span>
         </p>
       </div>
 
@@ -77,7 +82,39 @@ const isWaiting = computed(() => props.command?.status === 'waiting')
           {{ t('component.sync_command.sync_detail') }}
         </h3>
 
-        <div class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
+        <!-- 文件夹同步状态 -->
+        <div v-if="command.metadata?.totalFolders || command.metadata?.processedFolders" class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
+          <div class="mb-2 text-sm text-gray-700 font-medium dark:text-gray-300">
+            {{ t('component.sync_command.folder_sync_status') }}
+          </div>
+          <div class="text-sm space-y-3">
+            <div v-if="command.metadata?.totalFolders" class="flex items-center justify-between">
+              <span class="text-gray-600 dark:text-gray-300">{{ t('component.sync_command.total_folders') }}</span>
+              <span class="font-medium">{{ formatNumberToReadable(Number(command.metadata.totalFolders)) }}</span>
+            </div>
+
+            <div v-if="command.metadata?.processedFolders" class="flex items-center justify-between">
+              <span class="text-gray-600 dark:text-gray-300">{{ t('component.sync_command.processed_folders') }}</span>
+              <span class="flex items-center font-medium">
+                {{ formatNumberToReadable(Number(command.metadata.processedFolders)) }}
+                <template v-if="command.metadata?.totalFolders">
+                  <span class="mx-1">/</span> {{ formatNumberToReadable(Number(command.metadata.totalFolders)) }}
+                </template>
+              </span>
+            </div>
+
+            <div v-if="command.metadata?.failedFolders" class="flex items-center justify-between text-red-600 dark:text-red-400">
+              <span>{{ t('component.sync_command.failed_folders') }}</span>
+              <span class="font-medium">{{ formatNumberToReadable(Number(command.metadata.failedFolders)) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 会话同步状态 -->
+        <div v-if="command.metadata?.totalChats || command.metadata?.processedChats" class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
+          <div class="mb-2 text-sm text-gray-700 font-medium dark:text-gray-300">
+            {{ t('component.sync_command.chat_sync_status') }}
+          </div>
           <div class="text-sm space-y-3">
             <div v-if="command.metadata?.totalChats" class="flex items-center justify-between">
               <span class="text-gray-600 dark:text-gray-300">{{ t('component.sync_command.total_chats') }}</span>

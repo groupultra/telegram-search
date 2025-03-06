@@ -5,6 +5,7 @@ import { createRouter, defineEventHandler, readBody } from 'h3'
 
 import { exportCommandSchema } from '../services/commands/export'
 import { CommandManager } from '../services/commands/manager'
+import { syncChatsCommandSchema } from '../services/commands/syncChats'
 import { syncMetadataCommandSchema } from '../services/commands/syncMetadata'
 import { useTelegramClient } from '../services/telegram'
 import { createSSEResponse } from '../utils/sse'
@@ -36,7 +37,7 @@ export function setupCommandRoutes(app: App) {
   // Add multi-sync route
   router.post('/sync-chats', defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    const vaildatedBody = syncMetadataCommandSchema.parse(body)
+    const vaildatedBody = syncChatsCommandSchema.parse(body)
     logger.withFields(vaildatedBody).debug('Sync chats request received')
 
     const client = await useTelegramClient()

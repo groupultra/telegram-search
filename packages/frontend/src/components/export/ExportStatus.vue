@@ -86,7 +86,9 @@ const processedMessages = computed(() => {
       <!-- 等待提示 -->
       <div v-if="isWaiting" class="mb-5 animate-fade-in rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
         <p class="flex items-center">
-          <span class="mr-2 text-lg">⏱</span>
+          <span class="mr-2 text-lg">
+            <Icon icon="lucide:clock" />
+          </span>
           <span>{{ t('component.export_command.telegram_limit', { waitingTimeLeft }) }}</span>
         </p>
       </div>

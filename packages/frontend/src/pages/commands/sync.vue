@@ -61,11 +61,25 @@ async function confirmPriorities() {
   updateMultiCommand(initialCommand)
 
   try {
-    await executeMultiSync({
+    const result = await executeMultiSync({
       chatIds: selectedChats.value,
       priorities: priorities.value,
     })
-    toast.success(t('component.sync_command.sync_success'), { id: toastId })
+    if (result.success) {
+      toast.success(t('component.sync_command.sync_success'), { id: toastId })
+    } else {
+      const errorMessage = String(result.error || t('component.sync_command.sync_error'))
+      toast.error(errorMessage, { id: toastId })
+
+      const failedCommand: Command = {
+        id: Date.now().toString(),
+        type: 'sync',
+        status: 'failed',
+        progress: 0,
+        message: errorMessage,
+      }
+      updateMultiCommand(failedCommand)
+    }
   }
   catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
