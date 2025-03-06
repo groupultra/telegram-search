@@ -96,7 +96,7 @@ function changePage(page: number | string) {
       :disabled="modelValue === 1"
       @click="changePage(modelValue - 1)"
     >
-      <div class="i-carbon-chevron-left h-4 w-4" />
+      <div class="i-lucide-chevron-left h-4 w-4" />
     </button>
 
     <!-- 页码按钮 -->
@@ -127,7 +127,7 @@ function changePage(page: number | string) {
       :disabled="modelValue === total"
       @click="changePage(modelValue + 1)"
     >
-      <div class="i-carbon-chevron-right h-4 w-4" />
+      <div class="i-lucide-chevron-right h-4 w-4" />
     </button>
   </div>
 </template>

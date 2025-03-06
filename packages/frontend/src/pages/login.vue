@@ -409,7 +409,7 @@ function toggleAdvancedSettings() {
         <div v-if="state.isConnected" class="rounded-md bg-green-50 p-4 dark:bg-green-900/30">
           <div class="flex">
             <div class="flex-shrink-0">
-              <div class="i-carbon-checkmark-filled h-5 w-5 text-green-400" aria-hidden="true" />
+              <div class="i-lucide-circle-check h-5 w-5 text-green-400" aria-hidden="true" />
             </div>
             <div class="ml-3">
               <p class="text-sm text-green-800 font-medium dark:text-green-200">
@@ -429,7 +429,7 @@ function toggleAdvancedSettings() {
             <div v-if="state.error" class="rounded-md bg-red-50 p-4 dark:bg-red-900/30">
               <div class="flex">
                 <div class="flex-shrink-0">
-                  <div class="i-carbon-warning-alt h-5 w-5 text-red-400" aria-hidden="true" />
+                  <div class="i-lucide-warning-alt h-5 w-5 text-red-400" aria-hidden="true" />
                 </div>
                 <div class="ml-3">
                   <h3 class="text-sm text-red-800 font-medium dark:text-red-200">
@@ -453,7 +453,7 @@ function toggleAdvancedSettings() {
                       : (state.currentStep === 'code' || state.currentStep === 'code_2fa' || state.currentStep === 'complete') ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
                     ]"
                   >
-                    <div class="i-carbon-phone-filled h-4 w-4" />
+                    <div class="i-lucide-phone-filled h-4 w-4" />
                   </div>
                   <span class="mt-1 text-xs text-gray-600 dark:text-gray-400"> {{ t('pages.login.phone_number') }}</span>
                 </div>
@@ -466,7 +466,7 @@ function toggleAdvancedSettings() {
                       : (state.currentStep === 'code_2fa' || state.currentStep === 'complete') ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
                     ]"
                   >
-                    <div class="i-carbon-chat h-4 w-4" />
+                    <div class="i-lucide-chat h-4 w-4" />
                   </div>
                   <span class="mt-1 text-xs text-gray-600 dark:text-gray-400"> {{ t('pages.login.code') }}</span>
                 </div>
@@ -479,7 +479,7 @@ function toggleAdvancedSettings() {
                       : state.currentStep === 'complete' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
                     ]"
                   >
-                    <div class="i-carbon-locked h-4 w-4" />
+                    <div class="i-lucide-locked h-4 w-4" />
                   </div>
                   <span class="mt-1 text-xs text-gray-600 dark:text-gray-400"> {{ t('pages.login.password') }}</span>
                 </div>
@@ -565,7 +565,7 @@ function toggleAdvancedSettings() {
                   <span class="mr-2">
                     <div
                       class="h-4 w-4 transition-transform" :class="[
-                        state.showAdvancedSettings ? 'i-carbon-chevron-down' : 'i-carbon-chevron-right',
+                        state.showAdvancedSettings ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right',
                       ]"
                     />
                   </span>
@@ -623,7 +623,7 @@ function toggleAdvancedSettings() {
                 class="w-full flex justify-center border border-transparent rounded-md bg-blue-600 px-4 py-2 text-sm text-white font-medium shadow-sm hover:bg-blue-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <span v-if="state.isLoading" class="mr-2">
-                  <div class="i-carbon-circle-dash inline-block h-4 w-4 animate-spin" />
+                  <div class="i-lucide-circle-dash inline-block h-4 w-4 animate-spin" />
                 </span>
                 {{ needPhoneNumber ? t("pages.login.send_code") : needCode ? t("pages.login.next_step") : t("pages.login.submit_code") }}
               </button>
@@ -637,7 +637,7 @@ function toggleAdvancedSettings() {
                 class="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 @click="goToPreviousStep"
               >
-                <div class="i-carbon-arrow-left mr-1 h-4 w-4" />
+                <div class="i-lucide-arrow-left mr-1 h-4 w-4" />
                 {{ t("pages.login.go_back") }}
               </button>
               <button
@@ -646,7 +646,7 @@ function toggleAdvancedSettings() {
                 class="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 @click="resetLogin"
               >
-                <div class="i-carbon-reset mr-1 h-4 w-4" />
+                <div class="i-lucide-reset mr-1 h-4 w-4" />
                 {{ t("pages.login.restart") }}
               </button>
             </div>

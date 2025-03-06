@@ -63,7 +63,7 @@ const {
   fullWidth = false,
   loadingPosition = 'start',
   loadingIconOnly = false,
-  loadingIcon = 'i-carbon-circle-dash',
+  loadingIcon = 'i-lucide-circle-dash',
   startIcon,
   endIcon,
 } = props

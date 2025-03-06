@@ -5,7 +5,7 @@
  */
 const props = defineProps<{
   /**
-   * Icon class name (e.g. i-carbon-settings)
+   * Icon class name (e.g. i-lucide-settings)
    */
   icon: string
   /**

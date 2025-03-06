@@ -29,12 +29,12 @@ const props = defineProps<{
  */
 const iconClass = computed(() => {
   const iconMap: Record<string, string> = {
-    info: 'i-carbon-information',
-    success: 'i-carbon-checkmark-filled',
-    warning: 'i-carbon-warning',
-    error: 'i-carbon-warning-alt',
+    info: 'i-lucide-info',
+    success: 'i-lucide-circle-check',
+    warning: 'i-lucide-circle-alert',
+    error: 'i-lucide-circle-x',
   }
-  return iconMap[props.type] || 'i-carbon-information'
+  return iconMap[props.type] || 'i-lucide-info'
 })
 
 /**

@@ -91,7 +91,7 @@ function handleLanguageChange(langCode: string) {
         <div class="flex items-center gap-4">
           <!-- Commands dropdown -->
           <DropdownMenu
-            icon="i-carbon-mac-command"
+            icon="i-lucide-command"
             :label="$t('header.commands')"
           >
             <router-link
@@ -104,10 +104,10 @@ function handleLanguageChange(langCode: string) {
                 <div
                   class="mr-2 h-4 w-4" :class="[
                     {
-                      'i-carbon-upload': tab === 'export',
-                      'i-carbon-download': tab === 'import',
-                      'i-carbon-sync-settings': tab === 'sync',
-                      'i-carbon-view': tab === 'watch',
+                      'i-lucide-upload': tab === 'export',
+                      'i-lucide-download': tab === 'import',
+                      'i-lucide-folder-sync': tab === 'sync',
+                      'i-lucide-eye': tab === 'watch',
                     },
                   ]"
                 />
@@ -117,7 +117,7 @@ function handleLanguageChange(langCode: string) {
           </DropdownMenu>
 
           <IconButton
-            icon="i-carbon-settings"
+            icon="i-lucide-settings"
             with-transition
             aria-label="{{$t('header.setting')}}"
             @click="router.push('/settings')"
@@ -125,7 +125,7 @@ function handleLanguageChange(langCode: string) {
 
           <!-- User menu -->
           <DropdownMenu
-            icon="i-carbon-user"
+            icon="i-lucide-user"
             :label="$t('header.usermenu')"
           >
             <div v-if="userInfo" class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
@@ -143,7 +143,7 @@ function handleLanguageChange(langCode: string) {
               @click="handleLogin"
             >
               <div class="flex items-center">
-                <div class="i-carbon-login mr-2 h-4 w-4" />
+                <div class="i-lucide-log-in mr-2 h-4 w-4" />
                 <span>{{ $t('header.login') }}</span>
               </div>
             </button>
@@ -154,7 +154,7 @@ function handleLanguageChange(langCode: string) {
               @click="handleLogout"
             >
               <div class="flex items-center">
-                <div class="i-carbon-logout mr-2 h-4 w-4" />
+                <div class="i-lucide-log-out mr-2 h-4 w-4" />
                 <span>{{ $t('header.logout') }}</span>
               </div>
             </button>
@@ -162,7 +162,7 @@ function handleLanguageChange(langCode: string) {
 
           <!-- Language switcher -->
           <DropdownMenu
-            icon="i-carbon-language"
+            icon="i-lucide-languages"
             :label="$t('header.language')"
           >
             <button
@@ -172,7 +172,7 @@ function handleLanguageChange(langCode: string) {
               @click="handleLanguageChange(lang.code)"
             >
               <span>{{ lang.name }}</span>
-              <span v-if="locale === lang.code" class="i-carbon-checkmark h-4 w-4" />
+              <span v-if="locale === lang.code" class="i-lucide-circle-check h-4 w-4" />
             </button>
           </DropdownMenu>
 

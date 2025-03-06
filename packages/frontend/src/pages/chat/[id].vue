@@ -216,7 +216,7 @@ onMounted(async () => {
           class="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
           @click="router.back()"
         >
-          <div class="i-carbon-arrow-left h-5 w-5 dark:text-white" />
+          <div class="i-lucide-arrow-left h-5 w-5 dark:text-white" />
         </button>
         <h1 class="text-lg font-semibold dark:text-white">
           {{ chatTitle }}
@@ -229,7 +229,7 @@ onMounted(async () => {
           class="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
           @click="handleSearch"
         >
-          <div class="i-carbon-search h-5 w-5 dark:text-white" />
+          <div class="i-lucide-search h-5 w-5 dark:text-white" />
         </button>
       </div>
     </div>

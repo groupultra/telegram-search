@@ -298,7 +298,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
     <div v-if="!isConnected" class="mb-4 rounded-md bg-yellow-50 p-4 dark:bg-yellow-900/30">
       <div class="flex">
         <div class="flex-shrink-0">
-          <div class="i-carbon-warning h-5 w-5 text-yellow-400" aria-hidden="true" />
+          <div class="i-lucide-warning h-5 w-5 text-yellow-400" aria-hidden="true" />
         </div>
         <div class="ml-3">
           <h3 class="text-sm text-yellow-800 font-medium dark:text-yellow-200">

@@ -156,7 +156,7 @@ watch([selectedType, searchQuery], () => {
               {{ option.title }}
               <TransitionGroup name="fade">
                 <span v-if="isSelected(option.id)" :key="`check${option.id}`" class="text-blue-500 dark:text-blue-400">
-                  <div class="i-carbon-checkmark h-4 w-4" />
+                  <div class="i-lucide-circle-check h-4 w-4" />
                 </span>
               </TransitionGroup>
             </p>
