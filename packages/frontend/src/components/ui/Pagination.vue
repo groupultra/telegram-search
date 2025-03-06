@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 interface Props {
   /**
    * 当前页码（从1开始）
@@ -42,7 +44,7 @@ const themeClasses = {
 const visiblePages = computed(() => {
   const pages: (number | string)[] = []
   const halfVisible = Math.floor(props.visibleButtons / 2)
-  
+
   // 总页数小于等于可见按钮数，显示所有页码
   if (props.total <= props.visibleButtons) {
     return Array.from({ length: props.total }, (_, i) => i + 1)
@@ -84,10 +86,10 @@ function changePage(page: number | string) {
 </script>
 
 <template>
-  <div class="flex items-center justify-center gap-3 w-full max-w-2xl mx-auto">
+  <div class="mx-auto max-w-2xl w-full flex items-center justify-center gap-3">
     <!-- 上一页 -->
     <button
-      class="flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+      class="h-8 w-8 flex items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
       :class="[
         modelValue === 1
           ? 'text-gray-400 dark:text-gray-600'
@@ -103,7 +105,7 @@ function changePage(page: number | string) {
     <button
       v-for="page in visiblePages"
       :key="page"
-      class="flex h-8 min-w-[2.5rem] items-center justify-center rounded-md px-3 text-sm transition-colors"
+      class="h-8 min-w-[2.5rem] flex items-center justify-center rounded-md px-3 text-sm transition-colors"
       :class="[
         typeof page === 'string'
           ? 'cursor-default text-gray-400 dark:text-gray-600'
@@ -118,7 +120,7 @@ function changePage(page: number | string) {
 
     <!-- 下一页 -->
     <button
-      class="flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+      class="h-8 w-8 flex items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
       :class="[
         modelValue === total
           ? 'text-gray-400 dark:text-gray-600'
@@ -142,4 +144,4 @@ function changePage(page: number | string) {
 .fade-leave-to {
   opacity: 0;
 }
-</style> 
+</style>

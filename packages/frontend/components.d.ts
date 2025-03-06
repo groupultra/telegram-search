@@ -9,12 +9,14 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AlertCard: typeof import('./src/components/ui/AlertCard.vue')['default']
+    ChatSelector: typeof import('./src/components/sync/ChatSelector.vue')['default']
     CheckboxGroup: typeof import('./src/components/ui/CheckboxGroup.vue')['default']
     CommandList: typeof import('./src/components/commands/CommandList.vue')['default']
     CommandStatusPanel: typeof import('./src/components/ui/CommandStatusPanel.vue')['default']
     Dialog: typeof import('./src/components/ui/Dialog.vue')['default']
     DropdownMenu: typeof import('./src/components/ui/DropdownMenu.vue')['default']
     ExportCommand: typeof import('./src/components/commands/ExportCommand.vue')['default']
+    ExportStatus: typeof import('./src/components/export/ExportStatus.vue')['default']
     GridSelector: typeof import('./src/components/ui/GridSelector.vue')['default']
     HighlightText: typeof import('./src/components/ui/HighlightText.vue')['default']
     IconButton: typeof import('./src/components/ui/IconButton.vue')['default']
@@ -35,6 +37,7 @@ declare module 'vue' {
     Switch: typeof import('./src/components/ui/Switch.vue')['default']
     SyncCommand: typeof import('./src/components/commands/SyncCommand.vue')['default']
     SyncMetadata: typeof import('./src/components/commands/sync/SyncMetadata.vue')['default']
+    SyncStatus: typeof import('./src/components/sync/SyncStatus.vue')['default']
     ThemeToggle: typeof import('./src/components/ThemeToggle.vue')['default']
   }
 }
