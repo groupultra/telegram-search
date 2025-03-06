@@ -1,6 +1,6 @@
 <!-- Sync status component -->
 <script setup lang="ts">
-import type { Command, CommandStatus } from '@tg-search/server'
+import type { Command } from '@tg-search/server'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'

@@ -119,7 +119,7 @@ watch([selectedType, searchQuery], () => {
       <button
         v-for="chat in paginatedChats"
         :key="chat.id"
-        class="relative w-full flex cursor-pointer items-center border rounded-lg p-4 text-left transition-all duration-300 active:scale-98 space-x-3 hover:shadow-md hover:-translate-y-0.5"
+        class="relative w-full flex active:scale-98 cursor-pointer items-center border rounded-lg p-4 text-left transition-all duration-300 space-x-3 hover:shadow-md hover:-translate-y-0.5"
         :class="{
           'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md scale-102': isSelected(chat.id),
           'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600': !isSelected(chat.id),

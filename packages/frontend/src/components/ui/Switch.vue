@@ -11,7 +11,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
 }>()
 
-const toggle = () => {
+function toggle() {
   if (!props.disabled) {
     emit('update:modelValue', !props.modelValue)
   }
@@ -36,7 +36,7 @@ const toggleClasses = computed(() => ({
     :aria-checked="modelValue"
     :aria-label="label"
     :disabled="disabled"
-    class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+    class="relative h-6 w-11 inline-flex flex-shrink-0 border-2 border-transparent rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
     :class="buttonClasses"
     @click="toggle"
   >
@@ -45,4 +45,4 @@ const toggleClasses = computed(() => ({
       :class="toggleClasses"
     />
   </button>
-</template> 
+</template>

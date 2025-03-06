@@ -1,6 +1,6 @@
 <!-- Export status component -->
 <script setup lang="ts">
-import type { Command, CommandStatus, ExportDetails } from '@tg-search/server'
+import type { Command, ExportDetails } from '@tg-search/server'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useStatus } from '../../composables/useStatus'

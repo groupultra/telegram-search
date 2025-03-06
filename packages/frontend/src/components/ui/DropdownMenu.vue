@@ -12,7 +12,7 @@ const isOpen = ref(false)
 </script>
 
 <template>
-  <div 
+  <div
     class="relative"
     @mouseenter="isOpen = true"
     @mouseleave="isOpen = false"
@@ -28,13 +28,13 @@ const isOpen = ref(false)
     <!-- Dropdown content -->
     <div
       v-show="isOpen"
-      class="absolute right-0 z-50 w-48 border border-gray-200 rounded-md bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800 transition-all duration-200 ease-out"
+      class="absolute right-0 z-50 w-48 border border-gray-200 rounded-md bg-white py-1 shadow-lg transition-all duration-200 ease-out dark:border-gray-700 dark:bg-gray-800"
       :class="[
-        isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+        isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none',
       ]"
     >
       <!-- 添加一个透明的连接区域 -->
-      <div class="absolute -top-2 left-0 w-full h-2" />
+      <div class="absolute left-0 h-2 w-full -top-2" />
       <slot />
     </div>
   </div>
@@ -50,4 +50,4 @@ const isOpen = ref(false)
 .absolute {
   margin-top: 0.25rem;
 }
-</style> 
+</style>

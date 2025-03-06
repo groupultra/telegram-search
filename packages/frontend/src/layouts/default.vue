@@ -89,7 +89,6 @@ function handleLanguageChange(langCode: string) {
         </router-link>
 
         <div class="flex items-center gap-4">
-
           <IconButton
             icon="i-lucide-download"
             with-transition
@@ -103,7 +102,7 @@ function handleLanguageChange(langCode: string) {
             aria-label="{{$t('header.sync_command')}}"
             @click="router.push('/commands/sync')"
           />
-          
+
           <IconButton
             icon="i-lucide-settings"
             with-transition

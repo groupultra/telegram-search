@@ -16,7 +16,7 @@ const contentRef = ref<HTMLDivElement | null>(null)
 
 const isOpen = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+  set: value => emit('update:modelValue', value),
 })
 
 // Handle outside clicks for non-persistent dialogs
@@ -40,7 +40,8 @@ function closeWithAnimation() {
     setTimeout(() => {
       isOpen.value = false
     }, 200)
-  } else {
+  }
+  else {
     isOpen.value = false
   }
 }
@@ -64,7 +65,8 @@ watch(isOpen, (value) => {
     if (contentRef.value) {
       contentRef.value.classList.remove('dialog-content-leave')
     }
-  } else {
+  }
+  else {
     enableScroll()
   }
 })
@@ -155,4 +157,4 @@ dialog {
 dialog::backdrop {
   display: none;
 }
-</style> 
+</style>
