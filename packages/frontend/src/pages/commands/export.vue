@@ -194,7 +194,7 @@ watch(() => currentCommand.value?.status, (status) => {
     <NeedLogin :is-connected="isConnected" />
 
     <!-- Export configuration -->
-    <div class="overflow-hidden rounded-lg bg-white shadow-md dark:bg-gray-800 dark:text-gray-100">
+    <div class="overflow-hidden rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100">
       <div class="p-5">
         <h2 class="mb-3 text-lg font-semibold">
           {{ t("component.export_command.export_settings") }}
@@ -293,7 +293,7 @@ watch(() => currentCommand.value?.status, (status) => {
     <!-- Export progress -->
     <div
       v-if="currentCommand"
-      class="overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 dark:bg-gray-800 dark:text-gray-100"
+      class="overflow-hidden rounded-lg bg-white transition-all duration-300 dark:bg-gray-800 dark:text-gray-100"
     >
       <div class="p-5">
         <div class="mb-4 flex items-center justify-between">
@@ -386,7 +386,7 @@ watch(() => currentCommand.value?.status, (status) => {
             </div>
           </div>
 
-          <div class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
+          <div v-if="exportDetails.currentSpeed || exportDetails.estimatedTimeRemaining || exportDetails.totalDuration" class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
             <div class="text-sm space-y-3">
               <div v-if="exportDetails.currentSpeed" class="flex items-center justify-between">
                 <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.current_speed') }}</span>
