@@ -319,7 +319,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
               to="/login"
               class="rounded-md bg-yellow-50 px-2 py-1.5 text-sm text-yellow-800 font-medium dark:bg-yellow-900/50 hover:bg-yellow-100 dark:text-yellow-200 dark:hover:bg-yellow-800/50"
             >
-              {{ t("component.export_command.tp_connect") }}
+              {{ t("component.export_command.to_connect") }}
             </router-link>
           </div>
         </div>
