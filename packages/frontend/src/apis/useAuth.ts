@@ -8,7 +8,7 @@ import { apiFetch, useApi } from '../composables/api'
  * Vue composable for managing Telegram authentication state and operations
  */
 export function useAuth() {
-  const isConnected = ref(false)
+  const isConnected = ref(true)
   const { loading, error, request } = useApi()
 
   async function checkStatus(): Promise<boolean> {

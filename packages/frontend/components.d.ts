@@ -22,6 +22,7 @@ declare module 'vue' {
     MessageBubble: typeof import('./src/components/MessageBubble.vue')['default']
     MultiSyncSelector: typeof import('./src/components/commands/sync/MultiSyncSelector.vue')['default']
     MultiSyncStatus: typeof import('./src/components/commands/sync/MultiSyncStatus.vue')['default']
+    NeedLogin: typeof import('./src/components/NeedLogin.vue')['default']
     Pagination: typeof import('./src/components/ui/Pagination.vue')['default']
     ProgressBar: typeof import('./src/components/ui/ProgressBar.vue')['default']
     RadioGroup: typeof import('./src/components/ui/RadioGroup.vue')['default']

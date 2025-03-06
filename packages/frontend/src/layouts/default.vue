@@ -89,33 +89,21 @@ function handleLanguageChange(langCode: string) {
         </router-link>
 
         <div class="flex items-center gap-4">
-          <!-- Commands dropdown -->
-          <DropdownMenu
-            icon="i-lucide-command"
-            :label="$t('header.commands')"
-          >
-            <router-link
-              v-for="tab in ['export', 'sync']"
-              :key="tab"
-              :to="`/commands/${tab}`"
-              class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors duration-150 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-            >
-              <div class="flex items-center">
-                <div
-                  class="mr-2 h-4 w-4" :class="[
-                    {
-                      'i-lucide-upload': tab === 'export',
-                      'i-lucide-download': tab === 'import',
-                      'i-lucide-folder-sync': tab === 'sync',
-                      'i-lucide-eye': tab === 'watch',
-                    },
-                  ]"
-                />
-                <span>{{ $t(`pages.commands.${tab}`) }}</span>
-              </div>
-            </router-link>
-          </DropdownMenu>
 
+          <IconButton
+            icon="i-lucide-download"
+            with-transition
+            aria-label="{{$t('header.export_command')}}"
+            @click="router.push('/commands/export')"
+          />
+
+          <IconButton
+            icon="i-lucide-folder-sync"
+            with-transition
+            aria-label="{{$t('header.sync_command')}}"
+            @click="router.push('/commands/sync')"
+          />
+          
           <IconButton
             icon="i-lucide-settings"
             with-transition

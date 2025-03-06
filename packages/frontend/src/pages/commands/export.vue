@@ -8,10 +8,11 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useExport } from '../../apis/commands/useExport'
 import { useChats } from '../../apis/useChats'
+import NeedLogin from '../../components/NeedLogin.vue'
 import { useChatTypeOptions, useExportMethodOptions, useMessageTypeOptions } from '../../composables/useOptions'
 import { useSession } from '../../composables/useSession'
 import { useStatus } from '../../composables/useStatus'
-import { formatNumberToReadable } from '../../helper.ts'
+import { formatNumberToReadable, formatSpeedToReadable, formatTimeToReadable } from '../../helper'
 
 const {
   executeExport,
@@ -186,82 +187,11 @@ watch(() => currentCommand.value?.status, (status) => {
     }
   }
 })
-
-// Format time (seconds) to human-readable string
-function formatTime(seconds: number | string): string {
-  if (typeof seconds === 'string') {
-    seconds = Number.parseFloat(seconds)
-  }
-
-  if (!seconds || seconds < 0)
-    return t('component.export_command.unknown')
-
-  if (seconds < 60) {
-    return `${Math.floor(seconds)}秒`
-  }
-
-  if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = Math.floor(seconds % 60)
-    return t('component.export_command.minutes', {
-      minutes,
-      second: remainingSeconds,
-    })
-  }
-
-  const hours = Math.floor(seconds / 3600)
-  const remainingMinutes = Math.floor((seconds % 3600) / 60)
-  return t('component.export_command.hours', {
-    minutes: remainingMinutes,
-    hours,
-  })
-}
-
-// Format speed (messages per second) to human-readable string
-function formatSpeed(messagesPerSecond: number | string): string {
-  if (typeof messagesPerSecond === 'string') {
-    messagesPerSecond = Number.parseFloat(messagesPerSecond)
-  }
-
-  if (messagesPerSecond >= 1) {
-    return t('component.export_command.per_second', {
-      per_second: messagesPerSecond,
-    })
-  }
-
-  const messagesPerMinute = messagesPerSecond * 60
-  return t('component.export_command.per_second', {
-    per_minute: messagesPerMinute,
-  })
-}
 </script>
 
 <template>
   <div class="space-y-5">
-    <!-- 未连接Telegram时的提示 -->
-    <div v-if="!isConnected" class="mb-4 rounded-md bg-yellow-50 p-4 dark:bg-yellow-900/30">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <div class="i-lucide-warning h-5 w-5 text-yellow-400" aria-hidden="true" />
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm text-yellow-800 font-medium dark:text-yellow-200">
-            {{ t("component.export_command.no_connect") }}
-          </h3>
-          <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-            <p>{{ t("component.export_command.must_connect") }}</p>
-          </div>
-          <div class="mt-3">
-            <router-link
-              to="/login"
-              class="rounded-md bg-yellow-50 px-2 py-1.5 text-sm text-yellow-800 font-medium dark:bg-yellow-900/50 hover:bg-yellow-100 dark:text-yellow-200 dark:hover:bg-yellow-800/50"
-            >
-              {{ t("component.export_command.tp_connect") }}
-            </router-link>
-          </div>
-        </div>
-      </div>
-    </div>
+    <NeedLogin :is-connected="isConnected" />
 
     <!-- Export configuration -->
     <div class="overflow-hidden rounded-lg bg-white shadow-md dark:bg-gray-800 dark:text-gray-100">
@@ -460,17 +390,17 @@ function formatSpeed(messagesPerSecond: number | string): string {
             <div class="text-sm space-y-3">
               <div v-if="exportDetails.currentSpeed" class="flex items-center justify-between">
                 <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.current_speed') }}</span>
-                <span class="font-medium">{{ formatSpeed(exportDetails.currentSpeed) }}</span>
+                <span class="font-medium">{{ formatSpeedToReadable(exportDetails.currentSpeed) }}</span>
               </div>
 
               <div v-if="exportDetails.estimatedTimeRemaining" class="flex items-center justify-between">
                 <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.estimated_remaining_time') }}</span>
-                <span class="font-medium">{{ formatTime(exportDetails.estimatedTimeRemaining) }}</span>
+                <span class="font-medium">{{ formatTimeToReadable(exportDetails.estimatedTimeRemaining) }}</span>
               </div>
 
               <div v-if="exportDetails.totalDuration" class="flex items-center justify-between">
                 <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.total_time') }}</span>
-                <span class="font-medium">{{ formatTime(exportDetails.totalDuration) }}</span>
+                <span class="font-medium">{{ formatTimeToReadable(exportDetails.totalDuration) }}</span>
               </div>
             </div>
           </div>

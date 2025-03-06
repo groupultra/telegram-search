@@ -123,6 +123,7 @@
   },
   "header": {
     "commands": "命令中心",
+    "export_command": "导出",
     "language": "语言",
     "language_changed": "语言切换成功",
     "login": "登录",
@@ -130,6 +131,7 @@
     "logout_failed": "退出登录失败",
     "logout_success": "退出登录成功",
     "setting": "设置",
+    "sync_command": "导出",
     "title": "Telegram 搜索",
     "usermenu": "用户菜单"
   },

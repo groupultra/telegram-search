@@ -3,23 +3,23 @@ import type { Command } from '@tg-search/server'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useMultiSync } from '../../apis/commands/useMultiSync'
 import { useSyncMetadata } from '../../apis/commands/useSyncMetadata'
 import { useChats } from '../../apis/useChats'
+import NeedLogin from '../../components/NeedLogin.vue'
 import Pagination from '../../components/ui/Pagination.vue'
 import ProgressBar from '../../components/ui/ProgressBar.vue'
 import SelectDropdown from '../../components/ui/SelectDropdown.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
 import { useChatTypeOptions } from '../../composables/useOptions'
+import { usePagination } from '../../composables/usePagination'
 import { useSession } from '../../composables/useSession'
 import { useStatus } from '../../composables/useStatus'
 import { formatNumberToReadable } from '../../helper'
 
 // Composables
 const { t } = useI18n()
-const router = useRouter()
 const { chats, loadChats } = useChats()
 const { executeMultiSync, currentCommand: multiCommand, syncProgress: multiProgress, updateCommand: updateMultiCommand } = useMultiSync()
 const { executeSync, currentCommand: syncCommand, syncProgress: metaProgress, updateCommand: updateSyncCommand } = useSyncMetadata()
@@ -35,8 +35,6 @@ const searchQuery = ref('')
 const currentPage = ref(1)
 const waitingTimeLeft = ref(0)
 
-// Constants
-const ITEMS_PER_PAGE = 12
 const CHAT_TYPE_OPTIONS = useChatTypeOptions()
 
 // Computed
@@ -78,15 +76,6 @@ const filteredOptions = computed(() => {
   })
 })
 
-const paginatedOptions = computed(() => {
-  const startIndex = (currentPage.value - 1) * ITEMS_PER_PAGE
-  const endIndex = startIndex + ITEMS_PER_PAGE
-  return filteredOptions.value.slice(startIndex, endIndex)
-})
-
-const totalPages = computed(() => Math.ceil(filteredOptions.value.length / ITEMS_PER_PAGE))
-const selectedCount = computed(() => selectedChats.value.length)
-
 const commandStatus = computed((): 'waiting' | 'running' | 'completed' | 'failed' => {
   if (!currentCommand.value)
     return 'waiting'
@@ -94,6 +83,17 @@ const commandStatus = computed((): 'waiting' | 'running' | 'completed' | 'failed
 })
 
 const { statusText, statusIcon } = useStatus(currentCommand.value?.status)
+
+const { totalPages, paginatedData } = usePagination({
+  defaultPage: 1,
+  defaultPageSize: 12,
+})
+
+const paginatedOptions = computed(() => {
+  return paginatedData(filteredOptions.value)
+})
+
+const selectedCount = computed(() => selectedChats.value.length)
 
 function isSelected(id: number): boolean {
   return selectedChats.value.includes(id)
@@ -220,11 +220,6 @@ async function syncMetadata() {
   }
 }
 
-function goToLogin(): void {
-  const currentPath = router.currentRoute.value.fullPath
-  router.push(`/login?redirect=${encodeURIComponent(currentPath)}`)
-}
-
 // Watchers
 watch([selectedType, searchQuery], () => {
   currentPage.value = 1
@@ -254,28 +249,7 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-4">
-    <!-- 未连接Telegram时的提示 -->
-    <div v-if="!isConnected && showConnectButton" class="mb-4 rounded-md bg-blue-50 p-4 dark:bg-blue-900/30">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <div class="i-lucide-information h-5 w-5 text-blue-400" aria-hidden="true" />
-        </div>
-        <div class="ml-3 flex-1 md:flex md:justify-between">
-          <p class="text-sm text-blue-700 dark:text-blue-300">
-            {{ t('component.sync_command.need_connect') }}
-          </p>
-          <p class="mt-3 text-sm md:ml-6 md:mt-0">
-            <button
-              class="whitespace-nowrap text-blue-700 font-medium dark:text-blue-300 hover:text-blue-600 dark:hover:text-blue-200"
-              @click="goToLogin"
-            >
-              {{ t('component.sync_command.connect_to_telegram') }}
-              <span aria-hidden="true"> &rarr;</span>
-            </button>
-          </p>
-        </div>
-      </div>
-    </div>
+    <NeedLogin :is-connected="isConnected" />
 
     <div class="flex items-center justify-between">
       <h3 class="text-lg font-medium">
