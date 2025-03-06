@@ -6,7 +6,7 @@ import { ref } from 'vue'
 
 import { useCommandHandler } from '../../composables/useCommands'
 
-export function useSync() {
+export function useSyncMetadata() {
   const {
     currentCommand,
     updateCommand,

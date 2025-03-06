@@ -1,49 +1,50 @@
 <script setup lang="ts">
 import type { Command } from '@tg-search/server'
+import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useMultiSync } from '../../apis/commands/useMultiSync'
-import { useSync } from '../../apis/commands/useSyncMetadata'
+import { useSyncMetadata } from '../../apis/commands/useSyncMetadata'
 import { useChats } from '../../apis/useChats'
 import Pagination from '../../components/ui/Pagination.vue'
 import ProgressBar from '../../components/ui/ProgressBar.vue'
 import SelectDropdown from '../../components/ui/SelectDropdown.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
+import { useChatTypeOptions } from '../../composables/useOptions'
 import { useSession } from '../../composables/useSession'
+import { useStatus } from '../../composables/useStatus'
+import { formatNumberToReadable } from '../../helper'
 
+// Composables
 const { t } = useI18n()
 const router = useRouter()
 const { chats, loadChats } = useChats()
 const { executeMultiSync, currentCommand: multiCommand, syncProgress: multiProgress, updateCommand: updateMultiCommand } = useMultiSync()
-const { executeSync, currentCommand: syncCommand, syncProgress: metaProgress, updateCommand: updateSyncCommand } = useSync()
+const { executeSync, currentCommand: syncCommand, syncProgress: metaProgress, updateCommand: updateSyncCommand } = useSyncMetadata()
 const { checkConnection, isConnected } = useSession()
 
-// 合并两个命令状态
-const currentCommand = computed(() => multiCommand.value || syncCommand.value)
-const commandProgress = computed(() => multiProgress.value || metaProgress.value || 0)
-
+// State
 const selectedChats = ref<number[]>([])
 const priorities = ref<Record<number, number>>({})
 const showPriorityDialog = ref(false)
 const showConnectButton = ref(false)
-const isSyncing = computed(() => currentCommand.value?.status === 'running')
-
-// Grid selector states
 const selectedType = ref<string>('user')
 const searchQuery = ref('')
 const currentPage = ref(1)
-const itemsPerPage = 12
+const waitingTimeLeft = ref(0)
 
-// Chat type options
-const chatTypeOptions = [
-  { label: t('component.export_command.user_chat'), value: 'user' },
-  { label: t('component.export_command.group_chat'), value: 'group' },
-  { label: t('component.export_command.channels_chat'), value: 'channel' },
-]
+// Constants
+const ITEMS_PER_PAGE = 12
+const CHAT_TYPE_OPTIONS = useChatTypeOptions()
 
-// Transform chats to grid options
+// Computed
+const currentCommand = computed(() => multiCommand.value || syncCommand.value)
+const commandProgress = computed(() => multiProgress.value || metaProgress.value || 0)
+const isSyncing = computed(() => currentCommand.value?.status === 'running')
+const isWaiting = computed(() => currentCommand.value?.status === 'waiting')
+
 const gridOptions = computed(() => chats.value.map(chat => ({
   id: chat.id,
   title: chat.title,
@@ -51,16 +52,12 @@ const gridOptions = computed(() => chats.value.map(chat => ({
   type: chat.type,
 })))
 
-// Filtered options based on type and search query
 const filteredOptions = computed(() => {
   let filtered = gridOptions.value
 
-  // Filter by type if type is selected
-  if (selectedType.value) {
+  if (selectedType.value)
     filtered = filtered.filter(option => option.type === selectedType.value)
-  }
 
-  // Filter by search query
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(option =>
@@ -70,7 +67,6 @@ const filteredOptions = computed(() => {
     )
   }
 
-  // Sort by selection status
   return filtered.sort((a, b) => {
     const aSelected = selectedChats.value.includes(a.id)
     const bSelected = selectedChats.value.includes(b.id)
@@ -82,87 +78,22 @@ const filteredOptions = computed(() => {
   })
 })
 
-// Paginated options
 const paginatedOptions = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
+  const startIndex = (currentPage.value - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
   return filteredOptions.value.slice(startIndex, endIndex)
 })
 
-// Total pages
-const totalPages = computed(() =>
-  Math.ceil(filteredOptions.value.length / itemsPerPage),
-)
-
-// Selected count
+const totalPages = computed(() => Math.ceil(filteredOptions.value.length / ITEMS_PER_PAGE))
 const selectedCount = computed(() => selectedChats.value.length)
 
-// Command status computed properties
 const commandStatus = computed((): 'waiting' | 'running' | 'completed' | 'failed' => {
   if (!currentCommand.value)
     return 'waiting'
   return currentCommand.value.status as any
 })
 
-const isWaiting = computed(() => currentCommand.value?.status === 'waiting')
-const waitingTimeLeft = ref(0)
-
-// Format number helper function
-function formatNumber(num: number | undefined): string {
-  if (num === undefined)
-    return '0'
-  return num.toLocaleString()
-}
-
-// Watch for waiting status changes
-watch(() => currentCommand.value?.status, (status) => {
-  if (status === 'waiting') {
-    if (currentCommand.value?.metadata?.waitTime) {
-      waitingTimeLeft.value = Math.ceil(
-        (currentCommand.value.metadata.waitTime as number) / 1000,
-      )
-      const waitTimer = setInterval(() => {
-        if (waitingTimeLeft.value <= 0) {
-          clearInterval(waitTimer)
-          return
-        }
-        waitingTimeLeft.value--
-      }, 1000)
-    }
-  }
-})
-
-// Sync status
-const syncStatus = computed((): string => {
-  if (!currentCommand.value)
-    return ''
-
-  const statusMap: Record<string, string> = {
-    running: t('component.sync_command.running'),
-    waiting: t('component.sync_command.waiting'),
-    completed: t('component.sync_command.completed'),
-    failed: t('component.sync_command.failed'),
-    default: t('component.sync_command.prepare_sync'),
-  }
-
-  return statusMap[currentCommand.value.status] || statusMap.default
-})
-
-// Status icon
-const statusIcon = computed((): string => {
-  if (!currentCommand.value)
-    return ''
-
-  const iconMap: Record<string, string> = {
-    running: '⟳',
-    waiting: '⏱',
-    completed: '✓',
-    failed: '✗',
-    default: '↻',
-  }
-
-  return iconMap[currentCommand.value.status] || iconMap.default
-})
+const { statusText, statusIcon } = useStatus(currentCommand.value?.status)
 
 function isSelected(id: number): boolean {
   return selectedChats.value.includes(id)
@@ -181,7 +112,6 @@ function getChatTitle(chatId: number) {
 }
 
 async function startSync() {
-  // Check if connected to Telegram
   if (!isConnected.value) {
     toast.error(t('component.sync_command.not_connect'))
     return
@@ -197,7 +127,6 @@ async function confirmPriorities() {
   showPriorityDialog.value = false
   const toastId = toast.loading(t('component.sync_command.prepare_sync_'))
 
-  // 立即创建一个初始的 command 状态
   const initialCommand: Command = {
     id: Date.now().toString(),
     type: 'sync',
@@ -223,7 +152,7 @@ async function confirmPriorities() {
     const errorMessage = error instanceof Error ? error.message : String(error)
     toast.error(t('component.sync_command.sync_failure', { error: errorMessage }), { id: toastId })
     console.error('Failed to start sync:', error)
-    // 如果出错，更新 command 状态为失败
+
     const failedCommand: Command = {
       id: Date.now().toString(),
       type: 'sync',
@@ -235,7 +164,6 @@ async function confirmPriorities() {
   }
 }
 
-// 同步元数据
 async function syncMetadata() {
   if (!isConnected.value) {
     toast.error(t('component.sync_command.not_connect'))
@@ -244,7 +172,6 @@ async function syncMetadata() {
 
   const toastId = toast.loading(t('component.sync_command.prepare_sync_'))
 
-  // 立即创建一个初始的 command 状态
   const initialCommand: Command = {
     id: Date.now().toString(),
     type: 'sync',
@@ -264,7 +191,7 @@ async function syncMetadata() {
     if (!result.success) {
       const errorMessage = String(result.error || t('component.sync_command.sync_error'))
       toast.error(errorMessage, { id: toastId })
-      // 如果出错，更新 command 状态为失败
+
       const failedCommand: Command = {
         id: Date.now().toString(),
         type: 'sync',
@@ -281,7 +208,7 @@ async function syncMetadata() {
   catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     toast.error(t('component.sync_command.sync_failure', { error: errorMessage }), { id: toastId })
-    // 如果出错，更新 command 状态为失败
+
     const failedCommand: Command = {
       id: Date.now().toString(),
       type: 'sync',
@@ -293,24 +220,35 @@ async function syncMetadata() {
   }
 }
 
-// 跳转到登录页
 function goToLogin(): void {
   const currentPath = router.currentRoute.value.fullPath
   router.push(`/login?redirect=${encodeURIComponent(currentPath)}`)
 }
 
-// Reset page when filters change
+// Watchers
 watch([selectedType, searchQuery], () => {
   currentPage.value = 1
 })
 
+watch(() => currentCommand.value?.status, (status) => {
+  if (status === 'waiting' && currentCommand.value?.metadata?.waitTime) {
+    waitingTimeLeft.value = Math.ceil(currentCommand.value.metadata.waitTime as number / 1000)
+    const waitTimer = setInterval(() => {
+      if (waitingTimeLeft.value <= 0) {
+        clearInterval(waitTimer)
+        return
+      }
+      waitingTimeLeft.value--
+    }, 1000)
+  }
+})
+
+// Lifecycle
 onMounted(async () => {
   await loadChats()
-  const connected = await checkConnection(false) // 不自动跳转到登录页
-  if (!connected) {
-    // 如果未连接，显示连接按钮，而不是自动跳转
+  const connected = await checkConnection(false)
+  if (!connected)
     showConnectButton.value = true
-  }
 })
 </script>
 
@@ -359,109 +297,11 @@ onMounted(async () => {
           :disabled="selectedChats.length === 0 || !isConnected"
           @click="startSync"
         >
-          <span v-if="isSyncing" class="mr-2 inline-block animate-spin text-lg">{{ statusIcon }}</span>
-          <span>{{ isSyncing ? syncStatus : t('component.sync_command.start_sync') }}</span>
+          <span v-if="isSyncing" class="mr-2 inline-block animate-spin text-lg">
+            <Icon :icon="statusIcon" />
+          </span>
+          <span>{{ isSyncing ? statusText : t('component.sync_command.start_sync') }}</span>
         </button>
-      </div>
-    </div>
-
-    <!-- Sync Status -->
-    <div v-if="currentCommand" class="overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 dark:bg-gray-800 dark:text-gray-100">
-      <div class="p-5">
-        <div class="mb-4 flex items-center justify-between">
-          <h2 class="flex items-center text-lg font-semibold">
-            <span class="mr-2">{{ t('component.sync_command.sync_status') }}</span>
-            <span
-              v-if="currentCommand.status === 'running'"
-              class="inline-block animate-spin text-yellow-500"
-            >⟳</span>
-          </h2>
-          <StatusBadge
-            :status="commandStatus"
-            :label="syncStatus"
-            :icon="statusIcon"
-          />
-        </div>
-
-        <!-- Progress bar -->
-        <div class="mb-5">
-          <ProgressBar
-            :progress="commandProgress"
-            :status="commandStatus"
-          />
-        </div>
-
-        <!-- 等待提示 -->
-        <div v-if="isWaiting" class="animate-fadeIn mb-5 rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
-          <p class="flex items-center">
-            <span class="mr-2 text-lg">⏱</span>
-            <span>{{ t('component.sync_command.telegram_limit', { waitingTimeLeft }) }}</span>
-          </p>
-        </div>
-
-        <!-- Status message -->
-        <div v-if="currentCommand.message" class="mb-4 text-sm text-gray-700 dark:text-gray-300">
-          <p class="mb-1 font-medium">
-            {{ t('component.sync_command.current_state') }}
-          </p>
-          <p>{{ currentCommand.message }}</p>
-        </div>
-
-        <!-- Sync details -->
-        <div v-if="currentCommand.metadata" class="mt-6 space-y-4">
-          <h3 class="text-gray-800 font-medium dark:text-gray-200">
-            {{ t('component.sync_command.sync_detail') }}
-          </h3>
-
-          <div class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
-            <div class="text-sm space-y-3">
-              <div v-if="currentCommand.metadata?.totalChats" class="flex items-center justify-between">
-                <span class="text-gray-600 dark:text-gray-300">{{ t('component.sync_command.total_chats') }}</span>
-                <span class="font-medium">{{ formatNumber(Number(currentCommand.metadata.totalChats)) }}</span>
-              </div>
-
-              <div v-if="currentCommand.metadata?.processedChats" class="flex items-center justify-between">
-                <span class="text-gray-600 dark:text-gray-300">{{ t('component.sync_command.processed_chats') }}</span>
-                <span class="flex items-center font-medium">
-                  {{ formatNumber(Number(currentCommand.metadata.processedChats)) }}
-                  <template v-if="currentCommand.metadata?.totalChats">
-                    <span class="mx-1">/</span> {{ formatNumber(Number(currentCommand.metadata.totalChats)) }}
-                  </template>
-                </span>
-              </div>
-
-              <div v-if="currentCommand.metadata?.failedChats" class="flex items-center justify-between text-red-600 dark:text-red-400">
-                <span>{{ t('component.sync_command.failed_chats') }}</span>
-                <span class="font-medium">{{ formatNumber(Number(currentCommand.metadata.failedChats)) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Error message -->
-          <div v-if="currentCommand.error" class="animate-fadeIn mt-4 rounded-md bg-red-50 p-4 text-red-700 dark:bg-red-900/50 dark:text-red-100">
-            <p class="mb-2 font-medium">
-              {{ t('component.sync_command.error_message') }}
-            </p>
-            <div v-if="typeof currentCommand.error === 'string'" class="text-sm">
-              {{ currentCommand.error }}
-            </div>
-            <div v-else class="text-sm">
-              <div>{{ currentCommand.error.name }}: {{ currentCommand.error.message }}</div>
-              <pre v-if="currentCommand.error.stack" class="mt-3 overflow-auto rounded-md bg-red-100 p-2 text-xs dark:bg-red-900/50">{{ currentCommand.error.stack }}</pre>
-            </div>
-          </div>
-        </div>
-
-        <!-- Completion message -->
-        <div
-          v-if="currentCommand.status === 'completed'"
-          class="animate-fadeIn mt-5 rounded-md bg-green-50 p-3 text-green-700 dark:bg-green-900/50 dark:text-green-100"
-        >
-          <p class="flex items-center">
-            <span class="mr-2 text-lg">✓</span>
-            <span>{{ t('component.sync_command.sync_success') }}</span>
-          </p>
-        </div>
       </div>
     </div>
 
@@ -472,7 +312,7 @@ onMounted(async () => {
         <div class="w-full md:w-48">
           <SelectDropdown
             v-model="selectedType"
-            :options="chatTypeOptions"
+            :options="CHAT_TYPE_OPTIONS"
             :label="t('component.grid_selector.type')"
           />
         </div>
@@ -590,6 +430,108 @@ onMounted(async () => {
         </div>
       </Dialog>
     </Teleport>
+
+    <!-- Sync Status -->
+    <div v-if="currentCommand" class="overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 dark:bg-gray-800 dark:text-gray-100">
+      <div class="p-5">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="flex items-center text-lg font-semibold">
+            <span class="mr-2">{{ t('component.sync_command.sync_status') }}</span>
+            <span
+              v-if="currentCommand.status === 'running'"
+              class="inline-block animate-spin text-yellow-500"
+            >
+              <Icon :icon="statusIcon" />
+            </span>
+          </h2>
+          <StatusBadge
+            :status="commandStatus"
+            :label="statusText"
+            :icon="statusIcon"
+          />
+        </div>
+
+        <!-- Progress bar -->
+        <div class="mb-5">
+          <ProgressBar
+            :progress="commandProgress"
+            :status="commandStatus"
+          />
+        </div>
+
+        <!-- 等待提示 -->
+        <div v-if="isWaiting" class="animate-fadeIn mb-5 rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+          <p class="flex items-center">
+            <span class="mr-2 text-lg">⏱</span>
+            <span>{{ t('component.sync_command.telegram_limit', { waitingTimeLeft }) }}</span>
+          </p>
+        </div>
+
+        <!-- Status message -->
+        <div v-if="currentCommand.message" class="mb-4 text-sm text-gray-700 dark:text-gray-300">
+          <p class="mb-1 font-medium">
+            {{ t('component.sync_command.current_state') }}
+          </p>
+          <p>{{ currentCommand.message }}</p>
+        </div>
+
+        <!-- Sync details -->
+        <div v-if="currentCommand.metadata" class="mt-6 space-y-4">
+          <h3 class="text-gray-800 font-medium dark:text-gray-200">
+            {{ t('component.sync_command.sync_detail') }}
+          </h3>
+
+          <div class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
+            <div class="text-sm space-y-3">
+              <div v-if="currentCommand.metadata?.totalChats" class="flex items-center justify-between">
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.sync_command.total_chats') }}</span>
+                <span class="font-medium">{{ formatNumberToReadable(Number(currentCommand.metadata.totalChats)) }}</span>
+              </div>
+
+              <div v-if="currentCommand.metadata?.processedChats" class="flex items-center justify-between">
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.sync_command.processed_chats') }}</span>
+                <span class="flex items-center font-medium">
+                  {{ formatNumberToReadable(Number(currentCommand.metadata.processedChats)) }}
+                  <template v-if="currentCommand.metadata?.totalChats">
+                    <span class="mx-1">/</span> {{ formatNumberToReadable(Number(currentCommand.metadata.totalChats)) }}
+                  </template>
+                </span>
+              </div>
+
+              <div v-if="currentCommand.metadata?.failedChats" class="flex items-center justify-between text-red-600 dark:text-red-400">
+                <span>{{ t('component.sync_command.failed_chats') }}</span>
+                <span class="font-medium">{{ formatNumberToReadable(Number(currentCommand.metadata.failedChats)) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error message -->
+          <div v-if="currentCommand.error" class="animate-fadeIn mt-4 rounded-md bg-red-50 p-4 text-red-700 dark:bg-red-900/50 dark:text-red-100">
+            <p class="mb-2 font-medium">
+              {{ t('component.sync_command.error_message') }}
+            </p>
+            <div v-if="typeof currentCommand.error === 'string'" class="text-sm">
+              {{ currentCommand.error }}
+            </div>
+            <div v-else class="text-sm">
+              <div>{{ currentCommand.error.name }}: {{ currentCommand.error.message }}</div>
+              <pre v-if="currentCommand.error.stack" class="mt-3 overflow-auto rounded-md bg-red-100 p-2 text-xs dark:bg-red-900/50">{{ currentCommand.error.stack }}</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Completion message -->
+        <div
+          v-if="currentCommand.status === 'completed'"
+          class="animate-fadeIn mt-5 rounded-md bg-green-50 p-3 text-green-700 dark:bg-green-900/50 dark:text-green-100"
+        >
+          <p class="flex items-center">
+            <span class="mr-2 text-lg">✓</span>
+            <span>{{ t('component.sync_command.sync_success') }}</span>
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

@@ -24,7 +24,9 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
 })
 const i18n = createI18n({
+  legacy: false,
   locale: 'zhCN',
+  fallbackLocale: 'en',
   globalInjection: true,
   messages: {
     en,

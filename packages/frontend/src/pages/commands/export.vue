@@ -8,7 +8,10 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useExport } from '../../apis/commands/useExport'
 import { useChats } from '../../apis/useChats'
+import { useChatTypeOptions, useExportMethodOptions, useMessageTypeOptions } from '../../composables/useOptions'
 import { useSession } from '../../composables/useSession'
+import { useStatus } from '../../composables/useStatus'
+import { formatNumberToReadable } from '../../helper.ts'
 
 const {
   executeExport,
@@ -43,52 +46,10 @@ const customMinId = ref<number | undefined>(undefined)
 
 const { chats, loadChats } = useChats()
 
-// Chat type options
-const chatTypeOptions = [
-  { label: t('component.export_command.user_chat'), value: 'user' },
-  { label: t('component.export_command.group_chat'), value: 'group' },
-  { label: t('component.export_command.channels_chat'), value: 'channel' },
-]
-
-// Message type options
-const messageTypeOptions = [
-  { label: t('component.export_command.text'), value: 'text' },
-  { label: t('component.export_command.photo'), value: 'photo' },
-  { label: t('component.export_command.video'), value: 'video' },
-  { label: t('component.export_command.document'), value: 'document' },
-  { label: t('component.export_command.sticker'), value: 'sticker' },
-  { label: t('component.export_command.other'), value: 'other' },
-]
-
-// Export method options
-const exportMethodOptions = [
-  { label: 'GetMessage', value: 'getMessage' },
-  { label: 'Takeout', value: 'takeout' },
-]
-
-// Status icon based on current state
-const statusIcon = computed((): string => {
-  if (!currentCommand.value)
-    return ''
-
-  // TODO: replace with icon
-  const iconMap: Record<string, string> = {
-    running: '⟳',
-    waiting: '⏱',
-    completed: '✓',
-    failed: '✗',
-    default: '↻',
-  }
-
-  return iconMap[currentCommand.value.status] || iconMap.default
-})
-
-// 格式化数字
-function formatNumber(num: number | undefined): string {
-  if (num === undefined)
-    return '0'
-  return num.toLocaleString()
-}
+const chatTypeOptions = useChatTypeOptions()
+const messageTypeOptions = useMessageTypeOptions()
+const exportMethodOptions = useExportMethodOptions()
+const { statusText, statusIcon } = useStatus(currentCommand.value?.status)
 
 // Filtered chats based on selected type
 const filteredChats = computed(() => {
@@ -108,23 +69,6 @@ const commandStatus = computed((): 'waiting' | 'running' | 'completed' | 'failed
   if (!currentCommand.value)
     return 'waiting'
   return currentCommand.value.status as any
-})
-
-// Human-readable export status
-const exportStatus = computed((): string => {
-  if (!currentCommand.value) {
-    return t('component.export_command.preparation_guide')
-  }
-
-  const statusMap: Record<string, string> = {
-    running: t('component.export_command.running'),
-    waiting: t('component.export_command.waiting'),
-    completed: t('component.export_command.completed'),
-    failed: t('component.export_command.failed'),
-    default: t('component.export_command.preparation_guide'),
-  }
-
-  return statusMap[currentCommand.value.status] || statusMap.default
 })
 
 // 检查连接状态
@@ -432,7 +376,7 @@ function formatSpeed(messagesPerSecond: number | string): string {
           </h2>
           <StatusBadge
             :status="commandStatus"
-            :label="exportStatus"
+            :label="statusText"
             :icon="statusIcon"
           />
         </div>
@@ -465,13 +409,13 @@ function formatSpeed(messagesPerSecond: number | string): string {
                 v-if="!!totalMessages && !!processedMessages"
                 class="text-blue-600 font-medium dark:text-blue-400"
               >
-                ({{ formatNumber(processedMessages) }} / {{ formatNumber(totalMessages) }} {{ t('component.export_command.item') }})
+                ({{ formatNumberToReadable(processedMessages) }} / {{ formatNumberToReadable(totalMessages) }} {{ t('component.export_command.item') }})
               </span>
               <span
                 v-else-if="exportDetails?.totalMessages"
                 class="text-blue-600 font-medium dark:text-blue-400"
               >
-                ({{ t('component.export_command.total') }} {{ formatNumber(exportDetails.totalMessages) }} {{ t('component.export_command.item') }})
+                ({{ t('component.export_command.total') }} {{ formatNumberToReadable(exportDetails.totalMessages) }} {{ t('component.export_command.item') }})
               </span>
             </template>
           </p>
@@ -487,22 +431,22 @@ function formatSpeed(messagesPerSecond: number | string): string {
             <div class="text-sm space-y-3">
               <div v-if="exportDetails.totalMessages !== undefined" class="flex items-center justify-between">
                 <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.total_message') }}</span>
-                <span class="font-medium">{{ formatNumber(exportDetails.totalMessages) }}</span>
+                <span class="font-medium">{{ formatNumberToReadable(exportDetails.totalMessages) }}</span>
               </div>
 
               <div v-if="exportDetails.processedMessages !== undefined" class="flex items-center justify-between">
                 <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.processed_message') }} </span>
                 <span class="flex items-center font-medium">
-                  {{ formatNumber(exportDetails.processedMessages) }}
+                  {{ formatNumberToReadable(exportDetails.processedMessages) }}
                   <template v-if="exportDetails.totalMessages !== undefined">
-                    <span class="mx-1">/</span> {{ formatNumber(exportDetails.totalMessages) }}
+                    <span class="mx-1">/</span> {{ formatNumberToReadable(exportDetails.totalMessages) }}
                   </template>
                 </span>
               </div>
 
               <div v-if="exportDetails.failedMessages" class="flex items-center justify-between text-red-600 dark:text-red-400">
                 <span>{{ t('component.export_command.failure_message') }}</span>
-                <span class="font-medium">{{ formatNumber(exportDetails.failedMessages) }}</span>
+                <span class="font-medium">{{ formatNumberToReadable(exportDetails.failedMessages) }}</span>
               </div>
 
               <div v-if="exportDetails.currentBatch && exportDetails.totalBatches" class="flex items-center justify-between">

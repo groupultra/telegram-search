@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 
 interface Props {
@@ -26,7 +27,9 @@ const statusClasses = computed(() => {
     class="flex items-center rounded-full px-3 py-1 text-sm font-medium transition-colors"
     :class="statusClasses"
   >
-    <span v-if="icon" class="mr-1.5">{{ icon }}</span>
+    <span v-if="icon" class="mr-1.5">
+      <Icon :icon="icon" />
+    </span>
     <span>{{ label }}</span>
   </span>
 </template>

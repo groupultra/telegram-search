@@ -277,28 +277,6 @@ export class ExportService {
             processedMessages: count,
             failedMessages: failedCount > 0 ? failedCount : undefined,
           })
-
-          // 模拟API限制：每处理1500条消息触发一次等待
-          // if (count % 1500 === 0) {
-          //   // 模拟10秒的等待时间
-          //   const waitSeconds = 10
-          //   const message = `模拟API限制：需要等待 ${waitSeconds} 秒才能继续`
-          //   logger.warn(message)
-          //   onProgress?.(progress, message, {
-          //     type: 'waiting',
-          //     waitSeconds,
-          //     resumeTime: new Date(Date.now() + waitSeconds * 1000).toISOString(),
-          //     remainingCount: total - count,
-          //     totalMessages: incremental ? count : total,
-          //     processedMessages: count,
-          //   })
-          //   await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000))
-          //   logger.log('继续导出...')
-          //   onProgress?.(progress, '继续导出...', {
-          //     totalMessages: incremental ? count : total,
-          //     processedMessages: count,
-          //   })
-          // }
         }
 
         // Check if we need to stop
