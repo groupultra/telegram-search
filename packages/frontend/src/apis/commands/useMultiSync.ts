@@ -1,5 +1,5 @@
 import type { SyncConfigItem } from '@tg-search/db'
-import type { Command, MultiSyncOptions } from '@tg-search/server'
+import type { Command, SyncParams } from '@tg-search/server'
 import type { SSEClientOptions } from '../../composables/sse'
 
 import { ref } from 'vue'
@@ -17,7 +17,7 @@ export function useMultiSync() {
   const syncProgress = ref<number>(0)
   const error = ref<Error | null>(null)
 
-  const executeMultiSync = async (options: MultiSyncOptions) => {
+  async function executeMultiSync(params: SyncParams) {
     if (currentCommand.value?.status === 'running') {
       return { success: false, error: '已有正在进行的同步任务' }
     }
@@ -25,7 +25,7 @@ export function useMultiSync() {
     syncProgress.value = 0
     error.value = null
 
-    const sseOptions: SSEClientOptions<Command, Command> = {
+    const options: SSEClientOptions<Command, Command> = {
       onProgress: (data: Command | string) => {
         if (typeof data !== 'string') {
           updateCommand(data)
@@ -39,11 +39,11 @@ export function useMultiSync() {
     }
 
     try {
-      await createConnection('/commands/multi-sync', options, sseOptions)
+      await createConnection('/commands/multi-sync', params, options)
       return { success: true }
     }
     catch (err) {
-      error.value = err instanceof Error ? err : new Error('多任务同步失败')
+      error.value = err instanceof Error ? err : new Error('同步失败')
       return {
         success: false,
         error: error.value,
@@ -99,6 +99,7 @@ export function useMultiSync() {
     executeMultiSync,
     getSyncStatus,
     cancelSync,
+    updateCommand,
     cleanup,
   }
 }

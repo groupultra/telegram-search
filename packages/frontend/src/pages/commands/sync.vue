@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Command } from '@tg-search/server'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -7,15 +8,21 @@ import { useMultiSync } from '../../apis/commands/useMultiSync'
 import { useSync } from '../../apis/commands/useSyncMetadata'
 import { useChats } from '../../apis/useChats'
 import Pagination from '../../components/ui/Pagination.vue'
+import ProgressBar from '../../components/ui/ProgressBar.vue'
 import SelectDropdown from '../../components/ui/SelectDropdown.vue'
+import StatusBadge from '../../components/ui/StatusBadge.vue'
 import { useSession } from '../../composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
 const { chats, loadChats } = useChats()
-const { executeMultiSync, currentCommand, syncProgress } = useMultiSync()
-const { executeSync } = useSync()
+const { executeMultiSync, currentCommand: multiCommand, syncProgress: multiProgress, updateCommand: updateMultiCommand } = useMultiSync()
+const { executeSync, currentCommand: syncCommand, syncProgress: metaProgress, updateCommand: updateSyncCommand } = useSync()
 const { checkConnection, isConnected } = useSession()
+
+// 合并两个命令状态
+const currentCommand = computed(() => multiCommand.value || syncCommand.value)
+const commandProgress = computed(() => multiProgress.value || metaProgress.value || 0)
 
 const selectedChats = ref<number[]>([])
 const priorities = ref<Record<number, number>>({})
@@ -90,6 +97,41 @@ const totalPages = computed(() =>
 // Selected count
 const selectedCount = computed(() => selectedChats.value.length)
 
+// Command status computed properties
+const commandStatus = computed((): 'waiting' | 'running' | 'completed' | 'failed' => {
+  if (!currentCommand.value)
+    return 'waiting'
+  return currentCommand.value.status as any
+})
+
+const isWaiting = computed(() => currentCommand.value?.status === 'waiting')
+const waitingTimeLeft = ref(0)
+
+// Format number helper function
+function formatNumber(num: number | undefined): string {
+  if (num === undefined)
+    return '0'
+  return num.toLocaleString()
+}
+
+// Watch for waiting status changes
+watch(() => currentCommand.value?.status, (status) => {
+  if (status === 'waiting') {
+    if (currentCommand.value?.metadata?.waitTime) {
+      waitingTimeLeft.value = Math.ceil(
+        (currentCommand.value.metadata.waitTime as number) / 1000,
+      )
+      const waitTimer = setInterval(() => {
+        if (waitingTimeLeft.value <= 0) {
+          clearInterval(waitTimer)
+          return
+        }
+        waitingTimeLeft.value--
+      }, 1000)
+    }
+  }
+})
+
 // Sync status
 const syncStatus = computed((): string => {
   if (!currentCommand.value)
@@ -155,6 +197,21 @@ async function confirmPriorities() {
   showPriorityDialog.value = false
   const toastId = toast.loading(t('component.sync_command.prepare_sync_'))
 
+  // 立即创建一个初始的 command 状态
+  const initialCommand: Command = {
+    id: Date.now().toString(),
+    type: 'sync',
+    status: 'running',
+    progress: 0,
+    message: t('component.sync_command.prepare_sync'),
+    metadata: {
+      totalChats: selectedChats.value.length,
+      processedChats: 0,
+      failedChats: 0,
+    },
+  }
+  updateMultiCommand(initialCommand)
+
   try {
     await executeMultiSync({
       chatIds: selectedChats.value,
@@ -163,8 +220,18 @@ async function confirmPriorities() {
     toast.success(t('component.sync_command.sync_success'), { id: toastId })
   }
   catch (error) {
-    toast.error(t('component.sync_command.sync_failure', { error: error instanceof Error ? error.message : '未知错误' }), { id: toastId })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    toast.error(t('component.sync_command.sync_failure', { error: errorMessage }), { id: toastId })
     console.error('Failed to start sync:', error)
+    // 如果出错，更新 command 状态为失败
+    const failedCommand: Command = {
+      id: Date.now().toString(),
+      type: 'sync',
+      status: 'failed',
+      progress: 0,
+      message: errorMessage,
+    }
+    updateMultiCommand(failedCommand)
   }
 }
 
@@ -177,17 +244,52 @@ async function syncMetadata() {
 
   const toastId = toast.loading(t('component.sync_command.prepare_sync_'))
 
+  // 立即创建一个初始的 command 状态
+  const initialCommand: Command = {
+    id: Date.now().toString(),
+    type: 'sync',
+    status: 'running',
+    progress: 0,
+    message: t('component.sync_command.prepare_sync'),
+    metadata: {
+      totalChats: 0,
+      processedChats: 0,
+      failedChats: 0,
+    },
+  }
+  updateSyncCommand(initialCommand)
+
   try {
     const result = await executeSync({})
     if (!result.success) {
-      toast.error(result.error || t('component.sync_command.sync_error'), { id: toastId })
+      const errorMessage = String(result.error || t('component.sync_command.sync_error'))
+      toast.error(errorMessage, { id: toastId })
+      // 如果出错，更新 command 状态为失败
+      const failedCommand: Command = {
+        id: Date.now().toString(),
+        type: 'sync',
+        status: 'failed',
+        progress: 0,
+        message: errorMessage,
+      }
+      updateSyncCommand(failedCommand)
     }
     else {
       toast.success(t('component.sync_command.sync_success'), { id: toastId })
     }
   }
   catch (error) {
-    toast.error(t('component.sync_command.sync_failure', { error: error instanceof Error ? error.message : '未知错误' }), { id: toastId })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    toast.error(t('component.sync_command.sync_failure', { error: errorMessage }), { id: toastId })
+    // 如果出错，更新 command 状态为失败
+    const failedCommand: Command = {
+      id: Date.now().toString(),
+      type: 'sync',
+      status: 'failed',
+      progress: 0,
+      message: errorMessage,
+    }
+    updateSyncCommand(failedCommand)
   }
 }
 
@@ -266,34 +368,99 @@ onMounted(async () => {
     <!-- Sync Status -->
     <div v-if="currentCommand" class="overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 dark:bg-gray-800 dark:text-gray-100">
       <div class="p-5">
-        <h2 class="mb-3 text-lg font-semibold">
-          {{ t('component.sync_command.sync_status') }}
-        </h2>
-
-        <div class="space-y-4">
-          <div class="flex items-center justify-between">
-            <span class="text-gray-600 dark:text-gray-400">{{ t('component.sync_command.status') }}</span>
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="flex items-center text-lg font-semibold">
+            <span class="mr-2">{{ t('component.sync_command.sync_status') }}</span>
             <span
-              class="font-medium" :class="{
-                'text-blue-600': currentCommand.status === 'waiting',
-                'text-yellow-600': currentCommand.status === 'running',
-                'text-green-600': currentCommand.status === 'completed',
-                'text-red-600': currentCommand.status === 'failed',
-              }"
-            >{{ syncStatus }}</span>
+              v-if="currentCommand.status === 'running'"
+              class="inline-block animate-spin text-yellow-500"
+            >⟳</span>
+          </h2>
+          <StatusBadge
+            :status="commandStatus"
+            :label="syncStatus"
+            :icon="statusIcon"
+          />
+        </div>
+
+        <!-- Progress bar -->
+        <div class="mb-5">
+          <ProgressBar
+            :progress="commandProgress"
+            :status="commandStatus"
+          />
+        </div>
+
+        <!-- 等待提示 -->
+        <div v-if="isWaiting" class="animate-fadeIn mb-5 rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+          <p class="flex items-center">
+            <span class="mr-2 text-lg">⏱</span>
+            <span>{{ t('component.sync_command.telegram_limit', { waitingTimeLeft }) }}</span>
+          </p>
+        </div>
+
+        <!-- Status message -->
+        <div v-if="currentCommand.message" class="mb-4 text-sm text-gray-700 dark:text-gray-300">
+          <p class="mb-1 font-medium">
+            {{ t('component.sync_command.current_state') }}
+          </p>
+          <p>{{ currentCommand.message }}</p>
+        </div>
+
+        <!-- Sync details -->
+        <div v-if="currentCommand.metadata" class="mt-6 space-y-4">
+          <h3 class="text-gray-800 font-medium dark:text-gray-200">
+            {{ t('component.sync_command.sync_detail') }}
+          </h3>
+
+          <div class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
+            <div class="text-sm space-y-3">
+              <div v-if="currentCommand.metadata?.totalChats" class="flex items-center justify-between">
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.sync_command.total_chats') }}</span>
+                <span class="font-medium">{{ formatNumber(Number(currentCommand.metadata.totalChats)) }}</span>
+              </div>
+
+              <div v-if="currentCommand.metadata?.processedChats" class="flex items-center justify-between">
+                <span class="text-gray-600 dark:text-gray-300">{{ t('component.sync_command.processed_chats') }}</span>
+                <span class="flex items-center font-medium">
+                  {{ formatNumber(Number(currentCommand.metadata.processedChats)) }}
+                  <template v-if="currentCommand.metadata?.totalChats">
+                    <span class="mx-1">/</span> {{ formatNumber(Number(currentCommand.metadata.totalChats)) }}
+                  </template>
+                </span>
+              </div>
+
+              <div v-if="currentCommand.metadata?.failedChats" class="flex items-center justify-between text-red-600 dark:text-red-400">
+                <span>{{ t('component.sync_command.failed_chats') }}</span>
+                <span class="font-medium">{{ formatNumber(Number(currentCommand.metadata.failedChats)) }}</span>
+              </div>
+            </div>
           </div>
 
-          <div class="flex items-center justify-between">
-            <span class="text-gray-600 dark:text-gray-400">{{ t('component.sync_command.progress') }}</span>
-            <span class="font-medium">{{ syncProgress }}%</span>
-          </div>
-
-          <!-- 错误信息显示 -->
-          <div v-if="currentCommand.error" class="mt-2 rounded-md bg-red-50 p-3 text-red-700 dark:bg-red-900/50 dark:text-red-100">
-            <p class="text-sm">
-              {{ currentCommand.error }}
+          <!-- Error message -->
+          <div v-if="currentCommand.error" class="animate-fadeIn mt-4 rounded-md bg-red-50 p-4 text-red-700 dark:bg-red-900/50 dark:text-red-100">
+            <p class="mb-2 font-medium">
+              {{ t('component.sync_command.error_message') }}
             </p>
+            <div v-if="typeof currentCommand.error === 'string'" class="text-sm">
+              {{ currentCommand.error }}
+            </div>
+            <div v-else class="text-sm">
+              <div>{{ currentCommand.error.name }}: {{ currentCommand.error.message }}</div>
+              <pre v-if="currentCommand.error.stack" class="mt-3 overflow-auto rounded-md bg-red-100 p-2 text-xs dark:bg-red-900/50">{{ currentCommand.error.stack }}</pre>
+            </div>
           </div>
+        </div>
+
+        <!-- Completion message -->
+        <div
+          v-if="currentCommand.status === 'completed'"
+          class="animate-fadeIn mt-5 rounded-md bg-green-50 p-3 text-green-700 dark:bg-green-900/50 dark:text-green-100"
+        >
+          <p class="flex items-center">
+            <span class="mr-2 text-lg">✓</span>
+            <span>{{ t('component.sync_command.sync_success') }}</span>
+          </p>
         </div>
       </div>
     </div>
@@ -471,5 +638,45 @@ onMounted(async () => {
 
 .grid-item:active {
   transform: scale(0.98);
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-spin {
+  animation: spin 1.5s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 </style>
