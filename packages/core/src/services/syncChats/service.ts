@@ -1,8 +1,9 @@
+import type { DatabaseNewChat } from '@tg-search/db'
 import type { ITelegramClientAdapter } from '../../types'
 import type { SyncTask, SyncType } from '../../types/sync'
 
 import { useLogger } from '@tg-search/common'
-import { cancelSyncConfig, getChatMetadataById, getSyncConfigByChatId, getSyncConfigByChatIdAndType } from '@tg-search/db'
+import { cancelSyncConfig, getSyncConfigByChatId, getSyncConfigByChatIdAndType } from '@tg-search/db'
 
 import { SyncScheduler } from './scheduler'
 
@@ -18,6 +19,7 @@ export class ChatsSyncServices {
   private metadataScheduler: SyncScheduler
   private messageScheduler: SyncScheduler
   private logger = useLogger()
+  private dialogsCache: DatabaseNewChat[] | null = null
 
   constructor(
     private client: ITelegramClientAdapter,
@@ -31,35 +33,14 @@ export class ChatsSyncServices {
   async startMultiSync(options: ChatsSyncOptions): Promise<void> {
     const {
       chatIds,
-      type = 'messages', // 默认为消息同步
+      type = 'messages',
       priorities = {},
       options: chatOptions = {},
       onProgress,
     } = options
 
-    // 如果是消息同步，先确保元数据是最新的
-    if (type === 'messages') {
-      onProgress?.(5, '开始同步元数据...')
-      await this.syncMetadata(chatIds)
-      onProgress?.(10, '元数据同步完成')
-    }
-
-    // 验证所有会话是否存在
-    onProgress?.(15, '验证会话...')
-    const chats = await Promise.all(
-      chatIds.map(id => getChatMetadataById(id)),
-    )
-
-    const missingChats = chatIds.filter(
-      (id, index) => !chats[index],
-    )
-
-    if (missingChats.length > 0) {
-      throw new Error(`Chats not found: ${missingChats.join(', ')}`)
-    }
-
-    // 创建同步任务
-    onProgress?.(20, '创建同步任务...')
+    // Create sync tasks
+    onProgress?.(5, '创建同步任务...')
     const tasks: SyncTask[] = chatIds.map(chatId => ({
       type,
       chatId,
@@ -67,20 +48,22 @@ export class ChatsSyncServices {
       options: chatOptions[chatId] || {},
     }))
 
-    // 按优先级排序并提交任务
+    // Sort by priority
     tasks.sort((a, b) => b.priority - a.priority)
 
+    // Select appropriate scheduler
     const scheduler = type === 'metadata'
       ? this.metadataScheduler
       : this.messageScheduler
 
+    // Submit tasks and track progress
     let completedTasks = 0
     const totalTasks = tasks.length
 
     for (const task of tasks) {
       await scheduler.schedule(task)
       completedTasks++
-      const progress = Math.floor(20 + (completedTasks / totalTasks) * 80)
+      const progress = Math.floor(5 + (completedTasks / totalTasks) * 95)
       onProgress?.(progress, `同步进度: ${completedTasks}/${totalTasks}`)
     }
 

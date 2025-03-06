@@ -13,6 +13,7 @@ export class SyncScheduler {
   private queue: PriorityQueue<SyncTask>
   private active = new Set<number>()
   private logger = useLogger()
+  private exportService: ExportService
 
   constructor(
     private client: ITelegramClientAdapter,
@@ -20,6 +21,7 @@ export class SyncScheduler {
   ) {
     this.maxConcurrent = maxConcurrent
     this.queue = new PriorityQueue((a, b) => b.priority - a.priority)
+    this.exportService = new ExportService(client)
   }
 
   async schedule(task: SyncTask): Promise<void> {
@@ -51,8 +53,13 @@ export class SyncScheduler {
     try {
       await updateSyncStatus(task.chatId, { status: 'running' })
 
-      // 执行同步
-      await this.executeMetadataSync(task)
+      // Execute sync based on task type
+      if (task.type === 'metadata') {
+        await this.executeMetadataSync(task)
+      }
+      else {
+        await this.executeMessageSync(task)
+      }
 
       await updateSyncStatus(task.chatId, {
         status: 'completed',
@@ -72,6 +79,75 @@ export class SyncScheduler {
     }
   }
 
+  private async executeMetadataSync(task: SyncTask): Promise<void> {
+    const { chatId } = task
+
+    // Get chat metadata first
+    const chats = await this.client.getDialogs()
+    const chat = chats.find(c => c.id === chatId)
+    if (!chat) {
+      throw new Error(`Chat ${chatId} not found`)
+    }
+
+    // Use export service with metadata-only configuration
+    await this.exportService.exportMessages({
+      chatId,
+      chatMetadata: {
+        id: chat.id,
+        title: chat.title,
+        type: chat.type,
+      },
+      messageTypes: [], // Empty array means no messages will be fetched
+      limit: 1, // Minimal limit since we don't need messages
+      format: 'database',
+      method: 'getMessage',
+      incremental: false,
+      onProgress: (progress, message, metadata) => {
+        this.logger.debug('Metadata sync progress', {
+          progress,
+          message,
+          metadata,
+          chatId,
+        })
+      },
+    })
+  }
+
+  private async executeMessageSync(task: SyncTask): Promise<void> {
+    const { chatId, options = {} } = task
+
+    // Get chat metadata first
+    const chats = await this.client.getDialogs()
+    const chat = chats.find(c => c.id === chatId)
+    if (!chat) {
+      throw new Error(`Chat ${chatId} not found`)
+    }
+
+    // Use export service with message sync configuration
+    await this.exportService.exportMessages({
+      chatId,
+      chatMetadata: {
+        id: chat.id,
+        title: chat.title,
+        type: chat.type,
+      },
+      messageTypes: ['text'], // Default to text messages
+      format: 'database',
+      method: 'getMessage',
+      incremental: options.incremental ?? true,
+      minId: options.fromMessageId,
+      maxId: options.toMessageId,
+      onProgress: (progress, message, metadata) => {
+        this.logger.debug('Message sync progress', {
+          progress,
+          message,
+          metadata,
+          chatId,
+        })
+      },
+    })
+  }
+
   private async processQueue(): Promise<void> {
     if (this.active.size >= this.maxConcurrent || this.queue.isEmpty()) {
       return
@@ -80,52 +156,6 @@ export class SyncScheduler {
     const task = this.queue.pop()
     if (task) {
       await this.startSync(task)
-    }
-  }
-
-  private async executeMetadataSync(task: SyncTask): Promise<void> {
-    const { chatId } = task
-    const logger = useLogger()
-
-    try {
-      // Get chat metadata first
-      const chats = await this.client.getDialogs()
-      const chat = chats.find(c => c.id === chatId)
-      if (!chat) {
-        throw new Error(`Chat ${chatId} not found`)
-      }
-
-      // Create export service instance
-      const exportService = new ExportService(this.client)
-
-      // Execute export with metadata-only configuration
-      await exportService.exportMessages({
-        chatId,
-        chatMetadata: {
-          id: chat.id,
-          title: chat.title,
-          type: chat.type,
-        },
-        // Set minimal message export to update metadata
-        messageTypes: [],
-        limit: 1,
-        format: 'database',
-        method: 'getMessage',
-        onProgress: (progress, message, metadata) => {
-          logger.debug('Metadata sync progress', {
-            progress,
-            message,
-            metadata,
-            chatId,
-          })
-        },
-      })
-
-      logger.log(`Successfully synced metadata for chat ${chatId}`)
-    }
-    catch (error) {
-      logger.withError(error).error(`Failed to sync metadata for chat ${chatId}`)
-      throw error
     }
   }
 
