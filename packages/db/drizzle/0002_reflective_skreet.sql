@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "uniq_chat_type" ON "sync_config_items" USING btree ("chat_id","sync_type");

@@ -13,18 +13,19 @@ export type DatabaseNewSyncConfig = InferInsertModel<typeof syncConfigItems>
  * Update or create a sync configuration
  */
 export async function upsertSyncConfig(chatId: number, data: Partial<DatabaseNewSyncConfig>) {
+  const syncType = data.syncType ?? 'default' // Ensure syncType is not undefined
   return useDB()
     .insert(syncConfigItems)
     .values({
       chatId,
-      syncType: data.syncType ?? 'default', // Ensure syncType is not undefined
+      syncType,
       ...data,
     })
     .onConflictDoUpdate({
-      target: syncConfigItems.chatId,
+      target: [syncConfigItems.chatId, syncConfigItems.syncType],
       set: {
         ...data,
-        syncType: data.syncType ?? 'default', // Also ensure syncType in update
+        updatedAt: new Date(), // Ensure updatedAt is set on update
       },
     })
     .returning()

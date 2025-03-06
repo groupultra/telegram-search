@@ -1,4 +1,4 @@
-import { bigint, index, integer, jsonb, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { bigint, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 
 export const syncConfigItems = pgTable('sync_config_items', {
   id: serial('id').primaryKey(),
@@ -17,6 +17,8 @@ export const syncConfigItems = pgTable('sync_config_items', {
   chatTypeIdx: index('idx_sync_items_chat_type').on(table.chatId, table.syncType),
   statusIdx: index('idx_sync_config_items_status').on(table.status),
   priorityIdx: index('idx_sync_config_items_priority').on(table.priority),
+  // 添加唯一约束
+  uniqChatType: uniqueIndex('uniq_chat_type').on(table.chatId, table.syncType),
 }))
 
 // 生成类型

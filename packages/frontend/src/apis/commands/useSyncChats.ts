@@ -13,7 +13,7 @@ export function useSyncChats() {
     cleanup,
     updateCommand,
   } = useCommandHandler<SyncParams>({
-    endpoint: '/commands/multi-sync',
+    endpoint: '/commands/sync-chats',
     errorMessage: '同步失败',
   })
 
