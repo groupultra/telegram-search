@@ -5,13 +5,13 @@ import { deleteAllChats, deleteAllFolders, updateChat, updateFolder } from '@tg-
 
 const logger = useLogger()
 
-export interface SyncOptions {
+export interface MetadataSyncOptions {
   onProgress?: (progress: number, message: string, metadata?: Record<string, any>) => void
 }
 
-export class SyncService {
+export class MetadataSyncServices {
   constructor(private client: ITelegramClientAdapter) {}
-  async syncChats(options: SyncOptions): Promise<any> {
+  async syncChats(options: MetadataSyncOptions): Promise<any> {
     let processed_chats_count = 0
     let processed_folders_count = 0
     const { onProgress } = options

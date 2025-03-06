@@ -15,10 +15,3 @@ export interface SyncTask {
     toMessageId?: number // 结束消息 ID
   }
 }
-
-export interface MultiSyncOptions {
-  chatIds: number[] // 要同步的会话 ID 列表
-  type?: SyncType // 同步类型，默认为 'messages'
-  priorities?: Record<number, number> // 会话 ID 到优先级的映射
-  options?: Record<number, Record<string, any>> // 会话 ID 到同步选项的映射
-}

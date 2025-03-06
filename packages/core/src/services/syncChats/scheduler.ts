@@ -79,7 +79,7 @@ export class SyncScheduler {
   }
 
   private async executeSync(_task: SyncTask): Promise<void> {
-    // 实际的同步逻辑将在 SyncService 中实现
+    // 实际的同步逻辑将在 MetadataSyncServices 中实现
     // 这里只是一个占位符
     throw new Error('Not implemented')
   }

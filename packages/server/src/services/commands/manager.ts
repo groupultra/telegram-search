@@ -4,16 +4,15 @@ import type { SSEController } from '../../types/sse'
 
 import { SSEHandler } from '../sse-handler'
 import { ExportCommandHandler } from './export'
-import { SyncCommandHandler } from './sync'
+import { SyncChatsCommandHandler } from './syncChats'
+import { SyncMetadataCommandHandler } from './syncMetadata'
 
 export class CommandManager {
   // 直接定义所有命令处理器
   private handlers = {
     export: new ExportCommandHandler(),
-    // 直接添加新的处理器
-    // import: new ImportCommandHandler(),
-    // stats: new StatsCommandHandler(),
-    sync: new SyncCommandHandler(),
+    syncMetadata: new SyncMetadataCommandHandler(),
+    syncChats: new SyncChatsCommandHandler(),
   } as const
 
   /**

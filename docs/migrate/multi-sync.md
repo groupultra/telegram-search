@@ -85,7 +85,7 @@ export interface SyncTask {
   }
 }
 
-export interface MultiSyncOptions {
+export interface ChatsSyncOptions {
   chatIds: number[]
   type?: SyncType
   priorities?: Record<number, number>
@@ -197,7 +197,7 @@ export class SyncScheduler {
   }
 
   private async executeSync(task: SyncTask): Promise<void> {
-    // 实际的同步逻辑将在 SyncService 中实现
+    // 实际的同步逻辑将在 MetadataSyncServices 中实现
   }
 }
 ```
@@ -206,14 +206,14 @@ export class SyncScheduler {
 
 ```typescript
 import type { ITelegramClientAdapter } from '../../types'
-import type { MultiSyncOptions, SyncTask, SyncType } from '../../types/sync'
+import type { ChatsSyncOptions, SyncTask, SyncType } from '../../types/sync'
 
 import { useLogger } from '@tg-search/common'
 import { db } from '@tg-search/db'
 
 import { SyncScheduler } from './scheduler'
 
-export class MultiSyncService {
+export class ChatsSyncServices {
   private metadataScheduler: SyncScheduler
   private messageScheduler: SyncScheduler
   private logger = useLogger()
@@ -227,7 +227,7 @@ export class MultiSyncService {
     this.messageScheduler = new SyncScheduler(messageConcurrent)
   }
 
-  async startMultiSync(options: MultiSyncOptions): Promise<void> {
+  async startMultiSync(options: ChatsSyncOptions): Promise<void> {
     const {
       chatIds,
       type = 'messages', // 默认为消息同步
@@ -273,7 +273,7 @@ export class MultiSyncService {
   }
 
   // 元数据同步总是全量进行
-  async syncMetadata(chatIds: number[], options?: Partial<MultiSyncOptions>) {
+  async syncMetadata(chatIds: number[], options?: Partial<ChatsSyncOptions>) {
     return this.startMultiSync({
       chatIds,
       type: 'metadata',
@@ -282,7 +282,7 @@ export class MultiSyncService {
   }
 
   // 消息同步支持更多选项
-  async syncMessages(chatIds: number[], options?: Partial<MultiSyncOptions>) {
+  async syncMessages(chatIds: number[], options?: Partial<ChatsSyncOptions>) {
     return this.startMultiSync({
       chatIds,
       type: 'messages',
@@ -316,7 +316,7 @@ export class MultiSyncService {
 1. 添加多会话同步路由 (`packages/server/src/routes/commands.ts`):
 
 ```typescript
-import { MultiSyncService } from '@tg-search/core'
+import { ChatsSyncServices } from '@tg-search/core'
 import { z } from 'zod'
 
 // 验证模式
@@ -336,7 +336,7 @@ router.post('/multi-sync', defineEventHandler(async (event: H3Event) => {
     await client.connect()
   }
 
-  const service = new MultiSyncService(client)
+  const service = new ChatsSyncServices(client)
   return createSSEResponse(async (controller) => {
     try {
       await service.startMultiSync(validatedBody)
@@ -592,7 +592,7 @@ onUnmounted(() => {
 ```typescript
 // 初始化多会话同步服务
 const client = await useTelegramClient()
-const syncService = new MultiSyncService(client)
+const syncService = new ChatsSyncServices(client)
 
 // 1. 仅同步元数据（全量）
 await syncService.syncMetadata([123, 456, 789])

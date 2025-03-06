@@ -1,23 +1,25 @@
 import type { ITelegramClientAdapter } from '@tg-search/core'
 import type { Command, CommandOptions } from '../../types'
-import type { SyncOptions } from './../../../../core/src/services/sync'
 
 import { useLogger } from '@tg-search/common'
+import { ChatsSyncServices } from '@tg-search/core'
 import { z } from 'zod'
-
-import { SyncService } from './../../../../core/src/services/sync'
 
 const logger = useLogger()
 
 /**
- * Sync command schema
+ * Sync metadata command schema
  */
-export const syncCommandSchema = z.object({})
+export const syncMetadataCommandSchema = z.object({
+  chatIds: z.array(z.number()),
+  priorities: z.record(z.number(), z.number()).optional(),
+  options: z.record(z.number(), z.record(z.string(), z.any())).optional(),
+})
 
 /**
- * Sync command handler
+ * Sync metadata command handler
  */
-export class SyncCommandHandler {
+export class SyncMetadataCommandHandler {
   private options?: CommandOptions
   private command: Command
 
@@ -57,26 +59,21 @@ export class SyncCommandHandler {
     this.options?.onProgress(this.command)
   }
 
-  async execute(client: ITelegramClientAdapter, params: SyncOptions) {
+  async execute(client: ITelegramClientAdapter, params: z.infer<typeof syncMetadataCommandSchema>) {
     try {
-      logger.debug('执行同步命令')
-      const syncService = new SyncService(client)
-      const result = await syncService.syncChats({
-        ...params,
-        onProgress: (progress, message, metadata) => {
-          if (metadata?.type === 'waiting') {
-            this.updateWaiting(progress, message, metadata.waitSeconds)
-          }
-          else {
-            this.updateProgress(progress, message, metadata)
-          }
-        },
+      logger.debug('执行同步元数据命令')
+      const syncService = new ChatsSyncServices(client)
+
+      await syncService.syncMetadata(params.chatIds, {
+        priorities: params.priorities,
+        options: params.options,
       })
+
       this.command = {
         ...this.command,
         status: 'completed',
         progress: 100,
-        result,
+        message: '元数据同步完成',
       }
       this.options?.onComplete(this.command)
     }

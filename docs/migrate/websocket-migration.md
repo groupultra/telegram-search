@@ -54,7 +54,7 @@ class WSClient {
 
 ### 2.2 同步管理器
 ```typescript
-interface SyncOptions {
+interface MetadataSyncOptions {
   messageTypes?: string[]
   incremental?: boolean
   batchSize?: number
@@ -71,7 +71,7 @@ class SyncManager {
     this.setupEventHandlers()
   }
 
-  async startSync(chatId: number, options: SyncOptions) {
+  async startSync(chatId: number, options: MetadataSyncOptions) {
     return this.ws.request('sync:start', { chatId, options })
   }
 

@@ -1,25 +1,15 @@
 import type { App, H3Event } from 'h3'
 
 import { useLogger } from '@tg-search/common'
-import { MultiSyncService } from '@tg-search/core'
 import { createRouter, defineEventHandler, readBody } from 'h3'
-import { z } from 'zod'
 
 import { exportCommandSchema } from '../services/commands/export'
 import { CommandManager } from '../services/commands/manager'
-import { syncCommandSchema } from '../services/commands/sync'
+import { syncMetadataCommandSchema } from '../services/commands/syncMetadata'
 import { useTelegramClient } from '../services/telegram'
 import { createSSEResponse } from '../utils/sse'
 
 const logger = useLogger()
-
-// 验证模式
-const multiSyncSchema = z.object({
-  chatIds: z.array(z.number()),
-  type: z.enum(['metadata', 'messages']).optional(),
-  priorities: z.record(z.string(), z.number()).optional(),
-  options: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
-})
 
 /**
  * Setup command routes
@@ -29,9 +19,9 @@ export function setupCommandRoutes(app: App) {
   const commandManager = new CommandManager()
   router.post('/sync', defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    const vaildatedBody = syncCommandSchema.parse(body)
-    logger.withFields(vaildatedBody).debug('Sync request received')
-    // connect to Telegram server
+    const vaildatedBody = syncMetadataCommandSchema.parse(body)
+    logger.withFields(vaildatedBody).debug('Sync metadata request received')
+
     const client = await useTelegramClient()
     if (!await client.isConnected()) {
       await client.connect()
@@ -39,34 +29,24 @@ export function setupCommandRoutes(app: App) {
 
     const params = { ...vaildatedBody }
     return createSSEResponse(async (controller) => {
-      await commandManager.executeCommand('sync', client, params, controller)
+      await commandManager.executeCommand('syncMetadata', client, params, controller)
     })
   }))
 
   // Add multi-sync route
-  router.post('/multi-sync', defineEventHandler(async (event: H3Event) => {
+  router.post('/sync-chats', defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    const validatedBody = multiSyncSchema.parse(body)
-
-    logger.withFields(validatedBody).debug('Multi-sync request received')
+    const vaildatedBody = syncMetadataCommandSchema.parse(body)
+    logger.withFields(vaildatedBody).debug('Sync chats request received')
 
     const client = await useTelegramClient()
     if (!await client.isConnected()) {
       await client.connect()
     }
 
-    const service = new MultiSyncService(client)
+    const params = { ...vaildatedBody }
     return createSSEResponse(async (controller) => {
-      try {
-        await service.startMultiSync(validatedBody)
-        controller.progress({ type: 'success' })
-      }
-      catch (error) {
-        controller.error({
-          type: 'error',
-          error: error instanceof Error ? error.message : String(error),
-        })
-      }
+      await commandManager.executeCommand('syncChats', client, params, controller)
     })
   }))
 
