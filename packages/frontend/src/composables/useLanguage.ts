@@ -11,6 +11,7 @@ export const supportedLanguages = [
   { code: 'es', name: 'Español' },
   { code: 'ru', name: 'Русский' },
   { code: 'ja', name: '日本語' },
+  { code: 'mn', name: 'Монгол' },
 ]
 
 // 创建 composable 函数

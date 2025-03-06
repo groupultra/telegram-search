@@ -10,6 +10,7 @@ import en from './languages/en'
 import es from './languages/es'
 import fr from './languages/fr'
 import ja from './languages/ja'
+import mn from './languages/mn'
 import ru from './languages/ru'
 import zhCN from './languages/zh-CN'
 import zhHK from './languages/zh-HK'
@@ -31,6 +32,7 @@ const i18n = createI18n({
   globalInjection: true,
   messages: {
     en,
+    mn,
     zhCN,
     fr,
     zhHK,
