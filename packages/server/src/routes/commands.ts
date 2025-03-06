@@ -59,10 +59,10 @@ export function setupCommandRoutes(app: App) {
     return createSSEResponse(async (controller) => {
       try {
         await service.startMultiSync(validatedBody)
-        controller.send({ type: 'success' })
+        controller.progress({ type: 'success' })
       }
       catch (error) {
-        controller.send({
+        controller.error({
           type: 'error',
           error: error instanceof Error ? error.message : String(error),
         })

@@ -3,23 +3,25 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { useMultiSync } from '../../apis/commands/useMultiSync'
+import { useSync } from '../../apis/commands/useSyncMetadata'
 import { useChats } from '../../apis/useChats'
-import MultiSyncStatus from '../../components/commands/sync/MultiSyncStatus.vue'
-import SelectDropdown from '../../components/ui/SelectDropdown.vue'
 import Pagination from '../../components/ui/Pagination.vue'
-import { useMultiSync } from '../../composables/useMultiSync'
+import SelectDropdown from '../../components/ui/SelectDropdown.vue'
 import { useSession } from '../../composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
 const { chats, loadChats } = useChats()
-const { executeMultiSync } = useMultiSync()
+const { executeMultiSync, currentCommand, syncProgress } = useMultiSync()
+const { executeSync } = useSync()
 const { checkConnection, isConnected } = useSession()
 
 const selectedChats = ref<number[]>([])
 const priorities = ref<Record<number, number>>({})
 const showPriorityDialog = ref(false)
 const showConnectButton = ref(false)
+const isSyncing = computed(() => currentCommand.value?.status === 'running')
 
 // Grid selector states
 const selectedType = ref<string>('user')
@@ -88,6 +90,38 @@ const totalPages = computed(() =>
 // Selected count
 const selectedCount = computed(() => selectedChats.value.length)
 
+// Sync status
+const syncStatus = computed((): string => {
+  if (!currentCommand.value)
+    return ''
+
+  const statusMap: Record<string, string> = {
+    running: t('component.sync_command.running'),
+    waiting: t('component.sync_command.waiting'),
+    completed: t('component.sync_command.completed'),
+    failed: t('component.sync_command.failed'),
+    default: t('component.sync_command.prepare_sync'),
+  }
+
+  return statusMap[currentCommand.value.status] || statusMap.default
+})
+
+// Status icon
+const statusIcon = computed((): string => {
+  if (!currentCommand.value)
+    return ''
+
+  const iconMap: Record<string, string> = {
+    running: '⟳',
+    waiting: '⏱',
+    completed: '✓',
+    failed: '✗',
+    default: '↻',
+  }
+
+  return iconMap[currentCommand.value.status] || iconMap.default
+})
+
 function isSelected(id: number): boolean {
   return selectedChats.value.includes(id)
 }
@@ -98,10 +132,6 @@ function toggleSelection(id: number): void {
     selectedChats.value.push(id)
   else
     selectedChats.value.splice(index, 1)
-}
-
-function changePage(page: number): void {
-  currentPage.value = page
 }
 
 function getChatTitle(chatId: number) {
@@ -135,6 +165,29 @@ async function confirmPriorities() {
   catch (error) {
     toast.error(t('component.sync_command.sync_failure', { error: error instanceof Error ? error.message : '未知错误' }), { id: toastId })
     console.error('Failed to start sync:', error)
+  }
+}
+
+// 同步元数据
+async function syncMetadata() {
+  if (!isConnected.value) {
+    toast.error(t('component.sync_command.not_connect'))
+    return
+  }
+
+  const toastId = toast.loading(t('component.sync_command.prepare_sync_'))
+
+  try {
+    const result = await executeSync({})
+    if (!result.success) {
+      toast.error(result.error || t('component.sync_command.sync_error'), { id: toastId })
+    }
+    else {
+      toast.success(t('component.sync_command.sync_success'), { id: toastId })
+    }
+  }
+  catch (error) {
+    toast.error(t('component.sync_command.sync_failure', { error: error instanceof Error ? error.message : '未知错误' }), { id: toastId })
   }
 }
 
@@ -194,11 +247,54 @@ onMounted(async () => {
         </span>
         <button
           class="rounded-md bg-blue-500 px-4 py-2 text-white disabled:cursor-not-allowed hover:bg-blue-600 disabled:opacity-50"
+          :disabled="!isConnected"
+          @click="syncMetadata"
+        >
+          {{ t('component.sync_command.metadata_sync') }}
+        </button>
+        <button
+          class="rounded-md bg-blue-500 px-4 py-2 text-white disabled:cursor-not-allowed hover:bg-blue-600 disabled:opacity-50"
           :disabled="selectedChats.length === 0 || !isConnected"
           @click="startSync"
         >
-          {{ t('component.sync_command.start_sync') }}
+          <span v-if="isSyncing" class="mr-2 inline-block animate-spin text-lg">{{ statusIcon }}</span>
+          <span>{{ isSyncing ? syncStatus : t('component.sync_command.start_sync') }}</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Sync Status -->
+    <div v-if="currentCommand" class="overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 dark:bg-gray-800 dark:text-gray-100">
+      <div class="p-5">
+        <h2 class="mb-3 text-lg font-semibold">
+          {{ t('component.sync_command.sync_status') }}
+        </h2>
+
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-gray-600 dark:text-gray-400">{{ t('component.sync_command.status') }}</span>
+            <span
+              class="font-medium" :class="{
+                'text-blue-600': currentCommand.status === 'waiting',
+                'text-yellow-600': currentCommand.status === 'running',
+                'text-green-600': currentCommand.status === 'completed',
+                'text-red-600': currentCommand.status === 'failed',
+              }"
+            >{{ syncStatus }}</span>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-gray-600 dark:text-gray-400">{{ t('component.sync_command.progress') }}</span>
+            <span class="font-medium">{{ syncProgress }}%</span>
+          </div>
+
+          <!-- 错误信息显示 -->
+          <div v-if="currentCommand.error" class="mt-2 rounded-md bg-red-50 p-3 text-red-700 dark:bg-red-900/50 dark:text-red-100">
+            <p class="text-sm">
+              {{ currentCommand.error }}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -327,8 +423,6 @@ onMounted(async () => {
         </div>
       </Dialog>
     </Teleport>
-
-    <MultiSyncStatus />
   </div>
 </template>
 

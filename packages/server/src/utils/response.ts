@@ -61,15 +61,17 @@ export function createResponse<T>(
  */
 export function createErrorResponse(error: Error | string | ErrorCode | unknown, message?: string): ErrorResponse {
   const logger = useLogger()
-  logger.withError(error).error(message ?? 'an error occurred')
 
   if (error instanceof Error) {
+    logger.withError(error).error('an error occurred')
     return createResponse(undefined, error) as ErrorResponse
   }
   else if (typeof error === 'string') {
+    logger.error(`an error occurred ${error}`)
     return createResponse(undefined, error) as ErrorResponse
   }
   else {
+    logger.error(`an error occurred ${JSON.stringify(error)}`)
     return createResponse(undefined, message ?? ErrorCode.UNKNOWN_ERROR) as ErrorResponse
   }
 }

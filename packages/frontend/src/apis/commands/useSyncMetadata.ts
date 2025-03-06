@@ -1,6 +1,6 @@
 import type { Command } from '@tg-search/server'
+import type { SyncParams } from '../../../../server/src/types/apis/sync'
 import type { SSEClientOptions } from '../../composables/sse'
-import type { SyncParams } from './../../../../server/src/types/apis/sync'
 
 import { ref } from 'vue'
 

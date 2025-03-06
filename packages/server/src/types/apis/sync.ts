@@ -14,3 +14,15 @@ export interface SyncDetails {
   processedChats?: number
   processedFolders?: number
 }
+
+/**
+ * Multi sync options
+ */
+export interface MultiSyncOptions {
+  chatIds: number[]
+  type?: 'metadata' | 'messages'
+  priorities?: Record<number, number>
+  options?: Record<number, Record<string, any>>
+
+  [key: string]: unknown
+}
