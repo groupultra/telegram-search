@@ -13,8 +13,8 @@ import { useSession } from '../../composables/useSession'
 
 const { t } = useI18n()
 const { chats, loadChats } = useChats()
-const { executeMultiSync, currentCommand: multiCommand, syncProgress: multiProgress, updateCommand: updateMultiCommand } = useSyncChats()
-const { executeSync, currentCommand: syncCommand, syncProgress: metaProgress, updateCommand: updateSyncCommand } = useSyncMetadata()
+const { executeChatsSync, currentCommand: chatsSyncCommand, syncProgress: chatsSyncProgress } = useSyncChats()
+const { executeMetadataSync, currentCommand: metadataSyncCommand, syncProgress: metadataSyncProgress } = useSyncMetadata()
 const { checkConnection, isConnected } = useSession()
 
 const selectedChats = ref<number[]>([])
@@ -23,8 +23,8 @@ const showPriorityDialog = ref(false)
 const showConnectButton = ref(false)
 const waitingTimeLeft = ref(0)
 
-const currentCommand = computed(() => multiCommand.value || syncCommand.value)
-const commandProgress = computed(() => multiProgress.value || metaProgress.value || 0)
+const currentCommand = computed(() => chatsSyncCommand.value || metadataSyncCommand.value)
+const commandProgress = computed(() => chatsSyncProgress.value || metadataSyncProgress.value || 0)
 
 function getChatTitle(chatId: number) {
   return chats.value.find(c => c.id === chatId)?.title || chatId
@@ -46,54 +46,23 @@ async function confirmPriorities() {
   showPriorityDialog.value = false
   const toastId = toast.loading(t('component.sync_command.prepare_sync_'))
 
-  const initialCommand: Command = {
-    id: Date.now().toString(),
-    type: 'sync',
-    status: 'running',
-    progress: 0,
-    message: t('component.sync_command.prepare_sync'),
-    metadata: {
-      totalChats: selectedChats.value.length,
-      processedChats: 0,
-      failedChats: 0,
-    },
-  }
-  updateMultiCommand(initialCommand)
-
   try {
-    const result = await executeMultiSync({
+    const result = await executeChatsSync({
       chatIds: selectedChats.value,
       priorities: priorities.value,
     })
     if (result.success) {
       toast.success(t('component.sync_command.sync_success'), { id: toastId })
-    } else {
+    }
+    else {
       const errorMessage = String(result.error || t('component.sync_command.sync_error'))
       toast.error(errorMessage, { id: toastId })
-
-      const failedCommand: Command = {
-        id: Date.now().toString(),
-        type: 'sync',
-        status: 'failed',
-        progress: 0,
-        message: errorMessage,
-      }
-      updateMultiCommand(failedCommand)
     }
   }
   catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     toast.error(t('component.sync_command.sync_failure', { error: errorMessage }), { id: toastId })
     console.error('Failed to start sync:', error)
-
-    const failedCommand: Command = {
-      id: Date.now().toString(),
-      type: 'sync',
-      status: 'failed',
-      progress: 0,
-      message: errorMessage,
-    }
-    updateMultiCommand(failedCommand)
   }
 }
 
@@ -105,34 +74,11 @@ async function syncMetadata() {
 
   const toastId = toast.loading(t('component.sync_command.prepare_sync_'))
 
-  const initialCommand: Command = {
-    id: Date.now().toString(),
-    type: 'sync',
-    status: 'running',
-    progress: 0,
-    message: t('component.sync_command.prepare_sync'),
-    metadata: {
-      totalChats: 0,
-      processedChats: 0,
-      failedChats: 0,
-    },
-  }
-  updateSyncCommand(initialCommand)
-
   try {
-    const result = await executeSync({})
+    const result = await executeMetadataSync({})
     if (!result.success) {
       const errorMessage = String(result.error || t('component.sync_command.sync_error'))
       toast.error(errorMessage, { id: toastId })
-
-      const failedCommand: Command = {
-        id: Date.now().toString(),
-        type: 'sync',
-        status: 'failed',
-        progress: 0,
-        message: errorMessage,
-      }
-      updateSyncCommand(failedCommand)
     }
     else {
       toast.success(t('component.sync_command.sync_success'), { id: toastId })
@@ -141,15 +87,6 @@ async function syncMetadata() {
   catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     toast.error(t('component.sync_command.sync_failure', { error: errorMessage }), { id: toastId })
-
-    const failedCommand: Command = {
-      id: Date.now().toString(),
-      type: 'sync',
-      status: 'failed',
-      progress: 0,
-      message: errorMessage,
-    }
-    updateSyncCommand(failedCommand)
   }
 }
 

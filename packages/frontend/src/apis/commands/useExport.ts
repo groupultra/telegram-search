@@ -7,17 +7,12 @@ import { useCommandHandler } from '../../composables/useCommands'
 export function useExport() {
   const {
     currentCommand,
-    runningCommands,
     progress: exportProgress,
-    currentMessage,
-    status,
     executeCommand,
     cleanup: baseCleanup,
-    runningCommandsCount,
   } = useCommandHandler<ExportParams>({
     endpoint: '/commands/export',
     errorMessage: '导出失败',
-    maxParallelCommands: 2, // 允许最多2个并行导出任务
   })
 
   const lastExportParams = ref<ExportParams | null>(null)
@@ -49,13 +44,9 @@ export function useExport() {
 
   return {
     currentCommand,
-    runningCommands,
     exportProgress,
-    currentMessage,
-    status,
     lastExportParams,
     executeExport,
     cleanup,
-    runningCommandsCount,
   }
 }

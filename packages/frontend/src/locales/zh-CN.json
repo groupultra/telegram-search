@@ -44,6 +44,7 @@
       "no_connect": "未连接到 Telegram",
       "not_connect": "请先连接 Telegram 以使用导出功能。",
       "other": "其他",
+      "pending": "准备中",
       "per_minute": "每分钟 {per_minute} 条消息",
       "per_second": "{per_second} 消息/秒",
       "photo": "照片",

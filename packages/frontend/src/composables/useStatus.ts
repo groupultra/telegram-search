@@ -1,25 +1,25 @@
-import type { CommandStatus } from '@tg-search/server'
+import type { Command, CommandStatus } from '@tg-search/server'
 
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-export function useStatus(status: CommandStatus) {
+export function useStatus(status: Command) {
   const statusText = computed((): string => {
     const { t } = useI18n()
 
     if (!status) {
-      return t('component.export_command.preparation_guide')
+      return t('component.export_command.pending')
     }
 
-    const statusMap: Record<string, string> = {
+    const statusMap: Record<CommandStatus, string> = {
+      pending: t('component.export_command.pending'),
       running: t('component.export_command.running'),
       waiting: t('component.export_command.waiting'),
       completed: t('component.export_command.completed'),
       failed: t('component.export_command.failed'),
-      default: t('component.export_command.preparation_guide'),
     }
 
-    return statusMap[status] || statusMap.default
+    return statusMap[status.status]
   })
 
   const statusIcon = computed((): string => {
@@ -34,7 +34,7 @@ export function useStatus(status: CommandStatus) {
       failed: 'lucide:x',
     }
 
-    return iconMap[status]
+    return iconMap[status.status]
   })
 
   return {

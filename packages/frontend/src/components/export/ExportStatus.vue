@@ -1,6 +1,6 @@
 <!-- Export status component -->
 <script setup lang="ts">
-import type { Command, ExportDetails } from '@tg-search/server'
+import type { Command, CommandStatus, ExportDetails } from '@tg-search/server'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useStatus } from '../../composables/useStatus'
@@ -9,19 +9,13 @@ import ProgressBar from '../ui/ProgressBar.vue'
 import StatusBadge from '../ui/StatusBadge.vue'
 
 const props = defineProps<{
-  command: Command | null
+  command: Command
   progress: number
   waitingTimeLeft?: number
 }>()
 
 const { t } = useI18n()
-const { statusText, statusIcon } = useStatus(props.command?.status || 'waiting')
-
-const commandStatus = computed((): 'waiting' | 'running' | 'completed' | 'failed' => {
-  if (!props.command)
-    return 'waiting'
-  return props.command.status as any
-})
+const { statusText, statusIcon } = useStatus(props.command)
 
 const isWaiting = computed(() => props.command?.status === 'waiting')
 
@@ -69,7 +63,7 @@ const processedMessages = computed(() => {
           >⟳</span>
         </h2>
         <StatusBadge
-          :status="commandStatus"
+          :status="command.status"
           :label="statusText"
           :icon="statusIcon"
         />
@@ -79,7 +73,7 @@ const processedMessages = computed(() => {
       <div class="mb-5">
         <ProgressBar
           :progress="progress"
-          :status="commandStatus"
+          :status="command.status"
         />
       </div>
 
@@ -197,4 +191,4 @@ const processedMessages = computed(() => {
       </div>
     </div>
   </div>
-</template> 
+</template>

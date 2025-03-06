@@ -47,7 +47,7 @@ export class SyncScheduler {
       await updateSyncStatus(task.chatId, { status: 'running' })
 
       // 执行同步
-      await this.executeSync(task)
+      await this.executeMetadataSync(task)
 
       await updateSyncStatus(task.chatId, {
         status: 'completed',
@@ -78,7 +78,7 @@ export class SyncScheduler {
     }
   }
 
-  private async executeSync(_task: SyncTask): Promise<void> {
+  private async executeMetadataSync(_task: SyncTask): Promise<void> {
     // 实际的同步逻辑将在 MetadataSyncServices 中实现
     // 这里只是一个占位符
     throw new Error('Not implemented')

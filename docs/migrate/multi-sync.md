@@ -159,7 +159,7 @@ export class SyncScheduler {
       })
 
       // 执行同步
-      await this.executeSync(task)
+      await this.executeMetadataSync(task)
 
       await db.syncConfigItems.update({
         where: { chatId: task.chatId },
@@ -196,7 +196,7 @@ export class SyncScheduler {
     }
   }
 
-  private async executeSync(task: SyncTask): Promise<void> {
+  private async executeMetadataSync(task: SyncTask): Promise<void> {
     // 实际的同步逻辑将在 MetadataSyncServices 中实现
   }
 }
@@ -452,7 +452,7 @@ import { useSyncChats } from '../../composables/useSyncChats'
 
 const { t } = useI18n()
 const { chats } = useChats()
-const { executeMultiSync } = useSyncChats()
+const { executeChatsSync } = useSyncChats()
 
 const selectedChats = ref<number[]>([])
 const priorities = ref<Record<number, number>>({})
@@ -483,7 +483,7 @@ const confirmPriorities = async () => {
   showPriorityDialog.value = false
 
   try {
-    await executeMultiSync({
+    await executeChatsSync({
       chatIds: selectedChats.value,
       priorities: priorities.value,
     })

@@ -2,7 +2,6 @@
 <script setup lang="ts">
 import type { TelegramChat } from '@tg-search/core'
 import type { DatabaseMessageType } from '@tg-search/db'
-import type { Command, ExportDetails } from '@tg-search/server'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -12,8 +11,6 @@ import ExportStatus from '../../components/export/ExportStatus.vue'
 import NeedLogin from '../../components/NeedLogin.vue'
 import { useChatTypeOptions, useExportMethodOptions, useMessageTypeOptions } from '../../composables/useOptions'
 import { useSession } from '../../composables/useSession'
-import { useStatus } from '../../composables/useStatus'
-import { formatNumberToReadable, formatSpeedToReadable, formatTimeToReadable } from '../../helper'
 
 const {
   executeExport,

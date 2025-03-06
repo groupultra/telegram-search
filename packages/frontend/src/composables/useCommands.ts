@@ -41,9 +41,9 @@ export function useCommandHandler<T extends Record<string, unknown>>(options?: C
       throw new Error('CommandHandler options are required for executeCommand')
     }
 
-    if (currentCommand.value?.status === 'running') {
-      return { success: false, error: '已有正在进行的任务' }
-    }
+    // if (currentCommand.value?.status === 'running') {
+    //   return { success: false, error: '已有正在进行的任务' }
+    // }
 
     progress.value = 0
     error.value = null

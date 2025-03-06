@@ -52,7 +52,7 @@ telegram-search/
     - 处理同步进度和错误
     - 提供取消同步功能
   - 主要方法：
-    - `executeMultiSync`: 执行多聊天同步
+    - `executeChatsSync`: 执行多聊天同步
     - `getSyncStatus`: 获取同步状态
     - `cancelSync`: 取消同步操作
 
@@ -61,7 +61,7 @@ telegram-search/
     - 管理聊天元数据的同步
     - 处理同步进度和状态
   - 主要方法：
-    - `executeSync`: 执行元数据同步
+    - `executeMetadataSync`: 执行元数据同步
     - `cleanup`: 清理同步状态
 
 - `useExport.ts`: 导出功能 Hook
