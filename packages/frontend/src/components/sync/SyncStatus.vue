@@ -105,8 +105,10 @@ const allChats = computed(() => {
     return []
   return [...syncDetails.value.chatStatuses].sort((a, b) => {
     // Handle 'waiting' status by placing it at the end
-    if (a.status === 'waiting') return 1
-    if (b.status === 'waiting') return -1
+    if (a.status === 'waiting')
+      return 1
+    if (b.status === 'waiting')
+      return -1
     return statusOrder[a.status] - statusOrder[b.status]
   })
 })
