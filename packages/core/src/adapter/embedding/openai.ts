@@ -2,8 +2,8 @@ import type { Tiktoken, TiktokenModel } from 'tiktoken'
 import type { EmbeddingModelConfig, IEmbeddingModel } from './../../types/adapter'
 
 import { useLogger } from '@tg-search/common'
+import { createOpenAI } from '@xsai-ext/providers-cloud'
 import { embed, embedMany } from '@xsai/embed'
-import { createOpenAI } from '@xsai/providers'
 import { encoding_for_model } from 'tiktoken'
 // OpenAI API 限制和定价
 const LIMITS = {
@@ -24,10 +24,7 @@ export class EmbeddingModelOpenai implements IEmbeddingModel {
   constructor(config: EmbeddingModelConfig) {
     this.config = config
     this.encoder = encoding_for_model(this.config.model as TiktokenModel)
-    this.embedding = createOpenAI({
-      apiKey: this.config.apiKey || '',
-      baseURL: this.config.apiBase || 'https://api.openai.com/v1',
-    })
+    this.embedding = createOpenAI(this.config.apiKey || '', this.config.apiBase || 'https://api.openai.com/v1')
   }
 
   getTokenCount(text: string) {

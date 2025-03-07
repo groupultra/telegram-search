@@ -128,12 +128,12 @@ importers:
       '@tg-search/db':
         specifier: workspace:*
         version: link:../db
+      '@xsai-ext/providers-cloud':
+        specifier: ^0.1.2
+        version: 0.1.2
       '@xsai/embed':
-        specifier: 0.1.1
-        version: 0.1.1
-      '@xsai/providers':
-        specifier: 0.1.0-beta.5
-        version: 0.1.0-beta.5
+        specifier: ^0.1.2
+        version: 0.1.2
       big-integer:
         specifier: ^1.6.52
         version: 1.6.52
@@ -2352,18 +2352,17 @@ packages:
   '@vueuse/shared@12.8.2':
     resolution: {integrity: sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w==}
 
-  '@xsai/embed@0.1.1':
-    resolution: {integrity: sha512-TzSRqnB6qGB2QLXJPpw0QNaa8FoLXF9o/R3P823zlsHlWAwfdEdiAPIEERU9ZFUURRcpXI7Q97c3fPi4sTy+DA==}
+  '@xsai-ext/providers-cloud@0.1.2':
+    resolution: {integrity: sha512-8NoheGXX3QhUeqKCv/urTHIdJRwwaAhCDWFWWjcmqT6M70wDcoqmXPZoyscCiLLTCazpWHMAz5X0tUGT2pdURQ==}
 
-  '@xsai/providers@0.1.0-beta.5':
-    resolution: {integrity: sha512-jx630mUblMSUcDcXa+BNiFB7deQy1lp0XcJHQokfo/+QvYOpgaPrIRH6oUcjwLio0+8gJXqQmQfEY3+fl9Tjew==}
-    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+  '@xsai-ext/shared-providers@0.1.2':
+    resolution: {integrity: sha512-8EPnYzJuK0AKQl/gp33R9BpULvjxeicdQl0sAT128F7as0de4yIYEPY/q8BZNY/NgY5XCv0qw023ijODXCnvxw==}
 
-  '@xsai/shared@0.1.0':
-    resolution: {integrity: sha512-Amr/+IAFqdWei2ec0uy4a8vpSl3QA3J+dvC7nX+oENokU2+204l7WIkT8l2iUabw0mJjjQ8SlMMh/7YSe0vVxg==}
+  '@xsai/embed@0.1.2':
+    resolution: {integrity: sha512-rg1CkEKRZqeDpjgDG+gwqBD4iD5eNbFu7ymPL7PIFpPlZdrxPkyEWJ+sXM7vM7nL/aO2f665csNGfD7T+n9wSw==}
 
-  '@xsai/shared@0.1.1':
-    resolution: {integrity: sha512-Y4H2ZOQYao7RolWQqfyCyJECat1wn8yByYA8MT20DIS6ODbNmbr2xwvMogVRvPsCrWvyU76dqUwLLslrG0jK7g==}
+  '@xsai/shared@0.1.2':
+    resolution: {integrity: sha512-E8jYNT55XrNhGvy42nwTBRm8htLE3w8byhm+yCVGJNjdcZuypxO00VNJfM/idmHvus8TTA0HzN12dAcWi3kxwQ==}
 
   abbrev@3.0.0:
     resolution: {integrity: sha512-+/kfrslGQ7TNV2ecmQwMJj/B65g5KVq1/L3SGVZ3tCYGqlzFuFCGBZJtMP99wH3NpEUyAjn0zPdPUg0D+DwrOA==}
@@ -7509,17 +7508,20 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@xsai/embed@0.1.1':
+  '@xsai-ext/providers-cloud@0.1.2':
     dependencies:
-      '@xsai/shared': 0.1.1
+      '@xsai-ext/shared-providers': 0.1.2
+      '@xsai/shared': 0.1.2
 
-  '@xsai/providers@0.1.0-beta.5':
+  '@xsai-ext/shared-providers@0.1.2':
     dependencies:
-      '@xsai/shared': 0.1.0
+      '@xsai/shared': 0.1.2
 
-  '@xsai/shared@0.1.0': {}
+  '@xsai/embed@0.1.2':
+    dependencies:
+      '@xsai/shared': 0.1.2
 
-  '@xsai/shared@0.1.1': {}
+  '@xsai/shared@0.1.2': {}
 
   abbrev@3.0.0: {}
 
