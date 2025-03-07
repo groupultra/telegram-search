@@ -1,3 +1,7 @@
 packages:
   - 'packages/*'
   - 'libs/*'
+
+catalog:
+  '@xsai-ext/providers-cloud': &xsai ^0.1.2
+  '@xsai/embed': *xsai

@@ -4,6 +4,15 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@xsai-ext/providers-cloud':
+      specifier: ^0.1.2
+      version: 0.1.2
+    '@xsai/embed':
+      specifier: ^0.1.2
+      version: 0.1.2
+
 overrides:
   unplugin: ^2.2.0
   vite: ^6.2.1
@@ -129,10 +138,10 @@ importers:
         specifier: workspace:*
         version: link:../db
       '@xsai-ext/providers-cloud':
-        specifier: ^0.1.2
+        specifier: 'catalog:'
         version: 0.1.2
       '@xsai/embed':
-        specifier: ^0.1.2
+        specifier: 'catalog:'
         version: 0.1.2
       big-integer:
         specifier: ^1.6.52
