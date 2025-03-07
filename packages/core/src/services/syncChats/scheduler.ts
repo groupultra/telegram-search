@@ -1,6 +1,7 @@
 import type { SyncConfigItem } from '@tg-search/db'
-import type { SyncTask, SyncType } from '../../types'
+import type { ExtendedSyncTask, SyncType, TaskMetadata } from '../../types'
 import type { ITelegramClientAdapter } from '../../types/adapter'
+import type { ExportOptions } from '../export'
 
 import { useLogger } from '@tg-search/common'
 import { cancelSyncConfig, getSyncConfigByChatId, getSyncConfigByChatIdAndType, updateSyncStatus, upsertSyncConfig } from '@tg-search/db'
@@ -10,7 +11,7 @@ import { PriorityQueue } from './priority-queue'
 
 export class SyncScheduler {
   private maxConcurrent: number
-  private queue: PriorityQueue<SyncTask>
+  private queue: PriorityQueue<ExtendedSyncTask>
   private active = new Set<number>()
   private logger = useLogger()
   private exportService: ExportService
@@ -24,7 +25,7 @@ export class SyncScheduler {
     this.exportService = new ExportService(client)
   }
 
-  async schedule(task: SyncTask): Promise<void> {
+  async schedule(task: ExtendedSyncTask): Promise<void> {
     // 检查是否已在队列或活动中
     if (this.active.has(task.chatId) || this.queue.contains(t => t.chatId === task.chatId)) {
       this.logger.warn(`Chat ${task.chatId} is already being synced`)
@@ -47,7 +48,7 @@ export class SyncScheduler {
     await this.startSync(task)
   }
 
-  private async startSync(task: SyncTask): Promise<void> {
+  private async startSync(task: ExtendedSyncTask): Promise<void> {
     this.active.add(task.chatId)
 
     try {
@@ -79,7 +80,7 @@ export class SyncScheduler {
     }
   }
 
-  private async executeMetadataSync(task: SyncTask): Promise<void> {
+  private async executeMetadataSync(task: ExtendedSyncTask): Promise<void> {
     const { chatId } = task
 
     // Get chat metadata first
@@ -90,7 +91,7 @@ export class SyncScheduler {
     }
 
     // Use export service with metadata-only configuration
-    await this.exportService.exportMessages({
+    const exportOptions: ExportOptions = {
       chatId,
       chatMetadata: {
         id: chat.id,
@@ -98,22 +99,16 @@ export class SyncScheduler {
         type: chat.type,
       },
       messageTypes: [], // Empty array means no messages will be fetched
-      limit: 1, // Minimal limit since we don't need messages
-      format: 'database',
-      method: 'getMessage',
-      incremental: false,
       onProgress: (progress, message, metadata) => {
-        this.logger.debug('Metadata sync progress', {
-          progress,
-          message,
-          metadata,
-          chatId,
-        })
+        const typedMetadata = typeof metadata === 'object' ? metadata as TaskMetadata : {}
+        task.onProgress?.(progress, typedMetadata)
       },
-    })
+    }
+
+    await this.exportService.exportMessages(exportOptions)
   }
 
-  private async executeMessageSync(task: SyncTask): Promise<void> {
+  private async executeMessageSync(task: ExtendedSyncTask): Promise<void> {
     const { chatId, options = {} } = task
 
     // Get chat metadata first
@@ -124,28 +119,23 @@ export class SyncScheduler {
     }
 
     // Use export service with message sync configuration
-    await this.exportService.exportMessages({
+    const exportOptions: ExportOptions = {
       chatId,
       chatMetadata: {
         id: chat.id,
         title: chat.title,
         type: chat.type,
       },
-      messageTypes: ['text'], // Default to text messages
-      format: 'database',
-      method: 'getMessage',
-      incremental: options.incremental ?? true,
+      incremental: options.incremental,
       minId: options.fromMessageId,
       maxId: options.toMessageId,
       onProgress: (progress, message, metadata) => {
-        this.logger.debug('Message sync progress', {
-          progress,
-          message,
-          metadata,
-          chatId,
-        })
+        const typedMetadata = typeof metadata === 'object' ? metadata as TaskMetadata : {}
+        task.onProgress?.(progress, typedMetadata)
       },
-    })
+    }
+
+    await this.exportService.exportMessages(exportOptions)
   }
 
   private async processQueue(): Promise<void> {
@@ -160,20 +150,6 @@ export class SyncScheduler {
   }
 
   async cancelSync(chatId: number, type?: SyncType): Promise<void> {
-    // 从队列中移除
-    if (this.queue.contains(t => t.chatId === chatId && (!type || t.type === type))) {
-      // 由于 PriorityQueue 不支持直接移除，我们需要重建队列
-      const remainingTasks = []
-      while (!this.queue.isEmpty()) {
-        const task = this.queue.pop()!
-        if (task.chatId !== chatId || (type && task.type !== type)) {
-          remainingTasks.push(task)
-        }
-      }
-      remainingTasks.forEach(task => this.queue.push(task))
-    }
-
-    // 更新数据库状态
     await cancelSyncConfig(chatId, type)
   }
 

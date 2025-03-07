@@ -66,6 +66,19 @@ export class SyncChatsCommandHandler {
         type: params.type,
         priorities: params.priorities,
         options: params.options,
+        onProgress: (progress: number, message: string, metadata?: { type?: string, waitSeconds?: number }) => {
+          if (metadata?.type === 'waiting' && metadata.waitSeconds !== undefined) {
+            this.updateWaiting(progress, message, metadata.waitSeconds)
+          }
+          else {
+            this.updateProgress(progress, message, {
+              ...metadata,
+              command: 'sync',
+              chatIds: params.chatIds,
+              type: params.type,
+            })
+          }
+        },
       })
 
       this.command = {
@@ -73,6 +86,11 @@ export class SyncChatsCommandHandler {
         status: 'completed',
         progress: 100,
         message: '同步完成',
+        metadata: {
+          command: 'sync',
+          chatIds: params.chatIds,
+          type: params.type,
+        },
       }
       this.options?.onComplete(this.command)
     }
@@ -81,6 +99,11 @@ export class SyncChatsCommandHandler {
         ...this.command,
         status: 'failed',
         error: error as Error,
+        metadata: {
+          command: 'sync',
+          chatIds: params.chatIds,
+          type: params.type,
+        },
       }
       this.options?.onError(this.command, error as Error)
     }

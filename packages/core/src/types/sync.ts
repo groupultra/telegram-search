@@ -15,3 +15,37 @@ export interface SyncTask {
     toMessageId?: number // 结束消息 ID
   }
 }
+
+export interface ChatSyncStatus {
+  chatId: number
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  progress: number
+  totalMessages?: number
+  processedMessages?: number
+  failedMessages?: number
+  error?: Error | string
+}
+
+export interface SyncProgressMetadata {
+  chatId: number
+  totalTasks: number
+  completedTasks: number
+  taskProgress: number
+  chatStatuses: ChatSyncStatus[]
+  type: SyncType
+  totalMessages?: number
+  processedMessages?: number
+  failedMessages?: number
+}
+
+export interface TaskMetadata {
+  totalMessages?: number
+  processedMessages?: number
+  failedMessages?: number
+
+  [key: string]: any
+}
+
+export interface ExtendedSyncTask extends SyncTask {
+  onProgress?: (progress: number, metadata?: TaskMetadata) => void
+}
