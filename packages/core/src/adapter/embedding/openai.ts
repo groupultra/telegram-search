@@ -71,21 +71,53 @@ export class EmbeddingModelOpenai implements IEmbeddingModel {
 
   async generateEmbeddings(texts: string[]) {
     try {
-      const totalTokens = this.getTotalTokens(texts)
-      if (totalTokens > LIMITS.MAX_TOKENS_PER_REQUEST) {
-        throw new Error(`批次总 token 数量(${totalTokens})超过 API 限制(${LIMITS.MAX_TOKENS_PER_REQUEST})`)
+      // 将文本分成多个批次处理
+      const batches: string[][] = []
+      let currentBatch: string[] = []
+      let currentBatchTokens = 0
+
+      for (const text of texts) {
+        const textTokens = this.getTokenCount(text)
+        if (currentBatchTokens + textTokens > LIMITS.MAX_TOKENS_PER_REQUEST) {
+          // 当前批次已满，创建新批次
+          if (currentBatch.length > 0) {
+            batches.push(currentBatch)
+          }
+          currentBatch = [text]
+          currentBatchTokens = textTokens
+        }
+        else {
+          currentBatch.push(text)
+          currentBatchTokens += textTokens
+        }
       }
-      const longTexts = texts.filter(text => this.getTokenCount(text) > LIMITS.MAX_TOKENS_PER_TEXT)
-      if (longTexts.length > 0) {
-        this.logger.warn(`${longTexts.length} 条文本的 token 数量超过建议值(${LIMITS.MAX_TOKENS_PER_TEXT})，可能会被截断`)
+
+      // 添加最后一个批次
+      if (currentBatch.length > 0) {
+        batches.push(currentBatch)
       }
-      const { embeddings } = await embedMany({
-        ...this.embedding.embed(this.config.model),
-        input: texts,
-      })
-      this.totalTokens += totalTokens
-      this.totalCost += this.calculateCost(totalTokens)
-      return embeddings
+
+      // 处理每个批次并合并结果
+      const allEmbeddings: number[][] = []
+      for (const batch of batches) {
+        const longTexts = batch.filter(text => this.getTokenCount(text) > LIMITS.MAX_TOKENS_PER_TEXT)
+        if (longTexts.length > 0) {
+          this.logger.warn(`${longTexts.length} 条文本的 token 数量超过建议值(${LIMITS.MAX_TOKENS_PER_TEXT})，可能会被截断`)
+        }
+
+        const { embeddings } = await embedMany({
+          ...this.embedding.embed(this.config.model),
+          input: batch,
+        })
+
+        const batchTokens = this.getTotalTokens(batch)
+        this.totalTokens += batchTokens
+        this.totalCost += this.calculateCost(batchTokens)
+
+        allEmbeddings.push(...embeddings)
+      }
+
+      return allEmbeddings
     }
     catch (error) {
       this.logger.withError(error).error('批量生成向量嵌入失败')
