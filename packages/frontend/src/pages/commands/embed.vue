@@ -11,7 +11,7 @@ import SyncStatus from '../../components/sync/SyncStatus.vue'
 import { useSession } from '../../composables/useSession'
 
 const { t } = useI18n()
-const { chats, loadChats, exportedChats } = useChats()
+const { loadChats, exportedChats } = useChats()
 const { executeEmbed, currentCommand, embedProgress, cleanup } = useEmbed()
 const { checkConnection, isConnected } = useSession()
 

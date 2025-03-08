@@ -5,14 +5,13 @@ import { useRouter } from 'vue-router'
 import { useChats } from '../apis/useChats'
 
 // Initialize API client and router
-const { loading, error, chats, loadChats } = useChats()
+const { loading, error, exportedChats, loadChats } = useChats()
 const router = useRouter()
 const { t } = useI18n()
 // Computed properties for filtered and categorized chats
-const nonEmptyChats = computed(() => chats.value.filter(chat => chat.messageCount && chat.messageCount > 0))
-const privateChats = computed(() => nonEmptyChats.value.filter(chat => chat.type === 'user'))
-const groupChats = computed(() => nonEmptyChats.value.filter(chat => chat.type === 'group'))
-const channelChats = computed(() => nonEmptyChats.value.filter(chat => chat.type === 'channel'))
+const privateChats = computed(() => exportedChats.value.filter(chat => chat.type === 'user'))
+const groupChats = computed(() => exportedChats.value.filter(chat => chat.type === 'group'))
+const channelChats = computed(() => exportedChats.value.filter(chat => chat.type === 'channel'))
 
 // Navigate to chat view
 function goToChat(chatId: number) {
@@ -122,7 +121,7 @@ onMounted(async () => {
       </div>
 
       <!-- Empty state -->
-      <div v-if="nonEmptyChats.length === 0" class="text-gray-500">
+      <div v-if="exportedChats.length === 0" class="text-gray-500">
         {{ t('pages.index.no_chats_found') }}
       </div>
     </div>
