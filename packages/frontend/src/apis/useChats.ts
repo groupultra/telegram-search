@@ -1,6 +1,6 @@
 import type { TelegramChat } from '@tg-search/core'
 
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { apiFetch, useApi } from '../composables/api'
 
@@ -11,6 +11,10 @@ export function useChats() {
   const chats = ref<TelegramChat[]>([])
   const total = ref(0)
   const { loading, error, request } = useApi()
+
+  const exportedChats = computed<TelegramChat[]>(() => {
+    return chats.value.filter(chat => chat.messageCount && chat.messageCount > 0)
+  })
 
   /**
    * Load chats from API
@@ -29,6 +33,7 @@ export function useChats() {
 
   return {
     chats,
+    exportedChats,
     loading,
     error,
     total,

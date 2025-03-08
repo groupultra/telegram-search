@@ -5,15 +5,13 @@ import { toast } from 'vue-sonner'
 
 import { useEmbed } from '../../apis/commands/useEmbed'
 import { useChats } from '../../apis/useChats'
-import { useExportedChats } from '../../apis/useExportedChats'
 import NeedLogin from '../../components/NeedLogin.vue'
 import ChatSelector from '../../components/sync/ChatSelector.vue'
 import SyncStatus from '../../components/sync/SyncStatus.vue'
 import { useSession } from '../../composables/useSession'
 
 const { t } = useI18n()
-const { chats, loadChats } = useChats()
-const { exportedChats, loadExportedChats } = useExportedChats()
+const { chats, loadChats, exportedChats } = useChats()
 const { executeEmbed, currentCommand, embedProgress, cleanup } = useEmbed()
 const { checkConnection, isConnected } = useSession()
 
@@ -49,13 +47,6 @@ async function startEmbed() {
 
   if (selectedChats.value.length === 0) {
     toast.error(t('component.embed_command.no_chat_selected'))
-    return
-  }
-
-  // 验证选中的会话是否都已导出
-  const notExportedChats = selectedChats.value.filter(id => !exportedChats.value.has(id))
-  if (notExportedChats.length > 0) {
-    toast.error(t('component.embed_command.chats_not_exported'))
     return
   }
 
@@ -121,10 +112,7 @@ function resetState() {
 
 // Lifecycle
 onMounted(async () => {
-  await Promise.all([
-    loadChats(),
-    loadExportedChats(),
-  ])
+  loadChats()
   const connected = await checkConnection(false)
   if (!connected)
     showConnectButton.value = true
@@ -202,9 +190,8 @@ onUnmounted(() => {
 
     <ChatSelector
       v-model:selected-chats="selectedChats"
-      :chats="chats"
+      :chats="exportedChats"
       :disabled="isProcessing"
-      :exported-chats="exportedChats"
     />
 
     <!-- Sync Status -->
