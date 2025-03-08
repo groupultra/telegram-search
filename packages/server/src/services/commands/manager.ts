@@ -3,6 +3,7 @@ import type { Command } from '../../types/apis/command'
 import type { SSEController } from '../../types/sse'
 
 import { SSEHandler } from '../sse-handler'
+import { EmbedCommandHandler } from './embed'
 import { ExportCommandHandler } from './export'
 import { SyncChatsCommandHandler } from './syncChats'
 import { SyncMetadataCommandHandler } from './syncMetadata'
@@ -13,6 +14,7 @@ export class CommandManager {
     export: new ExportCommandHandler(),
     syncMetadata: new SyncMetadataCommandHandler(),
     syncChats: new SyncChatsCommandHandler(),
+    embed: new EmbedCommandHandler(),
   } as const
 
   /**

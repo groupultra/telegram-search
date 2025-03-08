@@ -3,6 +3,7 @@ import type { App, H3Event } from 'h3'
 import { useLogger } from '@tg-search/common'
 import { createRouter, defineEventHandler, readBody } from 'h3'
 
+import { embedCommandSchema } from '../services/commands/embed'
 import { exportCommandSchema } from '../services/commands/export'
 import { CommandManager } from '../services/commands/manager'
 import { syncChatsCommandSchema } from '../services/commands/syncChats'
@@ -18,6 +19,7 @@ const logger = useLogger()
 export function setupCommandRoutes(app: App) {
   const router = createRouter()
   const commandManager = new CommandManager()
+
   router.post('/sync', defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const vaildatedBody = syncMetadataCommandSchema.parse(body)
@@ -84,6 +86,31 @@ export function setupCommandRoutes(app: App) {
     // Execute export with SSE
     return createSSEResponse(async (controller) => {
       await commandManager.executeCommand('export', client, params, controller)
+    })
+  }))
+
+  // Add embed route
+  router.post('/embed', defineEventHandler(async (event: H3Event) => {
+    const body = await readBody(event)
+    const validatedBody = embedCommandSchema.parse(body)
+
+    logger.withFields(validatedBody).debug('Embed request received')
+
+    const client = await useTelegramClient()
+    if (!await client.isConnected()) {
+      await client.connect()
+    }
+
+    // Get chat metadata to verify chat exists
+    const chats = await client.getDialogs()
+    const chat = chats.find(c => c.id === validatedBody.chatId)
+    if (!chat) {
+      throw new Error(`Chat ${validatedBody.chatId} not found`)
+    }
+
+    // Execute embed command with SSE
+    return createSSEResponse(async (controller) => {
+      await commandManager.executeCommand('embed', client, validatedBody, controller)
     })
   }))
 
