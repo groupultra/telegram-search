@@ -75,47 +75,69 @@ export class EmbedCommandHandler {
       // Process messages in batches
       let totalProcessed = 0
       let failedEmbeddings = 0
+      let failedBatches = 0
 
       // Split messages into batches
       for (let i = 0; i < messagesToEmbed.length; i += batchSize) {
         const batch = messagesToEmbed.slice(i, i + batchSize)
         logger.debug(`Processing messages ${i + 1} to ${i + batch.length}`)
 
-        // Generate embeddings in parallel
-        const contents = batch.map(m => m.content!)
-        const embeddings = await embedding.generateEmbeddings(contents)
-
-        // Prepare updates
-        const updates = batch.map((message, index) => ({
-          id: message.id,
-          embedding: embeddings[index],
-        }))
-
         try {
+          // Generate embeddings in parallel
+          const contents = batch.map(m => m.content!)
+          const embeddings = await embedding.generateEmbeddings(contents)
+
+          // Prepare updates
+          const updates = batch.map((message, index) => ({
+            id: message.id,
+            embedding: embeddings[index],
+          }))
+
           // Update embeddings in batches with concurrency control
           for (let j = 0; j < updates.length; j += concurrency) {
             const concurrentBatch = updates.slice(j, j + concurrency)
-            await updateMessageEmbeddings(chatId, concurrentBatch)
-            totalProcessed += concurrentBatch.length
+            try {
+              await updateMessageEmbeddings(chatId, concurrentBatch)
+              totalProcessed += concurrentBatch.length
+            }
+            catch (error) {
+              logger.withError(error).warn(`Failed to update embeddings for ${concurrentBatch.length} messages in concurrent batch`)
+              failedEmbeddings += concurrentBatch.length
+            }
 
             // Update progress
             command.progress = Math.round((totalProcessed / totalMessages) * 100)
-            command.message = `Processed ${totalProcessed}/${totalMessages} messages`
+            command.message = `Processed ${totalProcessed}/${totalMessages} messages, ${failedEmbeddings} failed`
             this.options?.onProgress(command)
           }
+
+          logger.log(`Processed batch ${i / batchSize + 1}: ${totalProcessed}/${totalMessages} messages, ${failedEmbeddings} failed`)
         }
         catch (error) {
-          logger.withError(error).warn('Failed to update message embeddings')
+          failedBatches++
           failedEmbeddings += batch.length
-        }
+          logger.withError(error).warn(`Failed to process batch ${i / batchSize + 1} (${batch.length} messages)`)
 
-        logger.log(`Processed ${totalProcessed}/${totalMessages} messages, ${failedEmbeddings} failed`)
+          // Update progress even for failed batches
+          command.progress = Math.round((totalProcessed / totalMessages) * 100)
+          command.message = `Processed ${totalProcessed}/${totalMessages} messages, ${failedEmbeddings} failed (${failedBatches} batches failed)`
+          this.options?.onProgress(command)
+
+          // Continue with next batch
+          continue
+        }
       }
 
-      command.status = 'completed'
-      command.message = `Completed processing ${totalMessages} messages`
+      // Set final status based on success/failure ratio
+      const successRate = (totalProcessed / totalMessages) * 100
+      if (successRate === 0) {
+        throw new Error('All batches failed to process')
+      }
+
+      command.status = failedEmbeddings > 0 ? 'partial' : 'completed'
+      command.message = `Completed processing ${totalProcessed}/${totalMessages} messages, ${failedEmbeddings} failed in ${failedBatches} batches`
       this.options?.onComplete(command)
-      logger.log('Embedding generation completed')
+      logger.log(`Embedding generation ${command.status}: ${command.message}`)
     }
     catch (error) {
       logger.withError(error).error('Failed to generate embeddings')

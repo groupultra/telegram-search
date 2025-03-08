@@ -5,6 +5,9 @@ import { useLogger } from '@tg-search/common'
 import { createOpenAI } from '@xsai-ext/providers-cloud'
 import { embed, embedMany } from '@xsai/embed'
 import { encoding_for_model } from 'tiktoken'
+
+import { ErrorHandler } from '../client/utils/error-handler'
+
 // OpenAI API 限制和定价
 const LIMITS = {
   // text-embedding-3-small 的最大 token 限制
@@ -21,6 +24,7 @@ export class EmbeddingModelOpenai implements IEmbeddingModel {
   private encoder: Tiktoken
   private totalTokens = 0
   private totalCost = 0
+  private errorHandler = new ErrorHandler()
   constructor(config: EmbeddingModelConfig) {
     this.config = config
     this.encoder = encoding_for_model(this.config.model as TiktokenModel)
@@ -47,26 +51,35 @@ export class EmbeddingModelOpenai implements IEmbeddingModel {
   }
 
   async generateEmbedding(text: string) {
-    try {
-      const tokenCount = this.getTokenCount(text)
-      if (tokenCount > LIMITS.MAX_TOKENS_PER_TEXT) {
-        this.logger.warn(`文本 token 数量(${tokenCount})超过建议值(${LIMITS.MAX_TOKENS_PER_TEXT})，可能会被截断`)
-      }
-      const { embedding } = await embed({
-        ...this.embedding.embed(this.config.model),
-        input: text,
-      })
+    const result = await this.errorHandler.withRetry(
+      async () => {
+        const tokenCount = this.getTokenCount(text)
+        if (tokenCount > LIMITS.MAX_TOKENS_PER_TEXT) {
+          this.logger.warn(`文本 token 数量(${tokenCount})超过建议值(${LIMITS.MAX_TOKENS_PER_TEXT})，可能会被截断`)
+        }
+        const { embedding } = await embed({
+          ...this.embedding.embed(this.config.model),
+          input: text,
+        })
 
-      // 更新使用统计
-      this.totalTokens += tokenCount
-      this.totalCost += this.calculateCost(tokenCount)
+        // 更新使用统计
+        this.totalTokens += tokenCount
+        this.totalCost += this.calculateCost(tokenCount)
 
-      return embedding
+        return embedding
+      },
+      {
+        maxRetries: 3,
+        initialDelay: 1000,
+        context: '生成向量嵌入',
+        errorMessage: '生成向量嵌入失败',
+      },
+    )
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('生成向量嵌入失败')
     }
-    catch (error) {
-      this.logger.withError(error).error('生成向量嵌入失败')
-      throw error
-    }
+    return result.data
   }
 
   async generateEmbeddings(texts: string[]) {
@@ -100,21 +113,37 @@ export class EmbeddingModelOpenai implements IEmbeddingModel {
       // 处理每个批次并合并结果
       const allEmbeddings: number[][] = []
       for (const batch of batches) {
-        const longTexts = batch.filter(text => this.getTokenCount(text) > LIMITS.MAX_TOKENS_PER_TEXT)
-        if (longTexts.length > 0) {
-          this.logger.warn(`${longTexts.length} 条文本的 token 数量超过建议值(${LIMITS.MAX_TOKENS_PER_TEXT})，可能会被截断`)
+        const result = await this.errorHandler.withRetry(
+          async () => {
+            const longTexts = batch.filter(text => this.getTokenCount(text) > LIMITS.MAX_TOKENS_PER_TEXT)
+            if (longTexts.length > 0) {
+              this.logger.warn(`${longTexts.length} 条文本的 token 数量超过建议值(${LIMITS.MAX_TOKENS_PER_TEXT})，可能会被截断`)
+            }
+
+            const { embeddings } = await embedMany({
+              ...this.embedding.embed(this.config.model),
+              input: batch,
+            })
+
+            const batchTokens = this.getTotalTokens(batch)
+            this.totalTokens += batchTokens
+            this.totalCost += this.calculateCost(batchTokens)
+
+            return embeddings
+          },
+          {
+            maxRetries: 3,
+            initialDelay: 1000,
+            context: '批量生成向量嵌入',
+            errorMessage: '批量生成向量嵌入失败',
+          },
+        )
+
+        if (!result.success || !result.data) {
+          throw result.error || new Error('批量生成向量嵌入失败')
         }
 
-        const { embeddings } = await embedMany({
-          ...this.embedding.embed(this.config.model),
-          input: batch,
-        })
-
-        const batchTokens = this.getTotalTokens(batch)
-        this.totalTokens += batchTokens
-        this.totalCost += this.calculateCost(batchTokens)
-
-        allEmbeddings.push(...embeddings)
+        allEmbeddings.push(...result.data)
       }
 
       return allEmbeddings
