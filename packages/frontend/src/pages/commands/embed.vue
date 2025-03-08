@@ -5,9 +5,9 @@ import { toast } from 'vue-sonner'
 
 import { useEmbed } from '../../apis/commands/useEmbed'
 import { useChats } from '../../apis/useChats'
+import EmbedStatus from '../../components/embed/EmbedStatus.vue'
 import NeedLogin from '../../components/NeedLogin.vue'
 import ChatSelector from '../../components/sync/ChatSelector.vue'
-import SyncStatus from '../../components/sync/SyncStatus.vue'
 import { useSession } from '../../composables/useSession'
 
 const { t } = useI18n()
@@ -194,8 +194,8 @@ onUnmounted(() => {
       :disabled="isProcessing"
     />
 
-    <!-- Sync Status -->
-    <SyncStatus
+    <!-- Embed Status -->
+    <EmbedStatus
       :command="currentCommand"
       :progress="commandProgress"
       :waiting-time-left="waitingTimeLeft"

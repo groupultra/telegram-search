@@ -173,7 +173,12 @@
       "show_only_exported": "仅显示已导出会话",
       "no_exported_chats": "没有找到已导出的会话",
       "chats_not_exported": "选中的部分会话尚未导出，请先导出聊天记录",
-      "exported_chat_tip": "已导出聊天记录"
+      "exported_chat_tip": "已导出聊天记录",
+      "messages": "消息",
+      "batches": "批次",
+      "overall_progress": "总体进度",
+      "current_state": "当前状态",
+      "error_details": "错误详情"
     }
   },
   "header": {

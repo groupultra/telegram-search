@@ -15,6 +15,7 @@ declare module 'vue' {
     CommandStatusPanel: typeof import('./src/components/ui/CommandStatusPanel.vue')['default']
     Dialog: typeof import('./src/components/ui/Dialog.vue')['default']
     DropdownMenu: typeof import('./src/components/ui/DropdownMenu.vue')['default']
+    EmbedStatus: typeof import('./src/components/embed/EmbedStatus.vue')['default']
     ExportCommand: typeof import('./src/components/commands/ExportCommand.vue')['default']
     ExportStatus: typeof import('./src/components/export/ExportStatus.vue')['default']
     GridSelector: typeof import('./src/components/ui/GridSelector.vue')['default']
