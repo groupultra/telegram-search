@@ -1,11 +1,14 @@
 import type { ITelegramClientAdapter } from '@tg-search/core'
 import type { Command } from '../../types/apis/command'
 import type { EmbedDetails } from '../../types/apis/embed'
+import type { WebSocketPeer } from '../../utils/ws'
 
 import { useLogger } from '@tg-search/common'
 import { EmbeddingService } from '@tg-search/core'
 import { findMessagesByChatId, updateMessageEmbeddings } from '@tg-search/db'
 import { z } from 'zod'
+
+import { BaseCommandHandler } from '../command-manager'
 
 const logger = useLogger()
 
@@ -28,17 +31,22 @@ interface EmbedCommand extends Command {
   metadata: EmbedDetails
 }
 
-export class EmbedCommandHandler {
-  // Command metadata
-  private options?: {
-    onProgress: (command: Command) => void
-    onComplete: (command: Command) => void
-    onError: (command: Command, error: Error) => void
+export class EmbedCommandHandler extends BaseCommandHandler {
+  constructor(peer: WebSocketPeer) {
+    super(peer)
+    this.command = {
+      ...this.command,
+      type: 'sync',
+      metadata: {
+        totalMessages: 0,
+        processedMessages: 0,
+        failedMessages: 0,
+        currentBatch: 0,
+        totalBatches: 0,
+      },
+    } as EmbedCommand
   }
 
-  /**
-   * Execute the embed command
-   */
   async execute(_client: ITelegramClientAdapter, params: EmbedCommandOptions) {
     const {
       chatId,
@@ -48,20 +56,6 @@ export class EmbedCommandHandler {
 
     // Initialize embedding service
     const embedding = new EmbeddingService()
-    const command: EmbedCommand = {
-      id: crypto.randomUUID(),
-      type: 'sync',
-      status: 'running',
-      progress: 0,
-      message: 'Starting embedding generation',
-      metadata: {
-        totalMessages: 0,
-        processedMessages: 0,
-        failedMessages: 0,
-        currentBatch: 0,
-        totalBatches: 0,
-      },
-    }
 
     try {
       // Get all messages for the chat
@@ -70,10 +64,12 @@ export class EmbedCommandHandler {
       const totalMessages = messagesToEmbed.length
       const totalBatches = Math.ceil(totalMessages / batchSize)
 
-      command.metadata.totalMessages = totalMessages
-      command.metadata.totalBatches = totalBatches
-      command.message = `Found ${totalMessages} messages to process in ${totalBatches} batches`
-      this.options?.onProgress(command)
+      this.command.metadata = {
+        ...this.command.metadata,
+        totalMessages,
+        totalBatches,
+      }
+      this.updateProgress(0, `Found ${totalMessages} messages to process in ${totalBatches} batches`)
 
       logger.log(`Found ${totalMessages} messages to process`)
 
@@ -85,7 +81,7 @@ export class EmbedCommandHandler {
       // Split messages into batches
       for (let i = 0; i < messagesToEmbed.length; i += batchSize) {
         const currentBatch = Math.floor(i / batchSize) + 1
-        command.metadata.currentBatch = currentBatch
+        this.command.metadata.currentBatch = currentBatch
 
         const batch = messagesToEmbed.slice(i, i + batchSize)
         logger.debug(`Processing batch ${currentBatch}/${totalBatches} (${batch.length} messages)`)
@@ -107,18 +103,20 @@ export class EmbedCommandHandler {
             try {
               await updateMessageEmbeddings(chatId, concurrentBatch)
               totalProcessed += concurrentBatch.length
-              command.metadata.processedMessages = totalProcessed
+              this.command.metadata.processedMessages = totalProcessed
             }
             catch (error) {
               logger.withError(error).warn(`Failed to update embeddings for ${concurrentBatch.length} messages in concurrent batch`)
               failedEmbeddings += concurrentBatch.length
-              command.metadata.failedMessages = failedEmbeddings
+              this.command.metadata.failedMessages = failedEmbeddings
             }
 
             // Update progress
-            command.progress = Math.round((totalProcessed / totalMessages) * 100)
-            command.message = `Processed ${totalProcessed}/${totalMessages} messages (Batch ${currentBatch}/${totalBatches}), ${failedEmbeddings} failed`
-            this.options?.onProgress(command)
+            const progress = Math.round((totalProcessed / totalMessages) * 100)
+            this.updateProgress(
+              progress,
+              `Processed ${totalProcessed}/${totalMessages} messages (Batch ${currentBatch}/${totalBatches}), ${failedEmbeddings} failed`,
+            )
           }
 
           logger.log(`Processed batch ${currentBatch}/${totalBatches}: ${totalProcessed}/${totalMessages} messages, ${failedEmbeddings} failed`)
@@ -126,14 +124,15 @@ export class EmbedCommandHandler {
         catch (error) {
           failedBatches++
           failedEmbeddings += batch.length
-          command.metadata.failedMessages = failedEmbeddings
+          this.command.metadata.failedMessages = failedEmbeddings
           logger.withError(error).warn(`Failed to process batch ${currentBatch}/${totalBatches} (${batch.length} messages)`)
 
           // Update progress even for failed batches
-          command.progress = Math.round((totalProcessed / totalMessages) * 100)
-          command.message = `Processed ${totalProcessed}/${totalMessages} messages (Batch ${currentBatch}/${totalBatches}), ${failedEmbeddings} failed (${failedBatches} batches failed)`
-          command.metadata.error = error instanceof Error ? error : new Error(String(error))
-          this.options?.onProgress(command)
+          const progress = Math.round((totalProcessed / totalMessages) * 100)
+          this.updateProgress(
+            progress,
+            `Processed ${totalProcessed}/${totalMessages} messages (Batch ${currentBatch}/${totalBatches}), ${failedEmbeddings} failed (${failedBatches} batches failed)`,
+          )
 
           // Continue with next batch
           continue
@@ -146,17 +145,16 @@ export class EmbedCommandHandler {
         throw new Error('All batches failed to process')
       }
 
-      command.status = failedEmbeddings > 0 ? 'failed' : 'completed'
-      command.message = `Completed processing ${totalProcessed}/${totalMessages} messages, ${failedEmbeddings} failed in ${failedBatches} batches`
-      this.options?.onComplete(command)
-      logger.log(`Embedding generation ${command.status}: ${command.message}`)
+      this.handleComplete({
+        processedMessages: totalProcessed,
+        failedMessages: failedEmbeddings,
+        failedBatches,
+        successRate,
+      })
     }
     catch (error) {
       logger.withError(error).error('Failed to generate embeddings')
-      command.status = 'failed'
-      command.message = 'Failed to generate embeddings'
-      command.metadata.error = error instanceof Error ? error : new Error(String(error))
-      this.options?.onError(command, error as Error)
+      this.handleError(error as Error)
       throw error
     }
   }

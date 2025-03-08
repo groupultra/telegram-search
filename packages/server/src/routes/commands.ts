@@ -3,11 +3,12 @@ import type { App, H3Event } from 'h3'
 import { useLogger } from '@tg-search/common'
 import { createRouter, defineEventHandler, readBody } from 'h3'
 
+import { CommandManager } from '../services/command-manager'
 import { embedCommandSchema } from '../services/commands/embed'
 import { exportCommandSchema } from '../services/commands/export'
-import { CommandManager } from '../services/commands/manager'
 import { syncChatsCommandSchema } from '../services/commands/syncChats'
 import { syncMetadataCommandSchema } from '../services/commands/syncMetadata'
+import { SSEHandler } from '../services/sse-handler'
 import { useTelegramClient } from '../services/telegram'
 import { createSSEResponse } from '../utils/sse'
 
@@ -32,7 +33,8 @@ export function setupCommandRoutes(app: App) {
 
     const params = { ...vaildatedBody }
     return createSSEResponse(async (controller) => {
-      await commandManager.executeCommand('syncMetadata', client, params, controller)
+      const peer = new SSEHandler(controller)
+      await commandManager.executeCommand('syncMetadata', client, params, peer)
     })
   }))
 
@@ -49,7 +51,8 @@ export function setupCommandRoutes(app: App) {
 
     const params = { ...vaildatedBody }
     return createSSEResponse(async (controller) => {
-      await commandManager.executeCommand('syncChats', client, params, controller)
+      const peer = new SSEHandler(controller)
+      await commandManager.executeCommand('syncChats', client, params, peer)
     })
   }))
 
@@ -83,9 +86,10 @@ export function setupCommandRoutes(app: App) {
       },
     }
 
-    // Execute export with SSE
+    // Execute export with SSE adapter
     return createSSEResponse(async (controller) => {
-      await commandManager.executeCommand('export', client, params, controller)
+      const peer = new SSEHandler(controller)
+      await commandManager.executeCommand('export', client, params, peer)
     })
   }))
 
@@ -108,9 +112,10 @@ export function setupCommandRoutes(app: App) {
       throw new Error(`Chat ${validatedBody.chatId} not found`)
     }
 
-    // Execute embed command with SSE
+    // Execute embed command with SSE adapter
     return createSSEResponse(async (controller) => {
-      await commandManager.executeCommand('embed', client, validatedBody, controller)
+      const peer = new SSEHandler(controller)
+      await commandManager.executeCommand('embed', client, validatedBody, peer)
     })
   }))
 

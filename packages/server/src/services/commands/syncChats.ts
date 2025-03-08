@@ -1,9 +1,12 @@
 import type { ITelegramClientAdapter } from '@tg-search/core'
-import type { Command, CommandOptions } from '../../types'
+import type { CommandOptions } from '../../types'
+import type { WebSocketPeer } from '../../utils/ws'
 
 import { useLogger } from '@tg-search/common'
 import { ChatsSyncServices } from '@tg-search/core'
 import { z } from 'zod'
+
+import { BaseCommandHandler } from '../command-manager'
 
 const logger = useLogger()
 
@@ -15,51 +18,17 @@ export const syncChatsCommandSchema = z.object({
 })
 
 /**
- * Sync command handler
+ * Sync chats command handler with WebSocket support
  */
-export class SyncChatsCommandHandler {
-  private options?: CommandOptions
-  private command: Command
-
-  constructor(options?: CommandOptions) {
-    this.options = options
-    this.command = {
-      id: crypto.randomUUID(),
-      type: 'sync',
-      status: 'pending',
-      progress: 0,
-      message: '',
-    }
-  }
-
-  private updateProgress(progress: number, message: string, metadata?: Record<string, any>) {
-    this.command = {
-      ...this.command,
-      status: 'running',
-      progress,
-      message,
-      metadata,
-    }
-    this.options?.onProgress(this.command)
-  }
-
-  private updateWaiting(progress: number, message: string, waitSeconds: number) {
-    this.command = {
-      ...this.command,
-      status: 'waiting',
-      progress,
-      message,
-      metadata: {
-        waitSeconds,
-        resumeTime: new Date(Date.now() + waitSeconds * 1000).toISOString(),
-      },
-    }
-    this.options?.onProgress(this.command)
+export class SyncChatsCommandHandler extends BaseCommandHandler {
+  constructor(peer: WebSocketPeer, options?: CommandOptions) {
+    super(peer, options)
+    this.command.type = 'sync'
   }
 
   async execute(client: ITelegramClientAdapter, params: z.infer<typeof syncChatsCommandSchema>) {
     try {
-      logger.debug('执行同步命令')
+      logger.debug('Executing sync command')
       const syncService = new ChatsSyncServices(client)
       await syncService.startMultiSync({
         chatIds: params.chatIds,
@@ -81,31 +50,16 @@ export class SyncChatsCommandHandler {
         },
       })
 
-      this.command = {
-        ...this.command,
-        status: 'completed',
-        progress: 100,
-        message: '同步完成',
-        metadata: {
-          command: 'sync',
-          chatIds: params.chatIds,
-          type: params.type,
-        },
-      }
-      this.options?.onComplete(this.command)
+      this.handleComplete({
+        command: 'sync',
+        chatIds: params.chatIds,
+        type: params.type,
+      })
     }
     catch (error) {
-      this.command = {
-        ...this.command,
-        status: 'failed',
-        error: error as Error,
-        metadata: {
-          command: 'sync',
-          chatIds: params.chatIds,
-          type: params.type,
-        },
-      }
-      this.options?.onError(this.command, error as Error)
+      logger.error('Sync command failed', { error })
+      this.handleError(error as Error)
+      throw error
     }
   }
 }

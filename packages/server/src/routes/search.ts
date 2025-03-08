@@ -6,7 +6,7 @@ import { EmbeddingService } from '@tg-search/core'
 import { findMessagesByText, findSimilarMessages, getChatsInFolder } from '@tg-search/db'
 import { createRouter, defineEventHandler, readBody } from 'h3'
 
-import { SSEHandler } from '../services/sse-handler'
+import { CommandHandler } from '../services/command-handler'
 import { createSSEResponse } from '../utils/sse'
 
 const logger = useLogger()
@@ -25,7 +25,7 @@ export function setupSearchRoutes(app: App) {
 
     // Log search request
     return createSSEResponse(async (controller) => {
-      const handler = new SSEHandler<SearchResultItem[]>(controller)
+      const handler = new CommandHandler<SearchResultItem[]>(controller)
 
       try {
         // Get chats to search in
