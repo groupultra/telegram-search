@@ -134,7 +134,7 @@ export class EmbedCommandHandler {
         throw new Error('All batches failed to process')
       }
 
-      command.status = failedEmbeddings > 0 ? 'partial' : 'completed'
+      command.status = failedEmbeddings > 0 ? 'failed' : 'completed'
       command.message = `Completed processing ${totalProcessed}/${totalMessages} messages, ${failedEmbeddings} failed in ${failedBatches} batches`
       this.options?.onComplete(command)
       logger.log(`Embedding generation ${command.status}: ${command.message}`)

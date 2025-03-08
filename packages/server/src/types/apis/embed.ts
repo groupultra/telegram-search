@@ -5,6 +5,8 @@ export interface EmbedParams {
   chatId: number
   batchSize?: number
   concurrency?: number
+
+  [key: string]: any
 }
 
 /**
