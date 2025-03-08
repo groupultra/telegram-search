@@ -1,4 +1,3 @@
-<!-- Export command component -->
 <script setup lang="ts">
 import type { TelegramChat } from '@tg-search/core'
 import type { DatabaseMessageType } from '@tg-search/db'

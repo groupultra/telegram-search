@@ -1,4 +1,3 @@
-<!-- Chat messages page -->
 <script setup lang="ts">
 import type { TelegramMessage } from '@tg-search/core'
 import { computed, nextTick, onMounted, ref } from 'vue'

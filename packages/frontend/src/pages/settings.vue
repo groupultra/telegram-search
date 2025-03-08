@@ -1,4 +1,3 @@
-<!-- Settings page -->
 <script setup lang="ts">
 import type { Config } from '@tg-search/common'
 import { ref } from 'vue'

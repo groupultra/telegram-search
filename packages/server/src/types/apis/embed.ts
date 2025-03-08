@@ -1,0 +1,24 @@
+/**
+ * Embed command parameters
+ */
+export interface EmbedParams {
+  chatId: number
+  batchSize?: number
+  concurrency?: number
+}
+
+/**
+ * Embed command details
+ */
+export interface EmbedDetails {
+  totalMessages: number
+  processedMessages: number
+  failedMessages: number
+  currentBatch: number
+  totalBatches: number
+  error?: {
+    name: string
+    message: string
+    stack?: string
+  } | string
+}

@@ -104,6 +104,13 @@ function handleLanguageChange(langCode: string) {
           />
 
           <IconButton
+            icon="i-lucide-folder-open"
+            with-transition
+            aria-label="{{$t('header.embed_command')}}"
+            @click="router.push('/commands/embed')"
+          />
+
+          <IconButton
             icon="i-lucide-settings"
             with-transition
             aria-label="{{$t('header.setting')}}"
