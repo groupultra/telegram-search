@@ -35,7 +35,7 @@ const configSchema = z.object({
   }),
   api: z.object({
     telegram: z.object({
-      apiId: z.number(),
+      apiId: z.string(),
       apiHash: z.string(),
       phoneNumber: z.string(),
     }),

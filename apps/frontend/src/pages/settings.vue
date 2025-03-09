@@ -106,6 +106,13 @@ async function saveConfig() {
           size: Number(config.value.message.batch.size),
         },
       },
+      api: {
+        ...config.value.api,
+        telegram: {
+          ...config.value.api.telegram,
+          apiId: config.value.api.telegram.apiId.toString(),
+        },
+      },
     }
 
     // 验证配置
@@ -115,6 +122,7 @@ async function saveConfig() {
       return
     }
 
+    console.log('safeConfig', safeConfig)
     await updateConfig(safeConfig)
     isEditing.value = false
     toast.success(t('pages.settings.save_success'))
