@@ -121,8 +121,6 @@ async function saveConfig() {
       toast.error(configValidationError)
       return
     }
-
-    console.log('safeConfig', safeConfig)
     await updateConfig(safeConfig)
     isEditing.value = false
     toast.success(t('pages.settings.save_success'))
