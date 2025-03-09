@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast, Toaster } from 'vue-sonner'
 import { useSearch } from '../apis/useSearch'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 // Get chat ID from route query
 const chatId = route.query.chatId ? Number(route.query.chatId) : undefined
@@ -26,7 +28,7 @@ const {
 
 // Handle search with chat ID
 async function handleSearch() {
-  const toastId = toast.loading('正在搜索...')
+  const toastId = toast.loading(t('pages.search.searching'))
 
   try {
     const result = await doSearch({
@@ -34,22 +36,22 @@ async function handleSearch() {
     })
 
     if (!result.success) {
-      toast.error(result.error?.message || '搜索失败', { id: toastId })
+      toast.error(result.error?.message || t('pages.search.search_failed'), { id: toastId })
     }
     else {
-      toast.success(`找到 ${result.total} 条结果`, { id: toastId })
+      toast.success(t('pages.search.found_results', { total: result.total }), { id: toastId })
     }
   }
   catch (err) {
-    toast.error(`搜索失败: ${err instanceof Error ? err.message : '未知错误'}`, { id: toastId })
+    toast.error(`${t('pages.search.search_failed')}: ${err instanceof Error ? err.message : t('pages.search.error_unknown')}`, { id: toastId })
   }
 }
 
 // Format score for display
 function formatScore(score: number): string {
   if (score >= 1)
-    return '完全匹配'
-  return `相似度 ${(score * 100).toFixed(1)}%`
+    return t('pages.search.match_score.perfect')
+  return t('pages.search.match_score.similarity', { score: (score * 100).toFixed(1) })
 }
 
 // Format date for display
@@ -80,7 +82,7 @@ function formatDate(date: string | Date): string {
         </svg>
       </button>
       <h1 class="text-2xl font-bold">
-        Search in Chat
+        {{ t('pages.search.title') }}
       </h1>
     </div>
 
@@ -91,7 +93,7 @@ function formatDate(date: string | Date): string {
           <input
             v-model="query"
             type="search"
-            placeholder="输入搜索关键词..."
+            :placeholder="t('pages.search.search_placeholder')"
             class="flex-1 border rounded-lg px-4 py-2 dark:border-gray-700 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             :disabled="isLoading"
           >
@@ -100,13 +102,13 @@ function formatDate(date: string | Date): string {
             class="rounded-lg bg-blue-500 px-6 py-2 text-white hover:bg-blue-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             :disabled="isLoading || !query.trim()"
           >
-            {{ isLoading ? '搜索中...' : '搜索' }}
+            {{ isLoading ? t('pages.search.searching') : t('pages.search.search') }}
           </button>
         </div>
         <div class="flex items-center justify-between rounded-lg px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800">
           <label class="text-sm text-gray-600 dark:text-gray-400">
-            使用向量搜索
-            <span class="text-xs text-gray-500">(可能会更慢，但能找到更多相关内容)</span>
+            {{ t('pages.search.use_vector_search') }}
+            <span class="text-xs text-gray-500">{{ t('pages.search.vector_search_tip') }}</span>
           </label>
           <button
             type="button"
@@ -116,7 +118,7 @@ function formatDate(date: string | Date): string {
             :class="useVectorSearch ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'"
             @click="useVectorSearch = !useVectorSearch"
           >
-            <span class="sr-only">使用向量搜索</span>
+            <span class="sr-only">{{ t('pages.search.use_vector_search') }}</span>
             <span
               class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200"
               :class="useVectorSearch ? 'translate-x-6' : 'translate-x-1'"
@@ -160,8 +162,8 @@ function formatDate(date: string | Date): string {
     <div v-if="results.length > 0" class="space-y-4">
       <!-- Results count -->
       <div class="text-sm text-gray-500 dark:text-gray-400">
-        Found {{ total }} results
-        <span v-if="isStreaming">(searching...)</span>
+        {{ t('pages.search.found_results', { total }) }}
+        <span v-if="isStreaming">{{ t('pages.search.searching_status') }}</span>
       </div>
 
       <div
@@ -174,7 +176,7 @@ function formatDate(date: string | Date): string {
           <div class="flex-1">
             <div class="flex items-center gap-2">
               <p class="text-gray-600 dark:text-gray-400">
-                {{ message.fromName || 'Unknown' }}
+                {{ message.fromName || t('pages.search.unknown_user') }}
               </p>
               <span class="text-sm text-gray-500 dark:text-gray-500">
                 {{ formatDate(message.createdAt) }}
@@ -223,7 +225,7 @@ function formatDate(date: string | Date): string {
       v-else-if="!isLoading && query.trim()"
       class="py-8 text-center text-gray-500 dark:text-gray-400"
     >
-      No results found
+      {{ t('pages.search.no_results') }}
     </div>
   </div>
 </template>

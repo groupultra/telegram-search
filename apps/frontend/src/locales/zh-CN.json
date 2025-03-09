@@ -68,7 +68,9 @@
       "unknown": "未知",
       "user_chat": "聊天",
       "video": "视频",
-      "waiting": "等待中"
+      "waiting": "等待中",
+      "getMessage": "使用 getMessage 方法",
+      "takeout": "使用 Takeout 方法"
     },
     "grid_selector": {
       "type": "会话类型"
@@ -179,6 +181,9 @@
       "overall_progress": "总体进度",
       "current_state": "当前状态",
       "error_details": "错误详情"
+    },
+    "theme_toggle": {
+      "toggle_theme": "切换主题"
     }
   },
   "header": {
@@ -292,6 +297,24 @@
       "settings": "设置",
       "telegram_api": "Telegram API",
       "username": "用户名"
+    },
+    "search": {
+      "title": "搜索聊天",
+      "searching": "搜索中...",
+      "search": "搜索",
+      "search_placeholder": "输入搜索关键词...",
+      "use_vector_search": "使用向量搜索",
+      "vector_search_tip": "(可能会更慢，但能找到更多相关内容)",
+      "found_results": "找到 {total} 条结果",
+      "searching_status": "(搜索中...)",
+      "unknown_user": "未知用户",
+      "match_score": {
+        "perfect": "完全匹配",
+        "similarity": "相似度 {score}%"
+      },
+      "no_results": "未找到结果",
+      "error_unknown": "未知错误",
+      "search_failed": "搜索失败"
     }
   }
 }

@@ -103,6 +103,24 @@
       "alert_api_id": "Por favor, introduce el ID de API",
       "placeholder_two_step_code": "Por favor, introduce tu contraseña de autenticación en dos pasos.",
       "placeholder_code": "Por favor, introduce el código de verificación que recibiste."
+    },
+    "search": {
+      "title": "Buscar en chat",
+      "searching": "Buscando...",
+      "search": "Buscar",
+      "search_placeholder": "Ingrese palabras clave para buscar...",
+      "use_vector_search": "Usar búsqueda vectorial",
+      "vector_search_tip": "(puede ser más lento pero encuentra más contenido relevante)",
+      "found_results": "Se encontraron {total} resultados",
+      "searching_status": "(buscando...)",
+      "unknown_user": "Usuario desconocido",
+      "match_score": {
+        "perfect": "Coincidencia perfecta",
+        "similarity": "Similitud {score}%"
+      },
+      "no_results": "No se encontraron resultados",
+      "error_unknown": "Error desconocido",
+      "search_failed": "Error en la búsqueda"
     }
   },
   "component": {
@@ -190,7 +208,9 @@
       "total_time": "Tiempo total consumido:",
       "error_message": "Mensaje de error:",
       "export_success": "¡Exportación completada! Puedes ver los mensajes exportados en la base de datos.",
-      "placeholder_id": "Comenzar a exportar desde este ID (dejar en blanco para empezar con el último mensaje)"
+      "placeholder_id": "Comenzar a exportar desde este ID (dejar en blanco para empezar con el último mensaje)",
+      "getMessage": "Usar método getMessage",
+      "takeout": "Usar método Takeout"
     },
     "sync_command": {
       "running": "En ejecución",
@@ -216,6 +236,12 @@
       "folder_sync": "Sincronización de carpetas:",
       "error_message": "Mensaje de error:",
       "sync_success_data": "¡Sincronización completada! Tus datos se han sincronizado con éxito."
+    },
+    "theme_toggle": {
+      "toggle_theme": "Cambiar tema"
+    },
+    "grid_selector": {
+      "type": "Tipo de chat"
     }
   }
 }

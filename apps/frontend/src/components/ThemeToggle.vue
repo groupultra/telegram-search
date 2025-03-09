@@ -1,14 +1,16 @@
 <!-- Theme toggle button with smooth animation -->
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useDarkStore } from '../composables/dark'
 
+const { t } = useI18n()
 const { toggleDark } = useDarkStore()
 </script>
 
 <template>
   <button
     class="theme-toggle relative rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-    aria-label="Toggle theme"
+    :aria-label="t('component.theme_toggle.toggle_theme')"
     @click="toggleDark"
   >
     <div class="relative h-5 w-5">
