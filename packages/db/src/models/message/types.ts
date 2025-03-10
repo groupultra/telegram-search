@@ -51,6 +51,7 @@ interface MessageMeta {
  */
 export interface MessageCreateInput extends BaseMessage, MessageSender, MessageForward, MessageMeta {
   replyToId?: number | null
+  uuid?: string | null
 }
 
 /**

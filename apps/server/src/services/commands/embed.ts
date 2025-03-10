@@ -4,7 +4,7 @@ import type { EmbedDetails } from '../../types/apis/embed'
 
 import { useLogger } from '@tg-search/common'
 import { EmbeddingService } from '@tg-search/core'
-import { updateMessageEmbeddings, useEmbeddingTable } from '@tg-search/db'
+import { findMessageMissingEmbed, updateMessageEmbeddings, useEmbeddingTable } from '@tg-search/db'
 import { z } from 'zod'
 
 const logger = useLogger()
@@ -67,7 +67,7 @@ export class EmbedCommandHandler {
 
     try {
       // Get all messages for the chat
-      const messages = await findMessageToEmbed(chatId, embedding.getEmbeddingConfig())
+      const messages = await findMessageMissingEmbed(chatId, embedding.getEmbeddingConfig())
       const totalMessages = messages.length
       const totalBatches = Math.ceil(totalMessages / batchSize)
 

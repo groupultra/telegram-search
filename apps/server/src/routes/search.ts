@@ -64,7 +64,7 @@ export function setupSearchRoutes(app: App) {
             limit: limit * 2,
             offset,
           })
-
+          logger.debug(`Vector search results: ${results.length}`)
           results.forEach((result) => {
             allResults.set(result.id, {
               ...result,

@@ -27,7 +27,11 @@ export class EmbeddingService {
    * 获取模型配置
    */
   getEmbeddingConfig(): EmbeddingTableConfig {
-    return this.embedding_config
+    return {
+      ...this.embedding_config,
+      // 替换-为_
+      model: this.embedding_config.model.replace(/-/g, '_'),
+    }
   }
 
   /**

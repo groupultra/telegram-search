@@ -11,26 +11,26 @@ import { getEmbeddingTable } from '../../schema/embedding'
 /**
  * 创建消息嵌入
  */
-export async function updateMessageEmbeddings(chatId: number, updates: Array<{ id: number, embedding: number[] }>, model_config: EmbeddingTableConfig): Promise<void> {
+export async function updateMessageEmbeddings(chatId: number, updates: Array<{ id: string, embedding: number[] }>, model_config: EmbeddingTableConfig): Promise<void> {
   const table = getEmbeddingTable(model_config)
   // 使用sql.raw来插入向量
   await useDB().insert(table).values(updates.map(update => ({
     chatId,
-    id: update.id.toString(),
     embedding: sql`${sql.raw(`'[${update.embedding.join(',')}]'`)}::vector`,
+    messageId: update.id,
   })))
 }
 
 /**
  * 查找没有嵌入的消息
  */
-export async function findMessageToEmbed(chatId: number, model_config: EmbeddingTableConfig): Promise<Message[]> {
+export async function findMessageMissingEmbed(chatId: number, model_config: EmbeddingTableConfig): Promise<Message[]> {
   const embeddingTable = getEmbeddingTable(model_config)
   const messageTable = await useMessageTable(chatId)
-
   return useDB()
     .select({
       id: messageTable.id,
+      uuid: messageTable.uuid,
       chatId: messageTable.chatId,
       type: messageTable.type,
       content: messageTable.content,
@@ -46,8 +46,8 @@ export async function findMessageToEmbed(chatId: number, model_config: Embedding
       replyToId: messageTable.replyToId,
     })
     .from(messageTable)
-    .leftJoin(embeddingTable, eq(messageTable.id, embeddingTable.id))
-    .where(sql`${embeddingTable.id} IS NULL AND ${messageTable.chatId} = ${chatId}`)
+    .leftJoin(embeddingTable, eq(messageTable.uuid, embeddingTable.messageId))
+    .where(sql`${embeddingTable.embedding} IS NULL AND ${messageTable.chatId} = ${chatId}`)
 }
 
 /**
@@ -67,7 +67,7 @@ export async function findSimilarMessages(embedding: number[], model_config: Emb
   const embeddingTable = getEmbeddingTable(model_config)
   const result = await useDB()
     .select({
-      id: sql<number>`CAST(${embeddingTable.id} AS INTEGER)`,
+      id: messageTable.id,
       chatId: embeddingTable.chatId,
       similarity: sql<number>`1 - (${embeddingTable.embedding} <=> ${sql.raw(`'[${embedding.join(',')}]'`)}::vector)`.as('similarity'),
       createdAt: messageTable.createdAt,
@@ -86,14 +86,16 @@ export async function findSimilarMessages(embedding: number[], model_config: Emb
     .from(embeddingTable)
     .where(sql`
       ${embeddingTable.embedding} IS NOT NULL
+      ${chatId ? sql`AND ${embeddingTable.chatId} = ${chatId}` : sql``}
       ${type ? sql`AND type = ${type}` : sql``}
       ${startTime ? sql`AND created_at >= ${startTime}` : sql``}
       ${endTime ? sql`AND created_at <= ${endTime}` : sql``}
+      
     `)
     .orderBy(sql`${embeddingTable.embedding} <=> ${sql.raw(`'[${embedding.join(',')}]'`)}::vector`)
     .limit(limit)
     .offset(offset)
     // 根据id查询消息
-    .innerJoin(messageTable, eq(embeddingTable.id, messageTable.id))
+    .innerJoin(messageTable, eq(embeddingTable.messageId, messageTable.uuid))
   return result as MessageWithSimilarity[]
 }
