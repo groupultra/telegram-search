@@ -106,6 +106,16 @@ async function saveConfig() {
           size: Number(config.value.message.batch.size),
         },
       },
+      api: {
+        telegram: {
+          ...config.value.api.telegram,
+          apiId: config.value.api.telegram.apiId.toString(),
+        },
+        embedding: {
+          ...config.value.api.embedding,
+          dimensions: Number(config.value.api.embedding.dimensions),
+        },
+      },
     }
 
     // 验证配置
@@ -387,6 +397,14 @@ loadConfig()
                 <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">{{ $t('pages.settings.model') }}</label>
                 <input
                   v-model="config.api.embedding.model"
+                  :disabled="!isEditing"
+                  class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                >
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">{{ $t('pages.settings.dimensions') }}</label>
+                <input
+                  v-model="config.api.embedding.dimensions"
                   :disabled="!isEditing"
                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
