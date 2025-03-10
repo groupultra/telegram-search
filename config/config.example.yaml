@@ -45,5 +45,6 @@ api:
     provider: ollama
     model: nomic-embed-text
     apiKey: your_openai_api_key
+    dimensions: 1536
     # Optional, for custom API providers
     apiBase: 'https://api.openai.com/v1'

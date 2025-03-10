@@ -42,6 +42,7 @@ const configSchema = z.object({
     embedding: z.object({
       provider: z.enum(['openai', 'ollama']),
       model: z.string(),
+      dimensions: z.number(),
       apiKey: z.string().optional(),
       apiBase: z.string().optional(),
     }),

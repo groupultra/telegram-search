@@ -124,7 +124,7 @@ export class SearchCommand extends TelegramCommand {
       limit: Number(limit),
     }
 
-    const results = await findSimilarMessages(queryEmbedding[0], options)
+    const results = await findSimilarMessages(queryEmbedding[0], embedding.getEmbeddingConfig(), options)
     logger.log(`找到 ${results.length} 条相关消息：\n`)
 
     for (const message of results) {
