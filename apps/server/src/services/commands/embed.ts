@@ -93,14 +93,18 @@ export class EmbedCommandHandler {
 
         try {
           // Generate embeddings in parallel
-          const contents = batch.map((m: Message) => m.content!)
+          const contents = batch
+            .filter(m => m.content)
+            .map(m => m.content as string)
           const embeddings = await embedding.generateEmbeddings(contents)
 
           // Prepare updates
-          const updates = batch.map((message, index) => ({
-            id: message.uuid,
-            embedding: embeddings[index],
-          }))
+          const updates = batch
+            .filter(message => message.uuid)
+            .map((message, index) => ({
+              id: message.uuid!,
+              embedding: embeddings[index],
+            }))
 
           // Update embeddings in batches with concurrency control
           for (let j = 0; j < updates.length; j += concurrency) {

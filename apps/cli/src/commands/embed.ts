@@ -72,10 +72,12 @@ export class EmbedCommand extends TelegramCommand {
         const embeddings = await embedding.generateEmbeddings(contents)
 
         // Prepare updates
-        const updates = batch.map((message, index) => ({
-          id: message.uuid,
-          embedding: embeddings[index],
-        }))
+        const updates = batch
+          .filter(message => message.uuid)
+          .map((message, index) => ({
+            id: message.uuid!,
+            embedding: embeddings[index],
+          }))
 
         try {
           // Update embeddings in batches with concurrency control
