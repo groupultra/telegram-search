@@ -3,7 +3,7 @@ import type { SearchCompleteResponse, SearchRequest, SearchResultItem } from '..
 
 import { useLogger } from '@tg-search/common'
 import { EmbeddingService } from '@tg-search/core'
-import { findMessagesByText, findSimilarMessages, getChatsInFolder } from '@tg-search/db'
+import { findMessagesByText, findSimilarMessages, getChatsInFolder, useEmbeddingTable } from '@tg-search/db'
 import { createRouter, defineEventHandler, readBody } from 'h3'
 
 import { SSEHandler } from '../services/sse-handler'
@@ -57,6 +57,7 @@ export function setupSearchRoutes(app: App) {
         if (useVectorSearch) {
           // Vector search
           const embedding = new EmbeddingService()
+          await useEmbeddingTable(embedding.getEmbeddingConfig())
           const queryEmbedding = await embedding.generateEmbedding(query)
           const results = await findSimilarMessages(queryEmbedding, embedding.getEmbeddingConfig(), {
             chatId: targetChatId || 0,

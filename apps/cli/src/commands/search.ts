@@ -3,7 +3,7 @@ import type { DatabaseMessageType, SearchOptions } from '@tg-search/db'
 import * as input from '@inquirer/prompts'
 import { useLogger } from '@tg-search/common'
 import { EmbeddingService } from '@tg-search/core'
-import { findSimilarMessages, getAllFolders, getChatsInFolder } from '@tg-search/db'
+import { findSimilarMessages, getAllFolders, getChatsInFolder, useEmbeddingTable } from '@tg-search/db'
 
 import { TelegramCommand } from '../command'
 
@@ -108,6 +108,7 @@ export class SearchCommand extends TelegramCommand {
 
     // Initialize embedding service
     const embedding = new EmbeddingService()
+    await useEmbeddingTable(embedding.getEmbeddingConfig())
 
     // Generate embedding for query
     logger.log('正在生成向量嵌入...')

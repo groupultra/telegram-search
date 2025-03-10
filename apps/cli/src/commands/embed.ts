@@ -1,7 +1,7 @@
 import * as input from '@inquirer/prompts'
 import { useLogger } from '@tg-search/common'
 import { EmbeddingService } from '@tg-search/core'
-import { findMessageToEmbed, updateMessageEmbeddings } from '@tg-search/db'
+import { findMessageMissingEmbed, updateMessageEmbeddings, useEmbeddingTable } from '@tg-search/db'
 
 import { TelegramCommand } from '../command'
 
@@ -47,10 +47,13 @@ export class EmbedCommand extends TelegramCommand {
 
     // Initialize embedding service
     const embedding = new EmbeddingService()
-
+    await useEmbeddingTable(embedding.getEmbeddingConfig())
     try {
       // Get all messages for the chat
-      const messages = await findMessageToEmbed(Number(chatId), embedding.getEmbeddingConfig())
+      const messages = await findMessageMissingEmbed(Number(chatId), embedding.getEmbeddingConfig())
+      logger.debug('awdadwd')
+      logger.debug(`共有 ${messages.length} 条消息需要处理`)
+
       const totalMessages = messages.length
 
       logger.log(`共有 ${totalMessages} 条消息需要处理`)
@@ -70,7 +73,7 @@ export class EmbedCommand extends TelegramCommand {
 
         // Prepare updates
         const updates = batch.map((message, index) => ({
-          id: message.id,
+          id: message.uuid,
           embedding: embeddings[index],
         }))
 

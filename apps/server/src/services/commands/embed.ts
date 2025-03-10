@@ -4,7 +4,7 @@ import type { EmbedDetails } from '../../types/apis/embed'
 
 import { useLogger } from '@tg-search/common'
 import { EmbeddingService } from '@tg-search/core'
-import { findMessageToEmbed, updateMessageEmbeddings } from '@tg-search/db'
+import { updateMessageEmbeddings, useEmbeddingTable } from '@tg-search/db'
 import { z } from 'zod'
 
 const logger = useLogger()
@@ -48,6 +48,8 @@ export class EmbedCommandHandler {
 
     // Initialize embedding service
     const embedding = new EmbeddingService()
+    await useEmbeddingTable(embedding.getEmbeddingConfig())
+    logger.debug('awdadwd')
     const command: EmbedCommand = {
       id: crypto.randomUUID(),
       type: 'sync',
@@ -91,12 +93,12 @@ export class EmbedCommandHandler {
 
         try {
           // Generate embeddings in parallel
-          const contents = batch.map(m => m.content!)
+          const contents = batch.map((m: Message) => m.content!)
           const embeddings = await embedding.generateEmbeddings(contents)
 
           // Prepare updates
           const updates = batch.map((message, index) => ({
-            id: message.id,
+            id: message.uuid,
             embedding: embeddings[index],
           }))
 
