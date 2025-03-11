@@ -1,4 +1,5 @@
-import type { ClientProxyConfig, ConnectOptions } from '../../types'
+import type { ClientProxyConfig } from '@tg-search/common'
+import type { ConnectOptions } from '../../types'
 import type { SessionManager } from './session-manager'
 
 import process from 'node:process'

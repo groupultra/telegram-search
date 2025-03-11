@@ -1,3 +1,4 @@
+import type { ClientProxyConfig } from '@tg-search/common'
 import type { DatabaseFolder, DatabaseNewChat } from '@tg-search/db'
 import type { Api } from 'telegram'
 import type { TelegramChatsResult } from './chat'
@@ -16,17 +17,6 @@ export interface ClientAdapterConfig {
   password?: string
   systemVersion?: string
   proxy?: ClientProxyConfig
-}
-
-export interface ClientProxyConfig {
-  ip: string
-  port: number
-  MTProxy?: boolean
-  secret?: string
-  socksType?: 4 | 5
-  timeout?: number
-  username?: string
-  password?: string
 }
 
 /**

@@ -1,4 +1,5 @@
-import type { ClientProxyConfig, TelegramAdapter, TelegramAdapterType } from '../types'
+import type { ClientProxyConfig } from '@tg-search/common'
+import type { TelegramAdapter, TelegramAdapterType } from '../types'
 
 import { BotAdapter } from './bot'
 import { ClientAdapter } from './client'
@@ -12,7 +13,6 @@ export interface TelegramAdapterConfig {
   apiHash?: string
   phoneNumber?: string
   password?: string
-  // 代理配置
   proxy?: ClientProxyConfig
 }
 
