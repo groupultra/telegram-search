@@ -24,9 +24,21 @@ export async function useTelegramClient(): Promise<ITelegramClientAdapter> {
     throw new Error('Missing required Telegram API configuration')
   }
 
+  // 记录代理配置信息
+  if (telegramConfig.proxy) {
+    logger.debug('使用代理连接Telegram', {
+      proxyIp: telegramConfig.proxy.ip,
+      proxyPort: telegramConfig.proxy.port,
+      proxyType: telegramConfig.proxy.MTProxy
+        ? 'MTProxy'
+        : `SOCKS${telegramConfig.proxy.socksType || 5}`,
+    })
+  }
+
   logger.debug('Creating Telegram client with config', {
     apiId: telegramConfig.apiId,
     phoneNumber: telegramConfig.phoneNumber,
+    hasProxy: !!telegramConfig.proxy,
   })
 
   const adapter = await createAdapter({
@@ -34,6 +46,7 @@ export async function useTelegramClient(): Promise<ITelegramClientAdapter> {
     apiId: Number(telegramConfig.apiId),
     apiHash: telegramConfig.apiHash,
     phoneNumber: telegramConfig.phoneNumber,
+    proxy: telegramConfig.proxy, // 传递代理配置
   })
 
   // Ensure adapter is a client adapter

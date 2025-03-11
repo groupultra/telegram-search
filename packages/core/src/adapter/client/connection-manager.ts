@@ -65,14 +65,14 @@ export class ConnectionManager {
                   port: proxy.port,
                   MTProxy: true,
                   secret: proxy.secret,
-                  timeout: proxy.timeout,
+                  timeout: proxy.timeout || 15, // 增加默认超时时间到15秒
                 }
               // SOCKS类型
               : {
                   ip: proxy.ip,
                   port: proxy.port,
                   socksType: proxy.socksType || 5, // 默认使用SOCKS5
-                  timeout: proxy.timeout,
+                  timeout: proxy.timeout || 15, // 增加默认超时时间到15秒
                   username: proxy.username,
                   password: proxy.password,
                 })
@@ -144,9 +144,23 @@ export class ConnectionManager {
           || error.message.includes('proxy')
           || error.message.includes('connection')
           || error.message.includes('timeout')
+          || error.message.includes('ETIMEDOUT')
+          || error.message.includes('ECONNREFUSED')
         )) {
           this.logger.error('代理连接失败，请检查代理配置是否正确')
           this.logger.debug('提示: Telegram 仅支持 SOCKS4、SOCKS5 和 MTProto 代理，不支持 HTTP 代理')
+
+          // 根据错误提供具体建议
+          if (error.message.includes('ECONNREFUSED')) {
+            this.logger.error('连接被拒绝，请确认代理服务器地址和端口是否正确')
+          }
+          else if (error.message.includes('ETIMEDOUT')) {
+            this.logger.error('连接超时，请检查网络连接或尝试其他代理服务器')
+          }
+          else if (error.message.includes('91.108.56')) {
+            this.logger.error('无法连接到Telegram服务器IP，代理可能不支持该地区的连接')
+          }
+
           throw new Error(`代理连接失败: ${error.message}`)
         }
         throw error
