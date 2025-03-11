@@ -47,6 +47,7 @@ export class ClientAdapter implements ITelegramClientAdapter {
       config.apiId,
       config.apiHash,
       config.phoneNumber,
+      config.proxy,
     )
 
     // Get client instance

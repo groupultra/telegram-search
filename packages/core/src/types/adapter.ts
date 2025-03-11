@@ -15,6 +15,18 @@ export interface ClientAdapterConfig {
   phoneNumber: string
   password?: string
   systemVersion?: string
+  proxy?: ClientProxyConfig
+}
+
+export interface ClientProxyConfig {
+  ip: string
+  port: number
+  MTProxy?: boolean
+  secret?: string
+  socksType?: 4 | 5
+  timeout?: number
+  username?: string
+  password?: string
 }
 
 /**

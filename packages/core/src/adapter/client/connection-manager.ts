@@ -1,4 +1,4 @@
-import type { ConnectOptions } from '../../types'
+import type { ClientProxyConfig, ConnectOptions } from '../../types'
 import type { SessionManager } from './session-manager'
 
 import { useLogger } from '@tg-search/common'
@@ -19,18 +19,56 @@ export class ConnectionManager {
   private apiHash: string
   private phoneNumber: string
 
-  constructor(sessionManager: SessionManager, apiId: number, apiHash: string, phoneNumber: string) {
+  constructor(
+    sessionManager: SessionManager,
+    apiId: number,
+    apiHash: string,
+    phoneNumber: string,
+    proxy?: ClientProxyConfig,
+  ) {
     this.sessionManager = sessionManager
     this.apiId = apiId
     this.apiHash = apiHash
     this.phoneNumber = phoneNumber
+
+    // 记录代理配置信息
+    if (proxy) {
+      this.logger.withFields({
+        proxyIp: proxy.ip,
+        proxyPort: proxy.port,
+        proxyType: proxy.MTProxy ? 'MTProxy' : `SOCKS${proxy.socksType || 5}`,
+      }).debug('使用代理连接 Telegram')
+    }
 
     // Create client with session
     this.client = new TelegramClient(
       this.sessionManager.getSession(),
       apiId,
       apiHash,
-      { connectionRetries: 5 },
+      {
+        connectionRetries: 5,
+        useWSS: proxy ? false : undefined, // 如果使用代理，禁用 WSS
+        proxy: proxy
+          ? (proxy.MTProxy && proxy.secret
+              // MTProxy类型
+              ? {
+                  ip: proxy.ip,
+                  port: proxy.port,
+                  MTProxy: true,
+                  secret: proxy.secret,
+                  timeout: proxy.timeout,
+                }
+              // SOCKS类型
+              : {
+                  ip: proxy.ip,
+                  port: proxy.port,
+                  socksType: proxy.socksType || 5, // 默认使用SOCKS5
+                  timeout: proxy.timeout,
+                  username: proxy.username,
+                  password: proxy.password,
+                })
+          : undefined,
+      },
     )
   }
 
@@ -80,14 +118,30 @@ export class ConnectionManager {
       }
 
       // 确保已连接但未检查授权状态
-      await this.errorHandler.withRetry(
-        () => this.client.connect(),
-        {
-          context: '连接到Telegram',
-          maxRetries: 3,
-          initialDelay: 1000,
-        },
-      )
+      try {
+        await this.errorHandler.withRetry(
+          () => this.client.connect(),
+          {
+            context: '连接到Telegram',
+            maxRetries: 3,
+            initialDelay: 1000,
+          },
+        )
+      }
+      catch (error: any) {
+        // 处理代理连接错误
+        if (error.message && (
+          error.message.includes('SOCKS')
+          || error.message.includes('proxy')
+          || error.message.includes('connection')
+          || error.message.includes('timeout')
+        )) {
+          this.logger.error('代理连接失败，请检查代理配置是否正确')
+          this.logger.debug('提示: Telegram 仅支持 SOCKS4、SOCKS5 和 MTProto 代理，不支持 HTTP 代理')
+          throw new Error(`代理连接失败: ${error.message}`)
+        }
+        throw error
+      }
 
       // 检查用户是否已授权
       const isAuthorized = await this.client.isUserAuthorized()

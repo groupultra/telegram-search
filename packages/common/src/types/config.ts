@@ -1,3 +1,5 @@
+import type { ClientProxyConfig } from './../../../core/src/types/adapter'
+
 export interface DatabaseConfig {
   url?: string
   host: string
@@ -29,6 +31,7 @@ export interface ApiConfig {
     apiId: string
     apiHash: string
     phoneNumber: string
+    proxy?: ClientProxyConfig
   }
   embedding: {
     provider: 'ollama' | 'openai'
