@@ -1,6 +1,7 @@
 import type { ClientProxyConfig, ConnectOptions } from '../../types'
 import type { SessionManager } from './session-manager'
 
+import process from 'node:process'
 import { useLogger } from '@tg-search/common'
 import { Api, TelegramClient } from 'telegram'
 
@@ -30,6 +31,14 @@ export class ConnectionManager {
     this.apiId = apiId
     this.apiHash = apiHash
     this.phoneNumber = phoneNumber
+
+    // 检查环境变量中的代理设置
+    const envProxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.https_proxy
+    if (envProxy && !proxy) {
+      this.logger.warn(`检测到环境变量中的HTTP代理设置: ${envProxy}`)
+      this.logger.warn('Telegram 不支持 HTTP 代理，仅支持 SOCKS4、SOCKS5 和 MTProto 代理')
+      this.logger.warn('请在配置文件中明确设置支持的代理类型')
+    }
 
     // 记录代理配置信息
     if (proxy) {
