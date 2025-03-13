@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm'
 import { bigint, pgTable, timestamp, uuid, vector } from 'drizzle-orm/pg-core'
 // 获取embedding表
 export function getEmbeddingTable(model_config: EmbeddingTableConfig) {
-  return pgTable(`embedding_${model_config.provider}_${model_config.model}`, {
+  return pgTable(`embedding_${model_config.provider}_${model_config.model.replace(/-/g, '_')}`, {
     id: uuid('id').defaultRandom().primaryKey(),
     embedding: vector('embedding', { dimensions: model_config.dimensions }),
     chatId: bigint('chat_id', { mode: 'number' }).notNull(),

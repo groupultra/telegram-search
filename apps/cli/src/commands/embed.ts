@@ -51,7 +51,6 @@ export class EmbedCommand extends TelegramCommand {
     try {
       // Get all messages for the chat
       const messages = await findMessageMissingEmbed(Number(chatId), embedding.getEmbeddingConfig())
-      logger.debug('awdadwd')
       logger.debug(`共有 ${messages.length} 条消息需要处理`)
 
       const totalMessages = messages.length

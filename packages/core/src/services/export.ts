@@ -202,7 +202,7 @@ export class ExportService {
     let count = 0
     let failedCount = 0
     let messages: TelegramMessage[] = []
-
+    logger.debug(`history ${JSON.stringify(history)}`)
     const total = limit || history.count - 1 || 100
     function isSkipMedia(type: DatabaseMessageType) {
       return !messageTypes.includes(type)
@@ -229,7 +229,7 @@ export class ExportService {
     }
     try {
       // Try to export messages
-      for await (const message of this.client.getMessages(chatId, undefined, {
+      for await (const message of this.client.getMessages(chatId, total, {
         skipMedia: isSkipMedia('photo') || isSkipMedia('video') || isSkipMedia('document') || isSkipMedia('sticker'),
         startTime,
         endTime,

@@ -49,7 +49,6 @@ export class EmbedCommandHandler {
     // Initialize embedding service
     const embedding = new EmbeddingService()
     await useEmbeddingTable(embedding.getEmbeddingConfig())
-    logger.debug('awdadwd')
     const command: EmbedCommand = {
       id: crypto.randomUUID(),
       type: 'sync',
