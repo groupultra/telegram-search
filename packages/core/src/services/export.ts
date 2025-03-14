@@ -202,7 +202,6 @@ export class ExportService {
     let count = 0
     let failedCount = 0
     let messages: TelegramMessage[] = []
-    logger.debug(`history ${JSON.stringify(history)}`)
     const total = limit || history.count - 1 || 100
     function isSkipMedia(type: DatabaseMessageType) {
       return !messageTypes.includes(type)
@@ -229,14 +228,14 @@ export class ExportService {
     }
     try {
       // Try to export messages
-      for await (const message of this.client.getMessages(chatId, total, {
+      for await (const message of this.client.getMessages(chatId, undefined, {
         skipMedia: isSkipMedia('photo') || isSkipMedia('video') || isSkipMedia('document') || isSkipMedia('sticker'),
         startTime,
         endTime,
         limit,
         messageTypes,
         method,
-        minId: startId, // 使用增量导出的起始ID
+        minId: startId ?? 0, // 使用增量导出的起始ID
         maxId: exportMaxId, // 使用传入的最大ID限制
       })) {
         // 在获取第一条消息时记录日志
@@ -248,7 +247,6 @@ export class ExportService {
             minIdUsed: startId,
           })
         }
-
         messages.push(message)
         count++
 
@@ -280,7 +278,7 @@ export class ExportService {
         }
 
         // Check if we need to stop
-        if (limit && count >= limit) {
+        if ((limit && count >= limit) || messages.length >= history.count) {
           break
         }
       }

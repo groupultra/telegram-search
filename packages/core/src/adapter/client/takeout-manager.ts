@@ -86,10 +86,16 @@ export class TakeoutManager {
 
     try {
       // Try to finish takeout session with proper retry logic
+      // https://core.telegram.org/api/takeout need warp by invokeWithTakeout
       const result = await this.errorHandler.withRetry(
-        () => this.client.invoke(new Api.account.FinishTakeoutSession({
-          success: true,
-        })),
+        () => this.client.invoke(
+          new Api.InvokeWithTakeout({
+            takeoutId: this.takeoutSession!.id,
+            query: new Api.account.FinishTakeoutSession({
+              success: true,
+            }),
+          }),
+        ),
         {
           context: '结束导出会话',
           maxRetries: maxRetries === 0 ? 10 : maxRetries, // If infinite retries is configured, use 10 as a reasonable limit
@@ -98,6 +104,7 @@ export class TakeoutManager {
         },
       )
 
+      this.logger.debug(`finish takeout debug information ${JSON.stringify(result)}`)
       if (result.success) {
         this.takeoutSession = undefined
         this.logger.log('成功结束 takeout 会话')
@@ -205,17 +212,20 @@ export class TakeoutManager {
         hash = hash ^ (hash >> 4n)
         hash = hash + id
         this.logger.debug(`get takeout message ${options?.minId}-${options?.maxId}`)
+        if (options?.offset && options.maxId && options.offset > options.maxId) {
+          break
+        }
         // Get messages using takeout
         const query = new Api.messages.GetHistory({
           peer: await this.client.getInputEntity(chatId),
           offsetId,
-          addOffset: 0,
+          addOffset: options?.offset || 0,
           limit,
           maxId: options?.maxId || 0, // 支持到特定ID结束
           minId: options?.minId || 0, // 支持增量导出从特定ID开始
           hash: bigInt(hash.toString()),
         })
-        this.logger.debug(`message query ${JSON.stringify(query)}`)
+        // this.logger.debug(`message query ${JSON.stringify(query)}`)
 
         // Use error handler for API requests
         const apiResponse = await this.errorHandler.withRetry(
