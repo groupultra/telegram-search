@@ -57,7 +57,11 @@ export class SyncChatsCommandHandler {
     this.options?.onProgress(this.command)
   }
 
-  async execute(client: ITelegramClientAdapter, params: z.infer<typeof syncChatsCommandSchema>) {
+  async execute(client: ITelegramClientAdapter | null, params: z.infer<typeof syncChatsCommandSchema>) {
+    if (!client) {
+      throw new Error('Client is not connected')
+    }
+
     try {
       logger.debug('执行同步命令')
       const syncService = new ChatsSyncServices(client)

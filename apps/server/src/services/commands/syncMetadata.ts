@@ -52,7 +52,11 @@ export class SyncMetadataCommandHandler {
     this.options?.onProgress(this.command)
   }
 
-  async execute(client: ITelegramClientAdapter, params: MetadataSyncOptions) {
+  async execute(client: ITelegramClientAdapter | null, params: MetadataSyncOptions) {
+    if (!client) {
+      throw new Error('Client is not connected')
+    }
+
     try {
       logger.debug('执行同步命令')
       const syncService = new MetadataSyncServices(client)

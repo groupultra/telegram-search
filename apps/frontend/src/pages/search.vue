@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast, Toaster } from 'vue-sonner'
-import { useSearch } from '../apis/useSearch'
+import { useSearch } from '../apis/commands/useSearch'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,7 +20,7 @@ const {
   error,
   currentPage,
   pageSize,
-  searchProgress,
+  progress,
   search: doSearch,
   changePage: handlePageChange,
   useVectorSearch,
@@ -129,7 +129,7 @@ function formatDate(date: string | Date): string {
     </form>
 
     <!-- Search progress -->
-    <div v-if="isStreaming || searchProgress.length > 0" class="mb-8 space-y-4">
+    <div v-if="isStreaming || progress > 0" class="mb-8 space-y-4">
       <!-- Progress bar -->
       <div class="h-2.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
         <div

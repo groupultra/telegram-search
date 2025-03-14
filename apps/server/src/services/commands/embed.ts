@@ -39,7 +39,7 @@ export class EmbedCommandHandler {
   /**
    * Execute the embed command
    */
-  async execute(_client: ITelegramClientAdapter, params: EmbedCommandOptions) {
+  async execute(_client: ITelegramClientAdapter | null, params: EmbedCommandOptions) {
     const {
       chatId,
       batchSize = 1000,

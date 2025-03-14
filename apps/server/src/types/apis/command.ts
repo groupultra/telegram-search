@@ -11,7 +11,7 @@ export type CommandStatus = typeof commandStatus[number]
  */
 export interface Command {
   id: string
-  type: 'export' | 'import' | 'stats' | 'sync'
+  type: 'export' | 'import' | 'stats' | 'sync' | 'search'
   status: CommandStatus
   progress: number
   message: string
