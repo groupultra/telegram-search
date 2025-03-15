@@ -1,8 +1,10 @@
 import type { ExportOptions, ITelegramClientAdapter } from '@tg-search/core'
-import type { Command, CommandOptions } from '../../types/apis/command'
+import type { CommandOptions } from '../../types/apis/command'
 
 import { ExportService } from '@tg-search/core'
 import { z } from 'zod'
+
+import { CommandHandlerBase } from '../command-handler'
 
 /**
  * Export command schema
@@ -23,44 +25,9 @@ export const exportCommandSchema = z.object({
 /**
  * Export command handler
  */
-export class ExportCommandHandler {
-  private options?: CommandOptions
-  private command: Command
-
+export class ExportCommandHandler extends CommandHandlerBase {
   constructor(options?: CommandOptions) {
-    this.options = options
-    this.command = {
-      id: crypto.randomUUID(),
-      type: 'export',
-      status: 'pending',
-      progress: 0,
-      message: '',
-    }
-  }
-
-  private updateProgress(progress: number, message: string, metadata?: Record<string, any>) {
-    this.command = {
-      ...this.command,
-      status: 'running',
-      progress,
-      message,
-      metadata,
-    }
-    this.options?.onProgress(this.command)
-  }
-
-  private updateWaiting(progress: number, message: string, waitSeconds: number) {
-    this.command = {
-      ...this.command,
-      status: 'waiting',
-      progress,
-      message,
-      metadata: {
-        waitSeconds,
-        resumeTime: new Date(Date.now() + waitSeconds * 1000).toISOString(),
-      },
-    }
-    this.options?.onProgress(this.command)
+    super(options)
   }
 
   async execute(client: ITelegramClientAdapter | null, params: ExportOptions) {
@@ -74,30 +41,18 @@ export class ExportCommandHandler {
       const result = await exportService.exportMessages({
         ...params,
         onProgress: (progress, message, metadata) => {
-          if (metadata?.type === 'waiting') {
-            this.updateWaiting(progress, message, metadata.waitSeconds)
-          }
-          else {
-            this.updateProgress(progress, message, metadata)
-          }
+          this.updateStatus('running', progress, message, metadata)
         },
       })
 
-      this.command = {
-        ...this.command,
-        status: 'completed',
-        progress: 100,
+      this.updateStatus('completed', 100, 'Export completed', {
         result,
-      }
-      this.options?.onComplete(this.command)
+      })
     }
     catch (error) {
-      this.command = {
-        ...this.command,
-        status: 'failed',
+      this.updateStatus('failed', 0, 'Export failed', {
         error: error as Error,
-      }
-      this.options?.onError(this.command, error as Error)
+      })
     }
   }
 }

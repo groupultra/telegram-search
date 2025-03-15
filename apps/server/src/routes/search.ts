@@ -4,7 +4,7 @@ import type { SearchRequest } from '../types'
 import { useLogger } from '@tg-search/common'
 import { createRouter, defineEventHandler, readBody } from 'h3'
 
-import { CommandManager } from '../services/commands/manager'
+import { CommandManager } from '../services/command-manager'
 import { searchCommandSchema } from '../services/commands/search'
 import { createSSEResponse } from '../utils/sse'
 

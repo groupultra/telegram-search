@@ -1,10 +1,12 @@
 import type { ITelegramClientAdapter } from '@tg-search/core'
-import type { Command, CommandOptions } from '../../types'
+import type { CommandOptions } from '../../types'
 
 import { useLogger } from '@tg-search/common'
 import { EmbeddingService } from '@tg-search/core'
 import { findMessagesByText, findSimilarMessages, getChatsInFolder } from '@tg-search/db'
 import { z } from 'zod'
+
+import { CommandHandlerBase } from '../command-handler'
 
 const logger = useLogger()
 
@@ -20,30 +22,9 @@ export const searchCommandSchema = z.object({
 /**
  * Search command handler for executing search operations
  */
-export class SearchCommandHandler {
-  private options?: CommandOptions
-  private command: Command
-
+export class SearchCommandHandler extends CommandHandlerBase {
   constructor(options?: CommandOptions) {
-    this.options = options
-    this.command = {
-      id: crypto.randomUUID(),
-      type: 'search',
-      status: 'pending',
-      progress: 0,
-      message: '',
-    }
-  }
-
-  private updateProgress(progress: number, message: string, metadata?: Record<string, any>) {
-    this.command = {
-      ...this.command,
-      status: 'running',
-      progress,
-      message,
-      metadata,
-    }
-    this.options?.onProgress(this.command)
+    super(options)
   }
 
   async execute(_client: ITelegramClientAdapter | null, params: z.infer<typeof searchCommandSchema>) {
@@ -102,31 +83,19 @@ export class SearchCommandHandler {
         .sort((a, b) => b.score - a.score)
         .slice(params.offset, params.offset + params.limit)
 
-      this.command = {
-        ...this.command,
-        status: 'completed',
-        progress: 100,
-        message: 'Search completed',
-        metadata: {
-          command: 'search',
-          duration: Date.now() - startTime,
-          total: allResults.size,
-          results: items,
-        },
-      }
-      this.options?.onComplete(this.command)
+      this.updateStatus('completed', 100, 'Search completed', {
+        command: 'search',
+        duration: Date.now() - startTime,
+        total: allResults.size,
+        results: items,
+      })
     }
     catch (error) {
-      this.command = {
-        ...this.command,
-        status: 'failed',
+      this.updateStatus('failed', 0, 'Search failed', {
         error: error as Error,
-        metadata: {
-          command: 'search',
-          query: params.query,
-        },
-      }
-      this.options?.onError(this.command, error as Error)
+        command: 'search',
+        query: params.query,
+      })
     }
   }
 }

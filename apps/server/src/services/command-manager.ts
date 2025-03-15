@@ -1,13 +1,13 @@
 import type { ITelegramClientAdapter } from '@tg-search/core'
-import type { Command } from '../../types/apis/command'
-import type { SSEController } from '../../types/sse'
+import type { Command } from '../types/apis/command'
+import type { SSEController } from '../types/sse'
 
-import { SSEHandler } from '../sse-handler'
-import { EmbedCommandHandler } from './embed'
-import { ExportCommandHandler } from './export'
-import { SearchCommandHandler } from './search'
-import { SyncChatsCommandHandler } from './syncChats'
-import { SyncMetadataCommandHandler } from './syncMetadata'
+import { EmbedCommandHandler } from './commands/embed'
+import { ExportCommandHandler } from './commands/export'
+import { SearchCommandHandler } from './commands/search'
+import { SyncChatsCommandHandler } from './commands/syncChats'
+import { SyncMetadataCommandHandler } from './commands/syncMetadata'
+import { SSEHandler } from './sse-handler'
 
 export class CommandManager {
   // 直接定义所有命令处理器
