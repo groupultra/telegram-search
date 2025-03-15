@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { SearchResultItem } from '@tg-search/server'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast, Toaster } from 'vue-sonner'
@@ -15,8 +17,7 @@ const {
   query,
   isLoading,
   isStreaming,
-  results,
-  total,
+  data,
   error,
   currentPage,
   pageSize,
@@ -31,15 +32,15 @@ async function handleSearch() {
   const toastId = toast.loading(t('pages.search.searching'))
 
   try {
-    const result = await doSearch({
+    const { success, error } = await doSearch({
       chatId,
     })
 
-    if (!result.success) {
-      toast.error(result.error?.message || t('pages.search.search_failed'), { id: toastId })
+    if (!success) {
+      toast.error(error?.message || t('pages.search.search_failed'), { id: toastId })
     }
     else {
-      toast.success(t('pages.search.found_results', { total: result.total }), { id: toastId })
+      toast.success(t('pages.search.found_results', { total: data.value?.total || 0 }), { id: toastId })
     }
   }
   catch (err) {
@@ -159,15 +160,15 @@ function formatDate(date: string | Date): string {
     </div>
 
     <!-- Search results -->
-    <div v-if="results.length > 0" class="space-y-4">
+    <div v-if="data && data.results.length > 0" class="space-y-4">
       <!-- Results count -->
       <div class="text-sm text-gray-500 dark:text-gray-400">
-        {{ t('pages.search.found_results', { total }) }}
+        {{ t('pages.search.found_results', { total: data?.total || 0 }) }}
         <span v-if="isStreaming">{{ t('pages.search.searching_status') }}</span>
       </div>
 
       <div
-        v-for="message in results"
+        v-for="message in data.results"
         :key="message.id"
         class="cursor-pointer border rounded-lg p-4 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
         @click="router.push(`/chat/${message.chatId}#message-${message.id}`)"
@@ -202,10 +203,10 @@ function formatDate(date: string | Date): string {
       </div>
 
       <!-- Pagination -->
-      <div v-if="total > pageSize" class="mt-8 flex justify-center">
+      <div v-if="data?.total && data.total > pageSize" class="mt-8 flex justify-center">
         <nav class="flex items-center gap-2">
           <button
-            v-for="page in Math.ceil(total / pageSize)"
+            v-for="page in Math.ceil((data.total || 0) / pageSize)"
             :key="page"
             class="rounded-lg px-3 py-1"
             :class="{

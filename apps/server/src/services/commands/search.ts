@@ -1,5 +1,5 @@
 import type { ITelegramClientAdapter } from '@tg-search/core'
-import type { CommandOptions } from '../../types'
+import type { CommandOptions, SearchResultItem } from '../../types'
 
 import { useLogger } from '@tg-search/common'
 import { EmbeddingService } from '@tg-search/core'
@@ -10,6 +10,7 @@ import { CommandHandlerBase } from '../command-handler'
 
 const logger = useLogger()
 
+// Schema for search command parameters
 export const searchCommandSchema = z.object({
   query: z.string(),
   folderId: z.number().optional(),
@@ -20,73 +21,86 @@ export const searchCommandSchema = z.object({
 })
 
 /**
- * Search command handler for executing search operations
+ * Search command handler for executing search operations across messages
  */
 export class SearchCommandHandler extends CommandHandlerBase {
+  private readonly embedding: EmbeddingService
+
   constructor(options?: CommandOptions) {
     super(options)
+    this.embedding = new EmbeddingService()
+  }
+
+  /**
+   * Get target chat ID from folder if specified
+   */
+  private async getTargetChatId(params: z.infer<typeof searchCommandSchema>): Promise<number | undefined> {
+    if (!params.folderId)
+      return params.chatId
+
+    const chats = await getChatsInFolder(params.folderId)
+    if (chats.length === 0)
+      throw new Error('No chats found in folder')
+
+    logger.debug(`Searching in folder: ${params.folderId}, found ${chats.length} chats`)
+    return chats.length === 1 ? chats[0].id : params.chatId
+  }
+
+  /**
+   * Perform vector-based semantic search
+   */
+  private async vectorSearch(query: string, chatId: number | undefined, limit: number, offset: number): Promise<SearchResultItem[]> {
+    const queryEmbedding = await this.embedding.generateEmbedding(query)
+    const results = await findSimilarMessages(queryEmbedding, {
+      chatId: chatId || 0,
+      limit: limit * 2,
+      offset,
+    })
+
+    return results.map(result => ({
+      ...result,
+      score: result.similarity,
+    }))
+  }
+
+  /**
+   * Perform text-based keyword search
+   */
+  private async textSearch(query: string, chatId: number | undefined, limit: number, offset: number): Promise<SearchResultItem[]> {
+    const results = await findMessagesByText(query, {
+      chatId,
+      limit: limit * 2,
+      offset,
+    })
+
+    return results.items.map(result => ({
+      ...result,
+      score: 1,
+    }))
   }
 
   async execute(_client: ITelegramClientAdapter | null, params: z.infer<typeof searchCommandSchema>) {
     try {
       logger.debug('Executing search command')
       const startTime = Date.now()
-      const allResults = new Map<number, any>()
 
-      // Get target chat ID from folder if needed
-      let targetChatId = params.chatId
-      if (params.folderId) {
-        const chats = await getChatsInFolder(params.folderId)
-        if (chats.length === 0) {
-          throw new Error('No chats found in folder')
-        }
-        if (chats.length === 1) {
-          targetChatId = chats[0].id
-        }
-        logger.debug(`Searching in folder: ${params.folderId}, found ${chats.length} chats`)
-      }
+      // Determine target chat
+      const targetChatId = await this.getTargetChatId(params)
 
-      if (params.useVectorSearch) {
-        // Vector search
-        const embedding = new EmbeddingService()
-        const queryEmbedding = await embedding.generateEmbedding(params.query)
-        const results = await findSimilarMessages(queryEmbedding, {
-          chatId: targetChatId || 0,
-          limit: params.limit * 2,
-          offset: params.offset,
-        })
+      // Perform search
+      const searchResults = params.useVectorSearch
+        ? await this.vectorSearch(params.query, targetChatId, params.limit, params.offset)
+        : await this.textSearch(params.query, targetChatId, params.limit, params.offset)
 
-        results.forEach((result) => {
-          allResults.set(result.id, {
-            ...result,
-            score: result.similarity,
-          })
-        })
-      }
-      else {
-        // Text search
-        const results = await findMessagesByText(params.query, {
-          chatId: targetChatId,
-          limit: params.limit * 2,
-          offset: params.offset,
-        })
-
-        results.items.forEach((result) => {
-          allResults.set(result.id, {
-            ...result,
-            score: 1,
-          })
-        })
-      }
-
-      const items = Array.from(allResults.values())
-        .sort((a, b) => b.score - a.score)
+      // Process results
+      const items = searchResults
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
         .slice(params.offset, params.offset + params.limit)
 
       this.updateStatus('completed', 100, 'Search completed', {
         command: 'search',
         duration: Date.now() - startTime,
-        total: allResults.size,
+        total: searchResults.length,
         results: items,
       })
     }

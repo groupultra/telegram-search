@@ -1,4 +1,4 @@
-import type { TelegramMessage } from '@tg-search/core'
+import type { MessageWithSimilarity } from '@tg-search/db'
 import type { PaginationParams } from '../api'
 
 /**
@@ -16,7 +16,7 @@ export interface SearchRequest extends PaginationParams {
 /**
  * Search result item with relevance score
  */
-export interface SearchResultItem extends TelegramMessage {
+export interface SearchResultItem extends MessageWithSimilarity {
   score: number
 }
 
@@ -26,4 +26,5 @@ export interface SearchResultItem extends TelegramMessage {
 export interface SearchCompleteResponse {
   duration: number
   total: number
+  results: SearchResultItem[]
 }

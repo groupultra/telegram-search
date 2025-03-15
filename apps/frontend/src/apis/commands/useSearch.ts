@@ -1,8 +1,9 @@
-import type { SearchRequest } from '@tg-search/server'
+import type { SearchCompleteResponse, type SearchRequest } from '@tg-search/server'
 
 import { computed, ref } from 'vue'
 
 import { useCommandHandler } from '../../composables/useCommands'
+import { usePagination } from '../../composables/usePagination'
 
 /**
  * Search composable for managing search state and functionality
@@ -10,11 +11,19 @@ import { useCommandHandler } from '../../composables/useCommands'
 export function useSearch() {
   // Search parameters
   const query = ref('')
-  const currentPage = ref(1)
-  const pageSize = ref(20)
   const currentChatId = ref<number | undefined>()
   const currentFolderId = ref<number | undefined>()
   const useVectorSearch = ref(false)
+
+  // Initialize pagination
+  const {
+    currentPage,
+    pageSize,
+    setPage,
+  } = usePagination({
+    defaultPage: 1,
+    defaultPageSize: 20,
+  })
 
   // Initialize command handler
   const {
@@ -28,18 +37,11 @@ export function useSearch() {
     cleanup,
   } = useCommandHandler<SearchRequest>({
     endpoint: '/search',
-    errorMessage: '搜索失败',
+    errorMessage: 'Search failed',
   })
 
-  // Computed results from current command
-  const results = computed(() => {
-    if (!currentCommand.value?.metadata?.results)
-      return []
-    return currentCommand.value.metadata.results
-  })
-
-  const total = computed(() => {
-    return currentCommand.value?.metadata?.total || 0
+  const data = computed<SearchCompleteResponse | undefined>(() => {
+    return currentCommand.value?.metadata as SearchCompleteResponse | undefined
   })
 
   /**
@@ -47,7 +49,7 @@ export function useSearch() {
    */
   async function search(params?: Partial<SearchRequest>) {
     if (!query.value.trim() && !params?.query) {
-      return { success: false, error: new Error('搜索词不能为空') }
+      return { success: false, error: new Error('Search query cannot be empty') }
     }
 
     // Update search scope if provided
@@ -72,7 +74,7 @@ export function useSearch() {
    * Handle page change
    */
   function changePage(page: number) {
-    currentPage.value = page
+    setPage(page)
     return search()
   }
 
@@ -81,7 +83,7 @@ export function useSearch() {
    */
   function reset() {
     query.value = ''
-    currentPage.value = 1
+    setPage(1)
     currentChatId.value = undefined
     currentFolderId.value = undefined
     useVectorSearch.value = false
@@ -93,8 +95,7 @@ export function useSearch() {
     query,
     isLoading,
     isStreaming,
-    results,
-    total,
+    data,
     error,
     currentPage,
     pageSize,
