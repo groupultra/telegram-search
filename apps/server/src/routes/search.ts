@@ -57,9 +57,9 @@ export function setupSearchRoutes(app: App) {
         if (useVectorSearch) {
           // Vector search
           const embedding = new EmbeddingService()
-          await useEmbeddingTable(embedding.getEmbeddingConfig())
+          await useEmbeddingTable(Number(chatId), embedding.getEmbeddingConfig())
           const queryEmbedding = await embedding.generateEmbedding(query)
-          const results = await findSimilarMessages(queryEmbedding, embedding.getEmbeddingConfig(), {
+          const results = await findSimilarMessages(Number(chatId), queryEmbedding, embedding.getEmbeddingConfig(), {
             chatId: targetChatId || 0,
             limit: limit * 2,
             offset,

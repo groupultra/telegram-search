@@ -47,7 +47,7 @@ export class EmbedCommand extends TelegramCommand {
 
     // Initialize embedding service
     const embedding = new EmbeddingService()
-    await useEmbeddingTable(embedding.getEmbeddingConfig())
+    await useEmbeddingTable(Number(chatId), embedding.getEmbeddingConfig())
     try {
       // Get all messages for the chat
       const messages = await findMessageMissingEmbed(Number(chatId), embedding.getEmbeddingConfig())

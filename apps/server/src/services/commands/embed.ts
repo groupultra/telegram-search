@@ -48,7 +48,7 @@ export class EmbedCommandHandler {
 
     // Initialize embedding service
     const embedding = new EmbeddingService()
-    await useEmbeddingTable(embedding.getEmbeddingConfig())
+    await useEmbeddingTable(chatId, embedding.getEmbeddingConfig())
     const command: EmbedCommand = {
       id: crypto.randomUUID(),
       type: 'sync',

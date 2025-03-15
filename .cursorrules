@@ -1,0 +1,9 @@
+- Code always in English.
+- Step by step thinking.
+- Always include TypeScript type annotations when generating TS code.
+- Follow good engineering practices: SOLID principles, functional programming, configurability, to ensure clear code structure.
+- Comments should focus on explaining "why" rather than "how."
+
+「lets not answer this question too quickly, we can think in depth, and i am new to this area, please correct me wrong if there is any」
+
+!!! If the user asks you in another language, explain in that language.

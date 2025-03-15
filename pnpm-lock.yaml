@@ -356,6 +356,9 @@ importers:
       glob:
         specifier: ^11.0.1
         version: 11.0.1
+      nanoid:
+        specifier: ^5.1.3
+        version: 5.1.3
       pg:
         specifier: ^8.13.3
         version: 8.13.3

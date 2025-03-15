@@ -108,7 +108,7 @@ export class SearchCommand extends TelegramCommand {
 
     // Initialize embedding service
     const embedding = new EmbeddingService()
-    await useEmbeddingTable(embedding.getEmbeddingConfig())
+    await useEmbeddingTable(Number(chatId), embedding.getEmbeddingConfig())
 
     // Generate embedding for query
     logger.log('正在生成向量嵌入...')
@@ -125,7 +125,7 @@ export class SearchCommand extends TelegramCommand {
       limit: Number(limit),
     }
 
-    const results = await findSimilarMessages(queryEmbedding[0], embedding.getEmbeddingConfig(), options)
+    const results = await findSimilarMessages(Number(chatId), queryEmbedding[0], embedding.getEmbeddingConfig(), options)
     logger.log(`找到 ${results.length} 条相关消息：\n`)
 
     for (const message of results) {
