@@ -202,10 +202,10 @@ function formatDate(date: string | Date): string {
       </div>
 
       <!-- Pagination -->
-      <div v-if="total > pageSize" class="mt-8 flex justify-center">
+      <div v-if="total && Number(total) > pageSize" class="mt-8 flex justify-center">
         <nav class="flex items-center gap-2">
           <button
-            v-for="page in Math.ceil(total / pageSize)"
+            v-for="page in Math.ceil(Number(total) / pageSize)"
             :key="page"
             class="rounded-lg px-3 py-1"
             :class="{

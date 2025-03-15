@@ -111,7 +111,7 @@ async function saveConfig() {
         telegram: {
           ...config.value.api.telegram,
           apiId: config.value.api.telegram.apiId.toString(),
-        }
+        },
       },
     }
 
