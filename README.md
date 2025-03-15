@@ -1,6 +1,6 @@
 # Telegram Search
 
-[EN](./README_EN.md)
+[EN](./README_EN.md) | [TODO](https://github.com/GramSearch/telegram-search/issues/23)
 
 一个功能强大的 Telegram 聊天记录搜索工具，支持向量搜索和语义匹配。基于 OpenAI 的语义向量技术，让你的 Telegram 消息检索更智能、更精准。
 

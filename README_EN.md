@@ -1,6 +1,6 @@
 # Telegram Search
 
-[CN](./README.md)
+[CN](./README.md) | [TODO](https://github.com/GramSearch/telegram-search/issues/23)
 
 A powerful Telegram chat history search tool that supports vector search and semantic matching. Based on OpenAI's semantic vector technology, it makes your Telegram message retrieval smarter and more precise.
 
@@ -207,9 +207,11 @@ These plans will be implemented gradually and continuously optimized based on us
 - [Database Design](docs/database-design.md)
 - [Contribution Guidelines](CONTRIBUTING.md)
 
-## 🚀 Star History
+## 🚀 Activity
 
 [![Star History Chart](https://api.star-history.com/svg?repos=luoling8192/telegram-search&type=Date)](https://star-history.com/#luoling8192/telegram-search&Date)
+
+![Alt](https://repobeats.axiom.co/api/embed/c0fe5f057a33ce830a632c6ae421433f50e9083f.svg "Repobeats analytics image")
 
 ## 📝 License
 
