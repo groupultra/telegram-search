@@ -2,7 +2,8 @@ import type { EmbeddingTableConfig } from './types'
 
 import { useDB } from '@tg-search/common'
 import { sql } from 'drizzle-orm'
-import { bigint, pgTable, timestamp, uuid, vector } from 'drizzle-orm/pg-core'
+import { bigint, integer, pgTable, text, timestamp, uuid, vector } from 'drizzle-orm/pg-core'
+import { nanoid } from 'nanoid'
 // 获取embedding表
 export function getEmbeddingTable(model_config: EmbeddingTableConfig) {
   return pgTable(`embedding_${model_config.provider}_${model_config.model.replace(/-/g, '_')}`, {
@@ -31,3 +32,11 @@ export async function useEmbeddingTable(model_config: EmbeddingTableConfig) {
 
   return table
 }
+
+export const embedding_models = pgTable('embedding_models', {
+  id: text('id').primaryKey().$defaultFn(() => nanoid(6)),
+  model_name: text('model_name').notNull(),
+  vector_dimensions: integer('vector_dimensions').notNull(),
+  create_at: timestamp('create_at').notNull().defaultNow(),
+  update_at: timestamp('update_at').notNull().defaultNow(),
+})
