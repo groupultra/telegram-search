@@ -1,3 +1,4 @@
+import type { ClientProxyConfig } from '@tg-search/common'
 import type { TelegramAdapter, TelegramAdapterType } from '../types'
 
 import { BotAdapter } from './bot'
@@ -12,6 +13,7 @@ export interface TelegramAdapterConfig {
   apiHash?: string
   phoneNumber?: string
   password?: string
+  proxy?: ClientProxyConfig
 }
 
 /**
@@ -33,6 +35,7 @@ export function createAdapter(config: TelegramAdapterConfig): TelegramAdapter {
         apiHash: config.apiHash,
         phoneNumber: config.phoneNumber,
         password: config.password,
+        proxy: config.proxy,
       })
     default:
       throw new Error(`Unknown adapter type: ${config.type}`)

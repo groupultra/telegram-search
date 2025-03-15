@@ -9,6 +9,8 @@ export interface SearchRequest extends PaginationParams {
   folderId?: number
   chatId?: number
   useVectorSearch?: boolean
+
+  [key: string]: unknown
 }
 
 /**

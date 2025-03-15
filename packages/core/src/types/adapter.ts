@@ -1,3 +1,4 @@
+import type { ClientProxyConfig } from '@tg-search/common'
 import type { DatabaseFolder, DatabaseNewChat } from '@tg-search/db'
 import type { Api } from 'telegram'
 import type { TelegramChatsResult } from './chat'
@@ -15,6 +16,7 @@ export interface ClientAdapterConfig {
   phoneNumber: string
   password?: string
   systemVersion?: string
+  proxy?: ClientProxyConfig
 }
 
 /**

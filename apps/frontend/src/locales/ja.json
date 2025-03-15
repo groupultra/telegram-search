@@ -103,6 +103,24 @@
       "alert_api_id": "API ID を入力してください",
       "placeholder_two_step_code": "二段階認証パスワードを入力してください。",
       "placeholder_code": "受信した認証コードを入力してください。"
+    },
+    "search": {
+      "title": "チャット内検索",
+      "searching": "検索中...",
+      "search": "検索",
+      "search_placeholder": "検索キーワードを入力...",
+      "use_vector_search": "ベクトル検索を使用",
+      "vector_search_tip": "(時間がかかる場合がありますが、より関連性の高い結果が得られます)",
+      "found_results": "{total} 件の結果が見つかりました",
+      "searching_status": "(検索中...)",
+      "unknown_user": "不明なユーザー",
+      "match_score": {
+        "perfect": "完全一致",
+        "similarity": "類似度 {score}%"
+      },
+      "no_results": "結果が見つかりません",
+      "error_unknown": "不明なエラー",
+      "search_failed": "検索に失敗しました"
     }
   },
   "component": {
@@ -190,7 +208,9 @@
       "total_time": "総所要時間：",
       "error_message": "エラーメッセージ：",
       "export_success": "エクスポートが完了しました！データベースでエクスポートされたメッセージを確認できます。",
-      "placeholder_id": "このIDからエクスポートを開始（最新メッセージから始める場合は空欄）"
+      "placeholder_id": "このIDからエクスポートを開始（最新メッセージから始める場合は空欄）",
+      "getMessage": "getMessage メソッドを使用",
+      "takeout": "Takeout メソッドを使用"
     },
     "sync_command": {
       "running": "実行中",
@@ -216,6 +236,12 @@
       "folder_sync": "フォルダ同期：",
       "error_message": "エラーメッセージ：",
       "sync_success_data": "同期が完了しました！データが正常に同期されました。"
+    },
+    "theme_toggle": {
+      "toggle_theme": "テーマの切り替え"
+    },
+    "grid_selector": {
+      "type": "チャットタイプ"
     }
   }
 }

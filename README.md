@@ -1,6 +1,6 @@
 # Telegram Search
 
-[EN](./README_EN.md)
+[EN](./README_EN.md) | [TODO](https://github.com/GramSearch/telegram-search/issues/23)
 
 一个功能强大的 Telegram 聊天记录搜索工具，支持向量搜索和语义匹配。基于 OpenAI 的语义向量技术，让你的 Telegram 消息检索更智能、更精准。
 
@@ -194,9 +194,11 @@ const results = await findSimilarMessages(queryEmbedding[0], options)
 - [数据库设计](docs/database-design.md)
 - [贡献指南](CONTRIBUTING.md)
 
-## 🚀 Star History
+## 🚀 Activity
 
 [![Star History Chart](https://api.star-history.com/svg?repos=luoling8192/telegram-search&type=Date)](https://star-history.com/#luoling8192/telegram-search&Date)
+
+![Alt](https://repobeats.axiom.co/api/embed/c0fe5f057a33ce830a632c6ae421433f50e9083f.svg "Repobeats analytics image")
 
 ## 📝 License
 

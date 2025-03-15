@@ -1,4 +1,5 @@
 import type { App, H3Event } from 'h3'
+import type { SearchRequest } from '../types'
 
 import { useLogger } from '@tg-search/common'
 import { createRouter, defineEventHandler, readBody } from 'h3'
@@ -6,6 +7,7 @@ import { createRouter, defineEventHandler, readBody } from 'h3'
 import { embedCommandSchema } from '../services/commands/embed'
 import { exportCommandSchema } from '../services/commands/export'
 import { CommandManager } from '../services/commands/manager'
+import { searchCommandSchema } from '../services/commands/search'
 import { syncChatsCommandSchema } from '../services/commands/syncChats'
 import { syncMetadataCommandSchema } from '../services/commands/syncMetadata'
 import { useTelegramClient } from '../services/telegram'
@@ -17,10 +19,21 @@ const logger = useLogger()
  * Setup command routes
  */
 export function setupCommandRoutes(app: App) {
-  const router = createRouter()
+  const commandRouter = createRouter()
   const commandManager = new CommandManager()
 
-  router.post('/sync', defineEventHandler(async (event: H3Event) => {
+  commandRouter.post('/search', defineEventHandler(async (event: H3Event) => {
+    const body = await readBody<SearchRequest>(event)
+    const validatedBody = searchCommandSchema.parse(body)
+
+    logger.withFields(validatedBody).debug('Search request received')
+
+    return createSSEResponse(async (controller) => {
+      await commandManager.executeCommand('search', null, validatedBody, controller)
+    })
+  }))
+
+  commandRouter.post('/sync', defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const vaildatedBody = syncMetadataCommandSchema.parse(body)
     logger.withFields(vaildatedBody).debug('Sync metadata request received')
@@ -37,7 +50,7 @@ export function setupCommandRoutes(app: App) {
   }))
 
   // Add multi-sync route
-  router.post('/sync-chats', defineEventHandler(async (event: H3Event) => {
+  commandRouter.post('/sync-chats', defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const vaildatedBody = syncChatsCommandSchema.parse(body)
     logger.withFields(vaildatedBody).debug('Sync chats request received')
@@ -53,7 +66,7 @@ export function setupCommandRoutes(app: App) {
     })
   }))
 
-  router.post('/export', defineEventHandler(async (event: H3Event) => {
+  commandRouter.post('/export', defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const validatedBody = exportCommandSchema.parse(body)
 
@@ -90,7 +103,7 @@ export function setupCommandRoutes(app: App) {
   }))
 
   // Add embed route
-  router.post('/embed', defineEventHandler(async (event: H3Event) => {
+  commandRouter.post('/embed', defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const validatedBody = embedCommandSchema.parse(body)
 
@@ -115,5 +128,5 @@ export function setupCommandRoutes(app: App) {
   }))
 
   // Mount routes
-  app.use('/commands', router.handler)
+  app.use('/commands', commandRouter.handler)
 }

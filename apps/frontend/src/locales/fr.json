@@ -103,6 +103,24 @@
       "alert_api_id": "Veuillez entrer l’ID API",
       "placeholder_two_step_code": "Veuillez entrer votre mot de passe d’authentification à deux étapes.",
       "placeholder_code": "Veuillez entrer le code de vérification que vous avez reçu."
+    },
+    "search": {
+      "title": "Rechercher dans le chat",
+      "searching": "Recherche en cours...",
+      "search": "Rechercher",
+      "search_placeholder": "Entrez les mots-clés de recherche...",
+      "use_vector_search": "Utiliser la recherche vectorielle",
+      "vector_search_tip": "(peut être plus lent mais trouve plus de contenu pertinent)",
+      "found_results": "{total} résultats trouvés",
+      "searching_status": "(recherche en cours...)",
+      "unknown_user": "Utilisateur inconnu",
+      "match_score": {
+        "perfect": "Correspondance parfaite",
+        "similarity": "Similarité {score}%"
+      },
+      "no_results": "Aucun résultat trouvé",
+      "error_unknown": "Erreur inconnue",
+      "search_failed": "Échec de la recherche"
     }
   },
   "component": {
@@ -190,7 +208,9 @@
       "total_time": "Temps total consommé :",
       "error_message": "Message d’erreur :",
       "export_success": "Exportation terminée ! Vous pouvez consulter les messages exportés dans la base de données.",
-      "placeholder_id": "Commencer l’exportation à partir de cet ID (laisser vide pour commencer avec le dernier message)"
+      "placeholder_id": "Commencer l’exportation à partir de cet ID (laisser vide pour commencer avec le dernier message)",
+      "getMessage": "Utiliser la méthode getMessage",
+      "takeout": "Utiliser la méthode Takeout"
     },
     "sync_command": {
       "running": "En cours",
@@ -216,6 +236,12 @@
       "folder_sync": "Synchronisation des dossiers :",
       "error_message": "Message d’erreur :",
       "sync_success_data": "Synchronisation terminée ! Vos données ont été synchronisées avec succès."
+    },
+    "theme_toggle": {
+      "toggle_theme": "Changer de thème"
+    },
+    "grid_selector": {
+      "type": "Type de chat"
     }
   }
 }

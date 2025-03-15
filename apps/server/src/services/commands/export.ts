@@ -63,7 +63,11 @@ export class ExportCommandHandler {
     this.options?.onProgress(this.command)
   }
 
-  async execute(client: ITelegramClientAdapter, params: ExportOptions) {
+  async execute(client: ITelegramClientAdapter | null, params: ExportOptions) {
+    if (!client) {
+      throw new Error('Client is not connected')
+    }
+
     try {
       const exportService = new ExportService(client)
 

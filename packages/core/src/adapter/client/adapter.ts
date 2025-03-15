@@ -1,6 +1,7 @@
 import type { DatabaseFolder, DatabaseNewChat } from '@tg-search/db'
 import type { ClientAdapterConfig, ConnectOptions, GetTelegramMessageParams, ITelegramClientAdapter, TelegramChatsResult, TelegramFolder, TelegramMessage } from '../../types'
 
+import process from 'node:process'
 import { getConfig, useLogger } from '@tg-search/common'
 import { Api } from 'telegram/tl'
 
@@ -40,6 +41,34 @@ export class ClientAdapter implements ITelegramClientAdapter {
     // Initialize error handler
     this.errorHandler = new ErrorHandler()
 
+    // 检查并处理环境变量中的SOCKS代理
+    if (!this.config.proxy) {
+      const socksProxy = process.env.SOCKS_PROXY || process.env.socks_proxy || process.env.ALL_PROXY || process.env.all_proxy
+      if (socksProxy) {
+        try {
+          // 解析SOCKS_PROXY环境变量 (格式: socks5://user:pass@host:port)
+          const socksUrl = new URL(socksProxy)
+          const socksType = socksUrl.protocol.startsWith('socks5') ? 5 : 4
+          const proxyHost = socksUrl.hostname
+          const proxyPort = Number.parseInt(socksUrl.port || '1080')
+
+          // 设置代理配置
+          this.config.proxy = {
+            ip: proxyHost,
+            port: proxyPort,
+            socksType,
+            username: socksUrl.username || undefined,
+            password: socksUrl.password || undefined,
+          }
+
+          this.logger.debug(`已从环境变量配置SOCKS${socksType}代理: ${proxyHost}:${proxyPort}`)
+        }
+        catch {
+          this.logger.warn(`无法解析SOCKS代理环境变量: ${socksProxy}`)
+        }
+      }
+    }
+
     // Initialize session and connection managers
     this.sessionManager = new SessionManager(appConfig.path.session)
     this.connectionManager = new ConnectionManager(
@@ -47,6 +76,7 @@ export class ClientAdapter implements ITelegramClientAdapter {
       config.apiId,
       config.apiHash,
       config.phoneNumber,
+      this.config.proxy,
     )
 
     // Get client instance

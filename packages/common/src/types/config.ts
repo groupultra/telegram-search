@@ -1,3 +1,14 @@
+export interface ClientProxyConfig {
+  ip: string
+  port: number
+  MTProxy?: boolean
+  secret?: string
+  socksType?: 4 | 5
+  timeout?: number
+  username?: string
+  password?: string
+}
+
 export interface DatabaseConfig {
   url?: string
   host: string
@@ -29,6 +40,7 @@ export interface ApiConfig {
     apiId: string
     apiHash: string
     phoneNumber: string
+    proxy?: ClientProxyConfig
   }
   embedding: {
     provider: 'ollama' | 'openai'

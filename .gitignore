@@ -6,3 +6,4 @@ dist
 media
 *.yaml
 !config.example.yaml
+.cursorrules

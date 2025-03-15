@@ -86,9 +86,13 @@ export class TakeoutManager {
 
     try {
       // Try to finish takeout session with proper retry logic
+      // https://core.telegram.org/api/takeout
       const result = await this.errorHandler.withRetry(
-        () => this.client.invoke(new Api.account.FinishTakeoutSession({
-          success: true,
+        () => this.client.invoke(new Api.InvokeWithTakeout({
+          takeoutId: this.takeoutSession!.id,
+          query: new Api.account.FinishTakeoutSession({
+            success: true,
+          }),
         })),
         {
           context: '结束导出会话',

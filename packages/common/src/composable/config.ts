@@ -68,6 +68,17 @@ const DEFAULT_CONFIG = {
       apiId: '',
       apiHash: '',
       phoneNumber: '',
+      // Optional proxy settings - will be used if provided
+      // proxy: {
+      //   ip: '',            // Proxy host (IP or hostname)
+      //   port: 0,           // Proxy port
+      //   MTProxy: false,    // Whether it's an MTProxy or a normal Socks proxy
+      //   secret: '',        // If using MTProxy, provide a secret
+      //   socksType: 5,      // If using Socks, choose 4 or 5
+      //   timeout: 2,        // Timeout (in seconds) for connection
+      //   username: '',      // Optional username for proxy auth
+      //   password: '',      // Optional password for proxy auth
+      // }
     },
     // OpenAI API settings
     embedding: {

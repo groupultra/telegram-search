@@ -5,6 +5,7 @@ import type { SSEController } from '../../types/sse'
 import { SSEHandler } from '../sse-handler'
 import { EmbedCommandHandler } from './embed'
 import { ExportCommandHandler } from './export'
+import { SearchCommandHandler } from './search'
 import { SyncChatsCommandHandler } from './syncChats'
 import { SyncMetadataCommandHandler } from './syncMetadata'
 
@@ -15,6 +16,7 @@ export class CommandManager {
     syncMetadata: new SyncMetadataCommandHandler(),
     syncChats: new SyncChatsCommandHandler(),
     embed: new EmbedCommandHandler(),
+    search: new SearchCommandHandler(),
   } as const
 
   /**
@@ -22,7 +24,7 @@ export class CommandManager {
    */
   async executeCommand<T>(
     command: keyof typeof this.handlers,
-    client: ITelegramClientAdapter,
+    client: ITelegramClientAdapter | null,
     params: T,
     controller: SSEController,
   ) {

@@ -103,6 +103,24 @@
       "alert_api_id": "請輸入 API ID",
       "placeholder_two_step_code": "請輸入您的雙重認證密碼。",
       "placeholder_code": "請輸入您收到的驗證碼。"
+    },
+    "search": {
+      "title": "搜尋聊天",
+      "searching": "搜尋中...",
+      "search": "搜尋",
+      "search_placeholder": "輸入搜尋關鍵字...",
+      "use_vector_search": "使用向量搜尋",
+      "vector_search_tip": "(可能會較慢，但能找到更多相關內容)",
+      "found_results": "找到 {total} 個結果",
+      "searching_status": "(搜尋中...)",
+      "unknown_user": "未知用戶",
+      "match_score": {
+        "perfect": "完全匹配",
+        "similarity": "相似度 {score}%"
+      },
+      "no_results": "未找到結果",
+      "error_unknown": "未知錯誤",
+      "search_failed": "搜尋失敗"
     }
   },
   "component": {
@@ -190,7 +208,9 @@
       "total_time": "總耗時：",
       "error_message": "錯誤訊息：",
       "export_success": "匯出完成！您可於數據庫中查看匯出的訊息。",
-      "placeholder_id": "從此 ID 開始匯出（留空則從最新訊息開始）"
+      "placeholder_id": "從此 ID 開始匯出（留空則從最新訊息開始）",
+      "getMessage": "使用 getMessage 方法",
+      "takeout": "使用 Takeout 方法"
     },
     "sync_command": {
       "running": "執行中",
@@ -216,6 +236,12 @@
       "folder_sync": "資料夾同步：",
       "error_message": "錯誤訊息：",
       "sync_success_data": "同步完成！您的數據已成功同步。"
+    },
+    "theme_toggle": {
+      "toggle_theme": "切換主題"
+    },
+    "grid_selector": {
+      "type": "聊天類型"
     }
   }
 }

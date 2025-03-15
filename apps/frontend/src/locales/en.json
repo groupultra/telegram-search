@@ -107,6 +107,24 @@
       "alert_api_id": "Please enter API ID",
       "placeholder_two_step_code": "Please enter your two-step authentication password.",
       "placeholder_code": "Please enter the verification code you received."
+    },
+    "search": {
+      "title": "Search in Chat",
+      "searching": "Searching...",
+      "search": "Search",
+      "search_placeholder": "Enter search keywords...",
+      "use_vector_search": "Use vector search",
+      "vector_search_tip": "(may be slower but can find more relevant content)",
+      "found_results": "Found {total} results",
+      "searching_status": "(searching...)",
+      "unknown_user": "Unknown",
+      "match_score": {
+        "perfect": "Perfect Match",
+        "similarity": "Similarity {score}%"
+      },
+      "no_results": "No results found",
+      "error_unknown": "Unknown error",
+      "search_failed": "Search failed"
     }
   },
   "component": {
@@ -194,7 +212,9 @@
       "total_time": "Total time consumption:",
       "error_message": "Error message:",
       "export_success": "Export completed! You can view the exported messages in the database.",
-      "placeholder_id": "Start exporting from this ID (leave blank to start with the latest message)"
+      "placeholder_id": "Start exporting from this ID (leave blank to start with the latest message)",
+      "getMessage": "Use getMessage method",
+      "takeout": "Use Takeout method"
     },
     "sync_command": {
       "running": "Running",
@@ -219,7 +239,12 @@
       "chat_sync": "Chat synchronization:",
       "folder_sync": "Folder synchronization:",
       "error_message": "Error Message:",
-      "sync_success_data": "Synchronization completed! Your data has been successfully synchronized."
+      "sync_success_data": "Synchronization completed! Your data has been successfully synchronized.",
+      "select_chats": "Select chats for embedding generation",
+      "selected_count": "{count} chats selected",
+      "metadata_sync": "Sync Metadata",
+      "set_priorities": "Set Chat Priorities",
+      "priority_tip": "Set priority for each chat (0-100). Higher priority chats will be processed first."
     },
     "embed_command": {
       "messages": "Messages",
@@ -255,6 +280,12 @@
       "no_exported_chats": "No exported chats found",
       "chats_not_exported": "Some selected chats are not exported, please export them first",
       "exported_chat_tip": "Chat has been exported"
+    },
+    "theme_toggle": {
+      "toggle_theme": "Toggle theme"
+    },
+    "grid_selector": {
+      "type": "Chat Type"
     }
   }
 }

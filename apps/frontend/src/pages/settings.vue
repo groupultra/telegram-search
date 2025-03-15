@@ -107,14 +107,11 @@ async function saveConfig() {
         },
       },
       api: {
+        ...config.value.api,
         telegram: {
           ...config.value.api.telegram,
           apiId: config.value.api.telegram.apiId.toString(),
-        },
-        embedding: {
-          ...config.value.api.embedding,
-          dimensions: Number(config.value.api.embedding.dimensions),
-        },
+        }
       },
     }
 
@@ -124,7 +121,6 @@ async function saveConfig() {
       toast.error(configValidationError)
       return
     }
-
     await updateConfig(safeConfig)
     isEditing.value = false
     toast.success(t('pages.settings.save_success'))
