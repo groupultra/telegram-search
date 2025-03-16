@@ -1,5 +1,5 @@
 import type { App, H3Event } from 'h3'
-import type { SearchRequest } from '../types'
+import type { SearchParams } from '../types'
 
 import { useLogger } from '@tg-search/common'
 import { createRouter, defineEventHandler, readBody } from 'h3'
@@ -23,7 +23,7 @@ export function setupCommandRoutes(app: App) {
   const commandManager = new CommandManager()
 
   commandRouter.post('/search', defineEventHandler(async (event: H3Event) => {
-    const body = await readBody<SearchRequest>(event)
+    const body = await readBody<SearchParams>(event)
     const validatedBody = searchCommandSchema.parse(body)
 
     logger.withFields(validatedBody).debug('Search request received')

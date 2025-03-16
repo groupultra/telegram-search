@@ -1,5 +1,4 @@
 import type { ITelegramClientAdapter } from '@tg-search/core'
-import type { CommandOptions } from '../../types'
 
 import { useLogger } from '@tg-search/common'
 import { ChatsSyncServices } from '@tg-search/core'
@@ -19,11 +18,7 @@ export const syncChatsCommandSchema = z.object({
 /**
  * Sync command handler
  */
-export class SyncChatsCommandHandler extends CommandHandlerBase {
-  constructor(options?: CommandOptions) {
-    super(options)
-  }
-
+export class SyncChatsCommandHandler extends CommandHandlerBase<'syncChats'> {
   async execute(client: ITelegramClientAdapter | null, params: z.infer<typeof syncChatsCommandSchema>) {
     if (!client) {
       throw new Error('Client is not connected')

@@ -1,45 +1,32 @@
 import type { ITelegramClientAdapter } from '@tg-search/core'
-import type { Command, CommandOptions, CommandStatus } from '../types'
+import type { CommandParams, CommandType, ErrorCommand, PendingCommand, ProgressCommandWithMetadata, ResultCommandWithMetadata } from '../types'
 
-export abstract class CommandHandlerBase {
-  private options?: CommandOptions
-  private command: Command
+interface CommandCallback<T extends CommandType> {
+  onProgress: (command: ProgressCommandWithMetadata<T>) => void
+  onComplete: (command: ResultCommandWithMetadata<T>) => void
+  onError: (command: ErrorCommand) => void
+}
 
-  constructor(options?: CommandOptions) {
-    this.options = options
+/**
+ * Base class for command handlers
+ */
+export abstract class CommandHandlerBase<T extends CommandType> {
+  protected command: PendingCommand | ProgressCommandWithMetadata<T> | ResultCommandWithMetadata<T> | ErrorCommand
+  protected client: ITelegramClientAdapter | null = null
+  protected callback: CommandCallback<T> | null = null
+
+  constructor(key: T) {
     this.command = {
       id: crypto.randomUUID(),
-      type: 'sync',
+      type: key,
       status: 'pending',
-      progress: 0,
-      message: '',
     }
   }
 
-  protected updateStatus(status: CommandStatus, progress: number, message: string, metadata?: Record<string, any>) {
-    this.command = {
-      ...this.command,
-      status,
-      progress,
-      message,
-      metadata,
-    }
-
-    switch (status) {
-      case 'running':
-        this.options?.onProgress(this.command)
-        break
-      case 'completed':
-        this.options?.onComplete(this.command)
-        break
-      case 'failed':
-        this.options?.onError(this.command, metadata?.error as Error)
-        break
-      case 'waiting':
-        this.options?.onProgress(this.command)
-        break
-    }
+  public init(client?: ITelegramClientAdapter, callback?: CommandCallback<T>) {
+    this.client = client ?? null
+    this.callback = callback ?? null
   }
 
-  abstract execute(client: ITelegramClientAdapter | null, params: any): Promise<void>
+  abstract execute(params: CommandParams<T>): Promise<void>
 }

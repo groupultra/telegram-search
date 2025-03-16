@@ -4,7 +4,7 @@ import type { PaginationParams } from '../api'
 /**
  * Search request parameters
  */
-export interface SearchRequest extends PaginationParams {
+export interface SearchParams extends PaginationParams {
   query: string
   folderId?: number
   chatId?: number

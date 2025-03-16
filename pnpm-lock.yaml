@@ -106,15 +106,6 @@ importers:
       '@tanstack/vue-table':
         specifier: ^8.21.2
         version: 8.21.2(vue@3.5.13(typescript@5.8.2))
-      '@tg-search/common':
-        specifier: workspace:*
-        version: link:../../packages/common
-      '@tg-search/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@tg-search/db':
-        specifier: workspace:*
-        version: link:../../packages/db
       '@tg-search/server':
         specifier: workspace:*
         version: link:../server
@@ -146,9 +137,6 @@ importers:
       '@antfu/eslint-config':
         specifier: ^4.3.0
         version: 4.8.1(@typescript-eslint/utils@8.26.0(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2))(@unocss/eslint-plugin@66.1.0-beta.3(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2))(@vue/compiler-sfc@3.5.13)(eslint-plugin-format@1.0.1(eslint@9.22.0(jiti@2.4.2)))(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)(vitest@3.0.8(@types/debug@4.1.12)(@types/node@22.13.10)(jiti@2.4.2)(jsdom@26.0.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(tsx@4.19.3)(yaml@2.7.0))
-      '@types/node':
-        specifier: ^22.13.9
-        version: 22.13.10
       '@unocss/eslint-config':
         specifier: ^66.1.0-beta.3
         version: 66.1.0-beta.3(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)

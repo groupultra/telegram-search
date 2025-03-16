@@ -1,6 +1,3 @@
-import type { ExportOptions, ITelegramClientAdapter } from '@tg-search/core'
-import type { CommandOptions } from '../../types/apis/command'
-
 import { ExportService } from '@tg-search/core'
 import { z } from 'zod'
 
@@ -25,32 +22,35 @@ export const exportCommandSchema = z.object({
 /**
  * Export command handler
  */
-export class ExportCommandHandler extends CommandHandlerBase {
-  constructor(options?: CommandOptions) {
-    super(options)
-  }
-
-  async execute(client: ITelegramClientAdapter | null, params: ExportOptions) {
-    if (!client) {
+export class ExportCommandHandler extends CommandHandlerBase<'export'> {
+  async execute(params: z.infer<typeof exportCommandSchema>) {
+    if (!this.client) {
       throw new Error('Client is not connected')
     }
 
     try {
-      const exportService = new ExportService(client)
+      const exportService = new ExportService(this.client)
 
       const result = await exportService.exportMessages({
         ...params,
         onProgress: (progress, message, metadata) => {
-          this.updateStatus('running', progress, message, metadata)
+          this.callback?.onProgress({
+            status: 'running',
+            progress,
+            message,
+            metadata,
+          })
         },
       })
 
-      this.updateStatus('completed', 100, 'Export completed', {
+      this.callback?.onComplete({
+        status: 'completed',
         result,
       })
     }
     catch (error) {
-      this.updateStatus('failed', 0, 'Export failed', {
+      this.callback?.onError({
+        status: 'failed',
         error: error as Error,
       })
     }

@@ -1,5 +1,4 @@
 import type { ITelegramClientAdapter, MetadataSyncOptions } from '@tg-search/core'
-import type { CommandOptions } from '../../types'
 
 import { useLogger } from '@tg-search/common'
 import { MetadataSyncServices } from '@tg-search/core'
@@ -14,11 +13,7 @@ export const syncMetadataCommandSchema = z.object({})
 /**
  * Sync metadata command handler
  */
-export class SyncMetadataCommandHandler extends CommandHandlerBase {
-  constructor(options?: CommandOptions) {
-    super(options)
-  }
-
+export class SyncMetadataCommandHandler extends CommandHandlerBase<'syncMetadata'> {
   async execute(client: ITelegramClientAdapter | null, params: MetadataSyncOptions) {
     if (!client) {
       throw new Error('Client is not connected')

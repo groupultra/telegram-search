@@ -1,4 +1,4 @@
-import type { SearchCompleteResponse, type SearchRequest } from '@tg-search/server'
+import type { SearchCompleteResponse, type SearchParams } from '@tg-search/server'
 
 import { computed, ref } from 'vue'
 
@@ -35,7 +35,7 @@ export function useSearch() {
     isStreaming,
     executeCommand,
     cleanup,
-  } = useCommandHandler<SearchRequest>({
+  } = useCommandHandler<SearchParams>({
     endpoint: '/search',
     errorMessage: 'Search failed',
   })
@@ -47,7 +47,7 @@ export function useSearch() {
   /**
    * Execute search with current parameters
    */
-  async function search(params?: Partial<SearchRequest>) {
+  async function search(params?: Partial<SearchParams>) {
     if (!query.value.trim() && !params?.query) {
       return { success: false, error: new Error('Search query cannot be empty') }
     }
@@ -58,7 +58,7 @@ export function useSearch() {
     if (params?.folderId !== undefined)
       currentFolderId.value = params.folderId
 
-    const searchParams: SearchRequest = {
+    const searchParams: SearchParams = {
       query: params?.query || query.value,
       offset: params?.offset || (currentPage.value - 1) * pageSize.value,
       limit: params?.limit || pageSize.value,

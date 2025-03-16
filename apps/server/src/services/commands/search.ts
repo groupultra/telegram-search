@@ -1,5 +1,5 @@
 import type { ITelegramClientAdapter } from '@tg-search/core'
-import type { CommandOptions, SearchResultItem } from '../../types'
+import type { SearchResultItem } from '../../types/apis/search'
 
 import { useLogger } from '@tg-search/common'
 import { EmbeddingService } from '@tg-search/core'
@@ -23,11 +23,12 @@ export const searchCommandSchema = z.object({
 /**
  * Search command handler for executing search operations across messages
  */
-export class SearchCommandHandler extends CommandHandlerBase {
+export class SearchCommandHandler extends CommandHandlerBase<'search'> {
   private readonly embedding: EmbeddingService
 
-  constructor(options?: CommandOptions) {
-    super(options)
+  constructor() {
+    super()
+
     this.embedding = new EmbeddingService()
   }
 

@@ -1,38 +1,46 @@
-import type { ITelegramClientAdapter } from '@tg-search/core'
+import type { CommandsMetadataMap, CommandsParamsMap, CommandsResultMap } from './commands'
 
-export const exportMethods = ['getMessage', 'takeout'] as const
-export type ExportMethod = typeof exportMethods[number]
+export type CommandStatus = 'pending' | 'running' | 'completed' | 'failed'
+export type CommandType = 'export' | 'import' | 'embed' | 'search' | 'syncMetadata' | 'syncChats'
 
-export const commandStatus = ['pending', 'running', 'completed', 'failed', 'waiting'] as const
-export type CommandStatus = typeof commandStatus[number]
+export type CommandMetadata<T extends CommandType> = CommandsMetadataMap[T]
+export type CommandParams<T extends CommandType> = CommandsParamsMap[T]
+export type CommandResult<T extends CommandType> = CommandsResultMap[T]
 
-/**
- * Base command interface representing a background task
- */
-export interface Command {
+interface BaseCommand {
   id: string
-  type: 'export' | 'import' | 'stats' | 'sync' | 'search'
+  type: CommandType
   status: CommandStatus
+}
+
+interface WithProgress {
   progress: number
   message: string
-  result?: unknown
-  error?: Error
-  metadata?: Record<string, unknown>
 }
 
-/**
- * Handler interface for executing command logic
- */
-export interface CommandHandler {
-  execute: (client: ITelegramClientAdapter, params: Record<string, unknown>) => Promise<void>
-  onProgress?: (progress: number, message: string) => void
+interface WithResult<R extends CommandType> {
+  result: CommandResult<R>
 }
 
-/**
- * Configuration options for command execution
- */
-export interface CommandOptions {
-  onProgress: (command: Command) => void
-  onComplete: (command: Command) => void
-  onError: (command: Command, error: Error) => void
+interface WithError {
+  error: Error
 }
+
+interface WithMetadata<T extends CommandType> {
+  metadata: CommandMetadata<T>
+}
+
+// Pending
+export interface PendingCommand extends BaseCommand { status: 'pending' }
+
+// Running
+export interface ProgressCommand extends BaseCommand, WithProgress { status: 'running' }
+export type ProgressCommandWithMetadata<T extends CommandType> = ProgressCommand & WithMetadata<T>
+
+// Completed
+export interface ResultCommand<T extends CommandType> extends BaseCommand, WithResult<T> { status: 'completed' }
+export type ResultCommandWithMetadata<T extends CommandType> = ResultCommand<T> & WithMetadata<T>
+
+// Failed
+export interface ErrorCommand extends BaseCommand, WithError { status: 'failed' }
+export type ErrorCommandWithMetadata<T extends CommandType> = ErrorCommand & WithMetadata<T>
