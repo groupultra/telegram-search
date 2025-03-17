@@ -4,6 +4,7 @@ import { createExtensions } from './01-extensions'
 import { createMessageIndexes } from './02-indexes'
 import { migrateMessageTables } from './03-message-tables'
 import { createFunctions } from './04-functions'
+import { migrateEmbeddingTables } from './05-embedding-tables'
 
 /**
  * Run all migrations in order
@@ -24,6 +25,9 @@ export async function runMigrations() {
 
     logger.log('正在运行函数迁移...')
     await createFunctions()
+
+    logger.log('正在运行嵌入表迁移...')
+    await migrateEmbeddingTables()
 
     logger.log('所有迁移完成')
   }
