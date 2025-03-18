@@ -28,7 +28,7 @@
     "@xsai-ext/providers-cloud": "catalog:",
     "@xsai/embed": "catalog:",
     "big-integer": "^1.6.52",
-    "drizzle-orm": "^0.40.0",
+    "drizzle-orm": "^0.40.1",
     "grammy": "^1.35.0",
     "postgres": "^3.4.5",
     "telegram": "^2.26.22",
@@ -37,8 +37,8 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^22.13.9",
+    "@types/node": "^22.13.10",
     "unbuild": "^3.5.0",
-    "vitest": "^3.0.8"
+    "vitest": "^3.0.9"
   }
 }

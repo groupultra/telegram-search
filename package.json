@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.10",
   "private": true,
-  "packageManager": "pnpm@10.6.1",
+  "packageManager": "pnpm@10.6.4",
   "scripts": {
     "build": "pnpm -r build",
     "stub": "pnpm -r stub",
@@ -27,19 +27,19 @@
     "bump:deps": "taze -I -f -w -r"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.6.0",
-    "bumpp": "^10.0.3",
-    "eslint": "^9.21.0",
+    "@antfu/eslint-config": "^4.10.1",
+    "bumpp": "^10.1.0",
+    "eslint": "^9.22.0",
     "eslint-plugin-format": "^1.0.1",
     "husky": "^9.1.7",
-    "lint-staged": "^15.4.3",
-    "taze": "^18.6.0",
+    "lint-staged": "^15.5.0",
+    "taze": "^18.7.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   },
   "resolutions": {
     "unplugin": "^2.2.0",
-    "vite": "^6.2.1"
+    "vite": "^6.2.2"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,vue}": [
