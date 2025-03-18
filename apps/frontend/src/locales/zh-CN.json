@@ -315,6 +315,14 @@
       "no_results": "未找到结果",
       "error_unknown": "未知错误",
       "search_failed": "搜索失败"
+    },
+    "chat": {
+      "jump_to_telegram": "跳转到 Telegram",
+      "copy_link": "复制链接",
+      "copy_link_success": "链接已复制到剪贴板",
+      "copy_link_failed": "复制链接失败",
+      "reply": "回复",
+      "copy_message": "复制消息"
     }
   }
 }

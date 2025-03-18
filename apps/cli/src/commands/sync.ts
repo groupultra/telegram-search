@@ -51,6 +51,7 @@ export class SyncCommand extends TelegramCommand {
 
       for (const chat of newChats) {
         try {
+          logger.debug(`正在同步会话: ${JSON.stringify(chat)}`)
           const result = await updateChat(chat)
           logger.debug(`已同步会话: [${chat.type}] ${chat.title} (ID: ${chat.id})`)
           if (!result || result.length === 0) {
