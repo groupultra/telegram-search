@@ -4,6 +4,5 @@ dist
 .env
 .session
 media
-*.yaml
-!config.example.yaml
+config.yaml
 .cursorrules

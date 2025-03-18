@@ -115,7 +115,7 @@ watch([selectedType, searchQuery], () => {
     </div>
 
     <!-- Grid List -->
-    <div class="grid gap-4 lg:grid-cols-3 md:grid-cols-2">
+    <div v-auto-animate class="grid gap-4 lg:grid-cols-3 md:grid-cols-2">
       <button
         v-for="chat in paginatedChats"
         :key="chat.id"

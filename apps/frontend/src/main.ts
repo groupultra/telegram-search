@@ -1,3 +1,4 @@
+import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
@@ -43,4 +44,5 @@ app.use(i18n)
 app.use(router)
 app.use(VueQueryPlugin)
 app.use(pinia)
+app.use(autoAnimatePlugin)
 app.mount('#app')

@@ -102,7 +102,7 @@ function formatFileSize(bytes: number): string {
 </script>
 
 <template>
-  <div class="message-bubble mb-6" :class="bubblePositionClass">
+  <div v-auto-animate class="message-bubble mb-6" :class="bubblePositionClass">
     <!-- Avatar -->
     <div class="mx-4 h-10 w-10 flex-shrink-0">
       <div
