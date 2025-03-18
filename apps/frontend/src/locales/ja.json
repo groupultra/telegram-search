@@ -121,6 +121,21 @@
       "no_results": "結果が見つかりません",
       "error_unknown": "不明なエラー",
       "search_failed": "検索に失敗しました"
+    },
+    "chat": {
+      "chat_id": "ID: {id}",
+      "copy_message": "メッセージをコピー",
+      "copy_link": "リンクをコピー",
+      "jump_to_telegram": "Telegramで開く",
+      "reply": "返信",
+      "reply_to_message": "メッセージに返信",
+      "type_your_reply": "返信を入力...",
+      "press_ctrl_enter": "Ctrl + Enterで送信",
+      "reply_success": "返信を送信しました {id} {content}",
+      "reply_failed": "返信の送信に失敗しました",
+      "reply_content_empty": "返信内容を入力してください",
+      "loading_messages": "メッセージを読み込み中...",
+      "search_in_chat": "チャット内を検索"
     }
   },
   "component": {
@@ -243,5 +258,10 @@
     "grid_selector": {
       "type": "チャットタイプ"
     }
+  },
+  "common": {
+    "back": "戻る",
+    "cancel": "キャンセル",
+    "send": "送信"
   }
 }

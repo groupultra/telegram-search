@@ -127,7 +127,19 @@
       "search_failed": "Search failed"
     },
     "chat": {
-      "jump_to_telegram": "Jump to Telegram"
+      "chat_id": "ID: {id}",
+      "copy_message": "Copy Message",
+      "copy_link": "Copy Link",
+      "jump_to_telegram": "Open in Telegram",
+      "reply": "Reply",
+      "reply_to_message": "Reply to Message",
+      "type_your_reply": "Type your reply...",
+      "press_ctrl_enter": "Press Ctrl + Enter to send quickly",
+      "reply_success": "Reply sent successfully {id} {content}",
+      "reply_failed": "Failed to send reply",
+      "reply_content_empty": "Please enter your reply",
+      "loading_messages": "Loading messages...",
+      "search_in_chat": "Search in chat"
     }
   },
   "component": {
@@ -290,5 +302,10 @@
     "grid_selector": {
       "type": "Chat Type"
     }
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "send": "Send"
   }
 }

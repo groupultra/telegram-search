@@ -121,6 +121,21 @@
       "no_results": "Результаты не найдены",
       "error_unknown": "Неизвестная ошибка",
       "search_failed": "Ошибка поиска"
+    },
+    "chat": {
+      "chat_id": "ID: {id}",
+      "copy_message": "Копировать сообщение",
+      "copy_link": "Копировать ссылку",
+      "jump_to_telegram": "Открыть в Telegram",
+      "reply": "Ответить",
+      "reply_to_message": "Ответить на сообщение",
+      "type_your_reply": "Введите ваш ответ...",
+      "press_ctrl_enter": "Нажмите Ctrl + Enter для быстрой отправки",
+      "reply_success": "Ответ успешно отправлен {id} {content}",
+      "reply_failed": "Не удалось отправить ответ",
+      "reply_content_empty": "Пожалуйста, введите ответ",
+      "loading_messages": "Загрузка сообщений...",
+      "search_in_chat": "Поиск в чате"
     }
   },
   "component": {
@@ -243,5 +258,10 @@
     "grid_selector": {
       "type": "Тип чата"
     }
+  },
+  "common": {
+    "back": "Назад",
+    "cancel": "Отмена",
+    "send": "Отправить"
   }
 }

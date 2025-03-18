@@ -151,11 +151,19 @@ async function handleReplySubmit() {
         message: replyContent.value,
         replyTo: selectedMessage.value?.id,
       })
-      toast.success(`回复成功 ${selectedMessage.value?.id} ${replyContent.value}`)
+      toast.success(t('pages.chat.reply_success', {
+        id: selectedMessage.value?.id,
+        content: replyContent.value,
+      }) || `回复成功 ${selectedMessage.value?.id} ${replyContent.value}`)
     }
     catch (error) {
       console.error(error)
+      toast.error(t('pages.chat.reply_failed') || '回复失败')
     }
+  }
+  else {
+    toast.error(t('pages.chat.reply_content_empty') || '请输入回复内容')
+    return
   }
 
   // Reset state
@@ -338,19 +346,21 @@ onMounted(async () => {
       <div class="flex items-center gap-2">
         <button
           class="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+          :title="t('common.back') || '返回'"
           @click="router.back()"
         >
           <div class="i-lucide-arrow-left h-5 w-5 dark:text-white" />
         </button>
         <h1 class="text-lg font-semibold dark:text-white">
           {{ chatTitle }}
-          <span class="ml-2 text-xs text-gray-500 font-normal">ID: {{ chatId }}</span>
+          <span class="ml-2 text-xs text-gray-500 font-normal">{{ t('pages.chat.chat_id', { id: chatId }) || `ID: ${chatId}` }}</span>
         </h1>
       </div>
 
       <div class="flex items-center gap-2">
         <button
           class="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+          :title="t('pages.chat.search_in_chat') || '在聊天中搜索'"
           @click="handleSearch"
         >
           <div class="i-lucide-search h-5 w-5 dark:text-white" />
@@ -366,7 +376,7 @@ onMounted(async () => {
     >
       <!-- Loading state -->
       <div v-if="messagesLoading" class="text-center text-gray-500 dark:text-gray-400">
-        Loading messages...
+        {{ t('pages.chat.loading_messages') || '加载消息中...' }}
       </div>
       <div v-else-if="error" class="text-center text-red-500 dark:text-red-400">
         {{ error }}
@@ -468,6 +478,10 @@ onMounted(async () => {
           >
             {{ t('common.send') || '发送' }}
           </button>
+        </div>
+
+        <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          {{ t('pages.chat.press_ctrl_enter') || '按 Ctrl + Enter 快速发送' }}
         </div>
       </div>
     </div>

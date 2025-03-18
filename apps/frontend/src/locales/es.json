@@ -121,6 +121,21 @@
       "no_results": "No se encontraron resultados",
       "error_unknown": "Error desconocido",
       "search_failed": "Error en la búsqueda"
+    },
+    "chat": {
+      "chat_id": "ID: {id}",
+      "copy_message": "Copiar mensaje",
+      "copy_link": "Copiar enlace",
+      "jump_to_telegram": "Abrir en Telegram",
+      "reply": "Responder",
+      "reply_to_message": "Responder al mensaje",
+      "type_your_reply": "Escribe tu respuesta...",
+      "press_ctrl_enter": "Presiona Ctrl + Enter para enviar rápidamente",
+      "reply_success": "Respuesta enviada con éxito {id} {content}",
+      "reply_failed": "Error al enviar la respuesta",
+      "reply_content_empty": "Por favor, escribe una respuesta",
+      "loading_messages": "Cargando mensajes...",
+      "search_in_chat": "Buscar en el chat"
     }
   },
   "component": {
@@ -243,5 +258,10 @@
     "grid_selector": {
       "type": "Tipo de chat"
     }
+  },
+  "common": {
+    "back": "Volver",
+    "cancel": "Cancelar",
+    "send": "Enviar"
   }
 }

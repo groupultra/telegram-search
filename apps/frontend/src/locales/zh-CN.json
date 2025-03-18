@@ -317,12 +317,24 @@
       "search_failed": "搜索失败"
     },
     "chat": {
-      "jump_to_telegram": "跳转到 Telegram",
+      "chat_id": "ID: {id}",
+      "copy_message": "复制消息",
       "copy_link": "复制链接",
-      "copy_link_success": "链接已复制到剪贴板",
-      "copy_link_failed": "复制链接失败",
+      "jump_to_telegram": "跳转到Telegram",
       "reply": "回复",
-      "copy_message": "复制消息"
+      "reply_to_message": "回复消息",
+      "type_your_reply": "输入回复内容...",
+      "press_ctrl_enter": "按 Ctrl + Enter 快速发送",
+      "reply_success": "回复成功 {id} {content}",
+      "reply_failed": "回复失败",
+      "reply_content_empty": "请输入回复内容",
+      "loading_messages": "加载消息中...",
+      "search_in_chat": "在聊天中搜索"
     }
+  },
+  "common": {
+    "back": "返回",
+    "cancel": "取消",
+    "send": "发送"
   }
 }

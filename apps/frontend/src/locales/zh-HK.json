@@ -121,6 +121,21 @@
       "no_results": "未找到結果",
       "error_unknown": "未知錯誤",
       "search_failed": "搜尋失敗"
+    },
+    "chat": {
+      "chat_id": "ID: {id}",
+      "copy_message": "複製訊息",
+      "copy_link": "複製連結",
+      "jump_to_telegram": "在 Telegram 中開啟",
+      "reply": "回覆",
+      "reply_to_message": "回覆訊息",
+      "type_your_reply": "輸入回覆內容...",
+      "press_ctrl_enter": "按 Ctrl + Enter 快速發送",
+      "reply_success": "回覆成功 {id} {content}",
+      "reply_failed": "回覆失敗",
+      "reply_content_empty": "請輸入回覆內容",
+      "loading_messages": "載入訊息中...",
+      "search_in_chat": "在聊天中搜尋"
     }
   },
   "component": {
@@ -243,5 +258,10 @@
     "grid_selector": {
       "type": "聊天類型"
     }
+  },
+  "common": {
+    "back": "返回",
+    "cancel": "取消",
+    "send": "發送"
   }
 }
