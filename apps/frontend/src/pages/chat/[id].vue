@@ -12,7 +12,7 @@ interface LocalMessage extends TelegramMessage {
 }
 
 // Initialize API client and router
-const { messages: apiMessages, loading: messagesLoading, chat, total: messagesTotal, loadMessages: fetchMessages, error } = useMessages()
+const { messages: apiMessages, loading: messagesLoading, chat, total: messagesTotal, loadMessages: fetchMessages, error, sendMessage } = useMessages()
 const { getUserInfo } = useUserInfo()
 const route = useRoute()
 const router = useRouter()
@@ -41,6 +41,10 @@ const currentUserId = ref(123456789)
 const showContextMenu = ref(false)
 const contextMenuPosition = ref({ x: 0, y: 0 })
 const selectedMessage = ref<LocalMessage | null>(null)
+
+// Reply dialog state
+const showReplyDialog = ref(false)
+const replyContent = ref('')
 
 // Navigate to search page
 function handleSearch() {
@@ -135,9 +139,28 @@ async function jumpToTelegram() {
 
 // Reply to message
 function replyToMessage() {
-  // 这里将来可以实现回复功能
-  toast.success('回复功能即将上线')
+  showReplyDialog.value = true
   hideContextMenu()
+}
+
+// Handle reply submit
+async function handleReplySubmit() {
+  if (replyContent.value.trim()) {
+    try {
+      await sendMessage(chatId, {
+        message: replyContent.value,
+        replyTo: selectedMessage.value?.id,
+      })
+      toast.success(`回复成功 ${selectedMessage.value?.id} ${replyContent.value}`)
+    }
+    catch (error) {
+      console.error(error)
+    }
+  }
+
+  // Reset state
+  showReplyDialog.value = false
+  replyContent.value = ''
 }
 
 // Load messages from chat
@@ -405,6 +428,46 @@ onMounted(async () => {
             <div class="i-lucide-reply mr-3 h-4 w-4 flex-shrink-0 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
             <span class="truncate">{{ t('pages.chat.reply') || '回复' }}</span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reply Dialog -->
+    <div v-if="showReplyDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="showReplyDialog = false">
+      <div class="mx-4 max-w-lg w-full rounded-lg bg-white p-6 dark:bg-gray-800">
+        <h3 class="mb-4 text-lg font-semibold dark:text-white">
+          {{ t('pages.chat.reply_to_message') || '回复消息' }}
+        </h3>
+
+        <!-- Original message preview -->
+        <div class="mb-4 rounded-lg bg-gray-100 p-3 dark:bg-gray-700">
+          <p class="line-clamp-3 text-sm text-gray-600 dark:text-gray-300">
+            {{ selectedMessage?.content }}
+          </p>
+        </div>
+
+        <!-- Reply input -->
+        <textarea
+          v-model="replyContent"
+          class="mb-4 w-full border rounded-lg p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          rows="3"
+          :placeholder="t('pages.chat.type_your_reply') || '输入回复内容...'"
+          @keydown.enter.ctrl="handleReplySubmit"
+        />
+
+        <div class="flex justify-end gap-2">
+          <button
+            class="rounded-lg bg-gray-200 px-4 py-2 dark:bg-gray-700 hover:bg-gray-300 dark:text-white dark:hover:bg-gray-600"
+            @click="showReplyDialog = false"
+          >
+            {{ t('common.cancel') || '取消' }}
+          </button>
+          <button
+            class="rounded-lg bg-blue-500 px-4 py-2 text-white dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700"
+            @click="handleReplySubmit"
+          >
+            {{ t('common.send') || '发送' }}
+          </button>
         </div>
       </div>
     </div>

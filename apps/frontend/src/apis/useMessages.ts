@@ -1,4 +1,4 @@
-import type { TelegramChat, TelegramMessage } from '@tg-search/core'
+import type { SendMessageParams, TelegramChat, TelegramMessage } from '@tg-search/core'
 import type { PaginationParams } from '@tg-search/server/types'
 
 import { ref } from 'vue'
@@ -40,6 +40,13 @@ export function useMessages() {
     }
   }
 
+  async function sendMessage(chatId: number, params: SendMessageParams) {
+    await request(() => apiFetch(`/messages/${chatId}`, {
+      method: 'POST',
+      body: params,
+    }))
+  }
+
   return {
     messages,
     loading,
@@ -47,5 +54,6 @@ export function useMessages() {
     total,
     chat,
     loadMessages,
+    sendMessage,
   }
 }

@@ -1,4 +1,5 @@
 import type { TelegramClient } from 'telegram'
+import type { SendMessageParams } from 'telegram/client/messages'
 import type { GetTelegramMessageParams, TelegramMessage } from '../../types'
 import type { TakeoutManager } from './takeout-manager'
 import type { MessageConverter } from './utils/message-converter'
@@ -25,6 +26,15 @@ export class MessageManager {
     this.client = client
     this.messageConverter = messageConverter
     this.takeoutManager = takeoutManager
+  }
+
+  /**
+   * send message
+   */
+  public async sendMessage(chatId: number, sendMessageParams: SendMessageParams) {
+    await this.client.sendMessage(chatId, {
+      ...sendMessageParams,
+    })
   }
 
   /**
