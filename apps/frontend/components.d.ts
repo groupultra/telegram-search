@@ -19,7 +19,6 @@ declare module 'vue' {
     IconButton: typeof import('./src/components/ui/IconButton.vue')['default']
     LoadingButton: typeof import('./src/components/ui/LoadingButton.vue')['default']
     MessageBubble: typeof import('./src/components/MessageBubble.vue')['default']
-    MessageContextMenu: typeof import('./src/components/MessageContextMenu.vue')['default']
     NeedLogin: typeof import('./src/components/NeedLogin.vue')['default']
     Pagination: typeof import('./src/components/ui/Pagination.vue')['default']
     ProgressBar: typeof import('./src/components/ui/ProgressBar.vue')['default']
