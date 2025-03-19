@@ -8,17 +8,13 @@ import { StringSession } from 'telegram/sessions'
 
 import { withResult } from '../utils/result'
 
-export function createSessionService(emitter: CoreEmitter) {
+export function createSessionService(_emitter: CoreEmitter) {
   const logger = useLogger()
-  const config = getConfig()
-
-  const sessionFile = path.join(config.path.session, 'session.json')
-
-  emitter.on('auth:logout', () => {
-    void cleanSession()
-  })
 
   async function cleanSession() {
+    const config = getConfig()
+    const sessionFile = path.join(config.path.session, 'session.json')
+
     try {
       await fs.unlink(sessionFile)
       logger.withFields({ sessionFile }).debug('Deleted session file')
@@ -32,6 +28,9 @@ export function createSessionService(emitter: CoreEmitter) {
 
   return {
     loadSession: async (): PromiseResult<StringSession | null> => {
+      const config = getConfig()
+      const sessionFile = path.join(config.path.session, 'session.json')
+
       logger.withFields({ sessionFile }).debug('Loading session from file')
 
       try {
@@ -46,6 +45,9 @@ export function createSessionService(emitter: CoreEmitter) {
     },
 
     saveSession: async (session: StringSession) => {
+      const config = getConfig()
+      const sessionFile = path.join(config.path.session, 'session.json')
+
       try {
         await fs.mkdir(path.dirname(sessionFile), { recursive: true })
         await fs.writeFile(sessionFile, session.save(), 'utf-8')

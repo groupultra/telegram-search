@@ -52,11 +52,7 @@ export function createMessageService(emitter: CoreEmitter) {
 
     // TODO: worker_threads?
     function processMessage(message: Api.Message) {
-    // const _internalMessage = toInternalMessage(message)
-
-      // TODO: Save to db
-
-      emitter.emit('message:process', { message })
+      emitter.emit('message:record', { message })
     }
 
     // function toInternalMessage(message: Api.Message): TelegramMessage {
@@ -71,6 +67,8 @@ export function createMessageService(emitter: CoreEmitter) {
     // }
 
     return {
+      processMessage,
+
       async* fetchMessages(
         chatId: string,
         options: Omit<FetchMessageOpts, 'chatId'>,
