@@ -21,6 +21,11 @@ export function setupMessageRoutes(app: App) {
         limit: Number(limit),
         offset: Number(offset),
       })
+      if (chat.type === 'user' || chat.type === 'channel') {
+        items.forEach((item) => {
+          item.fromName = chat.title
+        })
+      }
       return createResponse({
         items,
         chat,
