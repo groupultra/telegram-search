@@ -1,13 +1,21 @@
 import { getConfig } from '@tg-search/common'
 
-import { useCoreClient } from './client'
-import { useEventHandler } from './event-handler'
+import { useCoreContext } from './client'
+import { afterConnectedEventHandler, authEventHandler, useEventHandler } from './event-handler'
+import { createSessionService } from './services/session'
 
 async function init() {
-  const coreClient = useCoreClient()
+  const ctx = useCoreContext()
   const config = getConfig()
 
-  useEventHandler(coreClient, config)
+  const { data: session } = await createSessionService(ctx.emitter).loadSession()
+  if (session) {
+    ctx.emitter.emit('auth:login', { session })
+  }
+
+  const { register: registerEventHandler } = useEventHandler(ctx, config)
+  registerEventHandler(authEventHandler)
+  registerEventHandler(afterConnectedEventHandler)
 }
 
 init()

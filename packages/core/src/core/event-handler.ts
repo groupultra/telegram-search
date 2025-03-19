@@ -1,7 +1,7 @@
 import type { Config } from '@tg-search/common'
 import type { Api, TelegramClient } from 'telegram'
 import type { StringSession } from 'telegram/sessions'
-import type { useCoreClient } from './client'
+import type { CoreContext } from './client'
 
 import { useLogger } from '@tg-search/common'
 
@@ -11,41 +11,50 @@ import { createLinkResolver } from './resolvers/link-resolver'
 import { createUserResolver } from './resolvers/user-resolver'
 import { createConnectionService } from './services/connection'
 import { createMessageService } from './services/messages'
-import { createSessionService } from './services/session'
 import { createTakeoutService } from './services/takeout'
 
-export async function useEventHandler(
-  coreClient: ReturnType<typeof useCoreClient>,
+type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
+
+export function authEventHandler(
+  ctx: CoreContext,
   config: Config,
-) {
-  const { emitter, useService } = coreClient
-  const registry = useResolverRegistry()
+): EventHandler {
+  const { emitter, useService } = ctx
   const logger = useLogger()
 
-  let client: TelegramClient | null = null
-
-  const { data: session } = await createSessionService(emitter).loadSession()
   const { login, logout } = useService(createConnectionService)({
     apiId: Number(config.api.telegram.apiId),
     apiHash: config.api.telegram.apiHash,
     proxy: config.api.telegram.proxy,
   })
-  if (session) {
-    emitter.emit('auth:login', { session })
-  }
 
   emitter.on('auth:login', async (session: StringSession) => {
     logger.debug('Logged in to Telegram')
-    const result = await login(session)
-    client = result.data
+    const { data, error } = await login(session)
+    if (error) {
+      logger.withError(error).error('Failed to login to Telegram')
+      return
+    }
+
+    ctx.setClient(data)
   })
 
   emitter.on('auth:logout', async () => {
     logger.debug('Logged out from Telegram')
-    if (client) {
-      await logout(client)
+    if (ctx.client) {
+      await logout(ctx.client)
     }
   })
+
+  return () => {}
+}
+
+export function afterConnectedEventHandler(
+  ctx: CoreContext,
+  _config: Config,
+): EventHandler {
+  const { emitter, useService } = ctx
+  const registry = useResolverRegistry()
 
   emitter.on('auth:connected', (client: TelegramClient) => {
     const { processMessage } = useService(createMessageService)(client)
@@ -59,4 +68,19 @@ export async function useEventHandler(
       processMessage(message)
     })
   })
+
+  return () => {}
+}
+
+export function useEventHandler(
+  ctx: CoreContext,
+  config: Config,
+) {
+  function register(fn: EventHandler) {
+    fn(ctx, config)
+  }
+
+  return {
+    register,
+  }
 }
