@@ -5,9 +5,9 @@ import type { MessageEvent } from './services/messages'
 import { EventEmitter } from 'eventemitter3'
 
 export type CoreEvent =
-  | MessageEvent
-  | ChatEvent
-  | ConnectionEvent
+  & MessageEvent
+  & ChatEvent
+  & ConnectionEvent
 
 export type CoreEmitter = EventEmitter<CoreEvent>
 

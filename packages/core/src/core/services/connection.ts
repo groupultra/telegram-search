@@ -10,6 +10,9 @@ import { waitForEvent } from '../utils/promise'
 import { result } from '../utils/result'
 
 export interface ConnectionEvent {
+  'auth:phoneNumber': {
+    phoneNumber: string
+  }
   'auth:code': {
     code: string
   }
@@ -17,6 +20,7 @@ export interface ConnectionEvent {
     password: string
   }
 
+  'auth:needPhoneNumber': undefined
   'auth:needCode': undefined
   'auth:needPassword': undefined
 }
@@ -93,14 +97,20 @@ export function useConnectionService(
             apiId,
             apiHash,
           }, {
-            phoneNumber: config.api.telegram.phoneNumber,
+            phoneNumber: async () => {
+              coreEmitter.emit('auth:needPhoneNumber')
+              const { phoneNumber } = await waitForEvent(coreEmitter, 'auth:phoneNumber')
+              return phoneNumber
+            },
             phoneCode: async () => {
-              coreEmitter.emit('auth:code')
-              return waitForEvent(coreEmitter, 'auth:code')
+              coreEmitter.emit('auth:needCode')
+              const { code } = await waitForEvent(coreEmitter, 'auth:code')
+              return code
             },
             password: async () => {
-              coreEmitter.emit('auth:password')
-              return waitForEvent(coreEmitter, 'auth:password')
+              coreEmitter.emit('auth:needPassword')
+              const { password } = await waitForEvent(coreEmitter, 'auth:password')
+              return password
             },
             onError: (err: Error) => {
               logger.withError(err).error('Failed to sign in to Telegram')
