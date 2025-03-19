@@ -1,8 +1,9 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 
+import { getDatabaseDSN } from '../config/dsn'
 import { useLogger } from '../helper/logger'
-import { getConfig, getDatabaseDSN } from './config'
+import { getConfig } from './config'
 
 let dbInstance: ReturnType<typeof drizzle>
 
