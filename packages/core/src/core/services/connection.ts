@@ -7,7 +7,7 @@ import { getConfig, useLogger } from '@tg-search/common'
 import { Api, TelegramClient } from 'telegram'
 
 import { waitForEvent } from '../utils/promise'
-import { result } from '../utils/result'
+import { withResult } from '../utils/result'
 
 export interface ConnectionEvent {
   'auth:login': undefined
@@ -38,7 +38,7 @@ export function useConnectionService(
   const apiId = Number(config.api.telegram.apiId)
   const apiHash = config.api.telegram.apiHash
   if (!apiId || !apiHash) {
-    return result(null, new Error('API ID and API Hash are required'))
+    return withResult(null, new Error('API ID and API Hash are required'))
   }
 
   type ProxyConfig = Config['api']['telegram']['proxy']
@@ -86,7 +86,7 @@ export function useConnectionService(
         },
       )
 
-      return result(client, null)
+      return withResult(client, null)
     },
 
     login: async (client: TelegramClient) => {
@@ -121,11 +121,11 @@ export function useConnectionService(
           })
         }
 
-        return result(null, null)
+        return withResult(null, null)
       }
       catch (error) {
         logger.withError(error).error('Failed to connect to Telegram')
-        return result(null, error)
+        return withResult(null, error)
       }
     },
 

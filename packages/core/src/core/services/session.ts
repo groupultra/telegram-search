@@ -6,7 +6,7 @@ import path from 'node:path'
 import { getConfig, useLogger } from '@tg-search/common'
 import { StringSession } from 'telegram/sessions'
 
-import { result } from '../utils/result'
+import { withResult } from '../utils/result'
 
 export function useSessionService(
   coreEmitter: CoreEmitter,
@@ -24,11 +24,11 @@ export function useSessionService(
     try {
       await fs.unlink(sessionFile)
       logger.withFields({ sessionFile }).debug('Deleted session file')
-      return result(null, null)
+      return withResult(null, null)
     }
     catch (error) {
       logger.withError(error).error('Failed to delete session file')
-      return result(null, error)
+      return withResult(null, error)
     }
   }
 
@@ -39,11 +39,11 @@ export function useSessionService(
       try {
         await fs.mkdir(path.dirname(sessionFile), { recursive: true })
         const session = await fs.readFile(sessionFile, 'utf-8')
-        return result(new StringSession(session), null)
+        return withResult(new StringSession(session), null)
       }
       catch (error) {
         logger.withError(error).error('Failed to load session from file')
-        return result(null, error)
+        return withResult(null, error)
       }
     },
 
@@ -52,11 +52,11 @@ export function useSessionService(
         await fs.mkdir(path.dirname(sessionFile), { recursive: true })
         await fs.writeFile(sessionFile, session.save(), 'utf-8')
         logger.withFields({ sessionFile }).debug('Saving session to file')
-        return result(null, null)
+        return withResult(null, null)
       }
       catch (error) {
         logger.withError(error).error('Failed to save session to file')
-        return result(null, error)
+        return withResult(null, error)
       }
     },
 
