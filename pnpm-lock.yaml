@@ -319,6 +319,9 @@ importers:
       drizzle-orm:
         specifier: ^0.40.1
         version: 0.40.1(@types/pg@8.11.11)(gel@2.0.1)(pg@8.14.1)(postgres@3.4.5)
+      eventemitter3:
+        specifier: ^5.0.1
+        version: 5.0.1
       grammy:
         specifier: ^1.35.0
         version: 1.35.0

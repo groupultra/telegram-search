@@ -29,6 +29,7 @@
     "@xsai/embed": "catalog:",
     "big-integer": "^1.6.52",
     "drizzle-orm": "^0.40.1",
+    "eventemitter3": "^5.0.1",
     "grammy": "^1.35.0",
     "postgres": "^3.4.5",
     "telegram": "^2.26.22",
