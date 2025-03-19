@@ -45,8 +45,8 @@ export interface TakeoutOpts {
 }
 
 // https://core.telegram.org/api/takeout
-export function useTakeoutService(
-  coreEmitter: CoreEmitter,
+export function createTakeoutService(
+  emitter: CoreEmitter,
   client: TelegramClient,
 ) {
   const logger = useLogger()
@@ -169,7 +169,7 @@ export function useTakeoutService(
             }
 
             // Process message
-            coreEmitter.emit('message:process', message)
+            emitter.emit('message:process', message)
 
             yield message
             processedCount++

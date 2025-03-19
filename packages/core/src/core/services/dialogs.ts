@@ -1,4 +1,4 @@
-export interface ChatEvent {
+export interface DialogEvent {
   'dialogs:fetch': {
     chatId: string
   }

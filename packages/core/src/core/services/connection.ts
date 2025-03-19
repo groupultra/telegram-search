@@ -10,7 +10,10 @@ import { waitForEvent } from '../utils/promise'
 import { withResult } from '../utils/result'
 
 export interface ConnectionEvent {
-  'auth:login': undefined
+  'auth:init': undefined
+  'auth:login': {
+    session: StringSession
+  }
   'auth:logout': undefined
 
   'auth:phoneNumber': {
@@ -26,11 +29,15 @@ export interface ConnectionEvent {
   'auth:needPhoneNumber': undefined
   'auth:needCode': undefined
   'auth:needPassword': undefined
+  'auth:connected': undefined
+  'auth:progress': {
+    progress: 'success' | 'failed'
+    error?: Error
+  }
 }
 
-export function useConnectionService(
-  coreEmitter: CoreEmitter,
-  session: StringSession,
+export function createConnectionService(
+  emitter: CoreEmitter,
 ) {
   const logger = useLogger()
   const config = getConfig()
@@ -40,6 +47,15 @@ export function useConnectionService(
   if (!apiId || !apiHash) {
     return withResult(null, new Error('API ID and API Hash are required'))
   }
+
+  emitter.on('auth:login', async (session: StringSession) => {
+    logger.debug('Logged in to Telegram')
+    await login(session)
+  })
+
+  emitter.on('auth:logout', () => {
+    logger.debug('Logged out from Telegram')
+  })
 
   type ProxyConfig = Config['api']['telegram']['proxy']
   const getProxyInterface = (proxyConfig: ProxyConfig): ProxyInterface | undefined => {
@@ -68,76 +84,91 @@ export function useConnectionService(
     }
   }
 
-  return {
-    init: async () => {
-      const proxy = getProxyInterface(config.api.telegram.proxy)
-      if (proxy) {
-        logger.withFields({ proxy }).debug('Using proxy')
-      }
+  async function init(session: StringSession) {
+    const proxy = getProxyInterface(config.api.telegram.proxy)
+    if (proxy) {
+      logger.withFields({ proxy }).debug('Using proxy')
+    }
 
-      const client = new TelegramClient(
-        session,
-        apiId,
-        apiHash,
-        {
-          connectionRetries: 3,
-          useWSS: proxy ? false : undefined,
-          proxy,
-        },
-      )
+    const client = new TelegramClient(
+      session,
+      apiId,
+      apiHash,
+      {
+        connectionRetries: 3,
+        useWSS: proxy ? false : undefined,
+        proxy,
+      },
+    )
 
-      return withResult(client, null)
-    },
+    return withResult(client, null)
+  }
 
-    login: async (client: TelegramClient) => {
-      try {
-        await client.connect()
-
-        const isAuthorized = await client.isUserAuthorized()
-
-        if (!isAuthorized) {
-          client.signInUser({
-            apiId,
-            apiHash,
-          }, {
-            phoneNumber: async () => {
-              coreEmitter.emit('auth:needPhoneNumber')
-              const { phoneNumber } = await waitForEvent(coreEmitter, 'auth:phoneNumber')
-              return phoneNumber
-            },
-            phoneCode: async () => {
-              coreEmitter.emit('auth:needCode')
-              const { code } = await waitForEvent(coreEmitter, 'auth:code')
-              return code
-            },
-            password: async () => {
-              coreEmitter.emit('auth:needPassword')
-              const { password } = await waitForEvent(coreEmitter, 'auth:password')
-              return password
-            },
-            onError: (err: Error) => {
-              logger.withError(err).error('Failed to sign in to Telegram')
-            },
-          })
-        }
-
-        return withResult(null, null)
-      }
-      catch (error) {
-        logger.withError(error).error('Failed to connect to Telegram')
+  async function login(session: StringSession) {
+    try {
+      const { data: client, error } = await init(session)
+      if (!client || error) {
+        logger.withError(error).error('Failed to initialize Telegram client')
         return withResult(null, error)
       }
-    },
 
-    logout: async (client: TelegramClient) => {
-      if (client.connected) {
-        await client.invoke(new Api.auth.LogOut())
-        await client.disconnect()
+      await client.connect()
+      const isAuthorized = await client.isUserAuthorized()
+      if (!isAuthorized) {
+        client.signInUser({
+          apiId,
+          apiHash,
+        }, {
+          phoneNumber: async () => {
+            emitter.emit('auth:needPhoneNumber')
+            const { phoneNumber } = await waitForEvent(emitter, 'auth:phoneNumber')
+            return phoneNumber
+          },
+          phoneCode: async () => {
+            emitter.emit('auth:needCode')
+            const { code } = await waitForEvent(emitter, 'auth:code')
+            return code
+          },
+          password: async () => {
+            emitter.emit('auth:needPassword')
+            const { password } = await waitForEvent(emitter, 'auth:password')
+            return password
+          },
+          onError: (err: Error) => {
+            emitter.emit('auth:progress', {
+              progress: 'failed',
+              error: err,
+            })
+            logger.withError(err).error('Failed to sign in to Telegram')
+          },
+        })
       }
 
-      client.session.delete()
-      coreEmitter.emit('auth:logout')
-      logger.debug('Logged out from Telegram')
-    },
+      emitter.emit('auth:connected')
+      emitter.emit('auth:progress', {
+        progress: 'success',
+      })
+      return withResult(null, null)
+    }
+    catch (error) {
+      logger.withError(error).error('Failed to connect to Telegram')
+      return withResult(null, error)
+    }
+  }
+
+  async function logout(client: TelegramClient) {
+    if (client.connected) {
+      await client.invoke(new Api.auth.LogOut())
+      await client.disconnect()
+    }
+
+    client.session.delete()
+    emitter.emit('auth:logout')
+    logger.debug('Logged out from Telegram')
+  }
+
+  return {
+    login,
+    logout,
   }
 }

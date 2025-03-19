@@ -46,8 +46,8 @@ export interface FetchMessageOpts {
   maxId?: number
 }
 
-export function useMessageService(
-  coreEmitter: CoreEmitter,
+export function createMessageService(
+  emitter: CoreEmitter,
   client: TelegramClient,
 ) {
   const logger = useLogger()
@@ -58,7 +58,7 @@ export function useMessageService(
 
     // TODO: Save to db
 
-    coreEmitter.emit('message:process', { message })
+    emitter.emit('message:process', { message })
   }
 
   // function toInternalMessage(message: Api.Message): TelegramMessage {

@@ -8,15 +8,15 @@ import { StringSession } from 'telegram/sessions'
 
 import { withResult } from '../utils/result'
 
-export function useSessionService(
-  coreEmitter: CoreEmitter,
+export function createSessionService(
+  emitter: CoreEmitter,
 ) {
   const logger = useLogger()
   const config = getConfig()
 
   const sessionFile = path.join(config.path.session, 'session.json')
 
-  coreEmitter.on('auth:logout', () => {
+  emitter.on('auth:logout', () => {
     void cleanSession()
   })
 
