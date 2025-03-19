@@ -46,98 +46,97 @@ export interface FetchMessageOpts {
   maxId?: number
 }
 
-export function createMessageService(
-  emitter: CoreEmitter,
-  client: TelegramClient,
-) {
-  const logger = useLogger()
+export function createMessageService(emitter: CoreEmitter) {
+  return function (client: TelegramClient) {
+    const logger = useLogger()
 
-  // TODO: worker_threads?
-  function processMessage(message: Api.Message) {
+    // TODO: worker_threads?
+    function processMessage(message: Api.Message) {
     // const _internalMessage = toInternalMessage(message)
 
-    // TODO: Save to db
+      // TODO: Save to db
 
-    emitter.emit('message:process', { message })
-  }
+      emitter.emit('message:process', { message })
+    }
 
-  // function toInternalMessage(message: Api.Message): TelegramMessage {
-  //   return {
-  //     id: message.id,
-  //     chatId: message.chatId?.toString(),
-  //     type: message.media ? 'media' : 'text',
-  //     createdAt: new Date(message.date * 1000),
-  //     text: message.message,
-  //     media: message.media,
-  //   }
-  // }
+    // function toInternalMessage(message: Api.Message): TelegramMessage {
+    //   return {
+    //     id: message.id,
+    //     chatId: message.chatId?.toString(),
+    //     type: message.media ? 'media' : 'text',
+    //     createdAt: new Date(message.date * 1000),
+    //     text: message.message,
+    //     media: message.media,
+    //   }
+    // }
 
-  return {
-    async* fetchMessages(
-      chatId: string,
-      options: Omit<FetchMessageOpts, 'chatId'>,
-    ): AsyncGenerator<Api.Message> {
-      let offsetId = 0
-      let hasMore = true
-      let processedCount = 0
+    return {
+      async* fetchMessages(
+        chatId: string,
+        options: Omit<FetchMessageOpts, 'chatId'>,
+      ): AsyncGenerator<Api.Message> {
+        let offsetId = 0
+        let hasMore = true
+        let processedCount = 0
 
-      const limit = options.limit || 100
-      const minId = options?.minId || 0
-      const maxId = options?.maxId || 0
-      const startTime = options?.startTime || new Date()
-      const endTime = options?.endTime || new Date()
+        const limit = options.limit || 100
+        const minId = options?.minId || 0
+        const maxId = options?.maxId || 0
+        const startTime = options?.startTime || new Date()
+        const endTime = options?.endTime || new Date()
 
-      while (hasMore) {
-        try {
-          const messages = await withRetry(() => client.getMessages(chatId, {
-            limit,
-            offsetId,
-            minId,
-            maxId,
-          }))
+        while (hasMore) {
+          try {
+            const messages = await withRetry(() => client.getMessages(chatId, {
+              limit,
+              offsetId,
+              minId,
+              maxId,
+            }))
 
-          if (messages.length === 0) {
-            logger.error('Get messages failed or returned empty data')
-            return withResult(null, new Error('Get messages failed or returned empty data'))
-          }
+            if (messages.length === 0) {
+              logger.error('Get messages failed or returned empty data')
+              return withResult(null, new Error('Get messages failed or returned empty data'))
+            }
 
-          // If we got fewer messages than requested, there are no more
-          hasMore = messages.length === limit
+            // If we got fewer messages than requested, there are no more
+            hasMore = messages.length === limit
 
-          for (const message of messages) {
+            for (const message of messages) {
             // Skip empty messages
-            if (message instanceof Api.MessageEmpty) {
-              continue
-            }
+              if (message instanceof Api.MessageEmpty) {
+                continue
+              }
 
-            // Check time range
-            const messageTime = new Date(message.date * 1000)
-            if (startTime && messageTime < startTime) {
-              continue
-            }
-            if (endTime && messageTime > endTime) {
-              continue
-            }
+              // Check time range
+              const messageTime = new Date(message.date * 1000)
+              if (startTime && messageTime < startTime) {
+                continue
+              }
+              if (endTime && messageTime > endTime) {
+                continue
+              }
 
-            processMessage(message)
+              processMessage(message)
 
-            yield message
-            processedCount++
+              yield message
+              processedCount++
 
-            // Update offsetId to current message ID
-            offsetId = message.id
+              // Update offsetId to current message ID
+              offsetId = message.id
 
-            // Check if we've reached the limit
-            if (limit && processedCount >= limit) {
-              return
+              // Check if we've reached the limit
+              if (limit && processedCount >= limit) {
+                return
+              }
             }
           }
+          catch (error) {
+            logger.withError(error).error('Fetch messages failed')
+            return withResult(null, error)
+          }
         }
-        catch (error) {
-          logger.withError(error).error('Fetch messages failed')
-          return withResult(null, error)
-        }
-      }
-    },
+      },
+    }
   }
 }

@@ -13,8 +13,17 @@ export type CoreEvent =
 
 export type CoreEmitter = EventEmitter<CoreEvent>
 
-export function createClient(): CoreEmitter {
+export type Service<T> = (emitter: CoreEmitter) => T
+
+export function useCoreClient() {
   const eventEmitter = new EventEmitter<CoreEvent>()
 
-  return eventEmitter
+  function useService<T>(fn: Service<T>) {
+    return fn(eventEmitter)
+  }
+
+  return {
+    emitter: eventEmitter,
+    useService,
+  }
 }

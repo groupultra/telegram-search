@@ -36,9 +36,7 @@ export interface ConnectionEvent {
   }
 }
 
-export function createConnectionService(
-  emitter: CoreEmitter,
-) {
+export function createConnectionService(emitter: CoreEmitter) {
   const logger = useLogger()
   const config = getConfig()
 

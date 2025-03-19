@@ -1,6 +1,6 @@
 import type { TelegramClient } from 'telegram'
 
-import { createClient } from './client'
+import { useCoreClient } from './client'
 import { useResolverRegistry } from './registry'
 import { createEmbeddingResolver } from './resolvers/embedding-resolver'
 import { createLinkResolver } from './resolvers/link-resolver'
@@ -11,19 +11,19 @@ import { createSessionService } from './services/session'
 import { createTakeoutService } from './services/takeout'
 
 async function init() {
-  const emitter = createClient()
+  const { emitter, useService } = useCoreClient()
   const registry = useResolverRegistry()
 
   const { data: session } = await createSessionService(emitter).loadSession()
-  createConnectionService(emitter)
+  useService(createConnectionService)
 
   if (session) {
     emitter.emit('auth:login', { session })
   }
 
   emitter.on('auth:connected', (client: TelegramClient) => {
-    createMessageService(emitter, client)
-    createTakeoutService(emitter, client)
+    useService(createMessageService)(client)
+    useService(createTakeoutService)(client)
 
     registry.register('embedding', createEmbeddingResolver())
     registry.register('link', createLinkResolver())

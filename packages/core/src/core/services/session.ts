@@ -8,9 +8,7 @@ import { StringSession } from 'telegram/sessions'
 
 import { withResult } from '../utils/result'
 
-export function createSessionService(
-  emitter: CoreEmitter,
-) {
+export function createSessionService(emitter: CoreEmitter) {
   const logger = useLogger()
   const config = getConfig()
 
