@@ -1,3 +1,4 @@
+import type { CoreEmitter } from '../client'
 import type { PromiseResult } from '../utils/result'
 
 import fs from 'node:fs/promises'
@@ -7,11 +8,29 @@ import { StringSession } from 'telegram/sessions'
 
 import { result } from '../utils/result'
 
-export function useSessionService() {
+export function useSessionService(
+  coreEmitter: CoreEmitter,
+) {
   const logger = useLogger()
   const config = getConfig()
 
   const sessionFile = path.join(config.path.session, 'session.json')
+
+  coreEmitter.on('auth:logout', () => {
+    void cleanSession()
+  })
+
+  async function cleanSession() {
+    try {
+      await fs.unlink(sessionFile)
+      logger.withFields({ sessionFile }).debug('Deleted session file')
+      return result(null, null)
+    }
+    catch (error) {
+      logger.withError(error).error('Failed to delete session file')
+      return result(null, error)
+    }
+  }
 
   return {
     loadSession: async (): PromiseResult<StringSession | null> => {
@@ -41,16 +60,6 @@ export function useSessionService() {
       }
     },
 
-    cleanSession: async () => {
-      try {
-        await fs.unlink(sessionFile)
-        logger.withFields({ sessionFile }).debug('Clearing session')
-        return result(null, null)
-      }
-      catch (error) {
-        logger.withError(error).error('Failed to clear session')
-        return result(null, error)
-      }
-    },
+    cleanSession,
   }
 }

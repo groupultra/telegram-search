@@ -1,4 +1,4 @@
-interface Resolver<T> {
+export interface Resolver<T> {
   run: (opts: T) => Promise<void>
 }
 

@@ -4,12 +4,15 @@ import type { StringSession } from 'telegram/sessions'
 import type { CoreEmitter } from '../client'
 
 import { getConfig, useLogger } from '@tg-search/common'
-import { TelegramClient } from 'telegram'
+import { Api, TelegramClient } from 'telegram'
 
 import { waitForEvent } from '../utils/promise'
 import { result } from '../utils/result'
 
 export interface ConnectionEvent {
+  'auth:login': undefined
+  'auth:logout': undefined
+
   'auth:phoneNumber': {
     phoneNumber: string
   }
@@ -86,7 +89,7 @@ export function useConnectionService(
       return result(client, null)
     },
 
-    connect: async (client: TelegramClient) => {
+    login: async (client: TelegramClient) => {
       try {
         await client.connect()
 
@@ -126,5 +129,15 @@ export function useConnectionService(
       }
     },
 
+    logout: async (client: TelegramClient) => {
+      if (client.connected) {
+        await client.invoke(new Api.auth.LogOut())
+        await client.disconnect()
+      }
+
+      client.session.delete()
+      coreEmitter.emit('auth:logout')
+      logger.debug('Logged out from Telegram')
+    },
   }
 }

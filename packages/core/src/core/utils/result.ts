@@ -1,3 +1,5 @@
+// TODO: Monad?
+
 export interface Result<T> {
   data: T | null
   error: unknown | Error | null
