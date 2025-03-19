@@ -1,10 +1,8 @@
 import type { TelegramClient } from 'telegram'
-import type { TelegramMessage, TelegramMessageType } from '../../types'
+import type { TelegramMessageType } from '../../types'
 import type { CoreEmitter } from '../client'
-import type { PromiseResult } from '../utils/result'
 
 import { useLogger } from '@tg-search/common'
-import bigInt from 'big-integer'
 import { Api } from 'telegram'
 
 import { withResult } from '../utils/result'
@@ -15,16 +13,20 @@ export interface MessageEvent {
     chatId: string
   }
 
-  'message:progress': {
+  'message:fetch:progress': {
     taskId: string
     progress: number
   }
 
-  'message:abort': {
+  'message:fetch:abort': {
     taskId: string
   }
 
   'message:process': {
+    message: Api.Message
+  }
+
+  'message:record': {
     message: Api.Message
   }
 }
@@ -52,23 +54,23 @@ export function useMessageService(
 
   // TODO: worker_threads?
   function processMessage(message: Api.Message) {
-    const _internalMessage = toInternalMessage(message)
+    // const _internalMessage = toInternalMessage(message)
 
     // TODO: Save to db
 
     coreEmitter.emit('message:process', { message })
   }
 
-  function toInternalMessage(message: Api.Message): TelegramMessage {
-    return {
-      id: message.id,
-      chatId: message.chatId?.toString(),
-      type: message.media ? 'media' : 'text',
-      createdAt: new Date(message.date * 1000),
-      text: message.message,
-      media: message.media,
-    }
-  }
+  // function toInternalMessage(message: Api.Message): TelegramMessage {
+  //   return {
+  //     id: message.id,
+  //     chatId: message.chatId?.toString(),
+  //     type: message.media ? 'media' : 'text',
+  //     createdAt: new Date(message.date * 1000),
+  //     text: message.message,
+  //     media: message.media,
+  //   }
+  // }
 
   return {
     async* fetchMessages(
@@ -78,18 +80,24 @@ export function useMessageService(
       let offsetId = 0
       let hasMore = true
       let processedCount = 0
+
       const limit = options.limit || 100
+      const minId = options?.minId || 0
+      const maxId = options?.maxId || 0
+      const startTime = options?.startTime || new Date()
+      const endTime = options?.endTime || new Date()
 
       while (hasMore) {
         try {
           const messages = await withRetry(() => client.getMessages(chatId, {
             limit,
             offsetId,
-            minId: options?.minId || 0,
-            maxId: options?.maxId || 0,
+            minId,
+            maxId,
           }))
 
           if (messages.length === 0) {
+            logger.error('Get messages failed or returned empty data')
             return withResult(null, new Error('Get messages failed or returned empty data'))
           }
 
@@ -104,10 +112,10 @@ export function useMessageService(
 
             // Check time range
             const messageTime = new Date(message.date * 1000)
-            if (options?.startTime && messageTime < options.startTime) {
+            if (startTime && messageTime < startTime) {
               continue
             }
-            if (options?.endTime && messageTime > options.endTime) {
+            if (endTime && messageTime > endTime) {
               continue
             }
 
@@ -120,7 +128,7 @@ export function useMessageService(
             offsetId = message.id
 
             // Check if we've reached the limit
-            if (options?.limit && processedCount >= options.limit) {
+            if (limit && processedCount >= limit) {
               return
             }
           }
@@ -129,27 +137,6 @@ export function useMessageService(
           logger.withError(error).error('Fetch messages failed')
           return withResult(null, error)
         }
-      }
-    },
-
-    async getHistory(chatId: string): PromiseResult<Api.messages.TypeMessages & { count: number } | null> {
-      try {
-        const result = await withRetry(() =>
-          client.invoke(new Api.messages.GetHistory({
-            peer: chatId,
-            limit: 1,
-            offsetId: 0,
-            offsetDate: 0,
-            addOffset: 0,
-            maxId: 0,
-            minId: 0,
-            hash: bigInt(0),
-          }))) as Api.messages.TypeMessages & { count: number }
-        return withResult(result, null)
-      }
-      catch (error) {
-        logger.withError(error).error('Get history failed')
-        return withResult(null, error)
       }
     },
   }

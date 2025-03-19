@@ -1,6 +1,7 @@
 import type { ConnectionEvent } from './services/connection'
 import type { ChatEvent } from './services/dialogs'
 import type { MessageEvent } from './services/messages'
+import type { TakeoutEvent } from './services/takeout'
 
 import { EventEmitter } from 'eventemitter3'
 
@@ -8,6 +9,7 @@ export type CoreEvent =
   & MessageEvent
   & ChatEvent
   & ConnectionEvent
+  & TakeoutEvent
 
 export type CoreEmitter = EventEmitter<CoreEvent>
 
