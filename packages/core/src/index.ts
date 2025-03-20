@@ -1,6 +1,6 @@
 export * from './adapter/bot'
 export * from './adapter/client'
 export * from './adapter/factory'
-export * from './core'
 export * from './services'
 export * from './types'
+export * from './v2'
