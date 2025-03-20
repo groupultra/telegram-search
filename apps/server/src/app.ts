@@ -6,10 +6,11 @@ import type { WsMessage } from './v2/ws-event'
 
 import { createServer } from 'node:http'
 import { initConfig, initDB, initLogger, useLogger } from '@tg-search/common'
-import { createCoreClient, destoryCoreClient, setupSession } from '@tg-search/core'
+import { createCoreClient, destoryCoreClient } from '@tg-search/core'
 import wsAdapter from 'crossws/adapters/node'
 import { createApp, defineWebSocketHandler, toNodeListener } from 'h3'
 
+import { handleConnectionEvent } from './v2/connection'
 import { handleMessageEvent } from './v2/messages'
 import { sendWsError } from './v2/ws-event'
 
@@ -37,7 +38,7 @@ function setupWsRoutes(app: App) {
       clientStates.set(peer.id, { ctx, peer })
 
       // Setup session and login
-      setupSession(ctx)
+      // setupSession(ctx)
 
       // const client = ctx.getClient()
       // ctx.emitter.on('auth:connected', async () => {
@@ -58,7 +59,7 @@ function setupWsRoutes(app: App) {
         sendWsError(peer, error)
       })
 
-      peer.send({ type: 'auth:connected', data: { clientId: peer.id } })
+      peer.send({ type: 'WS_CONNECTED', data: { clientId: peer.id } })
     },
 
     async message(peer, message) {
@@ -82,6 +83,7 @@ function setupWsRoutes(app: App) {
       // console.log(wsMessage)
 
       try {
+        handleConnectionEvent(clientState, data)
         handleMessageEvent(clientState, data)
       }
       catch (error) {

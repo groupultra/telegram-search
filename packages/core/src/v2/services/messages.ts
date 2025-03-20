@@ -75,14 +75,25 @@ export function createMessageService(ctx: CoreContext) {
 
       logger.withFields({ chatId, limit, minId, maxId, startTime, endTime }).debug('Fetch messages options')
 
+      // await getClient().getDialogs()
+
+      // const chat = dialogs.find(d => d.id?.toString() === chatId)
+      // if (!chat) {
+      //   throw new Error(`Chat not found: ${chatId}`)
+      // }
+
       while (hasMore) {
         try {
-          const messages = await withRetry(() => getClient().getMessages(chatId, {
-            limit,
-            offsetId,
-            minId,
-            maxId,
-          }))
+          const entity = await getClient().getEntity(chatId)
+
+          const messages = await withRetry(
+            () => getClient().getMessages(entity, {
+              limit,
+              offsetId,
+              minId,
+              maxId,
+            }),
+          )
 
           if (messages.length === 0) {
             logger.error('Get messages failed or returned empty data')

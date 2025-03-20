@@ -12,7 +12,6 @@ import { createConnectionService } from './services/connection'
 import { createMessageService } from './services/messages'
 import { createTakeoutService } from './services/takeout'
 
-// export type Events = Record<string, (data: any) => any>
 type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
 
 export function authEventHandler(
@@ -28,17 +27,20 @@ export function authEventHandler(
     proxy: config.api.telegram.proxy,
   })
 
-  emitter.on('auth:login', async ({ session }) => {
-    logger.withFields({ session }).debug('Logged in to Telegram')
-
-    const { data, error } = await login(session)
+  emitter.on('auth:login', async () => {
+    const { data: client, error } = await login()
     if (error) {
       logger.withError(error).error('Failed to login to Telegram')
       return
     }
 
-    if (data) {
-      ctx.setClient(data)
+    if (client) {
+      if (await client.isUserAuthorized()) {
+        ctx.setClient(client)
+      }
+      else {
+        logger.error('Client is not connected')
+      }
     }
   })
 

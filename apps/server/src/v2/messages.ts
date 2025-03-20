@@ -40,6 +40,6 @@ export function handleMessageEvent(
       emitter.removeListener('message:fetch:progress', onProgress)
       break
     default:
-      sendWsError(peer, 'Unknown message type')
+      message.type.startsWith('message:') && sendWsError(peer, 'Unknown message type')
   }
 }

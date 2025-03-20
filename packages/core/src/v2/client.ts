@@ -23,7 +23,7 @@ export function createCoreClient(): CoreContext {
 }
 
 export async function setupSession(ctx: CoreContext) {
-  const { data: session } = await createSessionService(ctx.emitter).loadSession()
+  const { data: session } = await createSessionService(ctx).loadSession()
   if (session) {
     ctx.emitter.emit('auth:login', { session })
   }

@@ -1,9 +1,9 @@
-import type { Config } from '@tg-search/common'
+import type { ClientProxyConfig } from '@tg-search/common'
 import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
 import type { CoreContext } from '../context'
 import type { PromiseResult } from '../utils/result'
 
-import { useLogger } from '@tg-search/common'
+import { getConfig, useLogger } from '@tg-search/common'
 import { Api, TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions'
 
@@ -11,8 +11,7 @@ import { waitForEvent } from '../utils/promise'
 import { withResult } from '../utils/result'
 
 export interface ConnectionEvent {
-  'auth:init': () => void
-  'auth:login': (data: { session: StringSession }) => void
+  'auth:login': () => void
   'auth:logout': () => void
 
   'auth:phoneNumber': (data: { phoneNumber: string }) => void
@@ -23,11 +22,8 @@ export interface ConnectionEvent {
   'auth:needCode': () => void
   'auth:needPassword': () => void
 
-  'auth:connected': (data: { client: TelegramClient }) => void
-  'auth:progress': (data: { progress: 'success' | 'failed', error?: Error }) => void
+  'auth:connected': (data: { client?: TelegramClient }) => void
 }
-
-type ProxyConfig = Config['api']['telegram']['proxy']
 
 export function createConnectionService(ctx: CoreContext) {
   const { emitter, withError } = ctx
@@ -35,16 +31,16 @@ export function createConnectionService(ctx: CoreContext) {
   return function (options: {
     apiId: number
     apiHash: string
-    proxy?: ProxyConfig
+    proxy?: ClientProxyConfig
   }) {
     const logger = useLogger()
 
-    const getProxyInterface = (proxyConfig: ProxyConfig): ProxyInterface | undefined => {
+    const getProxyInterface = (proxyConfig: ClientProxyConfig | undefined): ProxyInterface | undefined => {
       if (!proxyConfig)
         return undefined
 
       if (proxyConfig.MTProxy && proxyConfig.secret) {
-      // MTProxy configuration
+        // MTProxy configuration
         return {
           ip: proxyConfig.ip,
           port: proxyConfig.port,
@@ -96,43 +92,49 @@ export function createConnectionService(ctx: CoreContext) {
           return withResult(null, withError(error, 'Failed to initialize Telegram client'))
         }
 
+        logger.debug('Connecting to Telegram')
+
+        // Try to connect to Telegram by using the session
         await client.connect()
+
         const isAuthorized = await client.isUserAuthorized()
         if (!isAuthorized) {
-          client.signInUser({
+          await client.signInUser({
             apiId: options.apiId,
             apiHash: options.apiHash,
           }, {
-            phoneNumber: async () => {
-              emitter.emit('auth:needPhoneNumber')
-              const { phoneNumber } = await waitForEvent(emitter, 'auth:phoneNumber')
-              return phoneNumber
-            },
+            phoneNumber: getConfig().api.telegram.phoneNumber,
+            // phoneNumber: async () => {
+            //   logger.debug('Waiting for phone number')
+            //   emitter.emit('auth:needPhoneNumber')
+            //   const { phoneNumber } = await waitForEvent(emitter, 'auth:phoneNumber')
+            //   return phoneNumber
+            // },
             phoneCode: async () => {
+              logger.debug('Waiting for code')
               emitter.emit('auth:needCode')
               const { code } = await waitForEvent(emitter, 'auth:code')
               return code
             },
             password: async () => {
+              logger.debug('Waiting for password')
               emitter.emit('auth:needPassword')
               const { password } = await waitForEvent(emitter, 'auth:password')
               return password
             },
             onError: (err: Error) => {
-              emitter.emit('auth:progress', {
-                progress: 'failed',
-                error: err,
-              })
-              logger.withError(err).error('Failed to sign in to Telegram')
+              withError(err, 'Failed to sign in to Telegram')
             },
           })
-        }
 
-        emitter.emit('auth:connected', { client })
-        emitter.emit('auth:progress', {
-          progress: 'success',
-        })
-        return withResult(client, null)
+          emitter.emit('auth:connected', { client })
+          return withResult(client, null)
+        }
+        else {
+          // TODO: save session
+          emitter.emit('auth:connected', { client })
+          return withResult(client, null)
+        }
       }
       catch (error) {
         return withResult(null, withError(error, 'Failed to connect to Telegram'))
