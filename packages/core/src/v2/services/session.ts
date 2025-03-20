@@ -1,4 +1,4 @@
-import type { CoreEmitter } from '../context'
+import type { CoreContext } from '../context'
 import type { PromiseResult } from '../utils/result'
 
 import fs from 'node:fs/promises'
@@ -8,7 +8,9 @@ import { StringSession } from 'telegram/sessions'
 
 import { withResult } from '../utils/result'
 
-export function createSessionService(_emitter: CoreEmitter) {
+export function createSessionService(ctx: CoreContext) {
+  const { withError } = ctx
+
   const logger = useLogger()
 
   async function cleanSession() {
@@ -21,8 +23,7 @@ export function createSessionService(_emitter: CoreEmitter) {
       return withResult(null, null)
     }
     catch (error) {
-      logger.withError(error).error('Failed to delete session file')
-      return withResult(null, error)
+      return withResult(null, withError(error, 'Failed to delete session file'))
     }
   }
 
@@ -48,8 +49,7 @@ export function createSessionService(_emitter: CoreEmitter) {
         return withResult(new StringSession(session), null)
       }
       catch (error) {
-        logger.withError(error).error('Failed to load session from file')
-        return withResult(null, error)
+        return withResult(null, withError(error, 'Failed to load session from file'))
       }
     },
 
@@ -70,8 +70,7 @@ export function createSessionService(_emitter: CoreEmitter) {
         return withResult(null, null)
       }
       catch (error) {
-        logger.withError(error).error('Failed to save session to file')
-        return withResult(null, error)
+        return withResult(null, withError(error, 'Failed to save session to file'))
       }
     },
 

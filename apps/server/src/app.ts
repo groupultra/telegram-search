@@ -2,6 +2,7 @@ import type { CoreContext } from '@tg-search/core'
 import type { Peer } from 'crossws'
 import type { NodeOptions } from 'crossws/adapters/node'
 import type { App } from 'h3'
+import type { WsMessage } from './v2/ws-event'
 
 import { createServer } from 'node:http'
 import { initConfig, initDB, initLogger, useLogger } from '@tg-search/common'
@@ -10,7 +11,7 @@ import wsAdapter from 'crossws/adapters/node'
 import { createApp, defineWebSocketHandler, toNodeListener } from 'h3'
 
 import { handleMessageEvent } from './v2/messages'
-import { sendWsError, toWsMessage } from './v2/ws-event'
+import { sendWsError } from './v2/ws-event'
 
 function setupServer(app: App, port: number) {
   const listener = toNodeListener(app)
@@ -53,6 +54,10 @@ function setupWsRoutes(app: App) {
       //   peer.send({ type: event, data })
       // })
 
+      ctx.emitter.on('core:error', ({ error }) => {
+        sendWsError(peer, error)
+      })
+
       peer.send({ type: 'auth:connected', data: { clientId: peer.id } })
     },
 
@@ -63,14 +68,21 @@ function setupWsRoutes(app: App) {
         clientStates.set(peer.id, clientState)
       }
 
-      const wsMessage = toWsMessage(message)
-      if (!wsMessage) {
-        sendWsError(peer, 'Unknown message request')
-        return
-      }
+      const data = message.json<WsMessage>()
+
+      logger.withFields(data).debug('[/ws] Message received')
+
+      // const wsMessage = toWsMessage(data)
+      // if (!wsMessage) {
+      //   sendWsError(peer, 'Unknown message request')
+      //   return
+      // }
+
+      // logger.withFields({ wsMessage }).debug('[/ws] WsMessage converted')
+      // console.log(wsMessage)
 
       try {
-        handleMessageEvent(clientState, wsMessage)
+        handleMessageEvent(clientState, data)
       }
       catch (error) {
         logger.error('[/ws] Handle websocket message failed', { error })

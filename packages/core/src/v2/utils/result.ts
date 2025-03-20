@@ -1,4 +1,5 @@
 // TODO: Monad?
+// TODO: Error handling?
 
 export interface Result<T> {
   data: T | null

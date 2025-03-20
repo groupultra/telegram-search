@@ -8,6 +8,8 @@ import type { TakeoutEvent } from './services/takeout'
 import { useLogger } from '@tg-search/common'
 import { EventEmitter } from 'eventemitter3'
 
+import { createErrorHandler } from './utils/error-handler'
+
 export type CoreEvent = ClientEvent
   & MessageEvent
   & DialogEvent
@@ -18,19 +20,15 @@ export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
 
 export type CoreEmitter = EventEmitter<CoreEvent>
 
-export type Service<T> = (emitter: CoreEmitter) => T
+export type Service<T> = (ctx: CoreContext) => T
 
 export type CoreContext = ReturnType<typeof createCoreContext>
 
 export function createCoreContext() {
-  const logger = useLogger()
   const emitter = new EventEmitter<CoreEvent>()
-  let telegramClient: TelegramClient
+  const withError = createErrorHandler(emitter)
 
-  function useService<T>(fn: Service<T>) {
-    logger.withFields({ fn: fn.name }).debug('Register service')
-    return fn(emitter)
-  }
+  let telegramClient: TelegramClient
 
   function setClient(client: TelegramClient) {
     telegramClient = client
@@ -42,8 +40,13 @@ export function createCoreContext() {
 
   return {
     emitter,
-    useService,
     setClient,
     getClient,
+    withError,
   }
+}
+
+export function useService<T>(ctx: CoreContext, fn: Service<T>) {
+  useLogger().withFields({ fn: fn.name }).debug('Register service')
+  return fn(ctx)
 }

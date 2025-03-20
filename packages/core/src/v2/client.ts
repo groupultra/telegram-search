@@ -7,7 +7,8 @@ import { afterConnectedEventHandler, authEventHandler, useEventHandler } from '.
 import { createSessionService } from './services/session'
 
 export interface ClientEvent {
-  cleanup: () => void
+  'core:error': (data: { error?: string | Error | unknown }) => void
+  'core:cleanup': () => void
 }
 
 export function createCoreClient(): CoreContext {
@@ -30,6 +31,6 @@ export async function setupSession(ctx: CoreContext) {
 
 export async function destoryCoreClient(ctx: CoreContext) {
   ctx.emitter.emit('auth:logout')
-  ctx.emitter.emit('cleanup')
+  ctx.emitter.emit('core:cleanup')
   ctx.emitter.removeAllListeners()
 }

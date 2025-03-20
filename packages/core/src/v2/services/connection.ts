@@ -1,6 +1,6 @@
 import type { Config } from '@tg-search/common'
 import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
-import type { CoreEmitter } from '../context'
+import type { CoreContext } from '../context'
 import type { PromiseResult } from '../utils/result'
 
 import { useLogger } from '@tg-search/common'
@@ -29,7 +29,9 @@ export interface ConnectionEvent {
 
 type ProxyConfig = Config['api']['telegram']['proxy']
 
-export function createConnectionService(emitter: CoreEmitter) {
+export function createConnectionService(ctx: CoreContext) {
+  const { emitter, withError } = ctx
+
   return function (options: {
     apiId: number
     apiHash: string
@@ -91,8 +93,7 @@ export function createConnectionService(emitter: CoreEmitter) {
       try {
         const { data: client, error } = await init(session)
         if (!client || error) {
-          logger.withError(error).error('Failed to initialize Telegram client')
-          return withResult(null, error)
+          return withResult(null, withError(error, 'Failed to initialize Telegram client'))
         }
 
         await client.connect()
@@ -134,8 +135,7 @@ export function createConnectionService(emitter: CoreEmitter) {
         return withResult(client, null)
       }
       catch (error) {
-        logger.withError(error).error('Failed to connect to Telegram')
-        return withResult(null, error)
+        return withResult(null, withError(error, 'Failed to connect to Telegram'))
       }
     }
 

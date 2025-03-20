@@ -8,7 +8,7 @@ import type { Message, Peer } from 'crossws'
 // }
 
 export interface WsServerEvent {
-  error: (data: { error?: string | Error | unknown }) => void
+  'server:error': (data: { error?: string | Error | unknown }) => void
 }
 
 export type WsEvent = CoreEvent & WsServerEvent
@@ -18,14 +18,14 @@ export type WsEventData<T extends keyof WsEvent> = Parameters<WsEvent[T]>[0]
 export type WsMessage = {
   [T in keyof WsEvent]: {
     type: T
-    data?: Parameters<WsEvent[T]>[0]
+    data: Parameters<WsEvent[T]>[0]
   }
 }[keyof WsEvent]
 
 export function sendWsEvent<T extends keyof WsEvent>(
   peer: Peer,
   event: T,
-  data?: Parameters<WsEvent[T]>[0],
+  data: Parameters<WsEvent[T]>[0],
 ) {
   peer.send(createWsMessage(event, data))
 }
@@ -34,14 +34,14 @@ export function sendWsError(
   peer: Peer,
   error?: string | Error | unknown,
 ) {
-  sendWsEvent(peer, 'error', {
-    error: error ? error instanceof Error ? error : new Error(String(error)) : undefined,
+  sendWsEvent(peer, 'server:error', {
+    error: error ? error instanceof Error ? error.message : String(error) : 'Unknown error',
   })
 }
 
 export function createWsMessage<T extends keyof WsEvent>(
   type: T,
-  data?: Parameters<WsEvent[T]>[0],
+  data: Parameters<WsEvent[T]>[0],
 ): Extract<WsMessage, { type: T }> {
   return { type, data } as Extract<WsMessage, { type: T }>
 }

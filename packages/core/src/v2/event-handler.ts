@@ -3,6 +3,7 @@ import type { CoreContext } from './context'
 
 import { useLogger } from '@tg-search/common'
 
+import { useService } from './context'
 import { useResolverRegistry } from './registry'
 import { createEmbeddingResolver } from './resolvers/embedding-resolver'
 import { createLinkResolver } from './resolvers/link-resolver'
@@ -18,10 +19,10 @@ export function authEventHandler(
   ctx: CoreContext,
   config: Config,
 ): EventHandler {
-  const { emitter, useService } = ctx
+  const { emitter } = ctx
   const logger = useLogger()
 
-  const { login, logout } = useService(createConnectionService)({
+  const { login, logout } = useService(ctx, createConnectionService)({
     apiId: Number(config.api.telegram.apiId),
     apiHash: config.api.telegram.apiHash,
     proxy: config.api.telegram.proxy,
@@ -56,12 +57,14 @@ export function afterConnectedEventHandler(
   ctx: CoreContext,
   _config: Config,
 ): EventHandler {
-  const { emitter, useService } = ctx
+  const logger = useLogger()
+
+  const { emitter } = ctx
   const registry = useResolverRegistry()
 
-  emitter.on('auth:connected', ({ client }) => {
-    const { processMessage } = useService(createMessageService)(client)
-    useService(createTakeoutService)(client)
+  emitter.on('auth:connected', () => {
+    const { processMessage, fetchMessages } = useService(ctx, createMessageService)
+    useService(ctx, createTakeoutService)
 
     registry.register('embedding', createEmbeddingResolver())
     registry.register('link', createLinkResolver())
@@ -70,8 +73,18 @@ export function afterConnectedEventHandler(
     emitter.on('message:process', ({ message }) => {
       processMessage(message)
     })
-  })
 
+    emitter.on('message:fetch', async ({ chatId }) => {
+      logger.withFields({ chatId }).debug('Fetching messages')
+
+      try {
+        await fetchMessages(chatId, { limit: 100 }).next()
+      }
+      catch (error) {
+        emitter.emit('core:error', { error })
+      }
+    })
+  })
   return () => {}
 }
 
