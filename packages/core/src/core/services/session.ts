@@ -13,7 +13,7 @@ export function createSessionService(_emitter: CoreEmitter) {
 
   async function cleanSession() {
     const config = getConfig()
-    const sessionFile = path.join(config.path.session, 'session.json')
+    const sessionFile = config.path.session
 
     try {
       await fs.unlink(sessionFile)
@@ -29,12 +29,21 @@ export function createSessionService(_emitter: CoreEmitter) {
   return {
     loadSession: async (): PromiseResult<StringSession | null> => {
       const config = getConfig()
-      const sessionFile = path.join(config.path.session, 'session.json')
+      const sessionFile = config.path.session
 
       logger.withFields({ sessionFile }).debug('Loading session from file')
 
       try {
-        await fs.mkdir(path.dirname(sessionFile), { recursive: true })
+        // Check if the directory exists before reading the file
+        try {
+          await fs.access(path.dirname(sessionFile))
+        }
+        catch {
+          await fs.mkdir(path.dirname(sessionFile), { recursive: true })
+          // Return null for first time use when no session exists
+          return withResult(null, null)
+        }
+
         const session = await fs.readFile(sessionFile, 'utf-8')
         return withResult(new StringSession(session), null)
       }
@@ -46,10 +55,16 @@ export function createSessionService(_emitter: CoreEmitter) {
 
     saveSession: async (session: StringSession) => {
       const config = getConfig()
-      const sessionFile = path.join(config.path.session, 'session.json')
+      const sessionFile = config.path.session
 
       try {
-        await fs.mkdir(path.dirname(sessionFile), { recursive: true })
+        try {
+          await fs.access(path.dirname(sessionFile))
+        }
+        catch {
+          await fs.mkdir(path.dirname(sessionFile), { recursive: true })
+        }
+
         await fs.writeFile(sessionFile, session.save(), 'utf-8')
         logger.withFields({ sessionFile }).debug('Saving session to file')
         return withResult(null, null)

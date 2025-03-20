@@ -1,14 +1,9 @@
-export interface DialogEvent {
-  'dialogs:fetch': {
-    chatId: string
-  }
+import type { Events } from '../event-handler'
 
-  'dialogs:progress': {
-    taskId: string
-    progress: number
-  }
+export interface DialogEvent extends Events {
+  'dialogs:fetch': (data: { chatId: string }) => void
 
-  'dialogs:abort': {
-    taskId: string
-  }
+  'dialogs:progress': (data: { taskId: string, progress: number }) => void
+
+  'dialogs:abort': (data: { taskId: string }) => void
 }

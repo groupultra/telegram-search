@@ -1,5 +1,5 @@
 import type { Config } from '@tg-search/common'
-import type { Api, TelegramClient } from 'telegram'
+import type { Api } from 'telegram'
 import type { StringSession } from 'telegram/sessions'
 import type { CoreContext } from './client'
 
@@ -13,6 +13,7 @@ import { createConnectionService } from './services/connection'
 import { createMessageService } from './services/messages'
 import { createTakeoutService } from './services/takeout'
 
+export type Events = Record<string, (data: any) => any>
 type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
 
 export function authEventHandler(
@@ -28,8 +29,9 @@ export function authEventHandler(
     proxy: config.api.telegram.proxy,
   })
 
-  emitter.on('auth:login', async (session: StringSession) => {
-    logger.debug('Logged in to Telegram')
+  emitter.on('auth:login', async ({ session }: { session?: StringSession }) => {
+    logger.withFields({ session }).debug('Logged in to Telegram')
+
     const { data, error } = await login(session)
     if (error) {
       logger.withError(error).error('Failed to login to Telegram')
@@ -56,7 +58,7 @@ export function afterConnectedEventHandler(
   const { emitter, useService } = ctx
   const registry = useResolverRegistry()
 
-  emitter.on('auth:connected', (client: TelegramClient) => {
+  emitter.on('auth:connected', ({ client }) => {
     const { processMessage } = useService(createMessageService)(client)
     useService(createTakeoutService)(client)
 
@@ -64,7 +66,7 @@ export function afterConnectedEventHandler(
     registry.register('link', createLinkResolver())
     registry.register('user', createUserResolver())
 
-    emitter.on('message:process', (message: Api.Message) => {
+    emitter.on('message:process', ({ message }: { message: Api.Message }) => {
       processMessage(message)
     })
   })
@@ -76,7 +78,10 @@ export function useEventHandler(
   ctx: CoreContext,
   config: Config,
 ) {
+  const logger = useLogger()
+
   function register(fn: EventHandler) {
+    logger.withFields({ fn: fn.name }).debug('Register event handler')
     fn(ctx, config)
   }
 

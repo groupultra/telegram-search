@@ -21,6 +21,7 @@
   "scripts": {
     "serve": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
+    "dev:v2": "tsx watch src/app.ts",
     "build": "unbuild",
     "stub": "unbuild --stub",
     "lint": "eslint src",

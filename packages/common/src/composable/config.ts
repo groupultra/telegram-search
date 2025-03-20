@@ -130,7 +130,7 @@ export function initConfig() {
     }
 
     // Log merged config
-    logger.withFields({ mergedConfig: JSON.stringify(mergedConfig) }).debug('Config initialized successfully')
+    logger.withFields(mergedConfig).debug('Merged config')
 
     // Validate configuration
     validateConfig(mergedConfig)

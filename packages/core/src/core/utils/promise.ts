@@ -1,12 +1,14 @@
 import type { CoreEmitter, CoreEvent } from '../client'
 
+type EventData<T> = T extends (data: infer D) => void ? D : never
+
 export function waitForEvent<E extends keyof CoreEvent>(
-  coreEmitter: CoreEmitter,
+  emitter: CoreEmitter,
   event: E,
-): Promise<CoreEvent[E]> {
+): Promise<EventData<CoreEvent[E]>> {
   return new Promise((resolve) => {
-    coreEmitter.once(event, (...args: unknown[]) => {
-      resolve(args as unknown as CoreEvent[E])
+    emitter.once(event, (data) => {
+      resolve(data)
     })
   })
 }

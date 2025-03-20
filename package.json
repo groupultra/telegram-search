@@ -9,6 +9,7 @@
     "stub": "pnpm -r stub",
     "dev:cli": "pnpm -F @tg-search/cli dev",
     "dev:server": "pnpm -F @tg-search/server dev",
+    "dev:server:v2": "pnpm -F @tg-search/server dev:v2",
     "dev:frontend": "pnpm -F @tg-search/frontend dev",
     "lint": "pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",

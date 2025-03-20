@@ -1,40 +1,31 @@
 import type { Config } from '@tg-search/common'
 import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
-import type { StringSession } from 'telegram/sessions'
 import type { CoreEmitter } from '../client'
+import type { Events } from '../event-handler'
 import type { PromiseResult } from '../utils/result'
 
 import { useLogger } from '@tg-search/common'
 import { Api, TelegramClient } from 'telegram'
+import { StringSession } from 'telegram/sessions'
 
 import { waitForEvent } from '../utils/promise'
 import { withResult } from '../utils/result'
 
-export interface ConnectionEvent {
-  'auth:init': undefined
-  'auth:login': {
-    session: StringSession
-  }
-  'auth:logout': undefined
+export interface ConnectionEvent extends Events {
+  'auth:init': () => void
+  'auth:login': (data: { session: StringSession }) => void
+  'auth:logout': () => void
 
-  'auth:phoneNumber': {
-    phoneNumber: string
-  }
-  'auth:code': {
-    code: string
-  }
-  'auth:password': {
-    password: string
-  }
+  'auth:phoneNumber': (data: { phoneNumber: string }) => void
+  'auth:code': (data: { code: string }) => void
+  'auth:password': (data: { password: string }) => void
 
-  'auth:needPhoneNumber': undefined
-  'auth:needCode': undefined
-  'auth:needPassword': undefined
-  'auth:connected': undefined
-  'auth:progress': {
-    progress: 'success' | 'failed'
-    error?: Error
-  }
+  'auth:needPhoneNumber': () => void
+  'auth:needCode': () => void
+  'auth:needPassword': () => void
+
+  'auth:connected': (data: { client: TelegramClient }) => void
+  'auth:progress': (data: { progress: 'success' | 'failed', error?: Error }) => void
 }
 
 type ProxyConfig = Config['api']['telegram']['proxy']
@@ -73,7 +64,11 @@ export function createConnectionService(emitter: CoreEmitter) {
       }
     }
 
-    async function init(session: StringSession): PromiseResult<TelegramClient> {
+    async function init(session?: StringSession): PromiseResult<TelegramClient> {
+      if (!session) {
+        session = new StringSession()
+      }
+
       const proxy = getProxyInterface(options.proxy)
       if (proxy) {
         logger.withFields({ proxy }).debug('Using proxy')
@@ -93,7 +88,7 @@ export function createConnectionService(emitter: CoreEmitter) {
       return withResult(client, null)
     }
 
-    async function login(session: StringSession): PromiseResult<TelegramClient | null> {
+    async function login(session?: StringSession): PromiseResult<TelegramClient | null> {
       try {
         const { data: client, error } = await init(session)
         if (!client || error) {
@@ -133,7 +128,7 @@ export function createConnectionService(emitter: CoreEmitter) {
           })
         }
 
-        emitter.emit('auth:connected')
+        emitter.emit('auth:connected', { client })
         emitter.emit('auth:progress', {
           progress: 'success',
         })

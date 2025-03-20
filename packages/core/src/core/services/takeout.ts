@@ -1,6 +1,7 @@
 import type { TelegramClient } from 'telegram'
 import type { TelegramMessageType } from '../../types'
 import type { CoreEmitter } from '../client'
+import type { Events } from '../event-handler'
 import type { PromiseResult } from '../utils/result'
 
 import { useLogger } from '@tg-search/common'
@@ -10,23 +11,14 @@ import { Api } from 'telegram'
 import { withResult } from '../utils/result'
 import { withRetry } from '../utils/retry'
 
-export interface TakeoutEvent {
-  'takeout:run': {
-    chatId: string
-  }
+export interface TakeoutEvent extends Events {
+  'takeout:run': (data: { chatId: string }) => void
 
-  'takeout:progress': {
-    chatId: string
-    progress: number
-  }
+  'takeout:progress': (data: { chatId: string, progress: number }) => void
 
-  'takeout:abort': {
-    chatId: string
-  }
+  'takeout:abort': (data: { chatId: string }) => void
 
-  'takeout:finish': {
-    chatId: string
-  }
+  'takeout:finish': (data: { chatId: string }) => void
 }
 
 export interface TakeoutOpts {
@@ -167,7 +159,7 @@ export function createTakeoutService(emitter: CoreEmitter) {
               }
 
               // Process message
-              emitter.emit('message:process', message)
+              emitter.emit('message:process', { message })
 
               yield message
               processedCount++
