@@ -1,4 +1,4 @@
-import type { CoreEmitter } from '../client'
+import type { CoreEmitter } from '../context'
 import type { PromiseResult } from '../utils/result'
 
 import fs from 'node:fs/promises'

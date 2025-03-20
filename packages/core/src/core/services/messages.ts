@@ -1,6 +1,6 @@
 import type { TelegramClient } from 'telegram'
 import type { TelegramMessageType } from '../../types'
-import type { CoreEmitter } from '../client'
+import type { CoreEmitter } from '../context'
 import type { Events } from '../event-handler'
 
 import { useLogger } from '@tg-search/common'

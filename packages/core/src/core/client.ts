@@ -1,42 +1,36 @@
-import type { TelegramClient } from 'telegram'
-import type { ConnectionEvent } from './services/connection'
-import type { DialogEvent } from './services/dialogs'
-import type { MessageEvent } from './services/messages'
-import type { TakeoutEvent } from './services/takeout'
+import type { CoreContext } from './context'
+import type { Events } from './event-handler'
 
-import { useLogger } from '@tg-search/common'
-import { EventEmitter } from 'eventemitter3'
+import { getConfig } from '@tg-search/common'
 
-export type CoreEvent =
-  & MessageEvent
-  & DialogEvent
-  & ConnectionEvent
-  & TakeoutEvent
+import { createCoreContext } from './context'
+import { afterConnectedEventHandler, authEventHandler, useEventHandler } from './event-handler'
+import { createSessionService } from './services/session'
 
-export type CoreEmitter = EventEmitter<CoreEvent>
+export interface ClientEvent extends Events {
+  cleanup: () => void
+}
 
-export type Service<T> = (emitter: CoreEmitter) => T
+export function createCoreClient(): CoreContext {
+  const ctx = createCoreContext()
+  const config = getConfig()
 
-export type CoreContext = ReturnType<typeof useCoreContext>
+  const { register: registerEventHandler } = useEventHandler(ctx, config)
+  registerEventHandler(authEventHandler)
+  registerEventHandler(afterConnectedEventHandler)
 
-export function useCoreContext() {
-  const logger = useLogger()
-  const emitter = new EventEmitter<CoreEvent>()
-  let telegramClient: TelegramClient | null = null
+  return ctx
+}
 
-  function useService<T>(fn: Service<T>) {
-    logger.withFields({ fn: fn.name }).debug('Register service')
-    return fn(emitter)
+export async function setupSession(ctx: CoreContext) {
+  const { data: session } = await createSessionService(ctx.emitter).loadSession()
+  if (session) {
+    ctx.emitter.emit('auth:login', { session })
   }
+}
 
-  function setClient(client: TelegramClient | null) {
-    telegramClient = client
-  }
-
-  return {
-    emitter,
-    useService,
-    client: telegramClient,
-    setClient,
-  }
+export async function destoryCoreClient(ctx: CoreContext) {
+  ctx.emitter.emit('auth:logout')
+  ctx.emitter.emit('cleanup')
+  ctx.emitter.removeAllListeners()
 }

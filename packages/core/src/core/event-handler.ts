@@ -1,5 +1,5 @@
 import type { Config } from '@tg-search/common'
-import type { CoreContext } from './client'
+import type { CoreContext } from './context'
 
 import { useLogger } from '@tg-search/common'
 
@@ -36,13 +36,16 @@ export function authEventHandler(
       return
     }
 
-    ctx.setClient(data)
+    if (data) {
+      ctx.setClient(data)
+    }
   })
 
   emitter.on('auth:logout', async () => {
     logger.debug('Logged out from Telegram')
-    if (ctx.client) {
-      await logout(ctx.client)
+    const client = ctx.getClient()
+    if (client) {
+      await logout(client)
     }
   })
 

@@ -1,6 +1,6 @@
 import type { Config } from '@tg-search/common'
 import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
-import type { CoreEmitter } from '../client'
+import type { CoreEmitter } from '../context'
 import type { Events } from '../event-handler'
 import type { PromiseResult } from '../utils/result'
 
