@@ -1,5 +1,5 @@
 import type { CoreEvent } from '@tg-search/core'
-import type { Peer } from 'crossws'
+import type { Message, Peer } from 'crossws'
 
 // type EventHandler = (ctx: CoreContext, message: Message)
 
@@ -8,29 +8,54 @@ import type { Peer } from 'crossws'
 // }
 
 export interface WsServerEvent {
-  error: (error?: string | Error | unknown) => void
+  error: (data: { error?: string | Error | unknown }) => void
 }
 
 export type WsEvent = CoreEvent & WsServerEvent
 
-export type WsEventData<T extends keyof WsEvent> = WsEvent[T]
+export type WsEventData<T extends keyof WsEvent> = Parameters<WsEvent[T]>[0]
 
-export function sendWsEvent<T extends keyof WsEvent>(peer: Peer, event: T, data?: WsEventData<T>) {
-  peer.send(new WsMessage(event, data))
+export type WsMessage = {
+  [T in keyof WsEvent]: {
+    type: T
+    data?: Parameters<WsEvent[T]>[0]
+  }
+}[keyof WsEvent]
+
+export function sendWsEvent<T extends keyof WsEvent>(
+  peer: Peer,
+  event: T,
+  data?: Parameters<WsEvent[T]>[0],
+) {
+  peer.send(createWsMessage(event, data))
 }
 
-export function sendWsError(peer: Peer, error?: string | Error | unknown) {
-  sendWsEvent(peer, 'error', () => {
-    return error ? error instanceof Error ? error : new Error(String(error)) : undefined
+export function sendWsError(
+  peer: Peer,
+  error?: string | Error | unknown,
+) {
+  sendWsEvent(peer, 'error', {
+    error: error ? error instanceof Error ? error : new Error(String(error)) : undefined,
   })
 }
 
-export class WsMessage<T extends keyof WsEvent> {
-  type: T
-  data?: WsEventData<T>
+export function createWsMessage<T extends keyof WsEvent>(
+  type: T,
+  data?: Parameters<WsEvent[T]>[0],
+): Extract<WsMessage, { type: T }> {
+  return { type, data } as Extract<WsMessage, { type: T }>
+}
 
-  constructor(type: T, data?: WsEventData<T>) {
-    this.type = type
-    this.data = data
+export function isMessageType<K extends keyof WsEvent>(
+  message: WsMessage,
+  type: K,
+): message is WsMessage {
+  return message.type === type
+}
+
+export function toWsMessage(message: Message): WsMessage | null {
+  if ('type' in message && typeof message.type === 'string') {
+    return message as WsMessage
   }
+  return null
 }

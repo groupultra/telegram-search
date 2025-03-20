@@ -10,7 +10,7 @@ import wsAdapter from 'crossws/adapters/node'
 import { createApp, defineWebSocketHandler, toNodeListener } from 'h3'
 
 import { handleMessageEvent } from './v2/messages'
-import { sendWsError, WsMessage } from './v2/ws-event'
+import { sendWsError, toWsMessage } from './v2/ws-event'
 
 function setupServer(app: App, port: number) {
   const listener = toNodeListener(app)
@@ -63,13 +63,14 @@ function setupWsRoutes(app: App) {
         clientStates.set(peer.id, clientState)
       }
 
-      if (!(message instanceof WsMessage)) {
+      const wsMessage = toWsMessage(message)
+      if (!wsMessage) {
         sendWsError(peer, 'Unknown message request')
         return
       }
 
       try {
-        handleMessageEvent(clientState, message)
+        handleMessageEvent(clientState, wsMessage)
       }
       catch (error) {
         logger.error('[/ws] Handle websocket message failed', { error })

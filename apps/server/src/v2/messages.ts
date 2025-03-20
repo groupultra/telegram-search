@@ -1,18 +1,20 @@
 import type { ClientState } from '../app'
-import type { WsEvent, WsMessage } from './ws-event'
+import type { WsMessage } from './ws-event'
 
 import { sendWsError } from './ws-event'
 
 export function handleMessageEvent(
   state: ClientState,
-  message: WsMessage<keyof WsEvent>,
+  message: WsMessage,
 ) {
   const { peer } = state
 
   switch (message.type) {
     case 'message:fetch':
       break
-    // Handle different message types here
+    case 'message:process':
+      break
+    // ... 其他消息类型
     default:
       sendWsError(peer, 'Unknown message type')
   }
