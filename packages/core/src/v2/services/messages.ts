@@ -1,7 +1,6 @@
 import type { TelegramClient } from 'telegram'
 import type { TelegramMessageType } from '../../types'
 import type { CoreEmitter } from '../context'
-import type { Events } from '../event-handler'
 
 import { useLogger } from '@tg-search/common'
 import { Api } from 'telegram'
@@ -9,7 +8,7 @@ import { Api } from 'telegram'
 import { withResult } from '../utils/result'
 import { withRetry } from '../utils/retry'
 
-export interface MessageEvent extends Events {
+export interface MessageEvent {
   'message:fetch': (data: { chatId: string }) => void
 
   'message:fetch:progress': (data: { taskId: string, progress: number }) => void

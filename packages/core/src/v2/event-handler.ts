@@ -11,7 +11,7 @@ import { createConnectionService } from './services/connection'
 import { createMessageService } from './services/messages'
 import { createTakeoutService } from './services/takeout'
 
-export type Events = Record<string, (data: any) => any>
+// export type Events = Record<string, (data: any) => any>
 type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
 
 export function authEventHandler(

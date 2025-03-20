@@ -9,8 +9,8 @@ import { createCoreClient, destoryCoreClient, setupSession } from '@tg-search/co
 import wsAdapter from 'crossws/adapters/node'
 import { createApp, defineWebSocketHandler, toNodeListener } from 'h3'
 
-import { sendWsError, WsMessage } from './v2/event-handler'
 import { handleMessageEvent } from './v2/messages'
+import { sendWsError, WsMessage } from './v2/ws-event'
 
 function setupServer(app: App, port: number) {
   const listener = toNodeListener(app)

@@ -1,5 +1,4 @@
 import type { CoreContext } from './context'
-import type { Events } from './event-handler'
 
 import { getConfig } from '@tg-search/common'
 
@@ -7,7 +6,7 @@ import { createCoreContext } from './context'
 import { afterConnectedEventHandler, authEventHandler, useEventHandler } from './event-handler'
 import { createSessionService } from './services/session'
 
-export interface ClientEvent extends Events {
+export interface ClientEvent {
   cleanup: () => void
 }
 

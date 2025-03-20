@@ -1,6 +1,4 @@
-import type { Events } from '../event-handler'
-
-export interface DialogEvent extends Events {
+export interface DialogEvent {
   'dialogs:fetch': (data: { chatId: string }) => void
 
   'dialogs:progress': (data: { taskId: string, progress: number }) => void

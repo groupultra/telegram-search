@@ -1,7 +1,6 @@
 import type { TelegramClient } from 'telegram'
 import type { TelegramMessageType } from '../../types'
 import type { CoreEmitter } from '../context'
-import type { Events } from '../event-handler'
 import type { PromiseResult } from '../utils/result'
 
 import { useLogger } from '@tg-search/common'
@@ -11,7 +10,7 @@ import { Api } from 'telegram'
 import { withResult } from '../utils/result'
 import { withRetry } from '../utils/retry'
 
-export interface TakeoutEvent extends Events {
+export interface TakeoutEvent {
   'takeout:run': (data: { chatId: string }) => void
 
   'takeout:progress': (data: { chatId: string, progress: number }) => void

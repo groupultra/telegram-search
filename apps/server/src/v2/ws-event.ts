@@ -3,9 +3,15 @@ import type { Peer } from 'crossws'
 
 // type EventHandler = (ctx: CoreContext, message: Message)
 
-export interface WsEvent extends CoreEvent {
+// export interface WsEvent extends CoreEvent {
+//   error: (error?: string | Error | unknown) => void
+// }
+
+export interface WsServerEvent {
   error: (error?: string | Error | unknown) => void
 }
+
+export type WsEvent = CoreEvent & WsServerEvent
 
 export type WsEventData<T extends keyof WsEvent> = WsEvent[T]
 

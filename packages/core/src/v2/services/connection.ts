@@ -1,7 +1,6 @@
 import type { Config } from '@tg-search/common'
 import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
 import type { CoreEmitter } from '../context'
-import type { Events } from '../event-handler'
 import type { PromiseResult } from '../utils/result'
 
 import { useLogger } from '@tg-search/common'
@@ -11,7 +10,7 @@ import { StringSession } from 'telegram/sessions'
 import { waitForEvent } from '../utils/promise'
 import { withResult } from '../utils/result'
 
-export interface ConnectionEvent extends Events {
+export interface ConnectionEvent {
   'auth:init': () => void
   'auth:login': (data: { session: StringSession }) => void
   'auth:logout': () => void
