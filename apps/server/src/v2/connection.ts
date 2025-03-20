@@ -23,24 +23,18 @@ export function handleConnectionEvent(
 
   switch (message.type) {
     case 'auth:login':
-      emitter.emit('auth:login')
+      emitter.emit('auth:login', message.data)
 
       emitter.once('auth:connected', () => {
         sendWsEvent(peer, 'auth:connected', {})
       })
 
-      emitter.once('auth:needPhoneNumber', () => {
-        sendWsEvent(peer, 'auth:needPhoneNumber', undefined)
-      })
       emitter.once('auth:needCode', () => {
         sendWsEvent(peer, 'auth:needCode', undefined)
       })
       emitter.once('auth:needPassword', () => {
         sendWsEvent(peer, 'auth:needPassword', undefined)
       })
-      break
-    case 'auth:phoneNumber':
-      emitter.emit('auth:phoneNumber', message.data)
       break
     case 'auth:code':
       emitter.emit('auth:code', message.data)

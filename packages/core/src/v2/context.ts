@@ -1,5 +1,6 @@
 import type { TelegramClient } from 'telegram'
 import type { ClientEvent } from './client'
+import type { SessionEvent } from './services'
 import type { ConnectionEvent } from './services/connection'
 import type { DialogEvent } from './services/dialogs'
 import type { MessageEvent } from './services/messages'
@@ -15,6 +16,7 @@ export type CoreEvent = ClientEvent
   & DialogEvent
   & ConnectionEvent
   & TakeoutEvent
+  & SessionEvent
 
 export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
 
@@ -35,6 +37,10 @@ export function createCoreContext() {
   }
 
   function getClient() {
+    if (!telegramClient) {
+      throw new Error('Client not set')
+    }
+
     return telegramClient
   }
 

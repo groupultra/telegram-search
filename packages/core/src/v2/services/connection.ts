@@ -3,7 +3,7 @@ import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
 import type { CoreContext } from '../context'
 import type { PromiseResult } from '../utils/result'
 
-import { getConfig, useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/common'
 import { Api, TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions'
 
@@ -11,14 +11,12 @@ import { waitForEvent } from '../utils/promise'
 import { withResult } from '../utils/result'
 
 export interface ConnectionEvent {
-  'auth:login': () => void
+  'auth:login': (data: { phoneNumber: string }) => void
   'auth:logout': () => void
 
-  'auth:phoneNumber': (data: { phoneNumber: string }) => void
   'auth:code': (data: { code: string }) => void
   'auth:password': (data: { password: string }) => void
 
-  'auth:needPhoneNumber': () => void
   'auth:needCode': () => void
   'auth:needPassword': () => void
 
@@ -61,10 +59,10 @@ export function createConnectionService(ctx: CoreContext) {
       }
     }
 
-    async function init(session?: StringSession): PromiseResult<TelegramClient> {
-      if (!session) {
-        session = new StringSession()
-      }
+    async function init(initOptions: {
+      session: StringSession
+    }): PromiseResult<TelegramClient> {
+      const { session } = initOptions
 
       const proxy = getProxyInterface(options.proxy)
       if (proxy) {
@@ -85,9 +83,14 @@ export function createConnectionService(ctx: CoreContext) {
       return withResult(client, null)
     }
 
-    async function login(session?: StringSession): PromiseResult<TelegramClient | null> {
+    async function login(loginOptions: {
+      phoneNumber: string
+      session: StringSession
+    }): PromiseResult<TelegramClient | null> {
+      const { phoneNumber, session } = loginOptions
+
       try {
-        const { data: client, error } = await init(session)
+        const { data: client, error } = await init({ session })
         if (!client || error) {
           return withResult(null, withError(error, 'Failed to initialize Telegram client'))
         }
@@ -95,21 +98,20 @@ export function createConnectionService(ctx: CoreContext) {
         logger.debug('Connecting to Telegram')
 
         // Try to connect to Telegram by using the session
-        await client.connect()
+        const isConnected = await client.connect()
+        if (!isConnected) {
+          return withResult(null, withError(new Error('Failed to connect to Telegram')))
+        }
 
         const isAuthorized = await client.isUserAuthorized()
         if (!isAuthorized) {
+          logger.debug('User is not authorized, signing in')
+
           await client.signInUser({
             apiId: options.apiId,
             apiHash: options.apiHash,
           }, {
-            phoneNumber: getConfig().api.telegram.phoneNumber,
-            // phoneNumber: async () => {
-            //   logger.debug('Waiting for phone number')
-            //   emitter.emit('auth:needPhoneNumber')
-            //   const { phoneNumber } = await waitForEvent(emitter, 'auth:phoneNumber')
-            //   return phoneNumber
-            // },
+            phoneNumber,
             phoneCode: async () => {
               logger.debug('Waiting for code')
               emitter.emit('auth:needCode')
@@ -126,15 +128,15 @@ export function createConnectionService(ctx: CoreContext) {
               withError(err, 'Failed to sign in to Telegram')
             },
           })
+        }
 
-          emitter.emit('auth:connected', { client })
-          return withResult(client, null)
-        }
-        else {
-          // TODO: save session
-          emitter.emit('auth:connected', { client })
-          return withResult(client, null)
-        }
+        emitter.emit('auth:connected', { client })
+
+        const sessionString = await client.session.save()
+        logger.withFields({ sessionString }).debug('Saving session')
+
+        emitter.emit('session:save', { phoneNumber, session: new StringSession(sessionString) })
+        return withResult(client, null)
       }
       catch (error) {
         return withResult(null, withError(error, 'Failed to connect to Telegram'))

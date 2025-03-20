@@ -1,4 +1,4 @@
-export { createCoreClient, destoryCoreClient, setupSession } from './client'
+export { createCoreClient, destoryCoreClient } from './client'
 export type * from './client'
 export { createCoreContext } from './context'
 export type * from './context'

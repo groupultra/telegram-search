@@ -10,6 +10,7 @@ import { createLinkResolver } from './resolvers/link-resolver'
 import { createUserResolver } from './resolvers/user-resolver'
 import { createConnectionService } from './services/connection'
 import { createMessageService } from './services/messages'
+import { createSessionService } from './services/session'
 import { createTakeoutService } from './services/takeout'
 
 type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
@@ -18,20 +19,27 @@ export function authEventHandler(
   ctx: CoreContext,
   config: Config,
 ): EventHandler {
-  const { emitter } = ctx
+  const { emitter, withError } = ctx
   const logger = useLogger()
 
+  const { loadSession, cleanSession, saveSession } = useService(ctx, createSessionService)
   const { login, logout } = useService(ctx, createConnectionService)({
     apiId: Number(config.api.telegram.apiId),
     apiHash: config.api.telegram.apiHash,
     proxy: config.api.telegram.proxy,
   })
 
-  emitter.on('auth:login', async () => {
-    const { data: client, error } = await login()
-    if (error) {
-      logger.withError(error).error('Failed to login to Telegram')
-      return
+  emitter.on('auth:login', async ({ phoneNumber }) => {
+    const { data: session, error: sessionError } = await loadSession(phoneNumber)
+    if (sessionError) {
+      return withError(sessionError, 'Failed to load session')
+    }
+
+    logger.withFields({ session }).debug('Loaded session')
+
+    const { data: client, error: loginError } = await login({ phoneNumber, session })
+    if (loginError) {
+      return withError(loginError, 'Failed to login to Telegram')
     }
 
     if (client) {
@@ -50,6 +58,18 @@ export function authEventHandler(
     if (client) {
       await logout(client)
     }
+  })
+
+  emitter.on('session:clean', async ({ phoneNumber }) => {
+    logger.withFields({ phoneNumber }).debug('Cleaning session')
+    await cleanSession(phoneNumber)
+  })
+
+  emitter.on('session:save', async ({ phoneNumber, session }) => {
+    logger.withFields({ phoneNumber }).debug('Saving session')
+
+    // ctx.getClient().session.save()
+    await saveSession(phoneNumber, session)
   })
 
   return () => {}

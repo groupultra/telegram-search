@@ -4,7 +4,6 @@ import { getConfig } from '@tg-search/common'
 
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, authEventHandler, useEventHandler } from './event-handler'
-import { createSessionService } from './services/session'
 
 export interface ClientEvent {
   'core:error': (data: { error?: string | Error | unknown }) => void
@@ -20,13 +19,6 @@ export function createCoreClient(): CoreContext {
   registerEventHandler(afterConnectedEventHandler)
 
   return ctx
-}
-
-export async function setupSession(ctx: CoreContext) {
-  const { data: session } = await createSessionService(ctx).loadSession()
-  if (session) {
-    ctx.emitter.emit('auth:login', { session })
-  }
 }
 
 export async function destoryCoreClient(ctx: CoreContext) {

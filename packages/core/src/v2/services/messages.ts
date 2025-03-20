@@ -84,7 +84,7 @@ export function createMessageService(ctx: CoreContext) {
 
       while (hasMore) {
         try {
-          const entity = await getClient().getEntity(chatId)
+          const entity = await getClient().getInputEntity(chatId)
 
           const messages = await withRetry(
             () => getClient().getMessages(entity, {

@@ -6,20 +6,29 @@ import path from 'node:path'
 import { getConfig, useLogger } from '@tg-search/common'
 import { StringSession } from 'telegram/sessions'
 
+import { encryptPhoneToUUID } from '../utils/phone-number'
 import { withResult } from '../utils/result'
+
+export interface SessionEvent {
+  'session:save': (data: { phoneNumber: string, session: StringSession }) => void
+  'session:clean': (data: { phoneNumber: string }) => void
+}
 
 export function createSessionService(ctx: CoreContext) {
   const { withError } = ctx
 
   const logger = useLogger()
 
-  async function cleanSession() {
-    const config = getConfig()
-    const sessionFile = config.path.session
+  function getSessionFilePath(phoneNumber: string) {
+    return path.join(getConfig().path.session, `${encryptPhoneToUUID(phoneNumber)}.session`)
+  }
+
+  async function cleanSession(phoneNumber: string) {
+    const sessionFilePath = getSessionFilePath(phoneNumber)
 
     try {
-      await fs.unlink(sessionFile)
-      logger.withFields({ sessionFile }).debug('Deleted session file')
+      await fs.unlink(sessionFilePath)
+      logger.withFields({ sessionFile: sessionFilePath, phoneNumber }).debug('Deleted session file')
       return withResult(null, null)
     }
     catch (error) {
@@ -28,45 +37,45 @@ export function createSessionService(ctx: CoreContext) {
   }
 
   return {
-    loadSession: async (): PromiseResult<StringSession | null> => {
-      const config = getConfig()
-      const sessionFile = config.path.session
+    loadSession: async (phoneNumber: string): PromiseResult<StringSession> => {
+      const sessionFilePath = getSessionFilePath(phoneNumber)
 
-      logger.withFields({ sessionFile }).debug('Loading session from file')
+      logger.withFields({ sessionFilePath, phoneNumber }).debug('Loading session from file')
 
       try {
-        // Check if the directory exists before reading the file
-        try {
-          await fs.access(path.dirname(sessionFile))
-        }
-        catch {
-          await fs.mkdir(path.dirname(sessionFile), { recursive: true })
-          // Return null for first time use when no session exists
-          return withResult(null, null)
-        }
+        // Ensure session directory exists
+        await fs.mkdir(path.dirname(sessionFilePath), { recursive: true })
 
-        const session = await fs.readFile(sessionFile, 'utf-8')
-        return withResult(new StringSession(session), null)
+        try {
+          const session = await fs.readFile(sessionFilePath, 'utf-8')
+          return withResult(new StringSession(session), null)
+        }
+        catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            // Return empty session for first time use when no session exists
+            return withResult(new StringSession(), null)
+          }
+          return withResult(new StringSession(), withError(error, 'Failed to load session from file'))
+        }
       }
       catch (error) {
-        return withResult(null, withError(error, 'Failed to load session from file'))
+        return withResult(new StringSession(), withError(error, 'Failed to create session directory'))
       }
     },
 
-    saveSession: async (session: StringSession) => {
-      const config = getConfig()
-      const sessionFile = config.path.session
+    saveSession: async (phoneNumber: string, session: StringSession) => {
+      const sessionFilePath = getSessionFilePath(phoneNumber)
 
       try {
         try {
-          await fs.access(path.dirname(sessionFile))
+          await fs.access(path.dirname(sessionFilePath))
         }
         catch {
-          await fs.mkdir(path.dirname(sessionFile), { recursive: true })
+          await fs.mkdir(path.dirname(sessionFilePath), { recursive: true })
         }
 
-        await fs.writeFile(sessionFile, session.save(), 'utf-8')
-        logger.withFields({ sessionFile }).debug('Saving session to file')
+        await fs.writeFile(sessionFilePath, session.save(), 'utf-8')
+        logger.withFields({ sessionFilePath, phoneNumber }).debug('Saving session to file')
         return withResult(null, null)
       }
       catch (error) {
