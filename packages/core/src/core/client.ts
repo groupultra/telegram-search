@@ -21,12 +21,12 @@ export type CoreContext = ReturnType<typeof useCoreContext>
 
 export function useCoreContext() {
   const logger = useLogger()
-  const eventEmitter = new EventEmitter<CoreEvent>()
+  const emitter = new EventEmitter<CoreEvent>()
   let telegramClient: TelegramClient | null = null
 
   function useService<T>(fn: Service<T>) {
     logger.withFields({ fn: fn.name }).debug('Register service')
-    return fn(eventEmitter)
+    return fn(emitter)
   }
 
   function setClient(client: TelegramClient | null) {
@@ -34,7 +34,7 @@ export function useCoreContext() {
   }
 
   return {
-    emitter: eventEmitter,
+    emitter,
     useService,
     client: telegramClient,
     setClient,

@@ -1,6 +1,4 @@
 import type { Config } from '@tg-search/common'
-import type { Api } from 'telegram'
-import type { StringSession } from 'telegram/sessions'
 import type { CoreContext } from './client'
 
 import { useLogger } from '@tg-search/common'
@@ -29,7 +27,7 @@ export function authEventHandler(
     proxy: config.api.telegram.proxy,
   })
 
-  emitter.on('auth:login', async ({ session }: { session?: StringSession }) => {
+  emitter.on('auth:login', async ({ session }) => {
     logger.withFields({ session }).debug('Logged in to Telegram')
 
     const { data, error } = await login(session)
@@ -66,7 +64,7 @@ export function afterConnectedEventHandler(
     registry.register('link', createLinkResolver())
     registry.register('user', createUserResolver())
 
-    emitter.on('message:process', ({ message }: { message: Api.Message }) => {
+    emitter.on('message:process', ({ message }) => {
       processMessage(message)
     })
   })
