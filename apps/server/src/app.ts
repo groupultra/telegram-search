@@ -1,4 +1,5 @@
-import type { CoreContext } from '@tg-search/core/src/core/context'
+import type { CoreContext } from '@tg-search/core'
+import type { Peer } from 'crossws'
 import type { NodeOptions } from 'crossws/adapters/node'
 import type { App } from 'h3'
 
@@ -8,6 +9,9 @@ import { createCoreClient, destoryCoreClient, setupSession } from '@tg-search/co
 import wsAdapter from 'crossws/adapters/node'
 import { createApp, defineWebSocketHandler, toNodeListener } from 'h3'
 
+import { sendWsError, WsMessage } from './v2/event-handler'
+import { handleMessageEvent } from './v2/messages'
+
 function setupServer(app: App, port: number) {
   const listener = toNodeListener(app)
   const server = createServer(listener).listen(port)
@@ -15,8 +19,9 @@ function setupServer(app: App, port: number) {
   server.on('upgrade', handleUpgrade)
 }
 
-interface ClientState {
+export interface ClientState {
   ctx?: CoreContext
+  peer: Peer
 }
 
 function setupWsRoutes(app: App) {
@@ -28,7 +33,7 @@ function setupWsRoutes(app: App) {
       logger.debug('[/ws] Websocket connection opened', { peerId: peer.id })
 
       const ctx = createCoreClient()
-      clientStates.set(peer.id, { ctx })
+      clientStates.set(peer.id, { ctx, peer })
 
       // Setup session and login
       setupSession(ctx)
@@ -44,29 +49,27 @@ function setupWsRoutes(app: App) {
       // })
 
       // ctx.emitter.on(event: keyof CoreEvent, data: CoreEventData<CoreEvent[typeof event]>) => {
-      ctx.emitter.onAny((event, data) => {
-        peer.send({ type: event, data })
-      })
+      // ctx.emitter.onAny((event, data) => {
+      //   peer.send({ type: event, data })
+      // })
 
       peer.send({ type: 'auth:connected', data: { clientId: peer.id } })
     },
 
     async message(peer, message) {
       let clientState = clientStates.get(peer.id)
-      if (!clientState) {
-        clientState = { ctx: createCoreClient() }
+      if (!clientState || !clientState.ctx) {
+        clientState = { ctx: createCoreClient(), peer }
         clientStates.set(peer.id, clientState)
       }
 
+      if (!(message instanceof WsMessage)) {
+        sendWsError(peer, 'Unknown message request')
+        return
+      }
+
       try {
-        const msgData = JSON.parse(message)
-
-        // TODO: route message
-
-        switch (msgData.type) {
-          default:
-            logger.warn('[/ws] Unknown message type', { type: msgData.type })
-        }
+        handleMessageEvent(clientState, message)
       }
       catch (error) {
         logger.error('[/ws] Handle websocket message failed', { error })
