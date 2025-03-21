@@ -45,7 +45,6 @@ export interface ApiConfig {
   embedding: {
     provider: 'ollama' | 'openai'
     model: string
-    dimensions: number
     apiKey?: string
     apiBase?: string
   }

@@ -82,28 +82,32 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Transition name="dialog">
-    <dialog
-      v-if="isOpen"
-      ref="dialogRef"
-      class="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4 backdrop-blur-sm"
-      :class="{ 'cursor-pointer': !persistent }"
-      @click="handleOutsideClick"
-    >
-      <!-- 背景遮罩 -->
-      <div class="absolute inset-0 bg-black/60 transition-opacity duration-300" />
-
-      <!-- 对话框内容 -->
+  <Teleport to="body">
+    <Transition name="dialog">
       <div
-        ref="contentRef"
-        class="dialog-content relative w-full cursor-default rounded-lg bg-white p-6 shadow-2xl ring-1 ring-gray-950/5 dark:bg-gray-800 dark:ring-white/10"
-        :style="{ maxWidth: maxWidth || '32rem' }"
-        @click.stop
+        v-if="isOpen"
+        ref="dialogRef"
+        class="fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden border-black p-4 backdrop-blur-sm"
+        :class="{ 'cursor-pointer': !persistent }"
+        @click="handleOutsideClick"
       >
-        <slot />
+        <!-- 背景遮罩 -->
+        <div class="absolute inset-0 h-full w-full bg-black/60 transition-opacity duration-300" />
+
+        <!-- 对话框内容 -->
+        <div class="z-51 h-full w-full flex items-center justify-center">
+          <div
+            ref="contentRef"
+            class="dialog-content relative w-full cursor-default rounded-lg bg-white p-6 shadow-2xl ring-1 ring-gray-950/5 dark:bg-gray-800 dark:ring-white/10"
+            :style="{ maxWidth: maxWidth || '32rem' }"
+            @click.stop
+          >
+            <slot />
+          </div>
+        </div>
       </div>
-    </dialog>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>

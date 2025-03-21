@@ -40,7 +40,7 @@
 1. 克隆仓库：
 
 ```bash
-git clone https://github.com/luoling8192/telegram-search.git
+git clone https://github.com/GramSearch/telegram-search.git
 cd telegram-search
 ```
 

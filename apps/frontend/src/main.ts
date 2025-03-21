@@ -8,12 +8,7 @@ import { routes } from 'vue-router/auto-routes'
 
 import App from './App.vue'
 import en from './locales/en.json'
-import es from './locales/es.json'
-import fr from './locales/fr.json'
-import ja from './locales/ja.json'
-import ru from './locales/ru.json'
 import zhCN from './locales/zh-CN.json'
-import zhHK from './locales/zh-HK.json'
 import '@unocss/reset/tailwind.css'
 import './styles/main.css'
 import 'uno.css'
@@ -32,11 +27,6 @@ const i18n = createI18n({
   messages: {
     en,
     zhCN,
-    fr,
-    zhHK,
-    es,
-    ru,
-    ja,
   },
 })
 

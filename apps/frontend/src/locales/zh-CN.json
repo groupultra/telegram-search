@@ -216,7 +216,7 @@
       "last_message": "最后一条消息 : {date}",
       "loading": "加载中...",
       "messages_count": "{count} 条消息",
-      "not_chats_found": "未找到聊天",
+      "no_chats_found": "未找到聊天",
       "private_chats": "私人聊天"
     },
     "login": {
@@ -315,6 +315,26 @@
       "no_results": "未找到结果",
       "error_unknown": "未知错误",
       "search_failed": "搜索失败"
+    },
+    "chat": {
+      "chat_id": "ID: {id}",
+      "copy_message": "复制消息",
+      "copy_link": "复制链接",
+      "jump_to_telegram": "跳转到Telegram",
+      "reply": "回复",
+      "reply_to_message": "回复消息",
+      "type_your_reply": "输入回复内容...",
+      "press_ctrl_enter": "按 Ctrl + Enter 快速发送",
+      "reply_success": "回复成功 {id} {content}",
+      "reply_failed": "回复失败",
+      "reply_content_empty": "请输入回复内容",
+      "loading_messages": "加载消息中...",
+      "search_in_chat": "在聊天中搜索"
     }
+  },
+  "common": {
+    "back": "返回",
+    "cancel": "取消",
+    "send": "发送"
   }
 }

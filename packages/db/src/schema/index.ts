@@ -1,5 +1,4 @@
 export * from './chat'
-export * from './embedding'
 export * from './folder'
 export * from './message'
 export * from './sync'

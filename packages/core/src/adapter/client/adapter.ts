@@ -1,4 +1,5 @@
 import type { DatabaseFolder, DatabaseNewChat } from '@tg-search/db'
+import type { SendMessageParams } from 'telegram/client/messages'
 import type { ClientAdapterConfig, ConnectOptions, GetTelegramMessageParams, ITelegramClientAdapter, TelegramChatsResult, TelegramFolder, TelegramMessage } from '../../types'
 
 import process from 'node:process'
@@ -190,6 +191,13 @@ export class ClientAdapter implements ITelegramClientAdapter {
     }
 
     return user
+  }
+
+  /**
+   * Send message
+   */
+  async sendMessage(chatId: number, sendMessageParams?: SendMessageParams) {
+    await this.messageManager.sendMessage(chatId, sendMessageParams!)
   }
 
   async getUsersInfo(userIds: string[]): Promise<Api.User[]> {

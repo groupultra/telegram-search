@@ -152,7 +152,7 @@ watch([selectedType, searchQuery], () => {
 
     <!-- No Results Message -->
     <div v-if="filteredChats.length === 0" class="py-8 text-center text-gray-500 dark:text-gray-400">
-      {{ t('pages.index.not_chats_found') }}
+      {{ t('pages.index.no_chats_found') }}
     </div>
   </div>
 </template>

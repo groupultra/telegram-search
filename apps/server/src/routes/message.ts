@@ -1,8 +1,10 @@
+import type { SendMessageParams } from '@tg-search/core'
 import type { App, H3Event } from 'h3'
 
 import { findMessagesByChatId, getChatMetadataById } from '@tg-search/db'
-import { createRouter, defineEventHandler, getQuery, getRouterParams } from 'h3'
+import { createRouter, defineEventHandler, getQuery, getRouterParams, readBody } from 'h3'
 
+import { useTelegramClient } from '../services/telegram'
 import { createErrorResponse, createResponse } from '../utils/response'
 
 /**
@@ -21,6 +23,11 @@ export function setupMessageRoutes(app: App) {
         limit: Number(limit),
         offset: Number(offset),
       })
+      if (chat.type === 'user' || chat.type === 'channel') {
+        items.forEach((item) => {
+          item.fromName = chat.title
+        })
+      }
       return createResponse({
         items,
         chat,
@@ -34,6 +41,22 @@ export function setupMessageRoutes(app: App) {
     }
     catch (error) {
       return createErrorResponse(error, 'Failed to get messages')
+    }
+  }))
+
+  // Send message
+  router.post('/:id', defineEventHandler(async (event: H3Event) => {
+    try {
+      const client = await useTelegramClient()
+      const { id } = getRouterParams(event)
+      const params = await readBody<SendMessageParams>(event)
+      await client.sendMessage(Number(id), params)
+      return createResponse({
+        message: 'Message sent successfully',
+      })
+    }
+    catch (error) {
+      return createErrorResponse(error, 'Failed to send message')
     }
   }))
 

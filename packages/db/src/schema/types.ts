@@ -57,13 +57,3 @@ export interface DatabaseMediaInfo {
   // Local storage
   localPath?: string // Path to cached file on disk
 }
-
-// 模型配置类型定义
-export interface EmbeddingTableConfig {
-  provider: string // 模型提供商
-  model: string // 模型名称
-  dimensions: number // 模型维度
-  metadata?: { // 额外元数据
-    [key: string]: any // 其他配置项
-  }
-}

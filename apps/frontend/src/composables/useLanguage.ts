@@ -6,11 +6,6 @@ import { useI18n } from 'vue-i18n'
 export const supportedLanguages = [
   { code: 'en', name: 'English' },
   { code: 'zhCN', name: '简体中文' },
-  { code: 'zhHK', name: '繁體中文' },
-  { code: 'fr', name: 'Français' },
-  { code: 'es', name: 'Español' },
-  { code: 'ru', name: 'Русский' },
-  { code: 'ja', name: '日本語' },
 ]
 
 // 创建 composable 函数

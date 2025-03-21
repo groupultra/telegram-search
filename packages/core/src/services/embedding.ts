@@ -1,4 +1,3 @@
-import type { EmbeddingTableConfig } from '@tg-search/db'
 import type { EmbeddingModelConfig } from '../types'
 
 import { getConfig, useLogger } from '@tg-search/common'
@@ -8,8 +7,7 @@ import { EmbeddingAdapter } from '../adapter/embedding/adapter'
  * Service for generating embeddings from text
  */
 export class EmbeddingService {
-  private embedding: EmbeddingAdapter
-  private embedding_config: EmbeddingTableConfig
+  private embedding
   private logger = useLogger()
   private config = getConfig()
 
@@ -17,17 +15,6 @@ export class EmbeddingService {
     this.embedding = new EmbeddingAdapter({
       ...this.config.api.embedding,
     } as EmbeddingModelConfig)
-    this.embedding_config = {
-      ...this.config.api.embedding,
-      dimensions: this.config.api.embedding.dimensions,
-    } as EmbeddingTableConfig
-  }
-
-  /**
-   * 获取模型配置
-   */
-  getEmbeddingConfig(): EmbeddingTableConfig {
-    return this.embedding_config
   }
 
   /**

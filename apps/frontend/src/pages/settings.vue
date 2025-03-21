@@ -398,14 +398,6 @@ loadConfig()
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">{{ $t('pages.settings.dimensions') }}</label>
-                <input
-                  v-model="config.api.embedding.dimensions"
-                  :disabled="!isEditing"
-                  class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-              </div>
-              <div>
                 <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">{{ $t('pages.settings.api_key') }}</label>
                 <input
                   v-model="config.api.embedding.apiKey"

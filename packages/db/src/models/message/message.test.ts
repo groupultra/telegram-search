@@ -4,6 +4,7 @@ import { useDB } from '@tg-search/common'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { setupTest } from '../../test/setup'
+import { findSimilarMessages } from './embedding'
 import { createMessages } from './message'
 import { findMessagesByChatId } from './search'
 import { getMessageStats, refreshMessageStats } from './stats'
@@ -92,17 +93,17 @@ describe('message Model', () => {
     })
   })
 
-  describe.skip('findSimilarMessages', () => {
+  describe('findSimilarMessages', () => {
     it('should find similar messages', async () => {
-      // const embedding = [0.1, 0.2, 0.3]
-      // const options = {
-      //   chatId: 1,
-      //   type: 'text' as DatabaseMessageType,
-      //   limit: 10,
-      // }
-      // const result = await findSimilarMessages(embedding, options)
-      // expect(result).toHaveLength(1)
-      // expect(useDB().select).toHaveBeenCalled()
+      const embedding = [0.1, 0.2, 0.3]
+      const options = {
+        chatId: 1,
+        type: 'text' as DatabaseMessageType,
+        limit: 10,
+      }
+      const result = await findSimilarMessages(embedding, options)
+      expect(result).toHaveLength(1)
+      expect(useDB().select).toHaveBeenCalled()
     })
   })
 

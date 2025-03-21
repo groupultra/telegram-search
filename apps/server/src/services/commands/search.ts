@@ -69,7 +69,7 @@ export class SearchCommandHandler {
         // Vector search
         const embedding = new EmbeddingService()
         const queryEmbedding = await embedding.generateEmbedding(params.query)
-        const results = await findSimilarMessages(targetChatId || 0, queryEmbedding, embedding.getEmbeddingConfig(), {
+        const results = await findSimilarMessages(queryEmbedding, {
           chatId: targetChatId || 0,
           limit: params.limit * 2,
           offset: params.offset,

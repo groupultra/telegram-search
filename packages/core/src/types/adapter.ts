@@ -3,7 +3,7 @@ import type { DatabaseFolder, DatabaseNewChat } from '@tg-search/db'
 import type { Api } from 'telegram'
 import type { TelegramChatsResult } from './chat'
 import type { TelegramFolder } from './folder'
-import type { GetTelegramMessageParams, TelegramMessage } from './message'
+import type { GetTelegramMessageParams, SendMessageParams, TelegramMessage } from './message'
 
 export interface ConnectOptions {
   code?: () => Promise<string>
@@ -126,6 +126,11 @@ export interface ITelegramClientAdapter extends BaseTelegramAdapter {
    * Get history for a specific chat
    */
   getHistory: (chatId: number) => Promise<Api.messages.TypeMessages & { count: number }>
+
+  /**
+   * Send message
+   */
+  sendMessage: (chatId: number, sendMessageParams: SendMessageParams) => Promise<void>
 }
 
 export interface EmbeddingModelConfig {

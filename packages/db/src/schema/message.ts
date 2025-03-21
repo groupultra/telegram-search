@@ -1,6 +1,7 @@
 import type { DatabaseMediaInfo } from './types'
 
 import { useDB } from '@tg-search/common'
+import { vector } from '@tg-search/pg-vector'
 import { sql } from 'drizzle-orm'
 import { bigint, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
@@ -27,6 +28,7 @@ const messageTableSchema = {
   chatId: bigint('chat_id', { mode: 'number' }).notNull(),
   type: databaseMessageTypeEnum('type').notNull().default('text'),
   content: text('content'),
+  embedding: vector('embedding'),
   tsContent: tsvector('ts_content'),
   mediaInfo: jsonb('media_info').$type<DatabaseMediaInfo>(),
   createdAt: timestamp('created_at').notNull().defaultNow(),

@@ -1,4 +1,5 @@
 import type { DatabaseMediaInfo } from '@tg-search/db'
+import type { TelegramClient } from 'telegram'
 
 /**
  * Message type
@@ -31,6 +32,11 @@ export interface TelegramMessage {
   metadata?: Record<string, unknown>
   createdAt: Date
 }
+
+/**
+ * Send message params
+ */
+export type SendMessageParams = Parameters<TelegramClient['sendMessage']>[1]
 
 /**
  * Message options for getting messages

@@ -43,7 +43,7 @@ A powerful Telegram chat history search tool that supports vector search and sem
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/luoling8192/telegram-search.git
+git clone https://github.com/GramSearch/telegram-search.git
 cd telegram-search
 ```
 
