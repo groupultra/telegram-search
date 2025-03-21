@@ -13,6 +13,7 @@ export interface SessionEvent {
   'session:clean': (data: { phoneNumber: string }) => void
 }
 
+// TODO: use Api.SessionManager
 export function createSessionService(ctx: CoreContext) {
   const { withError } = ctx
 

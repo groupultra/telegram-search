@@ -130,12 +130,15 @@ export function createConnectionService(ctx: CoreContext) {
           })
         }
 
-        emitter.emit('auth:connected', { client })
-
+        // The client will return string session, so convert it directly
         const sessionString = await client.session.save() as unknown as string
         logger.withFields({ sessionString }).debug('Saving session')
 
         emitter.emit('session:save', { phoneNumber, session: sessionString })
+
+        ctx.setClient(client)
+
+        emitter.emit('auth:connected', { client })
         return withResult(client, null)
       }
       catch (error) {

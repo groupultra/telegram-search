@@ -33,12 +33,13 @@ export function createCoreContext() {
   let telegramClient: TelegramClient
 
   function setClient(client: TelegramClient) {
+    useLogger().debug('Setted Telegram client')
     telegramClient = client
   }
 
-  function getClient() {
+  function getClient(): TelegramClient | null {
     if (!telegramClient) {
-      throw new Error('Client not set')
+      return null
     }
 
     return telegramClient

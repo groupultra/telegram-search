@@ -5,6 +5,14 @@ import { useLogger } from '@tg-search/common'
 
 import { sendWsError, sendWsEvent } from './ws-event'
 
+export function registerConnectionEventHandler(state: ClientState) {
+  const { peer, ctx } = state
+  if (!ctx) {
+    sendWsError(peer, 'Client not initialized')
+    return null
+  }
+}
+
 export function handleConnectionEvent(
   state: ClientState,
   message: WsMessage,
@@ -14,7 +22,7 @@ export function handleConnectionEvent(
   const { peer, ctx } = state
   if (!ctx) {
     sendWsError(peer, 'Client not initialized')
-    return
+    return null
   }
 
   const { emitter } = ctx
@@ -46,6 +54,6 @@ export function handleConnectionEvent(
       emitter.emit('auth:logout')
       break
     default:
-      message.type.startsWith('auth:') && sendWsError(peer, 'Unknown message type')
+      sendWsError(peer, 'Unknown message type')
   }
 }

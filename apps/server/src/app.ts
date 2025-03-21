@@ -10,8 +10,10 @@ import { createCoreClient, destoryCoreClient } from '@tg-search/core'
 import wsAdapter from 'crossws/adapters/node'
 import { createApp, defineWebSocketHandler, toNodeListener } from 'h3'
 
-import { handleConnectionEvent } from './v2/connection'
-import { handleMessageEvent } from './v2/messages'
+import { handleConnectionEvent, registerConnectionEventHandler } from './v2/connection'
+import { handleDialogsEvent, registerDialogsEventHandler } from './v2/dialogs'
+import { handleMessageEvent, registerMessageEventHandler } from './v2/messages'
+import { registerWsMessageRoute, routeWsMessage } from './v2/routes'
 import { sendWsError } from './v2/ws-event'
 
 function setupServer(app: App, port: number) {
@@ -35,7 +37,8 @@ function setupWsRoutes(app: App) {
       logger.debug('[/ws] Websocket connection opened', { peerId: peer.id })
 
       const ctx = createCoreClient()
-      clientStates.set(peer.id, { ctx, peer })
+      const clientState = { ctx, peer }
+      clientStates.set(peer.id, clientState)
 
       // Setup session and login
       // setupSession(ctx)
@@ -55,6 +58,10 @@ function setupWsRoutes(app: App) {
       //   peer.send({ type: event, data })
       // })
 
+      registerConnectionEventHandler(clientState)
+      registerMessageEventHandler(clientState)
+      registerDialogsEventHandler(clientState)
+
       ctx.emitter.on('core:error', ({ error }) => {
         sendWsError(peer, error)
       })
@@ -71,7 +78,7 @@ function setupWsRoutes(app: App) {
 
       const data = message.json<WsMessage>()
 
-      logger.withFields(data).debug('[/ws] Message received')
+      logger.withFields({ type: data.type }).debug('[/ws] Message received')
 
       // const wsMessage = toWsMessage(data)
       // if (!wsMessage) {
@@ -83,8 +90,11 @@ function setupWsRoutes(app: App) {
       // console.log(wsMessage)
 
       try {
-        handleConnectionEvent(clientState, data)
-        handleMessageEvent(clientState, data)
+        registerWsMessageRoute('auth', handleConnectionEvent)
+        registerWsMessageRoute('message', handleMessageEvent)
+        registerWsMessageRoute('dialog', handleDialogsEvent)
+
+        routeWsMessage(clientState, data)
       }
       catch (error) {
         logger.error('[/ws] Handle websocket message failed', { error })

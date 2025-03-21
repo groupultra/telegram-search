@@ -9,6 +9,7 @@ import { createEmbeddingResolver } from './resolvers/embedding-resolver'
 import { createLinkResolver } from './resolvers/link-resolver'
 import { createUserResolver } from './resolvers/user-resolver'
 import { createConnectionService } from './services/connection'
+import { createDialogService } from './services/dialogs'
 import { createMessageService } from './services/messages'
 import { createSessionService } from './services/session'
 import { createTakeoutService } from './services/takeout'
@@ -37,18 +38,9 @@ export function authEventHandler(
 
     logger.withFields({ session }).debug('Loaded session')
 
-    const { data: client, error: loginError } = await login({ phoneNumber, session })
+    const { error: loginError } = await login({ phoneNumber, session })
     if (loginError) {
       return withError(loginError, 'Failed to login to Telegram')
-    }
-
-    if (client) {
-      if (await client.isUserAuthorized()) {
-        ctx.setClient(client)
-      }
-      else {
-        logger.error('Client is not connected')
-      }
     }
   })
 
@@ -84,6 +76,7 @@ export function afterConnectedEventHandler(
 
   emitter.on('auth:connected', () => {
     const { processMessage, fetchMessages } = useService(ctx, createMessageService)
+    const { fetchDialogs } = useService(ctx, createDialogService)
     useService(ctx, createTakeoutService)
 
     registry.register('embedding', createEmbeddingResolver())
@@ -104,6 +97,13 @@ export function afterConnectedEventHandler(
         emitter.emit('core:error', { error })
       }
     })
+
+    emitter.on('dialog:fetch', async () => {
+      logger.debug('Fetching dialogs')
+      await fetchDialogs()
+    })
+
+    emitter.emit('dialog:fetch')
   })
   return () => {}
 }

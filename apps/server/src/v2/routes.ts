@@ -1,0 +1,28 @@
+import type { ClientState } from '../app'
+import type { WsMessage } from './ws-event'
+
+import { useLogger } from '@tg-search/common'
+
+import { sendWsError } from './ws-event'
+
+type WsMessageRoute = (state: ClientState, message: WsMessage) => void
+const wsMessageRoutes = new Map<string, WsMessageRoute>()
+
+export function routeWsMessage(state: ClientState, message: WsMessage) {
+  const name = message.type.split(':')[0]
+
+  if (message.type.startsWith(name)) {
+    const fn = wsMessageRoutes.get(name)
+    if (fn) {
+      fn(state, message)
+    }
+    else {
+      sendWsError(state.peer, `Unknown message type: ${message.type}`)
+    }
+  }
+}
+
+export function registerWsMessageRoute(name: string, fn: WsMessageRoute) {
+  useLogger().withFields({ name }).debug('Registering ws message route')
+  wsMessageRoutes.set(name, fn)
+}

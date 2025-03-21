@@ -1,7 +1,10 @@
+import type { EntityLike } from 'telegram/define'
 import type { TelegramMessageType } from '../../types'
 import type { CoreContext } from '../context'
+import type { PromiseResult } from '../utils/result'
 
 import { useLogger } from '@tg-search/common'
+import bigInt from 'big-integer'
 import { Api } from 'telegram'
 
 import { withResult } from '../utils/result'
@@ -35,13 +38,11 @@ export interface FetchMessageOpts {
 }
 
 export function createMessageService(ctx: CoreContext) {
-  const logger = useLogger()
-
   const { emitter, getClient, withError } = ctx
 
   // TODO: worker_threads?
   function processMessage(message: Api.Message) {
-    logger.withFields({ message }).debug('Process message')
+    useLogger().withFields(message).debug('Process message')
     emitter.emit('message:record', { message })
   }
 
@@ -56,24 +57,77 @@ export function createMessageService(ctx: CoreContext) {
   //   }
   // }
 
+  async function getHistory(chatId: EntityLike): PromiseResult<(Api.messages.TypeMessages & { count: number }) | null> {
+    try {
+      const client = getClient()
+      if (!client) {
+        return withResult(null, withError('Client not set'))
+      }
+
+      const history = await withRetry(
+        () => client.invoke(new Api.messages.GetHistory({
+          peer: chatId,
+          limit: 1,
+          offsetId: 0,
+          offsetDate: 0,
+          addOffset: 0,
+          maxId: 0,
+          minId: 0,
+          hash: bigInt(0),
+        })),
+      ) as Api.messages.TypeMessages & { count: number }
+
+      return withResult(history, null)
+    }
+    catch (error) {
+      return withResult(null, withError(error, 'Failed to get history'))
+    }
+  }
+
   return {
     processMessage,
+
+    getHistory,
 
     async* fetchMessages(
       chatId: string,
       options: Omit<FetchMessageOpts, 'chatId'>,
     ): AsyncGenerator<Api.Message> {
+      const client = getClient()
+      if (!client) {
+        return withError('Client not set')
+      }
+
+      if (!await client.isUserAuthorized()) {
+        useLogger().error('User not authorized')
+        return
+      }
+
       let offsetId = 0
       let hasMore = true
       let processedCount = 0
 
       const limit = options.limit || 100
-      const minId = options?.minId || 0
-      const maxId = options?.maxId || 0
-      const startTime = options?.startTime || new Date()
-      const endTime = options?.endTime || new Date()
+      const minId = options?.minId
+      const maxId = options?.maxId
+      const startTime = options?.startTime
+      const endTime = options?.endTime
 
-      logger.withFields({ chatId, limit, minId, maxId, startTime, endTime }).debug('Fetch messages options')
+      useLogger().withFields({ chatId, limit, minId, maxId, startTime, endTime }).debug('Fetch messages options')
+
+      // const entity = await getClient().getInputEntity(Number(chatId))
+
+      // const dialog = await client.invoke(new Api.messages.GetPeerDialogs({
+      //   peers: [new Api.PeerChat({ chatId: BigInt(Number(chatId)) })],
+      // }))
+      // useLogger().withFields({ chatId, name: dialog.peer.className, json: dialog.toJSON() }).debug('Got dialog')
+
+      const { data: history, error } = await getHistory(chatId)
+      if (error || !history) {
+        return
+      }
+
+      useLogger().withFields({ chatId, count: history?.count }).debug('Got history')
 
       // await getClient().getDialogs()
 
@@ -84,10 +138,8 @@ export function createMessageService(ctx: CoreContext) {
 
       while (hasMore) {
         try {
-          const entity = await getClient().getInputEntity(chatId)
-
           const messages = await withRetry(
-            () => getClient().getMessages(entity, {
+            () => client.getMessages(chatId, {
               limit,
               offsetId,
               minId,
@@ -96,7 +148,7 @@ export function createMessageService(ctx: CoreContext) {
           )
 
           if (messages.length === 0) {
-            logger.error('Get messages failed or returned empty data')
+            useLogger().error('Get messages failed or returned empty data')
             return withResult(null, new Error('Get messages failed or returned empty data'))
           }
 

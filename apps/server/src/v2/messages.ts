@@ -6,6 +6,14 @@ import { useLogger } from '@tg-search/common'
 
 import { sendWsError, sendWsEvent } from './ws-event'
 
+export function registerMessageEventHandler(state: ClientState) {
+  const { peer, ctx } = state
+  if (!ctx) {
+    sendWsError(peer, 'Client not initialized')
+    return null
+  }
+}
+
 export function handleMessageEvent(
   state: ClientState,
   message: WsMessage,
@@ -40,6 +48,6 @@ export function handleMessageEvent(
       emitter.removeListener('message:fetch:progress', onProgress)
       break
     default:
-      message.type.startsWith('message:') && sendWsError(peer, 'Unknown message type')
+      sendWsError(peer, 'Unknown message type')
   }
 }

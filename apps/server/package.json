@@ -33,13 +33,16 @@
     "@tg-search/core": "workspace:*",
     "@tg-search/db": "workspace:*",
     "crossws": "^0.3.4",
+    "flatted": "^3.3.3",
     "h3": "^1.15.1",
+    "lodash-es": "^4.17.21",
     "tsx": "^4.19.3",
     "web-streams-polyfill": "^4.1.0",
     "yargs": "^17.7.2",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/lodash-es": "^4.17.12",
     "@types/node": "^22.13.10",
     "@types/yargs": "^17.0.33",
     "unbuild": "^3.5.0",
