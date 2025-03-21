@@ -1,8 +1,8 @@
+import type { Api } from 'telegram'
 import type { CoreContext } from '../context'
 import type { PromiseResult } from '../utils/result'
 
 import { useLogger } from '@tg-search/common'
-import { Api } from 'telegram'
 
 import { withResult } from '../utils/result'
 
@@ -17,17 +17,19 @@ export function createDialogService(ctx: CoreContext) {
 
   const logger = useLogger()
 
-  async function fetchDialogs(): PromiseResult<Api.messages.Dialogs | null> {
+  async function fetchDialogs(): PromiseResult<Api.TypeDialog[] | null> {
     // Total list has a total property
     const client = getClient()
     if (!client) {
       return withResult(null, withError('Client not set'))
     }
 
-    const dialogs = await client.invoke(new Api.messages.GetDialogs({})) as Api.messages.Dialogs
-    logger.withFields({ count: dialogs.dialogs.length }).debug('Fetched dialogs')
+    // TODO: use invoke api
+    // const dialogs = await client.invoke(new Api.messages.GetDialogs({})) as Api.messages.Dialogs
+    const dialogs = await client.getDialogs() as unknown as Api.TypeDialog[]
+    logger.withFields({ count: dialogs.length }).debug('Fetched dialogs')
 
-    emitter.emit('dialog:list', { dialogs: dialogs.dialogs })
+    emitter.emit('dialog:list', { dialogs })
 
     return withResult(dialogs, null)
   }

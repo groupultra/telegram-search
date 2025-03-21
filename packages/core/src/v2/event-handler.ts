@@ -103,6 +103,7 @@ export function afterConnectedEventHandler(
       await fetchDialogs()
     })
 
+    // TODO: get dialogs from cache
     emitter.emit('dialog:fetch')
   })
   return () => {}
