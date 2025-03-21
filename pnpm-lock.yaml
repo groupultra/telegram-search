@@ -233,9 +233,6 @@ importers:
       crossws:
         specifier: ^0.3.4
         version: 0.3.4
-      flatted:
-        specifier: ^3.3.3
-        version: 3.3.3
       h3:
         specifier: ^1.15.1
         version: 1.15.1

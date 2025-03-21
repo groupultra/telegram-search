@@ -1,9 +1,6 @@
 import type { CoreEvent } from '@tg-search/core'
 import type { Message, Peer } from 'crossws'
 
-import { stringify } from 'flatted'
-import { pickBy } from 'lodash-es'
-
 export interface WsServerEvent {
   'server:error': (data: { error?: string | Error | unknown }) => void
 }
@@ -41,8 +38,9 @@ export function createWsMessage<T extends keyof WsEvent>(
   data: Parameters<WsEvent[T]>[0],
 ): Extract<WsMessage, { type: T }> {
   // TODO: just send necessary data
-  const safeData = stringify(pickBy(data, value => typeof value !== 'function'))
-  return { type, data: JSON.parse(safeData) } as Extract<WsMessage, { type: T }>
+  // const safeData = stringify(pickBy(data, value => typeof value !== 'function'))
+  // return { type, data: JSON.parse(safeData) } as Extract<WsMessage, { type: T }>
+  return { type, data } as Extract<WsMessage, { type: T }>
 }
 
 export function isMessageType<K extends keyof WsEvent>(

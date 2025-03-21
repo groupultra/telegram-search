@@ -10,6 +10,14 @@ import { Api } from 'telegram'
 import { withResult } from '../utils/result'
 import { withRetry } from '../utils/retry'
 
+// interface CoreMessage {
+//   id: number
+//   chatId: number
+//   type: 'text' | 'media'
+//   createdAt: Date
+//   text: string
+// }
+
 export interface MessageEvent {
   'message:fetch': (data: { chatId: string }) => void
 

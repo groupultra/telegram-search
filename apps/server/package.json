@@ -33,7 +33,6 @@
     "@tg-search/core": "workspace:*",
     "@tg-search/db": "workspace:*",
     "crossws": "^0.3.4",
-    "flatted": "^3.3.3",
     "h3": "^1.15.1",
     "lodash-es": "^4.17.21",
     "tsx": "^4.19.3",
