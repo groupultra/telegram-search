@@ -67,8 +67,6 @@ export function authEventHandler(
 
   emitter.on('session:save', async ({ phoneNumber, session }) => {
     logger.withFields({ phoneNumber }).debug('Saving session')
-
-    // ctx.getClient().session.save()
     await saveSession(phoneNumber, session)
   })
 

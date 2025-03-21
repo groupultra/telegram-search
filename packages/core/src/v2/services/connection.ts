@@ -1,11 +1,11 @@
 import type { ClientProxyConfig } from '@tg-search/common'
 import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
+import type { StringSession } from 'telegram/sessions'
 import type { CoreContext } from '../context'
 import type { PromiseResult } from '../utils/result'
 
 import { useLogger } from '@tg-search/common'
 import { Api, TelegramClient } from 'telegram'
-import { StringSession } from 'telegram/sessions'
 
 import { waitForEvent } from '../utils/promise'
 import { withResult } from '../utils/result'
@@ -132,10 +132,10 @@ export function createConnectionService(ctx: CoreContext) {
 
         emitter.emit('auth:connected', { client })
 
-        const sessionString = await client.session.save()
+        const sessionString = await client.session.save() as unknown as string
         logger.withFields({ sessionString }).debug('Saving session')
 
-        emitter.emit('session:save', { phoneNumber, session: new StringSession(sessionString) })
+        emitter.emit('session:save', { phoneNumber, session: sessionString })
         return withResult(client, null)
       }
       catch (error) {

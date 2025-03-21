@@ -8,7 +8,7 @@ import { join } from 'node:path'
  */
 export function generateDefaultConfig(): Config {
   const homeDir = os.homedir()
-  const sessionDir = join(homeDir, '.telegram-search/session')
+  const sessionsDir = join(homeDir, '.telegram-search/sessions')
   const mediaDir = join(homeDir, '.telegram-search/media')
 
   return {
@@ -45,7 +45,7 @@ export function generateDefaultConfig(): Config {
     // Path settings
     path: {
     // Session storage path
-      session: sessionDir,
+      session: sessionsDir,
       // Media storage path
       media: mediaDir,
     },
@@ -80,8 +80,6 @@ export function generateDefaultConfig(): Config {
         apiKey: '',
         // Optional API base URL
         apiBase: '',
-        // Embedding dimensions
-        dimensions: 1536,
       },
     },
   }

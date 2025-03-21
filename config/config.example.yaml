@@ -28,7 +28,7 @@ message:
 # Path settings
 path:
   # Session storage path
-  session: ~/.telegram-search/session
+  session: ~/.telegram-search/sessions
   # Media storage path
   media: ~/.telegram-search/media
 

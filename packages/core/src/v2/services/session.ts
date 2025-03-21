@@ -6,11 +6,10 @@ import path from 'node:path'
 import { getConfig, useLogger } from '@tg-search/common'
 import { StringSession } from 'telegram/sessions'
 
-import { encryptPhoneToUUID } from '../utils/phone-number'
 import { withResult } from '../utils/result'
 
 export interface SessionEvent {
-  'session:save': (data: { phoneNumber: string, session: StringSession }) => void
+  'session:save': (data: { phoneNumber: string, session: string }) => void
   'session:clean': (data: { phoneNumber: string }) => void
 }
 
@@ -20,7 +19,7 @@ export function createSessionService(ctx: CoreContext) {
   const logger = useLogger()
 
   function getSessionFilePath(phoneNumber: string) {
-    return path.join(getConfig().path.session, `${encryptPhoneToUUID(phoneNumber)}.session`)
+    return path.join(getConfig().path.session, `${phoneNumber.replace('+', '')}.session`)
   }
 
   async function cleanSession(phoneNumber: string) {
@@ -63,7 +62,7 @@ export function createSessionService(ctx: CoreContext) {
       }
     },
 
-    saveSession: async (phoneNumber: string, session: StringSession) => {
+    saveSession: async (phoneNumber: string, session: string) => {
       const sessionFilePath = getSessionFilePath(phoneNumber)
 
       try {
@@ -74,7 +73,7 @@ export function createSessionService(ctx: CoreContext) {
           await fs.mkdir(path.dirname(sessionFilePath), { recursive: true })
         }
 
-        await fs.writeFile(sessionFilePath, session.save(), 'utf-8')
+        await fs.writeFile(sessionFilePath, session, 'utf-8')
         logger.withFields({ sessionFilePath, phoneNumber }).debug('Saving session to file')
         return withResult(null, null)
       }
