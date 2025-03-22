@@ -19,7 +19,7 @@ interface CoreDialog {
 export interface DialogEvent {
   'dialog:fetch': () => void
 
-  'dialog:list': (data: { count: number, dialogs: CoreDialog[] }) => void
+  'dialog:list': (data: { dialogs: CoreDialog[] }) => void
 }
 
 export function createDialogService(ctx: CoreContext) {
@@ -72,7 +72,7 @@ export function createDialogService(ctx: CoreContext) {
 
     useLogger().withFields({ count: dialogs.length }).debug('Fetched dialogs')
 
-    emitter.emit('dialog:list', { count: dialogs.length, dialogs })
+    emitter.emit('dialog:list', { dialogs })
 
     return withResult(dialogs, null)
   }

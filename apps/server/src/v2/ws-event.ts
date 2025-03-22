@@ -2,6 +2,7 @@ import type { CoreEvent } from '@tg-search/core'
 import type { Message, Peer } from 'crossws'
 
 export interface WsServerEvent {
+  'server:connected': (data: { clientId: string }) => void
   'server:error': (data: { error?: string | Error | unknown }) => void
 }
 

@@ -14,6 +14,7 @@ import {
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
+import { setupWsRoutes } from './app'
 import { setupChatRoutes } from './routes/chat'
 import { setupCommandRoutes } from './routes/commands'
 import { setupConfigRoutes } from './routes/config'
@@ -118,6 +119,9 @@ function configureServer(logger: ReturnType<typeof useLogger>) {
 
   // Setup routes
   setupRoutes(app)
+
+  // v2 ws routes
+  setupWsRoutes(app)
 
   return app
 }
