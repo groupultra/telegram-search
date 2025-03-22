@@ -24,7 +24,8 @@ import { setupUserInfoRoutes } from './routes/user-info'
 import { setupWsAuthRoutes } from './routes/ws-auth'
 import { createErrorResponse } from './utils/response'
 
-export * from './types'
+export type * from './types'
+export type * from './v2'
 
 // Core initialization
 async function initCore(): Promise<ReturnType<typeof useLogger>> {
