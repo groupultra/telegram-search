@@ -12,6 +12,7 @@ const props = defineProps<{
   command: Command
   progress: number
   waitingTimeLeft?: number
+  estimatedTimeLeft?: number | null
 }>()
 
 const { t } = useI18n()
@@ -45,6 +46,16 @@ const totalMessages = computed(() => {
 
 const processedMessages = computed(() => {
   return exportDetails.value?.processedMessages
+})
+
+const estimatedTimeRemaining = computed(() => {
+  if (exportDetails.value?.estimatedTimeRemaining) {
+    return formatTimeToReadable(exportDetails.value.estimatedTimeRemaining)
+  }
+  if (props.estimatedTimeLeft) {
+    return formatTimeToReadable(props.estimatedTimeLeft)
+  }
+  return null
 })
 </script>
 
@@ -146,16 +157,16 @@ const processedMessages = computed(() => {
           </div>
         </div>
 
-        <div v-if="exportDetails.currentSpeed || exportDetails.estimatedTimeRemaining || exportDetails.totalDuration" class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
+        <div v-if="exportDetails.currentSpeed || estimatedTimeRemaining || exportDetails.totalDuration" class="rounded-md bg-gray-50 p-4 dark:bg-gray-700/50">
           <div class="text-sm space-y-3">
             <div v-if="exportDetails.currentSpeed" class="flex items-center justify-between">
               <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.current_speed') }}</span>
               <span class="font-medium">{{ formatSpeedToReadable(exportDetails.currentSpeed) }}</span>
             </div>
 
-            <div v-if="exportDetails.estimatedTimeRemaining" class="flex items-center justify-between">
+            <div v-if="estimatedTimeRemaining" class="flex items-center justify-between">
               <span class="text-gray-600 dark:text-gray-300">{{ t('component.export_command.estimated_remaining_time') }}</span>
-              <span class="font-medium">{{ formatTimeToReadable(exportDetails.estimatedTimeRemaining) }}</span>
+              <span class="font-medium">{{ estimatedTimeRemaining }}</span>
             </div>
 
             <div v-if="exportDetails.totalDuration" class="flex items-center justify-between">
