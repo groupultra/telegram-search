@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@types/jsdom": "^21.1.7",
-    "@types/node": "^22.13.9",
+    "@types/node": "^22.13.11",
     "tsx": "^4.19.3"
   }
 }

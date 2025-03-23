@@ -31,14 +31,14 @@
   "dependencies": {
     "@guiiai/logg": "^1.0.7",
     "defu": "^6.1.4",
-    "drizzle-orm": "^0.40.1",
+    "drizzle-orm": "^0.41.0",
     "postgres": "^3.4.5",
     "superjson": "^2.2.2",
     "yaml": "^2.7.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^22.13.10",
+    "@types/node": "^22.13.11",
     "unbuild": "^3.5.0",
     "vitest": "^3.0.9"
   }
