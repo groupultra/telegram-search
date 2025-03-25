@@ -29,7 +29,7 @@
     "@xsai/embed": "catalog:",
     "big-integer": "^1.6.52",
     "drizzle-orm": "^0.41.0",
-    "grammy": "^1.35.0",
+    "grammy": "^1.35.1",
     "postgres": "^3.4.5",
     "telegram": "^2.26.22",
     "tiktoken": "^1.0.20",
@@ -37,7 +37,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^22.13.11",
+    "@types/node": "^22.13.13",
     "unbuild": "^3.5.0",
     "vitest": "^3.0.9"
   }
