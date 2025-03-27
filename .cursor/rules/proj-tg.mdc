@@ -1,0 +1,34 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+这是一个把 Telegram 消息导入、导出到数据库中并且提供搜索的服务。[README.md](mdc:README.md)
+
+## 项目结构
+
+我们有前端（package/frontend）、后端（package/server）、数据库 （package/db/schema）、模型 （package/db/model）、核心 Adapter（package/core/adapter）。
+
+## Packages
+
+[package.json](mdc:package.json) 里面是用到的所有包和 script。
+
+数据库 ORM 使用 drizzle，使用 gram.js 操作 Telegram。
+
+使用 ni 和 pnpm 作为包管理器，例如 `ni dev:server`。
+
+## Logger
+
+@guiiai/logg 是我们的 Logger 库，我在 package/common 里面封装了一层，使用的时候直接 `useLogger()` 就好。
+
+例子：
+
+```ts
+const logger = useLogger()
+logger.withFields({ a: 1 }).log('Hello, world!')
+logger.withErr(new Error()).error('failed')
+
+## Telegram 细节
+
+- Message ID 是递增的，如果涉及到对 Message 的处理，优先考虑使用 ID，而不是时间戳。
+```
