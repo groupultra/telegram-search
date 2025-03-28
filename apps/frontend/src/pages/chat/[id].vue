@@ -406,7 +406,7 @@ onMounted(async () => {
       @click.stop
     >
       <div class="px-1 py-2">
-        <div v-if="selectedMessage?.content" class="context-menu-item group" @click="copyMessageText">
+        <div v-if="selectedMessage?.content" class="group context-menu-item" @click="copyMessageText">
           <div class="w-full inline-flex items-center">
             <div class="i-lucide-copy mr-3 h-4 w-4 flex-shrink-0 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
             <span class="truncate">{{ t('pages.chat.copy_message') || '复制消息' }}</span>
