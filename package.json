@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.10",
   "private": true,
-  "packageManager": "pnpm@10.6.5",
+  "packageManager": "pnpm@10.7.0",
   "scripts": {
     "build": "pnpm -r build",
     "stub": "pnpm -r stub",
@@ -33,7 +33,7 @@
     "eslint-plugin-format": "^1.0.1",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
-    "taze": "^19.0.2",
+    "taze": "^19.0.4",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   },
