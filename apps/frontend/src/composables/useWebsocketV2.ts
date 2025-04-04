@@ -2,7 +2,7 @@ import type { WsEvent, WsEventData } from '@tg-search/server'
 
 import { useWebSocket } from '@vueuse/core'
 
-const WS_API_BASE = 'http://localhost:3000/ws'
+import { WS_API_BASE } from '../constants'
 
 export function createWebsocketV2Context() {
   const socket = useWebSocket<{
