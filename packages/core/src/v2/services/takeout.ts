@@ -61,7 +61,7 @@ export function createTakeoutService(ctx: CoreContext) {
     }
   }
 
-  async function finishTakeout(takeout: Api.account.Takeout, success: boolean): PromiseResult<void> {
+  async function finishTakeout(takeout: Api.account.Takeout, success: boolean) {
     try {
       await getClient().invoke(new Api.InvokeWithTakeout({
         takeoutId: takeout.id,

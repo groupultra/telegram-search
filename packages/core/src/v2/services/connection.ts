@@ -146,7 +146,7 @@ export function createConnectionService(ctx: CoreContext) {
       }
     }
 
-    async function logout(client: TelegramClient): PromiseResult<null> {
+    async function logout(client: TelegramClient) {
       if (client.connected) {
         await client.invoke(new Api.auth.LogOut())
         await client.disconnect()

@@ -1,6 +1,6 @@
-export { createCoreClient, destoryCoreClient } from './client'
-export type * from './client'
 export { createCoreContext } from './context'
 export type * from './context'
 export type * from './event-handler'
+export { createCoreInstance, destoryCoreInstance } from './instance'
+export type * from './instance'
 export type * from './services'

@@ -4,7 +4,7 @@ import type { App } from 'h3'
 import type { WsMessage } from './v2/ws-event'
 
 import { useLogger } from '@tg-search/common'
-import { createCoreClient, destoryCoreClient } from '@tg-search/core'
+import { createCoreInstance, destoryCoreInstance } from '@tg-search/core'
 import { defineWebSocketHandler } from 'h3'
 
 import { handleConnectionEvent, registerConnectionEventHandler } from './v2/connection'
@@ -32,7 +32,7 @@ export function setupWsRoutes(app: App) {
     async open(peer) {
       useLogger().debug('[/ws] Websocket connection opened', { peerId: peer.id })
 
-      const ctx = createCoreClient()
+      const ctx = createCoreInstance()
       const clientState = { ctx, peer }
       clientStates.set(peer.id, clientState)
 
@@ -58,7 +58,7 @@ export function setupWsRoutes(app: App) {
       registerMessageEventHandler(clientState)
       registerDialogsEventHandler(clientState)
 
-      ctx.emitter.on('core:error', ({ error }) => {
+      ctx.emitter.on('core:error', ({ error }: { error?: string | Error | unknown }) => {
         sendWsError(peer, error)
       })
 
@@ -68,7 +68,7 @@ export function setupWsRoutes(app: App) {
     async message(peer, message) {
       let clientState = clientStates.get(peer.id)
       if (!clientState || !clientState.ctx) {
-        clientState = { ctx: createCoreClient(), peer }
+        clientState = { ctx: createCoreInstance(), peer }
         clientStates.set(peer.id, clientState)
       }
 
@@ -102,7 +102,7 @@ export function setupWsRoutes(app: App) {
 
       const clientState = clientStates.get(peer.id)
       if (clientState && clientState.ctx) {
-        destoryCoreClient(clientState.ctx)
+        destoryCoreInstance(clientState.ctx)
       }
 
       clientStates.delete(peer.id)
