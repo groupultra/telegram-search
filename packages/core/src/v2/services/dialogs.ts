@@ -23,19 +23,14 @@ export interface DialogEvent {
 }
 
 export function createDialogService(ctx: CoreContext) {
-  const { getClient, emitter, withError } = ctx
+  const { getClient, emitter } = ctx
 
   async function fetchDialogs(): PromiseResult<CoreDialog[] | null> {
-    const client = getClient()
-    if (!client) {
-      return withResult(null, withError('Client not set'))
-    }
-
     // TODO: use invoke api
     // TODO: use pagination
     // Total list has a total property
-    const dialogList = await client.getDialogs()
-    // const dialogs = await client.invoke(new Api.messages.GetDialogs({})) as Api.messages.Dialogs
+    const dialogList = await getClient().getDialogs()
+    // const dialogs = await getClient().invoke(new Api.messages.GetDialogs({})) as Api.messages.Dialogs
 
     const dialogs: CoreDialog[] = []
     for (const dialog of dialogList) {

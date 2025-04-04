@@ -1,5 +1,5 @@
 import type { TelegramClient } from 'telegram'
-import type { ClientEvent } from './client'
+import type { ClientInstanceEvent } from './instance'
 import type { SessionEvent } from './services'
 import type { ConnectionEvent } from './services/connection'
 import type { DialogEvent } from './services/dialogs'
@@ -11,7 +11,7 @@ import { EventEmitter } from 'eventemitter3'
 
 import { createErrorHandler } from './utils/error-handler'
 
-export type CoreEvent = ClientEvent
+export type CoreEvent = ClientInstanceEvent
   & MessageEvent
   & DialogEvent
   & ConnectionEvent
@@ -37,9 +37,9 @@ export function createCoreContext() {
     telegramClient = client
   }
 
-  function getClient(): TelegramClient | null {
+  function ensureClient(): TelegramClient {
     if (!telegramClient) {
-      return null
+      throw withError('Telegram client not set')
     }
 
     return telegramClient
@@ -48,7 +48,7 @@ export function createCoreContext() {
   return {
     emitter,
     setClient,
-    getClient,
+    getClient: ensureClient,
     withError,
   }
 }

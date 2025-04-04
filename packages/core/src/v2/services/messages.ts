@@ -67,13 +67,8 @@ export function createMessageService(ctx: CoreContext) {
 
   async function getHistory(chatId: EntityLike): PromiseResult<(Api.messages.TypeMessages & { count: number }) | null> {
     try {
-      const client = getClient()
-      if (!client) {
-        return withResult(null, withError('Client not set'))
-      }
-
       const history = await withRetry(
-        () => client.invoke(new Api.messages.GetHistory({
+        () => getClient().invoke(new Api.messages.GetHistory({
           peer: chatId,
           limit: 1,
           offsetId: 0,
@@ -101,12 +96,7 @@ export function createMessageService(ctx: CoreContext) {
       chatId: string,
       options: Omit<FetchMessageOpts, 'chatId'>,
     ): AsyncGenerator<Api.Message> {
-      const client = getClient()
-      if (!client) {
-        return withError('Client not set')
-      }
-
-      if (!await client.isUserAuthorized()) {
+      if (!await getClient().isUserAuthorized()) {
         useLogger().error('User not authorized')
         return
       }
@@ -125,7 +115,7 @@ export function createMessageService(ctx: CoreContext) {
 
       // const entity = await getClient().getInputEntity(Number(chatId))
 
-      // const dialog = await client.invoke(new Api.messages.GetPeerDialogs({
+      // const dialog = await getClient().invoke(new Api.messages.GetPeerDialogs({
       //   peers: [new Api.PeerChat({ chatId: BigInt(Number(chatId)) })],
       // }))
       // useLogger().withFields({ chatId, name: dialog.peer.className, json: dialog.toJSON() }).debug('Got dialog')
@@ -147,7 +137,7 @@ export function createMessageService(ctx: CoreContext) {
       while (hasMore) {
         try {
           const messages = await withRetry(
-            () => client.getMessages(chatId, {
+            () => getClient().getMessages(chatId, {
               limit,
               offsetId,
               minId,

@@ -5,12 +5,12 @@ import { getConfig } from '@tg-search/common'
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, authEventHandler, useEventHandler } from './event-handler'
 
-export interface ClientEvent {
+export interface ClientInstanceEvent {
   'core:error': (data: { error?: string | Error | unknown }) => void
   'core:cleanup': () => void
 }
 
-export function createCoreClient(): CoreContext {
+export function createCoreInstance(): CoreContext {
   const ctx = createCoreContext()
   const config = getConfig()
 
@@ -21,7 +21,7 @@ export function createCoreClient(): CoreContext {
   return ctx
 }
 
-export async function destoryCoreClient(ctx: CoreContext) {
+export async function destoryCoreInstance(ctx: CoreContext) {
   ctx.emitter.emit('auth:logout')
   ctx.emitter.emit('core:cleanup')
   ctx.emitter.removeAllListeners()
