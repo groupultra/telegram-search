@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.4.0",
+    "@inquirer/prompts": "^7.4.1",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "@tg-search/db": "workspace:*",
@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@types/jsdom": "^21.1.7",
-    "@types/node": "^22.13.13",
+    "@types/node": "^22.14.0",
     "tsx": "^4.19.3"
   }
 }
