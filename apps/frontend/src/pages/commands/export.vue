@@ -25,6 +25,9 @@ const chatTypeOptions = useChatTypeOptions()
 const messageTypeOptions = useMessageTypeOptions()
 const exportMethodOptions = useExportMethodOptions()
 
+// Wait time countdown
+let waitTimerId: number | undefined
+
 const selectedChatType = ref<'user' | 'group' | 'channel'>('user')
 const selectedChatId = ref<number>()
 const selectedMessageTypes = ref<DatabaseMessageType[]>(['text'])
@@ -32,6 +35,11 @@ const selectedMethod = ref<'getMessage' | 'takeout'>('getMessage')
 const enableIncremental = ref<boolean>(false)
 const customMinId = ref<number | undefined>(undefined)
 const waitingTimeLeft = ref(0)
+const startTime = ref<number | null>(null)
+const estimatedTimeLeft = ref<number | null>(null)
+const lastProcessedCount = ref<number>(0)
+const speedHistory = ref<number[]>([])
+const lastUpdateTime = ref<number | null>(null)
 
 const filteredChats = computed(() => {
   return chats.value.filter((chat: TelegramChat) => chat.type === selectedChatType.value)
@@ -51,10 +59,87 @@ onMounted(async () => {
 
 onUnmounted(() => {
   cleanup()
+  resetEstimation()
+  if (waitTimerId) {
+    window.clearInterval(waitTimerId)
+    waitTimerId = undefined
+  }
 })
+
+// 计算移动平均速度（每分钟处理的消息数）
+function calculateMovingAverageSpeed(currentCount: number, currentTime: number) {
+  const maxHistoryLength = 10 // 最多保存10个历史速度记录
+
+  if (lastUpdateTime.value && lastProcessedCount.value) {
+    const timeDiff = (currentTime - lastUpdateTime.value) / 1000 // 转换为秒
+    const countDiff = currentCount - lastProcessedCount.value
+
+    if (timeDiff > 0) {
+      const currentSpeed = (countDiff / timeDiff) * 60 // 转换为每分钟的速度
+      speedHistory.value.push(currentSpeed)
+
+      // 只保留最近的记录
+      if (speedHistory.value.length > maxHistoryLength) {
+        speedHistory.value.shift()
+      }
+    }
+  }
+
+  lastUpdateTime.value = currentTime
+  lastProcessedCount.value = currentCount
+
+  if (speedHistory.value.length === 0)
+    return 0
+
+  // 计算加权移动平均，最近的速度权重更大
+  const weights = speedHistory.value.map((_, index) => index + 1)
+  const weightSum = weights.reduce((a, b) => a + b, 0)
+
+  return speedHistory.value.reduce((sum, speed, index) => {
+    return sum + (speed * weights[index])
+  }, 0) / weightSum
+}
+
+// 计算预估剩余时间
+function calculateEstimatedTime() {
+  if (!currentCommand.value?.metadata
+    || !currentCommand.value.metadata.totalMessages
+    || !currentCommand.value.metadata.processedMessages) {
+    return
+  }
+
+  const currentTime = Date.now()
+  const processedCount = currentCommand.value.metadata.processedMessages as number
+  const totalCount = currentCommand.value.metadata.totalMessages as number
+
+  // 计算当前的移动平均速度
+  const avgSpeed = calculateMovingAverageSpeed(processedCount, currentTime)
+
+  if (avgSpeed <= 0) {
+    return
+  }
+
+  const remainingCount = totalCount - processedCount
+  const remainingTimeInMinutes = remainingCount / avgSpeed
+
+  // 转换为秒
+  estimatedTimeLeft.value = Math.round(remainingTimeInMinutes * 60)
+}
+
+// 重置状态
+function resetEstimation() {
+  startTime.value = null
+  estimatedTimeLeft.value = null
+  lastProcessedCount.value = 0
+  speedHistory.value = []
+  lastUpdateTime.value = null
+}
 
 // Export operation
 async function handleExport() {
+  resetEstimation()
+  startTime.value = Date.now()
+
   // 检查是否已连接到Telegram
   if (!isConnected.value) {
     toast.error(t('component.export_command.not_connect'))
@@ -101,9 +186,6 @@ async function handleExport() {
 const isExporting = computed(() => currentCommand.value?.status === 'running')
 
 // Wait time countdown
-let waitTimerId: number | undefined
-
-// TODO: extract
 watch(() => currentCommand.value?.status, (status) => {
   if (status === 'waiting') {
     if (currentCommand.value?.metadata?.waitTime) {
@@ -127,6 +209,20 @@ watch(() => currentCommand.value?.status, (status) => {
       window.clearInterval(waitTimerId)
       waitTimerId = undefined
     }
+  }
+})
+
+// 监听进度变化
+watch(() => currentCommand.value?.metadata?.processedMessages, () => {
+  if (currentCommand.value?.status === 'running') {
+    calculateEstimatedTime()
+  }
+})
+
+// 监听状态变化
+watch(() => currentCommand.value?.status, (newStatus) => {
+  if (newStatus === 'completed' || newStatus === 'failed') {
+    resetEstimation()
   }
 })
 </script>
@@ -237,6 +333,7 @@ watch(() => currentCommand.value?.status, (status) => {
       :command="currentCommand"
       :progress="exportProgress"
       :waiting-time-left="waitingTimeLeft"
+      :estimated-time-left="estimatedTimeLeft"
     />
   </div>
 </template>

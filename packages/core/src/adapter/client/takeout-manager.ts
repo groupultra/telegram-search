@@ -122,66 +122,6 @@ export class TakeoutManager {
   }
 
   /**
-   * Convert raw message to custom message type
-   * @param message Raw message from Telegram API
-   * @returns Custom message type
-   */
-  private convertToCustomMessage(message: any): Api.Message {
-    // Basic message properties
-    const baseProps = {
-      id: message.id,
-      date: message.date,
-      message: message.message || '',
-    }
-
-    // Boolean flags with default false
-    const booleanFlags = [
-      'out',
-      'mentioned',
-      'mediaUnread',
-      'silent',
-      'post',
-      'fromScheduled',
-      'legacy',
-      'editHide',
-      'pinned',
-      'noforwards',
-    ].reduce((acc, key) => ({
-      ...acc,
-      [key]: message[key] || false,
-    }), {})
-
-    // Direct property mappings
-    const directProps = [
-      'peerId',
-      'fwdFrom',
-      'viaBotId',
-      'replyTo',
-      'media',
-      'replyMarkup',
-      'entities',
-      'views',
-      'forwards',
-      'replies',
-      'editDate',
-      'postAuthor',
-      'groupedId',
-      'reactions',
-      'restrictionReason',
-      'ttlPeriod',
-    ].reduce((acc, key) => ({
-      ...acc,
-      [key]: message[key],
-    }), {})
-
-    return new Api.Message({
-      ...baseProps,
-      ...booleanFlags,
-      ...directProps,
-    })
-  }
-
-  /**
    * Get messages using takeout API
    */
   public async* getMessages(
@@ -208,7 +148,7 @@ export class TakeoutManager {
         hash = hash ^ (hash << 35n)
         hash = hash ^ (hash >> 4n)
         hash = hash + id
-        this.logger.debug(`get takeout message ${options?.minId}-${options?.maxId}`)
+
         // Get messages using takeout
         const query = new Api.messages.GetHistory({
           peer: await this.client.getInputEntity(chatId),
@@ -270,11 +210,8 @@ export class TakeoutManager {
             continue
           }
 
-          // Convert message to custom message type
-          const customMessage = this.convertToCustomMessage(message)
-
           // If it's a media message, only get basic info without downloading files
-          const converted = await this.messageConverter.convertMessage(customMessage, options?.skipMedia)
+          const converted = await this.messageConverter.convertMessage(message, options?.skipMedia)
 
           // Check message type
           if (options?.messageTypes && !options.messageTypes.includes(converted.type)) {
