@@ -58,4 +58,16 @@ export default defineConfig({
     // see uno.config.ts for config
     UnoCSS(),
   ],
+
+  // Proxy API requests to local development server
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        // Remove /api prefix when forwarding to target
+        rewrite: path => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })
