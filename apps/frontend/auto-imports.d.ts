@@ -156,6 +156,7 @@ declare global {
   const useCommandHandler: typeof import('./src/composables/useCommands')['useCommandHandler']
   const useCommands: typeof import('./src/composables/useCommands')['useCommands']
   const useConfirmDialog: typeof import('@vueuse/core')['useConfirmDialog']
+  const useConnectionStore: typeof import('./src/composables/useConnection')['useConnectionStore']
   const useCountdown: typeof import('@vueuse/core')['useCountdown']
   const useCounter: typeof import('@vueuse/core')['useCounter']
   const useCssModule: typeof import('vue')['useCssModule']
@@ -485,6 +486,7 @@ declare module 'vue' {
     readonly useColorMode: UnwrapRef<typeof import('@vueuse/core')['useColorMode']>
     readonly useCommandHandler: UnwrapRef<typeof import('./src/composables/useCommands')['useCommandHandler']>
     readonly useConfirmDialog: UnwrapRef<typeof import('@vueuse/core')['useConfirmDialog']>
+    readonly useConnectionStore: UnwrapRef<typeof import('./src/composables/useConnection')['useConnectionStore']>
     readonly useCountdown: UnwrapRef<typeof import('@vueuse/core')['useCountdown']>
     readonly useCounter: UnwrapRef<typeof import('@vueuse/core')['useCounter']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>

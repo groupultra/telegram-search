@@ -1,5 +1,5 @@
 import type { ClientState } from '../app'
-import type { WsMessage } from './ws-event'
+import type { WsMessageToServer } from './ws-event'
 
 import { useLogger } from '@tg-search/common'
 
@@ -21,7 +21,7 @@ export function registerDialogsEventHandler(state: ClientState) {
 
 export function handleDialogsEvent(
   state: ClientState,
-  message: WsMessage,
+  message: WsMessageToServer,
 ) {
   const logger = useLogger()
 

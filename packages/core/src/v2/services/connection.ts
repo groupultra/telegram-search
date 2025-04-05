@@ -10,18 +10,20 @@ import { Api, TelegramClient } from 'telegram'
 import { waitForEvent } from '../utils/promise'
 import { withResult } from '../utils/result'
 
-export interface ConnectionEvent {
+export interface ConnectionEventToCore {
   'auth:login': (data: { phoneNumber: string }) => void
   'auth:logout': () => void
-
   'auth:code': (data: { code: string }) => void
   'auth:password': (data: { password: string }) => void
+}
 
+export interface ConnectionEventFromCore {
   'auth:needCode': () => void
   'auth:needPassword': () => void
-
   'auth:connected': (data: { client?: TelegramClient }) => void
 }
+
+export type ConnectionEvent = ConnectionEventFromCore & ConnectionEventToCore
 
 export function createConnectionService(ctx: CoreContext) {
   const { emitter, withError } = ctx

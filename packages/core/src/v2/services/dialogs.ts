@@ -16,11 +16,15 @@ interface CoreDialog {
   lastMessageDate?: Date
 }
 
-export interface DialogEvent {
+export interface DialogEventToCore {
   'dialog:fetch': () => void
+}
 
+export interface DialogEventFromCore {
   'dialog:list': (data: { dialogs: CoreDialog[] }) => void
 }
+
+export type DialogEvent = DialogEventFromCore & DialogEventToCore
 
 export function createDialogService(ctx: CoreContext) {
   const { getClient, emitter } = ctx

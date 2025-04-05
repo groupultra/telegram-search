@@ -1,22 +1,31 @@
 import type { TelegramClient } from 'telegram'
-import type { ClientInstanceEvent } from './instance'
-import type { SessionEvent } from './services'
-import type { ConnectionEvent } from './services/connection'
-import type { DialogEvent } from './services/dialogs'
-import type { MessageEvent } from './services/messages'
-import type { TakeoutEvent } from './services/takeout'
+import type { ClientInstanceEventFromCore, ClientInstanceEventToCore } from './instance'
+import type { SessionEventFromCore, SessionEventToCore } from './services'
+import type { ConnectionEventFromCore, ConnectionEventToCore } from './services/connection'
+import type { DialogEventFromCore, DialogEventToCore } from './services/dialogs'
+import type { MessageEventFromCore, MessageEventToCore } from './services/messages'
+import type { TakeoutEventFromCore, TakeoutEventToCore } from './services/takeout'
 
 import { useLogger } from '@tg-search/common'
 import { EventEmitter } from 'eventemitter3'
 
 import { createErrorHandler } from './utils/error-handler'
 
-export type CoreEvent = ClientInstanceEvent
-  & MessageEvent
-  & DialogEvent
-  & ConnectionEvent
-  & TakeoutEvent
-  & SessionEvent
+export type FormCoreEvent = ClientInstanceEventFromCore
+  & MessageEventFromCore
+  & DialogEventFromCore
+  & ConnectionEventFromCore
+  & TakeoutEventFromCore
+  & SessionEventFromCore
+
+export type ToCoreEvent = ClientInstanceEventToCore
+  & MessageEventToCore
+  & DialogEventToCore
+  & ConnectionEventToCore
+  & TakeoutEventToCore
+  & SessionEventToCore
+
+export type CoreEvent = FormCoreEvent & ToCoreEvent
 
 export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
 

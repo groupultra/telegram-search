@@ -9,15 +9,19 @@ import { Api } from 'telegram'
 import { withResult } from '../utils/result'
 import { withRetry } from '../utils/retry'
 
-export interface TakeoutEvent {
+export interface TakeoutEventToCore {
   'takeout:run': (data: { chatId: string }) => void
-
-  'takeout:progress': (data: { chatId: string, progress: number }) => void
 
   'takeout:abort': (data: { chatId: string }) => void
 
   'takeout:finish': (data: { chatId: string }) => void
 }
+
+export interface TakeoutEventFromCore {
+  'takeout:progress': (data: { chatId: string, progress: number }) => void
+}
+
+export type TakeoutEvent = TakeoutEventFromCore & TakeoutEventToCore
 
 export interface TakeoutOpts {
   chatId: string

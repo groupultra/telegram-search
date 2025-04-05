@@ -7,6 +7,7 @@ import VueMacros from 'unplugin-vue-macros/vite'
 import { VueRouterAutoImports } from 'unplugin-vue-router'
 import VueRouter from 'unplugin-vue-router/vite'
 import { defineConfig } from 'vite'
+import Devtools from 'vite-plugin-vue-devtools'
 
 export default defineConfig({
   resolve: {
@@ -15,6 +16,8 @@ export default defineConfig({
     },
   },
   plugins: [
+    Devtools(),
+
     VueMacros({
       defineOptions: false,
       defineModels: false,

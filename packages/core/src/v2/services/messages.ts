@@ -18,10 +18,8 @@ import { withRetry } from '../utils/retry'
 //   text: string
 // }
 
-export interface MessageEvent {
+export interface MessageEventToCore {
   'message:fetch': (data: { chatId: string }) => void
-
-  'message:fetch:progress': (data: { taskId: string, progress: number }) => void
 
   'message:fetch:abort': (data: { taskId: string }) => void
 
@@ -29,6 +27,12 @@ export interface MessageEvent {
 
   'message:record': (data: { message: Api.Message }) => void
 }
+
+export interface MessageEventFromCore {
+  'message:fetch:progress': (data: { taskId: string, progress: number }) => void
+}
+
+export type MessageEvent = MessageEventFromCore & MessageEventToCore
 
 export interface FetchMessageOpts {
   chatId: string

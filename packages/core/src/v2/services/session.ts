@@ -8,10 +8,14 @@ import { StringSession } from 'telegram/sessions'
 
 import { withResult } from '../utils/result'
 
-export interface SessionEvent {
+export interface SessionEventToCore {
   'session:save': (data: { phoneNumber: string, session: string }) => void
   'session:clean': (data: { phoneNumber: string }) => void
 }
+
+export interface SessionEventFromCore {}
+
+export type SessionEvent = SessionEventFromCore & SessionEventToCore
 
 // TODO: use Api.SessionManager
 export function createSessionService(ctx: CoreContext) {
