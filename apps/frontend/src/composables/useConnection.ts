@@ -23,10 +23,45 @@ export const useConnectionStore = defineStore('connection', () => {
     return connection.value.get(clientId)
   }
 
+  function useAuth() {
+    const needCode = ref(false)
+    const needPassword = ref(false)
+
+    const isLoggedIn = ref(false)
+
+    function login(phoneNumber: string) {
+      activeSession.value?.sendEvent('auth:login', {
+        phoneNumber,
+      })
+    }
+
+    function submitCode(code: string) {
+      activeSession.value?.sendEvent('auth:code', {
+        code,
+      })
+    }
+
+    function submitPassword(password: string) {
+      activeSession.value?.sendEvent('auth:password', {
+        password,
+      })
+    }
+
+    return {
+      needCode,
+      needPassword,
+      isLoggedIn,
+      login,
+      submitCode,
+      submitPassword,
+    }
+  }
+
   return {
     setConnection,
     getConnection,
     activeSession,
     activeSessionId,
+    useAuth,
   }
 })

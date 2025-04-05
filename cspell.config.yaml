@@ -1,4 +1,4 @@
-version: "0.2"
+version: '0.2'
 ignorePaths: []
 dictionaryDefinitions: []
 dictionaries: []
@@ -16,6 +16,8 @@ words:
   - ollama
   - onnotice
   - pgvector
+  - pinia
+  - reka
   - sonner
   - taze
   - tiktoken
