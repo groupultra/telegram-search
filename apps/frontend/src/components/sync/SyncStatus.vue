@@ -1,7 +1,6 @@
 <!-- Sync status component -->
 <script setup lang="ts">
 import type { Command, CommandStatus } from '@tg-search/server'
-import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useStatus } from '../../composables/useStatus'
@@ -135,7 +134,7 @@ const processedMessagesAcrossChats = computed(() => {
             v-if="command.status === 'running'"
             class="inline-block animate-spin text-yellow-500"
           >
-            <Icon :icon="statusIcon" />
+            <i :icon="statusIcon" />
           </span>
         </h2>
         <StatusBadge
@@ -191,7 +190,7 @@ const processedMessagesAcrossChats = computed(() => {
       <div v-if="isWaiting" class="mb-5 animate-fade-in rounded-md bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
         <p class="flex items-center">
           <span class="mr-2 text-lg">
-            <Icon icon="lucide:clock" />
+            <i icon="lucide:clock" />
           </span>
           <span>{{ t('component.export_command.telegram_limit', { waitingTimeLeft }) }}</span>
         </p>
@@ -227,7 +226,7 @@ const processedMessagesAcrossChats = computed(() => {
             <div v-for="chat in allChats" :key="chat.chatId" class="text-sm">
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
-                  <Icon
+                  <i
                     :icon="chat.status === 'running' ? 'lucide:loader' : chat.status === 'completed' ? 'lucide:check' : chat.status === 'failed' ? 'lucide:x' : 'lucide:clock'"
                     class="h-4 w-4" :class="[
                       chat.status === 'running' ? 'text-blue-500 animate-spin'

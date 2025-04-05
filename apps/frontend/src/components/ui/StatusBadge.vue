@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { CommandStatus } from '@tg-search/server'
-import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 
 interface Props {
@@ -30,7 +29,7 @@ const statusClasses = computed(() => {
     :class="statusClasses"
   >
     <span v-if="icon" class="mr-1.5">
-      <Icon :icon="icon" />
+      <i :icon="icon" />
     </span>
     <span>{{ label }}</span>
   </span>

@@ -1,7 +1,6 @@
 <!-- Message bubble component for displaying PublicMessage -->
 <script setup lang="ts">
 import type { TelegramMessage } from '@tg-search/core'
-import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -182,7 +181,7 @@ function formatFileSize(bytes: number): string {
           v-else-if="message.mediaInfo.type === 'document'"
           class="flex items-center rounded bg-gray-50 p-3 space-x-3 dark:bg-gray-700"
         >
-          <Icon icon="lucide:document" class="h-6 w-6" />
+          <i lucide:document class="h-6 w-6" />
           <div class="flex-1">
             <div class="text-sm font-medium">
               {{ message.mediaInfo.fileName || 'Document' }}
@@ -213,15 +212,15 @@ function formatFileSize(bytes: number): string {
       <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
         <span>{{ formatTime(message.createdAt) }}</span>
         <span class="inline-flex items-center">
-          <Icon icon="lucide:id" class="mr-1 h-4 w-4" />
+          <i lucide:id class="mr-1 h-4 w-4" />
           {{ t('component.message_bubble.id', { id: message.id }) }}
         </span>
         <span v-if="message.views" class="inline-flex items-center">
-          <Icon icon="lucide:view" class="mr-1 h-4 w-4" />
+          <i lucide:view class="mr-1 h-4 w-4" />
           {{ message.views }}
         </span>
         <span v-if="message.forwards" class="inline-flex items-center">
-          <Icon icon="lucide:share" class="mr-1 h-4 w-4" />
+          <i lucide:share class="mr-1 h-4 w-4" />
           {{ message.forwards }}
         </span>
         <span
@@ -229,11 +228,11 @@ function formatFileSize(bytes: number): string {
           class="inline-flex cursor-pointer items-center hover:underline"
           @click="emit('jumpToMessage', message.replyToId)"
         >
-          <Icon icon="lucide:reply" class="mr-1 h-4 w-4" />
+          <i lucide:reply class="mr-1 h-4 w-4" />
           {{ message.replyToId }}
         </span>
         <span v-if="message.forwardFromChatId" class="inline-flex items-center">
-          <Icon icon="lucide:arrow-right" class="mr-1 h-4 w-4" />
+          <i lucide:arrow-right class="mr-1 h-4 w-4" />
           {{ message.forwardFromChatId }}
         </span>
       </div>

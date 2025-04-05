@@ -106,6 +106,7 @@ export function afterConnectedEventHandler(
     // TODO: get dialogs from cache
     emitter.emit('dialog:fetch')
   })
+
   return () => {}
 }
 
