@@ -32,7 +32,7 @@ describe('logger', () => {
         logger.log('test message', { field: 'value' })
         logger.debug('test message', { field: 'value' })
         logger.warn('test message', { field: 'value' })
-        logger.error('test message', { field: 'value' })
+        logger.withError(new Error('test error')).error('test message')
       }).not.toThrow()
     })
 

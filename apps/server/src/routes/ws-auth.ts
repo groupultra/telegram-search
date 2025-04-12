@@ -141,7 +141,7 @@ export function setupWsAuthRoutes(app: App) {
         }))
       }
       catch (error) {
-        logger.error('[/ws/auth] 发送初始连接消息失败', { error })
+        logger.withError(error).error('[/ws/auth] 发送初始连接消息失败')
       }
     },
 
@@ -189,7 +189,7 @@ export function setupWsAuthRoutes(app: App) {
         }
       }
       catch (error) {
-        logger.error('[/ws/auth] 处理WebSocket消息失败', { error })
+        logger.withError(error).error('[/ws/auth] 处理WebSocket消息失败')
         try {
           peer.send(JSON.stringify(createErrorMessage(
             MessageType.LOGIN_ERROR,
@@ -197,7 +197,7 @@ export function setupWsAuthRoutes(app: App) {
           )))
         }
         catch (sendError) {
-          logger.error('[/ws/auth] 发送错误消息失败', { error: sendError })
+          logger.withError(sendError).error('[/ws/auth] 发送错误消息失败')
         }
       }
     },
@@ -318,7 +318,7 @@ async function handleLogin(peer: Peer, message: WsMessage, state: ClientState) {
     }
     catch (error) {
       // 错误处理
-      logger.error('[/ws/auth] 登录失败', { error })
+      logger.withError(error).error('[/ws/auth] 登录失败')
 
       // 清理2FA状态
       if (state.passwordRejector) {
@@ -346,7 +346,7 @@ async function handleLogin(peer: Peer, message: WsMessage, state: ClientState) {
     }
   }
   catch (error) {
-    logger.error('[/ws/auth] 处理登录请求失败', { error })
+    logger.withError(error).error('[/ws/auth] 处理登录请求失败')
     peer.send(JSON.stringify(createErrorMessage(
       MessageType.LOGIN_ERROR,
       error,
@@ -389,7 +389,7 @@ async function handleVerificationCode(peer: Peer, message: WsMessage, state: Cli
     // 因为验证码解析后，登录流程会继续，成功后会在handleLogin中发送成功消息
   }
   catch (error) {
-    logger.error('[/ws/auth] 处理验证码请求失败', { error })
+    logger.withError(error).error('[/ws/auth] 处理验证码请求失败')
 
     // 如果有验证码拒绝器，拒绝验证码promise
     if (state.codeRejector) {
@@ -444,7 +444,7 @@ async function handleStatus(peer: Peer, state: ClientState) {
     )))
   }
   catch (error) {
-    logger.error('[/ws/auth] 状态检查失败', { error })
+    logger.withError(error).error('[/ws/auth] 状态检查失败')
     peer.send(JSON.stringify(createSuccessMessage(
       MessageType.STATUS,
       { connected: false },
@@ -478,7 +478,7 @@ async function handleLogout(peer: Peer, state: ClientState) {
     )))
   }
   catch (error) {
-    logger.error('[/ws/auth] 登出失败', { error })
+    logger.withError(error).error('[/ws/auth] 登出失败')
     peer.send(JSON.stringify(createErrorMessage(
       MessageType.LOGIN_ERROR,
       error,
@@ -533,7 +533,7 @@ async function handleTwoFactorAuth(peer: Peer, message: WsMessage, state: Client
     state.passwordRejector = undefined
   }
   catch (error) {
-    logger.error('[/ws/auth] 处理2FA请求失败', { error })
+    logger.withError(error).error('[/ws/auth] 处理2FA请求失败')
 
     // 如果有密码拒绝器，拒绝密码promise
     if (state.passwordRejector) {

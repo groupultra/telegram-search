@@ -37,7 +37,7 @@ export function sendMessage(peer: WebSocketPeer, message: WsMessage): void {
     peer.send(JSON.stringify(message))
   }
   catch (error) {
-    logger.error('Failed to send WebSocket message', { error })
+    logger.withError(error).error('Failed to send WebSocket message')
   }
 }
 
@@ -90,7 +90,7 @@ export function parseMessage(message: any): WsMessage | null {
     return JSON.parse(text)
   }
   catch (error) {
-    logger.error('Failed to parse WebSocket message', { error })
+    logger.withError(error).error('Failed to parse WebSocket message')
     return null
   }
 }
