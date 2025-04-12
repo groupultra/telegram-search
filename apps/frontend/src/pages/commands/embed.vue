@@ -8,15 +8,15 @@ import { useEmbed } from '../../apis/commands/useEmbed'
 import EmbedStatus from '../../components/embed/EmbedStatus.vue'
 import NeedLogin from '../../components/NeedLogin.vue'
 import ChatSelector from '../../components/sync/ChatSelector.vue'
-import { useSession } from '../../composables/useSession'
 import { useChats } from '../../store/useChats'
+import { useSessionStore } from '../../store/useSession'
 
 const { t } = useI18n()
 const chatStore = useChats()
 const { loadChats, exportedChats } = chatStore
 const { executeEmbed, currentCommand, embedProgress, cleanup } = useEmbed()
-const { checkConnection } = useSession()
-const { isConnected } = storeToRefs(useSession())
+const { checkConnection } = useSessionStore()
+const { isConnected } = storeToRefs(useSessionStore())
 
 const selectedChats = ref<number[]>([])
 const showConnectButton = ref(false)

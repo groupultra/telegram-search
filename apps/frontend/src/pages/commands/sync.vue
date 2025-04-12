@@ -8,8 +8,8 @@ import { useSyncMetadata } from '../../apis/commands/useSyncMetadata'
 import NeedLogin from '../../components/NeedLogin.vue'
 import ChatSelector from '../../components/sync/ChatSelector.vue'
 import SyncStatus from '../../components/sync/SyncStatus.vue'
-import { useSession } from '../../composables/useSession'
 import { useChats } from '../../store/useChats'
+import { useSessionStore } from '../../store/useSession'
 
 const { t } = useI18n()
 const chatStore = useChats()
@@ -17,8 +17,8 @@ const { chats } = storeToRefs(chatStore)
 const { loadChats } = chatStore
 const { executeChatsSync, currentCommand: chatsSyncCommand, syncProgress: chatsSyncProgress } = useSyncChats()
 const { executeMetadataSync, currentCommand: metadataSyncCommand, syncProgress: metadataSyncProgress } = useSyncMetadata()
-const { checkConnection } = useSession()
-const { isConnected } = storeToRefs(useSession())
+const { checkConnection } = useSessionStore()
+const { isConnected } = storeToRefs(useSessionStore())
 
 const selectedChats = ref<number[]>([])
 const priorities = ref<Record<number, number>>({})

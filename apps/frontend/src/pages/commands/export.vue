@@ -9,8 +9,8 @@ import { useExport } from '../../apis/commands/useExport'
 import ExportStatus from '../../components/export/ExportStatus.vue'
 import NeedLogin from '../../components/NeedLogin.vue'
 import { useChatTypeOptions, useExportMethodOptions, useMessageTypeOptions } from '../../composables/useOptions'
-import { useSession } from '../../composables/useSession'
 import { useChats } from '../../store/useChats'
+import { useSessionStore } from '../../store/useSession'
 
 const {
   executeExport,
@@ -18,8 +18,8 @@ const {
   exportProgress,
   cleanup,
 } = useExport()
-const { checkConnection } = useSession()
-const { isConnected } = storeToRefs(useSession())
+const { checkConnection } = useSessionStore()
+const { isConnected } = storeToRefs(useSessionStore())
 
 const { t } = useI18n()
 const chatStore = useChats()

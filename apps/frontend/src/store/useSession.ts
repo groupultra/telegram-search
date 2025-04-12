@@ -3,13 +3,13 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
-import { useAuth } from '../store/useAuth'
+import { useAuth } from './useAuth'
 
 /**
  * 用于管理 Telegram 会话状态的 composable
  * 包含重试机制和连接状态管理
  */
-export const useSession = defineStore('session', () => {
+export const useSessionStore = defineStore('session', () => {
   // 重试机制参数
   const maxAttempts = 3
   const baseDelay = 5000

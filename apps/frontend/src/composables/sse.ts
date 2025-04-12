@@ -3,7 +3,7 @@ import type { ApiError, ApiResponse, SSEHandlerOptions } from '@tg-search/server
 import { ref } from 'vue'
 
 import { API_BASE } from '../constants'
-import { useSession } from './useSession'
+import { useSessionStore } from '../store/useSession'
 
 interface SSEEvent {
   event: string
@@ -59,7 +59,7 @@ export function useSSE<T = unknown, R = unknown>() {
     calculateDelay: reconnectDelay,
     resetAttempts,
     recordAttempt,
-  } = useSession()
+  } = useSessionStore()
 
   async function createConnection(
     url: string,
