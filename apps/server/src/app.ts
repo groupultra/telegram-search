@@ -10,6 +10,7 @@ import { createRouter, defineEventHandler, defineWebSocketHandler, getQuery } fr
 import { createResponse } from './utils/response'
 import { handleConnectionEvent, registerConnectionEventHandler } from './v2/connection'
 import { handleDialogsEvent, registerDialogsEventHandler } from './v2/dialogs'
+import { handleEntityEvent, registerEntityEventHandler } from './v2/entity'
 import { handleMessageEvent, registerMessageEventHandler } from './v2/messages'
 import { registerWsMessageRoute, routeWsMessage } from './v2/routes'
 import { sendWsError, sendWsEvent } from './v2/ws-event'
@@ -24,6 +25,9 @@ import { sendWsError, sendWsEvent } from './v2/ws-event'
 export interface ClientState {
   ctx?: CoreContext
   peer: Peer
+
+  isConnected?: boolean
+  phoneNumber?: string
 }
 
 type UUID = ReturnType<typeof crypto.randomUUID>
@@ -40,8 +44,8 @@ export function setupWsRoutes(app: App) {
   function useSessionState(sessionId: UUID) {
     if (!clientStates.has(sessionId)) {
       const ctx = createCoreInstance()
-      clientStates.set(sessionId, { ctx })
-      useLogger().debug('[/ws] Session restored', { sessionId })
+      clientStates.set(sessionId, { ctx, isConnected: false })
+      useLogger().withFields({ sessionId }).debug('[/ws] Session restored')
 
       return { ctx }
     }
@@ -74,7 +78,7 @@ export function setupWsRoutes(app: App) {
       const sessionId = useSessionId(peer)
       const state = { ...useSessionState(sessionId), peer }
 
-      useLogger().debug('[/ws] Websocket connection opened', { peer: peer.id })
+      useLogger().withFields({ peer: peer.id }).debug('[/ws] Websocket connection opened')
 
       // Setup session and login
       // setupSession(ctx)
@@ -97,10 +101,12 @@ export function setupWsRoutes(app: App) {
       registerConnectionEventHandler(state)
       registerMessageEventHandler(state)
       registerDialogsEventHandler(state)
+      registerEntityEventHandler(state)
 
       registerWsMessageRoute('auth', handleConnectionEvent)
       registerWsMessageRoute('message', handleMessageEvent)
       registerWsMessageRoute('dialog', handleDialogsEvent)
+      registerWsMessageRoute('entity', handleEntityEvent)
 
       state.ctx?.emitter.on('core:error', ({ error }: { error?: string | Error | unknown }) => {
         sendWsError(peer, error)
@@ -146,7 +152,7 @@ export function setupWsRoutes(app: App) {
         destoryCoreInstance(state.ctx)
       }
 
-      useLogger().debug('[/ws] Websocket connection closed', { peerId: peer.id })
+      useLogger().withFields({ peerId: peer.id }).debug('[/ws] Websocket connection closed')
     },
   }))
 }

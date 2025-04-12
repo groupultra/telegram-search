@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
-import { useConnectionStore } from '../composables/v2/useConnection'
+import { useSessionStore } from '../composables/v2/useSessionV2'
 
 type LoginStep = 'phone' | 'code' | 'password' | 'complete'
 
-const connectionStore = useConnectionStore()
-const { activeSession } = storeToRefs(connectionStore)
+const connectionStore = useSessionStore()
 
 const state = ref({
   isLoading: false,
@@ -15,7 +13,7 @@ const state = ref({
   currentStep: 'phone' as LoginStep,
   showAdvancedSettings: false,
 
-  phoneNumber: activeSession.value?.phoneNumber ?? '',
+  phoneNumber: connectionStore.getActiveSession()?.phoneNumber ?? '',
   verificationCode: '',
   twoFactorPassword: '',
 

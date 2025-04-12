@@ -4,7 +4,7 @@ import { useWebSocket } from '@vueuse/core'
 import { watch } from 'vue'
 
 import { WS_API_BASE } from '../../constants'
-import { useConnectionStore } from './useConnection'
+import { useSessionStore } from './useSessionV2'
 
 let wsContext: ReturnType<typeof createWebsocketV2Context>
 
@@ -13,8 +13,8 @@ export function createWebsocketV2Context(sessionId: string) {
     throw new Error('Session ID is required')
 
   const url = `${WS_API_BASE}?sessionId=${sessionId}`
-  const socket = useWebSocket<string>(url.toString())
-  const connectionStore = useConnectionStore()
+  const socket = useWebSocket<keyof WsMessageToClient>(url.toString())
+  const connectionStore = useSessionStore()
 
   function createWsMessage<T extends keyof WsEventToServer>(
     type: T,
@@ -37,7 +37,7 @@ export function createWebsocketV2Context(sessionId: string) {
       return
 
     try {
-      const message = JSON.parse(rawMessage)
+      const message = JSON.parse(rawMessage) as WsMessageToClient
 
       // eslint-disable-next-line no-console
       console.log('[WebSocket] Message received', message)
@@ -45,8 +45,7 @@ export function createWebsocketV2Context(sessionId: string) {
       try {
         switch (message.type) {
           case 'server:connected':
-            connectionStore.setConnection(message.data.sessionId, {})
-            connectionStore.activeSessionId = message.data.sessionId
+            connectionStore.setActiveSession(message.data.sessionId, {})
             break
 
           case 'auth:needCode':
@@ -55,6 +54,15 @@ export function createWebsocketV2Context(sessionId: string) {
 
           case 'auth:needPassword':
             connectionStore.auth.needPassword = true
+            break
+
+          case 'auth:connected':
+            connectionStore.getActiveSession()!.isConnected = true
+            sendEvent('entity:getMe', undefined)
+            break
+
+          case 'entity:me':
+            connectionStore.getActiveSession()!.me = message.data
             break
 
           default:

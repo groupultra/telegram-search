@@ -29,9 +29,12 @@ export function handleConnectionEvent(
 
   switch (message.type) {
     case 'auth:login':
+      state.phoneNumber = message.data.phoneNumber
+
       emitter.emit('auth:login', message.data)
 
       emitter.once('auth:connected', () => {
+        state.isConnected = true
         sendWsEvent(peer, 'auth:connected', {})
       })
 
@@ -49,6 +52,7 @@ export function handleConnectionEvent(
       emitter.emit('auth:password', message.data)
       break
     case 'auth:logout':
+      state.isConnected = false
       emitter.emit('auth:logout')
       break
     default:

@@ -3,13 +3,14 @@ import type { SuccessResponse } from '@tg-search/server'
 
 import { useLocalStorage } from '@vueuse/core'
 import { defineStore } from 'pinia'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { apiFetch } from '../api'
 import { useWebsocketV2 } from './useWebsocketV2'
 
-interface SessionContext {
+export interface SessionContext {
   phoneNumber?: string
+  isConnected?: boolean
   me?: CoreUserInfo
 }
 
@@ -22,9 +23,16 @@ export const useSessionStore = defineStore('session-v2', () => {
   const auth = ref({
     needCode: false,
     needPassword: false,
-
-    isLoggedIn: false,
   })
+
+  const activeSessionComputed = computed(() => storageSessions.value.get(storageActiveSessionId.value))
+
+  const getWsContext = () => {
+    if (!wsContext)
+      wsContext = useWebsocketV2(storageActiveSessionId.value)
+
+    return wsContext
+  }
 
   const getActiveSession = () => {
     return storageSessions.value.get(storageActiveSessionId.value)
@@ -49,6 +57,16 @@ export const useSessionStore = defineStore('session-v2', () => {
     }
 
     wsContext = useWebsocketV2(storageActiveSessionId.value)
+
+    // Try to connect to Telegram
+    const activeSessionComputed = getActiveSession()
+    if (!activeSessionComputed?.isConnected && activeSessionComputed?.phoneNumber) {
+      handleAuth().login(activeSessionComputed.phoneNumber)
+    }
+
+    if (activeSessionComputed?.isConnected) {
+      wsContext.sendEvent('entity:getMe', undefined)
+    }
   })
 
   function handleAuth() {
@@ -72,12 +90,20 @@ export const useSessionStore = defineStore('session-v2', () => {
       })
     }
 
-    return { login, submitCode, submitPassword }
+    function logout() {
+      getActiveSession()!.isConnected = false
+      wsContext.sendEvent('auth:logout', undefined)
+    }
+
+    return { login, submitCode, submitPassword, logout }
   }
 
   return {
+    sessions: storageSessions,
     activeSessionId: storageActiveSessionId,
+    activeSessionComputed,
     auth,
+    getWsContext,
     handleAuth,
     getActiveSession,
     setActiveSession,

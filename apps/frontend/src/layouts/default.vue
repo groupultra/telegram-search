@@ -1,31 +1,31 @@
 <script setup lang="ts">
-import type { UserInfoResponse } from '@tg-search/server'
 import { onClickOutside } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import DropdownMenu from '../components/ui/DropdownMenu.vue'
 import { useDarkStore } from '../composables/dark'
 import { useLanguage } from '../composables/useLanguage'
-import { useSession } from '../composables/useSession'
-import { useAuth } from '../store/useAuth'
+import { useSessionStore } from '../composables/v2/useSessionV2'
 
 const router = useRouter()
-const { logout, getMeInfo } = useAuth()
 const { isDark } = useDarkStore()
-const { checkConnection } = useSession()
-const { isConnected } = storeToRefs(useSession())
 const { supportedLanguages, setLanguage, locale } = useLanguage()
 const { t } = useI18n()
+
 const showUserMenu = ref(false)
 const showLanguageMenu = ref(false)
 const showCommandMenu = ref(false)
+
 const userMenuRef = ref<HTMLElement | null>(null)
 const languageMenuRef = ref<HTMLElement | null>(null)
 const commandMenuRef = ref<HTMLElement | null>(null)
-const userInfo = ref<UserInfoResponse | null>(null)
+
+const sessionStore = useSessionStore()
+const { handleAuth } = sessionStore
+const { activeSessionComputed } = storeToRefs(sessionStore)
 
 // Use VueUse's onClickOutside to handle closing the menus
 onClickOutside(userMenuRef, () => {
@@ -40,37 +40,25 @@ onClickOutside(commandMenuRef, () => {
   showCommandMenu.value = false
 })
 
-// Check if user is logged in and get user info
-onMounted(async () => {
-  await checkConnection(false)
-  if (isConnected.value) {
-    try {
-      userInfo.value = await getMeInfo()
-    }
-    catch (err) {
-      console.error('Failed to get user info:', err)
-    }
-  }
-})
+// onMounted(async () => {
+//   if (isConnected.value && !me.value) {
+//     const { sendEvent } = getWsContext()
+//     sendEvent('entity:getMe', undefined)
+//   }
+// })
 
 // Handle logout
 async function handleLogout() {
   showUserMenu.value = false
-  const success = await logout()
-  if (success) {
-    userInfo.value = null
-    toast.success(t('header.logout_success'))
-    router.push('/login')
-  }
-  else {
-    toast.error(t('header.logout_failed'))
-  }
+  handleAuth().logout()
+  toast.success(t('header.logout_success'))
+  router.push('/v2login')
 }
 
 // Handle login
 async function handleLogin() {
   showUserMenu.value = false
-  router.push('/login')
+  router.push('/v2login')
 }
 
 // Handle language change
@@ -94,28 +82,28 @@ function handleLanguageChange(langCode: string) {
           <IconButton
             icon="i-lucide-download"
             with-transition
-            aria-label="{{$t('header.export_command')}}"
+            :aria-label="$t('header.export_command')"
             @click="router.push('/commands/export')"
           />
 
           <IconButton
             icon="i-lucide-folder-sync"
             with-transition
-            aria-label="{{$t('header.sync_command')}}"
+            :aria-label="$t('header.sync_command')"
             @click="router.push('/commands/sync')"
           />
 
           <IconButton
             icon="i-lucide-folder-open"
             with-transition
-            aria-label="{{$t('header.embed_command')}}"
+            :aria-label="$t('header.embed_command')"
             @click="router.push('/commands/embed')"
           />
 
           <IconButton
             icon="i-lucide-settings"
             with-transition
-            aria-label="{{$t('header.setting')}}"
+            :aria-label="$t('header.setting')"
             @click="router.push('/settings')"
           />
 
@@ -124,17 +112,17 @@ function handleLanguageChange(langCode: string) {
             icon="i-lucide-user"
             :label="$t('header.usermenu')"
           >
-            <div v-if="userInfo" class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
-              <div>{{ userInfo.firstName }} {{ userInfo.lastName }}</div>
+            <div v-if="activeSessionComputed?.me" class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
+              <div>{{ activeSessionComputed.me.firstName }} {{ activeSessionComputed.me.lastName }}</div>
               <div class="text-xs text-gray-500">
-                @{{ userInfo.username }}
+                @{{ activeSessionComputed.me.username }}
               </div>
             </div>
 
-            <div class="my-2 border-b border-gray-200 dark:border-gray-700" />
+            <div v-if="activeSessionComputed?.me?.username" class="my-2 border-b border-gray-200 dark:border-gray-700" />
 
             <button
-              v-if="!isConnected"
+              v-if="!activeSessionComputed?.isConnected"
               class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
               @click="handleLogin"
             >
@@ -145,7 +133,7 @@ function handleLanguageChange(langCode: string) {
             </button>
 
             <button
-              v-if="isConnected"
+              v-if="activeSessionComputed?.isConnected"
               class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
               @click="handleLogout"
             >
@@ -183,28 +171,26 @@ function handleLanguageChange(langCode: string) {
     </main>
 
     <!-- Global Dialog Wrapper -->
-    <div class="dialog-wrapper">
+    <div class="pointer-events-none fixed left-0 top-0 z-100 h-screen w-screen">
       <slot name="dialog" />
     </div>
   </div>
 </template>
 
-<style scoped>
-.dialog-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 100;
-}
-
-.dialog-wrapper :deep(dialog) {
+<style>
+:deep(dialog) {
   pointer-events: auto;
 }
 
-/* 添加菜单动画 */
+/* Menu animations */
+.menu-enter-active {
+  animation: menu-in 0.2s ease-out;
+}
+
+.menu-leave-active {
+  animation: menu-out 0.2s ease-in;
+}
+
 @keyframes menu-in {
   from {
     opacity: 0;
@@ -225,13 +211,5 @@ function handleLanguageChange(langCode: string) {
     opacity: 0;
     transform: translateY(-8px);
   }
-}
-
-.menu-enter-active {
-  animation: menu-in 0.2s ease-out;
-}
-
-.menu-leave-active {
-  animation: menu-out 0.2s ease-in;
 }
 </style>

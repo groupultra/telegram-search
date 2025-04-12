@@ -10,6 +10,7 @@ import { createLinkResolver } from './resolvers/link-resolver'
 import { createUserResolver } from './resolvers/user-resolver'
 import { createConnectionService } from './services/connection'
 import { createDialogService } from './services/dialogs'
+import { createEntityService } from './services/entity'
 import { createMessageService } from './services/messages'
 import { createSessionService } from './services/session'
 import { createTakeoutService } from './services/takeout'
@@ -21,7 +22,7 @@ export function authEventHandler(
   config: Config,
 ): EventHandler {
   const { emitter, withError } = ctx
-  const logger = useLogger()
+  const logger = useLogger('core:event:auth')
 
   const { loadSession, cleanSession, saveSession } = useService(ctx, createSessionService)
   const { login, logout } = useService(ctx, createConnectionService)({
@@ -78,6 +79,7 @@ export function afterConnectedEventHandler(
     const { processMessage, fetchMessages } = useService(ctx, createMessageService)
     const { fetchDialogs } = useService(ctx, createDialogService)
     useService(ctx, createTakeoutService)
+    const { getMeInfo } = useService(ctx, createEntityService)
 
     registry.register('embedding', createEmbeddingResolver())
     registry.register('link', createLinkResolver())
@@ -101,6 +103,10 @@ export function afterConnectedEventHandler(
     emitter.on('dialog:fetch', async () => {
       logger.debug('Fetching dialogs')
       await fetchDialogs()
+    })
+
+    emitter.on('entity:getMe', async () => {
+      await getMeInfo()
     })
 
     // TODO: get dialogs from cache

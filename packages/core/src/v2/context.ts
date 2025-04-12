@@ -3,6 +3,7 @@ import type { ClientInstanceEventFromCore, ClientInstanceEventToCore } from './i
 import type { SessionEventFromCore, SessionEventToCore } from './services'
 import type { ConnectionEventFromCore, ConnectionEventToCore } from './services/connection'
 import type { DialogEventFromCore, DialogEventToCore } from './services/dialogs'
+import type { EntityEventFromCore, EntityEventToCore } from './services/entity'
 import type { MessageEventFromCore, MessageEventToCore } from './services/messages'
 import type { TakeoutEventFromCore, TakeoutEventToCore } from './services/takeout'
 
@@ -17,6 +18,7 @@ export type FormCoreEvent = ClientInstanceEventFromCore
   & ConnectionEventFromCore
   & TakeoutEventFromCore
   & SessionEventFromCore
+  & EntityEventFromCore
 
 export type ToCoreEvent = ClientInstanceEventToCore
   & MessageEventToCore
@@ -24,6 +26,7 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & ConnectionEventToCore
   & TakeoutEventToCore
   & SessionEventToCore
+  & EntityEventToCore
 
 export type CoreEvent = FormCoreEvent & ToCoreEvent
 

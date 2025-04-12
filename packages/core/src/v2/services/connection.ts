@@ -10,6 +10,14 @@ import { Api, TelegramClient } from 'telegram'
 import { waitForEvent } from '../utils/promise'
 import { withResult } from '../utils/result'
 
+export interface CoreUserInfo {
+  id: string
+  firstName: string
+  lastName: string
+  username: string
+  photoUrl?: string
+}
+
 export interface ConnectionEventToCore {
   'auth:login': (data: { phoneNumber: string }) => void
   'auth:logout': () => void
@@ -132,7 +140,7 @@ export function createConnectionService(ctx: CoreContext) {
           })
         }
 
-        // The client will return string session, so convert it directly
+        // NOTE: The client will return string session, so convert it directly
         const sessionString = await client.session.save() as unknown as string
         logger.withFields({ sessionString }).debug('Saving session')
 
@@ -141,6 +149,10 @@ export function createConnectionService(ctx: CoreContext) {
         ctx.setClient(client)
 
         emitter.emit('auth:connected', { client })
+
+        // Emit me info
+        emitter.emit('entity:getMe')
+
         return withResult(client, null)
       }
       catch (error) {
