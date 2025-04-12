@@ -1,35 +1,46 @@
+import type { CoreUserInfo } from '@tg-search/core'
 import type { SuccessResponse } from '@tg-search/server'
 
 import { useLocalStorage } from '@vueuse/core'
 import { defineStore } from 'pinia'
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
 import { apiFetch } from '../api'
 import { useWebsocketV2 } from './useWebsocketV2'
 
-interface ConnectionContext {
+interface SessionContext {
   phoneNumber?: string
+  me?: CoreUserInfo
 }
 
-export const useConnectionStore = defineStore('connection', () => {
+export const useSessionStore = defineStore('session-v2', () => {
   let wsContext: ReturnType<typeof useWebsocketV2>
 
-  const storageConnections = useLocalStorage('connection/connections', new Map<string, ConnectionContext>())
-  const storageActiveSessionId = useLocalStorage('connection/active-session-id', '')
+  const storageSessions = useLocalStorage('session/sessions', new Map<string, SessionContext>())
+  const storageActiveSessionId = useLocalStorage('session/active-session-id', '')
 
-  const connection = ref(storageConnections.value)
   const auth = ref({
     needCode: false,
     needPassword: false,
+
     isLoggedIn: false,
   })
 
-  const activeSession = computed(() => {
-    return connection.value.get(storageActiveSessionId.value)
-  })
+  const getActiveSession = () => {
+    return storageSessions.value.get(storageActiveSessionId.value)
+  }
+
+  const setActiveSession = (sessionId: string, session: SessionContext) => {
+    if (storageSessions.value.has(sessionId))
+      return
+
+    storageSessions.value.set(sessionId, session)
+    storageActiveSessionId.value = sessionId
+  }
 
   onMounted(async () => {
     if (!storageActiveSessionId.value) {
+      // FIXME: reimplement this
       const response = await apiFetch<SuccessResponse<{ sessionId: string }>>('/v2/session', {
         method: 'POST',
       })
@@ -40,17 +51,9 @@ export const useConnectionStore = defineStore('connection', () => {
     wsContext = useWebsocketV2(storageActiveSessionId.value)
   })
 
-  const setConnection = (clientId: string, context: ConnectionContext) => {
-    connection.value.set(clientId, context)
-  }
-
-  const getConnection = (clientId: string) => {
-    return connection.value.get(clientId)
-  }
-
   function handleAuth() {
     function login(phoneNumber: string) {
-      getConnection(storageActiveSessionId.value)!.phoneNumber = phoneNumber
+      storageSessions.value.get(storageActiveSessionId.value)!.phoneNumber = phoneNumber
 
       wsContext.sendEvent('auth:login', {
         phoneNumber,
@@ -73,11 +76,10 @@ export const useConnectionStore = defineStore('connection', () => {
   }
 
   return {
-    setConnection,
-    getConnection,
-    activeSession,
     activeSessionId: storageActiveSessionId,
     auth,
     handleAuth,
+    getActiveSession,
+    setActiveSession,
   }
 })
