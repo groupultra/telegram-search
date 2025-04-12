@@ -1,6 +1,7 @@
 import type { SendMessageParams, TelegramChat, TelegramMessage } from '@tg-search/core'
 import type { PaginationParams } from '@tg-search/server/types'
 
+import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import { apiFetch, useApi } from '../composables/api'
@@ -8,7 +9,7 @@ import { apiFetch, useApi } from '../composables/api'
 /**
  * Vue composable for managing messages state and operations
  */
-export function useMessages() {
+export const useMessages = defineStore('messages', () => {
   const messages = ref<TelegramMessage[]>([])
   const chat = ref<TelegramChat>()
   const total = ref(0)
@@ -56,4 +57,4 @@ export function useMessages() {
     loadMessages,
     sendMessage,
   }
-}
+})

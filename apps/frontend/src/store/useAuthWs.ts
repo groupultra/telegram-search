@@ -1,3 +1,4 @@
+import { defineStore } from 'pinia'
 import { onUnmounted, ref } from 'vue'
 
 import { ConnectionStatus, useWebSocket } from '../composables/useWebSocket'
@@ -29,7 +30,7 @@ interface ProgressData {
 /**
  * Vue composable for managing Telegram authentication state and operations through WebSocket
  */
-export function useAuthWs() {
+export const useAuthWs = defineStore('authWs', () => {
   const isConnected = ref(false)
   const loading = ref(false)
   const error = ref<Error | null>(null)
@@ -253,4 +254,4 @@ export function useAuthWs() {
     resetLoginState,
     connectionStatus: status,
   }
-}
+})

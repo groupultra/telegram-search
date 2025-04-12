@@ -5,11 +5,11 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { useAuth } from '../apis/useAuth'
 import DropdownMenu from '../components/ui/DropdownMenu.vue'
 import { useDarkStore } from '../composables/dark'
 import { useLanguage } from '../composables/useLanguage'
 import { useSession } from '../composables/useSession'
+import { useAuth } from '../store/useAuth'
 
 const router = useRouter()
 const { logout, getMeInfo } = useAuth()

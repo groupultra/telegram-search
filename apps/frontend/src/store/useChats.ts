@@ -1,13 +1,11 @@
 import type { TelegramChat } from '@tg-search/core'
 
+import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { apiFetch, useApi } from '../composables/api'
 
-/**
- * Vue composable for managing chats state and operations
- */
-export function useChats() {
+export const useChats = defineStore('chats', () => {
   const chats = ref<TelegramChat[]>([])
   const total = ref(0)
   const { loading, error, request } = useApi()
@@ -39,4 +37,4 @@ export function useChats() {
     total,
     loadChats,
   }
-}
+})

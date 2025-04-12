@@ -4,11 +4,11 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import { useEmbed } from '../../apis/commands/useEmbed'
-import { useChats } from '../../apis/useChats'
 import EmbedStatus from '../../components/embed/EmbedStatus.vue'
 import NeedLogin from '../../components/NeedLogin.vue'
 import ChatSelector from '../../components/sync/ChatSelector.vue'
 import { useSession } from '../../composables/useSession'
+import { useChats } from '../../store/useChats'
 
 const { t } = useI18n()
 const { loadChats, exportedChats } = useChats()

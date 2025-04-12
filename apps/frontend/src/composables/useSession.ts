@@ -1,14 +1,15 @@
+import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
-import { useAuth } from '../apis/useAuth'
+import { useAuth } from '../store/useAuth'
 
 /**
  * 用于管理 Telegram 会话状态的 composable
  * 包含重试机制和连接状态管理
  */
-export function useSession() {
+export const useSession = defineStore('session', () => {
   // 重试机制参数
   const maxAttempts = 3
   const baseDelay = 5000
@@ -113,4 +114,4 @@ export function useSession() {
     checkConnection,
     attemptReconnect,
   }
-}
+})

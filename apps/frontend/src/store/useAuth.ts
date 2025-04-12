@@ -1,14 +1,12 @@
 import type { SuccessResponse, UserInfoResponse } from '@tg-search/server'
 
+import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import { apiFetch, useApi } from '../composables/api'
 
-/**
- * Vue composable for managing Telegram authentication state and operations
- */
-export function useAuth() {
-  const isConnected = ref(true)
+export const useAuth = defineStore('auth', () => {
+  const isConnected = ref(false)
   const { loading, error, request } = useApi()
 
   async function checkStatus(): Promise<boolean> {
@@ -55,4 +53,4 @@ export function useAuth() {
     checkStatus,
     getMeInfo,
   }
-}
+})

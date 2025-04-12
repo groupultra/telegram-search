@@ -2,7 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { useChats } from '../apis/useChats'
+import { useChats } from '../store/useChats'
 
 // Initialize API client and router
 const { loading, error, exportedChats, loadChats } = useChats()

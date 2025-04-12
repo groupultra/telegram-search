@@ -5,11 +5,11 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useExport } from '../../apis/commands/useExport'
-import { useChats } from '../../apis/useChats'
 import ExportStatus from '../../components/export/ExportStatus.vue'
 import NeedLogin from '../../components/NeedLogin.vue'
 import { useChatTypeOptions, useExportMethodOptions, useMessageTypeOptions } from '../../composables/useOptions'
 import { useSession } from '../../composables/useSession'
+import { useChats } from '../../store/useChats'
 
 const {
   executeExport,

@@ -4,8 +4,8 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { useMessages } from '../../apis/useMessages'
 import { useUserInfo } from '../../apis/useUserInfo'
+import { useMessages } from '../../store/useMessages'
 // Local message type with highlight support
 interface LocalMessage extends TelegramMessage {
   highlight?: boolean

@@ -4,8 +4,8 @@ import { storeToRefs } from 'pinia'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast, Toaster } from 'vue-sonner'
-import { useConfigStore } from '../apis/useConfig'
 import SelectDropdown from '../components/ui/SelectDropdown.vue'
+import { useConfigStore } from '../store/useConfig'
 
 // Initialize config store
 const configStore = useConfigStore()

@@ -368,7 +368,6 @@ declare module 'vue' {
     readonly createSharedComposable: UnwrapRef<typeof import('@vueuse/core')['createSharedComposable']>
     readonly createTemplatePromise: UnwrapRef<typeof import('@vueuse/core')['createTemplatePromise']>
     readonly createUnrefFn: UnwrapRef<typeof import('@vueuse/core')['createUnrefFn']>
-    readonly createWebsocketV2Context: UnwrapRef<typeof import('./src/composables/useWebsocketV2')['createWebsocketV2Context']>
     readonly customRef: UnwrapRef<typeof import('vue')['customRef']>
     readonly debouncedRef: UnwrapRef<typeof import('@vueuse/core')['debouncedRef']>
     readonly debouncedWatch: UnwrapRef<typeof import('@vueuse/core')['debouncedWatch']>
@@ -486,7 +485,6 @@ declare module 'vue' {
     readonly useColorMode: UnwrapRef<typeof import('@vueuse/core')['useColorMode']>
     readonly useCommandHandler: UnwrapRef<typeof import('./src/composables/useCommands')['useCommandHandler']>
     readonly useConfirmDialog: UnwrapRef<typeof import('@vueuse/core')['useConfirmDialog']>
-    readonly useConnectionStore: UnwrapRef<typeof import('./src/composables/useConnection')['useConnectionStore']>
     readonly useCountdown: UnwrapRef<typeof import('@vueuse/core')['useCountdown']>
     readonly useCounter: UnwrapRef<typeof import('@vueuse/core')['useCounter']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>
