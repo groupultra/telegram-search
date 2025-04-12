@@ -14,8 +14,8 @@ export const useAuth = defineStore('auth', () => {
       method: 'GET',
     })
 
-    isConnected.value = response.data.connected
-    return response.data.connected
+    isConnected.value = response.data?.connected ?? false
+    return isConnected.value
   }
 
   async function getMeInfo(): Promise<UserInfoResponse> {

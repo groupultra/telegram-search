@@ -1,7 +1,10 @@
+import type { SuccessResponse } from '@tg-search/server'
+
 import { useLocalStorage } from '@vueuse/core'
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
+import { apiFetch } from '../api'
 import { useWebsocketV2 } from './useWebsocketV2'
 
 interface ConnectionContext {
@@ -9,7 +12,7 @@ interface ConnectionContext {
 }
 
 export const useConnectionStore = defineStore('connection', () => {
-  const wsContext = useWebsocketV2()
+  let wsContext: ReturnType<typeof useWebsocketV2>
 
   const storageConnections = useLocalStorage('connection/connections', new Map<string, ConnectionContext>())
   const storageActiveSessionId = useLocalStorage('connection/active-session-id', '')
@@ -23,6 +26,18 @@ export const useConnectionStore = defineStore('connection', () => {
 
   const activeSession = computed(() => {
     return connection.value.get(storageActiveSessionId.value)
+  })
+
+  onMounted(async () => {
+    if (!storageActiveSessionId.value) {
+      const response = await apiFetch<SuccessResponse<{ sessionId: string }>>('/v2/session', {
+        method: 'POST',
+      })
+
+      storageActiveSessionId.value = response.data?.sessionId
+    }
+
+    wsContext = useWebsocketV2(storageActiveSessionId.value)
   })
 
   const setConnection = (clientId: string, context: ConnectionContext) => {

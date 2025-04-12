@@ -5,8 +5,9 @@ import type { WsMessageToServer } from './v2/ws-event'
 
 import { useLogger } from '@tg-search/common'
 import { createCoreInstance, destoryCoreInstance } from '@tg-search/core'
-import { defineWebSocketHandler } from 'h3'
+import { createRouter, defineEventHandler, defineWebSocketHandler, getQuery } from 'h3'
 
+import { createResponse } from './utils/response'
 import { handleConnectionEvent, registerConnectionEventHandler } from './v2/connection'
 import { handleDialogsEvent, registerDialogsEventHandler } from './v2/dialogs'
 import { handleMessageEvent, registerMessageEventHandler } from './v2/messages'
@@ -32,7 +33,7 @@ export function setupWsRoutes(app: App) {
 
   function useSessionId(peer: Peer) {
     const url = new URL(peer.request.url)
-    const urlSessionId = url.searchParams.get('session') as UUID
+    const urlSessionId = url.searchParams.get('sessionId') as UUID
     return urlSessionId || crypto.randomUUID()
   }
 
@@ -48,7 +49,27 @@ export function setupWsRoutes(app: App) {
     return clientStates.get(sessionId)
   }
 
+  const router = createRouter()
+
+  router.post('/session', defineEventHandler(async (req) => {
+    const query = getQuery(req)
+    const sessionId = query.sessionId as UUID ?? crypto.randomUUID()
+    return createResponse({ sessionId })
+  }))
+
+  app.use('/v2', router.handler)
+
   app.use('/ws', defineWebSocketHandler({
+    async upgrade(req) {
+      const url = new URL(req.url)
+      const urlSessionId = url.searchParams.get('sessionId') as UUID
+
+      if (!urlSessionId) {
+        // FIXME: fix response type
+        return new Response('Session ID is required', { status: 400 })
+      }
+    },
+
     async open(peer) {
       const sessionId = useSessionId(peer)
       const state = { ...useSessionState(sessionId), peer }
@@ -77,11 +98,17 @@ export function setupWsRoutes(app: App) {
       registerMessageEventHandler(state)
       registerDialogsEventHandler(state)
 
+      registerWsMessageRoute('auth', handleConnectionEvent)
+      registerWsMessageRoute('message', handleMessageEvent)
+      registerWsMessageRoute('dialog', handleDialogsEvent)
+
       state.ctx?.emitter.on('core:error', ({ error }: { error?: string | Error | unknown }) => {
         sendWsError(peer, error)
       })
 
       sendWsEvent(peer, 'server:connected', { sessionId })
+
+      clientStates.set(sessionId, state)
     },
 
     async message(peer, message) {
@@ -102,15 +129,13 @@ export function setupWsRoutes(app: App) {
       // console.log(wsMessage)
 
       try {
-        registerWsMessageRoute('auth', handleConnectionEvent)
-        registerWsMessageRoute('message', handleMessageEvent)
-        registerWsMessageRoute('dialog', handleDialogsEvent)
-
         routeWsMessage(state, data)
       }
       catch (error) {
         useLogger().error('[/ws] Handle websocket message failed', { error })
       }
+
+      clientStates.set(sessionId, state)
     },
 
     close(peer) {

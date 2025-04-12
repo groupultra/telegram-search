@@ -8,8 +8,11 @@ import { useConnectionStore } from './useConnection'
 
 let wsContext: ReturnType<typeof createWebsocketV2Context>
 
-export function createWebsocketV2Context(sessionId?: string) {
-  const url = sessionId ? `${WS_API_BASE}?sessionId=${sessionId}` : WS_API_BASE
+export function createWebsocketV2Context(sessionId: string) {
+  if (!sessionId)
+    throw new Error('Session ID is required')
+
+  const url = `${WS_API_BASE}?sessionId=${sessionId}`
   const socket = useWebSocket<string>(url.toString())
   const connectionStore = useConnectionStore()
 
@@ -73,7 +76,7 @@ export function createWebsocketV2Context(sessionId?: string) {
   }
 }
 
-export function useWebsocketV2(sessionId?: string) {
+export function useWebsocketV2(sessionId: string) {
   if (!wsContext)
     wsContext = createWebsocketV2Context(sessionId)
 
