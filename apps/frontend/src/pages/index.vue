@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useChats } from '../store/useChats'
 
 // Initialize API client and router
-const { loading, error, exportedChats, loadChats } = useChats()
+const chatStore = useChats()
+const { loading, error, exportedChats } = storeToRefs(chatStore)
+const { loadChats } = chatStore
 const router = useRouter()
 const { t } = useI18n()
 // Computed properties for filtered and categorized chats

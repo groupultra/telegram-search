@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore, storeToRefs } from 'pinia'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -19,7 +19,9 @@ export const useSession = defineStore('session', () => {
   const isCheckingConnection = ref(false)
 
   const router = useRouter()
-  const { checkStatus, isConnected } = useAuth()
+  const authStore = useAuth()
+  const { checkStatus } = authStore
+  const { isConnected } = storeToRefs(authStore)
 
   // 指数退避策略
   const calculateDelay = () =>

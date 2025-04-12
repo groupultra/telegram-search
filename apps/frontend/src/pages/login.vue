@@ -4,9 +4,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { useAuthWs } from '../apis/useAuthWs' // 新版基于WebSocket的验证
-import { useConfigStore } from '../apis/useConfig'
 import { ConnectionStatus } from '../composables/useWebSocket'
+import { useAuthWs } from '../store/useAuthWs'
+import { useConfigStore } from '../store/useConfig'
 import { ErrorCode } from '../types/error'
 
 // 定义登录流程的各个步骤
@@ -50,9 +50,8 @@ const state = ref<LoginState>({
 })
 
 const router = useRouter()
+const authWs = useAuthWs()
 const {
-  checkStatus,
-  login,
   loading,
   error: wsError,
   isConnected,
@@ -60,10 +59,14 @@ const {
   needsPassword,
   progress,
   connectionStatus,
+} = storeToRefs(authWs)
+const {
+  checkStatus,
+  login,
   submitVerificationCode,
   submitTwoFactorAuth,
   resetLoginState,
-} = useAuthWs() // 新版WebSocket API
+} = authWs
 
 const { fetchConfig } = useConfigStore()
 const { config } = storeToRefs(useConfigStore())

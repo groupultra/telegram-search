@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { UserInfoResponse } from '@tg-search/server'
 import { onClickOutside } from '@vueuse/core'
+import { storeToRefs } from 'pinia'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -14,7 +15,8 @@ import { useAuth } from '../store/useAuth'
 const router = useRouter()
 const { logout, getMeInfo } = useAuth()
 const { isDark } = useDarkStore()
-const { checkConnection, isConnected } = useSession()
+const { checkConnection } = useSession()
+const { isConnected } = storeToRefs(useSession())
 const { supportedLanguages, setLanguage, locale } = useLanguage()
 const { t } = useI18n()
 const showUserMenu = ref(false)

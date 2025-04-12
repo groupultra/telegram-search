@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { ref, watch, watchEffect } from 'vue'
+import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { useConnectionStore } from '../composables/v2/useConnection'
 

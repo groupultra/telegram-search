@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TelegramMessage } from '@tg-search/core'
+import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -12,7 +13,9 @@ interface LocalMessage extends TelegramMessage {
 }
 
 // Initialize API client and router
-const { messages: apiMessages, loading: messagesLoading, chat, total: messagesTotal, loadMessages: fetchMessages, error, sendMessage } = useMessages()
+const messageStore = useMessages()
+const { messages: apiMessages, loading: messagesLoading, chat, total: messagesTotal, error } = storeToRefs(messageStore)
+const { loadMessages: fetchMessages, sendMessage } = messageStore
 const { getUserInfo } = useUserInfo()
 const route = useRoute()
 const router = useRouter()

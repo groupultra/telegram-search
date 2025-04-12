@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
 
+import { toast } from 'vue-sonner'
 import { useEmbed } from '../../apis/commands/useEmbed'
 import EmbedStatus from '../../components/embed/EmbedStatus.vue'
 import NeedLogin from '../../components/NeedLogin.vue'
@@ -11,9 +12,11 @@ import { useSession } from '../../composables/useSession'
 import { useChats } from '../../store/useChats'
 
 const { t } = useI18n()
-const { loadChats, exportedChats } = useChats()
+const chatStore = useChats()
+const { loadChats, exportedChats } = chatStore
 const { executeEmbed, currentCommand, embedProgress, cleanup } = useEmbed()
-const { checkConnection, isConnected } = useSession()
+const { checkConnection } = useSession()
+const { isConnected } = storeToRefs(useSession())
 
 const selectedChats = ref<number[]>([])
 const showConnectButton = ref(false)

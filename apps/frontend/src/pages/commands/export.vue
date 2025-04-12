@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TelegramChat } from '@tg-search/core'
 import type { DatabaseMessageType } from '@tg-search/db'
+import { storeToRefs } from 'pinia'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -17,10 +18,13 @@ const {
   exportProgress,
   cleanup,
 } = useExport()
-const { checkConnection, isConnected } = useSession()
+const { checkConnection } = useSession()
+const { isConnected } = storeToRefs(useSession())
 
 const { t } = useI18n()
-const { chats, loadChats } = useChats()
+const chatStore = useChats()
+const { chats } = storeToRefs(chatStore)
+const { loadChats } = chatStore
 const chatTypeOptions = useChatTypeOptions()
 const messageTypeOptions = useMessageTypeOptions()
 const exportMethodOptions = useExportMethodOptions()
