@@ -132,7 +132,7 @@ export function setupWsRoutes(app: App) {
         routeWsMessage(state, data)
       }
       catch (error) {
-        useLogger().error('[/ws] Handle websocket message failed', { error })
+        useLogger().withError(error).error('[/ws] Handle websocket message failed')
       }
 
       clientStates.set(sessionId, state)
