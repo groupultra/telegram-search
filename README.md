@@ -58,12 +58,6 @@ pnpm run dev:frontend
 
 访问 `http://localhost:3333` 即可打开搜索界面。
 
-## 📚 开发文档
-
-- [开发指南](docs/development-guide.md)
-- [数据库设计](docs/database-design.md)
-- [贡献指南](CONTRIBUTING.md)
-
 ## 🚀 Activity
 
 [![Star History Chart](https://api.star-history.com/svg?repos=luoling8192/telegram-search&type=Date)](https://star-history.com/#luoling8192/telegram-search&Date)
