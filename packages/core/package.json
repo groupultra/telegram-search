@@ -22,7 +22,7 @@
     "lint:fix": "eslint src --fix"
   },
   "dependencies": {
-    "@guiiai/logg": "^1.0.7",
+    "@guiiai/logg": "^1.0.8",
     "@tg-search/common": "workspace:*",
     "@tg-search/db": "workspace:*",
     "@xsai-ext/providers-cloud": "catalog:",
@@ -38,7 +38,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
+    "@types/node": "^22.14.1",
     "unbuild": "^3.5.0",
     "vitest": "^3.1.1"
   }

@@ -27,7 +27,7 @@
     "drizzle-orm": "^0.41.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "unbuild": "^3.5.0"
   }
 }
