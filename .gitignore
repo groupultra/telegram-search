@@ -6,3 +6,4 @@ dist
 media
 config.yaml
 .cursorrules
+.DS_Store
