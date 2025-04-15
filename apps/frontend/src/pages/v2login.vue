@@ -72,7 +72,7 @@ const steps = [
 </script>
 
 <template>
-  <div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-md">
+  <div class="mx-auto max-w-3xl rounded-lg bg-white p-6 shadow-md">
     <h1 class="mb-6 text-center text-2xl font-bold">
       Telegram 登录
     </h1>
@@ -85,7 +85,7 @@ const steps = [
           <div class="flex items-center gap-2">
             <!-- Step Indicator -->
             <div
-              class="h-7 w-7 flex items-center justify-center border-2 rounded-full text-sm"
+              class="h-7 min-w-7 flex items-center justify-center border-2 rounded-full text-sm"
               :class="{
                 'border-indigo-600 text-indigo-600': state.currentStep === step.value,
                 'border-indigo-600 bg-indigo-600 text-white':
