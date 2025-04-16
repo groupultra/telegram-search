@@ -3,7 +3,5 @@ node_modules
 dist
 .env
 .session
-media
-config.yaml
-.cursorrules
 .DS_Store
+config.yaml
