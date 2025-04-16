@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.10",
   "private": true,
-  "packageManager": "pnpm@10.8.0",
+  "packageManager": "pnpm@10.8.1",
   "scripts": {
     "build": "pnpm -r build",
     "stub": "pnpm -r stub",
@@ -39,7 +39,7 @@
   },
   "resolutions": {
     "unplugin": "^2.3.2",
-    "vite": "^6.2.6"
+    "vite": "^6.3.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,vue}": [

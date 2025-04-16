@@ -29,8 +29,8 @@
   "dependencies": {
     "@tg-search/common": "workspace:*",
     "@tg-search/pg-vector": "workspace:*",
-    "drizzle-kit": "^0.30.6",
-    "drizzle-orm": "^0.41.0",
+    "drizzle-kit": "^0.31.0",
+    "drizzle-orm": "^0.42.0",
     "glob": "^11.0.1",
     "pg": "^8.14.1",
     "postgres": "^3.4.5",
@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.14.1",
-    "@types/pg": "^8.11.12",
+    "@types/pg": "^8.11.13",
     "tsx": "^4.19.3",
     "unbuild": "^3.5.0",
     "vitest": "^3.1.1"
