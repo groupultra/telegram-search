@@ -75,8 +75,8 @@ export function createWebsocketV2Context(sessionId: string) {
             //   break
 
           default:
-          // eslint-disable-next-line no-console
-            console.log('[WebSocket] Unknown message', message)
+            // eslint-disable-next-line no-console
+            console.log('[WebSocket] Unknown message')
         }
       }
       catch (error) {
