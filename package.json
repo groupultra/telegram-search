@@ -8,6 +8,7 @@
     "build": "pnpm -r build",
     "stub": "pnpm -r stub",
     "packages:build": "pnpm -rF=\"./packages/*\" build",
+    "packages:stub": "pnpm -rF=\"./packages/*\" stub",
     "dev:server": "pnpm run packages:build && pnpm -F @tg-search/server dev",
     "dev:frontend": "pnpm -F @tg-search/frontend dev",
     "lint": "pnpm -r lint",

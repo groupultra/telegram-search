@@ -1,16 +1,14 @@
 import type { NodeOptions } from 'crossws/adapters/node'
-import type { App } from 'h3'
 
-import { createServer } from 'node:http'
 import process from 'node:process'
 import { initConfig, initDB, initLogger, useLogger } from '@tg-search/common'
-import wsAdapter from 'crossws/adapters/node'
 import {
   createApp,
   eventHandler,
   setResponseHeaders,
   toNodeListener,
 } from 'h3'
+import { listen } from 'listhen'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
@@ -51,17 +49,6 @@ function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
 
   process.on('uncaughtException', error => handleError(error, 'Uncaught exception'))
   process.on('unhandledRejection', error => handleError(error, 'Unhandled rejection'))
-}
-
-/**
- * Setup all routes for the application
- */
-function setupRoutes(app: App) {
-  setupChatRoutes(app)
-  setupCommandRoutes(app)
-  setupConfigRoutes(app)
-  setupMessageRoutes(app)
-  setupSearchRoutes(app)
 }
 
 // Server configuration
@@ -114,7 +101,11 @@ function configureServer(logger: ReturnType<typeof useLogger>) {
   }))
 
   // Setup routes
-  setupRoutes(app)
+  setupChatRoutes(app)
+  setupCommandRoutes(app)
+  setupConfigRoutes(app)
+  setupMessageRoutes(app)
+  setupSearchRoutes(app)
 
   // v2 ws routes
   setupWsRoutes(app)
@@ -141,9 +132,11 @@ async function bootstrap() {
   const listener = toNodeListener(app)
 
   const port = argv.port
-  const server = createServer(listener).listen(port)
-  const { handleUpgrade } = wsAdapter(app.websocket as NodeOptions)
-  server.on('upgrade', handleUpgrade)
+  // const { handleUpgrade } = wsAdapter(app.websocket as NodeOptions)
+  await listen(listener, { port, ws: app.websocket as NodeOptions })
+  // const server = createServer(listener).listen(port)
+  // server.on('upgrade', handleUpgrade)
+
   logger.withFields({ port }).debug('Server started')
 
   const shutdown = () => process.exit(0)

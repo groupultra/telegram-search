@@ -17,7 +17,7 @@ let config: Config | null = null
  */
 function findConfigFile(): string {
   const configDir = process.env.CONFIG_DIR || findConfigDir()
-  const configPath = join(configDir, `config${process.env.NODE_ENV ? `.${process.env.NODE_ENV}` : ''}.yaml`)
+  const configPath = join(configDir, `config.yaml`)
 
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`)
