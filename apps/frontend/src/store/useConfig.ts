@@ -1,6 +1,6 @@
 import type { Config } from '@tg-search/common'
 
-import { defineStore } from 'pinia'
+import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import { apiFetch, useApi } from '../composables/api'
@@ -44,3 +44,7 @@ export const useConfigStore = defineStore('config', () => {
     updateConfig,
   }
 })
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useConfigStore, import.meta.hot))
+}

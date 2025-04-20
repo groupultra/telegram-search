@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useSessionStore } from '../store/useSessionV2'
 
 type LoginStep = 'phone' | 'code' | 'password' | 'complete'
 
+const router = useRouter()
+
 const connectionStore = useSessionStore()
+const { isLoggedIn } = storeToRefs(connectionStore)
 
 const state = ref({
   isLoading: false,
@@ -37,6 +42,32 @@ watch(() => connectionStore.auth.needPassword, (value) => {
     state.value.currentStep = 'password'
 })
 
+const steps = [
+  { step: 1, value: 'phone', title: '手机号', description: '输入您的 Telegram 手机号' },
+  { step: 2, value: 'code', title: '验证码', description: '输入 Telegram 发送的验证码' },
+  { step: 3, value: 'password', title: '二次验证', description: '输入两步验证密码' },
+  { step: 4, value: 'complete', title: '完成', description: '登录成功' },
+]
+
+function redirectRoot() {
+  toast.success('登录成功')
+  router.push('/')
+}
+
+watch(isLoggedIn, (value) => {
+  if (value) {
+    redirectRoot()
+  }
+})
+
+onMounted(() => {
+  connectionStore.attemptLogin()
+
+  if (isLoggedIn.value) {
+    redirectRoot()
+  }
+})
+
 async function handleLogin() {
   state.value.isLoading = true
 
@@ -61,14 +92,6 @@ async function handleLogin() {
     state.value.isLoading = false
   }
 }
-
-// Define steps for the stepper
-const steps = [
-  { step: 1, value: 'phone', title: '手机号', description: '输入您的 Telegram 手机号' },
-  { step: 2, value: 'code', title: '验证码', description: '输入 Telegram 发送的验证码' },
-  { step: 3, value: 'password', title: '二次验证', description: '输入两步验证密码' },
-  { step: 4, value: 'complete', title: '完成', description: '登录成功' },
-]
 </script>
 
 <template>

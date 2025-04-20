@@ -2,7 +2,7 @@ import type { CoreUserInfo } from '@tg-search/core'
 import type { SuccessResponse } from '@tg-search/server'
 
 import { useLocalStorage } from '@vueuse/core'
-import { defineStore } from 'pinia'
+import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
 
 import { apiFetch } from '../composables/api'
@@ -46,6 +46,17 @@ export const useSessionStore = defineStore('session', () => {
     storageActiveSessionId.value = sessionId
   }
 
+  const attemptLogin = async () => {
+    const activeSession = getActiveSession()
+    if (!activeSession?.isConnected && activeSession?.phoneNumber) {
+      handleAuth().login(activeSession.phoneNumber)
+    }
+
+    if (activeSession?.isConnected) {
+      wsContext.sendEvent('entity:getMe', undefined)
+    }
+  }
+
   onMounted(async () => {
     if (!storageActiveSessionId.value) {
       // FIXME: reimplement this
@@ -58,15 +69,7 @@ export const useSessionStore = defineStore('session', () => {
 
     wsContext = useWebsocketV2(storageActiveSessionId.value)
 
-    // Try to connect to Telegram
-    const activeSessionComputed = getActiveSession()
-    if (!activeSessionComputed?.isConnected && activeSessionComputed?.phoneNumber) {
-      handleAuth().login(activeSessionComputed.phoneNumber)
-    }
-
-    if (activeSessionComputed?.isConnected) {
-      wsContext.sendEvent('entity:getMe', undefined)
-    }
+    await attemptLogin()
   })
 
   function handleAuth() {
@@ -107,6 +110,11 @@ export const useSessionStore = defineStore('session', () => {
     handleAuth,
     getActiveSession,
     setActiveSession,
+    attemptLogin,
     isLoggedIn: computed(() => activeSessionComputed.value?.isConnected),
   }
 })
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useSessionStore, import.meta.hot))
+}

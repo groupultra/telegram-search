@@ -1,7 +1,7 @@
 import type { SendMessageParams, TelegramChat, TelegramMessage } from '@tg-search/core'
 import type { PaginationParams } from '@tg-search/server/types'
 
-import { defineStore } from 'pinia'
+import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import { apiFetch, useApi } from '../composables/api'
@@ -58,3 +58,7 @@ export const useMessages = defineStore('messages', () => {
     sendMessage,
   }
 })
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useMessages, import.meta.hot))
+}
