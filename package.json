@@ -16,21 +16,19 @@
     "typecheck": "pnpm -r typecheck",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "db:logs": "docker compose logs -f postgres",
-    "db:clean": "docker compose down -v",
     "db:generate": "pnpm -F @tg-search/db db:generate",
     "db:migrate": "pnpm -F @tg-search/db db:migrate",
     "db:push": "pnpm -F @tg-search/db db:push",
     "test": "pnpm -r test run",
     "test:coverage": "pnpm -r test:coverage",
-    "prepare": "husky install",
+    "prepare": "husky",
     "bump": "bumpp",
     "bump:deps": "taze -I -f -w -r"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.12.0",
     "bumpp": "^10.1.0",
-    "eslint": "^9.24.0",
+    "eslint": "^9.25.0",
     "eslint-plugin-format": "^1.0.1",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.1",
@@ -40,7 +38,7 @@
   },
   "resolutions": {
     "unplugin": "^2.3.2",
-    "vite": "^6.3.0"
+    "vite": "^6.3.2"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,vue}": [

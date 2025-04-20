@@ -1,8 +1,11 @@
 packages:
-  - 'packages/*'
-  - 'libs/*'
-  - 'apps/*'
+  - packages/*
+  - libs/*
+  - apps/*
 
 catalog:
-  '@xsai-ext/providers-cloud': &xsai ^0.2.0-beta.3
-  '@xsai/embed': *xsai
+  '@xsai-ext/providers-cloud': ^0.2.0-beta.3
+  '@xsai/embed': ^0.2.0-beta.3
+
+ignoredBuiltDependencies:
+  - '@parcel/watcher'
