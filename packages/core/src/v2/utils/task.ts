@@ -14,8 +14,8 @@ export interface Task<T extends TaskType> {
   taskId: string
   type: T
   progress: number
-  message?: string
-  error?: string
+  lastMessage?: string
+  lastError?: string
   metadata: Tasks[T]
   createdAt: Date
   updatedAt: Date
@@ -53,7 +53,7 @@ export function useTasks<T extends TaskType>(type: T) {
         throw new Error(`Task ${taskId} not found`)
       }
 
-      const updatedTask = defu(task, partialTask, {
+      const updatedTask = defu<Task<T>, Partial<Task<T>>[]>({}, partialTask, task, {
         updatedAt: new Date(),
       })
 

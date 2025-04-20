@@ -51,10 +51,17 @@ export function createTakeoutService(ctx: CoreContext) {
 
   const { createTask, updateTask } = useTasks('takeout')
 
-  const emitProgress = (taskId: string, progress: number, error?: string) => {
+  const emitProgress = (taskId: string, progress: number, message?: string) => {
     emitter.emit('takeout:task:progress', updateTask(taskId, {
       progress,
-      error,
+      lastMessage: message,
+    }))
+  }
+
+  const emitError = (taskId: string, error: Error) => {
+    emitter.emit('takeout:task:progress', updateTask(taskId, {
+      progress: -1,
+      lastError: error.message,
     }))
   }
 
@@ -106,10 +113,7 @@ export function createTakeoutService(ctx: CoreContext) {
         chatIds: [chatId],
       })
 
-      updateTask(taskId, {
-        progress: 1,
-        message: 'Init takeout session',
-      })
+      emitProgress(taskId, 1, 'Init takeout session')
 
       let offsetId = 0
       let hasMore = true
@@ -119,19 +123,17 @@ export function createTakeoutService(ctx: CoreContext) {
       const limit = options.limit || 100
       const minId = options.minId || 0
       const maxId = options.maxId || 0
-      const startTime = options.startTime || new Date()
+      const startTime = options.startTime || new Date(0)
       const endTime = options.endTime || new Date()
 
       const { data: takeoutSession, error } = await initTakeout()
       if (takeoutSession === null || error) {
+        // TODO: error handler
         logger.withError(error).error('Init takeout session failed')
         return
       }
 
-      updateTask(taskId, {
-        progress: 2,
-        message: 'Get messages',
-      })
+      emitProgress(taskId, 2, 'Get messages')
 
       try {
         while (hasMore) {
@@ -195,8 +197,9 @@ export function createTakeoutService(ctx: CoreContext) {
             }
 
             // Process message
-            emitter.emit('message:process', { message })
+            // emitter.emit('message:process', { message })
 
+            // TODO: progress
             // emitter.emit('takeout:progress', {
             //   taskId: 'takeout',
             //   progress: processedCount / limit,
@@ -217,13 +220,14 @@ export function createTakeoutService(ctx: CoreContext) {
 
         await finishTakeout(takeoutSession, true)
         emitProgress(taskId, 100)
+        logger.withFields({ taskId }).debug('Takeout messages finished')
       }
       catch (error) {
         logger.withError(error).error('Takeout messages failed')
 
         // TODO: error handler
         await finishTakeout(takeoutSession, false)
-        emitProgress(taskId, -1, 'Takeout messages failed')
+        emitError(taskId, new Error('Takeout messages failed'))
       }
     },
   }

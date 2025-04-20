@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "serve": "vite-node src/index.ts",
-    "dev": "vite-node src/index.ts",
+    "dev": "vite-node --watch src/index.ts",
     "build": "unbuild",
     "stub": "unbuild --stub",
     "lint": "eslint src",

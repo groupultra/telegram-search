@@ -112,12 +112,11 @@ export function afterConnectedEventHandler(
     emitter.on('takeout:run', async ({ chatIds }) => {
       logger.withFields({ chatIds }).debug('Running takeout')
 
-      const tasks = []
       for (const chatId of chatIds) {
-        tasks.push(takeoutMessages(chatId, { limit: 100 }).next())
+        for await (const message of takeoutMessages(chatId, { limit: 100 })) {
+          emitter.emit('message:process', { message })
+        }
       }
-
-      await Promise.all(tasks)
     })
 
     // TODO: get dialogs from cache
