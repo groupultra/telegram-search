@@ -13,7 +13,7 @@ import { useSessionStore } from '../../store/useSessionV2'
 
 const { t } = useI18n()
 const chatStore = useChats()
-const { loadChats, exportedChats } = chatStore
+const { exportedChats } = storeToRefs(chatStore)
 const { executeEmbed, currentCommand, embedProgress, cleanup } = useEmbed()
 const sessionStore = useSessionStore()
 const { isLoggedIn } = storeToRefs(sessionStore)
@@ -115,7 +115,6 @@ function resetState() {
 
 // Lifecycle
 onMounted(async () => {
-  loadChats()
   if (!isLoggedIn.value)
     showConnectButton.value = true
 })

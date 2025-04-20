@@ -14,7 +14,6 @@ import { useSessionStore } from '../../store/useSessionV2'
 const { t } = useI18n()
 const chatStore = useChats()
 const { chats } = storeToRefs(chatStore)
-const { loadChats } = chatStore
 const { executeChatsSync, currentCommand: chatsSyncCommand, syncProgress: chatsSyncProgress } = useSyncChats()
 const { executeMetadataSync, currentCommand: metadataSyncCommand, syncProgress: metadataSyncProgress } = useSyncMetadata()
 const sessionStore = useSessionStore()
@@ -109,7 +108,6 @@ watch(() => currentCommand.value?.status, (status) => {
 
 // Lifecycle
 onMounted(async () => {
-  await loadChats()
   if (!isLoggedIn.value)
     showConnectButton.value = true
 })

@@ -24,7 +24,6 @@ const { isLoggedIn } = storeToRefs(sessionStore)
 const { t } = useI18n()
 const chatStore = useChats()
 const { chats } = storeToRefs(chatStore)
-const { loadChats } = chatStore
 const chatTypeOptions = useChatTypeOptions()
 const messageTypeOptions = useMessageTypeOptions()
 const exportMethodOptions = useExportMethodOptions()
@@ -54,10 +53,6 @@ const chatOptions = computed(() => {
     id: chat.id,
     label: chat.title || `Chat ${chat.id}`,
   }))
-})
-
-onMounted(async () => {
-  loadChats()
 })
 
 onUnmounted(() => {

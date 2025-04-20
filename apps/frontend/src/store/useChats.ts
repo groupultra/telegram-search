@@ -1,7 +1,7 @@
 import type { TelegramChat } from '@tg-search/core'
 
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { apiFetch, useApi } from '../composables/api'
 
@@ -28,6 +28,10 @@ export const useChats = defineStore('chats', () => {
       console.error('Failed to load chats:', err)
     }
   }
+
+  onMounted(() => {
+    loadChats()
+  })
 
   return {
     chats,
