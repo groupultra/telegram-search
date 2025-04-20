@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { useChats } from '../store/useChats'
 import { useSessionStore } from '../store/useSessionV2'
+import { useSyncTaskStore } from '../store/useSyncTask'
 
 const selectedChats = ref<string[]>([])
 
@@ -14,13 +15,34 @@ const { isLoggedIn } = storeToRefs(sessionStore)
 const chatsStore = useChats()
 const { chats } = storeToRefs(chatsStore)
 
+// const currentTask = ref<Task<'takeout'> | null>(null)
+const loadingToast = ref<string | number>()
+
 function handleSync() {
   const wsContext = getWsContext()
   wsContext.sendEvent('takeout:run', {
     chatIds: selectedChats.value,
   })
-  toast.success('同步开始')
+
+  loadingToast.value = toast.loading('开始同步...')
 }
+
+const { currentTask, currentTaskProgress } = storeToRefs(useSyncTaskStore())
+watch(currentTaskProgress, (progress) => {
+  toast.dismiss(loadingToast?.value)
+
+  if (progress === 100) {
+    toast.dismiss(loadingToast.value)
+    toast.success('同步完成')
+  }
+  else if (progress < 0 && currentTask.value?.lastError) {
+    toast.dismiss(loadingToast.value)
+    toast.error(currentTask.value.lastError)
+  }
+  else {
+    loadingToast.value = toast.loading(`同步中... ${progress}%`)
+  }
+})
 </script>
 
 <template>

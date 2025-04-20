@@ -1,10 +1,12 @@
 import type { WsEventToServer, WsMessageToClient } from '@tg-search/server'
 
 import { useWebSocket } from '@vueuse/core'
+import { storeToRefs } from 'pinia'
 import { watch } from 'vue'
 
 import { WS_API_BASE } from '../constants'
 import { useSessionStore } from '../store/useSessionV2'
+import { useSyncTaskStore } from '../store/useSyncTask'
 
 let wsContext: ReturnType<typeof createWebsocketV2Context>
 
@@ -66,14 +68,11 @@ export function createWebsocketV2Context(sessionId: string) {
             connectionStore.getActiveSession()!.me = message.data
             break
 
-            // case 'takeout:task:created':
-            //   console.log('[WebSocket] Takeout task created', message.data)
-            //   break
-
-            // case 'takeout:task:progress':
-            //   console.log('[WebSocket] Takeout task progress', message.data)
-            //   break
-
+          case 'takeout:task:progress': {
+            const { currentTask } = storeToRefs(useSyncTaskStore())
+            currentTask.value = message.data
+            break
+          }
           default:
             // eslint-disable-next-line no-console
             console.log('[WebSocket] Unknown message')

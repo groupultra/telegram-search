@@ -9,6 +9,8 @@ import { routes } from 'vue-router/auto-routes'
 import App from './App.vue'
 import en from './locales/en.json'
 import zhCN from './locales/zh-CN.json'
+import { useSessionStore } from './store/useSessionV2'
+
 import '@unocss/reset/tailwind.css'
 import './styles/main.css'
 import 'uno.css'
@@ -36,3 +38,7 @@ app.use(VueQueryPlugin)
 app.use(pinia)
 app.use(autoAnimatePlugin)
 app.mount('#app')
+
+router.beforeEach(() => {
+  useSessionStore()
+})

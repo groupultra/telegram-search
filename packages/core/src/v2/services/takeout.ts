@@ -1,7 +1,7 @@
 import type { TelegramMessageType } from '../../types'
 import type { CoreContext } from '../context'
 import type { PromiseResult } from '../utils/result'
-import type { Task } from '../utils/task'
+import type { CoreTask } from '../utils/task'
 
 import { useLogger } from '@tg-search/common'
 import bigInt from 'big-integer'
@@ -23,7 +23,7 @@ export interface TakeoutEventToCore {
 }
 
 export interface TakeoutEventFromCore {
-  'takeout:task:progress': (data: Task<'takeout'>) => void
+  'takeout:task:progress': (data: CoreTask<'takeout'>) => void
 }
 
 export type TakeoutEvent = TakeoutEventFromCore & TakeoutEventToCore
