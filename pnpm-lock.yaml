@@ -285,6 +285,9 @@ importers:
       big-integer:
         specifier: ^1.6.52
         version: 1.6.52
+      defu:
+        specifier: ^6.1.4
+        version: 6.1.4
       drizzle-orm:
         specifier: ^0.42.0
         version: 0.42.0(@types/pg@8.11.13)(gel@2.0.1)(pg@8.14.1)(postgres@3.4.5)

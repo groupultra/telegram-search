@@ -7,7 +7,8 @@
   "scripts": {
     "build": "pnpm -r build",
     "stub": "pnpm -r stub",
-    "dev:server": "pnpm -F @tg-search/server dev",
+    "packages:build": "pnpm -rF=\"./packages/*\" build",
+    "dev:server": "pnpm run packages:build && pnpm -F @tg-search/server dev",
     "dev:frontend": "pnpm -F @tg-search/frontend dev",
     "lint": "pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",

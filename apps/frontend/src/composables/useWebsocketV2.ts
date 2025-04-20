@@ -66,6 +66,14 @@ export function createWebsocketV2Context(sessionId: string) {
             connectionStore.getActiveSession()!.me = message.data
             break
 
+            // case 'takeout:task:created':
+            //   console.log('[WebSocket] Takeout task created', message.data)
+            //   break
+
+            // case 'takeout:task:progress':
+            //   console.log('[WebSocket] Takeout task progress', message.data)
+            //   break
+
           default:
           // eslint-disable-next-line no-console
             console.log('[WebSocket] Unknown message', message)

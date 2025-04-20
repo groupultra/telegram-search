@@ -78,7 +78,7 @@ export function afterConnectedEventHandler(
   emitter.on('auth:connected', () => {
     const { processMessage, fetchMessages } = useService(ctx, createMessageService)
     const { fetchDialogs } = useService(ctx, createDialogService)
-    useService(ctx, createTakeoutService)
+    const { takeoutMessages } = useService(ctx, createTakeoutService)
     const { getMeInfo } = useService(ctx, createEntityService)
 
     registry.register('embedding', createEmbeddingResolver())
@@ -107,6 +107,17 @@ export function afterConnectedEventHandler(
 
     emitter.on('entity:getMe', async () => {
       await getMeInfo()
+    })
+
+    emitter.on('takeout:run', async ({ chatIds }) => {
+      logger.withFields({ chatIds }).debug('Running takeout')
+
+      const tasks = []
+      for (const chatId of chatIds) {
+        tasks.push(takeoutMessages(chatId, { limit: 100 }).next())
+      }
+
+      await Promise.all(tasks)
     })
 
     // TODO: get dialogs from cache

@@ -13,6 +13,7 @@ import { handleDialogsEvent, registerDialogsEventHandler } from './v2/dialogs'
 import { handleEntityEvent, registerEntityEventHandler } from './v2/entity'
 import { handleMessageEvent, registerMessageEventHandler } from './v2/messages'
 import { registerWsMessageRoute, routeWsMessage } from './v2/routes'
+import { handleTakeoutEvent, registerTakeoutEventHandler } from './v2/takeout'
 import { sendWsError, sendWsEvent } from './v2/ws-event'
 
 // function setupServer(app: App, port: number) {
@@ -102,11 +103,21 @@ export function setupWsRoutes(app: App) {
       registerMessageEventHandler(state)
       registerDialogsEventHandler(state)
       registerEntityEventHandler(state)
+      registerTakeoutEventHandler(state)
 
       registerWsMessageRoute('auth', handleConnectionEvent)
       registerWsMessageRoute('message', handleMessageEvent)
       registerWsMessageRoute('dialog', handleDialogsEvent)
       registerWsMessageRoute('entity', handleEntityEvent)
+      registerWsMessageRoute('takeout', handleTakeoutEvent)
+
+      // state.ctx?.emitter.on()
+      // const events = state.ctx?.emitter.eventNames()
+      // events?.forEach((event) => {
+      //   state.ctx?.emitter.on(event, (data) => {
+      //     sendWsEvent(peer, event, data)
+      //   })
+      // })
 
       state.ctx?.emitter.on('core:error', ({ error }: { error?: string | Error | unknown }) => {
         sendWsError(peer, error)
