@@ -303,9 +303,6 @@ importers:
       eventemitter3:
         specifier: ^5.0.1
         version: 5.0.1
-      grammy:
-        specifier: ^1.36.0
-        version: 1.36.0
       pg:
         specifier: ^8.14.1
         version: 8.14.1
@@ -315,15 +312,9 @@ importers:
       telegram:
         specifier: ^2.26.22
         version: 2.26.22
-      tiktoken:
-        specifier: ^1.0.20
-        version: 1.0.20
       yaml:
         specifier: ^2.7.1
         version: 2.7.1
-      zod:
-        specifier: ^3.24.3
-        version: 3.24.3
     devDependencies:
       '@types/node':
         specifier: ^22.14.1
@@ -1186,9 +1177,6 @@ packages:
 
   '@formkit/auto-animate@0.8.2':
     resolution: {integrity: sha512-SwPWfeRa5veb1hOIBMdzI+73te5puUBHmqqaF1Bu7FjvxlYSz/kJcZKSa9Cg60zL0uRNeJL2SbRxV6Jp6Q1nFQ==}
-
-  '@grammyjs/types@3.20.0':
-    resolution: {integrity: sha512-KIoikN5VTj6dcJpzMwXtouzaN3BZJ4jihBuEeXzWr25HtEfCF25V3dN11u+uNYi/9sBDvs0KCKZhyN/xFY0MBg==}
 
   '@guiiai/logg@1.0.8':
     resolution: {integrity: sha512-AZoCXLELXbcbFggx1qJ1CRpv00ZRY1UWk72B+D2VUxrP58sCAxRdWvlO/Ue77GZBehBRheFDGUix3EMqeACu6A==}
@@ -2342,10 +2330,6 @@ packages:
   abbrev@2.0.0:
     resolution: {integrity: sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
-
-  abort-controller@3.0.0:
-    resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
-    engines: {node: '>=6.5'}
 
   accepts@1.3.8:
     resolution: {integrity: sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw==}
@@ -3796,10 +3780,6 @@ packages:
   event-emitter@0.3.5:
     resolution: {integrity: sha512-D9rRn9y7kLPnJ+hMq7S/nhvoKwwvVJahBi2BPmx3bvbsEdK3W9ii8cBSGjP+72/LnM4n6fo3+dkCX5FeTQruXA==}
 
-  event-target-shim@5.0.1:
-    resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
-    engines: {node: '>=6'}
-
   eventemitter3@1.1.1:
     resolution: {integrity: sha512-idmH3G0vJjQv2a5N74b+oXcOUKYBqSGJGN1eVV6ELGdUnesAO8RZsU74eaS3VfldRet8N9pFupxppBUKztrBdQ==}
 
@@ -4100,10 +4080,6 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
-
-  grammy@1.36.0:
-    resolution: {integrity: sha512-Y1HluocfdOu1ccP9VOWnsb4Ql8A4fZS13VFRArgnC5w5JaSsQjjP+C/oDZUD/e1tRDFdJ629NiT3Mnukn7lh0w==}
-    engines: {node: ^12.20.0 || >=14.13.1}
 
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
@@ -5099,15 +5075,6 @@ packages:
 
   node-fetch-native@1.6.6:
     resolution: {integrity: sha512-8Mc2HhqPdlIfedsuZoc3yioPuzp6b+L5jRCRY1QzuWZh2EGJVQrGppC6V6cF0bLdbW0+O2YpqCA25aF/1lvipQ==}
-
-  node-fetch@2.7.0:
-    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
-    engines: {node: 4.x || >=6.0.0}
-    peerDependencies:
-      encoding: ^0.1.0
-    peerDependenciesMeta:
-      encoding:
-        optional: true
 
   node-forge@1.3.1:
     resolution: {integrity: sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==}
@@ -6363,9 +6330,6 @@ packages:
   through@2.3.8:
     resolution: {integrity: sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==}
 
-  tiktoken@1.0.20:
-    resolution: {integrity: sha512-zVIpXp84kth/Ni2me1uYlJgl2RZ2EjxwDaWLeDY/s6fZiyO9n1QoTOM5P7ZSYfToPvAvwYNMbg5LETVYVKyzfQ==}
-
   timed-out@4.0.1:
     resolution: {integrity: sha512-G7r3AhovYtr5YKOWQkta8RKAPb+J9IsO4uVmzjl8AZwfhs8UcUwTiD6gcJYSgOtzyjvQKrKYn41syHbUWMkafA==}
     engines: {node: '>=0.10.0'}
@@ -6432,9 +6396,6 @@ packages:
   tough-cookie@5.1.2:
     resolution: {integrity: sha512-FVDYdxtnj0G6Qm/DhNPSb8Ju59ULcup3tuJxkFb5K8Bv2pUXILbf0xZWU8PX8Ov19OXljbUyveOFwRMwkXzO+A==}
     engines: {node: '>=16'}
-
-  tr46@0.0.3:
-    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
 
   tr46@5.0.0:
     resolution: {integrity: sha512-tk2G5R2KRwBd+ZN0zaEXpmzdKyOYksXwywulIX95MBODjSzMIuQnQ3m8JxgbhnL1LeVo7lqQKsYa1O3Htl7K5g==}
@@ -6963,9 +6924,6 @@ packages:
   web3@1.0.0-beta.35:
     resolution: {integrity: sha512-xwDmUhvTcHQvvNnOPcPZZgCxKUsI2e+GbHy7JkTK3/Rmnutazy8x7fsAXT9myw7V1qpi3GgLoZ3fkglSUbg1Mg==}
 
-  webidl-conversions@3.0.1:
-    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
-
   webidl-conversions@7.0.0:
     resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
     engines: {node: '>=12'}
@@ -6993,9 +6951,6 @@ packages:
   whatwg-url@14.1.1:
     resolution: {integrity: sha512-mDGf9diDad/giZ/Sm9Xi2YcyzaFpbdLpJPr+E9fSkyQ7KpQD4SdFcugkRQYzhmfI4KeV4Qpnn2sKPdo+kmsgRQ==}
     engines: {node: '>=18'}
-
-  whatwg-url@5.0.0:
-    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
 
   which-boxed-primitive@1.1.1:
     resolution: {integrity: sha512-TbX3mj8n0odCBFVlY8AxkqcHASw3L60jIuF8jFP78az3C2YhmGvqbHBpAjTRH2/xqYunrJ9g1jSyjCjpoWzIAA==}
@@ -7807,8 +7762,6 @@ snapshots:
       - vue
 
   '@formkit/auto-animate@0.8.2': {}
-
-  '@grammyjs/types@3.20.0': {}
 
   '@guiiai/logg@1.0.8': {}
 
@@ -9149,10 +9102,6 @@ snapshots:
   '@xsai/shared@0.2.0-beta.3': {}
 
   abbrev@2.0.0: {}
-
-  abort-controller@3.0.0:
-    dependencies:
-      event-target-shim: 5.0.1
 
   accepts@1.3.8:
     dependencies:
@@ -11160,8 +11109,6 @@ snapshots:
       d: 1.0.2
       es5-ext: 0.10.64
 
-  event-target-shim@5.0.1: {}
-
   eventemitter3@1.1.1: {}
 
   eventemitter3@5.0.1: {}
@@ -11548,16 +11495,6 @@ snapshots:
       url-to-options: 1.0.1
 
   graceful-fs@4.2.11: {}
-
-  grammy@1.36.0:
-    dependencies:
-      '@grammyjs/types': 3.20.0
-      abort-controller: 3.0.0
-      debug: 4.4.0
-      node-fetch: 2.7.0
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
 
   graphemer@1.4.0: {}
 
@@ -12693,10 +12630,6 @@ snapshots:
   node-addon-api@7.1.1: {}
 
   node-fetch-native@1.6.6: {}
-
-  node-fetch@2.7.0:
-    dependencies:
-      whatwg-url: 5.0.0
 
   node-forge@1.3.1: {}
 
@@ -14105,8 +14038,6 @@ snapshots:
 
   through@2.3.8: {}
 
-  tiktoken@1.0.20: {}
-
   timed-out@4.0.1: {}
 
   tinybench@2.9.0: {}
@@ -14156,8 +14087,6 @@ snapshots:
   tough-cookie@5.1.2:
     dependencies:
       tldts: 6.1.83
-
-  tr46@0.0.3: {}
 
   tr46@5.0.0:
     dependencies:
@@ -15008,8 +14937,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  webidl-conversions@3.0.1: {}
-
   webidl-conversions@7.0.0: {}
 
   webpack-virtual-modules@0.6.2: {}
@@ -15044,11 +14971,6 @@ snapshots:
     dependencies:
       tr46: 5.0.0
       webidl-conversions: 7.0.0
-
-  whatwg-url@5.0.0:
-    dependencies:
-      tr46: 0.0.3
-      webidl-conversions: 3.0.1
 
   which-boxed-primitive@1.1.1:
     dependencies:

@@ -2,7 +2,7 @@
 
 import type { EmbedResult } from '@xsai/embed'
 import type { SQL } from 'drizzle-orm'
-import type { Message, UserFromGetMe } from 'grammy/types'
+import type { CoreMessage } from '../v2/utils/message'
 
 import { env } from 'node:process'
 import { useLogg } from '@guiiai/logg'
@@ -12,24 +12,23 @@ import { and, cosineDistance, desc, eq, gt, inArray, lt, ne, notInArray, sql } f
 import { useDrizzle } from '../db'
 import { chatMessagesTable } from '../db/schema'
 import { chatMessageToOneLine } from './common'
-import { findPhotoDescription } from './photos'
-import { findStickerDescription } from './stickers'
 
-export async function recordMessage(botInfo: UserFromGetMe, message: Message) {
-  const replyToName = message.reply_to_message?.from?.first_name || ''
+export async function recordMessage(message: CoreMessage) {
+  const replyToName = message.reply.replyToName || ''
 
   let embedding: EmbedResult
-  let text = ''
 
-  if (message.sticker != null) {
-    text = `A sticker sent by user ${await findStickerDescription(message.sticker.file_id)}, sticker set named ${message.sticker.set_name}`
-  }
-  else if (message.photo != null) {
-    text = `A set of photo, descriptions are: ${(await Promise.all(message.photo.map(photo => findPhotoDescription(photo.file_id)))).join('\n')}`
-  }
-  else if (message.text) {
-    text = message.text || message.caption || ''
-  }
+  // if (message.sticker != null) {
+  //   text = `A sticker sent by user ${await findStickerDescription(message.sticker.file_id)}, sticker set named ${message.sticker.set_name}`
+  // }
+  // else if (message.photo != null) {
+  //   text = `A set of photo, descriptions are: ${(await Promise.all(message.photo.map(photo => findPhotoDescription(photo.file_id)))).join('\n')}`
+  // }
+  // else if (message.text) {
+  //   text = message.text || message.caption || ''
+  // }
+
+  const text = message.content
 
   if (text === '') {
     return
@@ -44,15 +43,15 @@ export async function recordMessage(botInfo: UserFromGetMe, message: Message) {
   }
 
   const values: Partial<Omit<typeof chatMessagesTable.$inferSelect, 'id' | 'created_at' | 'updated_at'>> = {
-    platform: 'telegram',
-    from_id: message.from?.id.toString() || '',
-    platform_message_id: message.message_id.toString(),
-    from_name: message.from?.first_name || '',
-    in_chat_id: message.chat.id.toString(),
+    platform: message.platform,
+    from_id: message.fromId,
+    platform_message_id: message.platformMessageId,
+    from_name: message.fromName,
+    in_chat_id: message.chatId,
     content: text,
-    is_reply: !!message.reply_to_message,
-    reply_to_name: replyToName === botInfo.first_name ? 'Yourself' : replyToName,
-    reply_to_id: message.reply_to_message?.message_id.toString() || '',
+    is_reply: message.reply.isReply,
+    reply_to_name: replyToName,
+    reply_to_id: message.reply.replyToId || '',
   }
 
   switch (env.EMBEDDING_DIMENSION) {
