@@ -66,7 +66,7 @@ export function createConfigService(ctx: CoreContext) {
     try {
       const validatedConfig = configSchema.parse(config)
       updateConfig(validatedConfig)
-      emitter.emit('config:save', { config: validatedConfig })
+      emitter.emit('config:config', { config: validatedConfig })
     }
     catch (error) {
       emitter.emit('core:error', { error })

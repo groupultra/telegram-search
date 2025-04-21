@@ -7,6 +7,7 @@ import { useLogger } from '@tg-search/common'
 import { createCoreInstance } from '@tg-search/core'
 import { createRouter, defineEventHandler, defineWebSocketHandler, getQuery } from 'h3'
 
+import { handleConfigEvent, registerConfigEventHandler } from './event-handlers/config'
 import { handleConnectionEvent, registerConnectionEventHandler } from './event-handlers/connection'
 import { handleDialogsEvent, registerDialogsEventHandler } from './event-handlers/dialog'
 import { handleEntityEvent, registerEntityEventHandler } from './event-handlers/entity'
@@ -104,12 +105,14 @@ export function setupWsRoutes(app: App) {
       registerDialogsEventHandler(state)
       registerEntityEventHandler(state)
       registerTakeoutEventHandler(state)
+      registerConfigEventHandler(state)
 
       registerWsMessageRoute('auth', handleConnectionEvent)
       registerWsMessageRoute('message', handleMessageEvent)
       registerWsMessageRoute('dialog', handleDialogsEvent)
       registerWsMessageRoute('entity', handleEntityEvent)
       registerWsMessageRoute('takeout', handleTakeoutEvent)
+      registerWsMessageRoute('config', handleConfigEvent)
 
       // state.ctx?.emitter.on()
       // const events = state.ctx?.emitter.eventNames()

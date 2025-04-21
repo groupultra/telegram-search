@@ -10,6 +10,8 @@ import { useSyncTaskStore } from '../store/useSyncTask'
 
 let wsContext: ReturnType<typeof createWebsocketV2Context>
 
+type WsEventHandler = (message: WsMessageToClient) => void
+
 export function createWebsocketV2Context(sessionId: string) {
   if (!sessionId)
     throw new Error('Session ID is required')
@@ -33,6 +35,16 @@ export function createWebsocketV2Context(sessionId: string) {
     socket.send(JSON.stringify(createWsMessage(event, data)))
   }
 
+  const eventHandlers = new Map<WsMessageToClient['type'], WsEventHandler>()
+
+  function registerEventHandler<T extends WsMessageToClient['type']>(event: T, handler: WsEventHandler) {
+    eventHandlers.set(event, handler)
+  }
+
+  function unregisterEventHandler<T extends WsMessageToClient['type']>(event: T) {
+    eventHandlers.delete(event)
+  }
+
   // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L95-L123
   watch(socket.data, (rawMessage) => {
     if (!rawMessage)
@@ -45,6 +57,12 @@ export function createWebsocketV2Context(sessionId: string) {
       console.log('[WebSocket] Message received', message)
 
       try {
+        const handler = eventHandlers.get(message.type)
+        if (handler) {
+          handler(message)
+          return
+        }
+
         switch (message.type) {
           case 'server:connected':
             connectionStore.getActiveSession()!.isConnected = message.data.connected
@@ -73,9 +91,12 @@ export function createWebsocketV2Context(sessionId: string) {
             currentTask.value = message.data
             break
           }
+
           default:
+          {
             // eslint-disable-next-line no-console
             console.log('[WebSocket] Unknown message')
+          }
         }
       }
       catch (error) {
@@ -89,6 +110,8 @@ export function createWebsocketV2Context(sessionId: string) {
 
   return {
     sendEvent,
+    registerEventHandler,
+    unregisterEventHandler,
   }
 }
 
