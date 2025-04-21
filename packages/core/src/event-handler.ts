@@ -9,6 +9,7 @@ import { useResolverRegistry } from './registry'
 import { createEmbeddingResolver } from './resolvers/embedding-resolver'
 import { createLinkResolver } from './resolvers/link-resolver'
 import { createUserResolver } from './resolvers/user-resolver'
+import { createConfigService } from './services/config'
 import { createConnectionService } from './services/connection'
 import { createDialogService } from './services/dialog'
 import { createEntityService } from './services/entity'
@@ -81,6 +82,7 @@ export function afterConnectedEventHandler(
     const { fetchDialogs } = useService(ctx, createDialogService)
     const { takeoutMessages } = useService(ctx, createTakeoutService)
     const { getMeInfo } = useService(ctx, createEntityService)
+    const { getConfig, saveConfig } = useService(ctx, createConfigService)
 
     registry.register('embedding', createEmbeddingResolver())
     registry.register('link', createLinkResolver())
@@ -133,6 +135,13 @@ export function afterConnectedEventHandler(
       }
     })
 
+    emitter.on('config:get', async () => {
+      getConfig()
+    })
+
+    emitter.on('config:save', async ({ config }) => {
+      saveConfig(config)
+    })
     // TODO: get dialogs from cache
     emitter.emit('dialog:fetch')
   })
