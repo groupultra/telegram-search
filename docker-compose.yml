@@ -1,58 +1,16 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: ankane/pgvector:latest
-    environment:
-      POSTGRES_DB: tg_search
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+  pgvector:
+    image: ghcr.io/tensorchord/pgvecto-rs:pg17-v0.4.0
     ports:
-      - "5432:5432"
+      - 5433:5432
+    environment:
+      POSTGRES_DATABASE: postgres
+      POSTGRES_PASSWORD: '123456'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./.postgres/data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: [CMD-SHELL, pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER]
+      interval: 10s
       timeout: 5s
       retries: 5
-    command: 
-      - "postgres"
-      - "-c"
-      - "shared_preload_libraries=vector"
-
-  # backend:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   command: pnpm run dev:server
-  #   environment:
-  #     - NODE_ENV=development
-  #     - DATABASE_URL=postgres://postgres:postgres@postgres:5432/tg_search
-  #   ports:
-  #     - "3333:3333"
-  #   volumes:
-  #     - .:/app
-  #     - /app/node_modules
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-
-  # frontend:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   command: pnpm run dev:frontend
-  #   environment:
-  #     - NODE_ENV=development
-  #     - BACKEND_URL=http://backend:3333
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - .:/app
-  #     - /app/node_modules
-  #   depends_on:
-  #     - backend
-
-volumes:
-  postgres_data:

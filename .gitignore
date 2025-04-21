@@ -5,3 +5,4 @@ dist
 .session
 .DS_Store
 config.yaml
+.postgres/

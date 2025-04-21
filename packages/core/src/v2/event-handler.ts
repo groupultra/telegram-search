@@ -2,6 +2,7 @@ import type { Config } from '@tg-search/common'
 import type { CoreContext } from './context'
 
 import { useLogger } from '@tg-search/common'
+import { createMessages } from '@tg-search/db'
 
 import { useService } from './context'
 import { useResolverRegistry } from './registry'
@@ -87,6 +88,33 @@ export function afterConnectedEventHandler(
 
     emitter.on('message:process', ({ message }) => {
       processMessage(message)
+    })
+
+    emitter.on('message:record', ({ message }) => {
+      createMessages({
+        id: message.id,
+        chatId: message.chatId,
+        type: message.type,
+        content: message.content || '',
+        fromId: message.fromId,
+        fromName: message.fromName,
+        replyToId: message.replyToId,
+        forwardFromChatId: message.forwardFromChatId,
+        forwardFromChatName: message.forwardFromChatName,
+        forwardFromMessageId: message.forwardFromMessageId,
+        views: message.views,
+        forwards: message.forwards,
+        links: message.links || undefined,
+        metadata: message.metadata,
+        createdAt: message.createdAt,
+        // Only include media info if exists
+        ...(message.mediaInfo && {
+          mediaType: message.mediaInfo.type,
+          mediaFileId: message.mediaInfo.fileId,
+          mediaFileName: message.mediaInfo.fileName,
+          mediaMimeType: message.mediaInfo.mimeType,
+        }),
+      })
     })
 
     emitter.on('message:fetch', async ({ chatId }) => {
