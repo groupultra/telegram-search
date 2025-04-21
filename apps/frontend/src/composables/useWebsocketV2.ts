@@ -10,6 +10,7 @@ import { useSyncTaskStore } from '../store/useSyncTask'
 
 let wsContext: ReturnType<typeof createWebsocketV2Context>
 
+// 使用 WsMessageToClient 的类型来定义事件处理器
 type WsEventHandler = (message: WsMessageToClient) => void
 
 export function createWebsocketV2Context(sessionId: string) {
@@ -35,12 +36,15 @@ export function createWebsocketV2Context(sessionId: string) {
     socket.send(JSON.stringify(createWsMessage(event, data)))
   }
 
+  // 修改Map的类型参数，使用WsMessageToClient的type属性作为键
   const eventHandlers = new Map<WsMessageToClient['type'], WsEventHandler>()
 
+  // 更新registerEventHandler函数参数类型
   function registerEventHandler<T extends WsMessageToClient['type']>(event: T, handler: WsEventHandler) {
     eventHandlers.set(event, handler)
   }
 
+  // 更新unregisterEventHandler函数参数类型
   function unregisterEventHandler<T extends WsMessageToClient['type']>(event: T) {
     eventHandlers.delete(event)
   }

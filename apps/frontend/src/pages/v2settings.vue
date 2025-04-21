@@ -23,6 +23,9 @@ const wsContext = getWsContext()
 onMounted(() => {
   wsContext.sendEvent('config:get', undefined)
   wsContext.registerEventHandler('config:config', (message) => {
+    if (!message.data || typeof message.data !== 'object' || !('config' in message.data))
+      return
+
     config.value = message.data.config
     loading.value = false
   })
