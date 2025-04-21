@@ -4,7 +4,7 @@ import postgres from 'postgres'
 
 let dbInstance: ReturnType<typeof drizzle>
 
-export function initDB() {
+export function initDrizzle() {
   const logger = useLogger()
   logger.debug('Initializing database...')
 
@@ -19,7 +19,7 @@ export function initDB() {
   dbInstance = drizzle(client)
 }
 
-export function useDB() {
+export function useDrizzle() {
   if (!dbInstance) {
     throw new Error('Database not initialized')
   }

@@ -1,3 +1,5 @@
+// https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chat-message.ts
+
 import type { EmbedResult } from '@xsai/embed'
 import type { SQL } from 'drizzle-orm'
 import type { Message, UserFromGetMe } from 'grammy/types'
@@ -14,10 +16,10 @@ import { findPhotoDescription } from './photos'
 import { findStickerDescription } from './stickers'
 
 export async function recordMessage(botInfo: UserFromGetMe, message: Message) {
-  const replyToName = message.reply_to_message?.from.first_name || ''
+  const replyToName = message.reply_to_message?.from?.first_name || ''
 
   let embedding: EmbedResult
-  let text: string
+  let text = ''
 
   if (message.sticker != null) {
     text = `A sticker sent by user ${await findStickerDescription(message.sticker.file_id)}, sticker set named ${message.sticker.set_name}`
@@ -43,9 +45,9 @@ export async function recordMessage(botInfo: UserFromGetMe, message: Message) {
 
   const values: Partial<Omit<typeof chatMessagesTable.$inferSelect, 'id' | 'created_at' | 'updated_at'>> = {
     platform: 'telegram',
-    from_id: message.from.id.toString(),
+    from_id: message.from?.id.toString() || '',
     platform_message_id: message.message_id.toString(),
-    from_name: message.from.first_name,
+    from_name: message.from?.first_name || '',
     in_chat_id: message.chat.id.toString(),
     content: text,
     is_reply: !!message.reply_to_message,

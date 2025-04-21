@@ -1,3 +1,5 @@
+// https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chats.ts
+
 import { eq } from 'drizzle-orm'
 
 import { useDrizzle } from '../db'

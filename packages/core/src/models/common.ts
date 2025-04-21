@@ -1,3 +1,5 @@
+// https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/common.ts
+
 import type { Message } from 'grammy/types'
 import type { chatMessagesTable } from '../db/schema'
 
@@ -28,8 +30,8 @@ export async function telegramMessageToOneLine(botId: string, message: Message) 
   }
 
   const sentOn = new Date(message.date * 1000).toLocaleString()
-  let userDisplayName = `User [Display name: ${message.from.first_name}${message.from?.last_name ? ` ${message.from.last_name}` : ''}${message.from?.username ? ` (username: ${message.from.username})` : ''}]`
-  if (botId === message.from.id.toString()) {
+  let userDisplayName = `User [Display name: ${message.from?.first_name}${message.from?.last_name ? ` ${message.from.last_name}` : ''}${message.from?.username ? ` (username: ${message.from.username})` : ''}]`
+  if (botId === message.from?.id.toString()) {
     userDisplayName = 'Yourself'
   }
 
@@ -42,11 +44,11 @@ export async function telegramMessageToOneLine(botId: string, message: Message) 
     return `Message ID: ${message.message_id || 'Unknown'} sent on ${sentOn} ${userDisplayName} sent in Group [${message.chat.title}] a photo, and description of the photo is ${description}`
   }
   if (message.reply_to_message != null) {
-    if (botId === message.reply_to_message.from.id.toString()) {
+    if (botId === message.reply_to_message.from?.id.toString()) {
       return `Message ID: ${message.message_id || 'Unknown'} sent on ${sentOn} ${userDisplayName} replied to your previous message ${message.reply_to_message.text || message.reply_to_message.caption} in Group [${message.chat.title}] said: ${message.text}`
     }
     else {
-      return `Message ID: ${message.message_id || 'Unknown'} sent on ${sentOn} ${userDisplayName} replied to User [${message.reply_to_message.from.first_name} ${message.reply_to_message.from.last_name} (${message.reply_to_message.from.username})] for content ${message.reply_to_message.text || message.reply_to_message.caption} in Group [${message.chat.title}] said: ${message.text}`
+      return `Message ID: ${message.message_id || 'Unknown'} sent on ${sentOn} ${userDisplayName} replied to User [${message.reply_to_message.from?.first_name} ${message.reply_to_message.from?.last_name} (${message.reply_to_message.from?.username})] for content ${message.reply_to_message.text || message.reply_to_message.caption} in Group [${message.chat.title}] said: ${message.text}`
     }
   }
 

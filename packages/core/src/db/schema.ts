@@ -1,3 +1,5 @@
+// https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/db/schema.ts
+
 import { bigint, boolean, index, pgTable, text, uniqueIndex, uuid, vector } from 'drizzle-orm/pg-core'
 
 export const chatMessagesTable = pgTable('chat_messages', {
