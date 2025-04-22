@@ -6,7 +6,7 @@ import process from 'node:process'
 import { defu } from 'defu'
 import * as yaml from 'yaml'
 
-import { generateDefaultConfig } from '../config/defaultConfig'
+import { generateDefaultConfig } from '../config/default-config'
 import { useLogger } from '../helper/logger'
 import { findConfigDir, resolveHomeDir } from '../helper/path'
 

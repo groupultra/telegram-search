@@ -1,6 +1,6 @@
 export * from './composable/config'
 export * from './composable/path'
-export * from './config/defaultConfig'
+export * from './config/default-config'
 export * from './config/dsn'
 export * from './helper/logger'
 export * from './helper/path'

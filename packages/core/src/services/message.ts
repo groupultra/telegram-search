@@ -1,5 +1,4 @@
 import type { EntityLike } from 'telegram/define'
-import type { TelegramMessageType } from '../../types'
 import type { CoreContext } from '../context'
 import type { PromiseResult } from '../utils/result'
 
@@ -42,7 +41,7 @@ export interface FetchMessageOpts {
 
   // Filter
   skipMedia?: boolean
-  messageTypes?: TelegramMessageType[]
+  messageTypes?: string[]
 
   // Incremental export
   minId?: number

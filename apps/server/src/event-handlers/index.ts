@@ -1,5 +1,5 @@
 export type * from '../routes'
 export type * from '../utils/ws-event'
 export type * from './connection'
-export type * from './dialogs'
-export type * from './messages'
+export type * from './dialog'
+export type * from './message'

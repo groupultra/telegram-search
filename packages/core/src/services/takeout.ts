@@ -1,4 +1,3 @@
-import type { TelegramMessageType } from '../../types'
 import type { CoreContext } from '../context'
 import type { PromiseResult } from '../utils/result'
 import type { CoreTask } from '../utils/task'
@@ -36,7 +35,7 @@ export interface TakeoutOpts {
 
   // Filter
   skipMedia?: boolean
-  messageTypes?: TelegramMessageType[]
+  messageTypes?: string[]
 
   // Incremental export
   minId?: number
