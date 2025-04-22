@@ -1,1 +1,0 @@
-ALTER TABLE "sync_config_items" RENAME COLUMN "id" TO "uuid";

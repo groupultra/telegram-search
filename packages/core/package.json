@@ -32,9 +32,11 @@
     "drizzle": "^1.4.0",
     "drizzle-orm": "^0.42.0",
     "eventemitter3": "^5.0.1",
+    "grammy": "^1.36.1",
     "pg": "^8.14.1",
     "postgres": "^3.4.5",
     "telegram": "^2.26.22",
+    "tiktoken": "^1.0.21",
     "yaml": "^2.7.1"
   },
   "devDependencies": {

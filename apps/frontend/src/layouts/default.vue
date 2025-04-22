@@ -1,19 +1,16 @@
 <script setup lang="ts">
-import { onClickOutside } from '@vueuse/core'
+import { onClickOutside, usePreferredDark, useToggle } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import ThemeToggle from '../components/ThemeToggle.vue'
 import DropdownMenu from '../components/ui/DropdownMenu.vue'
-import { useDarkStore } from '../composables/dark'
-import { useLanguage } from '../composables/useLanguage'
 import { useSessionStore } from '../store/useSessionV2'
 
 const router = useRouter()
-const { isDark } = useDarkStore()
-const { supportedLanguages, setLanguage, locale } = useLanguage()
-const { t } = useI18n()
+const isDark = usePreferredDark()
 
 const showUserMenu = ref(false)
 const showLanguageMenu = ref(false)
@@ -27,7 +24,6 @@ const sessionStore = useSessionStore()
 const { handleAuth } = sessionStore
 const { activeSessionComputed } = storeToRefs(sessionStore)
 
-// Use VueUse's onClickOutside to handle closing the menus
 onClickOutside(userMenuRef, () => {
   showUserMenu.value = false
 })
@@ -47,70 +43,39 @@ onClickOutside(commandMenuRef, () => {
 //   }
 // })
 
-// Handle logout
 async function handleLogout() {
   showUserMenu.value = false
   handleAuth().logout()
-  toast.success(t('header.logout_success'))
+  toast.success('Logout successfully')
   router.push('/login')
 }
 
-// Handle login
 async function handleLogin() {
   showUserMenu.value = false
   router.push('/login')
-}
-
-// Handle language change
-function handleLanguageChange(langCode: string) {
-  setLanguage(langCode)
-  showLanguageMenu.value = false
-  toast.success(t('header.language_changed'))
 }
 </script>
 
 <template>
   <div class="min-h-screen" :class="{ dark: isDark }">
-    <!-- Header -->
     <header class="sticky top-0 z-50 border-b bg-white transition-colors duration-300 dark:border-gray-800 dark:bg-gray-900">
       <div class="mx-auto h-14 flex items-center justify-between px-4 container">
-        <router-link to="/" class="text-lg font-semibold transition-colors duration-300 dark:text-white">
-          {{ $t('header.title') }}
-        </router-link>
+        <RouterLink to="/" class="text-lg font-semibold transition-colors duration-300 dark:text-white">
+          Telegram Search
+        </RouterLink>
 
         <div class="flex items-center gap-4">
           <IconButton
-            icon="i-lucide-download"
-            with-transition
-            :aria-label="$t('header.export_command')"
-            @click="router.push('/commands/export')"
-          />
-
-          <IconButton
             icon="i-lucide-folder-sync"
             with-transition
-            :aria-label="$t('header.sync_command')"
+            aria-label="Sync Command"
             @click="router.push('/commands/sync')"
-          />
-
-          <IconButton
-            icon="i-lucide-folder-open"
-            with-transition
-            :aria-label="$t('header.embed_command')"
-            @click="router.push('/commands/embed')"
-          />
-
-          <IconButton
-            icon="i-lucide-settings"
-            with-transition
-            :aria-label="$t('header.setting')"
-            @click="router.push('/settings')"
           />
 
           <!-- User menu -->
           <DropdownMenu
             icon="i-lucide-user"
-            :label="$t('header.usermenu')"
+            label="User Menu"
           >
             <div v-if="activeSessionComputed?.me" class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
               <div>{{ activeSessionComputed.me.firstName }} {{ activeSessionComputed.me.lastName }}</div>
@@ -141,22 +106,6 @@ function handleLanguageChange(langCode: string) {
                 <div class="i-lucide-log-out mr-2 h-4 w-4" />
                 <span>{{ $t('header.logout') }}</span>
               </div>
-            </button>
-          </DropdownMenu>
-
-          <!-- Language switcher -->
-          <DropdownMenu
-            icon="i-lucide-languages"
-            :label="$t('header.language')"
-          >
-            <button
-              v-for="lang in supportedLanguages"
-              :key="lang.code"
-              class="w-full flex items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-              @click="handleLanguageChange(lang.code)"
-            >
-              <span>{{ lang.name }}</span>
-              <span v-if="locale === lang.code" class="i-lucide-circle-check h-4 w-4" />
             </button>
           </DropdownMenu>
 

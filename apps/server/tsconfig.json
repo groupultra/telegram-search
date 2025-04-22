@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.json",
   "include": [
     "src/**/*"
-, "../common/src/composable/telegram.ts", "../../packages/core/src/v2/utils/error-handler.ts"  ],
+  ],
   "exclude": [
     "node_modules",
     "dist"

@@ -1,7 +1,7 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/common.ts
 
 import type { chatMessagesTable } from '../db/schema'
-import type { CoreMessage } from '../v2/utils/message'
+import type { CoreMessage } from '../utils/message'
 
 export function chatMessageToOneLine(botId: string, message: Omit<typeof chatMessagesTable.$inferSelect, 'content_vector_1536' | 'content_vector_768' | 'content_vector_1024'>, repliedToMessage?: Omit<typeof chatMessagesTable.$inferSelect, 'content_vector_1536' | 'content_vector_768' | 'content_vector_1024'>) {
   let userDisplayName = `User [${message.from_name}]`

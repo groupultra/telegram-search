@@ -1,4 +1,4 @@
-import type { Config } from '../types'
+import type { Config } from '../types/config'
 
 import os from 'node:os'
 import { join } from 'node:path'

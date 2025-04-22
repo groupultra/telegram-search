@@ -1,11 +1,9 @@
 import type { CoreUserInfo } from '@tg-search/core'
-import type { SuccessResponse } from '@tg-search/server'
 
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
 
-import { apiFetch } from '../composables/api'
 import { useWebsocketV2 } from '../composables/useWebsocketV2'
 
 export interface SessionContext {
@@ -58,14 +56,15 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   onMounted(async () => {
-    if (!storageActiveSessionId.value) {
-      // FIXME: reimplement this
-      const response = await apiFetch<SuccessResponse<{ sessionId: string }>>('/v2/session', {
-        method: 'POST',
-      })
+    // TODO: reimplement this
+    // if (!storageActiveSessionId.value) {
+    //   // FIXME: reimplement this
+    //   const response = await apiFetch<SuccessResponse<{ sessionId: string }>>('/v2/session', {
+    //     method: 'POST',
+    //   })
 
-      storageActiveSessionId.value = response.data?.sessionId
-    }
+    //   storageActiveSessionId.value = response.data?.sessionId
+    // }
 
     wsContext = useWebsocketV2(storageActiveSessionId.value)
 

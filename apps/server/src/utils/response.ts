@@ -1,4 +1,4 @@
-import type { ApiResponse, ErrorResponse, PaginationInfo, SuccessResponse } from '../types'
+import type { ApiResponse, ErrorResponse, PaginationInfo, SuccessResponse } from '../types/api'
 
 import { ErrorCode, useLogger } from '@tg-search/common'
 

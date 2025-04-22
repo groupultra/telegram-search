@@ -1,6 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chats.ts
 
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 import { useDrizzle } from '../db'
 import { joinedChatsTable } from '../db/schema'
@@ -13,18 +13,18 @@ export async function listJoinedChats() {
     .limit(20)
 }
 
-export async function recordJoinedChat(chatId: string, chatName: string) {
+export async function recordJoinedChats(chats: { chatId: string, chatName: string }[]) {
   return useDrizzle()
     .insert(joinedChatsTable)
-    .values({
+    .values(chats.map(chat => ({
       platform: 'telegram',
-      chat_id: chatId,
-      chat_name: chatName,
-    })
+      chat_id: chat.chatId,
+      chat_name: chat.chatName,
+    })))
     .onConflictDoUpdate({
       target: joinedChatsTable.chat_id,
       set: {
-        chat_name: chatName,
+        chat_name: sql`excluded.chat_name`,
         updated_at: Date.now(),
       },
     })

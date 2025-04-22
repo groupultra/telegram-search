@@ -2,7 +2,7 @@
 
 import type { EmbedResult } from '@xsai/embed'
 import type { SQL } from 'drizzle-orm'
-import type { CoreMessage } from '../v2/utils/message'
+import type { CoreMessage } from '../utils/message'
 
 import { env } from 'node:process'
 import { useLogg } from '@guiiai/logg'

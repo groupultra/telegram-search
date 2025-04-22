@@ -1,25 +1,23 @@
-<!-- Chat selector component -->
 <script setup lang="ts">
 import type { TelegramChat } from '@tg-search/core'
 import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useChatTypeOptions } from '../../composables/useOptions'
 import { usePagination } from '../../composables/usePagination'
 import Pagination from '../ui/Pagination.vue'
 import SelectDropdown from '../ui/SelectDropdown.vue'
 
 const props = defineProps<{
   chats: TelegramChat[]
-  selectedChats: number[]
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:selectedChats', value: number[]): void
-  (e: 'select', chatId: number): void
-}>()
+const selectedChats = defineModel<number[]>('selectedChats', {
+  required: true,
+})
 
-const { t } = useI18n()
-const chatTypeOptions = useChatTypeOptions()
+const chatTypeOptions = ref([
+  { label: 'User', value: 'user' },
+  { label: 'Group', value: 'group' },
+  { label: 'Channel', value: 'channel' },
+])
 
 const selectedType = ref<string>('user')
 const searchQuery = ref('')
@@ -49,8 +47,8 @@ const filteredChats = computed(() => {
     subtitle: `ID: ${chat.id}`,
     type: chat.type,
   })).sort((a, b) => {
-    const aSelected = props.selectedChats.includes(a.id)
-    const bSelected = props.selectedChats.includes(b.id)
+    const aSelected = selectedChats.value.includes(a.id)
+    const bSelected = selectedChats.value.includes(b.id)
     if (aSelected && !bSelected)
       return -1
     if (!aSelected && bSelected)
@@ -68,20 +66,17 @@ const totalPagesCount = computed(() => {
 })
 
 function isSelected(id: number): boolean {
-  return props.selectedChats.includes(id)
+  return selectedChats.value.includes(id)
 }
 
 function toggleSelection(id: number): void {
-  const newSelection = [...props.selectedChats]
+  const newSelection = [...selectedChats.value]
   const index = newSelection.indexOf(id)
 
   if (index === -1)
     newSelection.push(id)
   else
     newSelection.splice(index, 1)
-
-  emit('update:selectedChats', newSelection)
-  emit('select', id)
 }
 
 // Reset page when filters change
@@ -99,7 +94,7 @@ watch([selectedType, searchQuery], () => {
         <SelectDropdown
           v-model="selectedType"
           :options="chatTypeOptions"
-          :label="t('component.grid_selector.type')"
+          label="Type"
         />
       </div>
 
@@ -109,7 +104,7 @@ watch([selectedType, searchQuery], () => {
           v-model="searchQuery"
           type="text"
           class="w-full border border-gray-300 rounded-md px-4 py-2 dark:border-gray-600 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-          :placeholder="t('component.export_command.placeholder_search')"
+          placeholder="Search"
         >
       </div>
     </div>
@@ -152,7 +147,7 @@ watch([selectedType, searchQuery], () => {
 
     <!-- No Results Message -->
     <div v-if="filteredChats.length === 0" class="py-8 text-center text-gray-500 dark:text-gray-400">
-      {{ t('pages.index.no_chats_found') }}
+      No chats found
     </div>
   </div>
 </template>

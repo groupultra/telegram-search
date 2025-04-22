@@ -2,28 +2,14 @@ import type { NodeOptions } from 'crossws/adapters/node'
 
 import process from 'node:process'
 import { initConfig, initDB, initLogger, useLogger } from '@tg-search/common'
-import {
-  createApp,
-  eventHandler,
-  setResponseHeaders,
-  toNodeListener,
-} from 'h3'
+import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
-import { setupWsRoutes } from './app'
-import { setupChatRoutes } from './routes/chat'
-import { setupCommandRoutes } from './routes/commands'
-import { setupConfigRoutes } from './routes/config'
-import { setupMessageRoutes } from './routes/message'
-import { setupSearchRoutes } from './routes/search'
 import { createErrorResponse } from './utils/response'
+import { setupWsRoutes } from './ws'
 
-export type * from './types'
-export type * from './v2'
-
-// Core initialization
 async function initCore(): Promise<ReturnType<typeof useLogger>> {
   initLogger()
   const logger = useLogger()
@@ -83,31 +69,22 @@ function configureServer(logger: ReturnType<typeof useLogger>) {
     },
   })
 
-  // CORS middleware
-  app.use(eventHandler((event) => {
-    setResponseHeaders(event, {
-      'Access-Control-Allow-Origin': 'http://localhost:3333',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, X-Requested-With',
-    })
+  // app.use(eventHandler((event) => {
+  //   setResponseHeaders(event, {
+  //     'Access-Control-Allow-Origin': 'http://localhost:3333',
+  //     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  //     'Access-Control-Allow-Credentials': 'true',
+  //     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, X-Requested-With',
+  //   })
 
-    if (event.method === 'OPTIONS') {
-      setResponseHeaders(event, {
-        'Access-Control-Max-Age': '86400',
-      })
-      return null
-    }
-  }))
+  //   if (event.method === 'OPTIONS') {
+  //     setResponseHeaders(event, {
+  //       'Access-Control-Max-Age': '86400',
+  //     })
+  //     return null
+  //   }
+  // }))
 
-  // Setup routes
-  setupChatRoutes(app)
-  setupCommandRoutes(app)
-  setupConfigRoutes(app)
-  setupMessageRoutes(app)
-  setupSearchRoutes(app)
-
-  // v2 ws routes
   setupWsRoutes(app)
 
   return app
