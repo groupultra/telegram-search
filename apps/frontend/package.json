@@ -22,6 +22,7 @@
     "@tg-search/core": "workspace:*",
     "@tg-search/server": "workspace:*",
     "@vueuse/core": "^13.1.0",
+    "defu": "^6.1.4",
     "ofetch": "^1.4.1",
     "pinia": "^3.0.2",
     "radix-vue": "^1.9.17",

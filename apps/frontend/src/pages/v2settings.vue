@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { Config } from '@tg-search/common'
+import { defu } from 'defu'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast, Toaster } from 'vue-sonner'
 import SelectDropdown from '../components/ui/SelectDropdown.vue'
-
 import { useSessionStore } from '../store/useSessionV2'
 
 // Initialize config store
@@ -101,11 +101,8 @@ async function saveConfig() {
     return
 
   try {
-    // Ensure all number fields have correct type
-    const safeConfig: Config = {
-      ...config.value,
+    const safeConfig = defu(config.value, {
       database: {
-        ...config.value.database,
         port: Number(config.value.database.port),
       },
       message: {
@@ -120,13 +117,11 @@ async function saveConfig() {
         },
       },
       api: {
-        ...config.value.api,
         telegram: {
-          ...config.value.api.telegram,
           apiId: config.value.api.telegram.apiId.toString(),
         },
       },
-    }
+    }) as Config
 
     // Validate config
     const configValidationError = validateConfig(safeConfig)
