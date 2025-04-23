@@ -1,5 +1,6 @@
 export { createCoreContext } from './context'
 export type * from './context'
+export { initDrizzle } from './db'
 export type * from './event-handler'
 export { createCoreInstance, destoryCoreInstance } from './instance'
 export type * from './instance'

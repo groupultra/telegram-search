@@ -1,7 +1,8 @@
 import type { NodeOptions } from 'crossws/adapters/node'
 
 import process from 'node:process'
-import { initConfig, initDB, initLogger, useLogger } from '@tg-search/common'
+import { initConfig, initLogger, useLogger } from '@tg-search/common'
+import { initDrizzle } from '@tg-search/core'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 import yargs from 'yargs'
@@ -16,7 +17,7 @@ async function initCore(): Promise<ReturnType<typeof useLogger>> {
   initConfig()
 
   try {
-    await initDB()
+    await initDrizzle()
     logger.debug('Database initialized successfully')
   }
   catch (error) {
