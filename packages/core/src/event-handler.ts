@@ -142,6 +142,7 @@ export function afterConnectedEventHandler(
     emitter.on('config:save', async ({ config }) => {
       saveConfig(config)
     })
+
     // TODO: get dialogs from cache
     emitter.emit('dialog:fetch')
   })

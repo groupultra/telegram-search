@@ -30,6 +30,7 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & SessionEventToCore
   & EntityEventToCore
   & ConfigEventToCore
+
 export type CoreEvent = FormCoreEvent & ToCoreEvent
 
 export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
