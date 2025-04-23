@@ -22,7 +22,7 @@ const wsContext = getWsContext()
 
 onMounted(() => {
   wsContext.sendEvent('config:get', undefined)
-  wsContext.registerEventHandler('config:config', (message) => {
+  wsContext.registerEventHandler('config:result', (message) => {
     if (!message.data || typeof message.data !== 'object' || !('config' in message.data))
       return
 
@@ -32,7 +32,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  wsContext.unregisterEventHandler('config:config')
+  wsContext.unregisterEventHandler('config:result')
 })
 
 //

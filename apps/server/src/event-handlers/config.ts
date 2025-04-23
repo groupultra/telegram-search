@@ -12,8 +12,8 @@ export function registerConfigEventHandler(state: ClientState) {
 
   const { emitter } = ctx
 
-  emitter.on('config:config', (data) => {
-    sendWsEvent(peer, 'config:config', data)
+  emitter.on('config:result', (data) => {
+    sendWsEvent(peer, 'config:result', data)
   })
 }
 

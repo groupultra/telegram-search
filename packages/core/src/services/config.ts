@@ -48,7 +48,7 @@ export interface ConfigEventToCore {
 }
 
 export interface ConfigEventFromCore {
-  'config:config': (data: { config: Config }) => void
+  'config:result': (data: { config: Config }) => void
 }
 
 export type ConfigEvent = ConfigEventFromCore & ConfigEventToCore
@@ -59,14 +59,14 @@ export function createConfigService(ctx: CoreContext) {
   async function getConfig() {
     const config = useConfig()
 
-    emitter.emit('config:config', { config })
+    emitter.emit('config:result', { config })
   }
 
   async function saveConfig(config: Config) {
     try {
       const validatedConfig = configSchema.parse(config)
       updateConfig(validatedConfig)
-      emitter.emit('config:config', { config: validatedConfig })
+      emitter.emit('config:result', { config: validatedConfig })
     }
     catch (error) {
       emitter.emit('core:error', { error })
