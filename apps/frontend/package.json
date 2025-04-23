@@ -20,7 +20,6 @@
     "@tanstack/vue-table": "^8.21.3",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
-    "@tg-search/db": "workspace:*",
     "@tg-search/server": "workspace:*",
     "@vueuse/core": "^13.1.0",
     "ofetch": "^1.4.1",
