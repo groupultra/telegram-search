@@ -8,8 +8,8 @@ import { listen } from 'listhen'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
+import { setupWsRoutes } from './app'
 import { createErrorResponse } from './utils/response'
-import { setupWsRoutes } from './ws'
 
 async function initCore(): Promise<ReturnType<typeof useLogger>> {
   initLogger()

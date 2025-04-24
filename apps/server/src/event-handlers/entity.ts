@@ -1,5 +1,5 @@
+import type { ClientState } from '../app'
 import type { WsMessageToServer } from '../utils/ws-event'
-import type { ClientState } from '../ws'
 
 import { useLogger } from '@tg-search/common'
 
