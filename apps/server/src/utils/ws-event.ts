@@ -1,4 +1,4 @@
-import type { FormCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 export interface WsEventFromServer {
@@ -7,7 +7,7 @@ export interface WsEventFromServer {
 }
 
 export type WsEventToServer = ToCoreEvent
-export type WsEventToClient = FormCoreEvent & WsEventFromServer
+export type WsEventToClient = FromCoreEvent & WsEventFromServer
 // export type WsEvent = WsEventToServer & WsEventToClient
 
 // export type WsEventData<T extends keyof WsEvent> = Parameters<WsEvent[T]>[0]

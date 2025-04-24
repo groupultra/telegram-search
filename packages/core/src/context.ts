@@ -12,7 +12,7 @@ import { EventEmitter } from 'eventemitter3'
 
 import { createErrorHandler } from './utils/error-handler'
 
-export type FormCoreEvent = ClientInstanceEventFromCore
+export type FromCoreEvent = ClientInstanceEventFromCore
   & MessageEventFromCore
   & DialogEventFromCore
   & ConnectionEventFromCore
@@ -28,7 +28,7 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & SessionEventToCore
   & EntityEventToCore
 
-export type CoreEvent = FormCoreEvent & ToCoreEvent
+export type CoreEvent = FromCoreEvent & ToCoreEvent
 
 export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
 
@@ -41,8 +41,36 @@ export type CoreContext = ReturnType<typeof createCoreContext>
 export function createCoreContext() {
   const emitter = new EventEmitter<CoreEvent>()
   const withError = createErrorHandler(emitter)
-
   let telegramClient: TelegramClient
+
+  const toCoreEvents: (keyof ToCoreEvent)[] = []
+  const fromCoreEvents: (keyof FromCoreEvent)[] = []
+
+  const wrapEmitterToCore = (emitter: CoreEmitter, fn: (event: keyof ToCoreEvent) => void) => {
+    const _on = emitter.on.bind(emitter)
+
+    emitter.on = (event, listener) => {
+      useLogger().withFields({ event }).debug('Added toCoreEvent')
+
+      toCoreEvents.push(event as keyof ToCoreEvent)
+      fn(event as keyof ToCoreEvent)
+
+      return _on(event, listener)
+    }
+  }
+
+  const wrapEmitterFromCore = (emitter: CoreEmitter, fn: (event: keyof FromCoreEvent) => void) => {
+    const _emit = emitter.emit.bind(emitter)
+
+    emitter.emit = (event, ...args) => {
+      useLogger().withFields({ event }).debug('Added fromCoreEvent')
+
+      fromCoreEvents.push(event as keyof FromCoreEvent)
+      fn(event as keyof FromCoreEvent)
+
+      return _emit(event, ...args)
+    }
+  }
 
   function setClient(client: TelegramClient) {
     useLogger().debug('Setted Telegram client')
@@ -59,6 +87,10 @@ export function createCoreContext() {
 
   return {
     emitter,
+    toCoreEvents,
+    fromCoreEvents,
+    wrapEmitterToCore,
+    wrapEmitterFromCore,
     setClient,
     getClient: ensureClient,
     withError,
