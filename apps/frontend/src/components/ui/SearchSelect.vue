@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 
 const props = withDefaults(defineProps<Props<any>>(), {
   placeholder: 'Searching...',
@@ -11,8 +10,6 @@ const props = withDefaults(defineProps<Props<any>>(), {
 const emit = defineEmits<{
   (e: 'update:modelValue', value: any): void
 }>()
-
-const { t } = useI18n()
 
 interface Option<T> {
   id: T
@@ -142,13 +139,13 @@ watch(isDropdownOpen, (isOpen) => {
           </div>
         </div>
         <div v-if="filteredOptions.length === 0" class="px-4 py-2.5 text-sm text-gray-500 dark:text-gray-400">
-          {{ t('component.search_select.no_match') }}
+          No match
         </div>
       </div>
 
       <!-- Selected option display -->
       <div v-if="selectedOption" class="mt-2 flex items-center justify-between rounded-md bg-blue-50 px-3 py-2 text-sm dark:bg-blue-900/20">
-        <span>{{ t('component.search_select.selected', { selected: selectedOption.label }) }}</span>
+        <span>{{ selectedOption.label }}</span>
         <button
           class="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400"
           :disabled="disabled"

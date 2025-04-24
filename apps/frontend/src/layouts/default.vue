@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { onClickOutside, usePreferredDark, useToggle } from '@vueuse/core'
+import { onClickOutside, usePreferredDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import ThemeToggle from '../components/ThemeToggle.vue'
@@ -69,7 +68,7 @@ async function handleLogin() {
             icon="i-lucide-folder-sync"
             with-transition
             aria-label="Sync Command"
-            @click="router.push('/commands/sync')"
+            @click="router.push('/sync')"
           />
 
           <!-- User menu -->
@@ -93,7 +92,7 @@ async function handleLogin() {
             >
               <div class="flex items-center">
                 <div class="i-lucide-log-in mr-2 h-4 w-4" />
-                <span>{{ $t('header.login') }}</span>
+                <span>Login</span>
               </div>
             </button>
 
@@ -104,7 +103,7 @@ async function handleLogin() {
             >
               <div class="flex items-center">
                 <div class="i-lucide-log-out mr-2 h-4 w-4" />
-                <span>{{ $t('header.logout') }}</span>
+                <span>Logout</span>
               </div>
             </button>
           </DropdownMenu>

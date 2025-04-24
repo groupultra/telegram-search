@@ -8,8 +8,6 @@ const props = withDefaults(defineProps<Props>(), {
   showPercentage: true,
 })
 
-const { t } = useI18n()
-
 interface Props {
   progress: number
   status?: CommandStatus
@@ -39,7 +37,7 @@ const statusClasses = computed(() => {
       />
     </div>
     <div v-if="showPercentage" class="mt-2 flex justify-between text-sm text-gray-600 dark:text-gray-400">
-      <span>{{ t('component.progress_bar.progress') }}</span>
+      <span>Progress</span>
       <span class="font-medium">{{ progress }}%</span>
     </div>
   </div>
