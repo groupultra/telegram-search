@@ -4,7 +4,12 @@ import type { CoreContext } from './context'
 import { useLogger } from '@tg-search/common'
 
 import { useService } from './context'
-import { recordJoinedChats } from './models/chats'
+import { registerAuthEventHandlers } from './event-handlers/auth'
+import { registerDialogEventHandlers } from './event-handlers/dialog'
+import { registerEntityEventHandlers } from './event-handlers/entity'
+import { registerMessageEventHandlers } from './event-handlers/message'
+import { registerSessionEventHandlers } from './event-handlers/session'
+import { registerTakeoutEventHandlers } from './event-handlers/takeout'
 import { useResolverRegistry } from './registry'
 import { createEmbeddingResolver } from './resolvers/embedding-resolver'
 import { createLinkResolver } from './resolvers/link-resolver'
@@ -22,47 +27,15 @@ export function authEventHandler(
   ctx: CoreContext,
   config: Config,
 ): EventHandler {
-  const { emitter, withError } = ctx
-  const logger = useLogger('core:event:auth')
-
-  const { loadSession, cleanSession, saveSession } = useService(ctx, createSessionService)
-  const { login, logout } = useService(ctx, createConnectionService)({
+  const sessionService = useService(ctx, createSessionService)
+  const connectionService = useService(ctx, createConnectionService)({
     apiId: Number(config.api.telegram.apiId),
     apiHash: config.api.telegram.apiHash,
     proxy: config.api.telegram.proxy,
   })
 
-  emitter.on('auth:login', async ({ phoneNumber }) => {
-    const { data: session, error: sessionError } = await loadSession(phoneNumber)
-    if (sessionError) {
-      return withError(sessionError, 'Failed to load session')
-    }
-
-    logger.withFields({ session }).debug('Loaded session')
-
-    const { error: loginError } = await login({ phoneNumber, session })
-    if (loginError) {
-      return withError(loginError, 'Failed to login to Telegram')
-    }
-  })
-
-  emitter.on('auth:logout', async () => {
-    logger.debug('Logged out from Telegram')
-    const client = ctx.getClient()
-    if (client) {
-      await logout(client)
-    }
-  })
-
-  emitter.on('session:clean', async ({ phoneNumber }) => {
-    logger.withFields({ phoneNumber }).debug('Cleaning session')
-    await cleanSession(phoneNumber)
-  })
-
-  emitter.on('session:save', async ({ phoneNumber, session }) => {
-    logger.withFields({ phoneNumber }).debug('Saving session')
-    await saveSession(phoneNumber, session)
-  })
+  registerAuthEventHandlers(ctx)(connectionService, sessionService)
+  registerSessionEventHandlers(ctx)(sessionService)
 
   return () => {}
 }
@@ -71,67 +44,23 @@ export function afterConnectedEventHandler(
   ctx: CoreContext,
   _config: Config,
 ): EventHandler {
-  const logger = useLogger()
-
   const { emitter } = ctx
   const registry = useResolverRegistry()
 
   emitter.on('auth:connected', () => {
-    const { processMessage, fetchMessages } = useService(ctx, createMessageService)
-    const { fetchDialogs } = useService(ctx, createDialogService)
-    const { takeoutMessages } = useService(ctx, createTakeoutService)
-    const { getMeInfo } = useService(ctx, createEntityService)
+    const messageService = useService(ctx, createMessageService)
+    const dialogService = useService(ctx, createDialogService)
+    const takeoutService = useService(ctx, createTakeoutService)
+    const entityService = useService(ctx, createEntityService)
 
     registry.register('embedding', createEmbeddingResolver())
     registry.register('link', createLinkResolver())
     registry.register('user', createUserResolver())
 
-    emitter.on('message:process', ({ message }) => {
-      processMessage(message)
-    })
-
-    // emitter.on('message:record', ({ message }) => {
-
-    // })
-
-    emitter.on('message:fetch', async ({ chatId }) => {
-      logger.withFields({ chatId }).debug('Fetching messages')
-
-      try {
-        await fetchMessages(chatId, { limit: 100 }).next()
-      }
-      catch (error) {
-        emitter.emit('core:error', { error })
-      }
-    })
-
-    emitter.on('dialog:fetch', async () => {
-      logger.debug('Fetching dialogs')
-      const { data: dialogs, error } = await fetchDialogs()
-      if (!dialogs || error) {
-        return
-      }
-
-      // Record dialogs
-      recordJoinedChats(dialogs.map(dialog => ({
-        chatId: dialog.id.toString(),
-        chatName: dialog.name,
-      })))
-    })
-
-    emitter.on('entity:getMe', async () => {
-      await getMeInfo()
-    })
-
-    emitter.on('takeout:run', async ({ chatIds }) => {
-      logger.withFields({ chatIds }).debug('Running takeout')
-
-      for (const chatId of chatIds) {
-        for await (const message of takeoutMessages(chatId, { limit: 100 })) {
-          emitter.emit('message:process', { message })
-        }
-      }
-    })
+    registerMessageEventHandlers(ctx)(messageService)
+    registerDialogEventHandlers(ctx)(dialogService)
+    registerTakeoutEventHandlers(ctx)(takeoutService)
+    registerEntityEventHandlers(ctx)(entityService)
 
     // TODO: get dialogs from cache
     emitter.emit('dialog:fetch')
