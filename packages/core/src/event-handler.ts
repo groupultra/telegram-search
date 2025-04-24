@@ -4,7 +4,7 @@ import type { CoreContext } from './context'
 import { useLogger } from '@tg-search/common'
 
 import { useService } from './context'
-import { recordJoinedChats } from './models/chats'
+import { registerStorageEventHandlers } from './event-handlers/storage'
 import { useResolverRegistry } from './registry'
 import { createEmbeddingResolver } from './resolvers/embedding-resolver'
 import { createLinkResolver } from './resolvers/link-resolver'
@@ -64,6 +64,8 @@ export function authEventHandler(
     await saveSession(phoneNumber, session)
   })
 
+  registerStorageEventHandlers(ctx)
+
   return () => {}
 }
 
@@ -112,11 +114,7 @@ export function afterConnectedEventHandler(
         return
       }
 
-      // Record dialogs
-      recordJoinedChats(dialogs.map(dialog => ({
-        chatId: dialog.id.toString(),
-        chatName: dialog.name,
-      })))
+      emitter.emit('storage:record:dialogs', { dialogs })
     })
 
     emitter.on('entity:getMe', async () => {

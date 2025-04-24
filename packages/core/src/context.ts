@@ -5,6 +5,7 @@ import type { ConnectionEventFromCore, ConnectionEventToCore } from './services/
 import type { DialogEventFromCore, DialogEventToCore } from './services/dialog'
 import type { EntityEventFromCore, EntityEventToCore } from './services/entity'
 import type { MessageEventFromCore, MessageEventToCore } from './services/message'
+import type { StorageEventFromCore, StorageEventToCore } from './services/storage'
 import type { TakeoutEventFromCore, TakeoutEventToCore } from './services/takeout'
 
 import { useLogger } from '@tg-search/common'
@@ -19,6 +20,7 @@ export type FormCoreEvent = ClientInstanceEventFromCore
   & TakeoutEventFromCore
   & SessionEventFromCore
   & EntityEventFromCore
+  & StorageEventFromCore
 
 export type ToCoreEvent = ClientInstanceEventToCore
   & MessageEventToCore
@@ -27,7 +29,7 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & TakeoutEventToCore
   & SessionEventToCore
   & EntityEventToCore
-
+  & StorageEventToCore
 export type CoreEvent = FormCoreEvent & ToCoreEvent
 
 export type CoreEventData<T> = T extends (data: infer D) => void ? D : never

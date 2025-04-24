@@ -55,6 +55,7 @@ export function createMessageService(ctx: CoreContext) {
   function processMessage(message: Api.Message) {
     useLogger().withFields(message).debug('Process message')
     emitter.emit('message:record', { message })
+    // emitter.emit('storage:save:messages', { messages })
   }
 
   // function toInternalMessage(message: Api.Message): TelegramMessage {
