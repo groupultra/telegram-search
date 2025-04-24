@@ -10,7 +10,7 @@ export interface CoreDialog {
   id: number
   name: string
   type: 'user' | 'group' | 'channel'
-  unreadCount: number
+  unreadCount?: number
   messageCount?: number
   lastMessage?: string
   lastMessageDate?: Date

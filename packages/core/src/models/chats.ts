@@ -10,7 +10,6 @@ export async function listJoinedChats() {
     .select()
     .from(joinedChatsTable)
     .where(eq(joinedChatsTable.platform, 'telegram'))
-    .limit(20)
 }
 
 export async function recordJoinedChats(chats: { chatId: string, chatName: string }[]) {

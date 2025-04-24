@@ -90,6 +90,7 @@ export const joinedChatsTable = pgTable('joined_chats', () => {
     platform: text().notNull().default(''),
     chat_id: text().notNull().default('').unique(),
     chat_name: text().notNull().default(''),
+    chat_type: text().notNull().default('user').$type<'user' | 'channel' | 'group'>(),
     created_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
     updated_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
   }

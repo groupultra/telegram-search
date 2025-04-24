@@ -15,6 +15,13 @@
       "when": 1745516895619,
       "tag": "0001_premium_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1745519878197,
+      "tag": "0002_brave_skullbuster",
+      "breakpoints": true
     }
   ]
 }
