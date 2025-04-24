@@ -8,6 +8,13 @@
       "when": 1745210293502,
       "tag": "0000_romantic_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1745516895619,
+      "tag": "0001_premium_grandmaster",
+      "breakpoints": true
     }
   ]
 }

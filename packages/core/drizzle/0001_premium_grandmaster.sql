@@ -1,0 +1,11 @@
+CREATE VIEW "public"."chat_message_stats" AS (
+    SELECT 
+      jc.platform, 
+      jc.chat_id, 
+      jc.chat_name, 
+      COUNT(cm.id)::int AS message_count, 
+      MAX(cm.created_at) AS latest_message_at
+    FROM joined_chats jc
+    LEFT JOIN chat_messages cm ON jc.chat_id = cm.in_chat_id
+    GROUP BY jc.platform, jc.chat_id, jc.chat_name
+  );
