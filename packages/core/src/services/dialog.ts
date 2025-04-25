@@ -6,7 +6,7 @@ import { useLogger } from '@tg-search/common'
 import { getEntityInfo } from '../utils/entity'
 import { withResult } from '../utils/result'
 
-interface CoreDialog {
+export interface CoreDialog {
   id: number
   name: string
   type: 'user' | 'group' | 'channel'
