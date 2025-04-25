@@ -7,9 +7,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
-    },
-    "./types": {
-      "types": "./dist/types/index.d.ts"
     }
   },
   "main": "./dist/index.cjs",
@@ -20,7 +17,7 @@
   ],
   "scripts": {
     "serve": "vite-node src/index.ts",
-    "dev": "vite-node --watch src/index.ts",
+    "dev": "vite-node src/index.ts",
     "build": "unbuild",
     "stub": "unbuild --stub",
     "lint": "eslint src",

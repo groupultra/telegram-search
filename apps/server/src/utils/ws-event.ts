@@ -6,23 +6,28 @@ export interface WsEventFromServer {
   'server:error': (data: { error?: string | Error | unknown }) => void
 }
 
-export type WsEventToServer = ToCoreEvent
+export interface WsEventFromClient {
+  'server:registerEvent': (data: { event: keyof WsEventToClient }) => void
+}
+
+export type WsEventToServer = ToCoreEvent & WsEventFromClient
 export type WsEventToClient = FromCoreEvent & WsEventFromServer
 // export type WsEvent = WsEventToServer & WsEventToClient
 
-// export type WsEventData<T extends keyof WsEvent> = Parameters<WsEvent[T]>[0]
+export type WsEventToServerData<T extends keyof WsEventToServer> = Parameters<WsEventToServer[T]>[0]
+export type WsEventToClientData<T extends keyof WsEventToClient> = Parameters<WsEventToClient[T]>[0]
 
 export type WsMessageToClient = {
   [T in keyof WsEventToClient]: {
     type: T
-    data: Parameters<WsEventToClient[T]>[0]
+    data: WsEventToClientData<T>
   }
 }[keyof WsEventToClient]
 
 export type WsMessageToServer = {
   [T in keyof WsEventToServer]: {
     type: T
-    data: Parameters<WsEventToServer[T]>[0]
+    data: WsEventToServerData<T>
   }
 }[keyof WsEventToServer]
 
@@ -31,7 +36,7 @@ export type WsMessageToServer = {
 export function sendWsEvent<T extends keyof WsEventToClient>(
   peer: Peer,
   event: T,
-  data: Parameters<WsEventToClient[T]>[0],
+  data: WsEventToClientData<T>,
 ) {
   peer.send(createWsMessage(event, data))
 }
@@ -47,7 +52,7 @@ export function sendWsError(
 
 export function createWsMessage<T extends keyof WsEventToClient>(
   type: T,
-  data: Parameters<WsEventToClient[T]>[0],
+  data: WsEventToClientData<T>,
 ): Extract<WsMessageToClient, { type: T }> {
   // TODO: just send necessary data
   // const safeData = stringify(pickBy(data, value => typeof value !== 'function'))
