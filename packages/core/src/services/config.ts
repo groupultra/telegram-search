@@ -56,7 +56,7 @@ export type ConfigEvent = ConfigEventFromCore & ConfigEventToCore
 export function createConfigService(ctx: CoreContext) {
   const { emitter } = ctx
 
-  async function getConfig() {
+  async function fetchConfig() {
     const config = useConfig()
 
     emitter.emit('config:result', { config })
@@ -74,7 +74,7 @@ export function createConfigService(ctx: CoreContext) {
   }
 
   return {
-    getConfig,
+    fetchConfig,
     saveConfig,
   }
 }

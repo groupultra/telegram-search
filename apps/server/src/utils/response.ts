@@ -1,6 +1,13 @@
 import type { ApiResponse, ErrorResponse, PaginationInfo, SuccessResponse } from '../types/api'
 
-import { ErrorCode, useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/common'
+
+export enum ErrorCode {
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
+  AUTH_ERROR = 'AUTH_ERROR',
+  AUTH_NEED_CODE = 'AUTH_NEED_CODE',
+  AUTH_NEED_PASSWORD = 'AUTH_NEED_PASSWORD',
+}
 
 /**
  * Create standardized response

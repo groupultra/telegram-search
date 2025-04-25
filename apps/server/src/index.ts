@@ -8,8 +8,13 @@ import { listen } from 'listhen'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
+import { setupWsRoutes } from './app'
 import { createErrorResponse } from './utils/response'
-import { setupWsRoutes } from './ws'
+
+export type * from './app'
+export type * from './types/api'
+export type * from './utils/response'
+export type * from './utils/ws-event'
 
 async function initCore(): Promise<ReturnType<typeof useLogger>> {
   initLogger()
