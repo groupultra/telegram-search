@@ -43,29 +43,37 @@ export function createCoreContext() {
   const withError = createErrorHandler(emitter)
   let telegramClient: TelegramClient
 
-  const toCoreEvents: (keyof ToCoreEvent)[] = []
-  const fromCoreEvents: (keyof FromCoreEvent)[] = []
+  const toCoreEvents = new Set<keyof ToCoreEvent>()
+  const fromCoreEvents = new Set<keyof FromCoreEvent>()
 
-  const wrapEmitterToCore = (emitter: CoreEmitter, fn: (event: keyof ToCoreEvent) => void) => {
+  const wrapEmitterOn = (emitter: CoreEmitter, fn: (event: keyof ToCoreEvent) => void) => {
     const _on = emitter.on.bind(emitter)
 
     emitter.on = (event, listener) => {
-      useLogger().withFields({ event }).debug('Added toCoreEvent')
+      if (toCoreEvents.has(event as keyof ToCoreEvent)) {
+        return _on(event, listener)
+      }
 
-      toCoreEvents.push(event as keyof ToCoreEvent)
+      useLogger().withFields({ event }).debug('Register to core event')
+
+      toCoreEvents.add(event as keyof ToCoreEvent)
       fn(event as keyof ToCoreEvent)
 
       return _on(event, listener)
     }
   }
 
-  const wrapEmitterFromCore = (emitter: CoreEmitter, fn: (event: keyof FromCoreEvent) => void) => {
+  const wrapEmitterEmit = (emitter: CoreEmitter, fn: (event: keyof FromCoreEvent) => void) => {
     const _emit = emitter.emit.bind(emitter)
 
     emitter.emit = (event, ...args) => {
-      useLogger().withFields({ event }).debug('Added fromCoreEvent')
+      if (fromCoreEvents.has(event as keyof FromCoreEvent)) {
+        return _emit(event, ...args)
+      }
 
-      fromCoreEvents.push(event as keyof FromCoreEvent)
+      useLogger().withFields({ event }).debug('Register from core event')
+
+      fromCoreEvents.add(event as keyof FromCoreEvent)
       fn(event as keyof FromCoreEvent)
 
       return _emit(event, ...args)
@@ -89,8 +97,8 @@ export function createCoreContext() {
     emitter,
     toCoreEvents,
     fromCoreEvents,
-    wrapEmitterToCore,
-    wrapEmitterFromCore,
+    wrapEmitterEmit,
+    wrapEmitterOn,
     setClient,
     getClient: ensureClient,
     withError,

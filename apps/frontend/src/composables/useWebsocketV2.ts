@@ -1,4 +1,4 @@
-import type { WsEventToServer, WsMessageToClient } from '@tg-search/server'
+import type { WsEventToClient, WsEventToServer, WsMessageToClient } from '@tg-search/server'
 
 import { useWebSocket } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
@@ -17,6 +17,12 @@ export function createWebsocketV2Context(sessionId: string) {
   const url = `${WS_API_BASE}?sessionId=${sessionId}`
   const socket = useWebSocket<keyof WsMessageToClient>(url.toString())
   const connectionStore = useSessionStore()
+
+  const registedEvents = new Set<keyof WsEventToClient>()
+  const registerEvent = (event: keyof WsEventToClient) => {
+    registedEvents.add(event)
+    return event
+  }
 
   function createWsMessage<T extends keyof WsEventToServer>(
     type: T,
@@ -41,41 +47,40 @@ export function createWebsocketV2Context(sessionId: string) {
     try {
       const message = JSON.parse(rawMessage) as WsMessageToClient
 
-      // eslint-disable-next-line no-console
-      console.log('[WebSocket] Message received', message)
+      if (registedEvents.has(message.type)) {
+        // eslint-disable-next-line no-console
+        console.log('[WebSocket] Message received', message)
+      }
 
       try {
         switch (message.type) {
-          case 'server:connected':
+          case registerEvent('server:connected'):
             connectionStore.getActiveSession()!.isConnected = message.data.connected
             connectionStore.setActiveSession(message.data.sessionId, {})
             break
 
-          case 'auth:needCode':
+          case registerEvent('auth:needCode'):
             connectionStore.auth.needCode = true
             break
 
-          case 'auth:needPassword':
+          case registerEvent('auth:needPassword'):
             connectionStore.auth.needPassword = true
             break
 
-          case 'auth:connected':
+          case registerEvent('auth:connected'):
             connectionStore.getActiveSession()!.isConnected = true
             sendEvent('entity:getMe', undefined)
             break
 
-          case 'entity:me':
+          case registerEvent('entity:me'):
             connectionStore.getActiveSession()!.me = message.data
             break
 
-          case 'takeout:task:progress': {
+          case registerEvent('takeout:task:progress'): {
             const { currentTask } = storeToRefs(useSyncTaskStore())
             currentTask.value = message.data
             break
           }
-          default:
-            // eslint-disable-next-line no-console
-            console.log('[WebSocket] Unknown message')
         }
       }
       catch (error) {

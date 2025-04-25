@@ -8,7 +8,7 @@ import { createCoreInstance } from '@tg-search/core'
 import { createRouter, defineEventHandler, defineWebSocketHandler, getQuery } from 'h3'
 
 import { createResponse } from './utils/response'
-import { sendWsError, sendWsEvent } from './utils/ws-event'
+import { sendWsEvent } from './utils/ws-event'
 
 export interface ClientState {
   ctx?: CoreContext
@@ -68,20 +68,18 @@ export function setupWsRoutes(app: App) {
 
       useLogger().withFields({ peer: peer.id }).debug('[/ws] Websocket connection opened')
 
-      state.ctx?.wrapEmitterFromCore(state.ctx?.emitter, (event) => {
+      state.ctx?.wrapEmitterEmit(state.ctx?.emitter, (event) => {
         state.ctx?.emitter.on(event, (...args) => {
-          sendWsEvent(peer, event, args[0])
-        })
-      })
+          try {
+            // ensure args[0] can be stringified
+            JSON.stringify(args[0])
 
-      state.ctx?.fromCoreEvents.forEach((event) => {
-        state.ctx?.emitter.on(event, (...args) => {
-          sendWsEvent(peer, event, args[0])
+            sendWsEvent(peer, event, args[0])
+          }
+          catch {
+            useLogger().withFields({ event }).warn('[/ws] Dropped event')
+          }
         })
-      })
-
-      state.ctx?.emitter.on('core:error', ({ error }: { error?: string | Error | unknown }) => {
-        sendWsError(peer, error)
       })
 
       sendWsEvent(peer, 'server:connected', { sessionId, connected: state.isConnected ?? false })
