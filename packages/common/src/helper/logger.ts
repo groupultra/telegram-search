@@ -16,6 +16,9 @@ export function initLogger() {
  * @returns logger instance configured with "directoryName/filename"
  */
 export function useLogger(name?: string): Logger {
+  if (name)
+    return useLogg(`${name}`).useGlobalConfig()
+
   const stack = new Error('logger').stack
   const caller = stack?.split('\n')[2]
 
@@ -24,9 +27,6 @@ export function useLogger(name?: string): Logger {
   const dirName = match?.[1] || path.basename(path.dirname(__filename))
   const fileName = match?.[2] || path.basename(__filename, '.ts')
   const lineNumber = match?.[3] || '?'
-
-  if (name)
-    return useLogg(`${name}] [${dirName}/${fileName}:${lineNumber}`).useGlobalConfig()
 
   return useLogg(`${dirName}/${fileName}:${lineNumber}`).useGlobalConfig()
 }
