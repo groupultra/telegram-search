@@ -3,7 +3,7 @@ import type { PromiseResult } from '../utils/result'
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { useLogger, usePaths } from '@tg-search/common'
+import { getSessionPath, useConfig, useLogger } from '@tg-search/common'
 import { StringSession } from 'telegram/sessions'
 
 import { withResult } from '../utils/result'
@@ -24,7 +24,10 @@ export function createSessionService(ctx: CoreContext) {
   const logger = useLogger()
 
   function getSessionFilePath(phoneNumber: string) {
-    return path.join(usePaths().sessionPath, `${phoneNumber.replace('+', '')}.session`)
+    const config = useConfig()
+    const sessionPath = getSessionPath(config.path.storage)
+
+    return path.join(sessionPath, `${phoneNumber.replace('+', '')}.session`)
   }
 
   async function cleanSession(phoneNumber: string) {

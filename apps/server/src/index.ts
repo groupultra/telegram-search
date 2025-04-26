@@ -1,7 +1,7 @@
 import type { NodeOptions } from 'crossws/adapters/node'
 
 import process from 'node:process'
-import { initConfig, initLogger, useLogger } from '@tg-search/common'
+import { initLogger, useConfig, useLogger } from '@tg-search/common'
 import { initDrizzle } from '@tg-search/core'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
@@ -19,7 +19,7 @@ export type * from './utils/ws-event'
 async function initCore(): Promise<ReturnType<typeof useLogger>> {
   initLogger()
   const logger = useLogger()
-  initConfig()
+  useConfig()
 
   try {
     await initDrizzle()
@@ -33,7 +33,6 @@ async function initCore(): Promise<ReturnType<typeof useLogger>> {
   return logger
 }
 
-// Error handling setup
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
   const handleError = (error: unknown, type: string) => {
     logger.withError(error).error(type)
@@ -43,7 +42,6 @@ function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
   process.on('unhandledRejection', error => handleError(error, 'Unhandled rejection'))
 }
 
-// Server configuration
 function configureServer(logger: ReturnType<typeof useLogger>) {
   const app = createApp({
     debug: true,
@@ -96,7 +94,6 @@ function configureServer(logger: ReturnType<typeof useLogger>) {
   return app
 }
 
-// Main application bootstrap
 async function bootstrap() {
   const argv = await yargs(hideBin(process.argv))
     .option('port', {
