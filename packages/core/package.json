@@ -22,7 +22,6 @@
     "lint:fix": "eslint src --fix"
   },
   "dependencies": {
-    "@guiiai/logg": "^1.0.8",
     "@tg-search/common": "workspace:*",
     "@xsai-ext/providers-cloud": "catalog:",
     "@xsai/embed": "catalog:",
@@ -35,9 +34,7 @@
     "pg": "^8.14.1",
     "postgres": "^3.4.5",
     "telegram": "^2.26.22",
-    "tiktoken": "^1.0.21",
-    "valibot": "^1.0.0",
-    "yaml": "^2.7.1"
+    "valibot": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.1",

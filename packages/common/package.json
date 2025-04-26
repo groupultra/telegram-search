@@ -26,9 +26,6 @@
   "dependencies": {
     "@guiiai/logg": "^1.0.8",
     "defu": "^6.1.4",
-    "drizzle-orm": "^0.42.0",
-    "postgres": "^3.4.5",
-    "superjson": "^2.2.2",
     "valibot": "^1.0.0",
     "yaml": "^2.7.1"
   },

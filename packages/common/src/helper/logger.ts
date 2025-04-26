@@ -11,10 +11,6 @@ export function initLogger() {
   logger.log('Logger initialized')
 }
 
-/**
- * Get logger instance with directory name and filename
- * @returns logger instance configured with "directoryName/filename"
- */
 export function useLogger(name?: string): Logger {
   if (name)
     return useLogg(`${name}`).useGlobalConfig()
