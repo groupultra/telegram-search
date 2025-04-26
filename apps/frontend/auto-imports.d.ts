@@ -148,7 +148,7 @@ declare global {
   const useBroadcastChannel: typeof import('@vueuse/core')['useBroadcastChannel']
   const useBrowserLocation: typeof import('@vueuse/core')['useBrowserLocation']
   const useCached: typeof import('@vueuse/core')['useCached']
-  const useChatStore: typeof import('./src/composables/useChat')['useChatStore']
+  const useChatStore: typeof import('./src/store/useChat')['useChatStore']
   const useChatTypeOptions: typeof import('./src/composables/useOptions')['useChatTypeOptions']
   const useClipboard: typeof import('@vueuse/core')['useClipboard']
   const useClipboardItems: typeof import('@vueuse/core')['useClipboardItems']
@@ -262,7 +262,7 @@ declare global {
   const useSearch: typeof import('./src/composables/useSearch')['useSearch']
   const useSession: typeof import('apps/frontend/src/store/useSession')['useSession']
   const useSessionStorage: typeof import('@vueuse/core')['useSessionStorage']
-  const useSettingsStore: typeof import('./src/composables/useSettings')['useSettingsStore']
+  const useSettingsStore: typeof import('./src/store/useSettings')['useSettingsStore']
   const useShare: typeof import('@vueuse/core')['useShare']
   const useSlots: typeof import('vue')['useSlots']
   const useSorted: typeof import('@vueuse/core')['useSorted']
@@ -335,6 +335,9 @@ declare global {
   // @ts-ignore
   export type { PaginationOptions } from './src/composables/usePagination'
   import('./src/composables/usePagination')
+  // @ts-ignore
+  export type { WsEventHandler, WsRegisterEventHandler } from './src/composables/useWebsocketV2'
+  import('./src/composables/useWebsocketV2')
 }
 
 // for vue template auto import
@@ -471,7 +474,6 @@ declare module 'vue' {
     readonly useBroadcastChannel: UnwrapRef<typeof import('@vueuse/core')['useBroadcastChannel']>
     readonly useBrowserLocation: UnwrapRef<typeof import('@vueuse/core')['useBrowserLocation']>
     readonly useCached: UnwrapRef<typeof import('@vueuse/core')['useCached']>
-    readonly useChatStore: UnwrapRef<typeof import('./src/composables/useChat')['useChatStore']>
     readonly useClipboard: UnwrapRef<typeof import('@vueuse/core')['useClipboard']>
     readonly useClipboardItems: UnwrapRef<typeof import('@vueuse/core')['useClipboardItems']>
     readonly useCloned: UnwrapRef<typeof import('@vueuse/core')['useCloned']>
@@ -573,7 +575,6 @@ declare module 'vue' {
     readonly useScroll: UnwrapRef<typeof import('@vueuse/core')['useScroll']>
     readonly useScrollLock: UnwrapRef<typeof import('@vueuse/core')['useScrollLock']>
     readonly useSessionStorage: UnwrapRef<typeof import('@vueuse/core')['useSessionStorage']>
-    readonly useSettingsStore: UnwrapRef<typeof import('./src/composables/useSettings')['useSettingsStore']>
     readonly useShare: UnwrapRef<typeof import('@vueuse/core')['useShare']>
     readonly useSlots: UnwrapRef<typeof import('vue')['useSlots']>
     readonly useSorted: UnwrapRef<typeof import('@vueuse/core')['useSorted']>

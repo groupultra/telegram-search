@@ -1,16 +1,18 @@
-import type { Config } from '../types/config'
+import type { CoreConfig } from '../types/config'
 
 import * as fs from 'node:fs'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
 import { defu } from 'defu'
+import { parse } from 'valibot'
 import * as yaml from 'yaml'
 
 import { generateDefaultConfig } from '../config/default-config'
 import { useLogger } from '../helper/logger'
 import { findConfigDir, resolveHomeDir } from '../helper/path'
+import { coreConfigSchema } from '../types/config'
 
-let config: Config | null = null
+let config: CoreConfig | null = null
 
 /**
  * Find config file path
@@ -20,7 +22,7 @@ function findConfigFile(): string {
   const configPath = join(configDir, `config.yaml`)
 
   if (!fs.existsSync(configPath)) {
-    throw new Error(`Config file not found: ${configPath}`)
+    throw new Error(`CoreConfig file not found: ${configPath}`)
   }
 
   return configPath
@@ -29,7 +31,7 @@ function findConfigFile(): string {
 /**
  * Load YAML configuration file
  */
-function loadYamlConfig(configPath: string): Partial<Config> {
+function loadYamlConfig(configPath: string): Partial<CoreConfig> {
   try {
     const content = fs.readFileSync(configPath, 'utf-8')
     return yaml.parse(content)
@@ -42,29 +44,9 @@ function loadYamlConfig(configPath: string): Partial<Config> {
 }
 
 /**
- * Validate required configuration fields
- */
-function validateConfig(config: Config) {
-  const required = [
-    'api.telegram.apiId',
-    'api.telegram.apiHash',
-    'api.telegram.phoneNumber',
-    'api.embedding.provider',
-    'api.embedding.model',
-  ] as const
-
-  for (const path of required) {
-    const value = path.split('.').reduce((obj, key) => obj?.[key], config as any)
-    if (!value) {
-      throw new Error(`Missing required configuration: ${path}`)
-    }
-  }
-}
-
-/**
  * Save config to file
  */
-function saveConfig(config: Config, configPath: string) {
+function saveConfig(config: CoreConfig, configPath: string) {
   const logger = useLogger()
 
   try {
@@ -92,7 +74,7 @@ function saveConfig(config: Config, configPath: string) {
 /**
  * Initialize config
  */
-export function initConfig() {
+export function initConfig(): CoreConfig {
   if (config) {
     return config
   }
@@ -117,7 +99,7 @@ export function initConfig() {
     }
 
     // Merge configurations with type assertion
-    const mergedConfig = defu<Config, Partial<Config>[]>(mainConfig, envConfig, generateDefaultConfig())
+    const mergedConfig = defu<CoreConfig, Partial<CoreConfig>[]>(mainConfig, envConfig, generateDefaultConfig())
 
     // Resolve paths
     mergedConfig.path.storage = resolveHomeDir(mergedConfig.path.storage)
@@ -131,8 +113,13 @@ export function initConfig() {
     // Log merged config
     logger.withFields(mergedConfig).debug('Merged config')
 
-    // Validate configuration
-    validateConfig(mergedConfig)
+    try {
+      parse(coreConfigSchema, mergedConfig)
+    }
+    catch (error) {
+      logger.withError(error).error('Failed to validate config')
+      throw error
+    }
 
     // Set global config
     config = mergedConfig
@@ -150,19 +137,19 @@ export function initConfig() {
 /**
  * Get current config
  */
-export function useConfig(): Config {
+export function useConfig(): CoreConfig {
   if (!config) {
     initConfig()
   }
 
-  return config as Config
+  return config as CoreConfig
 }
 
 /**
  * Update config
  * This will merge the new config with the existing one and save it to file
  */
-export function updateConfig(newConfig: Partial<Config>): Config {
+export function updateConfig(newConfig: Partial<CoreConfig>): CoreConfig {
   const logger = useLogger()
 
   try {
@@ -171,10 +158,16 @@ export function updateConfig(newConfig: Partial<Config>): Config {
     const configPath = findConfigFile()
 
     // Merge new config with current config
-    const mergedConfig = defu<Config, Partial<Config>[]>({}, newConfig, currentConfig)
+    const mergedConfig = defu<CoreConfig, Partial<CoreConfig>[]>({}, newConfig, currentConfig)
 
     // Validate merged config
-    validateConfig(mergedConfig)
+    try {
+      parse(coreConfigSchema, mergedConfig)
+    }
+    catch (error) {
+      logger.withError(error).error('Failed to validate config')
+      throw error
+    }
 
     // Save config to file
     saveConfig(mergedConfig, configPath)

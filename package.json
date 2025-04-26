@@ -22,6 +22,7 @@
     "test": "pnpm -r test run",
     "test:coverage": "pnpm -r test:coverage",
     "prepare": "husky",
+    "postinstall": "pnpm run build",
     "bump": "bumpp",
     "bump:deps": "taze -I -f -w -r"
   },

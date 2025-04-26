@@ -1,57 +1,64 @@
-export interface ClientProxyConfig {
-  ip: string
-  port: number
-  MTProxy?: boolean
-  secret?: string
-  socksType?: 4 | 5
-  timeout?: number
-  username?: string
-  password?: string
+import type { InferOutput } from 'valibot'
+
+import { boolean, enum as enumType, number, object, optional, string } from 'valibot'
+
+enum SocksType {
+  SOCKS4 = 4,
+  SOCKS5 = 5,
 }
 
-export interface DatabaseConfig {
-  url?: string
-  host: string
-  port: number
-  user: string
-  password: string
-  database: string
+enum EmbeddingProvider {
+  OPENAI = 'openai',
+  OLLAMA = 'ollama',
 }
 
-export interface MessageConfig {
-  export: {
-    batchSize: number
-    concurrent: number
-    retryTimes: number
-    maxTakeoutRetries: number
-  }
-  batch: {
-    size: number
-  }
-}
+export const coreConfigSchema = object({
+  database: object({
+    host: string(),
+    port: number(),
+    user: string(),
+    password: string(),
+    database: string(),
+    url: optional(string()),
+  }),
+  message: object({
+    export: object({
+      batchSize: number(),
+      concurrent: number(),
+      retryTimes: number(),
+      maxTakeoutRetries: number(),
+    }),
+    batch: object({
+      size: number(),
+    }),
+  }),
+  path: object({
+    storage: string(),
+  }),
+  api: object({
+    telegram: object({
+      apiId: string(),
+      apiHash: string(),
+      phoneNumber: string(),
+      proxy: optional(object({
+        ip: string(),
+        port: number(),
+        MTProxy: optional(boolean()),
+        secret: optional(string()),
+        socksType: optional(enumType(SocksType)),
+        timeout: optional(number()),
+        username: optional(string()),
+        password: optional(string()),
+      })),
+    }),
+    embedding: object({
+      provider: enumType(EmbeddingProvider),
+      model: string(),
+      apiKey: optional(string()),
+      apiBase: optional(string()),
+    }),
+  }),
+})
 
-export interface PathConfig {
-  storage: string
-}
-
-export interface ApiConfig {
-  telegram: {
-    apiId: string
-    apiHash: string
-    phoneNumber: string
-    proxy?: ClientProxyConfig
-  }
-  embedding: {
-    provider: 'ollama' | 'openai'
-    model: string
-    apiKey?: string
-    apiBase?: string
-  }
-}
-
-export interface Config {
-  database: DatabaseConfig
-  message: MessageConfig
-  path: PathConfig
-  api: ApiConfig
-}
+export type CoreConfig = InferOutput<typeof coreConfigSchema>
+export type ClientProxyConfig = CoreConfig['api']['telegram']['proxy']

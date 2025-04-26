@@ -66,7 +66,7 @@ export const useSessionStore = defineStore('session', () => {
     //   storageActiveSessionId.value = response.data?.sessionId
     // }
 
-    wsContext = useWebsocketV2(storageActiveSessionId.value)
+    wsContext = useWebsocketV2(storageActiveSessionId.value || crypto.randomUUID())
 
     await attemptLogin()
   })

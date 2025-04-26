@@ -214,9 +214,6 @@ importers:
       yargs:
         specifier: ^17.7.2
         version: 17.7.2
-      zod:
-        specifier: ^3.24.3
-        version: 3.24.3
     devDependencies:
       '@types/lodash-es':
         specifier: ^4.17.12
@@ -251,12 +248,12 @@ importers:
       superjson:
         specifier: ^2.2.2
         version: 2.2.2
+      valibot:
+        specifier: ^1.0.0
+        version: 1.0.0(typescript@5.8.3)
       yaml:
         specifier: ^2.7.1
         version: 2.7.1
-      zod:
-        specifier: ^3.24.3
-        version: 3.24.3
     devDependencies:
       '@types/node':
         specifier: ^22.14.1
@@ -315,9 +312,6 @@ importers:
       yaml:
         specifier: ^2.7.1
         version: 2.7.1
-      zod:
-        specifier: ^3.24.3
-        version: 3.24.3
     devDependencies:
       '@types/node':
         specifier: ^22.14.1
@@ -2271,14 +2265,14 @@ packages:
   '@xsai-ext/providers-cloud@0.2.0-beta.3':
     resolution: {integrity: sha512-A5z3IEOI2B0bDmRc93PgRobBib7fyY/JWJKpvv7fkSbugqFNY40SJu1ae57KXriOJyzeoAZUzNmuiSQenaF2pQ==}
 
-  '@xsai-ext/shared-providers@0.2.0-beta.4':
-    resolution: {integrity: sha512-o7VIAXQ4JVVS4/luqxvAAxhmg5CaaaBlbA+CzbNA2J5oBGkYn0zyHSLXB6dlLAKvZBNevBuyTD90LwgH3eyI/Q==}
+  '@xsai-ext/shared-providers@0.2.0-beta.5':
+    resolution: {integrity: sha512-HNiFi19CzPIwxFiJbu70YDNRhwscfC9yFZ2b24dpaRDHsDAMlDDR9buuYJjeN+16EmBp1ODD+T4Q6yDgNpfk0g==}
 
   '@xsai/embed@0.2.0-beta.3':
     resolution: {integrity: sha512-L6CPADpbOB2nF6cPoHx2QuM98Z88s3RjL2A1+WUPvJHA7eTWen+/02saDYXYo2L/rQ4MGNRgr+tGxfk/3WkeJw==}
 
-  '@xsai/shared@0.2.0-beta.4':
-    resolution: {integrity: sha512-emGbTxbYlUxYiQciW1XzInY3poosmJSCDCaiJoX/6Q1IFq7PBq5SDH6LkmD8y7IQGvtoBllzwjwYm8+tBCG8Tw==}
+  '@xsai/shared@0.2.0-beta.5':
+    resolution: {integrity: sha512-3Ca5ORn49p5PRdhA156rw0izX1azUnM1K/falv0SEBVQhOEGNNGUQLGWCuh9JHKamoRMfkw47gCR+30Onr6r+g==}
 
   abbrev@2.0.0:
     resolution: {integrity: sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==}
@@ -6647,6 +6641,14 @@ packages:
     deprecated: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
     hasBin: true
 
+  valibot@1.0.0:
+    resolution: {integrity: sha512-1Hc0ihzWxBar6NGeZv7fPLY0QuxFMyxwYR2sF1Blu7Wq7EnremwY2W02tit2ij2VJT8HcSkHAQqmFfl77f73Yw==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   validate-npm-package-license@3.0.4:
     resolution: {integrity: sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==}
 
@@ -7063,9 +7065,6 @@ packages:
   yoctocolors@2.1.1:
     resolution: {integrity: sha512-GQHQqAopRhwU8Kt1DDM8NjibDXHC8eoh1erhGAJPEyveY9qqVeXvVikNKrDz69sHowPMorbPUrH/mx8c50eiBQ==}
     engines: {node: '>=18'}
-
-  zod@3.24.3:
-    resolution: {integrity: sha512-HhY1oqzWCQWuUqvBFnsyrtZRhyPeR7SUGv+C4+MsisMuVfSPx8HpwWqH8tRahSlt6M3PiFAcoeFhZAqIXTxoSg==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -9059,18 +9058,18 @@ snapshots:
 
   '@xsai-ext/providers-cloud@0.2.0-beta.3':
     dependencies:
-      '@xsai-ext/shared-providers': 0.2.0-beta.4
-      '@xsai/shared': 0.2.0-beta.4
+      '@xsai-ext/shared-providers': 0.2.0-beta.5
+      '@xsai/shared': 0.2.0-beta.5
 
-  '@xsai-ext/shared-providers@0.2.0-beta.4':
+  '@xsai-ext/shared-providers@0.2.0-beta.5':
     dependencies:
-      '@xsai/shared': 0.2.0-beta.4
+      '@xsai/shared': 0.2.0-beta.5
 
   '@xsai/embed@0.2.0-beta.3':
     dependencies:
-      '@xsai/shared': 0.2.0-beta.4
+      '@xsai/shared': 0.2.0-beta.5
 
-  '@xsai/shared@0.2.0-beta.4': {}
+  '@xsai/shared@0.2.0-beta.5': {}
 
   abbrev@2.0.0: {}
 
@@ -14473,6 +14472,10 @@ snapshots:
 
   uuid@3.4.0: {}
 
+  valibot@1.0.0(typescript@5.8.3):
+    optionalDependencies:
+      typescript: 5.8.3
+
   validate-npm-package-license@3.0.4:
     dependencies:
       spdx-correct: 3.2.0
@@ -15117,7 +15120,5 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   yoctocolors@2.1.1: {}
-
-  zod@3.24.3: {}
 
   zwitch@2.0.4: {}

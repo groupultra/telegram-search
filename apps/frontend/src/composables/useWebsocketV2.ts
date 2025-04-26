@@ -5,6 +5,7 @@ import { watch } from 'vue'
 
 import { WS_API_BASE } from '../constants'
 import { registerAuthEventHandlers } from '../event-handlers/auth'
+import { registerConfigEventHandlers } from '../event-handlers/config'
 import { registerEntityEventHandlers } from '../event-handlers/entity'
 import { registerServerEventHandlers } from '../event-handlers/server'
 import { registerTakeoutEventHandlers } from '../event-handlers/takeout'
@@ -32,6 +33,7 @@ export function createWebsocketV2Context(sessionId: string) {
   registerAuthEventHandlers(registerEventHandler)
   registerEntityEventHandlers(registerEventHandler)
   registerTakeoutEventHandlers(registerEventHandler)
+  registerConfigEventHandlers(registerEventHandler)
 
   function createWsMessage<T extends keyof WsEventToServer>(
     type: T,
@@ -41,7 +43,7 @@ export function createWebsocketV2Context(sessionId: string) {
   }
 
   // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L29-L37
-  function sendEvent<T extends keyof WsEventToServer>(event: T, data: WsEventToServerData<T>) {
+  function sendEvent<T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) {
     // eslint-disable-next-line no-console
     console.log('[WebSocket] Sending event', event, data)
 

@@ -8,13 +8,13 @@ export function registerConfigEventHandlers(ctx: CoreContext) {
   const logger = useLogger('core:config:event')
 
   return (configService: ReturnType<typeof createConfigService>) => {
-    emitter.on('config:get', async () => {
+    emitter.on('config:fetch', async () => {
       logger.debug('Getting config')
 
       configService.fetchConfig()
     })
 
-    emitter.on('config:save', async ({ config }) => {
+    emitter.on('config:update', async ({ config }) => {
       logger.debug('Saving config', config)
 
       configService.saveConfig(config)
