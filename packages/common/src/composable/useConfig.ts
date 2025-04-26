@@ -42,7 +42,7 @@ export function generateDefaultConfig(): CoreConfig {
       port: 5432,
       user: 'postgres',
       password: 'postgres',
-      database: 'tg_search',
+      database: 'postgres',
     },
 
     // Message settings
