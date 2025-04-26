@@ -7,6 +7,7 @@ import defu from 'defu'
 import { safeParse } from 'valibot'
 import { parse, stringify } from 'yaml'
 
+import { useLogger } from '../helper/logger'
 import { coreConfigSchema } from '../schema/config'
 
 let config: CoreConfig
@@ -132,6 +133,8 @@ function initConfig(): CoreConfig {
   validatedConfig.output.database.url = getDatabaseDSN(validatedConfig.output)
 
   config = validatedConfig.output
+
+  useLogger('config').withFields(config).debug('Config loaded')
   return config
 }
 
