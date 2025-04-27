@@ -1,170 +1,114 @@
-<script setup lang="ts">
-import { onClickOutside, usePreferredDark } from '@vueuse/core'
-import { storeToRefs } from 'pinia'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
-import ThemeToggle from '../components/ThemeToggle.vue'
-import DropdownMenu from '../components/ui/DropdownMenu.vue'
-import { useSessionStore } from '../store/useSessionV2'
+<script lang="ts" setup>
+import { useDark, useToggle } from '@vueuse/core'
 
-const router = useRouter()
-const isDark = usePreferredDark()
-
-const showUserMenu = ref(false)
-const showLanguageMenu = ref(false)
-const showCommandMenu = ref(false)
-
-const userMenuRef = ref<HTMLElement | null>(null)
-const languageMenuRef = ref<HTMLElement | null>(null)
-const commandMenuRef = ref<HTMLElement | null>(null)
-
-const sessionStore = useSessionStore()
-const { handleAuth } = sessionStore
-const { activeSessionComputed } = storeToRefs(sessionStore)
-
-onClickOutside(userMenuRef, () => {
-  showUserMenu.value = false
-})
-
-onClickOutside(languageMenuRef, () => {
-  showLanguageMenu.value = false
-})
-
-onClickOutside(commandMenuRef, () => {
-  showCommandMenu.value = false
-})
-
-// onMounted(async () => {
-//   if (isConnected.value && !me.value) {
-//     const { sendEvent } = getWsContext()
-//     sendEvent('entity:me:fetch', undefined)
-//   }
-// })
-
-async function handleLogout() {
-  showUserMenu.value = false
-  handleAuth().logout()
-  toast.success('Logout successfully')
-  router.push('/login')
-}
-
-async function handleLogin() {
-  showUserMenu.value = false
-  router.push('/login')
-}
+const isDark = useDark()
 </script>
 
 <template>
-  <div class="min-h-screen" :class="{ dark: isDark }">
-    <header class="sticky top-0 z-50 border-b bg-white transition-colors duration-300 dark:border-gray-800 dark:bg-gray-900">
-      <div class="mx-auto h-14 flex items-center justify-between px-4 container">
-        <RouterLink to="/" class="text-lg font-semibold transition-colors duration-300 dark:text-white">
-          Telegram Search
-        </RouterLink>
+  <div class="bg-background h-screen w-full flex overflow-hidden" :class="{ dark: isDark }">
+    <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200">
+      <div class="h-full flex flex-col overflow-hidden">
+        <div class="p-2">
+          <div class="relative">
+            <div class="i-lucide-search text-muted-foreground absolute left-2 top-1/2 h-4 w-4 text-xl -translate-y-1/2" />
+            <input type="text" class="border-input bg-background ring-offset-background w-full border rounded-md px-3 py-2 pl-9 text-sm" placeholder="Search">
+          </div>
+        </div>
+        <!-- Main menu -->
+        <div class="mt-2 p-2">
+          <ul class="space-y-1">
+            <li>
+              <button
+                class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm"
+              >
+                <div class="i-lucide-home h-5 w-5" />
+                <span>主页</span>
+              </button>
+            </li>
+            <li>
+              <button
+                class="w-full flex items-center gap-3 rounded-md bg-cover px-3 py-2 text-sm hover:bg-gray-200"
+              >
+                <div class="i-lucide-folder-open h-5 w-5" />
+                <span>嵌入</span>
+              </button>
+            </li>
+            <li>
+              <button
+                class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-gray-200"
+              >
+                <div class="i-lucide-folder-sync h-5 w-5" />
+                <span>同步</span>
+              </button>
+            </li>
+          </ul>
+        </div>
 
-        <div class="flex items-center gap-4">
-          <IconButton
-            icon="i-lucide-folder-sync"
-            with-transition
-            aria-label="Sync Command"
-            @click="router.push('/sync')"
-          />
+        <!-- Chats -->
+        <!-- Private Chats -->
+        <div class="mt-4">
+          <div class="flex items-center justify-between px-4 py-2">
+            <div class="flex items-center gap-1 text-sm font-medium">
+              <div class="i-lucide-chevron-down h-4 w-4" />
+              <span>私聊</span>
+            </div>
+            <button class="hover:bg-muted h-5 w-5 flex items-center justify-center rounded-md p-1">
+              <div class="i-lucide-plus-circle h-4 w-4" />
+            </button>
+          </div>
+          <ul class="px-2 space-y-1">
+            <li v-for="id in 3" :key="`private-${id}`">
+              <button class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm">
+                <div class="h-6 w-6 flex items-center justify-center overflow-hidden rounded-full">
+                  <img :alt="`User ${id}`" class="h-full w-full object-cover">
+                </div>
+                <span>用户 {{ id }}</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+        <!-- Group Chats -->
 
-          <!-- User menu -->
-          <DropdownMenu
-            icon="i-lucide-user"
-            label="User Menu"
-          >
-            <div v-if="activeSessionComputed?.me" class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
-              <div>{{ activeSessionComputed.me.firstName }} {{ activeSessionComputed.me.lastName }}</div>
-              <div class="text-xs text-gray-500">
-                @{{ activeSessionComputed.me.username }}
+        <!-- User profile -->
+        <div class="mt-auto border-t p-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="bg-muted h-8 w-8 flex items-center justify-center overflow-hidden rounded-full">
+                <img alt="Me" class="h-full w-full object-cover">
+              </div>
+              <div class="flex flex-col">
+                <span class="text-sm font-medium">我的用户名</span>
+                <span class="text-muted-foreground text-xs">已链接</span>
               </div>
             </div>
-
-            <div v-if="activeSessionComputed?.me?.username" class="my-2 border-b border-gray-200 dark:border-gray-700" />
-
-            <button
-              v-if="!activeSessionComputed?.isConnected"
-              class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-              @click="handleLogin"
-            >
-              <div class="flex items-center">
-                <div class="i-lucide-log-in mr-2 h-4 w-4" />
-                <span>Login</span>
-              </div>
-            </button>
-
-            <button
-              v-if="activeSessionComputed?.isConnected"
-              class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-              @click="handleLogout"
-            >
-              <div class="flex items-center">
-                <div class="i-lucide-log-out mr-2 h-4 w-4" />
-                <span>Logout</span>
-              </div>
-            </button>
-          </DropdownMenu>
-
-          <ThemeToggle />
-
-          <IconButton
-            icon="i-lucide-settings"
-            with-transition
-            aria-label="Settings"
-            @click="router.push('/settings')"
-          />
+            <div class="flex items-center">
+              <button class="hover:bg-muted h-8 w-8 flex items-center justify-center rounded-md p-1">
+                <div class="i-lucide-settings h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </header>
-
-    <!-- Main content -->
-    <main class="mx-auto bg-white p-4 transition-colors duration-300 container dark:bg-gray-900">
-      <slot />
-    </main>
-
-    <!-- Global Dialog Wrapper -->
-    <div class="pointer-events-none fixed left-0 top-0 z-100 h-screen w-screen">
-      <slot name="dialog" />
+    </div>
+    <div class="flex flex-1 flex-col overflow-hidden">
+      <header class="h-14 flex items-center border-b px-4">
+        <div class="flex items-center gap-2">
+          <div class="bg-gary-200 h-6 w-6 flex items-center justify-center overflow-hidden rounded-full">
+            <img alt="Chat" class="h-full w-full object-cover">
+          </div>
+          <span class="font-medium">用户1</span>
+        </div>
+        <div class="ml-auto">
+          <button class="hover:bg-muted rounded-md p-2">
+            <div class="i-lucide-ellipsis h-5 w-5" />
+          </button>
+        </div>
+      </header>
+      <main class="flex flex-1 flex-col overflow-hidden">
+        <div class="flex-1 overflow-auto p-4">
+          <slot />
+        </div>
+      </main>
     </div>
   </div>
 </template>
-
-<style>
-:deep(dialog) {
-  pointer-events: auto;
-}
-
-/* Menu animations */
-.menu-enter-active {
-  animation: menu-in 0.2s ease-out;
-}
-
-.menu-leave-active {
-  animation: menu-out 0.2s ease-in;
-}
-
-@keyframes menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes menu-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-}
-</style>
