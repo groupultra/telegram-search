@@ -21,15 +21,10 @@ async function updateConfig() {
   if (!config.value)
     return
 
-  try {
-    wsContext.sendEvent('config:update', { config: config.value })
-    isEditing.value = false
-    toast.success('Settings saved successfully')
-  }
-  catch (err) {
-    console.error('Failed to save config:', err)
-    toast.error(`Failed to save config: ${err instanceof Error ? err.message : 'Unknown error'}`)
-  }
+  wsContext.sendEvent('config:update', { config: config.value })
+
+  isEditing.value = false
+  toast.success('Settings saved successfully')
 }
 
 onMounted(() => {

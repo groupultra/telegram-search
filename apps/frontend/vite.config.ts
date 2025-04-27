@@ -12,7 +12,7 @@ import Devtools from 'vite-plugin-vue-devtools'
 export default defineConfig({
   resolve: {
     alias: {
-      '~/': `${path.resolve(__dirname, 'src')}/`,
+      '@tg-search/common': `${path.resolve(__dirname, '../../packages/common/src')}/`,
     },
   },
   plugins: [
