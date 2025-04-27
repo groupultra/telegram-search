@@ -88,7 +88,7 @@ export async function initConfig(): Promise<Config> {
 export async function updateConfig(newConfig: Partial<Config>): Promise<Config> {
   const configPath = await useConfigPath()
 
-  const mergedConfig = defu(config, newConfig)
+  const mergedConfig = defu({}, newConfig, config)
   const validatedConfig = safeParse(configSchema, mergedConfig)
 
   if (!validatedConfig.success) {
@@ -96,7 +96,7 @@ export async function updateConfig(newConfig: Partial<Config>): Promise<Config> 
     throw new Error('Failed to validate config')
   }
 
-  logger.withFields({ path: configPath, config: validatedConfig.output }).debug('Updating config')
+  logger.withFields({ config: validatedConfig.output }).debug('Updating config')
   writeFileSync(configPath, stringify(validatedConfig.output))
 
   config = validatedConfig.output

@@ -35,9 +35,11 @@ export function authEventHandler(
     apiHash: config.api.telegram.apiHash,
     proxy: config.api.telegram.proxy,
   })
+  const configService = useService(ctx, createConfigService)
 
   registerAuthEventHandlers(ctx)(connectionService, sessionService)
   registerSessionEventHandlers(ctx)(sessionService)
+  registerConfigEventHandlers(ctx)(configService)
 
   return () => {}
 }
@@ -54,7 +56,6 @@ export function afterConnectedEventHandler(
     const dialogService = useService(ctx, createDialogService)
     const takeoutService = useService(ctx, createTakeoutService)
     const entityService = useService(ctx, createEntityService)
-    const configService = useService(ctx, createConfigService)
 
     registry.register('embedding', createEmbeddingResolver())
     registry.register('link', createLinkResolver())
@@ -64,7 +65,6 @@ export function afterConnectedEventHandler(
     registerDialogEventHandlers(ctx)(dialogService)
     registerTakeoutEventHandlers(ctx)(takeoutService)
     registerEntityEventHandlers(ctx)(entityService)
-    registerConfigEventHandlers(ctx)(configService)
 
     // TODO: get dialogs from cache
     emitter.emit('dialog:fetch')

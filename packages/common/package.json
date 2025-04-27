@@ -26,7 +26,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@guiiai/logg": "^1.0.9",
+    "@guiiai/logg": "^1.0.10",
     "@pnpm/find-workspace-dir": "^1000.1.0",
     "defu": "^6.1.4",
     "valibot": "^1.0.0",

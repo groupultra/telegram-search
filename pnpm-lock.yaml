@@ -210,8 +210,8 @@ importers:
   packages/common:
     dependencies:
       '@guiiai/logg':
-        specifier: ^1.0.9
-        version: 1.0.9
+        specifier: ^1.0.10
+        version: 1.0.10
       '@pnpm/find-workspace-dir':
         specifier: ^1000.1.0
         version: 1000.1.0
@@ -1089,8 +1089,8 @@ packages:
   '@grammyjs/types@3.20.0':
     resolution: {integrity: sha512-KIoikN5VTj6dcJpzMwXtouzaN3BZJ4jihBuEeXzWr25HtEfCF25V3dN11u+uNYi/9sBDvs0KCKZhyN/xFY0MBg==}
 
-  '@guiiai/logg@1.0.9':
-    resolution: {integrity: sha512-5v94ZLlZI9cCVH/sov50urRnZ5CNG02TQdA9idvMtZSh6ln9JKD0QR8HlOof/W8naz7WiTD1u5wJ0LvWqj05ig==}
+  '@guiiai/logg@1.0.10':
+    resolution: {integrity: sha512-r94RV+/Uqs5xB6DMqnzUSsXG+vLTP058jwNgqyxwPCD6fk/YvUtma7Z7Pu6YDS0LWJttLk4VtdkDbo/GSUVCGw==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -7611,7 +7611,7 @@ snapshots:
 
   '@grammyjs/types@3.20.0': {}
 
-  '@guiiai/logg@1.0.9': {}
+  '@guiiai/logg@1.0.10': {}
 
   '@humanfs/core@0.19.1': {}
 
