@@ -161,25 +161,7 @@ const toggleDark = useToggle(isDark)
 
 <template>
   <div class="bg-background h-screen w-full flex overflow-hidden" :class="{ dark: isDark }">
-    <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200">
-      <div class="h-full flex flex-col overflow-hidden">
-        <div class="p-2">
-          <div class="relative">
-            <div class="i-lucide-search text-muted-foreground absolute left-2 top-1/2 h-4 w-4 text-xl -translate-y-1/2" />
-            <input v-model="search" type="text" class="border-input bg-background ring-offset-background w-full border rounded-md px-3 py-2 pl-9 text-sm" placeholder="Search">
-          </div>
-        </div>
-        <!-- Main menu -->
-        <div class="mt-2 p-2">
-          <ul class="space-y-1">
-            <li v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50': currentPage?.path === page.path }" @click="handlePageClick(page)">
-              <IconButton class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm" :icon="page.icon">
-                <span>{{ page.name }}</span>
-              </IconButton>
-            </li>
-          </ul>
-        </div>
-        <Dialog v-model="settingsDialog">
+    <Dialog v-model="settingsDialog">
           <div class="p-6">
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-2">
@@ -210,6 +192,25 @@ const toggleDark = useToggle(isDark)
             </div>
           </div>
         </Dialog>
+    <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200">
+      <div class="h-full flex flex-col overflow-hidden">
+        <div class="p-2">
+          <div class="relative">
+            <div class="i-lucide-search text-muted-foreground absolute left-2 top-1/2 h-4 w-4 text-xl -translate-y-1/2" />
+            <input v-model="search" type="text" class="border-input bg-background ring-offset-background w-full border rounded-md px-3 py-2 pl-9 text-sm" placeholder="Search">
+          </div>
+        </div>
+        <!-- Main menu -->
+        <div class="mt-2 p-2">
+          <ul class="space-y-1">
+            <li v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50': currentPage?.path === page.path }" @click="handlePageClick(page)">
+              <IconButton class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm" :icon="page.icon">
+                <span>{{ page.name }}</span>
+              </IconButton>
+            </li>
+          </ul>
+        </div>
+        
 
         <!-- Chats -->
         <div class="mt-4" v-for="chatType in chatTypes" :key="chatType.path">
