@@ -1,1 +1,1 @@
-export * from './composable/useConfig'
+export * from './helper'

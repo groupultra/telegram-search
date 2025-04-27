@@ -3,7 +3,8 @@ import type { PromiseResult } from '../utils/result'
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { getSessionPath, useConfig, useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/common'
+import { getSessionPath, useConfig } from '@tg-search/common/composable'
 import { StringSession } from 'telegram/sessions'
 
 import { withResult } from '../utils/result'

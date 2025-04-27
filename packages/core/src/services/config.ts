@@ -1,7 +1,8 @@
 import type { CoreConfig } from '@tg-search/common'
 import type { CoreContext } from '../context'
 
-import { coreConfigSchema, updateConfig, useConfig } from '@tg-search/common'
+import { coreConfigSchema } from '@tg-search/common'
+import { updateConfig, useConfig } from '@tg-search/common/composable'
 import { safeParse } from 'valibot'
 
 export interface ConfigEventToCore {

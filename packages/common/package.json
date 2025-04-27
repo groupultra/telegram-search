@@ -7,9 +7,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs"
     },
-    "./helper": {
-      "types": "./dist/helper/index.d.ts",
-      "import": "./dist/helper/index.mjs"
+    "./composable": {
+      "types": "./dist/composable/index.d.ts",
+      "import": "./dist/composable/index.mjs"
     }
   },
   "module": "./dist/index.mjs",
