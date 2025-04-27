@@ -5,6 +5,8 @@ import { useDark, useToggle } from '@vueuse/core'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '../store/useSessionV2'
+import { Chat } from '../types/chat'
+import { Page } from '../types/page'
 
 const sessionStore = useSessionStore()
 
@@ -36,7 +38,7 @@ const headerState = reactive<{
   ],
 })
 
-const pages = ref([
+const pages = ref<Page[]>([
   {
     name: '主页',
     icon: 'i-lucide-home',
@@ -53,6 +55,7 @@ const pages = ref([
     path: '/sync',
   },
 ])
+const currentPage = ref<Page | undefined>()
 
 const chatTypes = ref([
   {
@@ -77,7 +80,7 @@ const chatTypes = ref([
 
 const search = ref('')
 
-const chats = ref<CoreDialog[]>([])
+const chats = ref<Chat[]>([])
 const chatsFiltered = computed(() => {
   return chats.value.filter(chat => chat.name.includes(search.value))
 })
@@ -123,8 +126,25 @@ function setActions(actions: Action[]) {
   headerState.actions = actions
 }
 
+function clearSelectedChatAndPage() {
+  chats.value.forEach(c => {
+    c.isSelected = false
+  })
+  currentPage.value = undefined
+}
+
 function handleClick(chat: CoreDialog) {
   router.push(`/chat/${chat.id}`)
+  clearSelectedChatAndPage()
+  chats.value.forEach(c => {
+    c.isSelected = c.id === chat.id
+  })
+  
+}
+
+function handlePageClick(page: Page) {
+  clearSelectedChatAndPage()
+  currentPage.value = page
 }
 
 function toggleSettingsDialog() {
@@ -152,7 +172,7 @@ const toggleDark = useToggle(isDark)
         <!-- Main menu -->
         <div class="mt-2 p-2">
           <ul class="space-y-1">
-            <li v-for="page in pages" :key="page.path">
+            <li v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50': currentPage?.path === page.path }" @click="handlePageClick(page)">
               <IconButton class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm" :icon="page.icon">
                 <span>{{ page.name }}</span>
               </IconButton>
@@ -160,32 +180,33 @@ const toggleDark = useToggle(isDark)
           </ul>
         </div>
         <Dialog v-model="settingsDialog">
-          <div class="p-4">
-            <div class="flex items-center justify-between">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-2">
                 <div class="i-lucide-settings h-5 w-5" />
-                <span>设置</span>
+                <span class="text-lg font-medium">设置</span>
               </div>
-            </div>
-          </div>
-          <div class="p-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="i-lucide-moon h-5 w-5" />
-                <span>深色模式</span>
-              </div>
-              <Switch :model-value="isDark" @update:model-value="toggleDark" />
-            </div>
-          </div>
-          <div class="p-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="i-lucide-log-out h-5 w-5" />
-                <span>退出登陆</span>
-              </div>
-              <button class="text-red-500">
-                退出
+              <button class="hover:bg-muted rounded-md p-1 transition-colors" @click="toggleSettingsDialog">
+                <div class="i-lucide-x h-5 w-5" />
               </button>
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50">
+                <div class="flex items-center gap-2">
+                  <div class="i-lucide-moon h-5 w-5" />
+                  <span>深色模式</span>
+                </div>
+                <Switch :model-value="isDark" @update:model-value="toggleDark" />
+              </div>
+              <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50">
+                <div class="flex items-center gap-2">
+                  <div class="i-lucide-log-out h-5 w-5" />
+                  <span>退出登录</span>
+                </div>
+                <button class="text-red-500 hover:text-red-600 transition-colors">
+                  退出
+                </button>
+              </div>
             </div>
           </div>
         </Dialog>
