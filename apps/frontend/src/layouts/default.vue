@@ -1,5 +1,63 @@
 <script lang="ts" setup>
+import type { CoreDialog } from '@tg-search/core'
+import type { Action } from '../types/action'
 import { useDark, useToggle } from '@vueuse/core'
+import { onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useSessionStore } from '../store/useSessionV2'
+
+const sessionStore = useSessionStore()
+
+const { getWsContext } = sessionStore
+// const wsContext = getWsContext()
+
+const settingsDialog = ref(false)
+
+const headerState = reactive<{
+  title: string
+  actions: Action[]
+}>({
+  title: 'aa',
+  actions: [],
+})
+
+const chats = ref<CoreDialog[]>([])
+const router = useRouter()
+
+onMounted(() => {
+  chats.value = [
+    {
+      id: 1,
+      name: '用户122',
+      type: 'user',
+    },
+    {
+      id: 2,
+      name: '群聊1',
+      type: 'group',
+    },
+  ]
+  // wsContext.sendEvent('dialog:fetch')
+  // wsContext.on('dialog:fetch', (data) => {
+  //   console.log(data)
+  // })
+})
+
+function changeTitle(newTitle: string) {
+  headerState.title = newTitle
+}
+
+function setActions(actions: Action[]) {
+  headerState.actions = actions
+}
+
+function handleClick(chat: CoreDialog) {
+  router.push(`/chat/${chat.id}`)
+}
+
+function toggleSettingsDialog() {
+  settingsDialog.value = !settingsDialog.value
+}
 
 const isDark = useDark()
 </script>
@@ -43,32 +101,49 @@ const isDark = useDark()
             </li>
           </ul>
         </div>
+        <Dialog v-model="settingsDialog">
+          <div class="p-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="i-lucide-settings h-5 w-5" />
+                <span>设置</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="i-lucide-moon h-5 w-5" />
+                <span>深色模式</span>
+              </div>
+              <Switch />
+            </div>
+          </div>
+          <div class="p-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="i-lucide-log-out h-5 w-5" />
+                <span>退出登陆</span>
+              </div>
+              <button class="text-red-500">
+                退出
+              </button>
+            </div>
+          </div>
+        </Dialog>
 
         <!-- Chats -->
         <!-- Private Chats -->
         <div class="mt-4">
-          <div class="flex items-center justify-between px-4 py-2">
-            <div class="flex items-center gap-1 text-sm font-medium">
-              <div class="i-lucide-chevron-down h-4 w-4" />
-              <span>私聊</span>
-            </div>
-            <button class="hover:bg-muted h-5 w-5 flex items-center justify-center rounded-md p-1">
-              <div class="i-lucide-plus-circle h-4 w-4" />
-            </button>
-          </div>
-          <ul class="px-2 space-y-1">
-            <li v-for="id in 3" :key="`private-${id}`">
-              <button class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm">
-                <div class="h-6 w-6 flex items-center justify-center overflow-hidden rounded-full">
-                  <img :alt="`User ${id}`" class="h-full w-full object-cover">
-                </div>
-                <span>用户 {{ id }}</span>
-              </button>
-            </li>
-          </ul>
+          <ChatGroup title="私聊" :chats="chats" @click="handleClick" />
         </div>
         <!-- Group Chats -->
-
+        <div class="mt-4">
+          <ChatGroup title="群聊" avatar="https://github.com/shadcn.png" />
+        </div>
+        <div class="mt-4">
+          <ChatGroup title="群聊" avatar="https://github.com/shadcn.png" />
+        </div>
         <!-- User profile -->
         <div class="mt-auto border-t p-4">
           <div class="flex items-center justify-between">
@@ -82,7 +157,7 @@ const isDark = useDark()
               </div>
             </div>
             <div class="flex items-center">
-              <button class="hover:bg-muted h-8 w-8 flex items-center justify-center rounded-md p-1">
+              <button class="hover:bg-muted h-8 w-8 flex items-center justify-center rounded-md p-1" @click="toggleSettingsDialog">
                 <div class="i-lucide-settings h-4 w-4" />
               </button>
             </div>
@@ -96,7 +171,7 @@ const isDark = useDark()
           <div class="bg-gary-200 h-6 w-6 flex items-center justify-center overflow-hidden rounded-full">
             <img alt="Chat" class="h-full w-full object-cover">
           </div>
-          <span class="font-medium">用户1</span>
+          <span class="font-medium">{{ headerState.title }}</span>
         </div>
         <div class="ml-auto">
           <button class="hover:bg-muted rounded-md p-2">
@@ -106,7 +181,7 @@ const isDark = useDark()
       </header>
       <main class="flex flex-1 flex-col overflow-hidden">
         <div class="flex-1 overflow-auto p-4">
-          <slot />
+          <slot v-bind="{ changeTitle, setActions }" />
         </div>
       </main>
     </div>

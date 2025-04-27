@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AlertCard: typeof import('./src/components/ui/AlertCard.vue')['default']
+    ChatGroup: typeof import('./src/components/ui/ChatGroup.vue')['default']
     ChatSelector: typeof import('./src/components/sync/ChatSelector.vue')['default']
     CheckboxGroup: typeof import('./src/components/ui/CheckboxGroup.vue')['default']
     Dialog: typeof import('./src/components/ui/Dialog.vue')['default']

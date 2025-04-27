@@ -8,7 +8,11 @@ import DefaultLayout from './layouts/default.vue'
   <div class="min-h-screen bg-white transition-all duration-300 ease-in-out dark:bg-gray-900">
     <Toaster position="top-right" :expand="true" :rich-colors="true" />
     <DefaultLayout>
-      <RouterView />
+      <template #default="{ changeTitle, setActions }">
+        <RouterView v-slot="{ Component }">
+          <component :is="Component" :change-title="changeTitle" :set-actions="setActions" />
+        </RouterView>
+      </template>
     </DefaultLayout>
   </div>
 </template>
