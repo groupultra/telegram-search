@@ -5,6 +5,7 @@ import { useLogger } from '@tg-search/common'
 
 import { useService } from './context'
 import { registerAuthEventHandlers } from './event-handlers/auth'
+import { registerConfigEventHandlers } from './event-handlers/config'
 import { registerDialogEventHandlers } from './event-handlers/dialog'
 import { registerEntityEventHandlers } from './event-handlers/entity'
 import { registerMessageEventHandlers } from './event-handlers/message'
@@ -15,6 +16,7 @@ import { useResolverRegistry } from './registry'
 import { createEmbeddingResolver } from './resolvers/embedding-resolver'
 import { createLinkResolver } from './resolvers/link-resolver'
 import { createUserResolver } from './resolvers/user-resolver'
+import { createConfigService } from './services/config'
 import { createConnectionService } from './services/connection'
 import { createDialogService } from './services/dialog'
 import { createEntityService } from './services/entity'
@@ -34,10 +36,12 @@ export function authEventHandler(
     apiHash: config.api.telegram.apiHash,
     proxy: config.api.telegram.proxy,
   })
+  const configService = useService(ctx, createConfigService)
 
   registerAuthEventHandlers(ctx)(connectionService, sessionService)
   registerSessionEventHandlers(ctx)(sessionService)
   registerStorageEventHandlers(ctx)
+  registerConfigEventHandlers(ctx)(configService)
 
   return () => {}
 }

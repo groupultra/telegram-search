@@ -2,7 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
-import { useChatStore } from '../composables/useChat'
+import { useChatStore } from '../store/useChat'
 import { useSessionStore } from '../store/useSessionV2'
 import { useSyncTaskStore } from '../store/useSyncTask'
 

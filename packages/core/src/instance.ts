@@ -1,6 +1,6 @@
 import type { CoreContext } from './context'
 
-import { useConfig } from '@tg-search/common'
+import { useConfig } from '@tg-search/common/composable'
 
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, authEventHandler, useEventHandler } from './event-handler'

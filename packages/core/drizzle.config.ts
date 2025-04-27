@@ -1,4 +1,5 @@
-import { getDatabaseDSN, initConfig, initLogger, useConfig } from '@tg-search/common'
+import { initLogger } from '@tg-search/common'
+import { getDatabaseDSN, initConfig, useConfig } from '@tg-search/common/composable'
 import { defineConfig } from 'drizzle-kit'
 
 initLogger()
