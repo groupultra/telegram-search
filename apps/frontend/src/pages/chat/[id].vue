@@ -67,86 +67,86 @@ onMounted(() => {
         <ComposeMessage direction="row">
           <template #first>
             <ComposeMessage direction="column">
-          <template #first>
-            <ComposeMessage direction="row">
-          <template #first>
-            <ComposeMessage direction="column">
-          <template #first>
-            <TextMessage text="组合消息" />
+              <template #first>
+                <ComposeMessage direction="row">
+                  <template #first>
+                    <ComposeMessage direction="column">
+                      <template #first>
+                        <TextMessage text="组合消息" />
+                      </template>
+                      <template #second>
+                        <ComposeMessage direction="row">
+                          <template #first>
+                            <ComposeMessage direction="column">
+                              <template #first>
+                                <TextMessage text="组合消息" />
+                              </template>
+                              <template #second>
+                                <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
+                              </template>
+                            </ComposeMessage>
+                          </template>
+                          <template #second>
+                            <ComposeMessage direction="row">
+                              <template #first>
+                                <ComposeMessage direction="column">
+                                  <template #first>
+                                    <TextMessage text="组合消息" />
+                                  </template>
+                                  <template #second>
+                                    <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
+                                  </template>
+                                </ComposeMessage>
+                              </template>
+                              <template #second>
+                                <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rai2nbowBird1" />
+                              </template>
+                            </ComposeMessage>
+                          </template>
+                        </ComposeMessage>
+                      </template>
+                    </ComposeMessage>
+                  </template>
+                  <template #second>
+                    <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rai2nbowBird1" />
+                  </template>
+                </ComposeMessage>
+              </template>
+              <template #second>
+                <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
+              </template>
+            </ComposeMessage>
           </template>
           <template #second>
             <ComposeMessage direction="row">
-          <template #first>
-            <ComposeMessage direction="column">
-          <template #first>
-            <TextMessage text="组合消息" />
-          </template>
-          <template #second>
-            <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
-          </template>
-        </ComposeMessage>
-          </template>
-          <template #second>
-            <ComposeMessage direction="row">
-          <template #first>
-            <ComposeMessage direction="column">
-          <template #first>
-            <TextMessage text="组合消息" />
-          </template>
-          <template #second>
-            <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
-          </template>
-        </ComposeMessage>
-          </template>
-          <template #second>
-            <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rai2nbowBird1" />
-          </template>
-        </ComposeMessage>
-          </template>
-        </ComposeMessage>
-          </template>
-        </ComposeMessage>
-          </template>
-          <template #second>
-            <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rai2nbowBird1" />
-          </template>
-        </ComposeMessage>
-          </template>
-          <template #second>
-            <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
-          </template>
-        </ComposeMessage>
-          </template>
-          <template #second>
-            <ComposeMessage direction="row">
-          <template #first>
-            <ComposeMessage direction="column">
-          <template #first>
-            <TextMessage text="组合消息" />
-          </template>
-          <template #second>
-            <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
-          </template>
-        </ComposeMessage>
-          </template>
-          <template #second>
-            <ComposeMessage direction="row">
-          <template #first>
-            <ComposeMessage direction="column">
-          <template #first>
-            <TextMessage text="组合消息" />
-          </template>
-          <template #second>
-            <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
-          </template>
-        </ComposeMessage>
-          </template>
-          <template #second>
-            <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rai2nbowBird1" />
-          </template>
-        </ComposeMessage>
-          </template>
-        </ComposeMessage>
+              <template #first>
+                <ComposeMessage direction="column">
+                  <template #first>
+                    <TextMessage text="组合消息" />
+                  </template>
+                  <template #second>
+                    <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
+                  </template>
+                </ComposeMessage>
+              </template>
+              <template #second>
+                <ComposeMessage direction="row">
+                  <template #first>
+                    <ComposeMessage direction="column">
+                      <template #first>
+                        <TextMessage text="组合消息" />
+                      </template>
+                      <template #second>
+                        <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rain1bowBird1" />
+                      </template>
+                    </ComposeMessage>
+                  </template>
+                  <template #second>
+                    <ImageMessage image="https://api.dicebear.com/6.x/bottts/svg?seed=Rai2nbowBird1" />
+                  </template>
+                </ComposeMessage>
+              </template>
+            </ComposeMessage>
           </template>
         </ComposeMessage>
       </MessageItem>

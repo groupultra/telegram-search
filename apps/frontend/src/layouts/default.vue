@@ -139,7 +139,7 @@ function handleClick(chat: CoreDialog) {
   chats.value.forEach(c => {
     c.isSelected = c.id === chat.id
   })
-  
+
 }
 
 function handlePageClick(page: Page) {
@@ -162,66 +162,72 @@ const toggleDark = useToggle(isDark)
 <template>
   <div class="bg-background h-screen w-full flex overflow-hidden" :class="{ dark: isDark }">
     <Dialog v-model="settingsDialog">
-          <div class="p-6">
-            <div class="flex items-center justify-between mb-6">
-              <div class="flex items-center gap-2">
-                <div class="i-lucide-settings h-5 w-5" />
-                <span class="text-lg font-medium">设置</span>
-              </div>
-              <button class="hover:bg-muted rounded-md p-1 transition-colors" @click="toggleSettingsDialog">
-                <div class="i-lucide-x h-5 w-5" />
-              </button>
-            </div>
-            <div class="space-y-4">
-              <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50">
-                <div class="flex items-center gap-2">
-                  <div class="i-lucide-moon h-5 w-5" />
-                  <span>深色模式</span>
-                </div>
-                <Switch :model-value="isDark" @update:model-value="toggleDark" />
-              </div>
-              <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50">
-                <div class="flex items-center gap-2">
-                  <div class="i-lucide-log-out h-5 w-5" />
-                  <span>退出登录</span>
-                </div>
-                <button class="text-red-500 hover:text-red-600 transition-colors">
-                  退出
-                </button>
-              </div>
-            </div>
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-2">
+            <div class="i-lucide-settings h-5 w-5" />
+            <span class="text-lg font-medium">设置</span>
           </div>
-        </Dialog>
+          <button class="hover:bg-muted rounded-md p-1 transition-colors" @click="toggleSettingsDialog">
+            <div class="i-lucide-x h-5 w-5" />
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50">
+            <div class="flex items-center gap-2">
+              <div class="i-lucide-moon h-5 w-5" />
+              <span>深色模式</span>
+            </div>
+            <Switch :model-value="isDark" @update:model-value="toggleDark" />
+          </div>
+          <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50">
+            <div class="flex items-center gap-2">
+              <div class="i-lucide-log-out h-5 w-5" />
+              <span>退出登录</span>
+            </div>
+            <button class="text-red-500 hover:text-red-600 transition-colors">
+              退出
+            </button>
+          </div>
+        </div>
+      </div>
+    </Dialog>
     <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200">
       <div class="h-full flex flex-col overflow-hidden">
         <div class="p-2">
           <div class="relative">
-            <div class="i-lucide-search text-muted-foreground absolute left-2 top-1/2 h-4 w-4 text-xl -translate-y-1/2" />
-            <input v-model="search" type="text" class="border-input bg-background ring-offset-background w-full border rounded-md px-3 py-2 pl-9 text-sm" placeholder="Search">
+            <div
+              class="i-lucide-search text-muted-foreground absolute left-2 top-1/2 h-4 w-4 text-xl -translate-y-1/2" />
+            <input v-model="search" type="text"
+              class="border-input bg-background ring-offset-background w-full border rounded-md px-3 py-2 pl-9 text-sm"
+              placeholder="Search">
           </div>
         </div>
         <!-- Main menu -->
         <div class="mt-2 p-2">
           <ul class="space-y-1">
-            <li v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50': currentPage?.path === page.path }" @click="handlePageClick(page)">
+            <li v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50': currentPage?.path === page.path }"
+              @click="handlePageClick(page)">
               <IconButton class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm" :icon="page.icon">
                 <span>{{ page.name }}</span>
               </IconButton>
             </li>
           </ul>
         </div>
-        
+
 
         <!-- Chats -->
         <div class="mt-4" v-for="chatType in chatTypes" :key="chatType.path">
-          <ChatGroup :title="chatType.name" :chats="chatsFiltered.filter(chat => chat.type === chatType.type)" :icon="chatType.icon" :type="chatType.type" @click="handleClick" />
+          <ChatGroup :title="chatType.name" :chats="chatsFiltered.filter(chat => chat.type === chatType.type)"
+            :icon="chatType.icon" :type="chatType.type" @click="handleClick" />
         </div>
         <!-- User profile -->
         <div class="mt-auto border-t p-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="bg-muted h-8 w-8 flex items-center justify-center overflow-hidden rounded-full">
-                <img alt="Me" src="https://api.dicebear.com/6.x/bottts/svg?seed=RainbowBird" class="h-full w-full object-cover">
+                <img alt="Me" src="https://api.dicebear.com/6.x/bottts/svg?seed=RainbowBird"
+                  class="h-full w-full object-cover">
               </div>
               <div class="flex flex-col">
                 <span class="text-sm font-medium">我的用户名</span>
@@ -229,7 +235,8 @@ const toggleDark = useToggle(isDark)
               </div>
             </div>
             <div class="flex items-center">
-              <button class="hover:bg-muted h-8 w-8 flex items-center justify-center rounded-md p-1" @click="toggleSettingsDialog">
+              <button class="hover:bg-muted h-8 w-8 flex items-center justify-center rounded-md p-1"
+                @click="toggleSettingsDialog">
                 <div class="i-lucide-settings h-4 w-4" />
               </button>
             </div>
@@ -245,25 +252,17 @@ const toggleDark = useToggle(isDark)
         <div class="ml-auto flex items-center gap-2">
           <TransitionGroup name="action">
             <template v-if="showActions">
-              <button
-                v-for="(action, index) in headerState.actions"
-                :key="index"
+              <button v-for="(action, index) in headerState.actions" :key="index"
                 class="hover:bg-muted flex items-center gap-2 rounded-md px-3 py-2 transition-colors"
-                @click="action.onClick"
-              >
+                @click="action.onClick">
                 <div :class="action.icon" class="h-5 w-5" />
                 <span v-if="action.name" class="text-sm">{{ action.name }}</span>
               </button>
             </template>
           </TransitionGroup>
-          <button
-            class="hover:bg-muted rounded-md p-2 transition-colors"
-            @click="toggleActions"
-          >
-            <div
-              class="i-lucide-ellipsis h-5 w-5 transition-transform duration-300"
-              :class="{ 'rotate-90': showActions }"
-            />
+          <button class="hover:bg-muted rounded-md p-2 transition-colors" @click="toggleActions">
+            <div class="i-lucide-ellipsis h-5 w-5 transition-transform duration-300"
+              :class="{ 'rotate-90': showActions }" />
           </button>
         </div>
       </header>
