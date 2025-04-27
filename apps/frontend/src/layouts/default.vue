@@ -60,6 +60,7 @@ function toggleSettingsDialog() {
 }
 
 const isDark = useDark()
+const toggleDark = useToggle(isDark)
 </script>
 
 <template>
@@ -116,7 +117,7 @@ const isDark = useDark()
                 <div class="i-lucide-moon h-5 w-5" />
                 <span>深色模式</span>
               </div>
-              <Switch />
+              <Switch :model-value="isDark" @update:model-value="toggleDark" />
             </div>
           </div>
           <div class="p-4">
@@ -168,9 +169,6 @@ const isDark = useDark()
     <div class="flex flex-1 flex-col overflow-hidden">
       <header class="h-14 flex items-center border-b px-4">
         <div class="flex items-center gap-2">
-          <div class="bg-gary-200 h-6 w-6 flex items-center justify-center overflow-hidden rounded-full">
-            <img alt="Chat" class="h-full w-full object-cover">
-          </div>
           <span class="font-medium">{{ headerState.title }}</span>
         </div>
         <div class="ml-auto">

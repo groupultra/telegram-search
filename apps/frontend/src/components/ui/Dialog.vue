@@ -13,6 +13,7 @@ const emit = defineEmits<{
 
 const dialogRef = ref<HTMLDialogElement | null>(null)
 const contentRef = ref<HTMLDivElement | null>(null)
+const isVisible = ref(false)
 
 const isOpen = computed({
   get: () => props.modelValue,
@@ -39,7 +40,7 @@ function closeWithAnimation() {
     contentRef.value.classList.add('dialog-content-leave')
     setTimeout(() => {
       isOpen.value = false
-    }, 200)
+    }, 100)
   }
   else {
     isOpen.value = false
@@ -60,6 +61,7 @@ function enableScroll() {
 
 watch(isOpen, (value) => {
   if (value) {
+    isVisible.value = true
     disableScroll()
     // 打开时重置动画类
     if (contentRef.value) {
@@ -67,6 +69,9 @@ watch(isOpen, (value) => {
     }
   }
   else {
+    setTimeout(() => {
+      isVisible.value = false
+    }, 100)
     enableScroll()
   }
 })
@@ -83,74 +88,47 @@ onUnmounted(() => {
 
 <template>
   <Teleport to="body">
-    <Transition name="dialog">
-      <div
-        v-if="isOpen"
-        ref="dialogRef"
-        class="fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden border-black p-4 backdrop-blur-sm"
-        :class="{ 'cursor-pointer': !persistent }"
-        @click="handleOutsideClick"
-      >
-        <!-- 背景遮罩 -->
-        <div class="absolute inset-0 h-full w-full bg-black/60 transition-opacity duration-300" />
+    <div
+      v-show="isVisible"
+      ref="dialogRef"
+      class="fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden border-black p-4 backdrop-blur-sm"
+      :class="{ 'cursor-pointer': !persistent }"
+      @click="handleOutsideClick"
+    >
+      <!-- 背景遮罩 -->
+      <div class="absolute inset-0 h-full w-full bg-black/60 transition-opacity duration-100" />
 
-        <!-- 对话框内容 -->
-        <div class="z-51 h-full w-full flex items-center justify-center">
-          <div
-            ref="contentRef"
-            class="dialog-content relative w-full cursor-default rounded-lg bg-white p-6 shadow-2xl ring-1 ring-gray-950/5 dark:bg-gray-800 dark:ring-white/10"
-            :style="{ maxWidth: maxWidth || '32rem' }"
-            @click.stop
-          >
-            <slot />
-          </div>
+      <!-- 对话框内容 -->
+      <div class="z-51 h-full w-full flex items-center justify-center">
+        <div
+          ref="contentRef"
+          class="dialog-content relative w-full cursor-default rounded-lg bg-white p-6 shadow-2xl ring-1 ring-gray-950/5 dark:bg-gray-800 dark:ring-white/10"
+          :style="{ maxWidth: maxWidth || '32rem' }"
+          @click.stop
+        >
+          <slot />
         </div>
       </div>
-    </Transition>
+    </div>
   </Teleport>
 </template>
 
 <style scoped>
-/* 背景动画 */
-.dialog-enter-active,
-.dialog-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.dialog-enter-from,
-.dialog-leave-to {
-  opacity: 0;
-}
-
 /* 内容动画 */
 .dialog-content {
-  animation: dialog-content-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
 }
 
 .dialog-content-leave {
-  animation: dialog-content-leave 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes dialog-content-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes dialog-content-leave {
-  from {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
+  opacity: 0;
+  transform: translate3d(0, 10px, 0) scale(0.95);
 }
 
 dialog {
