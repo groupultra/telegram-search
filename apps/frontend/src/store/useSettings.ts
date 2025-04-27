@@ -1,4 +1,4 @@
-import type { CoreConfig } from '@tg-search/common'
+import type { Config } from '@tg-search/common'
 
 import { generateDefaultConfig } from '@tg-search/common'
 import { useLocalStorage, usePreferredDark, useToggle } from '@vueuse/core'
@@ -8,11 +8,11 @@ export const useSettingsStore = defineStore('settings', () => {
   const isDark = usePreferredDark()
   const toggleDark = useToggle(isDark)
 
-  const config = useLocalStorage<CoreConfig>('config', generateDefaultConfig())
+  const storageConfig = useLocalStorage<Config>('settings/config', generateDefaultConfig())
 
   return {
     isDark,
     toggleDark,
-    config,
+    config: storageConfig,
   }
 })

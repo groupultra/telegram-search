@@ -1,7 +1,8 @@
 import type { NodeOptions } from 'crossws/adapters/node'
 
 import process from 'node:process'
-import { initLogger, useConfig, useLogger } from '@tg-search/common'
+import { initLogger, useLogger } from '@tg-search/common'
+import { initConfig } from '@tg-search/common/composable'
 import { initDrizzle } from '@tg-search/core'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
@@ -19,7 +20,7 @@ export type * from './utils/ws-event'
 async function initCore(): Promise<ReturnType<typeof useLogger>> {
   initLogger()
   const logger = useLogger()
-  useConfig()
+  await initConfig()
 
   try {
     await initDrizzle()

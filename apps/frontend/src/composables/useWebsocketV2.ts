@@ -52,21 +52,34 @@ export function createWebsocketV2Context(sessionId: string) {
 
   // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L95-L123
   watch(socket.data, (rawMessage) => {
-    if (!rawMessage || typeof rawMessage !== 'string')
+    if (!rawMessage)
       return
 
     try {
       const message = JSON.parse(rawMessage) as WsMessageToClient
 
       if (eventHandlers.has(message.type)) {
-        // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console
         console.log('[WebSocket] Message received', message)
       }
 
-      eventHandlers.get(message.type)?.(message.data)
+      if (eventHandlers.has(message.type)) {
+        const fn = eventHandlers.get(message.type)
+
+        try {
+          if (fn)
+            fn(message.data)
+        }
+        catch (error) {
+          console.error('[WebSocket] Error handling event', message, error)
+        }
+      }
+      else {
+        console.error('[WebSocket] Unknown event', message)
+      }
     }
-    catch {
-      console.error('[WebSocket] Invalid message', rawMessage)
+    catch (error) {
+      console.error('[WebSocket] Invalid message', rawMessage, error)
     }
   })
 

@@ -129,6 +129,7 @@ export function setupWsRoutes(app: App) {
           }
         }
         else {
+          logger.withFields({ type: event.type }).debug('Emit event to core')
           state.ctx?.emitter.emit(event.type, event.data as CoreEventData<keyof ToCoreEvent>)
         }
 

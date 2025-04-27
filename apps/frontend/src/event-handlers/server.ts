@@ -9,7 +9,6 @@ export function registerServerEventHandlers(
   const connectionStore = useSessionStore()
 
   registerEventHandler('server:connected', (data) => {
-    connectionStore.getActiveSession()!.isConnected = data.connected
-    connectionStore.setActiveSession(data.sessionId, {})
+    connectionStore.setActiveSession(data.sessionId, { isConnected: data.connected })
   })
 }

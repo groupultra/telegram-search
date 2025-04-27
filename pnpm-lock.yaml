@@ -66,15 +66,6 @@ importers:
       '@tanstack/vue-table':
         specifier: ^8.21.3
         version: 8.21.3(vue@3.5.13(typescript@5.8.3))
-      '@tg-search/common':
-        specifier: workspace:*
-        version: link:../../packages/common
-      '@tg-search/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@tg-search/server':
-        specifier: workspace:*
-        version: link:../server
       '@vueuse/core':
         specifier: ^13.1.0
         version: 13.1.0(vue@3.5.13(typescript@5.8.3))
@@ -109,6 +100,12 @@ importers:
       '@antfu/eslint-config':
         specifier: ^4.12.0
         version: 4.12.0(@typescript-eslint/utils@8.29.1(eslint@9.25.0(jiti@2.4.2))(typescript@5.8.3))(@unocss/eslint-plugin@66.1.0-beta.12(eslint@9.25.0(jiti@2.4.2))(typescript@5.8.3))(@vue/compiler-sfc@3.5.13)(eslint-plugin-format@1.0.1(eslint@9.25.0(jiti@2.4.2)))(eslint@9.25.0(jiti@2.4.2))(typescript@5.8.3)(vitest@3.1.1(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.4.2)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(tsx@4.19.3)(yaml@2.7.1))
+      '@tg-search/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@tg-search/server':
+        specifier: workspace:*
+        version: link:../server
       '@types/node':
         specifier: ^22.14.1
         version: 22.14.1
@@ -213,8 +210,11 @@ importers:
   packages/common:
     dependencies:
       '@guiiai/logg':
-        specifier: ^1.0.8
-        version: 1.0.8
+        specifier: ^1.0.9
+        version: 1.0.9
+      '@pnpm/find-workspace-dir':
+        specifier: ^1000.1.0
+        version: 1000.1.0
       defu:
         specifier: ^6.1.4
         version: 6.1.4
@@ -1089,8 +1089,8 @@ packages:
   '@grammyjs/types@3.20.0':
     resolution: {integrity: sha512-KIoikN5VTj6dcJpzMwXtouzaN3BZJ4jihBuEeXzWr25HtEfCF25V3dN11u+uNYi/9sBDvs0KCKZhyN/xFY0MBg==}
 
-  '@guiiai/logg@1.0.8':
-    resolution: {integrity: sha512-AZoCXLELXbcbFggx1qJ1CRpv00ZRY1UWk72B+D2VUxrP58sCAxRdWvlO/Ue77GZBehBRheFDGUix3EMqeACu6A==}
+  '@guiiai/logg@1.0.9':
+    resolution: {integrity: sha512-5v94ZLlZI9cCVH/sov50urRnZ5CNG02TQdA9idvMtZSh6ln9JKD0QR8HlOof/W8naz7WiTD1u5wJ0LvWqj05ig==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -1338,6 +1338,18 @@ packages:
   '@pkgr/core@0.2.2':
     resolution: {integrity: sha512-25L86MyPvnlQoX2MTIV2OiUcb6vJ6aRbFa9pbwByn95INKD5mFH2smgjDhq+fwJoqAgvgbdJLj6Tz7V9X5CFAQ==}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
+
+  '@pnpm/constants@1001.1.0':
+    resolution: {integrity: sha512-xb9dfSGi1qfUKY3r4Zy9JdC9+ZeaDxwfE7HrrGIEsBVY1hvIn6ntbR7A97z3nk44yX7vwbINNf9sizTp0WEtEw==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/error@1000.0.2':
+    resolution: {integrity: sha512-2SfE4FFL73rE1WVIoESbqlj4sLy5nWW4M/RVdHvCRJPjlQHa9MH7m7CVJM204lz6I+eHoB+E7rL3zmpJR5wYnQ==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/find-workspace-dir@1000.1.0':
+    resolution: {integrity: sha512-K5iG/z0SLV6bVW1jIYvbNBI6vWAD6ETJKyWj/wwHr7hxloxtm9xJCGbe/41pmM9nfFFUPbr1Z0YOi4q9yWkj6g==}
+    engines: {node: '>=18.12'}
 
   '@polka/url@1.0.0-next.28':
     resolution: {integrity: sha512-8LduaNlMZGwdZ6qWrKlfa+2M4gahzFkprZiAt2TF8uS0qQgBizKXpXURqvTJ4WtmupWxaLqjRb2UCTe72mu+Aw==}
@@ -2215,14 +2227,14 @@ packages:
   '@xsai-ext/providers-cloud@0.2.0-beta.3':
     resolution: {integrity: sha512-A5z3IEOI2B0bDmRc93PgRobBib7fyY/JWJKpvv7fkSbugqFNY40SJu1ae57KXriOJyzeoAZUzNmuiSQenaF2pQ==}
 
-  '@xsai-ext/shared-providers@0.2.0-beta.5':
-    resolution: {integrity: sha512-HNiFi19CzPIwxFiJbu70YDNRhwscfC9yFZ2b24dpaRDHsDAMlDDR9buuYJjeN+16EmBp1ODD+T4Q6yDgNpfk0g==}
+  '@xsai-ext/shared-providers@0.2.0-beta.6':
+    resolution: {integrity: sha512-k1UjAqk7NA0NsJmWAFWYyPoYPiuuvHLHUxiCP5wahwp9xubTAqkdOcZP+bjkBFUtpVkFKW365jJ0tSs6xygorg==}
 
   '@xsai/embed@0.2.0-beta.3':
     resolution: {integrity: sha512-L6CPADpbOB2nF6cPoHx2QuM98Z88s3RjL2A1+WUPvJHA7eTWen+/02saDYXYo2L/rQ4MGNRgr+tGxfk/3WkeJw==}
 
-  '@xsai/shared@0.2.0-beta.5':
-    resolution: {integrity: sha512-3Ca5ORn49p5PRdhA156rw0izX1azUnM1K/falv0SEBVQhOEGNNGUQLGWCuh9JHKamoRMfkw47gCR+30Onr6r+g==}
+  '@xsai/shared@0.2.0-beta.6':
+    resolution: {integrity: sha512-mDKSXhQpiYansxwe0+oG20drKkYJrOuQM9fMiThgjNgTPBkGd1CvnwJWSwPZQeHgQ7ytNJ/Vd8P3s1lLUlT1Xg==}
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -7599,7 +7611,7 @@ snapshots:
 
   '@grammyjs/types@3.20.0': {}
 
-  '@guiiai/logg@1.0.8': {}
+  '@guiiai/logg@1.0.9': {}
 
   '@humanfs/core@0.19.1': {}
 
@@ -7808,6 +7820,17 @@ snapshots:
   '@pkgr/core@0.1.1': {}
 
   '@pkgr/core@0.2.2': {}
+
+  '@pnpm/constants@1001.1.0': {}
+
+  '@pnpm/error@1000.0.2':
+    dependencies:
+      '@pnpm/constants': 1001.1.0
+
+  '@pnpm/find-workspace-dir@1000.1.0':
+    dependencies:
+      '@pnpm/error': 1000.0.2
+      find-up: 5.0.0
 
   '@polka/url@1.0.0-next.28': {}
 
@@ -8905,18 +8928,18 @@ snapshots:
 
   '@xsai-ext/providers-cloud@0.2.0-beta.3':
     dependencies:
-      '@xsai-ext/shared-providers': 0.2.0-beta.5
-      '@xsai/shared': 0.2.0-beta.5
+      '@xsai-ext/shared-providers': 0.2.0-beta.6
+      '@xsai/shared': 0.2.0-beta.6
 
-  '@xsai-ext/shared-providers@0.2.0-beta.5':
+  '@xsai-ext/shared-providers@0.2.0-beta.6':
     dependencies:
-      '@xsai/shared': 0.2.0-beta.5
+      '@xsai/shared': 0.2.0-beta.6
 
   '@xsai/embed@0.2.0-beta.3':
     dependencies:
-      '@xsai/shared': 0.2.0-beta.5
+      '@xsai/shared': 0.2.0-beta.6
 
-  '@xsai/shared@0.2.0-beta.5': {}
+  '@xsai/shared@0.2.0-beta.6': {}
 
   abort-controller@3.0.0:
     dependencies:

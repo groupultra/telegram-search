@@ -16,7 +16,7 @@ export const useSessionStore = defineStore('session', () => {
   let wsContext: ReturnType<typeof useWebsocketV2>
 
   const storageSessions = useLocalStorage('session/sessions', new Map<string, SessionContext>())
-  const storageActiveSessionId = useLocalStorage('session/active-session-id', '')
+  const storageActiveSessionId = useLocalStorage('session/active-session-id', crypto.randomUUID())
 
   const authStatus = ref({
     needCode: false,
@@ -66,7 +66,7 @@ export const useSessionStore = defineStore('session', () => {
     //   storageActiveSessionId.value = response.data?.sessionId
     // }
 
-    wsContext = useWebsocketV2(storageActiveSessionId.value || crypto.randomUUID())
+    wsContext = useWebsocketV2(storageActiveSessionId.value)
 
     await attemptLogin()
   })

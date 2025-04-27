@@ -1,11 +1,11 @@
-import type { CoreConfig } from './config-schema'
+import type { Config } from './config-schema'
 
 import { safeParse } from 'valibot'
 
-import { coreConfigSchema } from './config-schema'
+import { configSchema } from './config-schema'
 
-export function generateDefaultConfig(storagePath?: string): CoreConfig {
-  const defaultConfig = safeParse(coreConfigSchema, {
+export function generateDefaultConfig(storagePath?: string): Config {
+  const defaultConfig = safeParse(configSchema, {
     // Database settings
     database: {
       // Default database connection settings

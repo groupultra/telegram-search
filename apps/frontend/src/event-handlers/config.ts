@@ -9,6 +9,6 @@ export function registerConfigEventHandlers(
   const settingsStore = useSettingsStore()
 
   registerEventHandler('config:data', (data) => {
-    settingsStore.config = data
+    settingsStore.config = data.config
   })
 }

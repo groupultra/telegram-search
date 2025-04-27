@@ -17,7 +17,7 @@ export function registerConfigEventHandlers(ctx: CoreContext) {
     emitter.on('config:update', async ({ config }) => {
       logger.debug('Saving config', config)
 
-      configService.saveConfig(config)
+      configService.updateConfig(config)
     })
   }
 }

@@ -1,4 +1,4 @@
-import type { CoreConfig } from '@tg-search/common'
+import type { Config } from '@tg-search/common'
 import type { CoreContext } from './context'
 
 import { useLogger } from '@tg-search/common'
@@ -23,11 +23,11 @@ import { createMessageService } from './services/message'
 import { createSessionService } from './services/session'
 import { createTakeoutService } from './services/takeout'
 
-type EventHandler<T = void> = (ctx: CoreContext, config: CoreConfig) => T
+type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
 
 export function authEventHandler(
   ctx: CoreContext,
-  config: CoreConfig,
+  config: Config,
 ): EventHandler {
   const sessionService = useService(ctx, createSessionService)
   const connectionService = useService(ctx, createConnectionService)({
@@ -44,7 +44,7 @@ export function authEventHandler(
 
 export function afterConnectedEventHandler(
   ctx: CoreContext,
-  _config: CoreConfig,
+  _config: Config,
 ): EventHandler {
   const { emitter } = ctx
   const registry = useResolverRegistry()
@@ -75,7 +75,7 @@ export function afterConnectedEventHandler(
 
 export function useEventHandler(
   ctx: CoreContext,
-  config: CoreConfig,
+  config: Config,
 ) {
   const logger = useLogger()
 

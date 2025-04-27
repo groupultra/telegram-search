@@ -2,17 +2,17 @@ import type { InferOutput } from 'valibot'
 
 import { boolean, enum as enumType, number, object, optional, string } from 'valibot'
 
-enum SocksType {
+export enum SocksType {
   SOCKS4 = 4,
   SOCKS5 = 5,
 }
 
-enum EmbeddingProvider {
+export enum EmbeddingProvider {
   OPENAI = 'openai',
   OLLAMA = 'ollama',
 }
 
-export const coreConfigSchema = object({
+export const configSchema = object({
   database: object({
     host: string(),
     port: number(),
@@ -60,5 +60,5 @@ export const coreConfigSchema = object({
   }),
 })
 
-export type CoreConfig = InferOutput<typeof coreConfigSchema>
-export type ClientProxyConfig = CoreConfig['api']['telegram']['proxy']
+export type Config = InferOutput<typeof configSchema>
+export type ProxyConfig = Config['api']['telegram']['proxy']
