@@ -5,9 +5,8 @@ import type { WsMessageToServer } from './utils/ws-event'
 
 import { useLogger } from '@tg-search/common'
 import { createCoreInstance } from '@tg-search/core'
-import { createRouter, defineEventHandler, defineWebSocketHandler, getQuery } from 'h3'
+import { defineWebSocketHandler } from 'h3'
 
-import { createResponse } from './utils/response'
 import { sendWsEvent } from './utils/ws-event'
 
 export interface ClientState {
@@ -48,16 +47,6 @@ export function setupWsRoutes(app: App) {
     return clientStates.get(sessionId)
   }
 
-  const router = createRouter()
-
-  router.post('/session', defineEventHandler(async (req) => {
-    const query = getQuery(req)
-    const sessionId = query.sessionId as UUID ?? crypto.randomUUID()
-    return createResponse({ sessionId })
-  }))
-
-  app.use('/v2', router.handler)
-
   app.use('/ws', defineWebSocketHandler({
     async upgrade(req) {
       const url = new URL(req.url)
@@ -74,20 +63,6 @@ export function setupWsRoutes(app: App) {
       const state = { ...useSessionState(sessionId), peer }
 
       logger.withFields({ peer: peer.id }).debug('Websocket connection opened')
-
-      // state.ctx?.wrapEmitterEmit(state.ctx?.emitter, (event) => {
-      //   state.ctx?.emitter.on(event, (...args) => {
-      //     try {
-      //       // ensure args[0] can be stringified
-      //       JSON.stringify(args[0])
-
-      //       sendWsEvent(peer, event, args[0])
-      //     }
-      //     catch {
-      //       logger.withFields({ event }).warn('Dropped event')
-      //     }
-      //   })
-      // })
 
       sendWsEvent(peer, 'server:connected', { sessionId, connected: state.isConnected ?? false })
 
@@ -129,6 +104,7 @@ export function setupWsRoutes(app: App) {
           }
         }
         else {
+          logger.withFields({ type: event.type }).debug('Emit event to core')
           state.ctx?.emitter.emit(event.type, event.data as CoreEventData<keyof ToCoreEvent>)
         }
 

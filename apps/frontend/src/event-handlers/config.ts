@@ -1,14 +1,14 @@
 import type { WsEventToClient } from '@tg-search/server'
 import type { WsEventHandler } from '../composables/useWebsocketV2'
 
-import { useSessionStore } from '../store/useSessionV2'
+import { useSettingsStore } from '../store/useSettings'
 
-export function registerEntityEventHandlers(
+export function registerConfigEventHandlers(
   registerEventHandler: <T extends keyof WsEventToClient>(event: T, handler: WsEventHandler<T>) => void,
 ) {
-  const connectionStore = useSessionStore()
+  const settingsStore = useSettingsStore()
 
-  registerEventHandler('entity:me', (data) => {
-    connectionStore.getActiveSession()!.me = data
+  registerEventHandler('config:data', (data) => {
+    settingsStore.config = data.config
   })
 }

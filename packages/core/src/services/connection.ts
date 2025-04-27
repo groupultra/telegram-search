@@ -1,4 +1,4 @@
-import type { ClientProxyConfig } from '@tg-search/common'
+import type { ProxyConfig } from '@tg-search/common'
 import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
 import type { StringSession } from 'telegram/sessions'
 import type { CoreContext } from '../context'
@@ -39,11 +39,11 @@ export function createConnectionService(ctx: CoreContext) {
   return function (options: {
     apiId: number
     apiHash: string
-    proxy?: ClientProxyConfig
+    proxy?: ProxyConfig
   }) {
     const logger = useLogger()
 
-    const getProxyInterface = (proxyConfig: ClientProxyConfig | undefined): ProxyInterface | undefined => {
+    const getProxyInterface = (proxyConfig: ProxyConfig | undefined): ProxyInterface | undefined => {
       if (!proxyConfig)
         return undefined
 

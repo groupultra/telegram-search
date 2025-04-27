@@ -109,6 +109,13 @@ async function handleLogin() {
           </DropdownMenu>
 
           <ThemeToggle />
+
+          <IconButton
+            icon="i-lucide-settings"
+            with-transition
+            aria-label="Settings"
+            @click="router.push('/settings')"
+          />
         </div>
       </div>
     </header>

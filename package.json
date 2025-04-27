@@ -21,7 +21,7 @@
     "db:push": "pnpm -F @tg-search/db db:push",
     "test": "pnpm -r test run",
     "test:coverage": "pnpm -r test:coverage",
-    "prepare": "husky",
+    "postinstall": "husky",
     "bump": "bumpp",
     "bump:deps": "taze -I -f -w -r"
   },

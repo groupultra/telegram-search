@@ -1,6 +1,7 @@
 import type { TelegramClient } from 'telegram'
 import type { ClientInstanceEventFromCore, ClientInstanceEventToCore } from './instance'
 import type { SessionEventFromCore, SessionEventToCore } from './services'
+import type { ConfigEventFromCore, ConfigEventToCore } from './services/config'
 import type { ConnectionEventFromCore, ConnectionEventToCore } from './services/connection'
 import type { DialogEventFromCore, DialogEventToCore } from './services/dialog'
 import type { EntityEventFromCore, EntityEventToCore } from './services/entity'
@@ -19,6 +20,7 @@ export type FromCoreEvent = ClientInstanceEventFromCore
   & TakeoutEventFromCore
   & SessionEventFromCore
   & EntityEventFromCore
+  & ConfigEventFromCore
 
 export type ToCoreEvent = ClientInstanceEventToCore
   & MessageEventToCore
@@ -27,6 +29,7 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & TakeoutEventToCore
   & SessionEventToCore
   & EntityEventToCore
+  & ConfigEventToCore
 
 export type CoreEvent = FromCoreEvent & ToCoreEvent
 

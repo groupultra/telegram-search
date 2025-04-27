@@ -1,4 +1,5 @@
-import { getDatabaseDSN, useConfig, useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/common'
+import { getDatabaseDSN, useConfig } from '@tg-search/common/composable'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 
