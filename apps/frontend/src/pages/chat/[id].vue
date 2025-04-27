@@ -12,6 +12,12 @@ const id = route.params.id
 
 onMounted(() => {
   props.changeTitle?.(`👀 ${id}`)
+  props.setActions?.([{
+    icon: 'i-lucide-search',
+    onClick: () => {
+      console.log('search')
+    },
+  }])
 })
 </script>
 

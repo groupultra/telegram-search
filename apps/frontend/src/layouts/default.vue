@@ -36,21 +36,50 @@ const headerState = reactive<{
   ],
 })
 
+const pages = ref([
+  {
+    name: '主页',
+    icon: 'i-lucide-home',
+    path: '/',
+  },
+  {
+    name: '嵌入',
+    icon: 'i-lucide-folder-open',
+    path: '/embed',
+  },
+  {
+    name: '同步',
+    icon: 'i-lucide-folder-sync',
+    path: '/sync',
+  },
+])
+
+const chatTypes = ref([
+  {
+    name: '私聊',
+    icon: 'i-lucide-user',
+    type: 'user',
+    path: '/chat',
+  },
+  {
+    name: '群聊',
+    icon: 'i-lucide-users',
+    type: 'group',
+    path: '/group',
+  },
+  {
+    name: '频道',
+    icon: 'i-lucide-hash',
+    type: 'channel',
+    path: '/channel',
+  },
+])
+
 const search = ref('')
 
 const chats = ref<CoreDialog[]>([])
 const chatsFiltered = computed(() => {
   return chats.value.filter(chat => chat.name.includes(search.value))
-})
-const chatsFilteredPrivate = computed(() => {
-  return chatsFiltered.value.filter(chat => chat.type === 'user')
-})
-const chatsFilteredGroup = computed(() => {
-  return chatsFiltered.value.filter(chat => chat.type === 'group')
-})
-// channel
-const chatsFilteredChannel = computed(() => {
-  return chatsFiltered.value.filter(chat => chat.type === 'channel')
 })
 
 const router = useRouter()
@@ -123,29 +152,10 @@ const toggleDark = useToggle(isDark)
         <!-- Main menu -->
         <div class="mt-2 p-2">
           <ul class="space-y-1">
-            <li>
-              <button
-                class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm"
-              >
-                <div class="i-lucide-home h-5 w-5" />
-                <span>主页</span>
-              </button>
-            </li>
-            <li>
-              <button
-                class="w-full flex items-center gap-3 rounded-md bg-cover px-3 py-2 text-sm hover:bg-gray-200"
-              >
-                <div class="i-lucide-folder-open h-5 w-5" />
-                <span>嵌入</span>
-              </button>
-            </li>
-            <li>
-              <button
-                class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-gray-200"
-              >
-                <div class="i-lucide-folder-sync h-5 w-5" />
-                <span>同步</span>
-              </button>
+            <li v-for="page in pages" :key="page.path">
+              <IconButton class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm" :icon="page.icon">
+                <span>{{ page.name }}</span>
+              </IconButton>
             </li>
           </ul>
         </div>
@@ -181,16 +191,8 @@ const toggleDark = useToggle(isDark)
         </Dialog>
 
         <!-- Chats -->
-        <!-- Private Chats -->
-        <div class="mt-4">
-          <ChatGroup title="私聊" :chats="chatsFilteredPrivate" @click="handleClick" />
-        </div>
-        <!-- Group Chats -->
-        <div class="mt-4">
-          <ChatGroup title="群聊" :chats="chatsFilteredGroup" @click="handleClick" />
-        </div>
-        <div class="mt-4">
-          <ChatGroup title="频道" :chats="chatsFilteredChannel" @click="handleClick" />
+        <div class="mt-4" v-for="chatType in chatTypes" :key="chatType.path">
+          <ChatGroup :title="chatType.name" :chats="chatsFiltered.filter(chat => chat.type === chatType.type)" :icon="chatType.icon" :type="chatType.type" @click="handleClick" />
         </div>
         <!-- User profile -->
         <div class="mt-auto border-t p-4">
