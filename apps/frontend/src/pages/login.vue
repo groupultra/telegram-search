@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Action } from '../types/action'
 import { storeToRefs } from 'pinia'
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -9,6 +10,7 @@ type LoginStep = 'phone' | 'code' | 'password' | 'complete'
 
 const props = defineProps<{
   changeTitle?: (title: string) => void
+  setActions?: (actions: Action[]) => void
   setCollapsed?: (collapsed: boolean) => void
 }>()
 
@@ -71,6 +73,7 @@ onMounted(() => {
   if (isLoggedIn.value) {
     redirectRoot()
   }
+  props.setActions?.([])
   props.changeTitle?.('登录')
   props.setCollapsed?.(true)
 })

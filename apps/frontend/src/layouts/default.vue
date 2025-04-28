@@ -218,8 +218,8 @@ const isDark = useDark()
             <template v-if="showActions || headerState.collapsed">
               <button
                 v-for="(action, index) in headerState.actions" :key="index"
-                class="hover:bg-muted flex items-center gap-2 rounded-md px-3 py-2 transition-colors"
-                :class="{ 'opacity-50': action.disabled }"
+                class="hover:bg-muted flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors"
+                :class="{ 'opacity-50': action.disabled, 'cursor-not-allowed': action.disabled }"
                 :disabled="action.disabled"
                 @click="action.onClick"
               >
