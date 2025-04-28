@@ -6,8 +6,20 @@ import type { Page } from '../types/page'
 import { useDark, useToggle } from '@vueuse/core'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
+import ThemeToggle from '../components/ThemeToggle.vue'
+import DropdownMenu from '../components/ui/DropdownMenu.vue'
+import { useSessionStore } from '../store/useSession'
 import { useChatStore } from '../store/useChat'
-import { useSessionStore } from '../store/useSessionV2'
+
+
+const showUserMenu = ref(false)
+const showLanguageMenu = ref(false)
+const showCommandMenu = ref(false)
+
+const userMenuRef = ref<HTMLElement | null>(null)
+const languageMenuRef = ref<HTMLElement | null>(null)
+const commandMenuRef = ref<HTMLElement | null>(null)
 
 const sessionStore = useSessionStore()
 

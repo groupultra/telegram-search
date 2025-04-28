@@ -1,76 +1,79 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chat-message.ts
 
-import type { EmbedResult } from '@xsai/embed'
 import type { SQL } from 'drizzle-orm'
 import type { CoreMessage } from '../utils/message'
 
 import { env } from 'node:process'
-import { useLogg } from '@guiiai/logg'
-import { embed } from '@xsai/embed'
+import { useLogger } from '@tg-search/common'
 import { and, cosineDistance, desc, eq, gt, inArray, lt, ne, notInArray, sql } from 'drizzle-orm'
 
 import { useDrizzle } from '../db'
 import { chatMessagesTable } from '../db/schema'
 import { chatMessageToOneLine } from './common'
 
-export async function recordMessage(message: CoreMessage) {
-  const replyToName = message.reply.replyToName || ''
+export async function recordMessagesWithoutEmbedding(messages: CoreMessage[]) {
+  const dbMessages = messages.map((message) => {
+    const replyToName = message.reply.replyToName || ''
 
-  let embedding: EmbedResult
+    // let embedding: EmbedResult
 
-  // if (message.sticker != null) {
-  //   text = `A sticker sent by user ${await findStickerDescription(message.sticker.file_id)}, sticker set named ${message.sticker.set_name}`
-  // }
-  // else if (message.photo != null) {
-  //   text = `A set of photo, descriptions are: ${(await Promise.all(message.photo.map(photo => findPhotoDescription(photo.file_id)))).join('\n')}`
-  // }
-  // else if (message.text) {
-  //   text = message.text || message.caption || ''
-  // }
+    // if (message.sticker != null) {
+    //   text = `A sticker sent by user ${await findStickerDescription(message.sticker.file_id)}, sticker set named ${message.sticker.set_name}`
+    // }
+    // else if (message.photo != null) {
+    //   text = `A set of photo, descriptions are: ${(await Promise.all(message.photo.map(photo => findPhotoDescription(photo.file_id)))).join('\n')}`
+    // }
+    // else if (message.text) {
+    //   text = message.text || message.caption || ''
+    // }
 
-  const text = message.content
+    const text = message.content
 
-  if (text === '') {
-    return
-  }
-  else {
-    embedding = await embed({
-      baseURL: env.EMBEDDING_API_BASE_URL!,
-      apiKey: env.EMBEDDING_API_KEY!,
-      model: env.EMBEDDING_MODEL!,
-      input: text,
-    })
-  }
+    if (text === '') {
+      return ''
+    }
+    else {
+      // embedding = await embed({
+      //   baseURL: env.EMBEDDING_API_BASE_URL!,
+      //   apiKey: env.EMBEDDING_API_KEY!,
+      //   model: env.EMBEDDING_MODEL!,
+      //   input: text,
+      // })
+    }
 
-  const values: Partial<Omit<typeof chatMessagesTable.$inferSelect, 'id' | 'created_at' | 'updated_at'>> = {
-    platform: message.platform,
-    from_id: message.fromId,
-    platform_message_id: message.platformMessageId,
-    from_name: message.fromName,
-    in_chat_id: message.chatId,
-    content: text,
-    is_reply: message.reply.isReply,
-    reply_to_name: replyToName,
-    reply_to_id: message.reply.replyToId || '',
-  }
+    const values: Partial<Omit<typeof chatMessagesTable.$inferSelect, 'id' | 'created_at' | 'updated_at'>> = {
+      platform: message.platform,
+      from_id: message.fromId,
+      platform_message_id: message.platformMessageId,
+      from_name: message.fromName,
+      in_chat_id: message.chatId,
+      content: text,
+      is_reply: message.reply.isReply,
+      reply_to_name: replyToName,
+      reply_to_id: message.reply.replyToId || '',
+    }
 
-  switch (env.EMBEDDING_DIMENSION) {
-    case '1536':
-      values.content_vector_1536 = embedding.embedding
-      break
-    case '1024':
-      values.content_vector_1024 = embedding.embedding
-      break
-    case '768':
-      values.content_vector_768 = embedding.embedding
-      break
-    default:
-      throw new Error(`Unsupported embedding dimension: ${env.EMBEDDING_DIMENSION}`)
-  }
+    // switch (env.EMBEDDING_DIMENSION) {
+    //   case '1536':
+    //     values.content_vector_1536 = embedding.embedding
+    //     break
+    //   case '1024':
+    //     values.content_vector_1024 = embedding.embedding
+    //     break
+    //   case '768':
+    //     values.content_vector_768 = embedding.embedding
+    //     break
+    //   default:
+    //     throw new Error(`Unsupported embedding dimension: ${env.EMBEDDING_DIMENSION}`)
+    // }
+
+    return values
+  })
 
   await useDrizzle()
     .insert(chatMessagesTable)
-    .values(values)
+    .values(dbMessages.filter(m => m !== ''))
+    .onConflictDoNothing()
 }
 
 export async function findLastNMessages(chatId: string, n: number) {
@@ -87,7 +90,7 @@ export async function findLastNMessages(chatId: string, n: number) {
 export async function findRelevantMessages(botId: string, chatId: string, unreadHistoryMessagesEmbedding: { embedding: number[] }[], excludeMessageIds: string[] = []) {
   const db = useDrizzle()
   const contextWindowSize = 10 // Number of messages to include before and after
-  const logger = useLogg('findRelevantMessages').useGlobalConfig().withField('chatId', chatId)
+  const logger = useLogger('findRelevantMessages').useGlobalConfig().withField('chatId', chatId)
 
   logger.withField('context_window_size', contextWindowSize).log('Querying relevant chat messages...')
 

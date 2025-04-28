@@ -7,6 +7,7 @@ export interface Resolver<T> {
 export function useResolverRegistry() {
   const logger = useLogger()
 
+  // TODO: fix type
   const registry = new Map<string, Resolver<any>>()
 
   return {

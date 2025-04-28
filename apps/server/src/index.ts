@@ -10,12 +10,9 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
 import { setupWsRoutes } from './app'
-import { createErrorResponse } from './utils/response'
 
 export type * from './app'
-export type * from './types/api'
-export type * from './utils/response'
-export type * from './utils/ws-event'
+export type * from './ws-event'
 
 async function initCore(): Promise<ReturnType<typeof useLogger>> {
   initLogger()
@@ -35,8 +32,9 @@ async function initCore(): Promise<ReturnType<typeof useLogger>> {
 }
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
-  const handleError = (error: unknown, type: string) => {
-    logger.withError(error).error(type)
+  // TODO: fix type
+  const handleError = (error: any, type: string) => {
+    logger.withFields({ cause: String(error?.cause), cause_json: JSON.stringify(error?.cause) }).withError(error).error(type)
   }
 
   process.on('uncaughtException', error => handleError(error, 'Uncaught exception'))
@@ -70,7 +68,10 @@ function configureServer(logger: ReturnType<typeof useLogger>) {
         error: error instanceof Error ? error.message : 'Unknown error',
       }).error('Request failed')
 
-      return createErrorResponse(error)
+      return Response.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      })
     },
   })
 
@@ -118,7 +119,7 @@ async function bootstrap() {
   // const server = createServer(listener).listen(port)
   // server.on('upgrade', handleUpgrade)
 
-  logger.withFields({ port }).debug('Server started')
+  logger.debug('Server started')
 
   const shutdown = () => process.exit(0)
   process.on('SIGINT', shutdown)

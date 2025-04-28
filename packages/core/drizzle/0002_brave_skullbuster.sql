@@ -1,1 +1,0 @@
-ALTER TABLE "joined_chats" ADD COLUMN "chat_type" text DEFAULT 'user' NOT NULL;

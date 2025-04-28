@@ -47,7 +47,7 @@ docker compose up -d
 5. 初始化数据库：
 
 ```bash
-pnpm run db:migrate
+pnpm run db migrate
 ```
 
 6. 启动服务：

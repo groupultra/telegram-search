@@ -1,10 +1,9 @@
-import type { WsEventToClient } from '@tg-search/server'
-import type { WsEventHandler } from '../composables/useWebsocketV2'
+import type { ClientRegisterEventHandler } from '.'
 
 import { useSettingsStore } from '../store/useSettings'
 
 export function registerConfigEventHandlers(
-  registerEventHandler: <T extends keyof WsEventToClient>(event: T, handler: WsEventHandler<T>) => void,
+  registerEventHandler: ClientRegisterEventHandler,
 ) {
   const settingsStore = useSettingsStore()
 

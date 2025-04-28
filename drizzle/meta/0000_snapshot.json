@@ -1,6 +1,6 @@
 {
-  "id": "226f828d-3bf7-40b2-a71b-9a07ef6fbafc",
-  "prevId": "242a9f7c-32a9-400a-af62-59bb37adf460",
+  "id": "c5e540b3-593b-4828-90b0-68cb5439f5b5",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -199,6 +199,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "''"
+        },
+        "chat_type": {
+          "name": "chat_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'user'"
         },
         "created_at": {
           "name": "created_at",

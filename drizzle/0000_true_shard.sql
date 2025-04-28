@@ -21,6 +21,7 @@ CREATE TABLE "joined_chats" (
 	"platform" text DEFAULT '' NOT NULL,
 	"chat_id" text DEFAULT '' NOT NULL,
 	"chat_name" text DEFAULT '' NOT NULL,
+	"chat_type" text DEFAULT 'user' NOT NULL,
 	"created_at" bigint DEFAULT 0 NOT NULL,
 	"updated_at" bigint DEFAULT 0 NOT NULL,
 	CONSTRAINT "joined_chats_chat_id_unique" UNIQUE("chat_id")
@@ -85,4 +86,15 @@ CREATE INDEX "photos_description_vector_768_index" ON "photos" USING hnsw ("desc
 CREATE UNIQUE INDEX "sticker_packs_platform_platform_id_unique_index" ON "sticker_packs" USING btree ("platform","platform_id");--> statement-breakpoint
 CREATE INDEX "stickers_description_vector_1536_index" ON "stickers" USING hnsw ("description_vector_1536" vector_cosine_ops);--> statement-breakpoint
 CREATE INDEX "stickers_description_vector_1024_index" ON "stickers" USING hnsw ("description_vector_1024" vector_cosine_ops);--> statement-breakpoint
-CREATE INDEX "stickers_description_vector_768_index" ON "stickers" USING hnsw ("description_vector_768" vector_cosine_ops);
+CREATE INDEX "stickers_description_vector_768_index" ON "stickers" USING hnsw ("description_vector_768" vector_cosine_ops);--> statement-breakpoint
+CREATE VIEW "public"."chat_message_stats" AS (
+    SELECT 
+      jc.platform, 
+      jc.chat_id, 
+      jc.chat_name, 
+      COUNT(cm.id)::int AS message_count, 
+      MAX(cm.created_at) AS latest_message_at
+    FROM joined_chats jc
+    LEFT JOIN chat_messages cm ON jc.chat_id = cm.in_chat_id
+    GROUP BY jc.platform, jc.chat_id, jc.chat_name
+  );

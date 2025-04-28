@@ -13,6 +13,7 @@ export async function listJoinedChats() {
 }
 
 export async function recordJoinedChats(chats: { chatId: string, chatName: string }[]) {
+  // TODO: better way to do this?
   return useDrizzle()
     .insert(joinedChatsTable)
     .values(chats.map(chat => ({

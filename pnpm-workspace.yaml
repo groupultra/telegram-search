@@ -4,8 +4,21 @@ packages:
   - apps/*
 
 catalog:
-  '@xsai-ext/providers-cloud': ^0.2.0-beta.3
-  '@xsai/embed': ^0.2.0-beta.3
+  '@xsai-ext/providers-cloud': ^0.2.0-beta.6
+  '@xsai/embed': ^0.2.0-beta.6
 
 ignoredBuiltDependencies:
   - '@parcel/watcher'
+  - bufferutil
+  - core-js
+  - es5-ext
+  - esbuild
+  - keccak
+  - scrypt
+  - secp256k1
+  - sha3
+  - utf-8-validate
+  - vue-demi
+
+onlyBuiltDependencies:
+  - websocket

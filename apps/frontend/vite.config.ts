@@ -1,4 +1,3 @@
-import path from 'node:path'
 import Vue from '@vitejs/plugin-vue'
 import UnoCSS from 'unocss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -10,11 +9,6 @@ import { defineConfig } from 'vite'
 import Devtools from 'vite-plugin-vue-devtools'
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      '@tg-search/common': `${path.resolve(__dirname, '../../packages/common/src')}/`,
-    },
-  },
   plugins: [
     Devtools(),
 

@@ -9,7 +9,11 @@
       "name": "Run Script: dev:server",
       "request": "launch",
       "command": "pnpm run dev:server",
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceFolder}",
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**"
+      ]
     },
     {
       "type": "node-terminal",

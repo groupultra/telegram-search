@@ -28,19 +28,19 @@
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "crossws": "^0.3.4",
-    "h3": "^1.15.1",
+    "h3": "^1.15.2",
     "listhen": "^1.9.0",
     "lodash-es": "^4.17.21",
     "tsx": "^4.19.3",
-    "vite-node": "^3.1.1",
+    "vite-node": "^3.1.2",
     "web-streams-polyfill": "^4.1.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^22.14.1",
+    "@types/node": "^22.15.2",
     "@types/yargs": "^17.0.33",
     "unbuild": "^3.5.0",
-    "vitest": "^3.1.1"
+    "vitest": "^3.1.2"
   }
 }

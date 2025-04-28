@@ -1,14 +1,16 @@
-import type { WsEventToClient } from '@tg-search/server'
-import type { WsEventHandler } from '../composables/useWebsocketV2'
+import type { ClientRegisterEventHandlerFn } from '.'
+
+import { storeToRefs } from 'pinia'
 
 import { useChatStore } from '../store/useChat'
 
 export function registerDialogEventHandlers(
-  registerEventHandler: <T extends keyof WsEventToClient>(event: T, handler: WsEventHandler<T>) => void,
+  registerEventHandler: ClientRegisterEventHandlerFn,
 ) {
   const chatStore = useChatStore()
+  const { chats } = storeToRefs(chatStore)
 
   registerEventHandler('dialog:data', (data) => {
-    chatStore.chats = data.dialogs
+    chats.value = data.dialogs
   })
 }

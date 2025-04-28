@@ -1,12 +1,11 @@
-import type { WsEventToClient } from '@tg-search/server'
-import type { WsEventHandler } from '../composables/useWebsocketV2'
+import type { ClientRegisterEventHandler } from '.'
 
 import { storeToRefs } from 'pinia'
 
 import { useSyncTaskStore } from '../store/useSyncTask'
 
 export function registerTakeoutEventHandlers(
-  registerEventHandler: <T extends keyof WsEventToClient>(event: T, handler: WsEventHandler<T>) => void,
+  registerEventHandler: ClientRegisterEventHandler,
 ) {
   registerEventHandler('takeout:task:progress', (data) => {
     const { currentTask } = storeToRefs(useSyncTaskStore())

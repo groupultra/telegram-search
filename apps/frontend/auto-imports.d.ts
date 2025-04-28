@@ -306,6 +306,7 @@ declare global {
   const useWebSocket: typeof import('@vueuse/core')['useWebSocket']
   const useWebWorker: typeof import('@vueuse/core')['useWebWorker']
   const useWebWorkerFn: typeof import('@vueuse/core')['useWebWorkerFn']
+  const useWebsocket: typeof import('./src/composables/useWebsocket')['useWebsocket']
   const useWebsocketV2: typeof import('./src/composables/useWebsocketV2')['useWebsocketV2']
   const useWindowFocus: typeof import('@vueuse/core')['useWindowFocus']
   const useWindowScroll: typeof import('@vueuse/core')['useWindowScroll']
@@ -335,6 +336,9 @@ declare global {
   // @ts-ignore
   export type { PaginationOptions } from './src/composables/usePagination'
   import('./src/composables/usePagination')
+  // @ts-ignore
+  export type { ClientSendEventFn, ClientCreateWsMessageFn } from './src/composables/useWebsocket'
+  import('./src/composables/useWebsocket')
   // @ts-ignore
   export type { WsEventHandler, WsRegisterEventHandler } from './src/composables/useWebsocketV2'
   import('./src/composables/useWebsocketV2')
@@ -615,6 +619,7 @@ declare module 'vue' {
     readonly useWebSocket: UnwrapRef<typeof import('@vueuse/core')['useWebSocket']>
     readonly useWebWorker: UnwrapRef<typeof import('@vueuse/core')['useWebWorker']>
     readonly useWebWorkerFn: UnwrapRef<typeof import('@vueuse/core')['useWebWorkerFn']>
+    readonly useWebsocket: UnwrapRef<typeof import('./src/composables/useWebsocket')['useWebsocket']>
     readonly useWebsocketV2: UnwrapRef<typeof import('./src/composables/useWebsocketV2')['useWebsocketV2']>
     readonly useWindowFocus: UnwrapRef<typeof import('@vueuse/core')['useWindowFocus']>
     readonly useWindowScroll: UnwrapRef<typeof import('@vueuse/core')['useWindowScroll']>

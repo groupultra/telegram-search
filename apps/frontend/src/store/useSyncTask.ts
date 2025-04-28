@@ -12,5 +12,8 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
     return currentTask.value.progress
   })
 
-  return { currentTask, currentTaskProgress }
+  return {
+    currentTask,
+    currentTaskProgress,
+  }
 })

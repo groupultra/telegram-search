@@ -1,6 +1,8 @@
 import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
+import { useLogger } from '@tg-search/common'
+
 export interface WsEventFromServer {
   'server:connected': (data: { sessionId: string, connected: boolean }) => void
   'server:error': (data: { error?: string | Error | unknown }) => void
@@ -54,10 +56,17 @@ export function createWsMessage<T extends keyof WsEventToClient>(
   type: T,
   data: WsEventToClientData<T>,
 ): Extract<WsMessageToClient, { type: T }> {
-  // TODO: just send necessary data
-  // const safeData = stringify(pickBy(data, value => typeof value !== 'function'))
-  // return { type, data: JSON.parse(safeData) } as Extract<WsMessage, { type: T }>
-  return { type, data } as Extract<WsMessageToClient, { type: T }>
+  try {
+    // ensure args[0] can be stringified
+    JSON.stringify(data)
+
+    return { type, data } as Extract<WsMessageToClient, { type: T }>
+  }
+  catch {
+    useLogger().withFields({ type }).warn('Dropped event data')
+
+    return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
+  }
 }
 
 // export function isMessageType<K extends keyof WsEvent>(

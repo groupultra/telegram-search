@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { useChatStore } from '../store/useChat'
-import { useSessionStore } from '../store/useSessionV2'
+import { useSessionStore } from '../store/useSession'
 import { useSyncTaskStore } from '../store/useSyncTask'
 
 const props = defineProps<{

@@ -3,14 +3,15 @@
   "type": "module",
   "version": "0.0.10",
   "private": true,
-  "packageManager": "pnpm@10.8.1",
+  "packageManager": "pnpm@10.9.0",
   "scripts": {
     "build": "pnpm -r build",
     "stub": "pnpm -r stub",
     "packages:build": "pnpm -rF=\"./packages/*\" build",
     "packages:stub": "pnpm -rF=\"./packages/*\" stub",
+    "build:server": "pnpm -F @tg-search/server build",
     "dev:server": "pnpm run packages:build && pnpm -F @tg-search/server dev",
-    "dev:frontend": "pnpm -F @tg-search/frontend dev",
+    "dev:frontend": "pnpm run build:server && pnpm -F @tg-search/frontend dev",
     "lint": "pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",
     "typecheck": "pnpm -r typecheck",
@@ -18,12 +19,14 @@
     "test:coverage": "pnpm -r test:coverage",
     "postinstall": "husky",
     "bump": "bumpp",
-    "bump:deps": "taze -I -f -w -r"
+    "bump:deps": "taze -I -f -w -r",
+    "db": "tsx scripts/db.ts"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.12.0",
     "bumpp": "^10.1.0",
-    "eslint": "^9.25.0",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^9.25.1",
     "eslint-plugin-format": "^1.0.1",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.1",
@@ -33,7 +36,7 @@
   },
   "resolutions": {
     "unplugin": "^2.3.2",
-    "vite": "^6.3.2"
+    "vite": "^6.3.3"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,vue}": [

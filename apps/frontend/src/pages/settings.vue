@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import SelectDropdown from '../components/ui/SelectDropdown.vue'
-import { useSessionStore } from '../store/useSessionV2'
+import { useSessionStore } from '../store/useSession'
 import { useSettingsStore } from '../store/useSettings'
 
 const props = defineProps<{

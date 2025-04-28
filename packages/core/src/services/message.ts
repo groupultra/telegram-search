@@ -6,25 +6,16 @@ import { useLogger } from '@tg-search/common'
 import bigInt from 'big-integer'
 import { Api } from 'telegram'
 
+import { convertToCoreMessage } from '../utils/message'
 import { withResult } from '../utils/result'
 import { withRetry } from '../utils/retry'
-
-// interface CoreMessage {
-//   id: number
-//   chatId: number
-//   type: 'text' | 'media'
-//   createdAt: Date
-//   text: string
-// }
 
 export interface MessageEventToCore {
   'message:fetch': (data: { chatId: string }) => void
 
   'message:fetch:abort': (data: { taskId: string }) => void
 
-  'message:process': (data: { message: Api.Message }) => void
-
-  'message:record': (data: { message: Api.Message }) => void
+  'message:process': (data: { message: Api.Message[] }) => void
 }
 
 export interface MessageEventFromCore {
@@ -52,22 +43,13 @@ export function createMessageService(ctx: CoreContext) {
   const { emitter, getClient, withError } = ctx
 
   // TODO: worker_threads?
-  function processMessage(message: Api.Message) {
-    useLogger().withFields(message).debug('Process message')
-    emitter.emit('message:record', { message })
-    // emitter.emit('storage:save:messages', { messages })
-  }
+  function processMessage(messages: Api.Message[]) {
+    useLogger().withFields({ count: messages.length }).debug('Process messages')
 
-  // function toInternalMessage(message: Api.Message): TelegramMessage {
-  //   return {
-  //     id: message.id,
-  //     chatId: message.chatId?.toString(),
-  //     type: message.media ? 'media' : 'text',
-  //     createdAt: new Date(message.date * 1000),
-  //     text: message.message,
-  //     media: message.media,
-  //   }
-  // }
+    const coreMessages = messages.map(message => convertToCoreMessage(message))
+
+    emitter.emit('storage:record:messages', { messages: coreMessages })
+  }
 
   async function getHistory(chatId: EntityLike): PromiseResult<(Api.messages.TypeMessages & { count: number }) | null> {
     try {
@@ -173,7 +155,8 @@ export function createMessageService(ctx: CoreContext) {
               continue
             }
 
-            processMessage(message)
+            // TODO: process bulk messages
+            processMessage([message])
 
             yield message
             processedCount++
