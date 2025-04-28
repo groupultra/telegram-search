@@ -15,7 +15,6 @@ const emit = defineEmits<{
   (e: 'click', chat: CoreDialog): void
 }>()
 
-
 const active = ref(true)
 function toggleActive() {
   active.value = !active.value
@@ -32,8 +31,8 @@ function toggleActive() {
     </div>
     <div :class="active ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'" class="h-4 w-4 cursor-pointer"/>
   </div>
-  <ul class="px-2 space-y-1 " :class="{ hidden: !active }">
-    <li v-for="chat in chats" :key="chat.id" :class="{ 'bg-gray-50 dark:bg-gray-900': chat.isSelected }" class="transition-colors duration-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md ">
+  <ul v-show="active" class="px-2 space-y-1">
+    <li v-for="chat in chats" :key="chat.id" :class="{ 'bg-gray-50 dark:bg-gray-900': chat.isSelected }" class="transition-colors duration-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md">
       <SlotButton :text="chat.name" @click="emit('click', chat)">
         <img :alt="`User ${chat.id}`" :src="`https://api.dicebear.com/6.x/bottts/svg?seed=${chat.name}`" class="h-full w-full object-cover select-none">
       </SlotButton>

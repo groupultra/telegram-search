@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 import { useSessionStore } from '../store/useSessionV2'
 import { Chat } from '../types/chat'
 import { Page } from '../types/page'
+import { title } from 'process'
 
 const sessionStore = useSessionStore()
 
@@ -18,24 +19,12 @@ const settingsDialog = ref(false)
 const headerState = reactive<{
   title: string
   actions: Action[]
+  hidden: boolean
 }>({
-  title: 'aa',
+  title: '',
   actions: [
-    {
-      icon: 'i-lucide-plus',
-      name: '新建',
-      onClick: () => {
-        console.log('plus')
-      },
-    },
-    {
-      icon: 'i-lucide-plus',
-      name: '新建',
-      onClick: () => {
-        console.log('plus')
-      },
-    },
   ],
+  hidden: false,
 })
 
 const pages = ref<Page[]>([
@@ -119,6 +108,10 @@ function changeTitle(newTitle: string) {
   headerState.title = newTitle
 }
 
+function setHidden(hidden: boolean) {
+  headerState.hidden = hidden
+}
+
 function setActions(actions: Action[]) {
   headerState.actions = actions
 }
@@ -133,6 +126,7 @@ function clearSelectedChatAndPage() {
 function handleClick(chat: CoreDialog) {
   router.push(`/chat/${chat.id}?type=${chat.type}`)
   clearSelectedChatAndPage()
+  setActions([])
   chats.value.forEach(c => {
     c.isSelected = c.id === chat.id
   })
@@ -141,7 +135,10 @@ function handleClick(chat: CoreDialog) {
 
 function handlePageClick(page: Page) {
   clearSelectedChatAndPage()
+  setActions([])
   currentPage.value = page
+  changeTitle(page.name)
+  router.push(page.path)
 }
 
 function toggleSettingsDialog() {
@@ -159,35 +156,7 @@ const toggleDark = useToggle(isDark)
 <template>
   <div class="bg-background h-screen w-full flex overflow-hidden" :class="{ dark: isDark }">
     <Dialog v-model="settingsDialog">
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-2">
-            <div class="i-lucide-settings h-5 w-5" />
-            <span class="text-lg font-medium">设置</span>
-          </div>
-          <button class="hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md p-1 transition-colors" @click="toggleSettingsDialog">
-            <div class="i-lucide-x h-5 w-5" />
-          </button>
-        </div>
-        <div class="space-y-4">
-          <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
-            <div class="flex items-center gap-2">
-              <div class="i-lucide-moon h-5 w-5" />
-              <span>深色模式</span>
-            </div>
-            <Switch :model-value="isDark" @update:model-value="toggleDark" />
-          </div>
-          <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
-            <div class="flex items-center gap-2">
-              <div class="i-lucide-log-out h-5 w-5" />
-              <span>退出登录</span>
-            </div>
-            <button class="text-red-500 hover:text-red-600 transition-colors">
-              退出
-            </button>
-          </div>
-        </div>
-      </div>
+      <Settings @toggleSettingsDialog="toggleSettingsDialog" />
     </Dialog>
     <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200 dark:border-r-gray-800">
       <div class="h-full flex flex-col overflow-hidden">
@@ -241,8 +210,8 @@ const toggleDark = useToggle(isDark)
         </div>
       </div>
     </div>
-    <div class="flex flex-1 flex-col overflow-hidden">
-      <header class="h-14 flex items-center border-b-gray-200 dark:border-b-gray-800 border-b px-4">
+    <div class="flex flex-1 flex-col overflow-hidden" >
+      <header v-show="!headerState.hidden" class="h-14 flex items-center border-b-gray-200 dark:border-b-gray-800 border-b px-4 ">
         <div class="flex items-center gap-2">
           <span class="font-medium">{{ headerState.title }}</span>
         </div>
@@ -265,7 +234,7 @@ const toggleDark = useToggle(isDark)
       </header>
       <main class="flex flex-1 flex-col overflow-hidden">
         <div class="flex-1 overflow-auto p-4">
-          <slot v-bind="{ changeTitle, setActions }" />
+          <slot v-bind="{ changeTitle, setActions, setHidden }" />
         </div>
       </main>
     </div>

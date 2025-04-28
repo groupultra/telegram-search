@@ -29,6 +29,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SearchSelect: typeof import('./src/components/ui/SearchSelect.vue')['default']
     SelectDropdown: typeof import('./src/components/ui/SelectDropdown.vue')['default']
+    Settings: typeof import('./src/components/ui/Settings.vue')['default']
     SlotButton: typeof import('./src/components/ui/SlotButton.vue')['default']
     StatusBadge: typeof import('./src/components/ui/StatusBadge.vue')['default']
     StepIndicator: typeof import('./src/components/ui/StepIndicator.vue')['default']
