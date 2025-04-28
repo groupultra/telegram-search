@@ -105,3 +105,177 @@ html.dark::view-transition-new(root) {
   --c-muted: oklch(0.274 0.006 286.033);
   --c-muted-foreground: oklch(0.705 0.015 286.067);
 }
+
+:root {
+  --c-background: oklch(0.98 0.03 120); /* 莫奈画布的淡米色 */
+  --c-foreground: oklch(0.32 0.04 260); /* 柔和的紫蓝色 */
+  --c-card: oklch(0.96 0.02 140); /* 浅绿色调 */
+  --c-card-foreground: oklch(0.32 0.04 260); /* 柔和的紫蓝色 */
+  --c-popover: oklch(0.98 0.03 120); /* 与背景一致 */
+  --c-popover-foreground: oklch(0.32 0.04 260);
+  --c-primary: oklch(0.75 0.13 210); /* 莫奈蓝天的蓝色 */
+  --c-primary-foreground: oklch(0.98 0.03 120); /* 反差高的淡米色 */
+  --c-secondary: oklch(0.92 0.04 140); /* 莫奈草地的嫩绿色 */
+  --c-secondary-foreground: oklch(0.32 0.04 260);
+  --c-muted: oklch(0.95 0.01 120); /* 柔和的灰米色 */
+  --c-muted-foreground: oklch(0.55 0.01 260); /* 柔和的灰蓝色 */
+}
+
+.dark {
+  --c-background: oklch(0.22 0.03 260); /* 深夜蓝紫 */
+  --c-foreground: oklch(0.95 0.02 120); /* 柔和的米白 */
+  --c-card: oklch(0.28 0.04 210); /* 深蓝绿 */
+  --c-card-foreground: oklch(0.95 0.02 120);
+  --c-popover: oklch(0.28 0.04 210);
+  --c-popover-foreground: oklch(0.95 0.02 120);
+  --c-primary: oklch(0.55 0.13 210); /* 莫奈夜色的蓝 */
+  --c-primary-foreground: oklch(0.22 0.03 260);
+  --c-secondary: oklch(0.38 0.04 140); /* 深绿色 */
+  --c-secondary-foreground: oklch(0.95 0.02 120);
+  --c-muted: oklch(0.28 0.01 260); /* 深灰蓝 */
+  --c-muted-foreground: oklch(0.75 0.01 120); /* 柔和的灰米色 */
+}
+
+/* 亮色模式 - 橙色主题 */
+:root {
+  --c-background: oklch(0.985 0.015 60); /* 非常浅的暖白色/米色背景 */
+  --c-foreground: oklch(0.2 0.03 60); /* 深棕色/深灰色文字 */
+  --c-card: oklch(1 0 0); /* 纯白色卡片背景，提供对比 */
+  --c-card-foreground: oklch(0.2 0.03 60); /* 卡片文字，同主要文字 */
+  --c-popover: oklch(1 0 0); /* 弹窗背景，同卡片 */
+  --c-popover-foreground: oklch(0.2 0.03 60); /* 弹窗文字，同主要文字 */
+  --c-primary: oklch(0.7 0.18 55); /* 主要的橙色 (Primary Orange) */
+  --c-primary-foreground: oklch(0.99 0.01 55); /* 在主橙色上的浅色文字（近乎白色） */
+  --c-secondary: oklch(0.95 0.06 60); /* 次要颜色，浅橙色/米黄色 */
+  --c-secondary-foreground: oklch(0.4 0.08 55); /* 在次要颜色上的深橙/棕色文字 */
+  --c-muted: oklch(0.95 0.03 60); /* 柔和/禁用状态背景，更浅的米黄 */
+  --c-muted-foreground: oklch(0.55 0.04 60); /* 柔和/禁用状态文字，中性暖灰色 */
+  --c-accent: oklch(0.8 0.15 45); /* 可选的强调色 (Accent)，偏红的橙色 */
+  --c-accent-foreground: oklch(0.99 0.01 45); /* 在强调色上的浅色文字 */
+  --c-destructive: oklch(0.65 0.2 25); /* 破坏性操作颜色 (如删除)，红色/深红橙色 */
+  --c-destructive-foreground: oklch(0.99 0.02 25); /* 在破坏性颜色上的浅色文字 */
+  --c-border: oklch(0.9 0.03 60); /* 边框颜色，浅暖灰色 */
+  --c-input: oklch(0.9 0.03 60); /* 输入框边框/背景颜色 */
+  --c-ring: oklch(0.7 0.18 55 / 0.4); /* 焦点环颜色 (Focus Ring)，半透明的主橙色 */
+  --radius: 0.5rem; /* 圆角大小 (可根据喜好调整) */
+}
+
+/* 暗色模式 - 橙色主题 */
+.dark {
+  --c-background: oklch(0.2 0.02 60); /* 深棕褐色/深灰色背景 */
+  --c-foreground: oklch(0.97 0.015 60); /* 浅米色/近乎白色的文字 */
+  --c-card: oklch(0.25 0.03 60); /* 比背景稍亮的深棕褐色卡片 */
+  --c-card-foreground: oklch(0.97 0.015 60); /* 卡片文字，同主要文字 */
+  --c-popover: oklch(0.25 0.03 60); /* 弹窗背景，同卡片 */
+  --c-popover-foreground: oklch(0.97 0.015 60); /* 弹窗文字，同主要文字 */
+  --c-primary: oklch(0.75 0.19 55); /* 主要的橙色 (在暗背景下可稍亮/饱和) */
+  --c-primary-foreground: oklch(0.25 0.04 55); /* 在主橙色上的深色文字 */
+  --c-secondary: oklch(0.35 0.06 60); /* 次要颜色，较暗的橙棕色 */
+  --c-secondary-foreground: oklch(0.97 0.015 60); /* 在次要颜色上的浅色文字 */
+  --c-muted: oklch(0.3 0.03 60); /* 柔和/禁用状态背景，更暗的棕灰 */
+  --c-muted-foreground: oklch(0.65 0.03 60); /* 柔和/禁用状态文字，中等亮度的暖灰 */
+  --c-accent: oklch(0.8 0.16 45); /* 可选的强调色，亮一些的红橙色 */
+  --c-accent-foreground: oklch(0.2 0.03 45); /* 在强调色上的深色文字 */
+  --c-destructive: oklch(0.7 0.2 25); /* 破坏性操作颜色，更亮的红橙色 */
+  --c-destructive-foreground: oklch(0.2 0.03 25); /* 在破坏性颜色上的深色文字 */
+  --c-border: oklch(0.35 0.04 60); /* 边框颜色，深暖灰色 */
+  --c-input: oklch(0.35 0.04 60); /* 输入框边框/背景颜色 */
+  --c-ring: oklch(0.75 0.19 55 / 0.4); /* 焦点环颜色，半透明的主橙色 */
+  /* --radius 变量通常在 :root 中定义一次即可 */
+}
+
+/* 亮色模式 - 绿色主题 */
+:root {
+  --c-background: oklch(0.99 0.01 145); /* 非常浅的冷白色/薄荷色背景 */
+  --c-foreground: oklch(0.18 0.03 145); /* 深绿色/墨绿色文字 */
+  --c-card: oklch(1 0 0); /* 纯白色卡片背景 */
+  --c-card-foreground: oklch(0.18 0.03 145); /* 卡片文字，同主要文字 */
+  --c-popover: oklch(1 0 0); /* 弹窗背景，同卡片 */
+  --c-popover-foreground: oklch(0.18 0.03 145); /* 弹窗文字，同主要文字 */
+  --c-primary: oklch(0.65 0.16 145); /* 主要的绿色 (Primary Green) */
+  --c-primary-foreground: oklch(0.99 0.01 145); /* 在主绿色上的浅色文字（近乎白色） */
+  --c-secondary: oklch(0.94 0.05 145); /* 次要颜色，浅绿色/薄荷绿 */
+  --c-secondary-foreground: oklch(0.3 0.07 145); /* 在次要颜色上的深绿色文字 */
+  --c-muted: oklch(0.96 0.02 145); /* 柔和/禁用状态背景，更浅的冷灰绿 */
+  --c-muted-foreground: oklch(0.55 0.03 145); /* 柔和/禁用状态文字，中性冷灰色 */
+  --c-accent: oklch(0.75 0.18 160); /* 可选的强调色 (Accent)，更偏青色/蓝绿色 */
+  --c-accent-foreground: oklch(0.15 0.02 160); /* 在强调色上的深色文字 */
+  --c-destructive: oklch(0.65 0.2 25); /* 破坏性操作颜色 (保持红色系) */
+  --c-destructive-foreground: oklch(0.99 0.02 25); /* 在破坏性颜色上的浅色文字 */
+  --c-border: oklch(0.9 0.02 145); /* 边框颜色，浅冷灰色 */
+  --c-input: oklch(0.9 0.02 145); /* 输入框边框/背景颜色 */
+  --c-ring: oklch(0.65 0.16 145 / 0.4); /* 焦点环颜色，半透明的主绿色 */
+  --radius: 0.5rem; /* 圆角大小 */
+}
+
+/* 暗色模式 - 绿色主题 */
+.dark {
+  --c-background: oklch(0.2 0.025 145); /* 深墨绿色/深冷灰色背景 */
+  --c-foreground: oklch(0.97 0.015 145); /* 浅冷灰色/近乎白色的文字 */
+  --c-card: oklch(0.25 0.035 145); /* 比背景稍亮的深墨绿色卡片 */
+  --c-card-foreground: oklch(0.97 0.015 145); /* 卡片文字，同主要文字 */
+  --c-popover: oklch(0.25 0.035 145); /* 弹窗背景，同卡片 */
+  --c-popover-foreground: oklch(0.97 0.015 145); /* 弹窗文字，同主要文字 */
+  --c-primary: oklch(0.7 0.17 145); /* 主要的绿色 (在暗背景下可稍亮/饱和) */
+  --c-primary-foreground: oklch(0.15 0.03 145); /* 在主绿色上的深色文字 */
+  --c-secondary: oklch(0.38 0.06 145); /* 次要颜色，较暗的绿色 */
+  --c-secondary-foreground: oklch(0.97 0.015 145); /* 在次要颜色上的浅色文字 */
+  --c-muted: oklch(0.3 0.03 145); /* 柔和/禁用状态背景，更暗的冷灰绿 */
+  --c-muted-foreground: oklch(0.65 0.03 145); /* 柔和/禁用状态文字，中等亮度的冷灰 */
+  --c-accent: oklch(0.78 0.19 160); /* 可选的强调色 (Accent)，亮一些的青色 */
+  --c-accent-foreground: oklch(0.1 0.02 160); /* 在强调色上的极深色文字 */
+  --c-destructive: oklch(0.7 0.2 25); /* 破坏性操作颜色 (保持红色系，暗模式下可稍亮) */
+  --c-destructive-foreground: oklch(0.15 0.03 25); /* 在破坏性颜色上的深色文字 */
+  --c-border: oklch(0.3 0.03 145); /* 边框颜色，深冷灰色 */
+  --c-input: oklch(0.3 0.03 145); /* 输入框边框/背景颜色 */
+  --c-ring: oklch(0.7 0.17 145 / 0.4); /* 焦点环颜色，半透明的主绿色 */
+  /* --radius 变量通常在 :root 中定义一次即可 */
+}
+
+/* 亮色模式 - 淡蓝色主题 */
+:root {
+  --c-background: oklch(0.99 0.006 260); /* 极浅的蓝色/几乎白色背景 */
+  --c-foreground: oklch(0.22 0.025 260); /* 深蓝灰色文字 */
+  --c-card: oklch(1 0 0); /* 纯白色卡片背景 */
+  --c-card-foreground: oklch(0.22 0.025 260); /* 卡片文字，同主要文字 */
+  --c-popover: oklch(1 0 0); /* 弹窗背景，同卡片 */
+  --c-popover-foreground: oklch(0.22 0.025 260); /* 弹窗文字，同主要文字 */
+  --c-primary: oklch(0.75 0.12 260); /* 主要的淡蓝色 (Primary Light Blue) */
+  --c-primary-foreground: oklch(0.15 0.04 260); /* 在主淡蓝色上的深蓝色文字，确保对比度 */
+  --c-secondary: oklch(0.92 0.05 260); /* 次要颜色，更浅更柔和的蓝色 */
+  --c-secondary-foreground: oklch(0.4 0.07 260); /* 在次要颜色上的中深蓝色文字 */
+  --c-muted: oklch(0.96 0.018 260); /* 柔和/禁用状态背景，非常浅的蓝灰色 */
+  --c-muted-foreground: oklch(0.55 0.025 260); /* 柔和/禁用状态文字，中性蓝灰色 */
+  --c-accent: oklch(0.7 0.14 280); /* 可选的强调色 (Accent)，偏紫的蓝色 */
+  --c-accent-foreground: oklch(0.99 0.01 280); /* 在强调色上的浅色文字 */
+  --c-destructive: oklch(0.65 0.2 25); /* 破坏性操作颜色 (保持红色系) */
+  --c-destructive-foreground: oklch(0.99 0.02 25); /* 在破坏性颜色上的浅色文字 */
+  --c-border: oklch(0.9 0.02 260); /* 边框颜色，浅蓝灰色 */
+  --c-input: oklch(0.9 0.02 260); /* 输入框边框/背景颜色 */
+  --c-ring: oklch(0.75 0.12 260 / 0.4); /* 焦点环颜色，半透明的主淡蓝色 */
+  --radius: 0.5rem; /* 圆角大小 */
+}
+
+/* 暗色模式 - 淡蓝色主题 */
+.dark {
+  --c-background: oklch(0.18 0.025 260); /* 深蓝灰色背景 */
+  --c-foreground: oklch(0.97 0.012 260); /* 浅蓝灰色/近乎白色的文字 */
+  --c-card: oklch(0.23 0.035 260); /* 比背景稍亮的深蓝灰色卡片 */
+  --c-card-foreground: oklch(0.97 0.012 260); /* 卡片文字，同主要文字 */
+  --c-popover: oklch(0.23 0.035 260); /* 弹窗背景，同卡片 */
+  --c-popover-foreground: oklch(0.97 0.012 260); /* 弹窗文字，同主要文字 */
+  --c-primary: oklch(0.7 0.14 260); /* 主要的淡蓝色 (暗模式下调整以保证可见性) */
+  --c-primary-foreground: oklch(0.15 0.05 260); /* 在主淡蓝色上的深蓝色文字 */
+  --c-secondary: oklch(0.38 0.06 260); /* 次要颜色，较暗的柔和蓝色 */
+  --c-secondary-foreground: oklch(0.97 0.012 260); /* 在次要颜色上的浅色文字 */
+  --c-muted: oklch(0.3 0.03 260); /* 柔和/禁用状态背景，更暗的蓝灰色 */
+  --c-muted-foreground: oklch(0.65 0.025 260); /* 柔和/禁用状态文字，中等亮度的蓝灰 */
+  --c-accent: oklch(0.75 0.15 280); /* 可选的强调色 (Accent)，亮一些的蓝紫色 */
+  --c-accent-foreground: oklch(0.15 0.03 280); /* 在强调色上的深色文字 */
+  --c-destructive: oklch(0.7 0.2 25); /* 破坏性操作颜色 (保持红色系，暗模式下可稍亮) */
+  --c-destructive-foreground: oklch(0.15 0.03 25); /* 在破坏性颜色上的深色文字 */
+  --c-border: oklch(0.3 0.03 260); /* 边框颜色，深蓝灰色 */
+  --c-input: oklch(0.3 0.03 260); /* 输入框边框/背景颜色 */
+  --c-ring: oklch(0.7 0.14 260 / 0.4); /* 焦点环颜色，半透明的主淡蓝色 */
+  /* --radius 变量通常在 :root 中定义一次即可 */
+}
