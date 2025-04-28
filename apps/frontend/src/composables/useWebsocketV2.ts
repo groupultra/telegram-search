@@ -6,6 +6,7 @@ import { watch } from 'vue'
 import { WS_API_BASE } from '../constants'
 import { registerAuthEventHandlers } from '../event-handlers/auth'
 import { registerConfigEventHandlers } from '../event-handlers/config'
+import { registerDialogEventHandlers } from '../event-handlers/dialog'
 import { registerEntityEventHandlers } from '../event-handlers/entity'
 import { registerServerEventHandlers } from '../event-handlers/server'
 import { registerTakeoutEventHandlers } from '../event-handlers/takeout'
@@ -34,6 +35,7 @@ export function createWebsocketV2Context(sessionId: string) {
   registerEntityEventHandlers(registerEventHandler)
   registerTakeoutEventHandlers(registerEventHandler)
   registerConfigEventHandlers(registerEventHandler)
+  registerDialogEventHandlers(registerEventHandler)
 
   function createWsMessage<T extends keyof WsEventToServer>(
     type: T,

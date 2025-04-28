@@ -4,14 +4,15 @@ import type { Action } from '../types/action'
 import type { Chat } from '../types/chat'
 import type { Page } from '../types/page'
 import { useDark, useToggle } from '@vueuse/core'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useChatStore } from '../store/useChat'
 import { useSessionStore } from '../store/useSessionV2'
 
 const sessionStore = useSessionStore()
 
 const { getWsContext } = sessionStore
-// const wsContext = getWsContext()
+const wsContext = getWsContext()
 
 const settingsDialog = ref(false)
 
@@ -54,6 +55,7 @@ const pages = ref<Page[]>([
   },
 ])
 const currentPage = ref<Page | undefined>()
+const selectedChatId = ref<number | null>(null)
 
 const chatTypes = ref([
   {
@@ -75,7 +77,9 @@ const chatTypes = ref([
 
 const search = ref('')
 
-const chats = ref<Chat[]>([])
+const chatStore = useChatStore()
+
+const chats = computed(() => chatStore.chats)
 const chatsFiltered = computed(() => {
   return chats.value.filter(chat => chat.name.includes(search.value))
 })
@@ -85,32 +89,8 @@ const router = useRouter()
 const showActions = ref(false)
 
 onMounted(() => {
-  chats.value = [
-    {
-      id: 1,
-      name: '用户122',
-      type: 'user',
-    },
-    {
-      id: 2,
-      name: '群聊1',
-      type: 'group',
-    },
-    {
-      id: 3,
-      name: '频道1',
-      type: 'channel',
-    },
-    {
-      id: 4,
-      name: '频道2',
-      type: 'channel',
-    },
-  ]
-  // wsContext.sendEvent('dialog:fetch')
-  // wsContext.on('dialog:fetch', (data) => {
-  //   console.log(data)
-  // })
+  wsContext.sendEvent('entity:me:fetch', undefined)
+  wsContext.sendEvent('dialog:fetch', undefined)
 })
 
 function changeTitle(newTitle: string) {
@@ -126,9 +106,7 @@ function setActions(actions: Action[]) {
 }
 
 function clearSelectedChatAndPage() {
-  chats.value.forEach((c) => {
-    c.isSelected = false
-  })
+  selectedChatId.value = null
   currentPage.value = undefined
 }
 
@@ -136,9 +114,7 @@ function handleClick(chat: CoreDialog) {
   router.push(`/chat/${chat.id}?type=${chat.type}`)
   clearSelectedChatAndPage()
   setActions([])
-  chats.value.forEach((c) => {
-    c.isSelected = c.id === chat.id
-  })
+  selectedChatId.value = chat.id
 }
 
 function handlePageClick(page: Page) {
@@ -158,7 +134,6 @@ function toggleActions() {
 }
 
 const isDark = useDark()
-const toggleDark = useToggle(isDark)
 </script>
 
 <template>
@@ -198,7 +173,7 @@ const toggleDark = useToggle(isDark)
         <div v-for="chatType in chatTypes" :key="chatType.type" class="mt-4">
           <ChatGroup
             :title="chatType.name" :chats="chatsFiltered.filter(chat => chat.type === chatType.type)"
-            :icon="chatType.icon" :type="chatType.type" @click="handleClick"
+            :icon="chatType.icon" :type="chatType.type" :selected-chat-id="selectedChatId" @click="handleClick"
           />
         </div>
         <!-- User profile -->
@@ -212,8 +187,8 @@ const toggleDark = useToggle(isDark)
                 >
               </div>
               <div class="flex flex-col">
-                <span class="text-sm font-medium">我的用户名</span>
-                <span class="text-muted-foreground text-xs">已链接</span>
+                <span class="text-sm font-medium">{{ sessionStore.getActiveSession()?.me?.username }}</span>
+                <span class="text-muted-foreground text-xs">{{ sessionStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
               </div>
             </div>
             <div class="flex items-center">
