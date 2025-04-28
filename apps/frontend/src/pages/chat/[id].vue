@@ -9,9 +9,10 @@ const props = defineProps<{
 }>()
 const route = useRoute()
 const id = route.params.id
+const type = route.query.type as 'user' | 'group' | 'channel'
 
 onMounted(() => {
-  props.changeTitle?.(`👀 ${id}`)
+  props.changeTitle?.(`👀 [${type}] ${id}`)
   props.setActions?.([{
     icon: 'i-lucide-search',
     onClick: () => {
@@ -23,7 +24,7 @@ onMounted(() => {
 
 <template>
   <div class="h-full flex flex-col p-2">
-    <div class="overflow-auto space-y-6">
+    <div class="overflow-auto space-y-0">
       <MessageItem sender="用户名" timestamp="12:30" is-sender>
         <TextMessage text="你好！这是一条消息示例。" />
       </MessageItem>
@@ -149,6 +150,9 @@ onMounted(() => {
             </ComposeMessage>
           </template>
         </ComposeMessage>
+      </MessageItem>
+      <MessageItem sender="用户名" timestamp="12:30" is-sender v-for="i in 10" :key="i">
+        <ImageMessage image="https://media.tenor.com/4yEuW6bbRo0AAAAi/gato.gif" />
       </MessageItem>
     </div>
   </div>

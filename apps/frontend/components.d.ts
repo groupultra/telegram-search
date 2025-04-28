@@ -15,6 +15,7 @@ declare module 'vue' {
     ComposeMessage: typeof import('./src/components/ui/ComposeMessage.vue')['default']
     Dialog: typeof import('./src/components/ui/Dialog.vue')['default']
     DropdownMenu: typeof import('./src/components/ui/DropdownMenu.vue')['default']
+    ForwardMessage: typeof import('./src/components/ui/ForwardMessage.vue')['default']
     HighlightText: typeof import('./src/components/ui/HighlightText.vue')['default']
     IconButton: typeof import('./src/components/ui/IconButton.vue')['default']
     ImageMessage: typeof import('./src/components/ui/ImageMessage.vue')['default']

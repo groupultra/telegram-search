@@ -62,19 +62,16 @@ const chatTypes = ref([
     name: '私聊',
     icon: 'i-lucide-user',
     type: 'user',
-    path: '/chat',
   },
   {
     name: '群聊',
     icon: 'i-lucide-users',
     type: 'group',
-    path: '/group',
   },
   {
     name: '频道',
     icon: 'i-lucide-hash',
     type: 'channel',
-    path: '/channel',
   },
 ])
 
@@ -134,7 +131,7 @@ function clearSelectedChatAndPage() {
 }
 
 function handleClick(chat: CoreDialog) {
-  router.push(`/chat/${chat.id}`)
+  router.push(`/chat/${chat.id}?type=${chat.type}`)
   clearSelectedChatAndPage()
   chats.value.forEach(c => {
     c.isSelected = c.id === chat.id
@@ -168,19 +165,19 @@ const toggleDark = useToggle(isDark)
             <div class="i-lucide-settings h-5 w-5" />
             <span class="text-lg font-medium">设置</span>
           </div>
-          <button class="hover:bg-muted rounded-md p-1 transition-colors" @click="toggleSettingsDialog">
+          <button class="hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md p-1 transition-colors" @click="toggleSettingsDialog">
             <div class="i-lucide-x h-5 w-5" />
           </button>
         </div>
         <div class="space-y-4">
-          <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50">
+          <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
             <div class="flex items-center gap-2">
               <div class="i-lucide-moon h-5 w-5" />
               <span>深色模式</span>
             </div>
             <Switch :model-value="isDark" @update:model-value="toggleDark" />
           </div>
-          <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50">
+          <div class="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
             <div class="flex items-center gap-2">
               <div class="i-lucide-log-out h-5 w-5" />
               <span>退出登录</span>
@@ -192,21 +189,21 @@ const toggleDark = useToggle(isDark)
         </div>
       </div>
     </Dialog>
-    <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200">
+    <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200 dark:border-r-gray-800">
       <div class="h-full flex flex-col overflow-hidden">
         <div class="p-2">
           <div class="relative">
             <div
-              class="i-lucide-search text-muted-foreground absolute left-2 top-1/2 h-4 w-4 text-xl -translate-y-1/2" />
+              class="i-lucide-search text-gray-500 dark:text-gray-400 absolute left-2 top-1/2 h-4 w-4 text-xl -translate-y-1/2" />
             <input v-model="search" type="text"
-              class="border-input bg-background ring-offset-background w-full border rounded-md px-3 py-2 pl-9 text-sm"
+              class="border-input bg-gray-50 dark:bg-gray-900 ring-offset-background w-full border border-gray-200 dark:border-gray-800 rounded-md px-3 py-2 pl-9 text-sm"
               placeholder="Search">
           </div>
         </div>
         <!-- Main menu -->
         <div class="mt-2 p-2">
           <ul class="space-y-1">
-            <li v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50': currentPage?.path === page.path }"
+            <li v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50 dark:bg-gray-800': currentPage?.path === page.path }"
               @click="handlePageClick(page)">
               <IconButton class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm" :icon="page.icon">
                 <span>{{ page.name }}</span>
@@ -217,12 +214,12 @@ const toggleDark = useToggle(isDark)
 
 
         <!-- Chats -->
-        <div class="mt-4" v-for="chatType in chatTypes" :key="chatType.path">
+        <div class="mt-4" v-for="chatType in chatTypes" :key="chatType.type">
           <ChatGroup :title="chatType.name" :chats="chatsFiltered.filter(chat => chat.type === chatType.type)"
             :icon="chatType.icon" :type="chatType.type" @click="handleClick" />
         </div>
         <!-- User profile -->
-        <div class="mt-auto border-t p-4">
+        <div class="mt-auto border-t border-t-gray-200 dark:border-t-gray-800 p-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="bg-muted h-8 w-8 flex items-center justify-center overflow-hidden rounded-full">
@@ -245,7 +242,7 @@ const toggleDark = useToggle(isDark)
       </div>
     </div>
     <div class="flex flex-1 flex-col overflow-hidden">
-      <header class="h-14 flex items-center border-b px-4">
+      <header class="h-14 flex items-center border-b-gray-200 dark:border-b-gray-800 border-b px-4">
         <div class="flex items-center gap-2">
           <span class="font-medium">{{ headerState.title }}</span>
         </div>
