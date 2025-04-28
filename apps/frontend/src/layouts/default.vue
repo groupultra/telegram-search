@@ -20,11 +20,13 @@ const headerState = reactive<{
   title: string
   actions: Action[]
   hidden: boolean
+  collapsed: boolean
 }>({
   title: '',
   actions: [
   ],
   hidden: false,
+  collapsed: false,
 })
 
 const pages = ref<Page[]>([
@@ -47,11 +49,6 @@ const pages = ref<Page[]>([
     name: '配置',
     icon: 'i-lucide-settings',
     path: '/settings',
-  },
-  {
-    name: '登录',
-    icon: 'i-lucide-log-in',
-    path: '/login',
   },
 ])
 const currentPage = ref<Page | undefined>()
@@ -89,6 +86,9 @@ const router = useRouter()
 const showActions = ref(false)
 
 onMounted(() => {
+  if (!sessionStore.getActiveSession()?.isConnected && router.currentRoute.value.path !== '/login') {
+    router.push('/login')
+  }
   wsContext.sendEvent('entity:me:fetch', undefined)
   wsContext.sendEvent('dialog:fetch', undefined)
 })
@@ -102,7 +102,12 @@ function setHidden(hidden: boolean) {
 }
 
 function setActions(actions: Action[]) {
+  // @ts-expect-error
   headerState.actions = actions
+}
+
+function setCollapsed(collapsed: boolean) {
+  headerState.collapsed = collapsed
 }
 
 function clearSelectedChatAndPage() {
@@ -210,10 +215,12 @@ const isDark = useDark()
         </div>
         <div class="ml-auto flex items-center gap-2">
           <TransitionGroup name="action">
-            <template v-if="showActions">
+            <template v-if="showActions || headerState.collapsed">
               <button
                 v-for="(action, index) in headerState.actions" :key="index"
                 class="hover:bg-muted flex items-center gap-2 rounded-md px-3 py-2 transition-colors"
+                :class="{ 'opacity-50': action.disabled }"
+                :disabled="action.disabled"
                 @click="action.onClick"
               >
                 <div :class="action.icon" class="h-5 w-5" />
@@ -221,7 +228,7 @@ const isDark = useDark()
               </button>
             </template>
           </TransitionGroup>
-          <button class="hover:bg-muted rounded-md p-2 transition-colors" @click="toggleActions">
+          <button v-if="!headerState.collapsed" class="hover:bg-muted rounded-md p-2 transition-colors" @click="toggleActions">
             <div
               class="i-lucide-ellipsis h-5 w-5 transition-transform duration-300"
               :class="{ 'rotate-90': showActions }"
@@ -231,7 +238,7 @@ const isDark = useDark()
       </header>
       <main class="flex flex-1 flex-col overflow-hidden">
         <div class="flex-1 overflow-auto p-4">
-          <slot v-bind="{ changeTitle, setActions, setHidden }" />
+          <slot v-bind="{ changeTitle, setActions, setHidden, setCollapsed }" />
         </div>
       </main>
     </div>

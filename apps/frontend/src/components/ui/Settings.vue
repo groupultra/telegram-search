@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { useDark, useToggle } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useSessionStore } from '../../store/useSessionV2'
 
 const emit = defineEmits<{
   (e: 'toggleSettingsDialogEmit'): void
 }>()
+
+const router = useRouter()
+
 const sessionStore = useSessionStore()
 const { logout } = sessionStore.handleAuth()
 const isDark = useDark()
@@ -13,6 +17,11 @@ const toggleDark = useToggle(isDark)
 
 function toggleSettingsDialog() {
   emit('toggleSettingsDialogEmit')
+}
+
+function settingLogout() {
+  logout()
+  router.push('/login')
 }
 </script>
 
@@ -49,7 +58,7 @@ function toggleSettingsDialog() {
           <div class="i-lucide-log-out h-5 w-5" />
           <span>退出登录</span>
         </div>
-        <button class="text-red-500 transition-colors hover:text-red-600" @click="logout">
+        <button class="text-red-500 transition-colors hover:text-red-600" @click="settingLogout">
           退出
         </button>
       </div>

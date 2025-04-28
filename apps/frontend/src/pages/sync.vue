@@ -1,10 +1,17 @@
 <script setup lang="ts">
+import type { Action } from '../types/action'
 import { storeToRefs } from 'pinia'
-import { ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { useChatStore } from '../store/useChat'
 import { useSessionStore } from '../store/useSessionV2'
 import { useSyncTaskStore } from '../store/useSyncTask'
+
+const props = defineProps<{
+  changeTitle?: (title: string) => void
+  setActions?: (actions: Action[]) => void
+  setCollapsed?: (collapsed: boolean) => void
+}>()
 
 const selectedChats = ref<string[]>([])
 
@@ -43,6 +50,17 @@ watch(currentTaskProgress, (progress) => {
     loadingToast.value = toast.loading(`同步中... ${progress}%`)
   }
 })
+
+onMounted(() => {
+  props.changeTitle?.('同步')
+  props.setActions?.([{
+    icon: 'i-lucide-refresh-cw',
+    name: '开始同步',
+    disabled: computed(() => selectedChats.value.length === 0 || !isLoggedIn.value),
+    onClick: handleSync,
+  }])
+  props.setCollapsed?.(true)
+})
 </script>
 
 <template>
@@ -55,13 +73,6 @@ watch(currentTaskProgress, (progress) => {
         <span class="text-sm text-gray-500">
           已选择 {{ selectedChats.length }} 个聊天
         </span>
-        <button
-          class="rounded-md bg-blue-500 px-4 py-2 text-white disabled:cursor-not-allowed hover:bg-blue-600 disabled:opacity-50"
-          :disabled="selectedChats.length === 0 || !isLoggedIn"
-          @click="handleSync"
-        >
-          开始同步
-        </button>
       </div>
     </div>
 

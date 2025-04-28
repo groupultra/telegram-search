@@ -1,16 +1,41 @@
 <script setup lang="ts">
+import type { Action } from '../types/action'
 import { storeToRefs } from 'pinia'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import SelectDropdown from '../components/ui/SelectDropdown.vue'
 import { useSessionStore } from '../store/useSessionV2'
 import { useSettingsStore } from '../store/useSettings'
+
+const props = defineProps<{
+  changeTitle?: (title: string) => void
+  setActions?: (actions: Action[]) => void
+  setCollapsed?: (collapsed: boolean) => void
+}>()
 
 const sessionStore = useSessionStore()
 const { getWsContext } = sessionStore
 const isEditing = ref(false)
 const { config } = storeToRefs(useSettingsStore())
 const wsContext = getWsContext()
+
+onMounted(() => {
+  props.changeTitle?.('Settings')
+  props.setActions?.([{
+    icon: 'i-lucide-pencil',
+    name: 'Edit',
+    disabled: computed(() => isEditing.value),
+    onClick: () => {
+      isEditing.value = !isEditing.value
+    },
+  }, {
+    icon: 'i-lucide-save',
+    name: 'Save',
+    disabled: computed(() => !isEditing.value),
+    onClick: updateConfig,
+  }])
+  props.setCollapsed?.(true)
+})
 
 const embeddingProviderOptions = [
   { label: 'OpenAI', value: 'openai' },
@@ -34,29 +59,6 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto p-4 container space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold dark:text-white">
-        Settings
-      </h1>
-      <div class="space-x-2">
-        <button
-          v-if="!isEditing"
-          class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-          @click="isEditing = true"
-        >
-          Edit
-        </button>
-        <template v-else>
-          <button
-            class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-            @click="updateConfig"
-          >
-            Save
-          </button>
-        </template>
-      </div>
-    </div>
-
     <!-- Settings form -->
     <div class="space-y-6">
       <!-- Database settings -->

@@ -7,6 +7,11 @@ import { useSessionStore } from '../store/useSessionV2'
 
 type LoginStep = 'phone' | 'code' | 'password' | 'complete'
 
+const props = defineProps<{
+  changeTitle?: (title: string) => void
+  setCollapsed?: (collapsed: boolean) => void
+}>()
+
 const router = useRouter()
 
 const connectionStore = useSessionStore()
@@ -66,6 +71,8 @@ onMounted(() => {
   if (isLoggedIn.value) {
     redirectRoot()
   }
+  props.changeTitle?.('登录')
+  props.setCollapsed?.(true)
 })
 
 async function handleLogin() {
