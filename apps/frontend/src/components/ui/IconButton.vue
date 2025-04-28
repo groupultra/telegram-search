@@ -85,7 +85,7 @@ function handleClick(event: MouseEvent) {
 
 <template>
   <button
-    class="hover:bg-muted rounded-lg" :class="[
+    class="rounded-lg hover:bg-muted" :class="[
       sizeClasses[size],
       disabled ? 'cursor-not-allowed opacity-50' : '',
       hasTooltip ? 'group relative' : '',

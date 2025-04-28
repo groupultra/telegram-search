@@ -36,7 +36,7 @@ const toggleClasses = computed(() => ({
     :aria-checked="modelValue"
     :aria-label="label"
     :disabled="disabled"
-    class="focus:ring-primary relative h-6 w-11 inline-flex flex-shrink-0 border-2 border-transparent rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2"
+    class="relative h-6 w-11 inline-flex flex-shrink-0 border-2 border-transparent rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
     :class="buttonClasses"
     @click="toggle"
   >

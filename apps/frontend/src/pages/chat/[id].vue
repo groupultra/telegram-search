@@ -9,7 +9,6 @@ const props = defineProps<{
 }>()
 const route = useRoute()
 const id = route.params.id
-const type = route.query.type as 'user' | 'group' | 'channel'
 
 onMounted(() => {
   props.changeTitle?.(`👀 ${id}`)

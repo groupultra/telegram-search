@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { useDark, useToggle } from '@vueuse/core'
 import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { useSessionStore } from '../../store/useSession';
-
+import { useSessionStore } from '../../store/useSession'
 
 const emit = defineEmits<{
   (e: 'toggleSettingsDialogEmit'): void
@@ -48,29 +46,29 @@ function settingLogout() {
   <div class="p-6">
     <div class="mb-6 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <div class="i-lucide-settings text-foreground h-5 w-5" />
-        <span class="text-foreground text-lg font-medium">设置</span>
+        <div class="i-lucide-settings h-5 w-5 text-foreground" />
+        <span class="text-lg text-foreground font-medium">设置</span>
       </div>
-      <button class="hover:bg-popover/50 text-foreground rounded-md p-1 transition-colors" @click="toggleSettingsDialog">
+      <button class="rounded-md p-1 text-foreground transition-colors hover:bg-popover/50" @click="toggleSettingsDialog">
         <div class="i-lucide-x h-5 w-5" />
       </button>
     </div>
     <div class="space-y-4">
-      <div class="hover:bg-popover/50 text-foreground flex items-center justify-between rounded-lg p-3 transition-colors">
+      <div class="flex items-center justify-between rounded-lg p-3 text-foreground transition-colors hover:bg-popover/50">
         <div class="flex items-center gap-2">
           <div class="i-lucide-moon h-5 w-5" />
           <span>深色模式</span>
         </div>
         <Switch :model-value="isDark" @update:model-value="toggleDark" />
       </div>
-      <div class="hover:bg-popover/50 text-foreground flex items-center justify-between rounded-lg p-3 transition-colors">
+      <div class="flex items-center justify-between rounded-lg p-3 text-foreground transition-colors hover:bg-popover/50">
         <div class="flex items-center gap-2">
           <div class="i-lucide-palette h-5 w-5" />
           <span>主题</span>
         </div>
         <select
           v-model="currentTheme"
-          class="bg-background border-input ring-offset-background text-foreground focus-visible:ring-ring h-9 w-[180px] border rounded-md px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          class="border-input focus-visible:ring-ring h-9 w-[180px] border rounded-md bg-background px-3 py-1 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           @change="(e) => handleThemeChange((e.target as HTMLSelectElement).value)"
         >
           <option v-for="theme in themes" :key="theme.value" :value="theme.value">
@@ -78,7 +76,7 @@ function settingLogout() {
           </option>
         </select>
       </div>
-      <div class="hover:bg-popover/50 text-foreground flex items-center justify-between rounded-lg p-3 transition-colors">
+      <div class="flex items-center justify-between rounded-lg p-3 text-foreground transition-colors hover:bg-popover/50">
         <div class="flex items-center gap-2">
           <div class="i-lucide-globe h-5 w-5" />
           <span>语言</span>
@@ -87,12 +85,12 @@ function settingLogout() {
           None
         </button>
       </div>
-      <div class="hover:bg-popover/50 text-foreground flex items-center justify-between rounded-lg p-3 transition-colors">
+      <div class="flex items-center justify-between rounded-lg p-3 text-foreground transition-colors hover:bg-popover/50">
         <div class="flex items-center gap-2">
           <div class="i-lucide-log-out h-5 w-5" />
           <span>退出登录</span>
         </div>
-        <button class="text-primary hover:text-primary/80 transition-colors" @click="settingLogout">
+        <button class="text-primary transition-colors hover:text-primary/80" @click="settingLogout">
           退出
         </button>
       </div>

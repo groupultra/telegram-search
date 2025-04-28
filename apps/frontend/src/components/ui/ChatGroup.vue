@@ -23,7 +23,7 @@ function toggleActive() {
 </script>
 
 <template>
-  <div class="hover:bg-muted text-foreground flex cursor-pointer items-center justify-between rounded-md px-4 py-1 transition-all duration-300" @click="toggleActive">
+  <div class="flex cursor-pointer items-center justify-between rounded-md px-4 py-1 text-foreground transition-all duration-300 hover:bg-muted" @click="toggleActive">
     <div class="flex cursor-pointer items-center gap-1 text-sm font-medium">
       <div class="flex items-center gap-1">
         <div :class="props.icon" class="h-4 w-4" />
@@ -33,7 +33,7 @@ function toggleActive() {
     <div :class="active ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'" class="h-4 w-4 cursor-pointer" />
   </div>
   <ul v-show="active" class="scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent max-h-40 overflow-y-auto px-2 space-y-1">
-    <li v-for="chat in chats" :key="chat.id" :class="{ 'bg-muted': chat.id === props.selectedChatId }" class="hover:bg-muted rounded-md transition-colors duration-100">
+    <li v-for="chat in chats" :key="chat.id" :class="{ 'bg-muted': chat.id === props.selectedChatId }" class="rounded-md transition-colors duration-100 hover:bg-muted">
       <SlotButton :text="chat.name.slice(0, 22) + (chat.name.length > 22 ? '...' : '')" @click="emit('click', chat)">
         <img :alt="`User ${chat.id}`" :src="`https://api.dicebear.com/6.x/bottts/svg?seed=${chat.name}`" class="h-full w-full select-none object-cover">
       </SlotButton>

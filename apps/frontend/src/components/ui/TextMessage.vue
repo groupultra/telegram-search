@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { MessageProps } from '../../types/message-props'
-
 defineProps<{
   text: string
 }>()
