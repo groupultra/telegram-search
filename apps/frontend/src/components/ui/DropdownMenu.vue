@@ -13,7 +13,7 @@ const isOpen = ref(false)
 
 <template>
   <div
-    class="relative"
+    class="bg-popover relative"
     @mouseenter="isOpen = true"
     @mouseleave="isOpen = false"
   >
@@ -21,14 +21,14 @@ const isOpen = ref(false)
     <IconButton
       :icon="icon"
       :aria-label="label"
-      :class="{ 'text-blue-500': isOpen }"
+      :class="{ 'text-primary': isOpen }"
       class="transition-colors duration-200"
     />
 
     <!-- Dropdown content -->
     <div
       v-show="isOpen"
-      class="absolute right-0 z-50 w-48 border border-gray-200 rounded-md bg-white py-1 shadow-lg transition-all duration-200 ease-out dark:border-gray-700 dark:bg-gray-800"
+      class="border-secondary bg-card absolute right-0 z-50 w-48 border rounded-md py-1 shadow-lg transition-all duration-200 ease-out"
       :class="[
         isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none',
       ]"

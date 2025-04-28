@@ -75,3 +75,33 @@ html.dark::view-transition-new(root) {
 :root[class~='dark'] {
   color-scheme: dark;
 }
+
+:root {
+  --c-background: oklch(1 0 0);
+  --c-foreground: oklch(0.141 0.005 285.823);
+  --c-card: oklch(1 0 0);
+  --c-card-foreground: oklch(0.141 0.005 285.823);
+  --c-popover: oklch(1 0 0);
+  --c-popover-foreground: oklch(0.141 0.005 285.823);
+  --c-primary: oklch(0.623 0.214 259.815);
+  --c-primary-foreground: oklch(0.97 0.014 254.604);
+  --c-secondary: oklch(0.967 0.001 286.375);
+  --c-secondary-foreground: oklch(0.21 0.006 285.885);
+  --c-muted: oklch(0.967 0.001 286.375);
+  --c-muted-foreground: oklch(0.552 0.016 285.938);
+}
+
+.dark {
+  --c-background: oklch(0.141 0.005 285.823);
+  --c-foreground: oklch(0.985 0 0);
+  --c-card: oklch(0.21 0.006 285.885);
+  --c-card-foreground: oklch(0.985 0 0);
+  --c-popover: oklch(0.21 0.006 285.885);
+  --c-popover-foreground: oklch(0.985 0 0);
+  --c-primary: oklch(0.546 0.245 262.881);
+  --c-primary-foreground: oklch(0.379 0.146 265.522);
+  --c-secondary: oklch(0.274 0.006 286.033);
+  --c-secondary-foreground: oklch(0.985 0 0);
+  --c-muted: oklch(0.274 0.006 286.033);
+  --c-muted-foreground: oklch(0.705 0.015 286.067);
+}

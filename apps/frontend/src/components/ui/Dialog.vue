@@ -91,44 +91,61 @@ onUnmounted(() => {
     <div
       v-show="isVisible"
       ref="dialogRef"
-      class="fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden border-black p-4 backdrop-blur-sm"
+      class="fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden p-4"
       :class="{ 'cursor-pointer': !persistent }"
       @click="handleOutsideClick"
     >
       <!-- 背景遮罩 -->
-      <div class="absolute inset-0 h-full w-full bg-black/60 transition-opacity duration-100" />
+      <Transition name="fade">
+        <div v-show="isVisible" class="absolute inset-0 h-full w-full backdrop-blur-sm" />
+      </Transition>
 
       <!-- 对话框内容 -->
       <div class="z-51 h-full w-full flex items-center justify-center">
-        <div
-          ref="contentRef"
-          class="dialog-content relative w-full cursor-default rounded-lg bg-white p-6 shadow-2xl ring-1 ring-gray-950/5 dark:bg-gray-800 dark:ring-white/10"
-          :style="{ maxWidth: maxWidth || '32rem' }"
-          @click.stop
-        >
-          <slot />
-        </div>
+        <Transition name="dialog">
+          <div
+            v-show="isVisible"
+            ref="contentRef"
+            class="dialog-content bg-popover ring-secondary/10 relative w-full cursor-default rounded-lg p-6 shadow-2xl ring-1"
+            :style="{ maxWidth: maxWidth || '32rem' }"
+            @click.stop
+          >
+            <slot />
+          </div>
+        </Transition>
       </div>
     </div>
   </Teleport>
 </template>
 
 <style scoped>
-/* 内容动画 */
-.dialog-content {
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
-  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  perspective: 1000px;
-  -webkit-perspective: 1000px;
+/* 背景遮罩动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease-in-out;
 }
 
-.dialog-content-leave {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
-  transform: translate3d(0, 10px, 0) scale(0.95);
+}
+
+/* 对话框内容动画 */
+.dialog-enter-active,
+.dialog-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dialog-enter-from,
+.dialog-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.dialog-enter-to,
+.dialog-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
 
 dialog {

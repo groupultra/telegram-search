@@ -62,167 +62,167 @@ onMounted(() => {
     <!-- Settings form -->
     <div class="space-y-6">
       <!-- Database settings -->
-      <div class="border border-gray-200 rounded-lg p-4 dark:border-gray-800">
-        <h2 class="mb-4 text-xl font-semibold dark:text-white">
+      <div class="border-secondary bg-card border rounded-lg p-4">
+        <h2 class="text-foreground mb-4 text-xl font-semibold">
           Database Settings
         </h2>
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Host</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Host</label>
             <input
               v-model="config.database.host"
               type="text"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
           <div>
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Port</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Port</label>
             <input
               v-model.number="config.database.port"
               type="number"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
           <div>
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Username</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Username</label>
             <input
               v-model="config.database.user"
               type="text"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
           <div>
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Password</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Password</label>
             <input
               v-model="config.database.password"
               type="password"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Database Name</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Database Name</label>
             <input
               v-model="config.database.database"
               type="text"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
         </div>
       </div>
 
       <!-- Message settings -->
-      <div class="border border-gray-200 rounded-lg p-4 dark:border-gray-800">
-        <h2 class="mb-4 text-xl font-semibold dark:text-white">
+      <div class="border-secondary bg-card border rounded-lg p-4">
+        <h2 class="text-foreground mb-4 text-xl font-semibold">
           Message Settings
         </h2>
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Batch Size</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Batch Size</label>
             <input
               v-model.number="config.message.export.batchSize"
               type="number"
               :min="1"
               :max="1000"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
           <div>
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Concurrent Requests</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Concurrent Requests</label>
             <input
               v-model.number="config.message.export.concurrent"
               type="number"
               :min="1"
               :max="10"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
           <div>
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Retry Times</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Retry Times</label>
             <input
               v-model.number="config.message.export.retryTimes"
               type="number"
               :min="1"
               :max="10"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
           <div>
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Max Takeout Retries</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Max Takeout Retries</label>
             <input
               v-model.number="config.message.export.maxTakeoutRetries"
               type="number"
               :min="1"
               :max="10"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
         </div>
       </div>
 
       <!-- Path settings -->
-      <div class="border border-gray-200 rounded-lg p-4 dark:border-gray-800">
-        <h2 class="mb-4 text-xl font-semibold dark:text-white">
+      <div class="border-secondary bg-card border rounded-lg p-4">
+        <h2 class="text-foreground mb-4 text-xl font-semibold">
           Path Settings
         </h2>
         <div class="grid gap-4">
           <div>
-            <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Storage Path</label>
+            <label class="text-secondary-foreground block text-sm font-medium">Storage Path</label>
             <input
               v-model="config.path.storage"
               type="text"
               :disabled="!isEditing"
-              class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
             >
           </div>
         </div>
       </div>
 
       <!-- API settings -->
-      <div class="border border-gray-200 rounded-lg p-4 dark:border-gray-800">
-        <h2 class="mb-4 text-xl font-semibold dark:text-white">
+      <div class="border-secondary bg-card border rounded-lg p-4">
+        <h2 class="text-foreground mb-4 text-xl font-semibold">
           API Settings
         </h2>
         <div class="space-y-4">
           <!-- Telegram API -->
           <div>
-            <h3 class="mb-2 text-lg font-medium dark:text-white">
+            <h3 class="text-foreground mb-2 text-lg font-medium">
               Telegram API
             </h3>
             <div class="grid gap-4 md:grid-cols-2">
               <div>
-                <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">API ID</label>
+                <label class="text-secondary-foreground block text-sm font-medium">API ID</label>
                 <input
                   v-model="config.api.telegram.apiId"
                   type="text"
                   :disabled="!isEditing"
-                  class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">API Hash</label>
+                <label class="text-secondary-foreground block text-sm font-medium">API Hash</label>
                 <input
                   v-model="config.api.telegram.apiHash"
                   type="password"
                   :disabled="!isEditing"
-                  class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
                 >
               </div>
               <div class="md:col-span-2">
-                <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Phone Number</label>
+                <label class="text-secondary-foreground block text-sm font-medium">Phone Number</label>
                 <input
                   v-model="config.api.telegram.phoneNumber"
                   type="tel"
                   :disabled="!isEditing"
-                  class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
                 >
               </div>
             </div>
@@ -230,38 +230,38 @@ onMounted(() => {
 
           <!-- OpenAI API -->
           <div>
-            <h3 class="mb-2 text-lg font-medium dark:text-white">
+            <h3 class="text-foreground mb-2 text-lg font-medium">
               Embedding
             </h3>
             <div class="grid gap-4">
               <div>
-                <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Provider</label>
+                <label class="text-secondary-foreground block text-sm font-medium">Provider</label>
                 <SelectDropdown v-model="config.api.embedding.provider" :options="embeddingProviderOptions" :disabled="!isEditing" />
               </div>
               <div>
-                <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">Model</label>
+                <label class="text-secondary-foreground block text-sm font-medium">Model</label>
                 <input
                   v-model="config.api.embedding.model"
                   :disabled="!isEditing"
-                  class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">API Key</label>
+                <label class="text-secondary-foreground block text-sm font-medium">API Key</label>
                 <input
                   v-model="config.api.embedding.apiKey"
                   type="password"
                   :disabled="!isEditing"
-                  class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-700 font-medium dark:text-gray-300">API Base URL</label>
+                <label class="text-secondary-foreground block text-sm font-medium">API Base URL</label>
                 <input
                   v-model="config.api.embedding.apiBase"
                   type="text"
                   :disabled="!isEditing"
-                  class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  class="border-secondary bg-muted text-foreground mt-1 block w-full border rounded-md px-3 py-2"
                 >
               </div>
             </div>

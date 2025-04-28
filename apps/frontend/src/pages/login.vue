@@ -105,8 +105,8 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl rounded-lg bg-white p-6 shadow-md">
-    <h1 class="mb-6 text-center text-2xl font-bold">
+  <div class="bg-card mx-auto max-w-3xl rounded-lg p-6 shadow-md">
+    <h1 class="text-foreground mb-6 text-center text-2xl font-bold">
       Telegram 登录
     </h1>
 
@@ -120,10 +120,10 @@ async function handleLogin() {
             <div
               class="h-7 min-w-7 flex items-center justify-center border-2 rounded-full text-sm"
               :class="{
-                'border-indigo-600 text-indigo-600': state.currentStep === step.value,
-                'border-indigo-600 bg-indigo-600 text-white':
+                'border-primary text-primary': state.currentStep === step.value,
+                'border-primary bg-primary text-foreground':
                   steps.findIndex(s => s.value === state.currentStep) > steps.findIndex(s => s.value === step.value),
-                'border-gray-300 text-gray-500':
+                'border-secondary text-secondary-foreground':
                   steps.findIndex(s => s.value === state.currentStep) < steps.findIndex(s => s.value === step.value),
               }"
             >
@@ -136,9 +136,9 @@ async function handleLogin() {
               <div
                 class="text-sm font-medium"
                 :class="{
-                  'text-gray-900': state.currentStep === step.value
+                  'text-foreground': state.currentStep === step.value
                     || steps.findIndex(s => s.value === state.currentStep) > steps.findIndex(s => s.value === step.value),
-                  'text-gray-500': steps.findIndex(s => s.value === state.currentStep) < steps.findIndex(s => s.value === step.value),
+                  'text-secondary-foreground': steps.findIndex(s => s.value === state.currentStep) < steps.findIndex(s => s.value === step.value),
                 }"
               >
                 {{ step.title }}
@@ -146,9 +146,9 @@ async function handleLogin() {
               <div
                 class="text-xs"
                 :class="{
-                  'text-gray-600': state.currentStep === step.value
+                  'text-foreground': state.currentStep === step.value
                     || steps.findIndex(s => s.value === state.currentStep) > steps.findIndex(s => s.value === step.value),
-                  'text-gray-400': steps.findIndex(s => s.value === state.currentStep) < steps.findIndex(s => s.value === step.value),
+                  'text-secondary-foreground': steps.findIndex(s => s.value === state.currentStep) < steps.findIndex(s => s.value === step.value),
                 }"
               >
                 {{ step.description }}
@@ -161,8 +161,8 @@ async function handleLogin() {
             v-if="index < steps.length - 1"
             class="mx-2 h-0.5 flex-1"
             :class="{
-              'bg-indigo-600': steps.findIndex(s => s.value === state.currentStep) > index,
-              'bg-gray-300': steps.findIndex(s => s.value === state.currentStep) <= index,
+              'bg-primary': steps.findIndex(s => s.value === state.currentStep) > index,
+              'bg-secondary': steps.findIndex(s => s.value === state.currentStep) <= index,
             }"
           />
         </template>
@@ -172,16 +172,16 @@ async function handleLogin() {
     <!-- 手机号码表单 -->
     <form v-if="state.currentStep === 'phone'" class="space-y-4" @submit.prevent="handleLogin">
       <div>
-        <label for="phoneNumber" class="block text-sm text-gray-700 font-medium">手机号码</label>
+        <label for="phoneNumber" class="text-foreground block text-sm font-medium">手机号码</label>
         <input
           id="phoneNumber"
           v-model="state.phoneNumber"
           type="tel"
           placeholder="+86 123 4567 8901"
-          class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+          class="border-secondary bg-muted text-foreground focus:border-primary focus:ring-primary mt-1 block w-full border rounded-md px-3 py-2 shadow-sm focus:outline-none"
           required
         >
-        <p class="mt-1 text-sm text-gray-500">
+        <p class="text-secondary-foreground mt-1 text-sm">
           请输入完整的手机号，包括国家代码
         </p>
       </div>
@@ -189,7 +189,7 @@ async function handleLogin() {
       <div>
         <button
           type="button"
-          class="text-sm text-indigo-600 hover:text-indigo-500"
+          class="text-primary hover:text-primary/80 text-sm"
           @click="state.showAdvancedSettings = !state.showAdvancedSettings"
         >
           {{ state.showAdvancedSettings ? '隐藏高级设置' : '显示高级设置' }}
@@ -198,24 +198,24 @@ async function handleLogin() {
 
       <div v-if="state.showAdvancedSettings" class="space-y-3">
         <div>
-          <label for="apiId" class="block text-sm text-gray-700 font-medium">API ID</label>
+          <label for="apiId" class="text-foreground block text-sm font-medium">API ID</label>
           <input
             id="apiId"
             v-model="state.apiId"
             type="text"
             placeholder="API ID"
-            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            class="border-secondary bg-muted text-foreground focus:border-primary focus:ring-primary mt-1 block w-full border rounded-md px-3 py-2 shadow-sm focus:outline-none"
           >
         </div>
 
         <div>
-          <label for="apiHash" class="block text-sm text-gray-700 font-medium">API Hash</label>
+          <label for="apiHash" class="text-foreground block text-sm font-medium">API Hash</label>
           <input
             id="apiHash"
             v-model="state.apiHash"
             type="text"
             placeholder="API Hash"
-            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            class="border-secondary bg-muted text-foreground focus:border-primary focus:ring-primary mt-1 block w-full border rounded-md px-3 py-2 shadow-sm focus:outline-none"
           >
         </div>
       </div>
@@ -223,7 +223,7 @@ async function handleLogin() {
       <div>
         <button
           type="submit"
-          class="w-full flex justify-center border border-transparent rounded-md bg-indigo-600 px-4 py-2 text-sm text-white font-medium shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class="bg-primary text-foreground hover:bg-primary/90 focus:ring-primary w-full flex justify-center border border-transparent rounded-md px-4 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
           :disabled="state.isLoading"
         >
           {{ state.isLoading ? '处理中...' : '发送验证码' }}
@@ -234,16 +234,16 @@ async function handleLogin() {
     <!-- 验证码表单 -->
     <form v-if="state.currentStep === 'code'" class="space-y-4" @submit.prevent="handleLogin">
       <div>
-        <label for="verificationCode" class="block text-sm text-gray-700 font-medium">验证码</label>
+        <label for="verificationCode" class="text-foreground block text-sm font-medium">验证码</label>
         <input
           id="verificationCode"
           v-model="state.verificationCode"
           type="text"
           placeholder="请输入 Telegram 发送的验证码"
-          class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+          class="border-secondary bg-muted text-foreground focus:border-primary focus:ring-primary mt-1 block w-full border rounded-md px-3 py-2 shadow-sm focus:outline-none"
           required
         >
-        <p class="mt-1 text-sm text-gray-500">
+        <p class="text-secondary-foreground mt-1 text-sm">
           请检查您的 Telegram 应用或短信
         </p>
       </div>
@@ -251,7 +251,7 @@ async function handleLogin() {
       <div>
         <button
           type="submit"
-          class="w-full flex justify-center border border-transparent rounded-md bg-indigo-600 px-4 py-2 text-sm text-white font-medium shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class="bg-primary text-foreground hover:bg-primary/90 focus:ring-primary w-full flex justify-center border border-transparent rounded-md px-4 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
           :disabled="state.isLoading"
         >
           {{ state.isLoading ? '处理中...' : '验证' }}
@@ -262,13 +262,13 @@ async function handleLogin() {
     <!-- 两步验证密码表单 -->
     <form v-if="state.currentStep === 'password'" class="space-y-4" @submit.prevent="handleLogin">
       <div>
-        <label for="twoFactorPassword" class="block text-sm text-gray-700 font-medium">两步验证密码</label>
+        <label for="twoFactorPassword" class="text-foreground block text-sm font-medium">两步验证密码</label>
         <input
           id="twoFactorPassword"
           v-model="state.twoFactorPassword"
           type="password"
           placeholder="请输入您的两步验证密码"
-          class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+          class="border-secondary bg-muted text-foreground focus:border-primary focus:ring-primary mt-1 block w-full border rounded-md px-3 py-2 shadow-sm focus:outline-none"
           required
         >
       </div>
@@ -276,7 +276,7 @@ async function handleLogin() {
       <div>
         <button
           type="submit"
-          class="w-full flex justify-center border border-transparent rounded-md bg-indigo-600 px-4 py-2 text-sm text-white font-medium shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class="bg-primary text-foreground hover:bg-primary/90 focus:ring-primary w-full flex justify-center border border-transparent rounded-md px-4 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
           :disabled="state.isLoading"
         >
           {{ state.isLoading ? '处理中...' : '登录' }}
@@ -289,14 +289,14 @@ async function handleLogin() {
       <div class="mb-4 text-3xl">
         🎉
       </div>
-      <h2 class="text-xl text-gray-900 font-medium">
+      <h2 class="text-foreground text-xl font-medium">
         登录成功！
       </h2>
-      <p class="mt-2 text-gray-600">
+      <p class="text-secondary-foreground mt-2">
         您已成功登录 Telegram 账号
       </p>
       <button
-        class="mt-6 w-full flex justify-center border border-transparent rounded-md bg-indigo-600 px-4 py-2 text-sm text-white font-medium shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        class="bg-primary text-foreground hover:bg-primary/90 focus:ring-primary mt-6 w-full flex justify-center border border-transparent rounded-md px-4 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
         @click="$router.push('/')"
       >
         进入主页

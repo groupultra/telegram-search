@@ -85,7 +85,7 @@ function handleClick(event: MouseEvent) {
 
 <template>
   <button
-    class="rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" :class="[
+    class="hover:bg-muted rounded-lg" :class="[
       sizeClasses[size],
       disabled ? 'cursor-not-allowed opacity-50' : '',
       hasTooltip ? 'group relative' : '',
@@ -100,7 +100,7 @@ function handleClick(event: MouseEvent) {
       :class="[
         iconSizeClasses[size],
         props.icon,
-        darkModeText ? 'dark:text-white' : '',
+        darkModeText ? 'text-foreground' : '',
         withTransition ? 'transition-colors duration-300' : '',
       ]"
     />

@@ -5,10 +5,10 @@ defineProps<{
 </script>
 
 <template>
-  <button class="w-full flex items-center gap-3 rounded-md px-3 py-1 text-sm">
+  <button class="text-foreground hover:bg-muted w-full flex items-center gap-3 rounded-md px-3 py-1 text-sm transition-colors">
     <div class="h-6 w-6 flex items-center justify-center overflow-hidden rounded-full">
-        <slot/>
+      <slot />
     </div>
-    <span class=" select-none">{{ text }}</span>
+    <span class="select-none">{{ text }}</span>
   </button>
 </template>

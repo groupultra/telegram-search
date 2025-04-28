@@ -66,11 +66,11 @@ onMounted(() => {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <h3 class="text-lg font-medium">
+      <h3 class="text-foreground text-lg font-medium">
         选择要同步的聊天
       </h3>
       <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-500">
+        <span class="text-secondary-foreground text-sm">
           已选择 {{ selectedChats.length }} 个聊天
         </span>
       </div>

@@ -18,8 +18,8 @@ function toggle() {
 }
 
 const buttonClasses = computed(() => ({
-  'bg-blue-600 dark:bg-blue-500': props.modelValue,
-  'bg-gray-200 dark:bg-gray-700': !props.modelValue,
+  'bg-primary dark:bg-primary': props.modelValue,
+  'bg-muted dark:bg-muted': !props.modelValue,
   'opacity-50 cursor-not-allowed': props.disabled,
   'cursor-pointer': !props.disabled,
 }))
@@ -36,7 +36,7 @@ const toggleClasses = computed(() => ({
     :aria-checked="modelValue"
     :aria-label="label"
     :disabled="disabled"
-    class="relative h-6 w-11 inline-flex flex-shrink-0 border-2 border-transparent rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    class="focus:ring-primary relative h-6 w-11 inline-flex flex-shrink-0 border-2 border-transparent rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2"
     :class="buttonClasses"
     @click="toggle"
   >

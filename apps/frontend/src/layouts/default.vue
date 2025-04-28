@@ -102,7 +102,7 @@ function setHidden(hidden: boolean) {
 }
 
 function setActions(actions: Action[]) {
-  // @ts-expect-error
+  // @ts-expect-error: headerState.actions is readonly but we need to modify it
   headerState.actions = actions
 }
 
@@ -146,16 +146,16 @@ const isDark = useDark()
     <Dialog v-model="settingsDialog">
       <Settings @toggle-settings-dialog-emit="toggleSettingsDialog" />
     </Dialog>
-    <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200 dark:border-r-gray-800">
+    <div class="bg-background border-r-secondary dark:border-r-secondary z-40 h-full w-64 border-r">
       <div class="h-full flex flex-col overflow-hidden">
         <div class="p-2">
           <div class="relative">
             <div
-              class="i-lucide-search absolute left-2 top-1/2 h-4 w-4 text-xl text-gray-500 -translate-y-1/2 dark:text-gray-400"
+              class="i-lucide-search text-secondary-foreground dark:text-secondary-foreground absolute left-2 top-1/2 h-4 w-4 text-xl -translate-y-1/2"
             />
             <input
               v-model="search" type="text"
-              class="border-input ring-offset-background w-full border border-gray-200 rounded-md bg-gray-50 px-3 py-2 pl-9 text-sm dark:border-gray-800 dark:bg-gray-900"
+              class="border-input ring-offset-background border-secondary bg-muted dark:border-secondary dark:bg-muted text-foreground w-full border rounded-md px-3 py-2 pl-9 text-sm"
               placeholder="Search"
             >
           </div>
@@ -164,10 +164,12 @@ const isDark = useDark()
         <div class="mt-2 p-2">
           <ul class="space-y-1">
             <li
-              v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50 dark:bg-gray-800': currentPage?.path === page.path }"
+              v-for="page in pages" :key="page.path"
+              :class="{ 'bg-muted dark:bg-muted': currentPage?.path === page.path }"
+              class="hover:bg-muted dark:hover:bg-muted transition-colors"
               @click="handlePageClick(page)"
             >
-              <IconButton class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm" :icon="page.icon">
+              <IconButton class="text-foreground w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm" :icon="page.icon">
                 <span>{{ page.name }}</span>
               </IconButton>
             </li>
@@ -182,7 +184,7 @@ const isDark = useDark()
           />
         </div>
         <!-- User profile -->
-        <div class="mt-auto border-t border-t-gray-200 p-4 dark:border-t-gray-800">
+        <div class="border-t-secondary dark:border-t-secondary mt-auto border-t p-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="bg-muted h-8 w-8 flex items-center justify-center overflow-hidden rounded-full">
@@ -192,13 +194,13 @@ const isDark = useDark()
                 >
               </div>
               <div class="flex flex-col">
-                <span class="text-sm font-medium">{{ sessionStore.getActiveSession()?.me?.username }}</span>
-                <span class="text-muted-foreground text-xs">{{ sessionStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
+                <span class="text-foreground text-sm font-medium">{{ sessionStore.getActiveSession()?.me?.username }}</span>
+                <span class="text-secondary-foreground text-xs">{{ sessionStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
               </div>
             </div>
             <div class="flex items-center">
               <button
-                class="hover:bg-muted h-8 w-8 flex items-center justify-center rounded-md p-1"
+                class="hover:bg-muted text-foreground h-8 w-8 flex items-center justify-center rounded-md p-1"
                 @click="toggleSettingsDialog"
               >
                 <div class="i-lucide-settings h-4 w-4" />
@@ -209,16 +211,16 @@ const isDark = useDark()
       </div>
     </div>
     <div class="flex flex-1 flex-col overflow-hidden">
-      <header v-show="!headerState.hidden" class="h-14 flex items-center border-b border-b-gray-200 px-4 dark:border-b-gray-800">
+      <header v-show="!headerState.hidden" class="border-b-secondary dark:border-b-secondary h-14 flex items-center border-b px-4">
         <div class="flex items-center gap-2">
-          <span class="font-medium">{{ headerState.title }}</span>
+          <span class="text-foreground font-medium">{{ headerState.title }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2">
           <TransitionGroup name="action">
             <template v-if="showActions || headerState.collapsed">
               <button
                 v-for="(action, index) in headerState.actions" :key="index"
-                class="hover:bg-muted flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors"
+                class="hover:bg-muted text-foreground flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors"
                 :class="{ 'opacity-50': action.disabled, 'cursor-not-allowed': action.disabled }"
                 :disabled="action.disabled"
                 @click="action.onClick"
@@ -228,7 +230,7 @@ const isDark = useDark()
               </button>
             </template>
           </TransitionGroup>
-          <button v-if="!headerState.collapsed" class="hover:bg-muted rounded-md p-2 transition-colors" @click="toggleActions">
+          <button v-if="!headerState.collapsed" class="hover:bg-muted text-foreground rounded-md p-2 transition-colors" @click="toggleActions">
             <div
               class="i-lucide-ellipsis h-5 w-5 transition-transform duration-300"
               :class="{ 'rotate-90': showActions }"
