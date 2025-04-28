@@ -12,7 +12,7 @@ const id = route.params.id
 const type = route.query.type as 'user' | 'group' | 'channel'
 
 onMounted(() => {
-  props.changeTitle?.(`👀 [${type}] ${id}`)
+  props.changeTitle?.(`👀 ${id}`)
   props.setActions?.([{
     icon: 'i-lucide-search',
     onClick: () => {

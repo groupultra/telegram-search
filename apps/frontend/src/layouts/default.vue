@@ -78,7 +78,7 @@ const chatStore = useChatStore()
 
 const chats = computed(() => chatStore.chats)
 const chatsFiltered = computed(() => {
-  return chats.value.filter(chat => chat.name.includes(search.value))
+  return chats.value.filter(chat => chat.name.toLowerCase().includes(search.value.toLowerCase()))
 })
 
 const router = useRouter()
@@ -144,7 +144,7 @@ const isDark = useDark()
 <template>
   <div class="bg-background h-screen w-full flex overflow-hidden" :class="{ dark: isDark }">
     <Dialog v-model="settingsDialog">
-      <Settings @toggle-settings-dialog="toggleSettingsDialog" />
+      <Settings @toggle-settings-dialog-emit="toggleSettingsDialog" />
     </Dialog>
     <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200 dark:border-r-gray-800">
       <div class="h-full flex flex-col overflow-hidden">
