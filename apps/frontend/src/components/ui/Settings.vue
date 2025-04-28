@@ -3,7 +3,8 @@ import { useDark, useToggle } from '@vueuse/core'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { useSessionStore } from '../../store/useSessionV2'
+import { useSessionStore } from '../../store/useSession';
+
 
 const emit = defineEmits<{
   (e: 'toggleSettingsDialogEmit'): void
