@@ -92,6 +92,7 @@ const currentTheme = ref('default')
 function setTheme(theme: string) {
   currentTheme.value = theme
   document.documentElement.setAttribute('data-theme', theme)
+  localStorage.setItem('theme', theme)
 }
 
 // 初始化主题

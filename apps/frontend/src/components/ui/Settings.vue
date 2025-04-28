@@ -21,7 +21,7 @@ const themes = [
   { name: '淡蓝', value: 'light-blue' },
 ]
 
-const currentTheme = ref('default')
+const currentTheme = ref(localStorage.getItem('theme') || 'default')
 
 function handleThemeChange(theme: string) {
   currentTheme.value = theme
