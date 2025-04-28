@@ -1,13 +1,12 @@
 <script lang="ts" setup>
 import type { CoreDialog } from '@tg-search/core'
 import type { Action } from '../types/action'
+import type { Chat } from '../types/chat'
+import type { Page } from '../types/page'
 import { useDark, useToggle } from '@vueuse/core'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '../store/useSessionV2'
-import { Chat } from '../types/chat'
-import { Page } from '../types/page'
-import { title } from 'process'
 
 const sessionStore = useSessionStore()
 
@@ -42,6 +41,16 @@ const pages = ref<Page[]>([
     name: '同步',
     icon: 'i-lucide-folder-sync',
     path: '/sync',
+  },
+  {
+    name: '配置',
+    icon: 'i-lucide-settings',
+    path: '/settings',
+  },
+  {
+    name: '登录',
+    icon: 'i-lucide-log-in',
+    path: '/login',
   },
 ])
 const currentPage = ref<Page | undefined>()
@@ -117,7 +126,7 @@ function setActions(actions: Action[]) {
 }
 
 function clearSelectedChatAndPage() {
-  chats.value.forEach(c => {
+  chats.value.forEach((c) => {
     c.isSelected = false
   })
   currentPage.value = undefined
@@ -127,10 +136,9 @@ function handleClick(chat: CoreDialog) {
   router.push(`/chat/${chat.id}?type=${chat.type}`)
   clearSelectedChatAndPage()
   setActions([])
-  chats.value.forEach(c => {
+  chats.value.forEach((c) => {
     c.isSelected = c.id === chat.id
   })
-
 }
 
 function handlePageClick(page: Page) {
@@ -156,24 +164,29 @@ const toggleDark = useToggle(isDark)
 <template>
   <div class="bg-background h-screen w-full flex overflow-hidden" :class="{ dark: isDark }">
     <Dialog v-model="settingsDialog">
-      <Settings @toggleSettingsDialog="toggleSettingsDialog" />
+      <Settings @toggle-settings-dialog="toggleSettingsDialog" />
     </Dialog>
     <div class="bg-background z-40 h-full w-64 border-r border-r-gray-200 dark:border-r-gray-800">
       <div class="h-full flex flex-col overflow-hidden">
         <div class="p-2">
           <div class="relative">
             <div
-              class="i-lucide-search text-gray-500 dark:text-gray-400 absolute left-2 top-1/2 h-4 w-4 text-xl -translate-y-1/2" />
-            <input v-model="search" type="text"
-              class="border-input bg-gray-50 dark:bg-gray-900 ring-offset-background w-full border border-gray-200 dark:border-gray-800 rounded-md px-3 py-2 pl-9 text-sm"
-              placeholder="Search">
+              class="i-lucide-search absolute left-2 top-1/2 h-4 w-4 text-xl text-gray-500 -translate-y-1/2 dark:text-gray-400"
+            />
+            <input
+              v-model="search" type="text"
+              class="border-input ring-offset-background w-full border border-gray-200 rounded-md bg-gray-50 px-3 py-2 pl-9 text-sm dark:border-gray-800 dark:bg-gray-900"
+              placeholder="Search"
+            >
           </div>
         </div>
         <!-- Main menu -->
         <div class="mt-2 p-2">
           <ul class="space-y-1">
-            <li v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50 dark:bg-gray-800': currentPage?.path === page.path }"
-              @click="handlePageClick(page)">
+            <li
+              v-for="page in pages" :key="page.path" :class="{ 'bg-gray-50 dark:bg-gray-800': currentPage?.path === page.path }"
+              @click="handlePageClick(page)"
+            >
               <IconButton class="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm" :icon="page.icon">
                 <span>{{ page.name }}</span>
               </IconButton>
@@ -181,19 +194,22 @@ const toggleDark = useToggle(isDark)
           </ul>
         </div>
 
-
         <!-- Chats -->
-        <div class="mt-4" v-for="chatType in chatTypes" :key="chatType.type">
-          <ChatGroup :title="chatType.name" :chats="chatsFiltered.filter(chat => chat.type === chatType.type)"
-            :icon="chatType.icon" :type="chatType.type" @click="handleClick" />
+        <div v-for="chatType in chatTypes" :key="chatType.type" class="mt-4">
+          <ChatGroup
+            :title="chatType.name" :chats="chatsFiltered.filter(chat => chat.type === chatType.type)"
+            :icon="chatType.icon" :type="chatType.type" @click="handleClick"
+          />
         </div>
         <!-- User profile -->
-        <div class="mt-auto border-t border-t-gray-200 dark:border-t-gray-800 p-4">
+        <div class="mt-auto border-t border-t-gray-200 p-4 dark:border-t-gray-800">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="bg-muted h-8 w-8 flex items-center justify-center overflow-hidden rounded-full">
-                <img alt="Me" src="https://api.dicebear.com/6.x/bottts/svg?seed=RainbowBird"
-                  class="h-full w-full object-cover">
+                <img
+                  alt="Me" src="https://api.dicebear.com/6.x/bottts/svg?seed=RainbowBird"
+                  class="h-full w-full object-cover"
+                >
               </div>
               <div class="flex flex-col">
                 <span class="text-sm font-medium">我的用户名</span>
@@ -201,8 +217,10 @@ const toggleDark = useToggle(isDark)
               </div>
             </div>
             <div class="flex items-center">
-              <button class="hover:bg-muted h-8 w-8 flex items-center justify-center rounded-md p-1"
-                @click="toggleSettingsDialog">
+              <button
+                class="hover:bg-muted h-8 w-8 flex items-center justify-center rounded-md p-1"
+                @click="toggleSettingsDialog"
+              >
                 <div class="i-lucide-settings h-4 w-4" />
               </button>
             </div>
@@ -210,25 +228,29 @@ const toggleDark = useToggle(isDark)
         </div>
       </div>
     </div>
-    <div class="flex flex-1 flex-col overflow-hidden" >
-      <header v-show="!headerState.hidden" class="h-14 flex items-center border-b-gray-200 dark:border-b-gray-800 border-b px-4 ">
+    <div class="flex flex-1 flex-col overflow-hidden">
+      <header v-show="!headerState.hidden" class="h-14 flex items-center border-b border-b-gray-200 px-4 dark:border-b-gray-800">
         <div class="flex items-center gap-2">
           <span class="font-medium">{{ headerState.title }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2">
           <TransitionGroup name="action">
             <template v-if="showActions">
-              <button v-for="(action, index) in headerState.actions" :key="index"
+              <button
+                v-for="(action, index) in headerState.actions" :key="index"
                 class="hover:bg-muted flex items-center gap-2 rounded-md px-3 py-2 transition-colors"
-                @click="action.onClick">
+                @click="action.onClick"
+              >
                 <div :class="action.icon" class="h-5 w-5" />
                 <span v-if="action.name" class="text-sm">{{ action.name }}</span>
               </button>
             </template>
           </TransitionGroup>
           <button class="hover:bg-muted rounded-md p-2 transition-colors" @click="toggleActions">
-            <div class="i-lucide-ellipsis h-5 w-5 transition-transform duration-300"
-              :class="{ 'rotate-90': showActions }" />
+            <div
+              class="i-lucide-ellipsis h-5 w-5 transition-transform duration-300"
+              :class="{ 'rotate-90': showActions }"
+            />
           </button>
         </div>
       </header>

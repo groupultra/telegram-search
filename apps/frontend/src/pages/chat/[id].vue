@@ -16,7 +16,7 @@ onMounted(() => {
   props.setActions?.([{
     icon: 'i-lucide-search',
     onClick: () => {
-      console.log('search')
+
     },
   }])
 })
@@ -151,7 +151,7 @@ onMounted(() => {
           </template>
         </ComposeMessage>
       </MessageItem>
-      <MessageItem sender="用户名" timestamp="12:30" is-sender v-for="i in 10" :key="i">
+      <MessageItem v-for="i in 10" :key="i" sender="用户名" timestamp="12:30" is-sender>
         <ImageMessage image="https://media.tenor.com/4yEuW6bbRo0AAAAi/gato.gif" />
       </MessageItem>
     </div>
