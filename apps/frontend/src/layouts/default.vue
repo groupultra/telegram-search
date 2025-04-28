@@ -85,12 +85,29 @@ const router = useRouter()
 
 const showActions = ref(false)
 
+const isDark = useDark()
+
+const currentTheme = ref('default')
+
+function setTheme(theme: string) {
+  currentTheme.value = theme
+  document.documentElement.setAttribute('data-theme', theme)
+}
+
+// 初始化主题
 onMounted(() => {
   if (!sessionStore.getActiveSession()?.isConnected && router.currentRoute.value.path !== '/login') {
     router.push('/login')
   }
   wsContext.sendEvent('entity:me:fetch', undefined)
   wsContext.sendEvent('dialog:fetch', undefined)
+  const savedTheme = localStorage.getItem('theme') || 'default'
+  setTheme(savedTheme)
+})
+
+// 监听主题变化
+watch(currentTheme, (newTheme) => {
+  localStorage.setItem('theme', newTheme)
 })
 
 function changeTitle(newTitle: string) {
@@ -137,14 +154,15 @@ function toggleSettingsDialog() {
 function toggleActions() {
   showActions.value = !showActions.value
 }
-
-const isDark = useDark()
 </script>
 
 <template>
   <div class="bg-background h-screen w-full flex overflow-hidden" :class="{ dark: isDark }">
     <Dialog v-model="settingsDialog">
-      <Settings @toggle-settings-dialog-emit="toggleSettingsDialog" />
+      <Settings
+        @toggle-settings-dialog-emit="toggleSettingsDialog"
+        @set-theme-emit="setTheme"
+      />
     </Dialog>
     <div class="bg-background border-r-secondary dark:border-r-secondary z-40 h-full w-64 border-r">
       <div class="h-full flex flex-col overflow-hidden">
