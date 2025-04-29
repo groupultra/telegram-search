@@ -9,9 +9,7 @@ import DefaultLayout from './layouts/default.vue'
     <Toaster position="top-right" :expand="true" :rich-colors="true" />
     <DefaultLayout>
       <template #default="{ changeTitle, setActions, setHidden, setCollapsed }">
-        <RouterView v-slot="{ Component }">
-          <component :is="Component" :change-title="changeTitle" :set-actions="setActions" :set-hidden="setHidden" :set-collapsed="setCollapsed" />
-        </RouterView>
+        <RouterView :change-title="changeTitle" :set-actions="setActions" :set-hidden="setHidden" :set-collapsed="setCollapsed" />
       </template>
     </DefaultLayout>
   </div>
