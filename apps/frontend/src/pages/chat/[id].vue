@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useScroll, watchOnce } from '@vueuse/core'
+import { useScroll } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'

@@ -17,8 +17,6 @@ const { theme } = storeToRefs(settingsStore)
 const isDark = useDark()
 
 const sessionStore = useSessionStore()
-const { getWsContext } = sessionStore
-const wsContext = getWsContext()
 
 const settingsDialog = ref(false)
 const searchParams = ref('')
