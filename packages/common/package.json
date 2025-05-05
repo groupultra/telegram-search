@@ -33,7 +33,7 @@
     "yaml": "^2.7.1"
   },
   "devDependencies": {
-    "@types/node": "^22.15.2",
-    "vitest": "^3.1.2"
+    "@types/node": "^22.15.3",
+    "vitest": "^3.1.3"
   }
 }
