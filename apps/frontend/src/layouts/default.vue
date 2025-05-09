@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { RouterView } from 'vue-router'
 
+import GlobalSearch from '../components/GlobalSearch.vue'
 import ChatsCollapse from '../components/layout/ChatsCollapse.vue'
 import SettingsDialog from '../components/layout/SettingsDialog.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
@@ -127,10 +128,10 @@ function toggleActiveChatGroup(group: ChatGroup) {
       <div class="flex items-center justify-between p-4">
         <div class="flex items-center gap-3">
           <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-muted">
-            <img
-              alt="Me" src="https://api.dicebear.com/6.x/bottts/svg?seed=RainbowBird"
-              class="h-full w-full object-cover"
-            >
+            <Avatar
+              :name="sessionStore.getActiveSession()?.me?.username"
+              size="sm"
+            />
           </div>
           <div class="flex flex-col">
             <span class="text-sm text-foreground font-medium">{{ sessionStore.getActiveSession()?.me?.username }}</span>

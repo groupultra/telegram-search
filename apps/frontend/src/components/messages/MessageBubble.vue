@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { CoreMessage } from '@tg-search/core'
 
+import Avatar from '../ui/Avatar.vue'
+
 defineProps<{
   message: CoreMessage
 }>()
@@ -8,8 +10,11 @@ defineProps<{
 
 <template>
   <div class="flex items-start gap-4 rounded-lg p-3 transition-all duration-200 hover:bg-muted">
-    <div class="mt-1 h-9 w-9 flex items-center justify-center overflow-hidden">
-      <img :src="`https://api.dicebear.com/6.x/bottts/svg?seed=${message.fromId}`" alt="User" class="h-full w-full object-cover">
+    <div class="mt-1">
+      <Avatar
+        :name="message.fromName"
+        size="md"
+      />
     </div>
     <div class="flex-1">
       <div class="mb-1 flex items-center gap-2">

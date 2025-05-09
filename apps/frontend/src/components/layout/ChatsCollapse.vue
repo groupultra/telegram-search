@@ -3,6 +3,8 @@ import type { CoreDialog } from '@tg-search/core'
 
 import { useRoute, useRouter } from 'vue-router'
 
+import Avatar from '../ui/Avatar.vue'
+
 defineProps<{
   type: 'user' | 'group' | 'channel'
   icon: string
@@ -59,11 +61,10 @@ function toggleActive() {
         class="py-2 cursor-pointer hover:bg-muted flex flex-row justify-start items-center gap-2 px-6 transition-all duration-200 hover:-translate-y-0.5"
         @click="router.push(`/chat/${chat.id}`)"
       >
-        <img
-          :alt="`User ${chat.id}`"
-          :src="`https://api.dicebear.com/6.x/bottts/svg?seed=${chat.name}`"
-          class="h-6 w-6 rounded-full"
-        >
+        <Avatar
+          :name="chat.name"
+          size="sm"
+        />
         <div class="flex flex-col overflow-hidden">
           <span class="truncate">
             {{ chat.name }}
