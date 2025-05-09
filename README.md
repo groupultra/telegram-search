@@ -7,8 +7,6 @@
 
 一个功能强大的 Telegram 聊天记录搜索工具，支持向量搜索和语义匹配。基于 OpenAI 的语义向量技术，让你的 Telegram 消息检索更智能、更精准。
 
-## ⚠️ **注意**
-
 - 欢迎 PR！
 - 由于项目处于快速迭代阶段，可能会出现数据库不兼容的情况，建议定期备份数据。
 - 获取 API key: [#111](https://github.com/GramSearch/telegram-search/issues/111)
@@ -50,15 +48,11 @@ docker compose up -d
 
 6. 初始化数据库：
 
-第一次启动使用 `db:push` 命令初始化数据库：
-
 ```bash
+# 第一次启动使用 db:push 命令初始化数据库
 pnpm run db:push
-```
 
-之后使用 `db:migrate` 命令迁移数据库：
-
-```bash
+# 之后使用 db:migrate 命令迁移数据库
 pnpm run db:migrate
 ```
 

@@ -17,7 +17,12 @@ export const useWebsocketStore = defineStore('websocket', () => {
   const { activeSessionId } = storeToRefs(sessionStore)
 
   const wsUrlComputed = computed(() => `${WS_API_BASE}?sessionId=${activeSessionId.value}`)
-  const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed.value))
+  const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed.value, {
+    onDisconnected: () => {
+      // eslint-disable-next-line no-console
+      console.log('[WebSocket] Disconnected')
+    },
+  }))
 
   const createWsMessage: ClientCreateWsMessageFn = (type, data) => {
     return { type, data } as WsMessageToServer

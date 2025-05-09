@@ -7,8 +7,6 @@
 
 A powerful Telegram chat history search tool that supports vector search and semantic matching. Based on OpenAI's semantic vector technology, it makes your Telegram message retrieval smarter and more precise.
 
-## ⚠️ **Note**
-
 - PR are welcome!
 - Due to the project being in a rapid iteration phase, database incompatibility may occur. It's recommended to back up your data regularly.
 - Get the API key: [#111](https://github.com/GramSearch/telegram-search/issues/111)
@@ -50,15 +48,11 @@ docker compose up -d
 
 6. Initialize the database:
 
-First time use `db:push` command to initialize the database:
-
 ```bash
+# First time use db:push command to initialize the database
 pnpm run db:push
-```
 
-Then use `db:migrate` command to migrate the database:
-
-```bash
+# Then use db:migrate command to migrate the database
 pnpm run db:migrate
 ```
 

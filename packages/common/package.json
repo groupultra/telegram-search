@@ -32,11 +32,11 @@
     "error-stack-parser": "^2.1.4",
     "path-browserify-esm": "^1.0.6",
     "unbuild": "^3.5.0",
-    "valibot": "^1.0.0",
+    "valibot": "^1.1.0",
     "yaml": "^2.7.1"
   },
   "devDependencies": {
-    "@types/node": "^22.15.3",
+    "@types/node": "^22.15.17",
     "vitest": "^3.1.3"
   }
 }
