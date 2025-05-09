@@ -27,6 +27,7 @@ const chatMessagesMap = computed<Map<string, CoreMessage>>(() =>
 const chatMessages = computed<CoreMessage[]>(() =>
   Array.from(chatMessagesMap.value.values())
     .sort((a, b) =>
+      // @ts-ignore
       a.createdAt <= b.createdAt ? -1 : 1,
     ),
 )

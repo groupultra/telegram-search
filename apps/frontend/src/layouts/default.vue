@@ -4,7 +4,6 @@ import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { RouterView } from 'vue-router'
 
-import GlobalSearch from '../components/GlobalSearch.vue'
 import ChatsCollapse from '../components/layout/ChatsCollapse.vue'
 import SettingsDialog from '../components/layout/SettingsDialog.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
