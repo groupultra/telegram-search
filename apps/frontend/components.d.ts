@@ -9,12 +9,14 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AlertCard: typeof import('./src/components/ui/AlertCard.vue')['default']
+    Avatar: typeof import('./src/components/ui/Avatar.vue')['default']
     Button: typeof import('./src/components/ui/Button/Button.vue')['default']
     ChatsCollapse: typeof import('./src/components/layout/ChatsCollapse.vue')['default']
     ChatSelector: typeof import('./src/components/ChatSelector.vue')['default']
     CheckboxGroup: typeof import('./src/components/ui/CheckboxGroup.vue')['default']
     Dialog: typeof import('./src/components/ui/Dialog.vue')['default']
     DropdownMenu: typeof import('./src/components/ui/DropdownMenu.vue')['default']
+    GlobalSearch: typeof import('./src/components/GlobalSearch.vue')['default']
     HighlightText: typeof import('./src/components/ui/HighlightText.vue')['default']
     MessageBubble: typeof import('./src/components/messages/MessageBubble.vue')['default']
     Pagination: typeof import('./src/components/ui/Pagination.vue')['default']

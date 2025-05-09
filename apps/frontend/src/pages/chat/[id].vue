@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import type { CoreDialog, CoreMessage } from '@tg-search/core'
 
-import { useScroll, useVirtualList } from '@vueuse/core'
+import { useMagicKeys, useScroll, useVirtualList } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
+import GlobalSearch from '../../components/GlobalSearch.vue'
 import MessageBubble from '../../components/messages/MessageBubble.vue'
 import { useChatStore } from '../../store/useChat'
 import { useMessageStore } from '../../store/useMessage'
 import { useWebsocketStore } from '../../store/useWebsocket'
+
+const { ctrl_f, command_f } = useMagicKeys()
 
 const route = useRoute('/chat/:id')
 const id = route.params.id
@@ -30,6 +33,8 @@ const chatMessages = computed<CoreMessage[]>(() =>
 const currentChat = computed<CoreDialog | undefined>(() =>
   chatStore.getChat(id.toString()),
 )
+const isGlobalSearch = ref(false)
+const globalSearchRef = ref<InstanceType<typeof GlobalSearch> | null>(null)
 const isLoadingMessages = ref(false)
 const messageLimit = ref(50)
 const messageOffset = ref(0)
@@ -41,6 +46,46 @@ const { list, containerProps, wrapperProps } = useVirtualList(
     // overscan: 10,
   },
 )
+
+function toggleGlobalSearch() {
+  isGlobalSearch.value = !isGlobalSearch.value
+  if (isGlobalSearch.value) {
+    nextTick(() => {
+      globalSearchRef.value?.focus()
+    })
+  }
+}
+
+function handleClickOutside(event: MouseEvent) {
+  if (isGlobalSearch.value && globalSearchRef.value) {
+    const target = event.target as HTMLElement
+    const searchElement = globalSearchRef.value.$el as HTMLElement
+    const searchButton = document.querySelector('[data-search-button]') as HTMLElement
+    if (!searchElement.contains(target) && !searchButton?.contains(target)) {
+      isGlobalSearch.value = false
+    }
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+watch(ctrl_f, () => {
+  if (ctrl_f.value) {
+    toggleGlobalSearch()
+  }
+})
+
+watch(command_f, () => {
+  if (command_f.value) {
+    toggleGlobalSearch()
+  }
+})
 
 const websocketStore = useWebsocketStore()
 
@@ -83,12 +128,19 @@ function sendMessage() {
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col relative">
     <!-- Chat Header -->
-    <div class="p-4 border-b dark:border-gray-700">
+    <div class="p-4 border-b dark:border-gray-700 flex items-center justify-between">
       <h2 class="text-xl font-semibold dark:text-gray-100">
         {{ currentChat?.name }} | {{ currentChat?.id }}
       </h2>
+      <Button
+        icon="i-lucide-search"
+        data-search-button
+        @click="toggleGlobalSearch"
+      >
+        Search
+      </Button>
     </div>
 
     <!-- Messages Area -->
@@ -121,5 +173,16 @@ function sendMessage() {
         </button>
       </div>
     </div>
+    <GlobalSearch
+      v-if="isGlobalSearch"
+      ref="globalSearchRef"
+      :messages="chatMessages"
+      class="absolute top-[20%] left-0 w-full"
+    >
+      <div class="flex items-center">
+        <input id="searchContent" type="checkbox" class="rounded border-border mr-1">
+        <label for="searchContent" class="text-sm text-foreground">搜索内容</label>
+      </div>
+    </GlobalSearch>
   </div>
 </template>
