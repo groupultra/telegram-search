@@ -29,7 +29,7 @@ const initials = computed(() => {
     .map(word => word[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2)
+    .slice(0, 1)
 })
 
 const backgroundColor = computed(() => {
