@@ -16,4 +16,7 @@ export function registerStorageEventHandlers(
   registerEventHandler('storage:messages', ({ messages }) => {
     messagesStore.pushMessages(messages)
   })
+
+  // Wait for result event
+  registerEventHandler('storage:search:messages:data', ({ messages: _messages }) => {})
 }

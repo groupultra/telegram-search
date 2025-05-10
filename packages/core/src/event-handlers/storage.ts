@@ -1,4 +1,5 @@
 import type { CoreContext } from '../context'
+import type { DBRetrivalMessages } from '../models/utils/message'
 import type { CoreDialog } from '../services'
 
 import { useLogger } from '@tg-search/common'
@@ -6,6 +7,7 @@ import { useLogger } from '@tg-search/common'
 import { fetchMessages, recordMessages, retriveMessages } from '../models/chat-message'
 import { getChatMessagesStats } from '../models/chat-message-stats'
 import { fetchChats, recordChats } from '../models/chats'
+import { convertToCoreRetrivalMessages } from '../models/utils/message'
 import { embedContents } from '../utils/embed'
 
 export function registerStorageEventHandlers(ctx: CoreContext) {
@@ -64,16 +66,32 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
     await recordChats(dialogs)
   })
 
-  emitter.on('storage:search:messages', async ({ params }) => {
+  emitter.on('storage:search:messages', async (params) => {
     logger.withFields({ params }).verbose('Searching messages')
 
+    if (params.content.length === 0) {
+      return
+    }
+
+    if (!params.chatId) {
+      params.chatId = '0'
+    }
+
+    let dbMessages: DBRetrivalMessages[] = []
     if (params.useVector) {
       const { embeddings } = (await embedContents([params.content])).expect('Failed to embed content')
 
-      await retriveMessages(params.chatId, { embedding: embeddings[0], text: params.content }, params.pagination)
+      dbMessages = (await retriveMessages(params.chatId, { embedding: embeddings[0], text: params.content }, params.pagination)).expect('Failed to retrive messages')
     }
     else {
-      await retriveMessages(params.chatId, { text: params.content }, params.pagination)
+      dbMessages = (await retriveMessages(params.chatId, { text: params.content }, params.pagination)).expect('Failed to retrive messages')
     }
+
+    logger.withFields({ messages: dbMessages.length }).verbose('Retrived messages')
+    logger.withFields(dbMessages).debug('Retrived messages')
+
+    const coreMessages = convertToCoreRetrivalMessages(dbMessages)
+
+    emitter.emit('storage:search:messages:data', { messages: coreMessages })
   })
 }

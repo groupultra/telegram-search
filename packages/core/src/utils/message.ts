@@ -61,7 +61,7 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
 
   let fromName = ''
   if (sender instanceof Api.User) {
-    fromName = `${sender.firstName ?? ''} ${sender.lastName ?? ''}`
+    fromName = `${sender.firstName ?? ''}${sender.lastName && ` ${sender.lastName}`}`
   }
   else {
     fromName = sender?.title ?? String(senderId)

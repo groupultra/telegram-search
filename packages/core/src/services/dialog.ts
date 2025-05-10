@@ -6,10 +6,12 @@ import { circularObject, useLogger } from '@tg-search/common'
 
 import { Err, Ok } from '../utils/monad'
 
+export type DialogType = 'user' | 'group' | 'channel'
+
 export interface CoreDialog {
   id: number
   name: string
-  type: 'user' | 'group' | 'channel'
+  type: DialogType
   unreadCount?: number
   messageCount?: number
   lastMessage?: string
@@ -36,10 +38,10 @@ export function createDialogService(ctx: CoreContext) {
   function resolveDialog(dialog: Dialog): Result<{
     id: number
     name: string
-    type: 'user' | 'group' | 'channel'
+    type: DialogType
   }> {
     const { isGroup, isChannel, isUser } = dialog
-    let type: 'user' | 'group' | 'channel'
+    let type: DialogType
     if (isGroup) {
       type = 'group'
     }

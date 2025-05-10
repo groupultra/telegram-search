@@ -1,5 +1,5 @@
 import type { CorePagination } from '../../utils/pagination'
-import type { DBRetrivalMessages } from '../chat-message'
+import type { DBRetrivalMessages } from './message'
 
 import { EmbeddingDimension } from '@tg-search/common'
 import { useConfig } from '@tg-search/common/composable'
@@ -9,7 +9,7 @@ import { withDb } from '../../db'
 import { chatMessagesTable } from '../../db/schema'
 import { getSimilaritySql } from './similarity'
 
-export async function retriveVector(chatId: string, embedding: number[], pagination?: CorePagination): Promise<DBRetrivalMessages[]> {
+export async function retriveVector(chatId: string | undefined, embedding: number[], pagination?: CorePagination): Promise<DBRetrivalMessages[]> {
   const similarity = getSimilaritySql(
     useConfig().api.embedding.dimension || EmbeddingDimension.DIMENSION_1536,
     embedding,
@@ -33,6 +33,8 @@ export async function retriveVector(chatId: string, embedding: number[], paginat
       reply_to_id: chatMessagesTable.reply_to_id,
       created_at: chatMessagesTable.created_at,
       updated_at: chatMessagesTable.updated_at,
+      deleted_at: chatMessagesTable.deleted_at,
+      platform_timestamp: chatMessagesTable.platform_timestamp,
       jieba_tokens: chatMessagesTable.jieba_tokens,
       similarity: sql<number>`${similarity} AS "similarity"`,
       time_relevance: sql<number>`${timeRelevance} AS "time_relevance"`,
@@ -41,7 +43,7 @@ export async function retriveVector(chatId: string, embedding: number[], paginat
     .from(chatMessagesTable)
     .where(and(
       eq(chatMessagesTable.platform, 'telegram'),
-      eq(chatMessagesTable.in_chat_id, chatId),
+      chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined,
       gt(similarity, 0.5),
       // notInArray(chatMessagesTable.platform_message_id, excludeMessageIds),
     ))

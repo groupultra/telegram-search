@@ -47,14 +47,14 @@ const { list, containerProps, wrapperProps } = useVirtualList(
   },
 )
 
-function toggleGlobalSearch() {
-  isGlobalSearch.value = !isGlobalSearch.value
-  if (isGlobalSearch.value) {
-    nextTick(() => {
-      globalSearchRef.value?.focus()
-    })
-  }
-}
+// function toggleGlobalSearch() {
+//   isGlobalSearch.value = !isGlobalSearch.value
+//   if (isGlobalSearch.value) {
+//     nextTick(() => {
+//       globalSearchRef.value?.focus()
+//     })
+//   }
+// }
 
 function handleClickOutside(event: MouseEvent) {
   if (isGlobalSearch.value && globalSearchRef.value) {
@@ -75,17 +75,17 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-watch(ctrl_f, () => {
-  if (ctrl_f.value) {
-    toggleGlobalSearch()
-  }
-})
+// watch(ctrl_f, () => {
+//   if (ctrl_f.value) {
+//     toggleGlobalSearch()
+//   }
+// })
 
-watch(command_f, () => {
-  if (command_f.value) {
-    toggleGlobalSearch()
-  }
-})
+// watch(command_f, () => {
+//   if (command_f.value) {
+//     toggleGlobalSearch()
+//   }
+// })
 
 const websocketStore = useWebsocketStore()
 
@@ -125,6 +125,8 @@ function sendMessage() {
 
   toast.success('Message sent')
 }
+
+const isGlobalSearchOpen = ref(false)
 </script>
 
 <template>
@@ -137,7 +139,7 @@ function sendMessage() {
       <Button
         icon="i-lucide-search"
         data-search-button
-        @click="toggleGlobalSearch"
+        @click="isGlobalSearchOpen = !isGlobalSearchOpen"
       >
         Search
       </Button>
@@ -173,16 +175,21 @@ function sendMessage() {
         </button>
       </div>
     </div>
-    <GlobalSearch
-      v-if="isGlobalSearch"
-      ref="globalSearchRef"
-      :messages="chatMessages"
-      class="absolute top-[20%] left-0 w-full"
-    >
-      <div class="flex items-center">
-        <input id="searchContent" type="checkbox" class="rounded border-border mr-1">
-        <label for="searchContent" class="text-sm text-foreground">搜索内容</label>
-      </div>
-    </GlobalSearch>
+
+    <Teleport to="body">
+      <GlobalSearch
+        ref="globalSearchRef"
+        v-model:open="isGlobalSearchOpen"
+        :chat-id="id.toString()"
+        class="absolute top-[20%] left-0 w-full"
+      >
+        <template #settings>
+          <div class="flex items-center">
+            <input id="searchContent" type="checkbox" class="rounded border-border mr-1">
+            <label for="searchContent" class="text-sm text-foreground">搜索内容</label>
+          </div>
+        </template>
+      </GlobalSearch>
+    </Teleport>
   </div>
 </template>

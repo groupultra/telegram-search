@@ -1,6 +1,7 @@
 import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 import type { App } from 'h3'
+import type { UUID } from 'node:crypto'
 import type { WsEventToClientData, WsMessageToServer } from './ws-event'
 
 import { useLogger } from '@tg-search/common'
@@ -16,7 +17,6 @@ export interface ClientState {
   phoneNumber?: string
 }
 
-type UUID = ReturnType<typeof crypto.randomUUID>
 type EventListener = <T extends keyof FromCoreEvent>(data: WsEventToClientData<T>) => void
 
 export function setupWsRoutes(app: App) {

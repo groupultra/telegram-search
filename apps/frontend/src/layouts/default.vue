@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { DialogType } from '@tg-search/core'
+
 import { useDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
@@ -27,7 +29,7 @@ const chatsFiltered = computed(() => {
   return chats.value.filter(chat => chat.name.toLowerCase().includes(searchParams.value.toLowerCase()))
 })
 
-type ChatGroup = 'user' | 'group' | 'channel' | ''
+type ChatGroup = DialogType | ''
 const activeChatGroup = ref<ChatGroup>('user')
 
 watch(theme, (newTheme) => {
@@ -40,7 +42,7 @@ function toggleSettingsDialog() {
 
 function toggleActiveChatGroup(group: ChatGroup) {
   if (activeChatGroup.value === group)
-    activeChatGroup.value = ''
+    activeChatGroup.value = 'user'
   else
     activeChatGroup.value = group
 }

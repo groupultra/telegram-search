@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { CoreDialog } from '@tg-search/core'
+import type { CoreDialog, DialogType } from '@tg-search/core'
 
 import { useRoute, useRouter } from 'vue-router'
 
 import Avatar from '../ui/Avatar.vue'
 
 defineProps<{
-  type: 'user' | 'group' | 'channel'
+  type: DialogType
   icon: string
   name: string
 

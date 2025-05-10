@@ -1,32 +1,26 @@
 <script setup lang="ts">
-import type { CoreMessage } from '@tg-search/core'
+import type { CoreMessage, CoreRetrivalMessages } from '@tg-search/core'
 
-import { useClipboard } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { useClipboard, useDebounce } from '@vueuse/core'
+import { ref, watch } from 'vue'
 
+import { useWebsocketStore } from '../store/useWebsocket'
 import Avatar from './ui/Avatar.vue'
 
-interface Props {
-  messages: CoreMessage[]
-  placeholder?: string
-  filter?: (message: CoreMessage, keyword: string) => boolean
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  placeholder: '搜索消息内容...',
-  filter: (message: CoreMessage, keyword: string) => message.content.includes(keyword),
-})
-
-const emit = defineEmits<{
-  (e: 'blur'): void
+const props = defineProps<{
+  chatId?: string
 }>()
-const keyword = ref<string>('')
+
+const isOpen = defineModel<boolean>('open', { required: true })
+const isLoading = ref(false)
+
 const showSettings = ref(false)
-const searchInputRef = ref<HTMLInputElement | null>(null)
 const hoveredMessage = ref<CoreMessage | null>(null)
 const { copy, copied } = useClipboard()
 
-// 高亮关键词函数
+const keyword = ref<string>('')
+const keywordDebounced = useDebounce(keyword, 1000)
+
 function highlightKeyword(text: string, keyword: string) {
   if (!keyword)
     return text
@@ -38,48 +32,42 @@ function copyMessage(message: CoreMessage) {
   copy(message.content)
 }
 
-function focus() {
-  searchInputRef.value?.focus()
-}
+const websocketStore = useWebsocketStore()
+const searchResult = ref<CoreRetrivalMessages[]>([])
 
-function blur() {
-  searchInputRef.value?.blur()
-  emit('blur')
-}
-
-const search_result = computed(() => {
-  if (keyword.value === '') {
-    return []
+// TODO: Infinite scroll
+watch(keywordDebounced, (newKeyword) => {
+  if (newKeyword.length === 0) {
+    searchResult.value = []
+    return
   }
 
-  return props.messages.filter((message) => {
-    if (!message || !message.content)
-      return false
-    return props.filter(message, keyword.value)
+  isLoading.value = true
+  websocketStore.sendEvent('storage:search:messages', {
+    chatId: props.chatId,
+    content: newKeyword,
+    useVector: true,
+    pagination: {
+      limit: 10,
+      offset: 0,
+    },
   })
-})
 
-// 暴露给父组件的方法和属性
-defineExpose({
-  keyword,
-  showSettings,
-  search_result,
-  focus,
-  blur,
+  websocketStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+    searchResult.value = messages
+    isLoading.value = false
+  })
 })
 </script>
 
 <template>
-  <div class="flex items-center justify-center">
-    <div class="w-[45%] bg-card rounded-xl shadow-lg border border-border">
+  <div v-if="isOpen" class="flex items-center justify-center">
+    <div class="w-[45%] bg-card rounded-xl shadow-lg">
       <!-- 搜索输入框 -->
-      <div class="px-4 py-3 border-b border-border flex items-center gap-2">
+      <div class="px-4 py-3 border-b flex items-center gap-2">
         <input
-          ref="searchInputRef"
           v-model="keyword"
           class="w-full outline-none text-foreground"
-          :placeholder="placeholder"
-          @blur="blur"
         >
         <button
           class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-foreground hover:bg-muted"
@@ -90,22 +78,22 @@ defineExpose({
       </div>
 
       <!-- 设置栏 -->
-      <div v-if="showSettings" class="px-4 py-3 border-b border-border">
-        <slot />
+      <div v-if="showSettings" class="px-4 py-3 border-b">
+        <slot name="settings" />
       </div>
 
       <!-- 搜索结果 -->
       <div
-        v-show="keyword"
+        v-show="keywordDebounced"
         class="p-4 min-h-[200px] transition-all duration-300 ease-in-out"
-        :class="{ 'opacity-0': !keyword, 'opacity-100': keyword }"
+        :class="{ 'opacity-0': !keywordDebounced, 'opacity-100': keywordDebounced }"
       >
-        <template v-if="search_result.length > 0">
+        <template v-if="searchResult.length > 0">
           <ul class="flex flex-col max-h-[540px] overflow-y-auto scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent animate-fade-in">
             <li
-              v-for="item in search_result"
+              v-for="item in searchResult"
               :key="item.uuid"
-              class="flex items-center gap-2 p-2 border-b border-border last:border-b-0 hover:bg-muted/50 transition-all duration-200 ease-in-out animate-slide-in relative group cursor-pointer"
+              class="flex items-center gap-2 p-2 border-b bord last:border-b-0 hover:bg-muted/50 transition-all duration-200 ease-in-out animate-slide-in relative group cursor-pointer"
               tabindex="0"
               @mouseenter="hoveredMessage = item"
               @mouseleave="hoveredMessage = null"
@@ -133,7 +121,13 @@ defineExpose({
             </li>
           </ul>
         </template>
-        <template v-else>
+        <template v-else-if="isLoading">
+          <div class="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-70">
+            <span class="i-lucide-loader-circle text-3xl mb-2 animate-spin" />
+            <span>搜索中...</span>
+          </div>
+        </template>
+        <template v-else-if="searchResult.length === 0">
           <div class="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-70">
             <span class="i-lucide-search text-3xl mb-2" />
             <span>没有找到相关消息</span>
