@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreDialog, CoreMessage } from '@tg-search/core'
 
-import { useMagicKeys, useScroll, useVirtualList } from '@vueuse/core'
+import { useScroll, useVirtualList } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -13,7 +13,7 @@ import { useChatStore } from '../../store/useChat'
 import { useMessageStore } from '../../store/useMessage'
 import { useWebsocketStore } from '../../store/useWebsocket'
 
-const { ctrl_f, command_f } = useMagicKeys()
+// const { ctrl_f, command_f } = useMagicKeys()
 
 const route = useRoute('/chat/:id')
 const id = route.params.id

@@ -73,8 +73,8 @@ export function convertToDBInsertMessage(message: CoreMessage): DBInsertMessage 
 export function convertToCoreRetrivalMessages(messages: DBRetrivalMessages[]): CoreRetrivalMessages[] {
   return messages.map(message => ({
     ...convertToCoreMessageFromDB(message as DBSelectMessage),
-    similarity: message.similarity,
-    timeRelevance: message.time_relevance,
-    combinedScore: message.combined_score,
+    similarity: message?.similarity,
+    timeRelevance: message?.time_relevance,
+    combinedScore: message?.combined_score,
   })) satisfies CoreRetrivalMessages[]
 }

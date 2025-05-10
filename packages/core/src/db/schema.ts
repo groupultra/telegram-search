@@ -6,7 +6,7 @@ import { bigint, boolean, index, integer, jsonb, pgTable, pgView, text, uniqueIn
 export const chatMessagesTable = pgTable('chat_messages', {
   id: uuid().primaryKey().defaultRandom(),
   platform: text().notNull().default(''),
-  platform_message_id: text().notNull().default('').unique(),
+  platform_message_id: text().notNull().default(''),
   from_id: text().notNull().default(''),
   from_name: text().notNull().default(''),
   in_chat_id: text().notNull().default(''),
@@ -27,7 +27,7 @@ export const chatMessagesTable = pgTable('chat_messages', {
   index('chat_messages_content_vector_1536_index').using('hnsw', table.content_vector_1536.op('vector_cosine_ops')),
   index('chat_messages_content_vector_1024_index').using('hnsw', table.content_vector_1024.op('vector_cosine_ops')),
   index('chat_messages_content_vector_768_index').using('hnsw', table.content_vector_768.op('vector_cosine_ops')),
-  index('jieba_tokens_index').using('gin', table.jieba_tokens.op('jsonb_ops')),
+  index('jieba_tokens_index').using('gin', table.jieba_tokens.op('jsonb_path_ops')),
 ])
 
 export const stickersTable = pgTable('stickers', {

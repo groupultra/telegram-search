@@ -1,14 +1,27 @@
 import type { CorePagination } from '../../utils/pagination'
 import type { DBRetrivalMessages } from './message'
 
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { useLogger } from '@tg-search/common'
+import { and, eq, sql } from 'drizzle-orm'
 import { cut } from 'nodejieba'
 
 import { withDb } from '../../db'
 import { chatMessagesTable } from '../../db/schema'
 
 export async function retriveJieba(chatId: string, content: string, pagination?: CorePagination): Promise<DBRetrivalMessages[]> {
+  const logger = useLogger('models:retrive-jieba')
+
   const jiebaTokens = cut(content)
+
+  if (jiebaTokens.length === 0) {
+    return []
+  }
+
+  logger.withFields({
+    chatId,
+    content,
+    jiebaTokens,
+  }).debug('Retriving jieba tokens')
 
   return (await withDb(db => db
     .select({
@@ -27,21 +40,13 @@ export async function retriveJieba(chatId: string, content: string, pagination?:
       deleted_at: chatMessagesTable.deleted_at,
       platform_timestamp: chatMessagesTable.platform_timestamp,
       jieba_tokens: chatMessagesTable.jieba_tokens,
-      // Based on the number of matching tokens divided by the number of query tokens
-      similarity: sql<number>`(
-        SELECT COUNT(*)
-        FROM jsonb_array_elements_text(${chatMessagesTable.jieba_tokens}) as token
-        WHERE token = ANY(${jiebaTokens})
-      )::float / ${jiebaTokens.length} AS "similarity"`,
-      time_relevance: sql<number>`(1 - (CEIL(EXTRACT(EPOCH FROM NOW()) * 1000)::bigint - ${chatMessagesTable.created_at}) / 86400 / 30) AS "time_relevance"`,
     })
     .from(chatMessagesTable)
     .where(and(
       eq(chatMessagesTable.platform, 'telegram'),
       eq(chatMessagesTable.in_chat_id, chatId),
-      sql`${chatMessagesTable.jieba_tokens} && jsonb_build_array(${sql.join(jiebaTokens.map(t => sql`${t}`), sql`, `)})`,
+      sql`${chatMessagesTable.jieba_tokens} @> ${JSON.stringify(jiebaTokens)}::jsonb`,
     ))
-    .orderBy(desc(sql`similarity`))
     .limit(pagination?.limit || 20),
   )).expect('Failed to fetch text relevant messages')
 }

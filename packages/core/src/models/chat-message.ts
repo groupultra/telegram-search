@@ -24,7 +24,8 @@ export async function recordMessages(messages: CoreMessage[]) {
     .insert(chatMessagesTable)
     .values(dbMessages)
     .onConflictDoNothing({
-      target: [chatMessagesTable.platform_message_id],
+      // TODO: on conflict replace
+      target: [chatMessagesTable.platform, chatMessagesTable.platform_message_id],
     }),
   )).expect('Failed to record messages')
 }
