@@ -30,7 +30,7 @@
     "eslint": "^9.26.0",
     "eslint-plugin-format": "^1.0.1",
     "husky": "^9.1.7",
-    "lint-staged": "^15.5.2",
+    "lint-staged": "^16.0.0",
     "taze": "^19.1.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
