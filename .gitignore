@@ -6,3 +6,4 @@ dist
 .DS_Store
 config.yaml
 .postgres/
+out/

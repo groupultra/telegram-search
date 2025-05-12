@@ -12,6 +12,7 @@
     "build:server": "pnpm -F @tg-search/server build",
     "dev:server": "pnpm run packages:build && pnpm -F @tg-search/server dev",
     "dev:frontend": "pnpm run build:server && pnpm -F @tg-search/frontend dev",
+    "dev:electron": "pnpm -F @tg-search/electron dev",
     "lint": "pnpm -r --parallel lint",
     "lint:fix": "pnpm -r --parallel lint:fix",
     "typecheck": "pnpm -r --parallel typecheck",

@@ -1,0 +1,318 @@
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html.dark {
+  background: #121212;
+}
+
+:root {
+  --theme-transition-duration: 0.4s;
+  --theme-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* View Transitions API 基础设置 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* 控制明暗模式切换时的图层顺序 */
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2147483646; /* 最大 z-index 值 */
+}
+
+/* 暗色模式下反转图层顺序 */
+html.dark::view-transition-old(root) {
+  z-index: 2147483646;
+}
+
+html.dark::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* 优化动画性能 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  will-change: transform;
+  /* 确保动画期间内容不会被裁切 */
+  contain: paint;
+}
+
+/* 添加全局颜色过渡动画 */
+*,
+::before,
+::after {
+  transition:
+    border-color var(--theme-transition-duration) var(--theme-transition-timing),
+    background-color var(--theme-transition-duration) var(--theme-transition-timing),
+    color var(--theme-transition-duration) var(--theme-transition-timing),
+    fill var(--theme-transition-duration) var(--theme-transition-timing),
+    stroke var(--theme-transition-duration) var(--theme-transition-timing),
+    opacity var(--theme-transition-duration) var(--theme-transition-timing),
+    box-shadow var(--theme-transition-duration) var(--theme-transition-timing),
+    transform var(--theme-transition-duration) var(--theme-transition-timing);
+}
+
+/* 使用 GPU 加速优化性能 */
+.transform-gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
+}
+
+/* 确保动画在暗色模式下正常工作 */
+:root[class~='dark'] {
+  color-scheme: dark;
+}
+
+/* --- Base Radius (Optional: Define once if consistent across themes) --- */
+:root {
+  --radius: 0.5rem; /* Default border radius */
+}
+
+/* --- Default Theme (Optimized & Completed) --- */
+:root[data-theme='default'] {
+  --c-background: oklch(0.99 0 0); /* Slightly off-white for less harshness */
+  --c-foreground: oklch(0.15 0.01 285); /* Dark purple-grey text */
+  --c-card: oklch(1 0 0); /* White card */
+  --c-card-foreground: oklch(0.15 0.01 285); /* Card text */
+  --c-popover: oklch(1 0 0); /* White popover */
+  --c-popover-foreground: oklch(0.15 0.01 285); /* Popover text */
+  --c-primary: oklch(0.62 0.21 260); /* Primary purple (adjusted hue slightly for clarity) */
+  --c-primary-foreground: oklch(0.98 0.01 260); /* Light text on primary */
+  --c-secondary: oklch(0.96 0.015 280); /* Lighter purple-grey secondary */
+  --c-secondary-foreground: oklch(0.25 0.02 280); /* Darker text on secondary */
+  --c-muted: oklch(0.97 0.01 280); /* Muted background */
+  --c-muted-foreground: oklch(0.5 0.015 280); /* Muted text */
+  --c-accent: oklch(0.75 0.18 300); /* Accent color: Magenta/Pink */
+  --c-accent-foreground: oklch(0.1 0.03 300); /* Dark text on accent */
+  --c-destructive: oklch(0.65 0.2 25); /* Destructive color: Red */
+  --c-destructive-foreground: oklch(0.99 0.02 25); /* Light text on destructive */
+  --c-border: oklch(0.9 0.01 280); /* Border color */
+  --c-input: oklch(0.9 0.01 280); /* Input border/background */
+  --c-ring: oklch(0.62 0.21 260 / 0.4); /* Focus ring (primary color with alpha) */
+  --radius: 0.5rem; /* Theme-specific radius (overrides root if needed) */
+}
+
+.dark[data-theme='default'] {
+  --c-background: oklch(0.14 0.01 285); /* Dark purple-grey background */
+  --c-foreground: oklch(0.98 0.005 285); /* Very light grey text */
+  --c-card: oklch(0.2 0.015 285); /* Slightly lighter card */
+  --c-card-foreground: oklch(0.98 0.005 285); /* Card text */
+  --c-popover: oklch(0.2 0.015 285); /* Popover background */
+  --c-popover-foreground: oklch(0.98 0.005 285); /* Popover text */
+  --c-primary: oklch(0.6 0.22 260); /* Primary purple (adjusted for dark mode) */
+  --c-primary-foreground: oklch(0.15 0.03 260); /* Dark text on primary */
+  --c-secondary: oklch(0.3 0.03 280); /* Darker secondary */
+  --c-secondary-foreground: oklch(0.98 0.005 280); /* Light text on secondary */
+  --c-muted: oklch(0.25 0.02 280); /* Darker muted background */
+  --c-muted-foreground: oklch(0.65 0.015 280); /* Muted text */
+  --c-accent: oklch(0.7 0.19 300); /* Accent color (adjusted for dark mode) */
+  --c-accent-foreground: oklch(0.1 0.04 300); /* Dark text on accent */
+  --c-destructive: oklch(0.7 0.2 25); /* Destructive color (adjusted for dark mode) */
+  --c-destructive-foreground: oklch(0.15 0.03 25); /* Dark text on destructive */
+  --c-border: oklch(0.28 0.02 280); /* Border color */
+  --c-input: oklch(0.28 0.02 280); /* Input border/background */
+  --c-ring: oklch(0.6 0.22 260 / 0.4); /* Focus ring */
+  /* --radius is inherited or can be overridden */
+}
+
+/* --- Monet Theme (Revised for Harmony & Completed) --- */
+/* Inspired by nature palettes: soft blues, greens, and earthy tones */
+:root[data-theme='monet'] {
+  --c-background: oklch(0.98 0.015 190); /* Very light cyan/sky blue background */
+  --c-foreground: oklch(0.25 0.04 250); /* Deep indigo/violet text */
+  --c-card: oklch(0.99 0.01 190); /* Slightly off-white card with a hint of cyan */
+  --c-card-foreground: oklch(0.25 0.04 250); /* Card text */
+  --c-popover: oklch(0.99 0.01 190); /* Popover background */
+  --c-popover-foreground: oklch(0.25 0.04 250); /* Popover text */
+  --c-primary: oklch(0.65 0.14 230); /* Primary: Soft Cornflower Blue */
+  --c-primary-foreground: oklch(0.99 0.01 230); /* Very light text on primary */
+  --c-secondary: oklch(0.9 0.05 140); /* Secondary: Pale Sage Green */
+  --c-secondary-foreground: oklch(0.3 0.06 140); /* Darker green text on secondary */
+  --c-muted: oklch(0.95 0.02 190); /* Muted background: Very light cyan-grey */
+  --c-muted-foreground: oklch(0.5 0.03 240); /* Muted text: Soft blue-grey */
+  --c-accent: oklch(0.8 0.1 90); /* Accent: Warm Peach/Sand */
+  --c-accent-foreground: oklch(0.2 0.05 90); /* Dark text on accent */
+  --c-destructive: oklch(0.7 0.18 30); /* Destructive: Terracotta/Soft Red */
+  --c-destructive-foreground: oklch(0.99 0.02 30); /* Light text on destructive */
+  --c-border: oklch(0.9 0.02 190); /* Border color */
+  --c-input: oklch(0.9 0.02 190); /* Input border/background */
+  --c-ring: oklch(0.65 0.14 230 / 0.4); /* Focus ring */
+  --radius: 0.5rem;
+}
+
+.dark[data-theme='monet'] {
+  --c-background: oklch(0.2 0.03 250); /* Deep Indigo background */
+  --c-foreground: oklch(0.96 0.015 190); /* Light cyan-grey text */
+  --c-card: oklch(0.25 0.04 240); /* Slightly lighter indigo card */
+  --c-card-foreground: oklch(0.96 0.015 190); /* Card text */
+  --c-popover: oklch(0.25 0.04 240); /* Popover background */
+  --c-popover-foreground: oklch(0.96 0.015 190); /* Popover text */
+  --c-primary: oklch(0.6 0.15 230); /* Primary: Soft Blue (adjusted) */
+  --c-primary-foreground: oklch(0.15 0.03 230); /* Dark text on primary */
+  --c-secondary: oklch(0.4 0.06 140); /* Secondary: Dark Sage Green */
+  --c-secondary-foreground: oklch(0.96 0.015 140); /* Light text on secondary */
+  --c-muted: oklch(0.3 0.03 250); /* Muted background: Dark indigo-grey */
+  --c-muted-foreground: oklch(0.65 0.02 190); /* Muted text: Medium cyan-grey */
+  --c-accent: oklch(0.7 0.11 90); /* Accent: Muted Gold/Sand (adjusted) */
+  --c-accent-foreground: oklch(0.15 0.05 90); /* Dark text on accent */
+  --c-destructive: oklch(0.65 0.19 30); /* Destructive: Muted Red (adjusted) */
+  --c-destructive-foreground: oklch(0.15 0.03 30); /* Dark text on destructive */
+  --c-border: oklch(0.3 0.03 240); /* Border color */
+  --c-input: oklch(0.3 0.03 240); /* Input border/background */
+  --c-ring: oklch(0.6 0.15 230 / 0.4); /* Focus ring */
+  /* --radius is inherited or can be overridden */
+}
+
+/* --- Orange Theme (Optimized & Completed) --- */
+:root[data-theme='orange'] {
+  --c-background: oklch(0.99 0.01 60); /* Very light warm off-white */
+  --c-foreground: oklch(0.2 0.03 60); /* Dark brown text */
+  --c-card: oklch(1 0 0); /* White card */
+  --c-card-foreground: oklch(0.2 0.03 60); /* Card text */
+  --c-popover: oklch(1 0 0); /* White popover */
+  --c-popover-foreground: oklch(0.2 0.03 60); /* Popover text */
+  --c-primary: oklch(0.7 0.18 55); /* Primary Orange */
+  --c-primary-foreground: oklch(0.99 0.01 55); /* Light text on primary */
+  --c-secondary: oklch(0.95 0.06 60); /* Light orange/peach secondary */
+  --c-secondary-foreground: oklch(0.35 0.08 55); /* Darker orange text on secondary */
+  --c-muted: oklch(0.96 0.03 60); /* Muted background: Very light peach */
+  --c-muted-foreground: oklch(0.55 0.04 60); /* Muted text: Warm grey */
+  --c-accent: oklch(0.75 0.15 90); /* Accent: Yellow/Gold */
+  --c-accent-foreground: oklch(0.2 0.04 90); /* Dark text on accent */
+  --c-destructive: oklch(0.65 0.2 25); /* Destructive: Red */
+  --c-destructive-foreground: oklch(0.99 0.02 25); /* Light text on destructive */
+  --c-border: oklch(0.9 0.03 60); /* Border color */
+  --c-input: oklch(0.9 0.03 60); /* Input border/background */
+  --c-ring: oklch(0.7 0.18 55 / 0.4); /* Focus ring */
+  --radius: 0.5rem;
+}
+
+.dark[data-theme='orange'] {
+  --c-background: oklch(0.2 0.02 60); /* Dark brown background */
+  --c-foreground: oklch(0.97 0.015 60); /* Light beige text */
+  --c-card: oklch(0.25 0.03 60); /* Slightly lighter brown card */
+  --c-card-foreground: oklch(0.97 0.015 60); /* Card text */
+  --c-popover: oklch(0.25 0.03 60); /* Popover background */
+  --c-popover-foreground: oklch(0.97 0.015 60); /* Popover text */
+  --c-primary: oklch(0.75 0.19 55); /* Primary Orange (adjusted) */
+  --c-primary-foreground: oklch(0.2 0.04 55); /* Dark text on primary */
+  --c-secondary: oklch(0.4 0.07 60); /* Darker orange/brown secondary */
+  --c-secondary-foreground: oklch(0.97 0.015 60); /* Light text on secondary */
+  --c-muted: oklch(0.3 0.03 60); /* Muted background: Dark warm grey */
+  --c-muted-foreground: oklch(0.65 0.03 60); /* Muted text */
+  --c-accent: oklch(0.8 0.16 90); /* Accent: Gold (adjusted) */
+  --c-accent-foreground: oklch(0.15 0.05 90); /* Dark text on accent */
+  --c-destructive: oklch(0.7 0.2 25); /* Destructive: Red (adjusted) */
+  --c-destructive-foreground: oklch(0.15 0.03 25); /* Dark text on destructive */
+  --c-border: oklch(0.3 0.03 60); /* Border color */
+  --c-input: oklch(0.3 0.03 60); /* Input border/background */
+  --c-ring: oklch(0.75 0.19 55 / 0.4); /* Focus ring */
+  /* --radius is inherited or can be overridden */
+}
+
+/* --- Green Theme (Optimized & Completed) --- */
+:root[data-theme='green'] {
+  --c-background: oklch(0.99 0.01 145); /* Very light cool off-white */
+  --c-foreground: oklch(0.18 0.03 145); /* Dark green text */
+  --c-card: oklch(1 0 0); /* White card */
+  --c-card-foreground: oklch(0.18 0.03 145); /* Card text */
+  --c-popover: oklch(1 0 0); /* White popover */
+  --c-popover-foreground: oklch(0.18 0.03 145); /* Popover text */
+  --c-primary: oklch(0.65 0.16 145); /* Primary Green */
+  --c-primary-foreground: oklch(0.99 0.01 145); /* Light text on primary */
+  --c-secondary: oklch(0.94 0.05 145); /* Light green/mint secondary */
+  --c-secondary-foreground: oklch(0.3 0.07 145); /* Darker green text on secondary */
+  --c-muted: oklch(0.96 0.02 145); /* Muted background: Very light mint */
+  --c-muted-foreground: oklch(0.55 0.03 145); /* Muted text: Cool grey */
+  --c-accent: oklch(0.75 0.15 190); /* Accent: Cyan/Teal */
+  --c-accent-foreground: oklch(0.15 0.03 190); /* Dark text on accent */
+  --c-destructive: oklch(0.65 0.2 25); /* Destructive: Red */
+  --c-destructive-foreground: oklch(0.99 0.02 25); /* Light text on destructive */
+  --c-border: oklch(0.9 0.02 145); /* Border color */
+  --c-input: oklch(0.9 0.02 145); /* Input border/background */
+  --c-ring: oklch(0.65 0.16 145 / 0.4); /* Focus ring */
+  --radius: 0.5rem;
+}
+
+.dark[data-theme='green'] {
+  --c-background: oklch(0.2 0.025 145); /* Dark green background */
+  --c-foreground: oklch(0.97 0.015 145); /* Light cool grey text */
+  --c-card: oklch(0.25 0.035 145); /* Slightly lighter dark green card */
+  --c-card-foreground: oklch(0.97 0.015 145); /* Card text */
+  --c-popover: oklch(0.25 0.035 145); /* Popover background */
+  --c-popover-foreground: oklch(0.97 0.015 145); /* Popover text */
+  --c-primary: oklch(0.7 0.17 145); /* Primary Green (adjusted) */
+  --c-primary-foreground: oklch(0.15 0.03 145); /* Dark text on primary */
+  --c-secondary: oklch(0.4 0.06 145); /* Darker secondary green */
+  --c-secondary-foreground: oklch(0.97 0.015 145); /* Light text on secondary */
+  --c-muted: oklch(0.3 0.03 145); /* Muted background: Dark cool grey */
+  --c-muted-foreground: oklch(0.65 0.03 145); /* Muted text */
+  --c-accent: oklch(0.7 0.16 190); /* Accent: Teal (adjusted) */
+  --c-accent-foreground: oklch(0.1 0.04 190); /* Dark text on accent */
+  --c-destructive: oklch(0.7 0.2 25); /* Destructive: Red (adjusted) */
+  --c-destructive-foreground: oklch(0.15 0.03 25); /* Dark text on destructive */
+  --c-border: oklch(0.3 0.03 145); /* Border color */
+  --c-input: oklch(0.3 0.03 145); /* Input border/background */
+  --c-ring: oklch(0.7 0.17 145 / 0.4); /* Focus ring */
+  /* --radius is inherited or can be overridden */
+}
+
+/* --- Light Blue Theme (Optimized & Completed) --- */
+:root[data-theme='light-blue'] {
+  --c-background: oklch(0.99 0.006 260); /* Very light blue background */
+  --c-foreground: oklch(0.22 0.025 260); /* Dark blue-grey text */
+  --c-card: oklch(1 0 0); /* White card */
+  --c-card-foreground: oklch(0.22 0.025 260); /* Card text */
+  --c-popover: oklch(1 0 0); /* White popover */
+  --c-popover-foreground: oklch(0.22 0.025 260); /* Popover text */
+  --c-primary: oklch(0.75 0.12 260); /* Primary Light Blue */
+  --c-primary-foreground: oklch(0.15 0.04 260); /* Dark text on primary */
+  --c-secondary: oklch(0.92 0.05 260); /* Lighter blue secondary */
+  --c-secondary-foreground: oklch(0.4 0.07 260); /* Medium blue text on secondary */
+  --c-muted: oklch(0.96 0.018 260); /* Muted background: Very light blue-grey */
+  --c-muted-foreground: oklch(0.55 0.025 260); /* Muted text: Cool grey */
+  --c-accent: oklch(0.8 0.15 210); /* Accent: Aqua/Cyan */
+  --c-accent-foreground: oklch(0.15 0.03 210); /* Dark text on accent */
+  --c-destructive: oklch(0.65 0.2 25); /* Destructive: Red */
+  --c-destructive-foreground: oklch(0.99 0.02 25); /* Light text on destructive */
+  --c-border: oklch(0.9 0.02 260); /* Border color */
+  --c-input: oklch(0.9 0.02 260); /* Input border/background */
+  --c-ring: oklch(0.75 0.12 260 / 0.4); /* Focus ring */
+  --radius: 0.5rem;
+}
+
+.dark[data-theme='light-blue'] {
+  --c-background: oklch(0.18 0.025 260); /* Dark blue-grey background */
+  --c-foreground: oklch(0.97 0.012 260); /* Light blue-grey text */
+  --c-card: oklch(0.23 0.035 260); /* Slightly lighter dark blue-grey card */
+  --c-card-foreground: oklch(0.97 0.012 260); /* Card text */
+  --c-popover: oklch(0.23 0.035 260); /* Popover background */
+  --c-popover-foreground: oklch(0.97 0.012 260); /* Popover text */
+  --c-primary: oklch(0.7 0.14 260); /* Primary Light Blue (adjusted) */
+  --c-primary-foreground: oklch(0.15 0.05 260); /* Dark text on primary */
+  --c-secondary: oklch(0.4 0.06 260); /* Darker secondary blue */
+  --c-secondary-foreground: oklch(0.97 0.012 260); /* Light text on secondary */
+  --c-muted: oklch(0.3 0.03 260); /* Muted background: Dark cool grey */
+  --c-muted-foreground: oklch(0.65 0.025 260); /* Muted text */
+  --c-accent: oklch(0.75 0.16 210); /* Accent: Aqua/Cyan (adjusted) */
+  --c-accent-foreground: oklch(0.1 0.04 210); /* Dark text on accent */
+  --c-destructive: oklch(0.7 0.2 25); /* Destructive: Red (adjusted) */
+  --c-destructive-foreground: oklch(0.15 0.03 25); /* Dark text on destructive */
+  --c-border: oklch(0.3 0.03 260); /* Border color */
+  --c-input: oklch(0.3 0.03 260); /* Input border/background */
+  --c-ring: oklch(0.7 0.14 260 / 0.4); /* Focus ring */
+  /* --radius is inherited or can be overridden */
+}
