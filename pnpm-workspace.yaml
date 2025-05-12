@@ -8,6 +8,7 @@ catalog:
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - bufferutil
+  - electron
   - es5-ext
   - esbuild
   - nodejieba
