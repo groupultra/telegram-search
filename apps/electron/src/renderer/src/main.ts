@@ -4,7 +4,7 @@ import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
 import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import { routes as generatedRoutes } from 'vue-router/auto-routes'
 
 import App from './App.vue'
@@ -19,7 +19,7 @@ const pinia = createPinia()
 const routes = setupLayouts(generatedRoutes)
 const router = createRouter({
   routes,
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
 })
 const i18n = createI18n({
   legacy: false,

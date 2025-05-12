@@ -17,7 +17,14 @@ export default defineConfig({
   },
   renderer: {
     plugins: [
+      externalizeDepsPlugin(),
+
       Devtools(),
+
+      // https://github.com/posva/unplugin-vue-router
+      VueRouter({
+        routesFolder: 'src/renderer/src/pages',
+      }),
 
       VueMacros({
         defineOptions: false,
@@ -31,9 +38,6 @@ export default defineConfig({
           }),
         },
       }),
-
-      // https://github.com/posva/unplugin-vue-router
-      VueRouter(),
 
       // https://github.com/antfu/vite-plugin-components
       Components({
