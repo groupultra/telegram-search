@@ -7,9 +7,13 @@
 
 一个功能强大的 Telegram 聊天记录搜索工具，支持向量搜索和语义匹配。基于 OpenAI 的语义向量技术，让你的 Telegram 消息检索更智能、更精准。
 
-- 欢迎 PR！
+- 欢迎 PR 贡献！
 - 由于项目处于快速迭代阶段，可能会出现数据库不兼容的情况，建议定期备份数据。
 - 获取 API key: [#111](https://github.com/GramSearch/telegram-search/issues/111)
+
+## 💖 赞助者
+
+![Sponsors](./sponsorkit/sponsor.png)
 
 ## 🚀 快速开始
 
