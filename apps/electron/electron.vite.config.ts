@@ -50,6 +50,9 @@ export default defineConfig({
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),
+        '@tg-search/common': resolve('../../packages/common/src'),
+        '@tg-search/server': resolve('../../apps/server/src'),
+        '@tg-search/client': resolve('../../packages/core/src'),
       },
     },
 

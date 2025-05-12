@@ -75,15 +75,6 @@ importers:
       '@tanstack/vue-table':
         specifier: ^8.21.3
         version: 8.21.3(vue@3.5.13(typescript@5.8.3))
-      '@tg-search/common':
-        specifier: workspace:*
-        version: link:../../packages/common
-      '@tg-search/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@tg-search/server':
-        specifier: workspace:*
-        version: link:../server
       '@vueuse/core':
         specifier: ^13.1.0
         version: 13.1.0(vue@3.5.13(typescript@5.8.3))
