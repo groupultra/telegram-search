@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { ref, watch, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
