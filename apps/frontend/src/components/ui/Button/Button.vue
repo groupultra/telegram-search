@@ -32,6 +32,7 @@ const iconSizeClasses = {
       withTransition ? 'transition-colors duration-300' : '',
     ]"
     :aria-label="ariaLabel"
+    :disabled="disabled"
   >
     <div
       :class="[

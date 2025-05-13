@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
@@ -21,6 +21,13 @@ const { chats } = storeToRefs(chatsStore)
 
 const { currentTask, currentTaskProgress } = storeToRefs(useSyncTaskStore())
 const loadingToast = ref<string | number>()
+
+// 计算属性判断按钮是否应该禁用
+const isButtonDisabled = computed(() => {
+  // 只有在任务进行中并且进度小于100且不为负数时才禁用按钮
+  const isTaskInProgress = !!currentTask.value && currentTaskProgress.value >= 0 && currentTaskProgress.value < 100
+  return selectedChats.value.length === 0 || !isLoggedIn.value || isTaskInProgress
+})
 
 function handleSync() {
   websocketStore.sendEvent('takeout:run', {
@@ -72,7 +79,7 @@ watch(currentTaskProgress, (progress) => {
     <div class="ml-auto flex items-center gap-2">
       <Button
         icon="i-lucide-refresh-cw"
-        :disabled="selectedChats.length === 0 || !isLoggedIn || !!currentTask"
+        :disabled="isButtonDisabled"
         @click="handleSync"
       >
         同步

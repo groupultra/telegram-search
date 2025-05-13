@@ -12,6 +12,7 @@ onlyBuiltDependencies:
   - es5-ext
   - esbuild
   - nodejieba
+  - sharp
   - unrs-resolver
   - utf-8-validate
   - vue-demi

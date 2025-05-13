@@ -13,7 +13,7 @@
 
 ## 💖 赞助者
 
-![Sponsors](./docs/sponsorkit/sponsors.png)
+![Sponsors](https://github.com/luoling8192/luoling8192/raw/master/sponsorkit/sponsors.svg)
 
 ## 🚀 快速开始
 
