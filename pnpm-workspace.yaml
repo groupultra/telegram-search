@@ -17,3 +17,5 @@ onlyBuiltDependencies:
   - utf-8-validate
   - vue-demi
   - websocket
+patchedDependencies:
+  electron-vite: patches/electron-vite.patch

@@ -1,0 +1,18 @@
+diff --git a/dist/chunks/lib-DyJQBCfr.mjs b/dist/chunks/lib-DyJQBCfr.mjs
+index 0da83c7b3ffadb904822d148a7fce9ef50b3885c..250b3e102b04bc0dd66c909f48f3cba9ea91a4cd 100644
+--- a/dist/chunks/lib-DyJQBCfr.mjs
++++ b/dist/chunks/lib-DyJQBCfr.mjs
+@@ -851,10 +851,10 @@ function esmShimPlugin() {
+                 if (code.includes(CJSShim) || !CJSyntaxRe.test(code)) {
+                     return null;
+                 }
+-                const lastESMImport = findStaticImports(code).pop();
+-                const indexToAppend = lastESMImport ? lastESMImport.end : 0;
++                // const lastESMImport = findStaticImports(code).pop();
++                // const indexToAppend = lastESMImport ? lastESMImport.end : 0;
+                 const s = new MagicString(code);
+-                s.appendRight(indexToAppend, CJSShim);
++                s.prepend(CJSShim);
+                 return {
+                     code: s.toString(),
+                     map: sourcemap ? s.generateMap({ hires: 'boundary' }) : null

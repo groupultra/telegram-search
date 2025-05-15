@@ -2,8 +2,7 @@ import process from 'node:process'
 import { electronAPI } from '@electron-toolkit/preload'
 import { contextBridge } from 'electron'
 
-// Custom APIs for renderer
-const api = {}
+import { channelAPI } from './channel-api'
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
@@ -11,7 +10,7 @@ const api = {}
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('channel', channelAPI)
   }
   catch (error) {
     console.error(error)
@@ -21,5 +20,5 @@ else {
   // @ts-ignore (define in dts)
   window.electron = electronAPI
   // @ts-ignore (define in dts)
-  window.api = api
+  window.channel = channelAPI
 }

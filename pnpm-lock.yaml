@@ -17,6 +17,11 @@ overrides:
   unplugin: ^2.3.2
   vite: ^6.3.5
 
+patchedDependencies:
+  electron-vite:
+    hash: 30174b0e57be3bb1231838b8d1c609fbad9f2c190bb02f96183ba1b8991d4dba
+    path: patches/electron-vite.patch
+
 importers:
 
   .:
@@ -75,6 +80,12 @@ importers:
       '@tanstack/vue-table':
         specifier: ^8.21.3
         version: 8.21.3(vue@3.5.13(typescript@5.8.3))
+      '@tg-search/common':
+        specifier: workspace:*
+        version: link:../../packages/common
+      '@tg-search/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@vueuse/core':
         specifier: ^13.1.0
         version: 13.1.0(vue@3.5.13(typescript@5.8.3))
@@ -84,6 +95,9 @@ importers:
       electron-updater:
         specifier: ^6.3.9
         version: 6.6.2
+      nodejieba:
+        specifier: ^3.4.4
+        version: 3.4.4(encoding@0.1.13)
       ofetch:
         specifier: ^1.4.1
         version: 1.4.1
@@ -112,6 +126,9 @@ importers:
       '@electron-toolkit/tsconfig':
         specifier: ^1.0.1
         version: 1.0.1(@types/node@22.15.17)
+      '@rollup/plugin-alias':
+        specifier: ^5.1.1
+        version: 5.1.1(rollup@4.35.0)
       '@unocss/reset':
         specifier: ^66.1.1
         version: 66.1.1
@@ -129,7 +146,7 @@ importers:
         version: 25.1.8(electron-builder-squirrel-windows@25.1.8)
       electron-vite:
         specifier: ^3.1.0
-        version: 3.1.0(vite@6.3.5(@types/node@22.15.17)(jiti@2.4.2)(tsx@4.19.4)(yaml@2.7.1))
+        version: 3.1.0(patch_hash=30174b0e57be3bb1231838b8d1c609fbad9f2c190bb02f96183ba1b8991d4dba)(vite@6.3.5(@types/node@22.15.17)(jiti@2.4.2)(tsx@4.19.4)(yaml@2.7.1))
       unocss:
         specifier: ^66.1.1
         version: 66.1.1(postcss@8.5.3)(vite@6.3.5(@types/node@22.15.17)(jiti@2.4.2)(tsx@4.19.4)(yaml@2.7.1))(vue@3.5.13(typescript@5.8.3))
@@ -9648,7 +9665,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron-vite@3.1.0(vite@6.3.5(@types/node@22.15.17)(jiti@2.4.2)(tsx@4.19.4)(yaml@2.7.1)):
+  electron-vite@3.1.0(patch_hash=30174b0e57be3bb1231838b8d1c609fbad9f2c190bb02f96183ba1b8991d4dba)(vite@6.3.5(@types/node@22.15.17)(jiti@2.4.2)(tsx@4.19.4)(yaml@2.7.1)):
     dependencies:
       '@babel/core': 7.26.10
       '@babel/plugin-transform-arrow-functions': 7.27.1(@babel/core@7.26.10)

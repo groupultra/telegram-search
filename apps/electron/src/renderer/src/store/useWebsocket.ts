@@ -1,28 +1,18 @@
-import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient, WsMessageToServer } from '@tg-search/server'
+import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToServer } from '@tg-search/server'
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 
-import { useWebSocket } from '@vueuse/core'
-import { defineStore, storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { defineStore } from 'pinia'
+import { onMounted } from 'vue'
 
-import { WS_API_BASE } from '../constants'
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
-import { useSessionStore } from './useSession'
 
 export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
 
 export const useWebsocketStore = defineStore('websocket', () => {
-  const sessionStore = useSessionStore()
-  const { activeSessionId } = storeToRefs(sessionStore)
-
-  const wsUrlComputed = computed(() => `${WS_API_BASE}?sessionId=${activeSessionId.value}`)
-  const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed.value, {
-    onDisconnected: () => {
-      // eslint-disable-next-line no-console
-      console.log('[WebSocket] Disconnected')
-    },
-  }))
+  onMounted(() => {
+    window.channel.open()
+  })
 
   const createWsMessage: ClientCreateWsMessageFn = (type, data) => {
     return { type, data } as WsMessageToServer
@@ -34,7 +24,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
       // eslint-disable-next-line no-console
       console.log('[WebSocket] Sending event', event, data)
 
-    wsSocket.value!.send(JSON.stringify(createWsMessage(event, data)))
+    window.channel.message(createWsMessage(event, data))
   }
 
   const eventHandlers: ClientEventHandlerMap = new Map()
@@ -59,46 +49,36 @@ export const useWebsocketStore = defineStore('websocket', () => {
   }
 
   // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L95-L123
-  watch(() => wsSocket.value.data, (rawMessage) => {
-    if (!rawMessage)
-      return
+  window.channel.onMessage((message) => {
+    if (eventHandlers.has(message.type)) {
+    // eslint-disable-next-line no-console
+      console.log('[WebSocket] Message received', message)
+    }
 
-    try {
-      const message = JSON.parse(rawMessage) as WsMessageToClient
+    if (eventHandlers.has(message.type)) {
+      const fn = eventHandlers.get(message.type)
 
-      if (eventHandlers.has(message.type)) {
-      // eslint-disable-next-line no-console
-        console.log('[WebSocket] Message received', message)
+      try {
+        if (fn)
+          fn(message.data)
       }
-
-      if (eventHandlers.has(message.type)) {
-        const fn = eventHandlers.get(message.type)
-
-        try {
-          if (fn)
-            fn(message.data)
-        }
-        catch (error) {
-          console.error('[WebSocket] Error handling event', message, error)
-        }
-      }
-
-      if (eventHandlersQueue.has(message.type)) {
-        const fnQueue = eventHandlersQueue.get(message.type) ?? []
-
-        try {
-          fnQueue.forEach((inQueueFn) => {
-            inQueueFn(message.data)
-            fnQueue.pop()
-          })
-        }
-        catch (error) {
-          console.error('[WebSocket] Error handling queued event', message, error)
-        }
+      catch (error) {
+        console.error('[WebSocket] Error handling event', message, error)
       }
     }
-    catch (error) {
-      console.error('[WebSocket] Invalid message', rawMessage, error)
+
+    if (eventHandlersQueue.has(message.type)) {
+      const fnQueue = eventHandlersQueue.get(message.type) ?? []
+
+      try {
+        fnQueue.forEach((inQueueFn) => {
+          inQueueFn(message.data)
+          fnQueue.pop()
+        })
+      }
+      catch (error) {
+        console.error('[WebSocket] Error handling queued event', message, error)
+      }
     }
   })
 

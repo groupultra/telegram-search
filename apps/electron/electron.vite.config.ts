@@ -8,12 +8,36 @@ import VueRouter from 'unplugin-vue-router/vite'
 import Devtools from 'vite-plugin-vue-devtools'
 import Layouts from 'vite-plugin-vue-layouts'
 
+const alias = {
+  '@renderer': resolve('src/renderer/src'),
+  '@tg-search/server': resolve('../../apps/server/src'),
+  '@tg-search/common': resolve('../../packages/common/src'),
+  '@tg-search/core': resolve('../../packages/core/src'),
+}
+
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({
+      include: [
+        'nodejieba',
+      ],
+      exclude: [
+        ...Object.keys(alias),
+      ],
+    })],
+    resolve: {
+      alias: {
+        ...alias,
+        ...Object.fromEntries(['mock-aws-s3', 'aws-sdk', 'nock'].map(dep => ([
+          dep,
+          `${resolve(__dirname, 'stubs', 'empty.cjs')}`,
+        ]))),
+      },
+    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
+    resolve: { alias },
   },
   renderer: {
     plugins: [
@@ -51,14 +75,7 @@ export default defineConfig({
       Layouts(),
     ],
 
-    resolve: {
-      alias: {
-        '@renderer': resolve('src/renderer/src'),
-        '@tg-search/common': resolve('../../packages/common/src'),
-        '@tg-search/server': resolve('../../apps/server/src'),
-        '@tg-search/client': resolve('../../packages/core/src'),
-      },
-    },
+    resolve: { alias },
 
     // Proxy API requests to local development server
     server: {

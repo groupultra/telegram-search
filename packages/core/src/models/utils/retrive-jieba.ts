@@ -5,10 +5,12 @@ import { existsSync } from 'node:fs'
 import { useLogger } from '@tg-search/common'
 import { useConfig } from '@tg-search/common/composable'
 import { and, eq, sql } from 'drizzle-orm'
-import { cut, load } from 'nodejieba'
+import nodejieba from 'nodejieba'
 
 import { withDb } from '../../db'
 import { chatMessagesTable } from '../../db/schema'
+
+const { cut, load } = nodejieba
 
 export async function retriveJieba(chatId: string, content: string, pagination?: CorePagination): Promise<DBRetrivalMessages[]> {
   const logger = useLogger('models:retrive-jieba')

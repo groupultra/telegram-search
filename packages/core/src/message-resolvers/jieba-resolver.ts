@@ -4,9 +4,11 @@ import type { CoreMessage } from '../utils/message'
 import { existsSync } from 'node:fs'
 import { useLogger } from '@tg-search/common'
 import { useConfig } from '@tg-search/common/composable'
-import { cut, load } from 'nodejieba'
+import nodejieba from 'nodejieba'
 
 import { Err, Ok } from '../utils/monad'
+
+const { cut, load } = nodejieba
 
 export function createJiebaResolver(): MessageResolver {
   const logger = useLogger('core:resolver:jieba')

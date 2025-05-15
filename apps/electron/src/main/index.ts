@@ -4,6 +4,7 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 
 import icon from '../../resources/icon.png?asset'
+import { bootstrap, setupElectronIpc } from './app'
 
 function createWindow(): void {
   // Create the browser window.
@@ -18,6 +19,8 @@ function createWindow(): void {
       sandbox: false,
     },
   })
+
+  setupElectronIpc(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -41,7 +44,10 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+Promise.all([
+  bootstrap(),
+  app.whenReady(),
+]).then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
