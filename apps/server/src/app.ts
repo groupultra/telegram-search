@@ -104,7 +104,7 @@ export function setupWsRoutes(app: App) {
               sendWsEvent(peer, eventName, data)
             }
 
-            state.ctx?.emitter.on(eventName, (...args) => fn(args[0]))
+            state.ctx?.emitter.on(eventName, fn as any)
             eventListenersByPeer.get(peer.id)?.set(eventName, fn)
           }
         }
@@ -136,7 +136,7 @@ export function setupWsRoutes(app: App) {
 
       const { state } = usePeerSessionState(peer)
       eventListenersByPeer.get(peer.id)?.forEach((fn, eventName) => {
-        state.ctx?.emitter.removeListener(eventName, (...args) => fn(args[0]))
+        state.ctx?.emitter.removeListener(eventName, fn as any)
       })
     },
   }))
