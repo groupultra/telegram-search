@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.0.0-beta.1",
   "private": true,
-  "packageManager": "pnpm@10.10.0",
+  "packageManager": "pnpm@10.11.0",
   "scripts": {
     "build": "pnpm -r build",
     "stub": "pnpm -r stub",
@@ -36,7 +36,7 @@
     "typescript": "^5.8.3"
   },
   "resolutions": {
-    "unplugin": "^2.3.2",
+    "unplugin": "^2.3.4",
     "vite": "^6.3.5"
   },
   "lint-staged": {

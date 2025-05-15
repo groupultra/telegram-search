@@ -3,8 +3,8 @@ packages:
   - libs/*
   - apps/*
 catalog:
-  '@xsai-ext/providers-cloud': ^0.2.1
-  '@xsai/embed': ^0.2.1
+  '@xsai-ext/providers-cloud': ^0.2.2
+  '@xsai/embed': ^0.2.2
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - bufferutil
