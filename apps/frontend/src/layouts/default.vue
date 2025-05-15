@@ -52,7 +52,7 @@ function toggleActiveChatGroup(group: ChatGroup) {
   <div
     class="h-screen w-full flex overflow-hidden bg-background text-sm font-medium"
   >
-    <div class="w-[20%] md:w-[15%] flex flex-col h-dvh border-r border-r-secondary">
+    <div class="w-[20%] md:w-[15%] flex flex-col h-dvh border-r border-r-secondary min-w-min">
       <div class="relative p-4">
         <div
           class="i-lucide-search absolute left-7 top-1/2 -translate-y-1/2 h-4 w-4"
@@ -127,7 +127,7 @@ function toggleActiveChatGroup(group: ChatGroup) {
       </div>
 
       <div class="flex items-center justify-between p-4">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 mr-3">
           <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-muted">
             <Avatar
               :name="sessionStore.getActiveSession()?.me?.username"
@@ -135,8 +135,8 @@ function toggleActiveChatGroup(group: ChatGroup) {
             />
           </div>
           <div class="flex flex-col">
-            <span class="text-sm text-foreground font-medium">{{ sessionStore.getActiveSession()?.me?.username }}</span>
-            <span class="text-xs text-secondary-foreground">{{ sessionStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
+            <span class="text-sm text-foreground font-medium whitespace-nowrap">{{ sessionStore.getActiveSession()?.me?.username }}</span>
+            <span class="text-xs text-secondary-foreground whitespace-nowrap">{{ sessionStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
           </div>
         </div>
         <div class="flex items-center">

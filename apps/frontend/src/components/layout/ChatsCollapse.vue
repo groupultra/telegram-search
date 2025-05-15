@@ -40,7 +40,7 @@ function toggleActive() {
         class=" flex items-center rounded-md text-foreground gap-4 px-6"
       >
         <span :class="icon" class="h-5 w-5" />
-        <span>{{ name }}</span>
+        <span class="whitespace-nowrap">{{ name }}</span>
       </div>
 
       <div
@@ -70,7 +70,7 @@ function toggleActive() {
             {{ chat.name }}
           </span>
 
-          <span class="text-xs text-secondary-foreground">
+          <span class="text-xs text-secondary-foreground whitespace-nowrap">
             {{ chat.id }}
           </span>
         </div>
