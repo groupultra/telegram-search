@@ -24,10 +24,10 @@
     "db:kit": "tsx scripts/db.ts"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.13.0",
-    "bumpp": "^10.1.0",
+    "@antfu/eslint-config": "^4.13.1",
+    "bumpp": "^10.1.1",
     "drizzle-kit": "^0.31.1",
-    "eslint": "^9.26.0",
+    "eslint": "^9.27.0",
     "eslint-plugin-format": "^1.0.1",
     "lint-staged": "^16.0.0",
     "taze": "^19.1.0",

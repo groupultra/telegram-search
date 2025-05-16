@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.8.2",
-    "@iconify-json/lucide": "^1.2.43",
+    "@iconify-json/lucide": "^1.2.44",
     "@iconify/vue": "^5.0.0",
     "@tanstack/vue-query": "^5.76.0",
     "@tanstack/vue-table": "^8.21.3",
@@ -33,14 +33,14 @@
     "vue-sonner": "^1.3.2"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.13.0",
+    "@antfu/eslint-config": "^4.13.1",
     "@types/node": "^22.15.18",
     "@unocss/eslint-config": "^66.1.2",
     "@unocss/eslint-plugin": "^66.1.2",
     "@unocss/reset": "^66.1.2",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue-macros/volar": "^3.0.0-beta.12",
-    "eslint": "^9.26.0",
+    "eslint": "^9.27.0",
     "typescript": "^5.8.3",
     "unocss": "^66.1.2",
     "unplugin-vue-components": "^28.5.0",
