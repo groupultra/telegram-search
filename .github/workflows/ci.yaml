@@ -37,9 +37,13 @@ jobs:
           cache: pnpm
 
       - name: Install
+        env:
+          CXX: clang++-19
         run: pnpm install
 
       - name: Build
+        env:
+          CXX: clang++-19
         run: pnpm run build
 
   typecheck:
@@ -56,10 +60,16 @@ jobs:
           cache: pnpm
 
       - name: Install
+        env:
+          CXX: clang++-19
         run: pnpm install
 
       - name: Build
+        env:
+          CXX: clang++-19
         run: pnpm run build
 
       - name: Typecheck
+        env:
+          CXX: clang++-19
         run: pnpm run typecheck
