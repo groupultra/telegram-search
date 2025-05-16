@@ -20,7 +20,7 @@ jobs:
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "19.0"
+          version: "14.0"
           env: true
 
       - name: Install
@@ -45,7 +45,7 @@ jobs:
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "19.0"
+          version: "14.0"
           env: true
 
       - name: Install
@@ -70,7 +70,7 @@ jobs:
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "19.0"
+          version: "14.0"
           env: true
 
       - name: Install
