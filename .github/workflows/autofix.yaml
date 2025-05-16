@@ -23,8 +23,9 @@ jobs:
           version: "14.0"
           env: true
 
-      - name: Parpare node-gyp
-        run: pnpm install -g node-gyp
+      - name: Prepare node-gyp
+        run: | 
+          pnpm add node-gyp
 
       - run: pnpm install
       - run: pnpm run build
