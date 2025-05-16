@@ -23,6 +23,9 @@ jobs:
           version: "14.0"
           env: true
 
+      - name: Parpare node-gyp
+        run: pnpm install -g node-gyp
+
       - name: Install
         run: pnpm install
 
@@ -48,6 +51,9 @@ jobs:
           version: "14.0"
           env: true
 
+      - name: Parpare node-gyp
+        run: pnpm install -g node-gyp
+
       - name: Install
         run: pnpm install
 
@@ -72,6 +78,9 @@ jobs:
         with:
           version: "14.0"
           env: true
+
+      - name: Parpare node-gyp
+        run: pnpm install -g node-gyp
 
       - name: Install
         run: pnpm install

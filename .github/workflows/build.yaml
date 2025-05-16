@@ -19,6 +19,15 @@ jobs:
           node-version: lts/*
           cache: pnpm
 
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "14.0"
+          env: true
+
+      - name: Parpare node-gyp
+        run: pnpm install -g node-gyp
+
       # Install dependencies
       - name: Install
         run: pnpm install
