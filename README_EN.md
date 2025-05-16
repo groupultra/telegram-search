@@ -29,7 +29,7 @@ cd telegram-search
 2. Install dependencies:
 
 ```bash
-pnpm install
+CXX=clang++-19 pnpm install
 ```
 
 3. Configure environment:

@@ -29,7 +29,7 @@ cd telegram-search
 2. 安装依赖：
 
 ```bash
-pnpm install
+CXX=clang++-19 pnpm install
 ```
 
 3. 配置环境：
