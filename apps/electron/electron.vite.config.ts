@@ -1,6 +1,8 @@
-import { resolve } from 'node:path'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import Vue from '@vitejs/plugin-vue'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import { resolve } from 'pathe'
 import UnoCSS from 'unocss/vite'
 import Components from 'unplugin-vue-components/vite'
 import VueMacros from 'unplugin-vue-macros/vite'
@@ -30,7 +32,7 @@ export default defineConfig({
         ...alias,
         ...Object.fromEntries(['mock-aws-s3', 'aws-sdk', 'nock'].map(dep => ([
           dep,
-          `${resolve(__dirname, 'stubs', 'empty.cjs')}`,
+          `${resolve(fileURLToPath(dirname(import.meta.url)), 'stubs', 'empty.cjs')}`,
         ]))),
       },
     },

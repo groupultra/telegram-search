@@ -26,6 +26,7 @@
     "electron-updater": "^6.3.9",
     "nodejieba": "^3.4.4",
     "ofetch": "^1.4.1",
+    "pathe": "^2.0.3",
     "pinia": "^3.0.2",
     "radix-vue": "^1.9.17",
     "reka-ui": "^2.2.1",
