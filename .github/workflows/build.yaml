@@ -1,0 +1,64 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      # Install dependencies
+      - name: Install
+        run: pnpm install
+
+      # Build the app for different platforms
+      - name: Build Electron App
+        run: pnpm run build
+        working-directory: apps/electron
+
+      # Build installers
+      - name: Build Installers
+        run: |
+          pnpm electron-builder --config electron-builder.yml
+        working-directory: apps/electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload artifacts
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: |
+            apps/electron/dist/*.exe
+            apps/electron/dist/*.dmg
+            apps/electron/dist/*.AppImage
+            apps/electron/dist/*.snap
+            apps/electron/dist/*.deb
+          if-no-files-found: ignore
+
+      # Create GitHub Release
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            apps/electron/dist/*.exe
+            apps/electron/dist/*.dmg
+            apps/electron/dist/*.AppImage
+            apps/electron/dist/*.snap
+            apps/electron/dist/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
