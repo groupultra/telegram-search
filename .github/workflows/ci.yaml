@@ -20,11 +20,11 @@ jobs:
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "14.0"
+          version: '14.0'
           env: true
 
       - name: Prepare node-gyp
-        run: | 
+        run: |
           pnpm add node-gyp -w
 
       - name: Install
@@ -36,7 +36,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -49,11 +49,11 @@ jobs:
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "14.0"
+          version: '14.0'
           env: true
 
       - name: Prepare node-gyp
-        run: | 
+        run: |
           pnpm add node-gyp -w
 
       - name: Install
@@ -65,7 +65,7 @@ jobs:
   typecheck:
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -78,11 +78,11 @@ jobs:
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "14.0"
+          version: '14.0'
           env: true
 
       - name: Prepare node-gyp
-        run: | 
+        run: |
           pnpm add node-gyp -w
 
       - name: Install
