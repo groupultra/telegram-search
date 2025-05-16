@@ -25,7 +25,7 @@ jobs:
 
       - name: Prepare node-gyp
         run: | 
-          pnpm add node-gyp
+          pnpm add node-gyp -w
 
       - run: pnpm install
       - run: pnpm run build

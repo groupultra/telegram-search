@@ -25,7 +25,7 @@ jobs:
 
       - name: Prepare node-gyp
         run: | 
-          pnpm add node-gyp
+          pnpm add node-gyp -w
 
       - name: Install
         run: pnpm install
@@ -54,7 +54,7 @@ jobs:
 
       - name: Prepare node-gyp
         run: | 
-          pnpm add node-gyp
+          pnpm add node-gyp -w
 
       - name: Install
         run: pnpm install
@@ -83,7 +83,7 @@ jobs:
 
       - name: Prepare node-gyp
         run: | 
-          pnpm add node-gyp
+          pnpm add node-gyp -w
 
       - name: Install
         run: pnpm install
