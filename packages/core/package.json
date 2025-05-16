@@ -29,14 +29,14 @@
     "eventemitter3": "^5.0.1",
     "grammy": "^1.36.1",
     "nodejieba": "^3.4.4",
-    "pg": "^8.15.6",
+    "pg": "^8.16.0",
     "postgres": "^3.4.5",
     "telegram": "^2.26.22",
     "unbuild": "^3.5.0",
     "valibot": "^1.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22.15.17",
+    "@types/node": "^22.15.18",
     "@types/pg": "^8.15.1",
     "drizzle-kit": "^0.31.1",
     "vitest": "^3.1.3"

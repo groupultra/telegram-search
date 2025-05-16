@@ -16,7 +16,6 @@
     "lint": "pnpm -r --parallel lint",
     "lint:fix": "pnpm -r --parallel lint:fix",
     "typecheck": "pnpm -r --parallel typecheck",
-    "postinstall": "husky",
     "bump": "bumpp",
     "bump:deps": "taze -I -f -w -r",
     "db:generate": "drizzle-kit generate",
@@ -30,19 +29,13 @@
     "drizzle-kit": "^0.31.1",
     "eslint": "^9.26.0",
     "eslint-plugin-format": "^1.0.1",
-    "husky": "^9.1.7",
     "lint-staged": "^16.0.0",
     "taze": "^19.1.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   },
   "resolutions": {
-    "unplugin": "^2.3.2",
+    "unplugin": "^2.3.4",
     "vite": "^6.3.5"
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx,vue}": [
-      "eslint --fix"
-    ]
   }
 }
