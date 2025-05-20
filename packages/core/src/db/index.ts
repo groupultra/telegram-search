@@ -1,4 +1,3 @@
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import type { PgliteDatabase } from 'drizzle-orm/pglite'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
@@ -6,21 +5,14 @@ import { PGlite } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
 import { DatabaseType, flags, useLogger } from '@tg-search/common'
 import { getDatabaseDSN, getDatabaseFilePath, getDrizzlePath, useConfig } from '@tg-search/common/composable'
-import BetterSQLite3 from 'better-sqlite3'
 import { sql } from 'drizzle-orm'
-import { drizzle as drizzleSQLite } from 'drizzle-orm/better-sqlite3'
-import { migrate as migrateSQLite } from 'drizzle-orm/better-sqlite3/migrator'
 import { drizzle as drizzlePGlite } from 'drizzle-orm/pglite'
 import { migrate as migratePGlite } from 'drizzle-orm/pglite/migrator'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate as migratePg } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
-// @ts-ignore
-import vectorlite from 'vectorlite'
 
 import { Err, Ok } from '../utils/monad'
-
-const { vectorlitePath } = vectorlite
 
 interface BaseDB {
   execute: (query: any) => Promise<any>
@@ -29,7 +21,6 @@ interface BaseDB {
 export type CoreDB =
   | (PostgresJsDatabase<Record<string, unknown>> & { $client: ReturnType<typeof postgres> } & BaseDB)
   | (PgliteDatabase<Record<string, unknown>> & { $client: PGlite } & BaseDB)
-  | (BetterSQLite3Database<Record<string, unknown>> & { $client: any } & BaseDB)
 
 let dbInstance: CoreDB
 
@@ -45,9 +36,6 @@ async function applyMigrations(db: CoreDB, dbType: DatabaseType) {
         break
       case DatabaseType.PGLITE:
         await migratePGlite(db as PgliteDatabase<Record<string, unknown>>, { migrationsFolder })
-        break
-      case DatabaseType.SQLITE_VEC:
-        await migrateSQLite(db as BetterSQLite3Database<Record<string, unknown>>, { migrationsFolder })
         break
     }
     logger.log('Database migrations applied successfully')
@@ -106,34 +94,6 @@ export async function initDrizzle() {
       }
       catch (error) {
         logger.withError(error).error('Failed to initialize PGlite database')
-        throw error
-      }
-      break
-    }
-
-    case DatabaseType.SQLITE_VEC: {
-      // Initialize SQLite + Vector database
-      const dbFilePath = getDatabaseFilePath(config)
-      logger.log(`Using SQLite+Vector database file: ${dbFilePath}`)
-
-      try {
-        // Initialize SQLite instance
-        const sqlite = new BetterSQLite3(dbFilePath)
-
-        // Load vectorlite extension
-        try {
-          sqlite.loadExtension(vectorlitePath())
-          logger.log('Loaded vectorlite extension')
-        }
-        catch (error) {
-          logger.withError(error).error('Failed to load vectorlite extension, vector search functionality will not be available')
-        }
-
-        // Create Drizzle instance
-        dbInstance = drizzleSQLite(sqlite) as CoreDB
-      }
-      catch (error) {
-        logger.withError(error).error('Failed to initialize SQLite+Vector database')
         throw error
       }
       break

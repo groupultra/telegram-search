@@ -1,6 +1,6 @@
 # Database settings
 database:
-  # Database type: postgres, pglite, sqlite_vec
+  # Database type: postgres, pglite
   type: postgres
   # PostgreSQL configuration (used when type: postgres)
   # Can use URL or separate field configuration
@@ -10,11 +10,6 @@ database:
   user: postgres
   password: '123456'
   database: postgres
-  
-  # PGlite and SQLite+Vector require no additional configuration
-  # Database files will be automatically created in path.storage directory
-  # PGlite: db.pglite
-  # SQLite+Vector: db.sqlite
 
 # Message settings
 message:

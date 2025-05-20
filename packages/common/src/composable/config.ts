@@ -93,9 +93,6 @@ export function getDatabaseFilePath(config: Config): string {
     case DatabaseType.PGLITE:
       extension = '.pglite'
       break
-    case DatabaseType.SQLITE_VEC:
-      extension = '.sqlite'
-      break
     default:
       return ''
   }
