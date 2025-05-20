@@ -6,10 +6,11 @@ import { dirname, join, resolve } from 'node:path'
 import { cwd } from 'node:process'
 import { findWorkspaceDir } from '@pnpm/find-workspace-dir'
 import defu from 'defu'
+import path from 'path-browserify-esm'
 import { safeParse } from 'valibot'
 import { parse, stringify } from 'yaml'
 
-import { configSchema } from '../helper/config-schema'
+import { configSchema, DatabaseType } from '../helper/config-schema'
 import { generateDefaultConfig } from '../helper/default-config'
 import { useLogger } from '../helper/logger'
 
@@ -75,6 +76,24 @@ export function getMediaPath(storagePath: string) {
 export function getDatabaseDSN(config: Config): string {
   const { database } = config
   return database.url || `postgres://${database.user}:${database.password}@${database.host}:${database.port}/${database.database}`
+}
+
+export function getDatabaseFilePath(config: Config): string {
+  const { database, path: configPath } = config
+
+  let extension = ''
+  switch (database.type) {
+    case DatabaseType.PGLITE:
+      extension = '.pglite'
+      break
+    case DatabaseType.SQLITE_VEC:
+      extension = '.sqlite'
+      break
+    default:
+      return ''
+  }
+
+  return path.join(configPath.storage, `db${extension}`)
 }
 
 export function resolveStoragePath(path: string): string {

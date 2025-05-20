@@ -18,6 +18,12 @@ export enum EmbeddingDimension {
   DIMENSION_768 = 768,
 }
 
+export enum DatabaseType {
+  POSTGRES = 'postgres',
+  PGLITE = 'pglite',
+  SQLITE_VEC = 'sqlite_vec',
+}
+
 export const proxyConfigSchema = object({
   ip: string(),
   port: number(),
@@ -30,30 +36,31 @@ export const proxyConfigSchema = object({
 })
 
 export const databaseConfigSchema = object({
-  host: string(),
-  port: number(),
-  user: string(),
-  password: string(),
-  database: string(),
-
+  type: optional(enumType(DatabaseType), DatabaseType.POSTGRES),
+  host: optional(string(), 'localhost'),
+  port: optional(number(), 5432),
+  user: optional(string(), 'postgres'),
+  password: optional(string(), 'postgres'),
+  database: optional(string(), 'postgres'),
   url: optional(string()),
 })
 
 export const messageConfigSchema = object({
   export: object({
-    batchSize: number(),
-    concurrent: number(),
-    retryTimes: number(),
-    maxTakeoutRetries: number(),
+    batchSize: optional(number(), 200),
+    concurrent: optional(number(), 3),
+    retryTimes: optional(number(), 3),
+    maxTakeoutRetries: optional(number(), 3),
   }),
   batch: object({
-    size: number(),
+    size: optional(number(), 100),
   }),
 })
 
 export const pathConfigSchema = object({
   storage: string(),
   dict: string(),
+  assets: optional(string(), ''),
 })
 
 export const telegramConfigSchema = object({
@@ -64,11 +71,11 @@ export const telegramConfigSchema = object({
 })
 
 export const embeddingConfigSchema = object({
-  provider: enumType(EmbeddingProvider),
-  model: string(),
-  dimension: optional(enumType(EmbeddingDimension)),
-  apiKey: optional(string()),
-  apiBase: optional(string()),
+  provider: optional(enumType(EmbeddingProvider), EmbeddingProvider.OPENAI),
+  model: optional(string(), 'text-embedding-3-small'),
+  dimension: optional(enumType(EmbeddingDimension), EmbeddingDimension.DIMENSION_1536),
+  apiKey: optional(string(), ''),
+  apiBase: optional(string(), ''),
 })
 
 export const apiConfigSchema = object({

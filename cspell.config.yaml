@@ -19,6 +19,7 @@ words:
   - ofetch
   - ollama
   - onnotice
+  - pglite
   - pgvector
   - pinia
   - reka

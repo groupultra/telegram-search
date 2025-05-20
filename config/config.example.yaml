@@ -1,12 +1,20 @@
 # Database settings
 database:
-  # You can use url or separate fields
+  # 数据库类型：postgres, pglite, sqlite_vec
+  type: postgres
+  # PostgreSQL 配置 (当 type: postgres 时使用)
+  # 可以使用 url 或分开的字段配置
   # url: postgres://postgres:postgres@localhost:5432/tg_search
   host: localhost
   port: 5433
   user: postgres
   password: '123456'
   database: postgres
+  
+  # PGlite 和 SQLite+Vector 不需要额外配置
+  # 数据库文件会自动创建在 path.storage 目录下
+  # PGlite: db.pglite
+  # SQLite+Vector: db.sqlite
 
 # Message settings
 message:
