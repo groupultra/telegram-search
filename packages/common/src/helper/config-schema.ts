@@ -25,8 +25,8 @@ export enum DatabaseType {
 }
 
 export const proxyConfigSchema = object({
-  ip: string(),
-  port: number(),
+  ip: optional(string(), ''),
+  port: optional(number(), 0),
   MTProxy: optional(boolean()),
   secret: optional(string()),
   socksType: optional(enumType(SocksType)),
@@ -46,27 +46,27 @@ export const databaseConfigSchema = object({
 })
 
 export const messageConfigSchema = object({
-  export: object({
+  export: optional(object({
     batchSize: optional(number(), 200),
     concurrent: optional(number(), 3),
     retryTimes: optional(number(), 3),
     maxTakeoutRetries: optional(number(), 3),
-  }),
-  batch: object({
+  }), {}),
+  batch: optional(object({
     size: optional(number(), 100),
-  }),
+  }), {}),
 })
 
 export const pathConfigSchema = object({
-  storage: string(),
-  dict: string(),
+  storage: optional(string(), '~/.telegram-search'),
+  dict: optional(string(), ''),
   assets: optional(string(), ''),
 })
 
 export const telegramConfigSchema = object({
-  apiId: string(),
-  apiHash: string(),
-  phoneNumber: string(),
+  apiId: optional(string(), ''),
+  apiHash: optional(string(), ''),
+  phoneNumber: optional(string(), ''),
   proxy: optional(proxyConfigSchema),
 })
 
@@ -79,15 +79,15 @@ export const embeddingConfigSchema = object({
 })
 
 export const apiConfigSchema = object({
-  telegram: telegramConfigSchema,
-  embedding: embeddingConfigSchema,
+  telegram: optional(telegramConfigSchema, {}),
+  embedding: optional(embeddingConfigSchema, {}),
 })
 
 export const configSchema = object({
-  database: databaseConfigSchema,
-  message: messageConfigSchema,
-  path: pathConfigSchema,
-  api: apiConfigSchema,
+  database: optional(databaseConfigSchema, {}),
+  message: optional(messageConfigSchema, {}),
+  path: optional(pathConfigSchema, {}),
+  api: optional(apiConfigSchema, {}),
 })
 
 export type Config = InferOutput<typeof configSchema>

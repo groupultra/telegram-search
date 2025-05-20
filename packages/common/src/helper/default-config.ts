@@ -7,7 +7,6 @@ import { configSchema } from './config-schema'
 
 export function generateDefaultConfig(paths?: { storagePath?: string, assetsPath?: string }): Config {
   const defaultConfig = safeParse(configSchema, {
-    // Path settings
     path: {
       storage: paths?.storagePath ?? '~/.telegram-search',
       assets: paths?.assetsPath ?? '',
@@ -16,7 +15,7 @@ export function generateDefaultConfig(paths?: { storagePath?: string, assetsPath
   })
 
   if (!defaultConfig.success) {
-    throw new Error('Failed to generate default config')
+    throw new Error('Failed to generate default config', { cause: defaultConfig.issues })
   }
 
   return defaultConfig.output
