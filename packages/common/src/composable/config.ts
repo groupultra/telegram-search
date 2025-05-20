@@ -17,13 +17,17 @@ import { useLogger } from '../helper/logger'
 let config: Config
 const logger = useLogger('common:config')
 
-export async function useConfigPath(): Promise<string> {
+async function getWorkspacePath() {
   const workspaceDir = await findWorkspaceDir(cwd())
   if (!workspaceDir) {
     throw new Error('Failed to find workspace directory')
   }
 
-  const configPath = resolve(workspaceDir, 'config', 'config.yaml')
+  return workspaceDir
+}
+
+export async function useConfigPath(): Promise<string> {
+  const configPath = resolve(await getWorkspacePath(), 'config', 'config.yaml')
 
   logger.withFields({ configPath }).log('Config path')
 
@@ -35,12 +39,15 @@ export async function useConfigPath(): Promise<string> {
   return configPath
 }
 
-export async function useAssetsPath(): Promise<string> {
-  const workspaceDir = await findWorkspaceDir(cwd())
-  if (!workspaceDir) {
-    throw new Error('Failed to find workspace directory')
-  }
+export async function getDrizzlePath(): Promise<string> {
+  const workspaceDir = await getWorkspacePath()
+  const drizzlePath = resolve(workspaceDir, 'drizzle')
+  logger.withFields({ drizzlePath }).log('Drizzle migrations path')
+  return drizzlePath
+}
 
+export async function useAssetsPath(): Promise<string> {
+  const workspaceDir = await getWorkspacePath()
   const assetsPath = resolve(workspaceDir, 'assets')
 
   logger.withFields({ assetsPath }).log('Assets path')
