@@ -14,7 +14,7 @@
     "@formkit/auto-animate": "^0.8.2",
     "@iconify-json/lucide": "^1.2.44",
     "@iconify/vue": "^5.0.0",
-    "@tanstack/vue-query": "^5.76.0",
+    "@tanstack/vue-query": "^5.76.2",
     "@tanstack/vue-table": "^8.21.3",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",

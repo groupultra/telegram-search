@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.3.1",
+    "@electric-sql/pglite": "^0.3.2",
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
     "@xsai-ext/providers-cloud": "catalog:",
@@ -32,7 +32,7 @@
     "grammy": "^1.36.1",
     "pathe": "^2.0.3",
     "pg": "^8.16.0",
-    "postgres": "^3.4.5",
+    "postgres": "^3.4.7",
     "telegram": "^2.26.22",
     "valibot": "^1.1.0",
     "vectorlite": "^0.2.0"
