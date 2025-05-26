@@ -19,6 +19,7 @@ import { initLogger, useLogger } from '../packages/common/src/helper/logger'
         DATABASE_DSN: dsn,
       },
       stdio: 'pipe',
+      shell: true,
     })
 
     child.stdout.on('data', (data) => {
