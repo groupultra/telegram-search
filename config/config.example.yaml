@@ -58,5 +58,7 @@ api:
     model: text-embedding-3-small
     # API key for provider
     apiKey: your_openai_api_key
+    # Optional, available dimensions: 1536, 1024, 768. Default dimension is 1536. #If using gemini-embedding-exp-03-07, choose 768
+    dimension: 1536
     # Optional, for custom API providers
     apiBase: 'https://api.openai.com/v1'
