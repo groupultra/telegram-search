@@ -1,6 +1,6 @@
 # Telegram Search 入门指南
 
-欢迎使用Telegram Search！这个工具可以帮助你更智能地搜索和检索Telegram聊天记录。本指南将帮助你快速上手并开始使用。
+欢迎使用 Telegram Search ！这个工具可以帮助你更智能地搜索和检索 Telegram 聊天记录。本指南将帮助你快速上手并开始使用。
 
 ## 功能概述
 
@@ -14,8 +14,7 @@ Telegram Search提供以下核心功能：
 ## 系统要求
 
 - **操作系统**：Windows、macOS 或 Linux
-- **Node.js**：v20.0.0或更高版本
-- **PNPM**：v10.0.0或更高版本
+- **Node.js**：20.0 或更高版本
 - **Docker**：用于运行数据库(可选，也可使用本地数据库)
 
 ## 快速入门流程
@@ -41,107 +40,58 @@ Telegram Search提供以下核心功能：
 
 ### 安装步骤
 
-#### Windows
+<details>
+  <summary>
+    安装 Node.js 和 pnpm
+  </summary>
 
-1. **安装Node.js**：
-   - 访问 [Node.js官网](https://nodejs.org/) 下载并安装最新的LTS版本
+1. 安装 NodeJS
 
-2. **安装PNPM**：
+  #### Windows
+  
+  访问 [Node.js官网](https://nodejs.org/) 下载并安装最新的LTS版本
 
-   ```sh
-   npm install -g pnpm
+  #### macOS
+
+  ```bash
+  brew install node
+  ```
+
+  ### Linux
+
+  使用 `nvm` 或者 `asdf` 来安装
+
+2. 安装 pnpm
+
+   ```bash
+   corepack enable
    ```
 
-3. **安装Docker** (可选)：
-   - 访问 [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop) 下载并安装
+3. 安装Docker
+  [Docker Desktop](https://www.docker.com/products/docker-desktop)
 
-4. **克隆仓库**：
+</details>
+
+1. **克隆仓库**：
 
    ```sh
    git clone https://github.com/GramSearch/telegram-search.git
    cd telegram-search
    ```
 
-5. **安装依赖**：
+2. **安装依赖**：
 
    ```sh
    pnpm install
    ```
 
-6. **配置环境**：
+3. **配置环境**：
 
    ```sh
    copy config\config.example.yaml config\config.yaml
    ```
 
    然后使用文本编辑器编辑 `config\config.yaml` 文件
-
-#### macOS
-
-1. **安装 Node.js 和PNPM**：
-
-   ```bash
-   # 使用Homebrew
-   brew install node
-   npm install -g pnpm
-   ```
-
-2. **安装Docker** (可选)：
-   - 访问 [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop) 下载并安装
-
-3. **克隆仓库**：
-
-   ```bash
-   git clone https://github.com/GramSearch/telegram-search.git
-   cd telegram-search
-   ```
-
-4. **安装依赖**：
-
-   ```bash
-   pnpm install
-   ```
-
-5. **配置环境**：
-
-   ```bash
-   cp config/config.example.yaml config/config.yaml
-   ```
-
-   然后使用文本编辑器编辑`config/config.yaml`文件
-
-#### Linux
-
-1. **安装Node.js**
-
-2. **安装PNPM**：
-
-   ```bash
-   corepack enable
-   ```
-
-3. **安装Docker** (可选)
-
-4. **克隆仓库**：
-
-   ```bash
-   git clone https://github.com/GramSearch/telegram-search.git
-   cd telegram-search
-   ```
-
-5. **安装依赖**：
-
-   ```bash
-   pnpm install
-   ```
-
-6. **配置环境**：
-
-   ```bash
-   cp config/config.example.yaml config/config.yaml
-   ```
-
-   然后使用文本编辑器编辑`config/config.yaml`文件
 
 #### 启动应用
 
@@ -209,6 +159,7 @@ api:
     provider: openai
     model: text-embedding-3-small
     apiKey: '你的OpenAI API密钥'
+    dimension: 1536
 ```
 
 ### 使用Ollama作为替代
@@ -224,6 +175,7 @@ api:
   embedding:
     provider: ollama
     model: '你选择的模型'  # 例如 llama2 或 nomic-embed-text
+    dimension: 1536      # 取决于你的模型的维度
 ```
 
 ### 数据库配置
@@ -310,74 +262,51 @@ api:
 ### 首次登录
 
 1. 启动应用后，访问 `http://localhost:3333`
-2. 点击登录按钮，输入你的Telegram手机号码
-3. 输入Telegram发送给你的验证码
+2. 点击登录按钮，输入你的 Telegram 手机号码
+3. 输入 Telegram 发送给你的验证码
 4. 如果你的账号启用了两步验证，还需要输入密码
 
 ### 同步聊天记录
 
-1. 登录成功后，在左侧边栏可以看到你的Telegram对话列表
-2. 选择你想要同步的对话，点击同步按钮
+1. 登录成功后，在左侧边栏可以看到你的 Telegram 对话列表
+2. 打开同步页面，选择你需要同步的会话
 3. 等待同步完成，这可能需要一些时间，取决于聊天记录的数量
 
-### 搜索消息
+### 搜索聊天记录
 
-1. 在顶部搜索框中输入你想要搜索的内容
-2. 选择搜索模式：
-   - **关键词搜索**：传统的文本匹配搜索
-   - **语义搜索**：基于上下文和含义的搜索
-3. 点击搜索按钮或按Enter键开始搜索
-4. 搜索结果将显示在主界面中，按相关性排序
-
-### 高级搜索功能
-
-1. **过滤器**：可以按日期、发送者、媒体类型等过滤搜索结果
-2. **排序**：可以按时间、相关性等排序搜索结果
-3. **上下文查看**：点击搜索结果可以查看消息的上下文
+1. 在侧边栏选择你想要搜索的会话
+2. 进入之后，点击右上角的搜索按钮
+3. 输入关键词即可搜索
 
 ## 故障排除
 
 ### 常见问题
 
-#### 无法连接到Telegram
+#### 无法连接到 Telegram
 
-**问题**：应用无法连接到Telegram API或登录失败
-
-**解决方案**：
-
-- 检查你的API ID和API哈希是否正确
-- 确保你的网络连接正常
-- 如果你在使用代理，检查代理配置是否正确
+- 如果你的网络环境需要配置代理，去配置文件里面设置代理
+- 检查 App ID 和 App Hash 是否正确
 
 #### 数据库连接失败
 
-**问题**：应用无法连接到数据库
-
-**解决方案**：
-
 - 确保Docker服务正在运行
 - 检查数据库配置是否正确
-- 尝试重新启动数据库容器：`docker compose restart`
 
-#### 搜索结果不准确
+#### 搜索结果太少
 
-**问题**：语义搜索结果不符合预期
+如果你没有同步聊天记录到本地，是无法建立索引的，这样也自然无法搜索到
 
-**解决方案**：
+你可以在 同步 页面里面，把你想搜索的对话的聊天记录拉下来，这样可以建立索引
 
-- 确保OpenAI API配置正确
-- 尝试使用不同的搜索关键词
-- 确保已经同步了足够的聊天记录
+之所以这么做，是因为 Telegram 官方客户端本身是在云端搜索的，所以要做额外的处理只能把聊天记录都拉下来
 
 #### 应用崩溃或无响应
-
-**问题**：应用崩溃或无响应
 
 **解决方案**：
 
 - 检查控制台日志以获取错误信息
 - 尝试重新启动应用
-- 如果问题持续存在，可以尝试清除缓存：删除`~/.telegram-search`目录（注意这将删除所有同步的数据）
+- 如果问题持续存在，可以尝试清除数据：删除 `~/.telegram-search` 目录
 
 ### 日志查看
 
@@ -412,7 +341,7 @@ api:
 
 ```bash
 # 启动后端服务（开发模式）
-pnpm run dev:server
+LOG_LEVEL=debug pnpm run dev:server
 
 # 启动前端界面（开发模式）
 pnpm run dev:frontend
@@ -424,14 +353,6 @@ pnpm run dev:frontend
 
 ```bash
 pnpm run lint
-```
-
-### 测试
-
-运行测试：
-
-```bash
-pnpm run test
 ```
 
 ## 结语
