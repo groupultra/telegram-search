@@ -14,8 +14,8 @@ Telegram Search提供以下核心功能：
 ## 系统要求
 
 - **操作系统**：Windows、macOS或Linux
-- **Node.js**：v16.0.0或更高版本
-- **PNPM**：v7.0.0或更高版本
+- **Node.js**：v20.0.0或更高版本
+- **PNPM**：v10.0.0或更高版本
 - **Docker**：用于运行数据库(可选，也可使用本地数据库)
 
 ## 快速入门流程
@@ -123,32 +123,17 @@ Telegram Search提供以下核心功能：
 
 1. **安装Node.js**：
 
-   ```bash
-   # Ubuntu/Debian
-   curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-   sudo apt-get install -y nodejs
-   
-   # CentOS/RHEL
-   curl -fsSL https://rpm.nodesource.com/setup_16.x | sudo bash -
-   sudo yum install -y nodejs
-   ```
+   你都用 Linux 了，就不赘述了。
 
 2. **安装PNPM**：
 
    ```bash
-   npm install -g pnpm
+   corepack enable
    ```
 
 3. **安装Docker** (可选)：
 
-   ```bash
-   # Ubuntu/Debian
-   sudo apt-get update
-   sudo apt-get install docker-ce docker-ce-cli containerd.io
-   
-   # CentOS/RHEL
-   sudo yum install docker-ce docker-ce-cli containerd.io
-   ```
+   你都用 Linux 了，就不赘述了。
 
 4. **克隆仓库**：
 
@@ -217,7 +202,7 @@ Telegram Search提供以下核心功能：
 api:
   telegram:
     apiId: '你的API ID'
-    apiHash: '你的API哈希'
+    apiHash: '你的API Hash'
 ```
 
 ### OpenAI API配置
