@@ -13,7 +13,7 @@ Telegram Search提供以下核心功能：
 
 ## 系统要求
 
-- **操作系统**：Windows、macOS或Linux
+- **操作系统**：Windows、macOS 或 Linux
 - **Node.js**：v20.0.0或更高版本
 - **PNPM**：v10.0.0或更高版本
 - **Docker**：用于运行数据库(可选，也可使用本地数据库)
@@ -38,15 +38,6 @@ Telegram Search提供以下核心功能：
 ## 安装指南
 
 本文档提供了在不同操作系统上安装Telegram Search的详细步骤。
-
-### 前置要求
-
-在开始安装之前，请确保你的系统满足以下要求：
-
-- Node.js v16.0.0+
-- PNPM v7.0.0+
-- Docker (用于运行数据库，可选)
-- Git
 
 ### 安装步骤
 
@@ -83,11 +74,11 @@ Telegram Search提供以下核心功能：
    copy config\config.example.yaml config\config.yaml
    ```
 
-   然后使用文本编辑器编辑`config\config.yaml`文件
+   然后使用文本编辑器编辑 `config\config.yaml` 文件
 
 #### macOS
 
-1. **安装Node.js和PNPM**：
+1. **安装 Node.js 和PNPM**：
 
    ```bash
    # 使用Homebrew
@@ -121,9 +112,7 @@ Telegram Search提供以下核心功能：
 
 #### Linux
 
-1. **安装Node.js**：
-
-   你都用 Linux 了，就不赘述了。
+1. **安装Node.js**
 
 2. **安装PNPM**：
 
@@ -131,9 +120,7 @@ Telegram Search提供以下核心功能：
    corepack enable
    ```
 
-3. **安装Docker** (可选)：
-
-   你都用 Linux 了，就不赘述了。
+3. **安装Docker** (可选)
 
 4. **克隆仓库**：
 
@@ -396,9 +383,9 @@ api:
 
 如果你遇到问题，查看日志可能会有所帮助：
 
-- **后端日志**：在运行`pnpm run dev:server`的终端窗口中
+- **后端日志**：在运行  `pnpm run dev:server` 的终端窗口中
 - **前端日志**：在浏览器开发者工具的控制台中
-- **数据库日志**：使用`docker compose logs -f`查看
+- **数据库日志**：使用 `docker compose logs -f` 查看
 
 ## 开发者指南
 
