@@ -31,11 +31,7 @@ export const useAuthStore = defineStore('session', () => {
   }
 
   watch(() => activeSessionComputed.value?.isConnected, (isConnected) => {
-    if (!isConnected) {
-      // Auto login
-      attemptLogin()
-    }
-    else {
+    if (isConnected) {
       websocketStore.sendEvent('entity:me:fetch', undefined)
       useChatStore().init()
     }

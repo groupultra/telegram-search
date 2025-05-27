@@ -60,14 +60,6 @@ watch(isLoggedIn, (value) => {
   }
 })
 
-onMounted(() => {
-  authStore.attemptLogin()
-
-  if (isLoggedIn.value) {
-    redirectRoot()
-  }
-})
-
 async function handleLogin() {
   state.value.isLoading = true
 
