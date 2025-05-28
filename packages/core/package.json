@@ -24,6 +24,7 @@
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
     "@xsai-ext/providers-cloud": "catalog:",
+    "@xsai-ext/providers-local": "0.3.0-beta.2",
     "@xsai/embed": "catalog:",
     "big-integer": "^1.6.52",
     "defu": "^6.1.4",

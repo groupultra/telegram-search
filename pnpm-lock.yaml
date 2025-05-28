@@ -342,6 +342,9 @@ importers:
       '@xsai-ext/providers-cloud':
         specifier: 'catalog:'
         version: 0.2.2
+      '@xsai-ext/providers-local':
+        specifier: 0.3.0-beta.2
+        version: 0.3.0-beta.2
       '@xsai/embed':
         specifier: 'catalog:'
         version: 0.2.2
@@ -2545,14 +2548,17 @@ packages:
   '@xsai-ext/providers-cloud@0.2.2':
     resolution: {integrity: sha512-pwRIKgM0Pr/+ALS2d7AC/hH4Y/p2mDO2z+xcXKUtJV1Iz1pGbmXGc7ndLqjd79dh+nvHX/oHf0JhpveGiqY5UQ==}
 
-  '@xsai-ext/shared-providers@0.3.0-beta.1':
-    resolution: {integrity: sha512-5+AIOYe5moH0svsfjPwA2IhHJflLIEiOI8MIjoVgGL+VSgLEJoxr/KzAumQc4wR1KMdLK9PkBcCew6WRpmjzTw==}
+  '@xsai-ext/providers-local@0.3.0-beta.2':
+    resolution: {integrity: sha512-iaTG8arL0bm0rHBtVuJUy09KqID9Qdfd8ARvJabdvZDLg47Pg475C9l4ovF6WUUlvT7c+3SYT+2dOrspKzk5UA==}
+
+  '@xsai-ext/shared-providers@0.3.0-beta.2':
+    resolution: {integrity: sha512-AwQBwj2e3mxozjN+tF/bUbx9+K6jPM4gOsVnQP2GnYaQwvV1SHR6W8swDWb4ZiexIOoAD7TVzLVe9QaIh/D9PQ==}
 
   '@xsai/embed@0.2.2':
     resolution: {integrity: sha512-EMT+O+YBRxORGKkmDmF04vo7qo43CbCKOyUfiCF0gNG5Vf8yMLkofqavQW3Ub6U2LSN4XGHP7hjxWGV8MiP8Xw==}
 
-  '@xsai/shared@0.3.0-beta.1':
-    resolution: {integrity: sha512-aLE4bakXQtPK097VtLdzx0pBFr/gVBhCqQZShzLsoBTPa9LimGBBlaGZXGxGSW3tG+9TCXQgEKLJpERvz9G71A==}
+  '@xsai/shared@0.3.0-beta.2':
+    resolution: {integrity: sha512-H9a6K0n8p05qGz9EutqhEXzP86YYMYAiwWv/d4eEVdnjHa51pdxiB93PTNFn3snkCcCG5oahli6am5RDIf23Zg==}
 
   abbrev@1.1.1:
     resolution: {integrity: sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==}
@@ -8761,18 +8767,23 @@ snapshots:
 
   '@xsai-ext/providers-cloud@0.2.2':
     dependencies:
-      '@xsai-ext/shared-providers': 0.3.0-beta.1
-      '@xsai/shared': 0.3.0-beta.1
+      '@xsai-ext/shared-providers': 0.3.0-beta.2
+      '@xsai/shared': 0.3.0-beta.2
 
-  '@xsai-ext/shared-providers@0.3.0-beta.1':
+  '@xsai-ext/providers-local@0.3.0-beta.2':
     dependencies:
-      '@xsai/shared': 0.3.0-beta.1
+      '@xsai-ext/shared-providers': 0.3.0-beta.2
+      '@xsai/shared': 0.3.0-beta.2
+
+  '@xsai-ext/shared-providers@0.3.0-beta.2':
+    dependencies:
+      '@xsai/shared': 0.3.0-beta.2
 
   '@xsai/embed@0.2.2':
     dependencies:
-      '@xsai/shared': 0.3.0-beta.1
+      '@xsai/shared': 0.3.0-beta.2
 
-  '@xsai/shared@0.3.0-beta.1': {}
+  '@xsai/shared@0.3.0-beta.2': {}
 
   abbrev@1.1.1: {}
 
