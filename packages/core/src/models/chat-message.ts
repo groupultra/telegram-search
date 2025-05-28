@@ -46,7 +46,7 @@ export async function fetchMessages(chatId: string, pagination: CorePagination):
 }
 
 export async function retrieveMessages(
-  chatId: string,
+  chatId: string | undefined,
   content: {
     text?: string
     embedding?: number[]
