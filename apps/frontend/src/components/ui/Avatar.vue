@@ -21,15 +21,16 @@ const sizeMap = {
 
 const avatarSize = computed(() => sizeMap[props.size])
 
+const segmenter = new Intl.Segmenter('zh-CN', {granularity: 'grapheme'});
+
 const initials = computed(() => {
   if (!props.name)
     return ''
-  return props.name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 1)
+  let segment = segmenter.segment(props.name)[Symbol.iterator]().next().value;
+  if (segment) {
+    return segment.segment.toUpperCase()
+  }
+  return ''
 })
 
 const backgroundColor = computed(() => {
