@@ -26,6 +26,7 @@ export interface CoreMessage {
   createdAt?: number
   updatedAt?: number
   deletedAt?: number
+  formattedPlatformTimestamp?: string
 }
 
 // export interface CoreMessageMedia {

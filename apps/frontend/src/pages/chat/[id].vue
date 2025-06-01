@@ -28,7 +28,10 @@ const chatMessages = computed<CoreMessage[]>(() =>
   Array.from(chatMessagesMap.value.values())
     .sort((a, b) =>
       a.platformTimestamp <= b.platformTimestamp ? -1 : 1,
-    ),
+        ).map(message => ({
+      ...message,
+      formattedPlatformTimestamp: new Date(message.platformTimestamp * 1000).toLocaleString(), 
+    })),
 )
 const currentChat = computed<CoreDialog | undefined>(() =>
   chatStore.getChat(id.toString()),
