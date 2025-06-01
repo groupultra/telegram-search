@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
+import type { UUID } from 'node:crypto'
 import type { Result } from './monad'
 
 import { Api } from 'telegram'
@@ -106,7 +106,7 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
 
   return Ok(
     {
-      uuid: uuidv4(),
+      uuid: crypto.randomUUID(),
       platform: 'telegram',
       platformMessageId: messageId,
       chatId,

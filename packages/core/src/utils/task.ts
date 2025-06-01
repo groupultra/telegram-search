@@ -2,7 +2,6 @@ import type { TakeoutTaskMetadata } from '../services/takeout'
 
 import { useLogger } from '@tg-search/common'
 import defu from 'defu'
-import { v4 as uuidv4 } from 'uuid'
 
 type CoreTaskType = 'takeout' | 'getMessage' | 'embed'
 
@@ -26,7 +25,7 @@ export interface CoreTask<T extends CoreTaskType> {
 
 function createTask<T extends CoreTaskType>(type: T, metadata: CoreTasks[T]): CoreTask<T> {
   return {
-    taskId: uuidv4(),
+    taskId: crypto.randomUUID(),
     type,
     progress: 0,
     metadata,
