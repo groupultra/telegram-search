@@ -7,6 +7,7 @@ import type { WsEventToClientData, WsMessageToServer } from './ws-event'
 import { useLogger } from '@tg-search/common'
 import { createCoreInstance } from '@tg-search/core'
 import { defineWebSocketHandler } from 'h3'
+import { v4 as uuidv4 } from 'uuid'
 
 import { sendWsEvent } from './ws-event'
 
@@ -27,7 +28,7 @@ export function setupWsRoutes(app: App) {
   function useSessionId(peer: Peer) {
     const url = new URL(peer.request.url)
     const urlSessionId = url.searchParams.get('sessionId') as UUID
-    return urlSessionId || crypto.randomUUID()
+    return urlSessionId || uuidv4()
   }
 
   function updatePeerSessionState(peer: Peer) {
