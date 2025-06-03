@@ -5,6 +5,7 @@ import type { ConfigEventFromCore, ConfigEventToCore } from './services/config'
 import type { ConnectionEventFromCore, ConnectionEventToCore } from './services/connection'
 import type { DialogEventFromCore, DialogEventToCore } from './services/dialog'
 import type { EntityEventFromCore, EntityEventToCore } from './services/entity'
+import type { GramEventsEventFromCore, GramEventsEventToCore } from './services/gram-events'
 import type { MessageEventFromCore, MessageEventToCore } from './services/message'
 import type { StorageEventFromCore, StorageEventToCore } from './services/storage'
 import type { TakeoutEventFromCore, TakeoutEventToCore } from './services/takeout'
@@ -23,6 +24,7 @@ export type FromCoreEvent = ClientInstanceEventFromCore
   & EntityEventFromCore
   & StorageEventFromCore
   & ConfigEventFromCore
+  & GramEventsEventFromCore
 
 export type ToCoreEvent = ClientInstanceEventToCore
   & MessageEventToCore
@@ -33,6 +35,7 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & EntityEventToCore
   & StorageEventToCore
   & ConfigEventToCore
+  & GramEventsEventToCore
 
 export type CoreEvent = FromCoreEvent & ToCoreEvent
 

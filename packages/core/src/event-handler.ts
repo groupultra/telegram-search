@@ -8,6 +8,7 @@ import { registerAuthEventHandlers } from './event-handlers/auth'
 import { registerConfigEventHandlers } from './event-handlers/config'
 import { registerDialogEventHandlers } from './event-handlers/dialog'
 import { registerEntityEventHandlers } from './event-handlers/entity'
+import { registerGramEventsEventHandlers } from './event-handlers/gram-events'
 import { registerMessageEventHandlers } from './event-handlers/message'
 import { registerSessionEventHandlers } from './event-handlers/session'
 import { registerStorageEventHandlers } from './event-handlers/storage'
@@ -21,6 +22,7 @@ import { createConfigService } from './services/config'
 import { createConnectionService } from './services/connection'
 import { createDialogService } from './services/dialog'
 import { createEntityService } from './services/entity'
+import { createGramEventsService } from './services/gram-events'
 import { createMessageService } from './services/message'
 import { createSessionService } from './services/session'
 import { createTakeoutService } from './services/takeout'
@@ -59,6 +61,7 @@ export function afterConnectedEventHandler(
     const dialogService = useService(ctx, createDialogService)
     const takeoutService = useService(ctx, createTakeoutService)
     const entityService = useService(ctx, createEntityService)
+    const gramEventsService = useService(ctx, createGramEventsService)
 
     registry.register('embedding', createEmbeddingResolver())
     registry.register('link', createLinkResolver())
@@ -69,9 +72,11 @@ export function afterConnectedEventHandler(
     registerDialogEventHandlers(ctx)(dialogService)
     registerTakeoutEventHandlers(ctx)(takeoutService)
     registerEntityEventHandlers(ctx)(entityService)
+    registerGramEventsEventHandlers(ctx)(gramEventsService)
 
     //  Init all entities
     emitter.emit('dialog:fetch')
+    gramEventsService.registerGramEvents()
   })
 
   return () => {}

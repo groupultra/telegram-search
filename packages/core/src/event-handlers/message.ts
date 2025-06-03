@@ -10,6 +10,7 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
   const logger = useLogger('core:message:event')
 
   return (messageService: MessageService) => {
+    // TODO: debounce, background tasks
     emitter.on('message:process', ({ messages }) => {
       messageService.processMessages(messages)
     })
