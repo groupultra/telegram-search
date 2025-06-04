@@ -126,12 +126,14 @@ export const joinedChatsTable = pgTable('joined_chats', () => {
 //     .leftJoin(chatMessagesTable, sql`${joinedChatsTable.chat_id} = ${chatMessagesTable.in_chat_id}`)
 //     .groupBy(joinedChatsTable.platform, joinedChatsTable.chat_id, joinedChatsTable.chat_name)
 // })
-
 export const chatMessageStatsView = pgView('chat_message_stats', {
   platform: text().notNull(),
   chat_id: text().notNull(),
   chat_name: text().notNull(),
   message_count: integer().notNull(),
+  first_message_id: bigint({ mode: 'number' }),
+  first_message_at: bigint({ mode: 'number' }),
+  latest_message_id: bigint({ mode: 'number' }),
   latest_message_at: bigint({ mode: 'number' }),
 }).as(
   sql`
@@ -139,7 +141,10 @@ export const chatMessageStatsView = pgView('chat_message_stats', {
       jc.platform, 
       jc.chat_id, 
       jc.chat_name, 
-      COUNT(cm.id)::int AS message_count, 
+      COUNT(cm.id)::int AS message_count,
+      MIN(cm.platform_message_id) AS first_message_id,
+      MIN(cm.created_at) AS first_message_at,
+      MAX(cm.platform_message_id) AS latest_message_id,
       MAX(cm.created_at) AS latest_message_at
     FROM joined_chats jc
     LEFT JOIN chat_messages cm ON jc.chat_id = cm.in_chat_id

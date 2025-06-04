@@ -12,7 +12,7 @@ export async function getChatMessagesStats() {
 }
 
 export async function getChatMessageStatsByChatId(chatId: string) {
-  return (await withDb(db => db
+  const res = (await withDb(db => db
     .select()
     .from(chatMessageStatsView)
     .where(
@@ -23,4 +23,6 @@ export async function getChatMessageStatsByChatId(chatId: string) {
     )
     .limit(1),
   )).expect('Failed to fetch chat message stats by chat ID')
+
+  return res[0]
 }

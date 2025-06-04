@@ -43,6 +43,20 @@
       "when": 1749055888649,
       "tag": "0005_yummy_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1749056464405,
+      "tag": "0006_unknown_sunfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1749059496331,
+      "tag": "0007_glorious_speed_demon",
+      "breakpoints": true
     }
   ]
 }

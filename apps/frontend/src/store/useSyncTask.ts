@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 export const useSyncTaskStore = defineStore('sync-task', () => {
+  const increase = ref(false)
   const currentTask = ref<CoreTask<'takeout'>>()
   const currentTaskProgress = computed(() => {
     if (!currentTask.value)
@@ -15,5 +16,6 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
   return {
     currentTask,
     currentTaskProgress,
+    increase,
   }
 })

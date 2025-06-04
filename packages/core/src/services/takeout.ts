@@ -16,7 +16,7 @@ export interface TakeoutTaskMetadata {
 }
 
 export interface TakeoutEventToCore {
-  'takeout:run': (data: { chatIds: string[] }) => void
+  'takeout:run': (data: { chatIds: string[], increase?: boolean }) => void
   'takeout:task:abort': (data: { taskId: string }) => void
 }
 
@@ -57,6 +57,7 @@ export function createTakeoutService(ctx: CoreContext) {
   }
 
   const emitError = (taskId: string, error: Error) => {
+    logger.withError(error).error('Takeout task error')
     emitter.emit('takeout:task:progress', updateTaskError(taskId, error))
   }
 
@@ -173,8 +174,8 @@ export function createTakeoutService(ctx: CoreContext) {
 
         // Type safe check
         if ('messages' in result && result.messages.length === 0) {
-          logger.error('Get messages failed or returned empty data')
-          return Err(new Error('Get messages failed or returned empty data'))
+          emitError(taskId, new Error('Get messages failed or returned empty data'))
+          break
         }
 
         const messages = result.messages as Api.Message[]
@@ -185,6 +186,10 @@ export function createTakeoutService(ctx: CoreContext) {
         logger.withFields({ count: messages.length }).debug('Got messages batch')
 
         for (const message of messages) {
+          if (abortController.signal.aborted) {
+            break
+          }
+
           // Skip empty messages
           if (message instanceof Api.MessageEmpty) {
             continue
@@ -196,7 +201,14 @@ export function createTakeoutService(ctx: CoreContext) {
 
         offsetId = messages[messages.length - 1].id
 
-        emitter.emit('takeout:task:progress', updateTaskProgress(taskId, Number((processedCount / count).toFixed(2)), `Processed ${processedCount}/${count} messages`))
+        emitter.emit(
+          'takeout:task:progress',
+          updateTaskProgress(
+            taskId,
+            Number((processedCount / count).toFixed(2)),
+            `Processed ${processedCount}/${count} messages`,
+          ),
+        )
       }
 
       await finishTakeout(takeoutSession, true)
