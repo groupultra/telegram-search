@@ -4,12 +4,14 @@ import type { DialogType } from '@tg-search/core'
 import { useDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 
 import ChatsCollapse from '../components/layout/ChatsCollapse.vue'
 import SettingsDialog from '../components/layout/SettingsDialog.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
 import { Button } from '../components/ui/Button'
+import LoginPrompt from '../components/ui/LoginPrompt.vue'
+import { useAuthStore } from '../store/useAuth'
 import { useChatStore } from '../store/useChat'
 import { useSettingsStore } from '../store/useSettings'
 import { useWebsocketStore } from '../store/useWebsocket'
@@ -19,9 +21,13 @@ const { theme } = storeToRefs(settingsStore)
 const isDark = useDark()
 
 const websocketStore = useWebsocketStore()
+const authStore = useAuthStore()
+const { isLoggedIn } = storeToRefs(authStore)
+const router = useRouter()
 
 const settingsDialog = ref(false)
 const searchParams = ref('')
+const showLoginPrompt = ref(false)
 
 const chatStore = useChatStore()
 const chats = computed(() => chatStore.chats)
@@ -45,6 +51,10 @@ function toggleActiveChatGroup(group: ChatGroup) {
     activeChatGroup.value = 'user'
   else
     activeChatGroup.value = group
+}
+
+function navigateToLogin() {
+  router.push('/login')
 }
 </script>
 
@@ -91,7 +101,33 @@ function toggleActiveChatGroup(group: ChatGroup) {
         />
       </div>
 
-      <div class="pt-4 flex-1 overflow-y-auto flex flex-col justify-start h-full border-t border-t-secondary">
+      <!-- 未登录提示 -->
+      <div v-if="!isLoggedIn" class="flex-1 flex flex-col items-center justify-center p-4 border-t border-t-secondary">
+        <div class="text-center mb-4">
+          <div class="mx-auto mb-3 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <span class="i-lucide-alert-circle text-2xl text-primary"></span>
+          </div>
+          <h3 class="text-sm font-medium">未登录</h3>
+          <p class="text-xs text-muted-foreground mt-1">您需要登录才能同步和查看聊天记录</p>
+        </div>
+        <Button 
+          variant="primary" 
+          class="w-full" 
+          @click="navigateToLogin"
+        >
+          登录
+        </Button>
+        <Button 
+          variant="ghost" 
+          class="w-full mt-2 text-xs" 
+          @click="showLoginPrompt = true"
+        >
+          了解更多
+        </Button>
+      </div>
+
+      <!-- 已登录状态显示聊天列表 -->
+      <div v-else class="pt-4 flex-1 overflow-y-auto flex flex-col justify-start h-full border-t border-t-secondary">
         <ChatsCollapse
           class="flex flex-col max-h-[85%]"
           :class="{ 'flex-1': activeChatGroup === 'user' }"
@@ -127,7 +163,7 @@ function toggleActiveChatGroup(group: ChatGroup) {
       </div>
 
       <div class="flex items-center justify-between p-4">
-        <div class="flex items-center gap-3 mr-3">
+        <div v-if="isLoggedIn" class="flex items-center gap-3 mr-3">
           <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-muted">
             <Avatar
               :name="websocketStore.getActiveSession()?.me?.username"
@@ -138,6 +174,10 @@ function toggleActiveChatGroup(group: ChatGroup) {
             <span class="text-sm text-foreground font-medium whitespace-nowrap">{{ websocketStore.getActiveSession()?.me?.username }}</span>
             <span class="text-xs text-secondary-foreground whitespace-nowrap">{{ websocketStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
           </div>
+        </div>
+        <div v-else class="flex items-center gap-2">
+          <span class="text-xs text-muted-foreground">未登录</span>
+          <div class="h-2 w-2 rounded-full bg-destructive"></div>
         </div>
         <div class="flex items-center">
           <Button
@@ -162,5 +202,13 @@ function toggleActiveChatGroup(group: ChatGroup) {
     <SettingsDialog
       v-model:show-dialog="settingsDialog"
     />
+    
+    <Teleport to="body">
+      <LoginPrompt 
+        v-if="showLoginPrompt" 
+        :full-screen="true"
+        @close="showLoginPrompt = false"
+      />
+    </Teleport>
   </div>
 </template>

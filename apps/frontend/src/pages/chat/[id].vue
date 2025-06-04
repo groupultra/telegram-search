@@ -9,6 +9,8 @@ import { toast } from 'vue-sonner'
 
 import MessageBubble from '../../components/messages/MessageBubble.vue'
 import SearchDialog from '../../components/SearchDialog.vue'
+import LoadingState from '../../components/ui/LoadingState.vue'
+import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 import { useChatStore } from '../../store/useChat'
 import { useMessageStore } from '../../store/useMessage'
 import { useWebsocketStore } from '../../store/useWebsocket'
@@ -20,7 +22,7 @@ const id = route.params.id
 
 const chatStore = useChatStore()
 const messageStore = useMessageStore()
-const { messagesByChat } = storeToRefs(messageStore)
+const { messagesByChat, isLoadingMessages, loadingMessage } = storeToRefs(messageStore)
 const chatMessagesMap = computed<Map<string, CoreMessage>>(() =>
   messagesByChat.value.get(id.toString()) ?? new Map(),
 )
@@ -35,7 +37,6 @@ const currentChat = computed<CoreDialog | undefined>(() =>
 )
 const isGlobalSearch = ref(false)
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
-const isLoadingMessages = ref(false)
 const messageLimit = ref(50)
 const messageOffset = ref(0)
 
@@ -105,11 +106,7 @@ watch(chatMessages, () => {
 // TODO: useInfiniteScroll?
 watch(y, async () => {
   if (y.value === 0 && !isLoadingMessages.value) {
-    isLoadingMessages.value = true
-
     await messageStore.fetchMessagesWithDatabase(id.toString(), { offset: messageOffset.value, limit: messageLimit.value })
-
-    isLoadingMessages.value = false
   }
 }, { immediate: true })
 
@@ -148,8 +145,13 @@ const isGlobalSearchOpen = ref(false)
     <!-- Messages Area -->
     <div
       v-bind="containerProps"
-      class="flex-1 overflow-y-auto p-4 space-y-4"
+      class="flex-1 overflow-y-auto p-4 space-y-4 relative"
     >
+      <!-- 顶部加载指示器 -->
+      <div v-if="isLoadingMessages" class="sticky top-0 left-0 right-0 z-10 pb-2">
+        <LoadingSpinner :text="loadingMessage" size="sm" class="bg-background/80 backdrop-blur-sm p-1 rounded-md shadow-sm" />
+      </div>
+      
       <div v-bind="wrapperProps">
         <div v-for="{ data, index } in list" :key="index">
           <MessageBubble :message="data" />

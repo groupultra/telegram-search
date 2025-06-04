@@ -8,6 +8,8 @@ import { useWebsocketStore } from './useWebsocket'
 
 export const useMessageStore = defineStore('message', () => {
   const messagesByChat = ref<Map<string, Map<string, CoreMessage>>>(new Map())
+  const isLoadingMessages = ref(false)
+  const loadingMessage = ref('')
 
   const websocketStore = useWebsocketStore()
 
@@ -25,7 +27,10 @@ export const useMessageStore = defineStore('message', () => {
   }
 
   async function fetchMessagesWithDatabase(chatId: string, pagination: CorePagination) {
-    toast.promise(async () => {
+    try {
+      isLoadingMessages.value = true
+      loadingMessage.value = '从数据库加载消息中...'
+      
       websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
       const { messages: dbMessages } = await websocketStore.waitForEvent('storage:messages')
 
@@ -35,21 +40,27 @@ export const useMessageStore = defineStore('message', () => {
 
       if (restMessageLength > 0) {
         pagination.offset += dbMessages.length
-        toast.promise(async () => {
-          websocketStore.sendEvent('message:fetch', { chatId, pagination })
-        }, {
-          loading: 'Fetching messages from server...',
-        })
+        loadingMessage.value = '从服务器获取更多消息中...'
+        websocketStore.sendEvent('message:fetch', { chatId, pagination })
       }
-    }, {
-      loading: 'Loading messages from database...',
-      success: 'Messages loaded',
-      error: 'Error loading messages',
-    })
+      
+      return dbMessages
+    }
+    catch (error) {
+      toast.error('加载消息失败')
+      console.error('[MessageStore] Error fetching messages', error)
+      throw error
+    }
+    finally {
+      isLoadingMessages.value = false
+      loadingMessage.value = ''
+    }
   }
 
   return {
     messagesByChat,
+    isLoadingMessages,
+    loadingMessage,
     pushMessages,
     fetchMessagesWithDatabase,
   }
