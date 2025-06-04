@@ -19,7 +19,7 @@ defineProps<{
     <div class="flex-1">
       <div class="mb-1 flex items-center gap-2">
         <span class="font-medium text-primary whitespace-nowrap">{{ message.fromName }}</span>
-        <span class="text-xs text-secondary-foreground whitespace-nowrap">{{ message.createdAt }}</span>
+        <span class="text-xs text-secondary-foreground whitespace-nowrap">{{ new Date((message.createdAt ?? 0) * 1000).toLocaleString() }}</span>
       </div>
       <div class="text-foreground">
         {{ message.content }}

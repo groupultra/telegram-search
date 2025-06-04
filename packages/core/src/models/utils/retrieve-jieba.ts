@@ -12,7 +12,7 @@ import { chatMessagesTable } from '../../db/schema'
 
 let jieba: Jieba | undefined
 
-export async function retrieveJieba(chatId: string, content: string, pagination?: CorePagination): Promise<DBRetrievalMessages[]> {
+export async function retrieveJieba(chatId: string | undefined, content: string, pagination?: CorePagination): Promise<DBRetrievalMessages[]> {
   const logger = useLogger('models:retrieve-jieba')
 
   const dictPath = useConfig().path.dict
@@ -53,7 +53,7 @@ export async function retrieveJieba(chatId: string, content: string, pagination?
     .from(chatMessagesTable)
     .where(and(
       eq(chatMessagesTable.platform, 'telegram'),
-      eq(chatMessagesTable.in_chat_id, chatId),
+      chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined,
       sql`${chatMessagesTable.jieba_tokens} @> ${JSON.stringify(jiebaTokens)}::jsonb`,
     ))
     .limit(pagination?.limit || 20),

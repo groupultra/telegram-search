@@ -5,6 +5,7 @@ import type { SessionContext } from './useAuth'
 import { useLocalStorage, useWebSocket } from '@vueuse/core'
 import { defu } from 'defu'
 import { defineStore } from 'pinia'
+import { v4 as uuidv4 } from 'uuid'
 import { computed, ref, watch } from 'vue'
 
 import { WS_API_BASE } from '../constants'
@@ -15,7 +16,7 @@ export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T
 
 export const useWebsocketStore = defineStore('websocket', () => {
   const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
-  const storageActiveSessionId = useLocalStorage('websocket/active-session-id', crypto.randomUUID())
+  const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
 
   const getActiveSession = () => {
     return storageSessions.value.get(storageActiveSessionId.value)
@@ -30,7 +31,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
 
   const cleanup = () => {
     storageSessions.value.clear()
-    storageActiveSessionId.value = crypto.randomUUID()
+    storageActiveSessionId.value = uuidv4()
   }
 
   const wsUrlComputed = computed(() => `${WS_API_BASE}?sessionId=${storageActiveSessionId.value}`)

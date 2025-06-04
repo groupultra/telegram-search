@@ -14,6 +14,7 @@ words:
   - hahaqwq
   - iconify
   - jieba
+  - listhen
   - Logg
   - lucide
   - luoling
@@ -34,6 +35,7 @@ words:
   - tsvector
   - unocss
   - unplugin
+  - uuidv4
   - valibot
   - vitest
   - vueuse

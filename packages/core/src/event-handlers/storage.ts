@@ -73,10 +73,6 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       return
     }
 
-    if (!params.chatId) {
-      params.chatId = '0'
-    }
-
     let dbMessages: DBRetrievalMessages[] = []
     if (params.useVector) {
       const { embeddings } = (await embedContents([params.content])).expect('Failed to embed content')

@@ -13,6 +13,7 @@ import zhCN from './locales/zh-CN.json'
 import '@unocss/reset/tailwind.css'
 import 'uno.css'
 import './styles/main.css'
+import 'vue-sonner/style.css'
 
 const app = createApp(App)
 const pinia = createPinia()

@@ -57,6 +57,8 @@ export function createMessageService(ctx: CoreContext) {
 
       logger.withFields({ count: coreMessages.length }).debug('Converted messages')
 
+      // TODO: Query user database to get user info
+
       // Return the messages first
       emitter.emit('message:data', { messages: coreMessages })
 

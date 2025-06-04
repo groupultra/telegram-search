@@ -1,7 +1,7 @@
 {
   "name": "telegram-search",
   "type": "module",
-  "version": "1.0.0-beta.7",
+  "version": "1.0.0-beta.10",
   "private": true,
   "packageManager": "pnpm@10.11.0",
   "scripts": {
@@ -25,12 +25,11 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.13.2",
-    "@types/node": "^22.15.21",
+    "@types/node": "^22.15.29",
     "bumpp": "^10.1.1",
     "drizzle-kit": "^0.31.1",
-    "eslint": "^9.27.0",
+    "eslint": "^9.28.0",
     "eslint-plugin-format": "^1.0.1",
-    "lint-staged": "^16.0.0",
     "taze": "^19.1.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",

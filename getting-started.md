@@ -87,8 +87,15 @@ Telegram Search 提供以下核心功能：
 
 3. **配置环境**：
 
+  #### Windows
+
    ```sh
    copy config\config.example.yaml config\config.yaml
+   ```
+  #### macOS
+
+   ```sh
+   cp config/config.example.yaml config/config.yaml
    ```
 
    然后使用文本编辑器编辑 `config\config.yaml` 文件
@@ -270,7 +277,8 @@ api:
 
 1. 登录成功后，在左侧边栏可以看到你的 Telegram 对话列表
 2. 打开同步页面，选择你需要同步的会话
-3. 等待同步完成，这可能需要一些时间，取决于聊天记录的数量
+3. 在Telegram官方服务通知中同意“⚠️ Data export request.”
+4. 等待同步完成，这可能需要一些时间，取决于聊天记录的数量
 
 ### 搜索聊天记录
 

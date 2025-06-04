@@ -1,15 +1,16 @@
-import type { Api } from 'telegram'
 import type { CoreContext } from '../context'
 import type { MessageService } from '../services'
 
 import { useLogger } from '@tg-search/common'
 import { useConfig } from '@tg-search/common/composable'
+import { Api } from 'telegram/tl'
 
 export function registerMessageEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
   const logger = useLogger('core:message:event')
 
   return (messageService: MessageService) => {
+    // TODO: debounce, background tasks
     emitter.on('message:process', ({ messages }) => {
       messageService.processMessages(messages)
     })
@@ -35,8 +36,17 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
 
     emitter.on('message:send', async ({ chatId, content }) => {
       logger.withFields({ chatId, content }).verbose('Sending message')
-      const message = await messageService.sendMessage(chatId, content)
-      logger.withFields({ message }).verbose('Message sent')
+      const updatedMessage = (await messageService.sendMessage(chatId, content)).unwrap() as Api.Updates
+
+      logger.withFields({ message: updatedMessage }).verbose('Message sent')
+
+      updatedMessage.updates.forEach((update) => {
+        if (update instanceof Api.UpdateNewMessage) {
+          if (update.message instanceof Api.Message) {
+            emitter.emit('message:process', { messages: [update.message] })
+          }
+        }
+      })
     })
   }
 }
