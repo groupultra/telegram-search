@@ -1,0 +1,2 @@
+DROP INDEX "chat_messages_platform_platform_message_id_unique_index";--> statement-breakpoint
+CREATE UNIQUE INDEX "chat_messages_platform_platform_message_id_in_chat_id_unique_index" ON "chat_messages" USING btree ("platform","platform_message_id","in_chat_id");
