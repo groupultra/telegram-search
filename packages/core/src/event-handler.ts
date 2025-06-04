@@ -9,6 +9,7 @@ import { registerConfigEventHandlers } from './event-handlers/config'
 import { registerDialogEventHandlers } from './event-handlers/dialog'
 import { registerEntityEventHandlers } from './event-handlers/entity'
 import { registerGramEventsEventHandlers } from './event-handlers/gram-events'
+import { registerMediaEventHandlers } from './event-handlers/media'
 import { registerMessageEventHandlers } from './event-handlers/message'
 import { registerSessionEventHandlers } from './event-handlers/session'
 import { registerStorageEventHandlers } from './event-handlers/storage'
@@ -17,12 +18,14 @@ import { useMessageResolverRegistry } from './message-resolvers'
 import { createEmbeddingResolver } from './message-resolvers/embedding-resolver'
 import { createJiebaResolver } from './message-resolvers/jieba-resolver'
 import { createLinkResolver } from './message-resolvers/link-resolver'
+import { createMediaResolver } from './message-resolvers/media-resolver'
 import { createUserResolver } from './message-resolvers/user-resolver'
 import { createConfigService } from './services/config'
 import { createConnectionService } from './services/connection'
 import { createDialogService } from './services/dialog'
 import { createEntityService } from './services/entity'
 import { createGramEventsService } from './services/gram-events'
+import { createMediaService } from './services/media'
 import { createMessageService } from './services/message'
 import { createSessionService } from './services/session'
 import { createTakeoutService } from './services/takeout'
@@ -62,17 +65,20 @@ export function afterConnectedEventHandler(
     const takeoutService = useService(ctx, createTakeoutService)
     const entityService = useService(ctx, createEntityService)
     const gramEventsService = useService(ctx, createGramEventsService)
+    const mediaService = useService(ctx, createMediaService)
 
     registry.register('embedding', createEmbeddingResolver())
     registry.register('link', createLinkResolver())
     registry.register('user', createUserResolver(ctx))
     registry.register('jieba', createJiebaResolver())
+    registry.register('media', createMediaResolver(ctx))
 
     registerMessageEventHandlers(ctx)(messageService)
     registerDialogEventHandlers(ctx)(dialogService)
     registerTakeoutEventHandlers(ctx)(takeoutService)
     registerEntityEventHandlers(ctx)(entityService)
     registerGramEventsEventHandlers(ctx)(gramEventsService)
+    registerMediaEventHandlers(ctx)(mediaService)
 
     //  Init all entities
     emitter.emit('dialog:fetch')

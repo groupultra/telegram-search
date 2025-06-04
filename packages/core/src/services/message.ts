@@ -51,6 +51,12 @@ export function createMessageService(ctx: CoreContext) {
     async function processMessages(messages: Api.Message[]) {
       logger.withFields({ count: messages.length }).verbose('Process messages')
 
+      // Fetch media
+      // const messagesWithMedia = messages.filter(message => message.media != null)
+      // if (messagesWithMedia.length > 0) {
+      //   emitter.emit('media:fetch', { messages: messagesWithMedia })
+      // }
+
       const coreMessages = messages
         .map(message => convertToCoreMessage(message).orUndefined())
         .filter(message => message != null)
