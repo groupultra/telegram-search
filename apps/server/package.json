@@ -25,12 +25,12 @@
   "dependencies": {
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
-    "crossws": "^0.3.5",
-    "es-toolkit": "^1.38.0",
+    "crossws": "^0.4.1",
+    "es-toolkit": "^1.39.3",
     "h3": "^1.15.3",
     "listhen": "^1.9.0",
     "tsx": "^4.19.4",
-    "vite-node": "^3.1.4",
+    "vite-node": "^3.2.2",
     "web-streams-polyfill": "^4.1.0"
   }
 }
