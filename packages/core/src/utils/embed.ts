@@ -4,6 +4,7 @@ import { EmbeddingProvider } from '@tg-search/common'
 import { useConfig } from '@tg-search/common/composable'
 import { createOllama } from '@xsai-ext/providers-local'
 import { embedMany } from '@xsai/embed'
+import { withOpenAIRateLimit } from './openai-rate-limit'
 
 import { Ok } from './monad'
 
@@ -13,12 +14,14 @@ export async function embedContents(contents: string[]) {
   let embeddings: EmbedManyResult
   switch (embeddingConfig.provider) {
     case EmbeddingProvider.OPENAI:
-      embeddings = await embedMany({
-        apiKey: embeddingConfig.apiKey,
-        baseURL: embeddingConfig.apiBase || '',
-        input: contents,
-        model: embeddingConfig.model,
-      })
+      embeddings = await withOpenAIRateLimit(() =>
+        embedMany({
+          apiKey: embeddingConfig.apiKey,
+          baseURL: embeddingConfig.apiBase || '',
+          input: contents,
+          model: embeddingConfig.model,
+        }),
+      )
       break
     case EmbeddingProvider.OLLAMA: {
       const ollama = createOllama()
