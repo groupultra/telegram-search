@@ -4,9 +4,9 @@ import { EmbeddingProvider } from '@tg-search/common'
 import { useConfig } from '@tg-search/common/composable'
 import { createOllama } from '@xsai-ext/providers-local'
 import { embedMany } from '@xsai/embed'
-import { withOpenAIRateLimit } from './openai-rate-limit'
 
 import { Ok } from './monad'
+import { withOpenAIRateLimit } from './openai-rate-limit'
 
 export async function embedContents(contents: string[]) {
   const embeddingConfig = useConfig().api.embedding
