@@ -31,12 +31,14 @@ words:
   - taze
   - tiktoken
   - trpc
+  - tsdown
   - tsquery
   - tsvector
   - unocss
   - unplugin
   - uuidv4
   - valibot
+  - vectorlite
   - vitest
   - vueuse
   - xsai

@@ -24,13 +24,13 @@
     "db:kit": "tsx scripts/db.ts"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.13.2",
+    "@antfu/eslint-config": "4.13.2",
     "@types/node": "^22.15.29",
     "bumpp": "^10.1.1",
     "drizzle-kit": "^0.31.1",
     "eslint": "^9.28.0",
-    "eslint-plugin-format": "^1.0.1",
     "taze": "^19.1.0",
+    "tsdown": "^0.12.7",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "unbuild": "^3.5.0",
