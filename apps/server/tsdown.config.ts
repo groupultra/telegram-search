@@ -5,4 +5,5 @@ export default defineConfig({
   exports: {
     devExports: true,
   },
+  fixedExtension: true,
 })

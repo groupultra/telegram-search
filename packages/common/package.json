@@ -4,12 +4,18 @@
   "version": "1.0.0-beta.11",
   "private": true,
   "exports": {
-    ".": "./src/index.ts",
-    "./package.json": "./package.json"
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./composable": {
+      "types": "./dist/composable/index.d.mts",
+      "default": "./dist/composable/index.mjs"
+    }
   },
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist"
   ],
