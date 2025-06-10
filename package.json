@@ -8,11 +8,10 @@
     "build": "pnpm -r build",
     "stub": "pnpm -r stub",
     "packages:build": "pnpm -rF=\"./packages/*\" build",
-    "packages:stub": "pnpm -rF=\"./packages/*\" stub",
     "build:server": "pnpm -F @tg-search/server build",
     "dev:server": "pnpm run packages:build && pnpm -F @tg-search/server dev",
     "dev:frontend": "pnpm run build:server && pnpm -F @tg-search/frontend dev",
-    "dev:electron": "pnpm -F @tg-search/electron dev",
+    "dev:electron": "pnpm run build:server && pnpm -F @tg-search/electron dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "pnpm -r --parallel typecheck",
@@ -35,7 +34,7 @@
     "typescript": "^5.8.3",
     "unbuild": "^3.5.0",
     "unocss": "^66.1.3",
-    "vite": "^6.3.5",
+    "vite": "npm:rolldown-vite@latest",
     "vitest": "^3.1.4"
   }
 }
