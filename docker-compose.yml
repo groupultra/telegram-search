@@ -4,9 +4,9 @@ services:
     ports:
       - 5433:5432
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DATABASE: postgres
-      POSTGRES_PASSWORD: '123456'
+      POSTGRES_USER: telegram_search_user
+      POSTGRES_DATABASE: telegram_search_db
+      POSTGRES_PASSWORD: 'TgSearch_2024_Secure!'
     volumes:
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgvector_data:/var/lib/postgresql/data
