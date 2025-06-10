@@ -6,6 +6,7 @@ patchedDependencies:
   electron-vite: patches/electron-vite.patch
 catalog:
   '@xsai-ext/providers-cloud': ^0.3.0-beta.3
+  '@xsai-ext/providers-local': ^0.3.0-beta.3
   '@xsai/embed': ^0.3.0-beta.3
 onlyBuiltDependencies:
   - '@parcel/watcher'

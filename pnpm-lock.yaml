@@ -9,6 +9,9 @@ catalogs:
     '@xsai-ext/providers-cloud':
       specifier: ^0.3.0-beta.3
       version: 0.3.0-beta.3
+    '@xsai-ext/providers-local':
+      specifier: ^0.3.0-beta.3
+      version: 0.3.0-beta.3
     '@xsai/embed':
       specifier: ^0.3.0-beta.3
       version: 0.3.0-beta.3
@@ -349,8 +352,8 @@ importers:
         specifier: 'catalog:'
         version: 0.3.0-beta.3
       '@xsai-ext/providers-local':
-        specifier: 0.3.0-beta.2
-        version: 0.3.0-beta.2
+        specifier: 'catalog:'
+        version: 0.3.0-beta.3
       '@xsai/embed':
         specifier: 'catalog:'
         version: 0.3.0-beta.3
@@ -2730,8 +2733,8 @@ packages:
   '@xsai-ext/providers-cloud@0.3.0-beta.3':
     resolution: {integrity: sha512-NmEenYudQOyq+WTgo33OdFW+Un7dk+2RhgyBryyfZC536wtuS8VSmRalgKryqBMpCdwvWFuouADmoNdFMCiPUQ==}
 
-  '@xsai-ext/providers-local@0.3.0-beta.2':
-    resolution: {integrity: sha512-iaTG8arL0bm0rHBtVuJUy09KqID9Qdfd8ARvJabdvZDLg47Pg475C9l4ovF6WUUlvT7c+3SYT+2dOrspKzk5UA==}
+  '@xsai-ext/providers-local@0.3.0-beta.3':
+    resolution: {integrity: sha512-DS3VUJXVw6/qI74PiYEYK32bAc6aoDBT5Av03BwKCVe6J2wW3/CXmfJRE/GqsljdhLE2rZTx/RpFoD/BLPSMTg==}
 
   '@xsai-ext/shared-providers@0.3.0-beta.3':
     resolution: {integrity: sha512-aSR524BAjy651No425KYgVcLVHE7lDYWvhCE038P1Bk00G05sxxI4hwmZStrJjIOk5nksx/zPb2ZABcdeOaAhg==}
@@ -9254,7 +9257,7 @@ snapshots:
       '@xsai-ext/shared-providers': 0.3.0-beta.3
       '@xsai/shared': 0.3.0-beta.3
 
-  '@xsai-ext/providers-local@0.3.0-beta.2':
+  '@xsai-ext/providers-local@0.3.0-beta.3':
     dependencies:
       '@xsai-ext/shared-providers': 0.3.0-beta.3
       '@xsai/shared': 0.3.0-beta.3
