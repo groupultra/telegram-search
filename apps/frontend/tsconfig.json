@@ -9,9 +9,7 @@
       "DOM.Iterable"
     ],
     "useDefineForClassFields": true,
-    /* Paths */
     "module": "ESNext",
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "types": [

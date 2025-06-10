@@ -6,8 +6,5 @@ export default defineConfig({
     './src/composable/index.ts',
   ],
   sourcemap: true,
-  exports: {
-    devExports: true,
-  },
   fixedExtension: true,
 })
