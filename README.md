@@ -65,6 +65,18 @@ pnpm run dev:frontend
 
 访问 `http://localhost:3333` 即可打开搜索界面。
 
+
+### Docker
+```bash
+git clone https://github.com/GramSearch/telegram-search.git
+cd telegram-search
+cp config/config.example.yaml config/config.yaml # 设定配置
+```
+```bash
+docker compose up -d # 启动服务
+```
+
+
 ## 🚀 Activity
 
 [![Star History Chart](https://api.star-history.com/svg?repos=luoling8192/telegram-search&type=Date)](https://star-history.com/#luoling8192/telegram-search&Date)
