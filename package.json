@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.0.0-beta.11",
   "private": true,
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "pnpm@10.12.1",
   "scripts": {
     "build": "pnpm -r build",
     "stub": "pnpm -r stub",
@@ -23,18 +23,18 @@
     "db:kit": "tsx scripts/db.ts"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "4.13.2",
-    "@types/node": "^22.15.29",
+    "@antfu/eslint-config": "4.14.1",
+    "@types/node": "^22.15.31",
     "bumpp": "^10.1.1",
     "drizzle-kit": "^0.31.1",
-    "eslint": "^9.28.0",
+    "eslint": "^9.29.0",
     "taze": "^19.1.0",
     "tsdown": "^0.12.7",
-    "tsx": "^4.19.4",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "unbuild": "^3.5.0",
-    "unocss": "^66.1.3",
+    "unocss": "^66.2.0",
     "vite": "npm:rolldown-vite@latest",
-    "vitest": "^3.1.4"
+    "vitest": "^3.2.3"
   }
 }
