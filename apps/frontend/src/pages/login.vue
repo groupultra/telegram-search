@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
@@ -87,35 +87,35 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-screen bg-background">
-    <div class="w-full max-w-md rounded-2xl bg-card p-10 shadow-2xl">
-      <h1 class="text-3xl font-bold text-center mb-6 tracking-tight">
+  <div class="min-h-screen flex items-center justify-center bg-background">
+    <div class="max-w-md w-full rounded-2xl bg-card p-10 shadow-2xl">
+      <h1 class="mb-6 text-center text-3xl font-bold tracking-tight">
         Telegram 登录
       </h1>
       <Stepper :steps="steps" :current-step="state.currentStep" />
-      <p class="text-center text-lg text-secondary-foreground mb-8 font-medium">
+      <p class="mb-8 text-center text-lg text-secondary-foreground font-medium">
         {{ steps.find(s => s.value === state.currentStep)?.description }}
       </p>
 
       <!-- 手机号码表单 -->
       <form v-if="state.currentStep === 'phone'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="phoneNumber" class="block text-base text-foreground font-semibold mb-2">手机号码</label>
+          <label for="phoneNumber" class="mb-2 block text-base text-foreground font-semibold">手机号码</label>
           <input
             id="phoneNumber"
             v-model="state.phoneNumber"
             type="tel"
             placeholder="+86 123 4567 8901"
-            class="w-full rounded-xl border border-border bg-muted px-5 py-4 text-xl focus:ring-2 focus:ring-primary focus:outline-none transition"
+            class="border-border w-full border rounded-xl bg-muted px-5 py-4 text-xl transition focus:outline-none focus:ring-2 focus:ring-primary"
             required
           >
         </div>
         <button
           type="submit"
-          class="w-full rounded-xl bg-primary text-white py-4 text-lg font-bold hover:bg-primary/90 transition flex items-center justify-center"
+          class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-white font-bold transition hover:bg-primary/90"
           :disabled="state.isLoading"
         >
-          <span v-if="state.isLoading" class="animate-spin mr-2" />
+          <span v-if="state.isLoading" class="mr-2 animate-spin" />
           {{ state.isLoading ? '处理中...' : '发送验证码' }}
         </button>
       </form>
@@ -123,13 +123,13 @@ async function handleLogin() {
       <!-- 验证码表单 -->
       <form v-if="state.currentStep === 'code'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="verificationCode" class="block text-base text-foreground font-semibold mb-2">验证码</label>
+          <label for="verificationCode" class="mb-2 block text-base text-foreground font-semibold">验证码</label>
           <input
             id="verificationCode"
             v-model="state.verificationCode"
             type="text"
             placeholder="请输入 Telegram 发送的验证码"
-            class="w-full rounded-xl border border-border bg-muted px-5 py-4 text-xl focus:ring-2 focus:ring-primary focus:outline-none transition"
+            class="border-border w-full border rounded-xl bg-muted px-5 py-4 text-xl transition focus:outline-none focus:ring-2 focus:ring-primary"
             required
           >
           <p class="mt-2 text-sm text-secondary-foreground">
@@ -138,10 +138,10 @@ async function handleLogin() {
         </div>
         <button
           type="submit"
-          class="w-full rounded-xl bg-primary text-white py-4 text-lg font-bold hover:bg-primary/90 transition flex items-center justify-center"
+          class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-white font-bold transition hover:bg-primary/90"
           :disabled="state.isLoading"
         >
-          <span v-if="state.isLoading" class="animate-spin mr-2" />
+          <span v-if="state.isLoading" class="mr-2 animate-spin" />
           {{ state.isLoading ? '处理中...' : '验证' }}
         </button>
       </form>
@@ -149,22 +149,22 @@ async function handleLogin() {
       <!-- 两步验证密码表单 -->
       <form v-if="state.currentStep === 'password'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="twoFactorPassword" class="block text-base text-foreground font-semibold mb-2">两步验证密码</label>
+          <label for="twoFactorPassword" class="mb-2 block text-base text-foreground font-semibold">两步验证密码</label>
           <input
             id="twoFactorPassword"
             v-model="state.twoFactorPassword"
             type="password"
             placeholder="请输入您的两步验证密码"
-            class="w-full rounded-xl border border-border bg-muted px-5 py-4 text-xl focus:ring-2 focus:ring-primary focus:outline-none transition"
+            class="border-border w-full border rounded-xl bg-muted px-5 py-4 text-xl transition focus:outline-none focus:ring-2 focus:ring-primary"
             required
           >
         </div>
         <button
           type="submit"
-          class="w-full rounded-xl bg-primary text-white py-4 text-lg font-bold hover:bg-primary/90 transition flex items-center justify-center"
+          class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-white font-bold transition hover:bg-primary/90"
           :disabled="state.isLoading"
         >
-          <span v-if="state.isLoading" class="animate-spin mr-2" />
+          <span v-if="state.isLoading" class="mr-2 animate-spin" />
           {{ state.isLoading ? '处理中...' : '登录' }}
         </button>
       </form>
@@ -174,14 +174,14 @@ async function handleLogin() {
         <div class="mb-4 text-3xl">
           🎉
         </div>
-        <h2 class="text-xl font-bold text-foreground">
+        <h2 class="text-xl text-foreground font-bold">
           登录成功！
         </h2>
         <p class="mt-2 text-lg text-secondary-foreground">
           您已成功登录 Telegram 账号
         </p>
         <button
-          class="mt-6 w-full rounded-xl bg-primary text-white py-4 text-lg font-bold hover:bg-primary/90 transition"
+          class="mt-6 w-full rounded-xl bg-primary py-4 text-lg text-white font-bold transition hover:bg-primary/90"
           @click="$router.push('/')"
         >
           进入主页

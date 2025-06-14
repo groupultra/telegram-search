@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "build": "vue-tsc && vite build",
+    "build": "vite build",
     "dev": "vite --port 3333",
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",

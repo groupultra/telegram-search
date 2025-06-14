@@ -5,11 +5,11 @@ import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
 import { Button } from '../components/ui/Button'
-import { useChatStore } from '../store/useChat'
+import { Switch } from '../components/ui/Switch'
 import { useAuthStore } from '../store/useAuth'
+import { useChatStore } from '../store/useChat'
 import { useSyncTaskStore } from '../store/useSyncTask'
 import { useWebsocketStore } from '../store/useWebsocket'
-import { Switch } from '../components/ui/Switch'
 
 const selectedChats = ref<number[]>([])
 
@@ -20,7 +20,7 @@ const websocketStore = useWebsocketStore()
 const chatsStore = useChatStore()
 const { chats } = storeToRefs(chatsStore)
 
-const { currentTask, currentTaskProgress, increase} = storeToRefs(useSyncTaskStore())
+const { currentTask, currentTaskProgress, increase } = storeToRefs(useSyncTaskStore())
 const loadingToast = ref<string | number>()
 
 // 计算属性判断按钮是否应该禁用
@@ -73,7 +73,7 @@ watch(currentTaskProgress, (progress) => {
 </script>
 
 <template>
-  <header class="flex items-center border-b border-b-secondary px-4 dark:border-b-secondary p-4">
+  <header class="flex items-center border-b border-b-secondary p-4 px-4 dark:border-b-secondary">
     <div class="flex items-center gap-2">
       <span class="text-lg font-medium">Sync</span>
     </div>

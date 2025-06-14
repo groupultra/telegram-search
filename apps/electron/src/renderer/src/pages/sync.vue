@@ -5,8 +5,8 @@ import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
 import { Button } from '../components/ui/Button'
-import { useChatStore } from '../store/useChat'
 import { useAuthStore } from '../store/useAuth'
+import { useChatStore } from '../store/useChat'
 import { useSyncTaskStore } from '../store/useSyncTask'
 import { useWebsocketStore } from '../store/useWebsocket'
 
@@ -71,7 +71,7 @@ watch(currentTaskProgress, (progress) => {
 </script>
 
 <template>
-  <header class="flex items-center border-b border-b-secondary px-4 dark:border-b-secondary p-4">
+  <header class="flex items-center border-b border-b-secondary p-4 px-4 dark:border-b-secondary">
     <div class="flex items-center gap-2">
       <span class="text-lg font-medium">Sync</span>
     </div>

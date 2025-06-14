@@ -14,7 +14,7 @@ interface Props {
   disabled?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   disabled: false,
 })
 
@@ -39,7 +39,7 @@ function handleChange(event: Event) {
         @change="handleChange"
       >
       <div
-        class="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/25 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-gray-600 dark:after:border-gray-600 dark:after:bg-gray-700 dark:peer-checked:bg-primary"
+        class="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 peer-disabled:cursor-not-allowed after:border after:border-gray-300 after:rounded-full after:bg-white dark:bg-gray-600 peer-checked:bg-primary peer-disabled:opacity-50 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/25 after:transition-all after:content-[''] peer-checked:after:translate-x-full dark:after:border-gray-600 peer-checked:after:border-white dark:after:bg-gray-700 dark:peer-checked:bg-primary"
       />
       <span
         v-if="label"

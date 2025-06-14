@@ -33,7 +33,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <header class="flex items-center border-b border-b-secondary px-4 dark:border-b-secondary p-4">
+  <header class="flex items-center border-b border-b-secondary p-4 px-4 dark:border-b-secondary">
     <div class="flex items-center gap-2">
       <span class="text-lg font-medium">Settings</span>
     </div>

@@ -1,6 +1,8 @@
 import antfu from '@antfu/eslint-config'
 
 export default await antfu({
+  vue: true,
+  unocss: true,
   ignores: [
     'cspell.config.yaml',
     '**/drizzle/**/*.json',

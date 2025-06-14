@@ -5,18 +5,18 @@
   "private": true,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs"
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
     }
   },
+  "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "unbuild",
-    "stub": "unbuild --stub",
+    "build": "tsdown",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -24,7 +24,7 @@
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
     "@xsai-ext/providers-cloud": "catalog:",
-    "@xsai-ext/providers-local": "0.3.0-beta.2",
+    "@xsai-ext/providers-local": "catalog:",
     "@xsai/embed": "catalog:",
     "big-integer": "^1.6.52",
     "defu": "^6.1.4",
@@ -39,6 +39,7 @@
     "vectorlite": "^0.2.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.15.2"
+    "@types/pg": "^8.15.2",
+    "tsdown": "^0.12.7"
   }
 }

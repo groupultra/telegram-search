@@ -27,16 +27,20 @@ words:
   - pinia
   - reka
   - Retriable
+  - rolldown
   - sonner
   - taze
   - tiktoken
   - trpc
+  - tsdown
   - tsquery
   - tsvector
   - unocss
   - unplugin
   - uuidv4
   - valibot
+  - vectorlite
+  - vite
   - vitest
   - vueuse
   - xsai

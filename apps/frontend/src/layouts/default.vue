@@ -52,15 +52,15 @@ function toggleActiveChatGroup(group: ChatGroup) {
   <div
     class="h-screen w-full flex overflow-hidden bg-background text-sm font-medium"
   >
-    <div class="w-[20%] md:w-[15%] flex flex-col h-dvh border-r border-r-secondary">
+    <div class="w-[20%] flex flex-col border-r border-r-secondary h-dvh md:w-[15%]">
       <div class="relative p-4">
         <div
-          class="i-lucide-search absolute left-7 top-1/2 -translate-y-1/2 h-4 w-4"
+          class="i-lucide-search absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2"
         />
         <input
           v-model="searchParams"
           type="text"
-          class="w-full border border-secondary rounded-md bg-muted px-3 py-2 pl-9  ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring dark:border-secondary dark:bg-muted"
+          class="focus:ring-ring w-full border border-secondary rounded-md bg-muted px-3 py-2 pl-9 ring-offset-background dark:border-secondary dark:bg-muted placeholder:text-muted-foreground focus:outline-none focus:ring-2"
           placeholder="Search"
         >
       </div>
@@ -91,9 +91,9 @@ function toggleActiveChatGroup(group: ChatGroup) {
         />
       </div>
 
-      <div class="pt-4 flex-1 overflow-y-auto flex flex-col justify-start h-full border-t border-t-secondary">
+      <div class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary pt-4">
         <ChatsCollapse
-          class="flex flex-col max-h-[85%]"
+          class="max-h-[85%] flex flex-col"
           :class="{ 'flex-1': activeChatGroup === 'user' }"
           name="用户"
           icon="i-lucide-user"
@@ -104,7 +104,7 @@ function toggleActiveChatGroup(group: ChatGroup) {
         />
 
         <ChatsCollapse
-          class="flex flex-col max-h-[85%]"
+          class="max-h-[85%] flex flex-col"
           :class="{ 'flex-1': activeChatGroup === 'group' }"
           name="群组"
           icon="i-lucide-users"
@@ -115,7 +115,7 @@ function toggleActiveChatGroup(group: ChatGroup) {
         />
 
         <ChatsCollapse
-          class="flex flex-col max-h-[85%]"
+          class="max-h-[85%] flex flex-col"
           :class="{ 'flex-1': activeChatGroup === 'channel' }"
           name="频道"
           icon="i-lucide-message-circle"
@@ -127,7 +127,7 @@ function toggleActiveChatGroup(group: ChatGroup) {
       </div>
 
       <div class="flex items-center justify-between p-4">
-        <div class="flex items-center gap-3 mr-3">
+        <div class="mr-3 flex items-center gap-3">
           <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-muted">
             <Avatar
               :name="websocketStore.getActiveSession()?.me?.username"
@@ -135,8 +135,8 @@ function toggleActiveChatGroup(group: ChatGroup) {
             />
           </div>
           <div class="flex flex-col">
-            <span class="text-sm text-foreground font-medium whitespace-nowrap">{{ websocketStore.getActiveSession()?.me?.username }}</span>
-            <span class="text-xs text-secondary-foreground whitespace-nowrap">{{ websocketStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
+            <span class="whitespace-nowrap text-sm text-foreground font-medium">{{ websocketStore.getActiveSession()?.me?.username }}</span>
+            <span class="whitespace-nowrap text-xs text-secondary-foreground">{{ websocketStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
           </div>
         </div>
         <div class="flex items-center">

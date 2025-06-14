@@ -16,11 +16,11 @@ const isCurrentPage = computed(() => route.path === props.path)
 <template>
   <div
     :class="{ 'bg-muted dark:bg-muted': isCurrentPage }"
-    class="transition-colors hover:bg-muted dark:hover:bg-muted px-4"
+    class="px-4 transition-colors hover:bg-muted dark:hover:bg-muted"
     @click="router.push(props.path)"
   >
     <div
-      class="w-full flex items-center gap-4 p-2 cursor-pointer"
+      class="w-full flex cursor-pointer items-center gap-4 p-2"
     >
       <span :class="icon" class="h-5 w-5" />
       <span>{{ name }}</span>

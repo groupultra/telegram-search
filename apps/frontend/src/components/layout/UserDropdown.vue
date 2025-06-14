@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { onClickOutside } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { computed, ref, useTemplateRef } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '../../store/useAuth'
@@ -33,9 +33,9 @@ const userId = computed(() => activeSessionComputed.value?.me?.id)
   <div
     v-if="isOpen"
     ref="dropdownRef"
-    class="absolute top-full left-0 mt-2 p-2 bg-popover border rounded-md shadow-lg z-10 min-w-[200px]"
+    class="absolute left-0 top-full z-10 mt-2 min-w-[200px] border rounded-md bg-popover p-2 shadow-lg"
   >
-    <div class="flex items-center gap-3 p-3 border-b">
+    <div class="flex items-center gap-3 border-b p-3">
       <Avatar
         :name="username"
         size="md"
@@ -48,7 +48,7 @@ const userId = computed(() => activeSessionComputed.value?.me?.id)
 
     <div class="mt-2">
       <button
-        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md"
+        class="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
         @click="handleLoginLogout"
       >
         <div :class="isLoggedIn ? 'i-lucide-log-out' : 'i-lucide-log-in'" class="h-4 w-4" />

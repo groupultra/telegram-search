@@ -57,7 +57,7 @@ const backgroundColor = computed(() => {
 <template>
   <div class="relative inline-block">
     <div
-      class="relative rounded-full overflow-hidden flex items-center justify-center text-white font-medium" :class="[
+      class="relative flex items-center justify-center overflow-hidden rounded-full text-white font-medium" :class="[
         avatarSize,
         backgroundColor,
       ]"
@@ -72,7 +72,7 @@ const backgroundColor = computed(() => {
     </div>
     <div
       v-if="isOnline"
-      class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-green-500"
+      class="absolute bottom-0 right-0 h-3 w-3 border-2 border-background rounded-full bg-green-500"
     />
   </div>
 </template>

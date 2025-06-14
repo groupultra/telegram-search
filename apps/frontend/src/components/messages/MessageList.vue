@@ -25,11 +25,11 @@ function copyMessageLink(message: CoreMessage) {
 </script>
 
 <template>
-  <ul class="flex flex-col max-h-[540px] overflow-y-auto scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent animate-fade-in">
+  <ul class="scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent max-h-[540px] flex flex-col animate-fade-in overflow-y-auto">
     <li
       v-for="item in props.messages"
       :key="item.uuid"
-      class="flex items-center gap-2 p-2 border-b last:border-b-0 hover:bg-muted/50 transition-all duration-200 ease-in-out animate-slide-in relative group cursor-pointer"
+      class="animate-slide-in group relative flex cursor-pointer items-center gap-2 border-b p-2 transition-all duration-200 ease-in-out last:border-b-0 hover:bg-muted/50"
       tabindex="0"
       @mouseenter="hoveredMessage = item"
       @mouseleave="hoveredMessage = null"
@@ -39,15 +39,15 @@ function copyMessageLink(message: CoreMessage) {
         :name="item.fromName"
         size="sm"
       />
-      <div class="flex-1 min-w-0">
-        <div class="text-sm font-semibold text-foreground truncate">
+      <div class="min-w-0 flex-1">
+        <div class="truncate text-sm text-foreground font-semibold">
           {{ item.fromName }}
         </div>
-        <div class="text-sm text-muted-foreground break-words" v-html="highlightKeyword(item.content, props.keyword)" />
+        <div class="break-words text-sm text-muted-foreground" v-html="highlightKeyword(item.content, props.keyword)" />
       </div>
       <div
         v-if="hoveredMessage === item"
-        class="absolute bottom-0.5 right-0.5 text-[10px] text-muted-foreground flex items-center gap-0.5 opacity-50 bg-background/50 px-1 py-0.5 rounded"
+        class="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded bg-background/50 px-1 py-0.5 text-[10px] text-muted-foreground opacity-50"
       >
         <span>{{ copied ? '已复制' : '按下复制消息链接' }}</span>
         <span v-if="!copied" class="i-lucide-corner-down-left h-2.5 w-2.5" />

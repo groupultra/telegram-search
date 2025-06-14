@@ -18,8 +18,8 @@ defineProps<{
     </div>
     <div class="flex-1">
       <div class="mb-1 flex items-center gap-2">
-        <span class="font-medium text-primary whitespace-nowrap">{{ message.fromName }}</span>
-        <span class="text-xs text-secondary-foreground whitespace-nowrap">{{ message.createdAt }}</span>
+        <span class="whitespace-nowrap text-primary font-medium">{{ message.fromName }}</span>
+        <span class="whitespace-nowrap text-xs text-secondary-foreground">{{ message.createdAt }}</span>
       </div>
       <div class="text-foreground">
         {{ message.content }}
