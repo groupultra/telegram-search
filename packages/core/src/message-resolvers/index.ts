@@ -1,3 +1,4 @@
+import type { CoreContext } from '../context'
 import type { CoreMessage } from '../utils/message'
 import type { Result } from '../utils/monad'
 
