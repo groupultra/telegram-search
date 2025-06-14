@@ -1,3 +1,4 @@
+name: telegram-search
 services:
   pgvector:
     image: ghcr.io/tensorchord/pgvecto-rs:pg17-v0.4.0
@@ -6,16 +7,31 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DATABASE: postgres
-      POSTGRES_PASSWORD: '123456'
+      POSTGRES_PASSWORD: "123456"
     volumes:
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgvector_data:/var/lib/postgresql/data
     healthcheck:
-      test: [CMD-SHELL, pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER]
+      test: [CMD-SHELL, pg_isready -d postgres -U postgres]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 3333:3333
+    depends_on:
+      - pgvector
+    volumes:
+      - ./config/:/app/config/
+      - app_data:/root/.telegram-search
+    restart: unless-stopped
+
+
 volumes:
   pgvector_data:
+  app_data:

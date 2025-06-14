@@ -1,20 +1,28 @@
-FROM node:23.11.1-alpine
+FROM node:23.11.1-alpine AS builder
 
-# Install pnpm
+# Install pnpm and basic tools
+RUN apk add --no-cache git python3 make build-base
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY . .
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm -r install
 
-# Copy source code
-COPY . .
+# RUN pnpm run build
 
-# Build applications
-RUN pnpm run build
+# ---------------------------------
+# --------- Runtime Stage ---------
+# ---------------------------------
+FROM alpine:latest
 
-# Default command (can be overridden by docker-compose)
-CMD ["pnpm", "run", "dev:server"]
+RUN apk add --no-cache nodejs pnpm
+
+WORKDIR /app
+
+COPY --from=builder /app /app
+
+ENTRYPOINT ["/bin/sh", "-c", "pnpm run db:migrate && pnpm run dev:frontend --host 0.0.0.0 & pnpm run dev:server"]
