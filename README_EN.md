@@ -20,48 +20,73 @@ A powerful Telegram chat history search tool that supports vector search and sem
 
 ## 🚀 Quick Start
 
-### Installation Steps
+This is the simplest way to start Telegram Search, which will launch all necessary services (including the database and application server) via Docker.
 
-1. Clone the repository:
+1.  **Clone the repository:**
 
-```bash
-git clone https://github.com/GramSearch/telegram-search.git
-cd telegram-search
-```
+    ```bash
+    git clone https://github.com/GramSearch/telegram-search.git
+    cd telegram-search
+    ```
 
-2. Install dependencies:
+2.  **Configure settings:**
+    Modify the settings in `config/config.yaml` as needed.\
+    Make sure to change the `database.host` value in the configuration to the database container service name "pgvector".
+    ```bash
+    cp config/config.example.yaml config/config.yaml
+    ```
 
-```bash
-pnpm install
-```
+3.  **Start the services:**
 
-3. Configure environment:
+    ```bash
+    docker compose up -d
+    ```
 
-```bash
-cp config/config.example.yaml config/config.yaml
-```
+Access `http://<host>:3333` to open the search interface.
 
-4. Start the database container:
+## 💻 Local Run
 
-```bash
-docker compose up -d
-```
+1.  **Clone the repository**
 
-5. Apply all schema to the database:
+    ```bash
+    git clone https://github.com/GramSearch/telegram-search.git
+    cd telegram-search
+    ```
 
-```bash
-pnpm run db:migrate
-```
+2.  **Install dependencies:**
 
-6. Start services:
+    ```bash
+    pnpm install
+    ```
 
-```bash
-# Start backend service
-pnpm run dev:server
+3.  **Configure environment**:
 
-# Start frontend interface
-pnpm run dev:frontend
-```
+    ```bash
+    cp config/config.example.yaml config/config.yaml
+    ```
+
+4.  **Start the database container:**
+    In local development mode, Docker is only used to start the database container.
+
+    ```bash
+    docker compose up -d pgvector
+    ```
+
+5.  **Synchronize database schema:**
+
+    ```bash
+    pnpm run db:migrate
+    ```
+
+6.  **Start services:**
+
+    ```bash
+    # Start backend service
+    pnpm run dev:server
+
+    # Start frontend interface
+    pnpm run dev:frontend
+    ```
 
 Visit `http://localhost:3333` to open the search interface.
 
