@@ -107,7 +107,7 @@ Telegram Search 提供以下核心功能：
 1. **启动数据库**：
 
    ```bash
-   docker compose up -d
+   docker compose up -d pgvector // 仅启动服务 pgvector
    ```
 
 2. **同步数据库表结构**：
