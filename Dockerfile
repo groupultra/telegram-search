@@ -10,7 +10,6 @@ COPY . .
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts
-RUN pnpm -r install
 
 # RUN pnpm run build
 
