@@ -29,24 +29,22 @@ const processedMedia = computed(() => {
         continue
 
       const base64 = mediaItem.base64
-      if (typeof base64 === 'string') {
-        if (mediaItem.type === 'photo') {
+      switch (mediaItem.type) {
+        case 'photo':
           return {
             src: base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`,
             type: mediaItem.type,
             error: null,
             webpageData: null,
           }
-        }
-        else if (mediaItem.type === 'sticker') {
+        case 'sticker':
           return {
             src: base64.startsWith('data:') ? base64 : `data:video/webm;base64,${base64}`,
             type: mediaItem.type,
             error: null,
             webpageData: null,
           }
-        }
-        else if (mediaItem.type === 'webpage') {
+        case 'webpage': {
           // 处理网页预览
           const apiMedia = mediaItem.apiMedia as any
           const webpage = apiMedia?.webpage
@@ -69,15 +67,15 @@ const processedMedia = computed(() => {
               },
             }
           }
+          break
         }
-        else {
+        default:
           return {
             src: base64.startsWith('data:') ? base64 : `data:application/octet-stream;base64,${base64}`,
             type: mediaItem.type,
             error: null,
             webpageData: null,
           }
-        }
       }
     }
   }
