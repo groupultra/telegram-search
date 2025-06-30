@@ -4,7 +4,7 @@ import type { CoreMessage } from '@tg-search/core/types'
 import { computed } from 'vue'
 
 import Avatar from '../ui/Avatar.vue'
-import MediaRenderer from './MediaRenderer.vue'
+import MediaRenderer from './media/MediaRenderer.vue'
 
 const props = defineProps<{
   message: CoreMessage
