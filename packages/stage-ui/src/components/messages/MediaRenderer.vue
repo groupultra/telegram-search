@@ -114,9 +114,12 @@ function openLink(url: string) {
 
 <template>
   <!-- Show text content if available -->
-  <div v-if="message.content" class="mb-2">
+  <div v-if="message.content && message.media?.length === 0 && message.media?.[0]?.type !== 'webpage'" class="mb-2">
     {{ message.content }}
   </div>
+  <a v-else :href="message.content" target="_blank">
+    {{ message.content }}
+  </a>
 
   <!-- Loading state -->
   <div v-if="isLoading" class="flex items-center gap-2">
