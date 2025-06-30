@@ -65,11 +65,11 @@ export function afterConnectedEventHandler(
     const entityService = useService(ctx, createEntityService)
     const gramEventsService = useService(ctx, createGramEventsService)
 
-    registry.register('embedding', createEmbeddingResolver())
-    registry.register('link', createLinkResolver())
-    registry.register('user', createUserResolver(ctx))
-    registry.register('jieba', createJiebaResolver())
     registry.register('media', createMediaResolver(ctx))
+    registry.register('user', createUserResolver(ctx))
+    registry.register('link', createLinkResolver())
+    registry.register('embedding', createEmbeddingResolver())
+    registry.register('jieba', createJiebaResolver())
 
     registerMessageEventHandlers(ctx)(messageService)
     registerDialogEventHandlers(ctx)(dialogService)

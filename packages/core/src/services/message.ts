@@ -6,6 +6,7 @@ import type { CoreMessage } from '../utils/message'
 
 import { useLogger } from '@tg-search/common'
 import { Err, Ok } from '@tg-search/common/utils/monad'
+import defu from 'defu'
 import { Api } from 'telegram'
 
 import { convertToCoreMessage } from '../utils/message'
@@ -73,7 +74,7 @@ export function createMessageService(ctx: CoreContext) {
           const result = (await resolver.run({ messages: emitMessages })).unwrap()
 
           if (result.length > 0) {
-            emitMessages = result
+            emitMessages = defu(emitMessages, result)
 
             if (name === 'media') {
               reEmitMessages.push(...result.filter(message => message.media?.length && message.media.length > 0))
