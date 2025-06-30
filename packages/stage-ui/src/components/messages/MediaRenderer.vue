@@ -144,7 +144,7 @@ function openLink(url: string) {
         <img
           :src="processedMedia.webpageData.previewImage"
           class="h-full w-full object-cover"
-          :alt="processedMedia.webpageData.title"
+          :alt="processedMedia.webpageData.title || 'Webpage Preview'"
           @error="runtimeError = 'Preview image failed to load'"
         >
       </div>
