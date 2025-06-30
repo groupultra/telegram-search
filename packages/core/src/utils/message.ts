@@ -48,6 +48,7 @@ export function parseMediaType(apiMedia: Api.TypeMessageMedia): CoreMessageMedia
     case apiMedia instanceof Api.MessageMediaPhoto:
       return 'photo'
     case apiMedia instanceof Api.MessageMediaDocument:
+      // TODO: Better way to check if it's a sticker
       if (apiMedia.document && apiMedia.document.className === 'Document') {
         const isSticker = apiMedia.document.attributes.find((attr: any) => attr.className === 'DocumentAttributeSticker')
         if (isSticker) {

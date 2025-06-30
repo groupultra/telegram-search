@@ -26,30 +26,27 @@ const processedMedia = computed(() => {
     for (const mediaItem of props.message.media!) {
       if (!mediaItem.base64)
         continue
-      const base64 = mediaItem.base64
-      if (typeof base64 === 'string') {
-        if (mediaItem.type === 'photo') {
+
+      switch (mediaItem.type) {
+        case 'photo':
           return {
-            src: base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`,
+            src: mediaItem.base64.startsWith('data:') ? mediaItem.base64 : `data:image/jpeg;base64,${mediaItem.base64}`,
             type: mediaItem.type,
             error: null,
           }
-        }
-        else if (mediaItem.type === 'sticker') {
+        case 'sticker':
           return {
-            // video/webm
-            src: base64.startsWith('data:') ? base64 : `data:video/webm;base64,${base64}`,
+          // video/webm
+            src: mediaItem.base64.startsWith('data:') ? mediaItem.base64 : `data:video/webm;base64,${mediaItem.base64}`,
             type: mediaItem.type,
             error: null,
           }
-        }
-        else {
+        default:
           return {
-            src: base64.startsWith('data:') ? base64 : `data:application/octet-stream;base64,${base64}`,
+            src: mediaItem.base64.startsWith('data:') ? mediaItem.base64 : `data:application/octet-stream;base64,${mediaItem.base64}`,
             type: mediaItem.type,
             error: null,
           }
-        }
       }
     }
   }
