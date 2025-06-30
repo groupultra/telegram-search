@@ -57,7 +57,7 @@ const processedMedia = computed(() => {
 
             return {
               src: webpage.url,
-              type: 'webpage' as CoreMessageMediaTypes,
+              type: mediaItem.type,
               error: null,
               webpageData: {
                 title: webpage.title,
