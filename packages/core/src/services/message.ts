@@ -51,6 +51,7 @@ export function createMessageService(ctx: CoreContext) {
     // TODO: worker_threads?
     async function processMessages(messages: Api.Message[]) {
       logger.withFields({ count: messages.length }).verbose('Process messages')
+
       const coreMessages = messages
         .map(message => convertToCoreMessage(message).orUndefined())
         .filter(message => message != null)
