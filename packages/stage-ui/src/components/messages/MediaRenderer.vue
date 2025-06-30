@@ -19,6 +19,7 @@ const processedMedia = computed(() => {
       src: null,
       type: 'unknown' as CoreMessageMediaTypes,
       error: null,
+      webpageData: null,
     }
   }
 
@@ -26,6 +27,7 @@ const processedMedia = computed(() => {
     for (const mediaItem of props.message.media!) {
       if (!mediaItem.base64)
         continue
+
       const base64 = mediaItem.base64
       if (typeof base64 === 'string') {
         if (mediaItem.type === 'photo') {
@@ -33,14 +35,39 @@ const processedMedia = computed(() => {
             src: base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`,
             type: mediaItem.type,
             error: null,
+            webpageData: null,
           }
         }
         else if (mediaItem.type === 'sticker') {
           return {
-            // video/webm
             src: base64.startsWith('data:') ? base64 : `data:video/webm;base64,${base64}`,
             type: mediaItem.type,
             error: null,
+            webpageData: null,
+          }
+        }
+        else if (mediaItem.type === 'webpage') {
+          // 处理网页预览
+          const apiMedia = mediaItem.apiMedia as any
+          const webpage = apiMedia?.webpage
+
+          if (webpage) {
+            // 预览图已经通过base64提供
+            const previewImage = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`
+
+            return {
+              src: webpage.url,
+              type: 'webpage' as CoreMessageMediaTypes,
+              error: null,
+              webpageData: {
+                title: webpage.title,
+                description: webpage.description,
+                siteName: webpage.siteName,
+                url: webpage.url,
+                displayUrl: webpage.displayUrl,
+                previewImage,
+              },
+            }
           }
         }
         else {
@@ -48,6 +75,7 @@ const processedMedia = computed(() => {
             src: base64.startsWith('data:') ? base64 : `data:application/octet-stream;base64,${base64}`,
             type: mediaItem.type,
             error: null,
+            webpageData: null,
           }
         }
       }
@@ -59,6 +87,7 @@ const processedMedia = computed(() => {
       src: null,
       type: 'unknown' as CoreMessageMediaTypes,
       error: 'Failed to process media',
+      webpageData: null,
     }
   }
 
@@ -66,6 +95,7 @@ const processedMedia = computed(() => {
     src: null,
     type: 'unknown' as CoreMessageMediaTypes,
     error: null,
+    webpageData: null,
   }
 })
 
@@ -76,6 +106,10 @@ const isLoading = computed(() => {
 const finalError = computed(() => {
   return processedMedia.value.error || runtimeError.value
 })
+
+function openLink(url: string) {
+  window.open(url, '_blank')
+}
 </script>
 
 <template>
@@ -98,20 +132,66 @@ const finalError = computed(() => {
 
   <!-- Media content -->
   <div v-else-if="processedMedia.src">
+    <!-- 网页预览卡片 -->
+    <div
+      v-if="processedMedia.type === 'webpage'"
+      class="max-w-md cursor-pointer overflow-hidden border border-gray-200 rounded-lg shadow-sm transition-shadow dark:border-gray-700 hover:shadow-md"
+      @click="processedMedia.webpageData?.url && openLink(processedMedia.webpageData.url)"
+    >
+      <!-- 预览图 -->
+      <div v-if="processedMedia.webpageData?.previewImage" class="aspect-video bg-gray-100 dark:bg-gray-800">
+        <img
+          :src="processedMedia.webpageData.previewImage"
+          class="h-full w-full object-cover"
+          :alt="processedMedia.webpageData.title"
+          @error="runtimeError = 'Preview image failed to load'"
+        >
+      </div>
+
+      <!-- 网页信息 -->
+      <div class="p-3">
+        <!-- 网站名称和域名 -->
+        <div class="mb-2 flex items-center gap-2">
+          <div class="h-4 w-4 flex items-center justify-center rounded-sm bg-gray-300 dark:bg-gray-600">
+            <div class="i-lucide-globe h-3 w-3 text-gray-600 dark:text-gray-400" />
+          </div>
+          <span class="text-xs text-gray-500 dark:text-gray-400">
+            {{ processedMedia.webpageData?.siteName || processedMedia.webpageData?.displayUrl }}
+          </span>
+        </div>
+
+        <!-- 标题 -->
+        <h3 class="line-clamp-2 mb-1 text-sm text-gray-900 font-medium dark:text-gray-100">
+          {{ processedMedia.webpageData?.title }}
+        </h3>
+
+        <!-- 描述 -->
+        <p v-if="processedMedia.webpageData?.description" class="line-clamp-2 text-xs text-gray-600 dark:text-gray-400">
+          {{ processedMedia.webpageData.description }}
+        </p>
+
+        <!-- URL -->
+        <div class="mt-2 truncate text-xs text-blue-600 dark:text-blue-400">
+          {{ processedMedia.webpageData?.displayUrl }}
+        </div>
+      </div>
+    </div>
+
     <!-- Images -->
     <img
-      v-if="processedMedia.type === 'photo'"
+      v-else-if="processedMedia.type === 'photo'"
       :src="processedMedia.src"
       class="h-auto max-w-full max-w-xs rounded-lg"
       alt="Media content"
       @error="runtimeError = 'Image failed to load'"
     >
+
+    <!-- Videos/Stickers -->
     <video
       v-else-if="processedMedia.type === 'sticker'"
       :src="processedMedia.src"
       class="h-auto max-w-full max-w-xs rounded-lg"
       alt="Media content"
-
       autoplay loop muted playsinline
       @error="runtimeError = 'Video failed to load'"
     />

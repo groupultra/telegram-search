@@ -32,7 +32,7 @@ export interface CoreMessage {
   deletedAt?: number
 }
 
-export type CoreMessageMediaTypes = 'photo' | 'sticker' | 'document' | 'unknown'
+export type CoreMessageMediaTypes = 'photo' | 'sticker' | 'document' | 'webpage' | 'unknown'
 
 export interface CoreMessageMedia {
   type: CoreMessageMediaTypes
@@ -55,6 +55,8 @@ export function parseMediaType(apiMedia: Api.TypeMessageMedia): CoreMessageMedia
         }
       }
       return 'document'
+    case apiMedia instanceof Api.MessageMediaWebPage:
+      return 'webpage'
     default:
       return 'unknown'
   }
