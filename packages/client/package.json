@@ -1,5 +1,5 @@
 {
-  "name": "@tg-search/stage",
+  "name": "@tg-search/client",
   "type": "module",
   "private": true,
   "packageManager": "pnpm@10.12.4",

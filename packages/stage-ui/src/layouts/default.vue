@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import type { ChatGroup } from '@tg-search/stage'
+import type { ChatGroup } from '@tg-search/client'
 
-import { useAuthStore, useChatStore, useSettingsStore, useWebsocketStore } from '@tg-search/stage'
+import { useAuthStore, useChatStore, useSettingsStore, useWebsocketStore } from '@tg-search/client'
 import { useDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreDialog } from '@tg-search/core/types'
 
-import { usePagination } from '@tg-search/stage'
+import { usePagination } from '@tg-search/client'
 import { computed, ref, watch } from 'vue'
 
 import Pagination from './ui/Pagination.vue'
