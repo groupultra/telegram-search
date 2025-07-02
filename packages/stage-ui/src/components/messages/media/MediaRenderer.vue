@@ -133,25 +133,5 @@ const finalError = computed(() => {
       autoplay loop muted playsinline
       @error="runtimeError = 'Video failed to load'"
     />
-
-    <div
-      v-else
-      class="flex items-center gap-2 rounded bg-gray-100 p-3 dark:bg-gray-800"
-    >
-      <div class="i-lucide-file h-5 w-5" />
-      <div class="flex-1">
-        <span class="text-sm font-medium">文档文件</span>
-        <div class="text-xs text-gray-500">
-          点击下载
-        </div>
-      </div>
-      <a
-        :href="processedMedia.src"
-        :download="`file_${message.platformMessageId}`"
-        class="rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
-      >
-        下载
-      </a>
-    </div>
   </div>
 </template>

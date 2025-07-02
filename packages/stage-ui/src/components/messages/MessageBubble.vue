@@ -13,7 +13,7 @@ const props = defineProps<{
 const formattedTimestamp = computed(() => {
   if (!props.message.platformTimestamp)
     return ''
-  return new Date(props.message.platformTimestamp).toLocaleString()
+  return new Date(props.message.platformTimestamp * 1000).toLocaleString()
 })
 </script>
 
