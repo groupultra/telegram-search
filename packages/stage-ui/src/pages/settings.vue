@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useSettingsStore, useWebsocketStore } from '@tg-search/stage'
+import { useSettingsStore, useWebsocketStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { onMounted, ref } from 'vue'
 import { toast } from 'vue-sonner'

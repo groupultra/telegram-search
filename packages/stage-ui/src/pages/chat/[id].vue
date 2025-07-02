@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
 
-import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/stage'
+import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
 import { useScroll, useVirtualList } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'

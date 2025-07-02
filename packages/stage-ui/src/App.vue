@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // https://github.com/moeru-ai/airi/blob/bd497051fe7090dc021888f127ae7b0d78095210/apps/stage-web/src/App.vue
 
-import { useSettingsStore } from '@tg-search/stage'
+import { useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { watch } from 'vue'
 import { RouterView } from 'vue-router'

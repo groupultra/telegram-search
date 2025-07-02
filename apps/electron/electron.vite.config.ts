@@ -17,7 +17,7 @@ const alias = {
   '@tg-search/server': resolve('../../apps/server/src'),
   '@tg-search/common': resolve('../../packages/common/src'),
   '@tg-search/core': resolve('../../packages/core/src'),
-  '@tg-search/stage': resolve('../../packages/stage/src'),
+  '@tg-search/client': resolve('../../packages/client/src'),
   '@tg-search/stage-ui': resolve('../../packages/stage-ui/src'),
 }
 
