@@ -9,7 +9,8 @@ export interface MessageResolverOpts {
 }
 
 export interface MessageResolver {
-  run: (opts: MessageResolverOpts) => Promise<Result<CoreMessage[]>>
+  run?: (opts: MessageResolverOpts) => Promise<Result<CoreMessage[]>>
+  stream?: (opts: MessageResolverOpts) => AsyncGenerator<CoreMessage>
 }
 
 export type MessageResolverRegistryFn = ReturnType<typeof useMessageResolverRegistry>

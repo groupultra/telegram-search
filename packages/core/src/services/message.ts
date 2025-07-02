@@ -66,29 +66,30 @@ export function createMessageService(ctx: CoreContext) {
 
       // Embedding or resolve messages
       let emitMessages: CoreMessage[] = coreMessages
-      const reEmitMessages: CoreMessage[] = []
       for (const [name, resolver] of resolvers.registry.entries()) {
         logger.withFields({ name }).verbose('Process messages with resolver')
 
         try {
-          const result = (await resolver.run({ messages: emitMessages })).unwrap()
+          let result: CoreMessage[] = []
+
+          if (resolver.run) {
+            result = (await resolver.run({ messages: emitMessages })).unwrap()
+          }
+
+          if (resolver.stream) {
+            for await (const message of resolver.stream({ messages: emitMessages })) {
+              result.push(message)
+              emitter.emit('message:data', { messages: [message] })
+            }
+          }
 
           if (result.length > 0) {
             emitMessages = defu(emitMessages, result)
-
-            if (name === 'media') {
-              reEmitMessages.push(...result.filter(message => message.media?.length && message.media.length > 0))
-            }
           }
         }
         catch (error) {
           logger.withFields({ error }).warn('Failed to process messages')
         }
-      }
-
-      if (reEmitMessages.length > 0) {
-        logger.withFields({ count: reEmitMessages.length }).verbose('Re-emit messages with media')
-        emitter.emit('message:data', { messages: reEmitMessages })
       }
 
       emitter.emit('storage:record:messages', { messages: emitMessages })

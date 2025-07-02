@@ -65,53 +65,50 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
   }
 
   return {
-    run: async (opts: MessageResolverOpts) => {
+    async *stream(opts: MessageResolverOpts) {
       logger.verbose('Executing media resolver')
 
-      const resolvedMessages = await Promise.all(
-        opts.messages.map(async (message) => {
-          if (!message.media || message.media.length === 0)
-            return message
+      for (const message of opts.messages) {
+        if (!message.media || message.media.length === 0) {
+          yield message
+          continue
+        }
 
-          const fetchedMedia = await Promise.all(
-            message.media.map(async (media) => {
-              logger.withFields({ media }).debug('Media')
+        const fetchedMedia = []
+        for (const media of message.media) {
+          logger.withFields({ media }).debug('Media')
 
-              const userMediaPath = join(await useUserMediaPath(), message.chatId.toString())
-              if (!existsSync(userMediaPath)) {
-                mkdirSync(userMediaPath, { recursive: true })
-              }
+          const userMediaPath = join(await useUserMediaPath(), message.chatId.toString())
+          if (!existsSync(userMediaPath)) {
+            mkdirSync(userMediaPath, { recursive: true })
+          }
 
-              const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
+          const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
 
-              const mediaPath = join(userMediaPath, message.platformMessageId)
-              logger.withFields({ mediaPath }).verbose('Media path')
-              if (mediaFetched instanceof Buffer) {
-                // write file to disk async
-                void writeFile(mediaPath, mediaFetched)
-              }
+          const mediaPath = join(userMediaPath, message.platformMessageId)
+          logger.withFields({ mediaPath }).verbose('Media path')
+          if (mediaFetched instanceof Buffer) {
+            // write file to disk async
+            void writeFile(mediaPath, mediaFetched)
+          }
 
-              const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
+          const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
 
-              return {
-                apiMedia: media.apiMedia,
-                base64: (await resolveMedia(mediaFetched)).orUndefined(),
-                byte,
-                type: media.type,
-                messageUUID: media.messageUUID,
-                path: mediaPath,
-              } satisfies CoreMessageMedia
-            }),
-          )
+          fetchedMedia.push({
+            apiMedia: media.apiMedia,
+            base64: (await resolveMedia(mediaFetched)).orUndefined(),
+            byte,
+            type: media.type,
+            messageUUID: media.messageUUID,
+            path: mediaPath,
+          } satisfies CoreMessageMedia)
+        }
 
-          return {
-            ...message,
-            media: fetchedMedia,
-          } satisfies CoreMessage
-        }),
-      )
-
-      return Ok(resolvedMessages)
+        yield {
+          ...message,
+          media: fetchedMedia,
+        } satisfies CoreMessage
+      }
     },
   }
 }
