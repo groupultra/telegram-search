@@ -65,7 +65,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
   }
 
   return {
-    async *stream(opts: MessageResolverOpts) {
+    async* stream(opts: MessageResolverOpts) {
       logger.verbose('Executing media resolver')
 
       for (const message of opts.messages) {
