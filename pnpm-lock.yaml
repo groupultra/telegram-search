@@ -103,15 +103,15 @@ importers:
       '@tanstack/vue-table':
         specifier: ^8.21.3
         version: 8.21.3(vue@3.5.17(typescript@5.8.3))
+      '@tg-search/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       '@tg-search/common':
         specifier: workspace:*
         version: link:../../packages/common
       '@tg-search/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@tg-search/stage':
-        specifier: workspace:*
-        version: link:../../packages/stage
       '@tg-search/stage-ui':
         specifier: workspace:^
         version: link:../../packages/stage-ui
@@ -221,12 +221,12 @@ importers:
       '@tanstack/vue-table':
         specifier: ^8.21.3
         version: 8.21.3(vue@3.5.17(typescript@5.8.3))
+      '@tg-search/client':
+        specifier: workspace:^
+        version: link:../../packages/client
       '@tg-search/core':
         specifier: workspace:^
         version: link:../../packages/core
-      '@tg-search/stage':
-        specifier: workspace:^
-        version: link:../../packages/stage
       '@tg-search/stage-ui':
         specifier: workspace:^
         version: link:../../packages/stage-ui
@@ -334,6 +334,46 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
 
+  packages/client:
+    dependencies:
+      '@tg-search/common':
+        specifier: workspace:*
+        version: link:../common
+      '@tg-search/core':
+        specifier: workspace:*
+        version: link:../core
+      '@tg-search/server':
+        specifier: workspace:*
+        version: link:../../apps/server
+      '@vueuse/core':
+        specifier: ^13.4.0
+        version: 13.4.0(vue@3.5.17(typescript@5.8.3))
+      culori:
+        specifier: ^4.0.2
+        version: 4.0.2
+      defu:
+        specifier: ^6.1.4
+        version: 6.1.4
+      ofetch:
+        specifier: ^1.4.1
+        version: 1.4.1
+      pinia:
+        specifier: ^3.0.3
+        version: 3.0.3(typescript@5.8.3)(vue@3.5.17(typescript@5.8.3))
+      uuid:
+        specifier: ^11.1.0
+        version: 11.1.0
+      vue:
+        specifier: ^3.5.17
+        version: 3.5.17(typescript@5.8.3)
+      vue-sonner:
+        specifier: ^2.0.1
+        version: 2.0.1
+    devDependencies:
+      '@types/culori':
+        specifier: ^4.0.0
+        version: 4.0.0
+
   packages/common:
     dependencies:
       '@guiiai/logg':
@@ -431,46 +471,6 @@ importers:
         specifier: ^8.15.4
         version: 8.15.4
 
-  packages/stage:
-    dependencies:
-      '@tg-search/common':
-        specifier: workspace:*
-        version: link:../common
-      '@tg-search/core':
-        specifier: workspace:*
-        version: link:../core
-      '@tg-search/server':
-        specifier: workspace:*
-        version: link:../../apps/server
-      '@vueuse/core':
-        specifier: ^13.4.0
-        version: 13.4.0(vue@3.5.17(typescript@5.8.3))
-      culori:
-        specifier: ^4.0.2
-        version: 4.0.2
-      defu:
-        specifier: ^6.1.4
-        version: 6.1.4
-      ofetch:
-        specifier: ^1.4.1
-        version: 1.4.1
-      pinia:
-        specifier: ^3.0.3
-        version: 3.0.3(typescript@5.8.3)(vue@3.5.17(typescript@5.8.3))
-      uuid:
-        specifier: ^11.1.0
-        version: 11.1.0
-      vue:
-        specifier: ^3.5.17
-        version: 3.5.17(typescript@5.8.3)
-      vue-sonner:
-        specifier: ^2.0.1
-        version: 2.0.1
-    devDependencies:
-      '@types/culori':
-        specifier: ^4.0.0
-        version: 4.0.0
-
   packages/stage-ui:
     dependencies:
       '@formkit/auto-animate':
@@ -488,12 +488,12 @@ importers:
       '@tanstack/vue-table':
         specifier: ^8.21.3
         version: 8.21.3(vue@3.5.17(typescript@5.8.3))
+      '@tg-search/client':
+        specifier: workspace:^
+        version: link:../client
       '@tg-search/core':
         specifier: workspace:^
         version: link:../core
-      '@tg-search/stage':
-        specifier: workspace:^
-        version: link:../stage
       '@vueuse/core':
         specifier: ^13.4.0
         version: 13.4.0(vue@3.5.17(typescript@5.8.3))
