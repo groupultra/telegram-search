@@ -13,7 +13,7 @@
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "@tg-search/server": "workspace:*",
-    "@vueuse/core": "^13.4.0",
+    "@vueuse/core": "^13.5.0",
     "culori": "^4.0.2",
     "defu": "^6.1.4",
     "ofetch": "^1.4.1",

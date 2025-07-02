@@ -22,14 +22,14 @@
     "db:kit": "tsx scripts/db.ts"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.16.1",
-    "@proj-airi/unocss-preset-chromatic": "^0.0.3",
-    "@types/node": "^24.0.7",
+    "@antfu/eslint-config": "^4.16.2",
+    "@proj-airi/unocss-preset-chromatic": "^0.0.7",
+    "@types/node": "^24.0.10",
     "bumpp": "^10.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-kit": "^0.31.4",
-    "eslint": "^9.30.0",
+    "eslint": "^9.30.1",
     "tailwind-merge": "^3.3.1",
     "taze": "^19.1.0",
     "tsx": "^4.20.3",

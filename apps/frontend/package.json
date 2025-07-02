@@ -12,22 +12,22 @@
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.8.2",
-    "@iconify-json/lucide": "^1.2.53",
+    "@iconify-json/lucide": "^1.2.54",
     "@iconify/vue": "^5.0.0",
     "@tanstack/vue-query": "^5.81.5",
     "@tanstack/vue-table": "^8.21.3",
     "@tg-search/client": "workspace:^",
     "@tg-search/core": "workspace:^",
     "@tg-search/stage-ui": "workspace:^",
-    "@vueuse/core": "^13.4.0",
+    "@vueuse/core": "^13.5.0",
     "defu": "^6.1.4",
     "ofetch": "^1.4.1",
     "pinia": "^3.0.3",
     "radix-vue": "^1.9.17",
-    "reka-ui": "^2.3.1",
+    "reka-ui": "^2.3.2",
     "uuid": "^11.1.0",
     "vue": "^3.5.17",
-    "vue-i18n": "^11.1.7",
+    "vue-i18n": "^11.1.8",
     "vue-router": "^4.5.1",
     "vue-sonner": "^2.0.1"
   },
@@ -39,10 +39,10 @@
     "@vue-macros/volar": "^3.0.0-beta.15",
     "unocss": "^66.3.2",
     "unplugin-vue-macros": "^2.14.5",
-    "unplugin-vue-router": "^0.13.0",
+    "unplugin-vue-router": "^0.14.0",
     "vite-plugin-inspect": "^11.3.0",
     "vite-plugin-vue-devtools": "^7.7.7",
     "vite-plugin-vue-layouts": "^0.11.0",
-    "vue-tsc": "^3.0.0-beta.5"
+    "vue-tsc": "^3.0.1"
   }
 }
