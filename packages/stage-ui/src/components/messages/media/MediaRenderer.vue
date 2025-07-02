@@ -34,20 +34,10 @@ export interface ProcessedMedia {
 const processedMedia = computed<ProcessedMedia>(() => {
   if (isMedia.value) {
     for (const mediaItem of props.message.media!) {
-      if (!mediaItem.base64)
+      if (!mediaItem.blobUrl)
         continue
 
       switch (mediaItem.type) {
-        case 'photo':
-          return {
-            src: mediaItem.base64?.startsWith('data:') ? mediaItem.base64 : `data:image/jpeg;base64,${mediaItem.base64}`,
-            type: mediaItem.type,
-          } satisfies ProcessedMedia
-        case 'sticker':
-          return {
-            src: mediaItem.base64?.startsWith('data:') ? mediaItem.base64 : `data:video/webm;base64,${mediaItem.base64}`,
-            type: mediaItem.type,
-          } satisfies ProcessedMedia
         case 'webpage': {
           // TODO: add webpage to core media
           const webpage = (mediaItem.apiMedia as any)?.webpage
@@ -63,13 +53,13 @@ const processedMedia = computed<ProcessedMedia>(() => {
               siteName: webpage.siteName,
               url: webpage.url,
               displayUrl: webpage.displayUrl,
-              previewImage: mediaItem.base64?.startsWith('data:') ? mediaItem.base64 : `data:image/jpeg;base64,${mediaItem.base64}`,
+              previewImage: mediaItem.blobUrl,
             },
           } satisfies ProcessedMedia
         }
         default:
           return {
-            src: mediaItem.base64?.startsWith('data:') ? mediaItem.base64 : `data:application/octet-stream;base64,${mediaItem.base64}`,
+            src: mediaItem.blobUrl,
             type: mediaItem.type,
           } satisfies ProcessedMedia
       }
@@ -129,9 +119,8 @@ const finalError = computed(() => {
       :src="processedMedia.src"
       class="h-auto max-w-xs rounded-lg"
       alt="Media content"
-
       autoplay loop muted playsinline
-      @error="runtimeError = 'Video failed to load'"
+      @error="runtimeError = 'Sticker failed to load'"
     />
   </div>
 </template>

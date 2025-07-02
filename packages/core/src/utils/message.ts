@@ -37,9 +37,10 @@ export type CoreMessageMediaTypes = 'photo' | 'sticker' | 'document' | 'webpage'
 export interface CoreMessageMedia {
   type: CoreMessageMediaTypes
   messageUUID?: UUID
-  base64: string | undefined
+  base64?: string
   path?: string
-  byte?: Buffer | undefined
+  byte?: Buffer
+  blobUrl?: string
   apiMedia?: unknown // Api.TypeMessageMedia
 }
 

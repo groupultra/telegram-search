@@ -36,7 +36,9 @@ const { list, containerProps, wrapperProps } = useVirtualList(
   chatMessages,
   {
     itemHeight: () => 80, // Estimated height for message bubble
-    // overscan: 10,
+
+    // What is this?
+    overscan: 40,
   },
 )
 
