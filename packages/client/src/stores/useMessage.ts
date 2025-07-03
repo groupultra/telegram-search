@@ -60,10 +60,6 @@ export const useMessageStore = defineStore('message', () => {
 
           media.byte = undefined
         }
-
-        if (media.base64) {
-          media.base64 = undefined
-        }
       }
 
       chatMap.set(message.platformMessageId, message)

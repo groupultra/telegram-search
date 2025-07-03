@@ -37,7 +37,6 @@ export type CoreMessageMediaTypes = 'photo' | 'sticker' | 'document' | 'webpage'
 export interface CoreMessageMedia {
   type: CoreMessageMediaTypes
   messageUUID?: UUID
-  base64?: string
   path?: string
   byte?: Buffer
   blobUrl?: string
@@ -141,7 +140,6 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
     media.push({
       type: parseMediaType(message.media),
       apiMedia: message.media,
-      base64: undefined,
     })
   }
 
