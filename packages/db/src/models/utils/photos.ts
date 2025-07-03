@@ -12,7 +12,7 @@ export function convertDBPhotoToCoreMessageMedia(dbPhoto: DBSelectPhoto): CoreMe
   return {
     type: 'photo',
     messageUUID: dbPhoto.message_id as UUID,
-    byte: dbPhoto.image_bytes ? Buffer.from(dbPhoto.image_bytes) : undefined,
+    byte: dbPhoto.image_bytes ?? undefined,
     path: dbPhoto.image_path || undefined,
   } satisfies CoreMessageMedia
 }
