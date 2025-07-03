@@ -8,7 +8,6 @@ import { Buffer } from 'node:buffer'
 export type DBInsertPhoto = typeof photosTable.$inferInsert
 export type DBSelectPhoto = typeof photosTable.$inferSelect
 
-
 export function convertDBPhotoToCoreMessageMedia(dbPhoto: DBSelectPhoto): CoreMessageMedia {
   return {
     type: 'photo',
