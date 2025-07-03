@@ -3,8 +3,6 @@ import type { UUID } from 'node:crypto'
 import type { CoreMessageMedia } from '../../../../core/src'
 import type { photosTable } from '../../schemas/photos'
 
-import { Buffer } from 'node:buffer'
-
 export type DBInsertPhoto = typeof photosTable.$inferInsert
 export type DBSelectPhoto = typeof photosTable.$inferSelect
 
