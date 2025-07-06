@@ -1,6 +1,18 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/db/schema.ts
 
-import { bigint, index, pgTable, text, uuid, vector } from 'drizzle-orm/pg-core'
+import type { Buffer } from 'node:buffer'
+
+import { bigint, customType, index, pgTable, text, uuid, vector } from 'drizzle-orm/pg-core'
+
+// Define a `bytea` column type for PostgreSQL binary data, mapping to Node Buffer
+const bytea = customType<{
+  data: Buffer
+  default: false
+}>({
+  dataType() {
+    return 'bytea'
+  },
+})
 
 export const stickersTable = pgTable('stickers', {
   id: uuid().primaryKey().defaultRandom(),
@@ -8,9 +20,9 @@ export const stickersTable = pgTable('stickers', {
   name: text().notNull().default(''),
   emoji: text().notNull().default(''),
   label: text().notNull().default(''),
-  file_id: text().notNull().default(''),
-  image_base64: text().notNull().default(''),
-  image_path: text().notNull().default(''),
+  file_id: text().notNull().unique(),
+  sticker_bytes: bytea(),
+  sticker_path: text().notNull(),
   description: text().notNull().default(''),
   created_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
   updated_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),

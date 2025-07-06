@@ -78,6 +78,13 @@
       "when": 1751221642514,
       "tag": "0010_friendly_cable",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1751616387807,
+      "tag": "0011_zippy_jazinda",
+      "breakpoints": true
     }
   ]
 }

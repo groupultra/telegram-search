@@ -13,6 +13,7 @@ import { desc, eq, sql } from 'drizzle-orm'
 import { withDb } from '../drizzle'
 import { chatMessagesTable } from '../schemas/chat_messages'
 import { findPhotosByMessageIds, recordPhotos } from './photos'
+import { recordStickers } from './stickers'
 import { convertToCoreMessageFromDB, convertToDBInsertMessage } from './utils/message'
 import { convertDBPhotoToCoreMessageMedia } from './utils/photos'
 import { retrieveJieba } from './utils/retrieve-jieba'
@@ -65,9 +66,22 @@ export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise
           messageUUID: dbMessage?.id as UUID,
         })) || []
     }) satisfies CoreMessageMedia[]
+  const allStickerMedia = messages
+    .filter(message => message.media && message.media.length > 0)
+    .flatMap((message) => {
+      return message.media?.filter(media => media.type === 'sticker')
+        .map(media => ({
+          ...media,
+          sticker_id: (message.media?.[0]?.apiMedia as any)?.document?.id,
+
+        })) || []
+    }) satisfies (CoreMessageMedia & { sticker_id: string, emoji?: string })[]
 
   if (allPhotoMedia.length > 0) {
     await recordPhotos(allPhotoMedia)
+  }
+  if (allStickerMedia.length > 0) {
+    await recordStickers(allStickerMedia)
   }
 }
 

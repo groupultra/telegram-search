@@ -11,6 +11,7 @@ import { join } from 'node:path'
 
 import { useLogger } from '@tg-search/common'
 import { getMediaPath, useConfig } from '@tg-search/common/node'
+import { findStickerByFileId } from '@tg-search/db'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
@@ -47,6 +48,15 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               mkdirSync(userMediaPath, { recursive: true })
             }
 
+            if (media.type === 'sticker') {
+              const sticker = await findStickerByFileId((media.apiMedia as any).document.id)
+              if (sticker?.unwrap()) {
+                return {
+                  ...media,
+                  byte: sticker.unwrap().sticker_bytes ?? undefined,
+                } satisfies CoreMessageMedia
+              }
+            }
             const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
 
             const mediaPath = join(userMediaPath, message.platformMessageId)
