@@ -4,6 +4,7 @@ import type { UUID } from 'node:crypto'
 import type { CorePagination } from '@tg-search/common/utils/pagination'
 
 import type { CoreMessage, CoreMessageMedia } from '../../../core/src'
+import type { StickerMedia } from './stickers'
 import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@tg-search/common'
@@ -18,6 +19,9 @@ import { convertToCoreMessageFromDB, convertToDBInsertMessage } from './utils/me
 import { convertDBPhotoToCoreMessageMedia } from './utils/photos'
 import { retrieveJieba } from './utils/retrieve-jieba'
 import { retrieveVector } from './utils/retrieve-vector'
+
+interface Document { id?: string }
+type DocumentMedia = CoreMessageMedia & { document?: Document[] }
 
 export async function recordMessages(messages: CoreMessage[]) {
   const dbMessages = messages.map(convertToDBInsertMessage)
@@ -66,16 +70,16 @@ export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise
           messageUUID: dbMessage?.id as UUID,
         })) || []
     }) satisfies CoreMessageMedia[]
+
   const allStickerMedia = messages
     .filter(message => message.media && message.media.length > 0)
     .flatMap((message) => {
       return message.media?.filter(media => media.type === 'sticker')
         .map(media => ({
           ...media,
-          sticker_id: (message.media?.[0]?.apiMedia as any)?.document?.id,
-
+          sticker_id: (message.media?.[0]?.apiMedia as DocumentMedia)?.document?.[0]?.id ?? '',
         })) || []
-    }) satisfies (CoreMessageMedia & { sticker_id: string, emoji?: string })[]
+    }) satisfies StickerMedia[]
 
   if (allPhotoMedia.length > 0) {
     await recordPhotos(allPhotoMedia)

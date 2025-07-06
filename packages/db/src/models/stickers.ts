@@ -11,6 +11,8 @@ import { withDb } from '../drizzle'
 import { recentSentStickersTable } from '../schemas/recent_sent_stickers'
 import { stickersTable } from '../schemas/stickers'
 
+export type StickerMedia = CoreMessageMedia & { sticker_id: string, emoji?: string }
+
 export async function findStickerDescription(fileId: string) {
   const sticker = (await findStickerByFileId(fileId))?.unwrap()
   if (sticker == null) {
@@ -35,7 +37,7 @@ export async function findStickerByFileId(fileId: string) {
   return Ok(sticker[0])
 }
 
-export async function recordSticker(sticker: CoreMessageMedia & { sticker_id: string, emoji?: string }) {
+export async function recordSticker(sticker: StickerMedia) {
   return withDb(async db => db
     .insert(stickersTable)
     .values({
@@ -59,7 +61,7 @@ export async function recordSticker(sticker: CoreMessageMedia & { sticker_id: st
   )
 }
 
-export async function recordStickers(stickers: (CoreMessageMedia & { sticker_id: string, emoji?: string })[]) {
+export async function recordStickers(stickers: StickerMedia[]) {
   return Promise.all(stickers.map(sticker => recordSticker(sticker)))
 }
 
