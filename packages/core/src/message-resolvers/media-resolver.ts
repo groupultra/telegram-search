@@ -43,6 +43,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           message.media.map(async (media) => {
             logger.withFields({ media }).debug('Media')
 
+            // TODO: move it to storage
             const userMediaPath = join(await useUserMediaPath(), message.chatId.toString())
             if (!existsSync(userMediaPath)) {
               mkdirSync(userMediaPath, { recursive: true })
