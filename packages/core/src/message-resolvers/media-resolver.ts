@@ -52,11 +52,12 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             if (media.type === 'sticker') {
               const document = (media.apiMedia as Api.MessageMediaDocument).document
               if (document) {
-                const sticker = await findStickerByFileId(document.id.toString())
-                if (sticker?.unwrap()) {
+                const stickerResult = await findStickerByFileId(document.id.toString())
+                if (stickerResult) {
+                  const sticker = stickerResult.unwrap()
                   return {
                     ...media,
-                    byte: sticker.unwrap().sticker_bytes ?? undefined,
+                    byte: sticker.sticker_bytes ?? undefined,
                   } satisfies CoreMessageMedia
                 }
               }
