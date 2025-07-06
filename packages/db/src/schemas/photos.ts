@@ -1,16 +1,8 @@
-import type { Buffer } from 'node:buffer'
-
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/db/schema.ts
-import { bigint, customType, index, pgTable, text, uuid, vector } from 'drizzle-orm/pg-core'
 
-const bytea = customType<{
-  data: Buffer
-  default: false
-}>({
-  dataType() {
-    return 'bytea'
-  },
-})
+import { bigint, index, pgTable, text, uuid, vector } from 'drizzle-orm/pg-core'
+
+import { bytea } from './type'
 
 export const photosTable = pgTable('photos', {
   id: uuid().primaryKey().defaultRandom(),
