@@ -12,7 +12,7 @@ export const stickersTable = pgTable('stickers', {
   label: text().notNull().default(''),
   file_id: text().notNull().unique(),
   sticker_bytes: bytea(),
-  sticker_path: text().notNull(),
+  sticker_path: text().notNull().default(''),
   description: text().notNull().default(''),
   created_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
   updated_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
