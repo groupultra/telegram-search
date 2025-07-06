@@ -29,8 +29,8 @@ importers:
         specifier: ^4.16.2
         version: 4.16.2(@unocss/eslint-plugin@66.3.2(eslint@9.30.1(jiti@2.4.2))(typescript@5.8.3))(@vue/compiler-sfc@3.5.17)(eslint-plugin-format@1.0.1(eslint@9.30.1(jiti@2.4.2)))(eslint@9.30.1(jiti@2.4.2))(typescript@5.8.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.0.10)(jiti@2.4.2)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.1)(tsx@4.20.3)(yaml@2.8.0))
       '@proj-airi/unocss-preset-chromatic':
-        specifier: ^0.0.7
-        version: 0.0.7
+        specifier: ^1.0.0
+        version: 1.0.0
       '@types/node':
         specifier: ^24.0.10
         version: 24.0.10
@@ -1674,8 +1674,8 @@ packages:
   '@polka/url@1.0.0-next.28':
     resolution: {integrity: sha512-8LduaNlMZGwdZ6qWrKlfa+2M4gahzFkprZiAt2TF8uS0qQgBizKXpXURqvTJ4WtmupWxaLqjRb2UCTe72mu+Aw==}
 
-  '@proj-airi/unocss-preset-chromatic@0.0.7':
-    resolution: {integrity: sha512-nCkmxgI4oA6Hn1FAm+oRfasrpJ1ZuJ5l+JVkERwiAgZOS9Rwueoaoz7Y3DWNCr7W4xJjfhlztcafzUmY3lgZEw==}
+  '@proj-airi/unocss-preset-chromatic@1.0.0':
+    resolution: {integrity: sha512-H9s4WqahCUD12WMWyAHpjvQwkaF/pnXLC94odY+V4Xy5eqmt+vH8d/eSrcXZDOCtucW6fbWc/1t4GWDBiAQJ+w==}
 
   '@quansync/fs@0.1.1':
     resolution: {integrity: sha512-sx8J1O/+j2lqs8MvsEz6rs/6UAUpCb4fu7C6EqtMqzbS3CmqLkTDTOMK+DrWukvyUuHzl8DhMjfNJzQDTqfGJg==}
@@ -7237,7 +7237,7 @@ snapshots:
 
   '@polka/url@1.0.0-next.28': {}
 
-  '@proj-airi/unocss-preset-chromatic@0.0.7': {}
+  '@proj-airi/unocss-preset-chromatic@1.0.0': {}
 
   '@quansync/fs@0.1.1':
     dependencies:
