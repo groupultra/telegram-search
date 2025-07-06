@@ -20,7 +20,7 @@ import { convertDBPhotoToCoreMessageMedia } from './utils/photos'
 import { retrieveJieba } from './utils/retrieve-jieba'
 import { retrieveVector } from './utils/retrieve-vector'
 
-interface Document { id?: string }
+interface Document { id?: string, alt?: string }
 type DocumentMedia = CoreMessageMedia & { document?: Document[] }
 
 export async function recordMessages(messages: CoreMessage[]) {
@@ -72,13 +72,18 @@ export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise
     }) satisfies CoreMessageMedia[]
 
   const allStickerMedia = messages
-    .filter(message => message.media && message.media.length > 0)
-    .flatMap((message) => {
-      return message.media?.filter(media => media.type === 'sticker')
-        .map(media => ({
-          ...media,
-          sticker_id: (message.media?.[0]?.apiMedia as DocumentMedia)?.document?.[0]?.id ?? '',
-        })) || []
+    .flatMap(message => message.media ?? [])
+    .filter(media => media.type === 'sticker')
+    .map((media) => {
+      const apiMedia = media.apiMedia as DocumentMedia
+      const stickerId = apiMedia?.document?.[0]?.id?.toString() ?? ''
+      const emoji = apiMedia?.document?.[0]?.alt ?? ''
+
+      return {
+        ...media,
+        sticker_id: stickerId,
+        emoji,
+      }
     }) satisfies StickerMedia[]
 
   if (allPhotoMedia.length > 0) {
