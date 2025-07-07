@@ -2,7 +2,6 @@
 import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
 
 import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
-import { useScroll, useVirtualList } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -29,18 +28,11 @@ const currentChat = computed<CoreDialog | undefined>(() =>
 const isGlobalSearch = ref(false)
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
 const isLoadingMessages = ref(false)
-const messageLimit = ref(50)
+const messageLimit = ref(100) // 增加初始加载量
 const messageOffset = ref(0)
+const isInitialized = ref(false)
 
-const { list, containerProps, wrapperProps } = useVirtualList(
-  chatMessages,
-  {
-    itemHeight: () => 80, // Estimated height for message bubble
-
-    // What is this?
-    overscan: 40,
-  },
-)
+const scrollerRef = ref()
 
 function handleClickOutside(event: MouseEvent) {
   if (isGlobalSearch.value && searchDialogRef.value) {
@@ -53,8 +45,42 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
-onMounted(() => {
+// 加载消息的函数
+async function loadMessages(offset = 0) {
+  if (isLoadingMessages.value)
+    return
+
+  isLoadingMessages.value = true
+  try {
+    await messageStore.fetchMessagesWithDatabase(id.toString(), {
+      offset,
+      limit: messageLimit.value,
+    })
+    if (offset > 0) {
+      messageOffset.value = offset
+    }
+  }
+  finally {
+    isLoadingMessages.value = false
+  }
+}
+
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
+
+  // 初始化时加载更多消息
+  await loadMessages(0)
+
+  // 等待 DOM 更新后滚动到底部
+  await nextTick()
+  if (scrollerRef.value && chatMessages.value.length > 0) {
+    // 延迟滚动到底部，确保虚拟滚动器已经初始化
+    setTimeout(() => {
+      scrollerRef.value?.scrollToBottom()
+    }, 100)
+  }
+
+  isInitialized.value = true
 })
 
 onUnmounted(() => {
@@ -62,30 +88,27 @@ onUnmounted(() => {
 })
 
 const websocketStore = useWebsocketStore()
-
 const messageInput = ref('')
-const { y } = useScroll(containerProps.ref)
-const lastMessagePosition = ref(0)
 
-watch(() => chatMessages.value.length, () => {
-  lastMessagePosition.value = containerProps.ref.value?.scrollHeight ?? 0
-
-  nextTick(() => {
-    y.value = (containerProps.ref.value?.scrollHeight ?? 0) - lastMessagePosition.value
-    messageOffset.value += messageLimit.value
-  })
+// 监听新消息，自动滚动到底部
+watch(() => chatMessages.value.length, (newLength, oldLength) => {
+  if (isInitialized.value && newLength > oldLength) {
+    nextTick(() => {
+      if (scrollerRef.value) {
+        scrollerRef.value.scrollToBottom()
+      }
+    })
+  }
 })
 
-// TODO: useInfiniteScroll?
-watch(y, async () => {
-  if (y.value === 0 && !isLoadingMessages.value) {
-    isLoadingMessages.value = true
-
-    await messageStore.fetchMessagesWithDatabase(id.toString(), { offset: messageOffset.value, limit: messageLimit.value })
-
-    isLoadingMessages.value = false
+// Handle scroll to top for infinite scroll
+function handleScroll(event: Event) {
+  const target = event.target as HTMLElement
+  if (target.scrollTop === 0 && !isLoadingMessages.value) {
+    const newOffset = messageOffset.value + messageLimit.value
+    loadMessages(newOffset)
   }
-}, { immediate: true })
+}
 
 function sendMessage() {
   if (!messageInput.value.trim())
@@ -120,15 +143,32 @@ const isGlobalSearchOpen = ref(false)
     </div>
 
     <!-- Messages Area -->
-    <div
-      v-bind="containerProps"
-      class="flex-1 overflow-y-auto p-4 space-y-4"
+    <DynamicScroller
+      ref="scrollerRef"
+      :items="chatMessages"
+      :min-item-size="80"
+      :buffer="300"
+      key-field="uuid"
+      class="flex-1 p-4"
+      @scroll="handleScroll"
     >
-      <div v-bind="wrapperProps">
-        <div v-for="{ data, index } in list" :key="index">
-          <MessageBubble :message="data" />
-        </div>
-      </div>
+      <template #default="{ item, index, active }">
+        <DynamicScrollerItem
+          :item="item"
+          :active="active"
+          :data-index="index"
+          :size-dependencies="[item.content, item.media]"
+          class="mb-4"
+        >
+          <MessageBubble :message="item" />
+        </DynamicScrollerItem>
+      </template>
+    </DynamicScroller>
+
+    <!-- Loading indicator -->
+    <div v-if="isLoadingMessages" class="absolute left-4 top-20 flex items-center gap-2 rounded bg-blue-100 px-3 py-1 text-sm text-blue-800">
+      <div class="i-lucide-loader-2 h-4 w-4 animate-spin" />
+      <span>加载消息中...</span>
     </div>
 
     <!-- Message Input -->
@@ -167,3 +207,7 @@ const isGlobalSearchOpen = ref(false)
     </Teleport>
   </div>
 </template>
+
+<style>
+@import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
+</style>

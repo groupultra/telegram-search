@@ -66,10 +66,10 @@ importers:
         version: 66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3))
       unocss-preset-animations:
         specifier: ^1.2.1
-        version: 1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3)))
+        version: 1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0)))
       unocss-preset-shadcn:
         specifier: ^0.5.0
-        version: 0.5.0(unocss-preset-animations@1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3))))(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3)))
+        version: 0.5.0(unocss-preset-animations@1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))))(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0)))
       unplugin-unused:
         specifier: ^0.5.1
         version: 0.5.1
@@ -151,6 +151,9 @@ importers:
       vue-sonner:
         specifier: ^2.0.1
         version: 2.0.1
+      vue-virtual-scroller:
+        specifier: 2.0.0-beta.8
+        version: 2.0.0-beta.8(vue@3.5.17(typescript@5.8.3))
     devDependencies:
       '@electron-toolkit/tsconfig':
         specifier: ^1.0.1
@@ -161,6 +164,9 @@ importers:
       '@rollup/plugin-alias':
         specifier: ^5.1.1
         version: 5.1.1(rollup@4.35.0)
+      '@types/vue-virtual-scroller':
+        specifier: npm:@earltp/vue-virtual-scroller@^1.0.1
+        version: '@earltp/vue-virtual-scroller@1.0.1'
       '@unocss/reset':
         specifier: ^66.3.2
         version: 66.3.2
@@ -263,7 +269,13 @@ importers:
       vue-sonner:
         specifier: ^2.0.1
         version: 2.0.1
+      vue-virtual-scroller:
+        specifier: 2.0.0-beta.8
+        version: 2.0.0-beta.8(vue@3.5.17(typescript@5.8.3))
     devDependencies:
+      '@types/vue-virtual-scroller':
+        specifier: npm:@earltp/vue-virtual-scroller@^1.0.1
+        version: '@earltp/vue-virtual-scroller@1.0.1'
       '@unocss/eslint-config':
         specifier: ^66.3.2
         version: 66.3.2(eslint@9.30.1(jiti@2.4.2))(typescript@5.8.3)
@@ -527,7 +539,13 @@ importers:
       vue-sonner:
         specifier: ^2.0.1
         version: 2.0.1
+      vue-virtual-scroller:
+        specifier: 2.0.0-beta.8
+        version: 2.0.0-beta.8(vue@3.5.17(typescript@5.8.3))
     devDependencies:
+      '@types/vue-virtual-scroller':
+        specifier: npm:@earltp/vue-virtual-scroller@^1.0.1
+        version: '@earltp/vue-virtual-scroller@1.0.1'
       '@unocss/eslint-config':
         specifier: ^66.3.2
         version: 66.3.2(eslint@9.30.1(jiti@2.4.2))(typescript@5.8.3)
@@ -895,6 +913,9 @@ packages:
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
+
+  '@earltp/vue-virtual-scroller@1.0.1':
+    resolution: {integrity: sha512-7UsmP2JALnkfWlheuWRDywuBUTLJcVPE86X5ogA3djUmYFybE6qximgQ7OgyJnrKLteWR7+1Cp0GUXHhdDKaDQ==}
 
   '@electric-sql/pglite@0.3.4':
     resolution: {integrity: sha512-h5hoL2GuxcWN8Q3+jtesIRem14iIvAZVEsTeUF6eO9RiUb6ar73QVIEW9t+Ud58iXAcAE2dFMtWqw3W2Oo4LDw==}
@@ -4732,6 +4753,9 @@ packages:
     resolution: {integrity: sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==}
     engines: {node: '>= 8'}
 
+  mitt@2.1.0:
+    resolution: {integrity: sha512-ILj2TpLiysu2wkBbWjAmww7TkZb65aiQO+DkVdUTBpBXq+MHYiETENkKFMtsJZX1Lf4pe4QOrTSjIfUwN5lRdg==}
+
   mitt@3.0.1:
     resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
 
@@ -6056,6 +6080,16 @@ packages:
     peerDependencies:
       vue: ^3.0.0
 
+  vue-observe-visibility@2.0.0-alpha.1:
+    resolution: {integrity: sha512-flFbp/gs9pZniXR6fans8smv1kDScJ8RS7rEpMjhVabiKeq7Qz3D9+eGsypncjfIyyU84saU88XZ0zjbD6Gq/g==}
+    peerDependencies:
+      vue: ^3.0.0
+
+  vue-resize@2.0.0-alpha.1:
+    resolution: {integrity: sha512-7+iqOueLU7uc9NrMfrzbG8hwMqchfVfSzpVlCMeJQe4pyibqyoifDNbKTZvwxZKDvGkB+PdFeKvnGZMoEb8esg==}
+    peerDependencies:
+      vue: ^3.0.0
+
   vue-router@4.5.1:
     resolution: {integrity: sha512-ogAF3P97NPm8fJsE4by9dwSYtDwXIY1nFY9T6DyQnGHd1E2Da94w9JIolpe42LJGIl0DwOHBi8TcRPlPGwbTtw==}
     peerDependencies:
@@ -6069,6 +6103,11 @@ packages:
     hasBin: true
     peerDependencies:
       typescript: '>=5.0.0'
+
+  vue-virtual-scroller@2.0.0-beta.8:
+    resolution: {integrity: sha512-b8/f5NQ5nIEBRTNi6GcPItE4s7kxNHw2AIHLtDp+2QvqdTjVN0FgONwX9cr53jWRgnu+HRLPaWDOR2JPI5MTfQ==}
+    peerDependencies:
+      vue: ^3.2.0
 
   vue@3.5.17:
     resolution: {integrity: sha512-LbHV3xPN9BeljML+Xctq4lbz2lVHCR6DtbpTf5XIO6gugpXUN49j2QQPcMj086r9+AkJ0FfUT8xjulKKBkkr9g==}
@@ -6661,6 +6700,8 @@ snapshots:
     optional: true
 
   '@drizzle-team/brocli@0.10.2': {}
+
+  '@earltp/vue-virtual-scroller@1.0.1': {}
 
   '@electric-sql/pglite@0.3.4': {}
 
@@ -11114,6 +11155,8 @@ snapshots:
       minipass: 3.3.6
       yallist: 4.0.0
 
+  mitt@2.1.0: {}
+
   mitt@3.0.1: {}
 
   mkdirp-classic@0.5.3:
@@ -12185,16 +12228,16 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  unocss-preset-animations@1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3))):
+  unocss-preset-animations@1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))):
     dependencies:
       unocss: 66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3))
     optionalDependencies:
       '@unocss/preset-wind3': 66.3.2
 
-  unocss-preset-shadcn@0.5.0(unocss-preset-animations@1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3))))(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3))):
+  unocss-preset-shadcn@0.5.0(unocss-preset-animations@1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))))(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))):
     dependencies:
       unocss: 66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3))
-      unocss-preset-animations: 1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3)))
+      unocss-preset-animations: 1.2.1(@unocss/preset-wind3@66.3.2)(unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0)))
 
   unocss@66.3.2(postcss@8.5.6)(rolldown-vite@7.0.4(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0))(vue@3.5.17(typescript@5.8.3)):
     dependencies:
@@ -12576,6 +12619,14 @@ snapshots:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.17(typescript@5.8.3)
 
+  vue-observe-visibility@2.0.0-alpha.1(vue@3.5.17(typescript@5.8.3)):
+    dependencies:
+      vue: 3.5.17(typescript@5.8.3)
+
+  vue-resize@2.0.0-alpha.1(vue@3.5.17(typescript@5.8.3)):
+    dependencies:
+      vue: 3.5.17(typescript@5.8.3)
+
   vue-router@4.5.1(vue@3.5.17(typescript@5.8.3)):
     dependencies:
       '@vue/devtools-api': 6.6.4
@@ -12588,6 +12639,13 @@ snapshots:
       '@volar/typescript': 2.4.17
       '@vue/language-core': 3.0.1(typescript@5.8.3)
       typescript: 5.8.3
+
+  vue-virtual-scroller@2.0.0-beta.8(vue@3.5.17(typescript@5.8.3)):
+    dependencies:
+      mitt: 2.1.0
+      vue: 3.5.17(typescript@5.8.3)
+      vue-observe-visibility: 2.0.0-alpha.1(vue@3.5.17(typescript@5.8.3))
+      vue-resize: 2.0.0-alpha.1(vue@3.5.17(typescript@5.8.3))
 
   vue@3.5.17(typescript@5.8.3):
     dependencies:

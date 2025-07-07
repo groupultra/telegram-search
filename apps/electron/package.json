@@ -32,12 +32,14 @@
     "vue": "^3.5.17",
     "vue-i18n": "^11.1.8",
     "vue-router": "^4.5.1",
-    "vue-sonner": "^2.0.1"
+    "vue-sonner": "^2.0.1",
+    "vue-virtual-scroller": "2.0.0-beta.8"
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^1.0.1",
     "@iconify-json/lucide": "^1.2.54",
     "@rollup/plugin-alias": "^5.1.1",
+    "@types/vue-virtual-scroller": "npm:@earltp/vue-virtual-scroller@^1.0.1",
     "@unocss/reset": "^66.3.2",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue-macros/volar": "^3.0.0-beta.15",

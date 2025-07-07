@@ -7,7 +7,9 @@ import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { routes as generatedRoutes } from 'vue-router/auto-routes'
+import VueVirtualScroller from 'vue-virtual-scroller'
 
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import '@tg-search/stage-ui/styles/main.css'
 import '@unocss/reset/tailwind.css'
 import 'uno.css'
@@ -36,4 +38,5 @@ app.use(router)
 app.use(VueQueryPlugin)
 app.use(pinia)
 app.use(autoAnimatePlugin)
+app.use(VueVirtualScroller)
 app.mount('#app')
