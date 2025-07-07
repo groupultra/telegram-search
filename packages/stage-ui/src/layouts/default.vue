@@ -4,7 +4,7 @@ import type { ChatGroup } from '@tg-search/client'
 import { useAuthStore, useChatStore, useSettingsStore, useWebsocketStore } from '@tg-search/client'
 import { useDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import ChatsCollapse from '../components/layout/ChatsCollapse.vue'
@@ -27,6 +27,12 @@ const route = useRoute()
 const settingsDialog = ref(false)
 const searchParams = ref('')
 
+// Responsive sidebar state
+const isMobile = ref(false)
+const isTablet = ref(false)
+const sidebarCollapsed = ref(false)
+const mobileDrawerOpen = ref(false)
+
 const chatStore = useChatStore()
 const chats = computed(() => chatStore.chats)
 const chatsFiltered = computed(() => {
@@ -44,9 +50,66 @@ const activeChatGroup = computed(() => {
   return selectedGroup.value
 })
 
+// Responsive breakpoints
+const updateScreenSize = () => {
+  const width = window.innerWidth
+  isMobile.value = width < 768
+  isTablet.value = width >= 768 && width < 1024
+  
+  // Auto-collapse sidebar on tablet
+  if (isTablet.value && !sidebarCollapsed.value) {
+    sidebarCollapsed.value = true
+  } else if (!isMobile.value && !isTablet.value) {
+    sidebarCollapsed.value = false
+  }
+}
+
+// Computed classes for responsive design
+const sidebarClasses = computed(() => {
+  if (isMobile.value) {
+    return {
+      container: `fixed inset-y-0 left-0 z-40 w-80 transform transition-transform duration-300 ease-in-out ${
+        mobileDrawerOpen.value ? 'translate-x-0' : '-translate-x-full'
+      }`,
+      backdrop: mobileDrawerOpen.value,
+    }
+  } else if (isTablet.value) {
+    return {
+      container: `w-16 ${sidebarCollapsed.value ? 'w-16' : 'w-64'} transition-all duration-300 ease-in-out`,
+      backdrop: false,
+    }
+  } else {
+    return {
+      container: `${sidebarCollapsed.value ? 'w-16' : 'w-80'} transition-all duration-300 ease-in-out`,
+      backdrop: false,
+    }
+  }
+})
+
+// Show/hide sidebar content based on collapse state
+const showSidebarContent = computed(() => {
+  return !sidebarCollapsed.value || isMobile.value
+})
+
 watch(theme, (newTheme) => {
   document.documentElement.setAttribute('data-theme', newTheme)
 }, { immediate: true })
+
+// Close mobile drawer when route changes
+watch(route, () => {
+  if (isMobile.value) {
+    mobileDrawerOpen.value = false
+  }
+})
+
+onMounted(() => {
+  updateScreenSize()
+  window.addEventListener('resize', updateScreenSize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateScreenSize)
+})
 
 function toggleSettingsDialog() {
   settingsDialog.value = !settingsDialog.value
@@ -55,16 +118,50 @@ function toggleSettingsDialog() {
 function toggleActiveChatGroup(group: ChatGroup) {
   selectedGroup.value = group
 }
+
+function toggleSidebar() {
+  if (isMobile.value) {
+    mobileDrawerOpen.value = !mobileDrawerOpen.value
+  } else {
+    sidebarCollapsed.value = !sidebarCollapsed.value
+  }
+}
+
+function closeMobileDrawer() {
+  if (isMobile.value) {
+    mobileDrawerOpen.value = false
+  }
+}
 </script>
 
 <template>
   <div
     class="h-screen w-full flex overflow-hidden bg-background text-sm font-medium"
   >
+    <!-- Mobile backdrop -->
+    <div
+      v-if="sidebarClasses.backdrop"
+      class="fixed inset-0 z-30 bg-black bg-opacity-50 transition-opacity"
+      @click="closeMobileDrawer"
+    />
+
+    <!-- Mobile menu button -->
+    <div
+      v-if="isMobile"
+      class="fixed left-4 top-4 z-50"
+    >
+      <Button
+        icon="i-lucide-menu"
+        class="h-10 w-10 flex items-center justify-center rounded-lg bg-background shadow-lg border touch-manipulation"
+        @click="toggleSidebar"
+      />
+    </div>
+
     <!-- Login prompt banner -->
     <div
       v-if="!isLoggedIn"
-      class="fixed left-0 right-0 top-0 z-50 bg-yellow-500 px-4 py-2 text-center text-sm text-yellow-900 font-medium"
+      class="fixed left-0 right-0 top-0 z-50 bg-yellow-500 px-4 py-2 text-center text-sm text-yellow-900 font-medium transition-all duration-300 ease-in-out"
+      :class="{ 'left-16': !isMobile && sidebarCollapsed, 'left-80': !isMobile && !sidebarCollapsed }"
     >
       <div class="flex items-center justify-center gap-2">
         <div class="i-lucide-alert-triangle" />
@@ -80,46 +177,83 @@ function toggleActiveChatGroup(group: ChatGroup) {
       </div>
     </div>
 
-    <div class="w-[20%] flex flex-col border-r border-r-secondary h-dvh md:w-[15%]">
-      <div class="relative p-4">
+    <!-- Sidebar -->
+    <div 
+      :class="sidebarClasses.container"
+      class="flex flex-col border-r border-r-secondary h-dvh bg-background"
+    >
+      <!-- Desktop collapse toggle -->
+      <div
+        v-if="!isMobile"
+        class="absolute -right-3 top-6 z-10"
+      >
+        <Button
+          :icon="sidebarCollapsed ? 'i-lucide-chevron-right' : 'i-lucide-chevron-left'"
+          class="h-6 w-6 flex items-center justify-center rounded-full bg-background shadow-md border text-xs hover:shadow-lg transition-shadow"
+          @click="toggleSidebar"
+        />
+      </div>
+
+      <!-- Search section -->
+      <div 
+        v-if="showSidebarContent"
+        class="relative p-4"
+      >
         <div
-          class="i-lucide-search absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2"
+          class="i-lucide-search absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-complementary-500"
         />
         <input
           v-model="searchParams"
           type="text"
-          class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 pl-9 ring-offset-background dark:border-neutral-700 dark:bg-neutral-800 placeholder:text-complementary-500 focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 pl-9 ring-offset-background dark:border-neutral-700 dark:bg-neutral-800 placeholder:text-complementary-500 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
           placeholder="Search"
         >
       </div>
 
+      <!-- Collapsed search icon -->
+      <div
+        v-if="!showSidebarContent"
+        class="p-4 flex justify-center"
+      >
+        <div class="i-lucide-search h-5 w-5 text-complementary-500 hover:text-primary transition-colors cursor-pointer" />
+      </div>
+
+      <!-- Navigation -->
       <div class="mb-4">
         <SidebarSelector
           path="/"
           icon="i-lucide-home"
-          name="主页"
+          :name="showSidebarContent ? '主页' : ''"
+          :tooltip="!showSidebarContent ? '主页' : ''"
         />
 
         <SidebarSelector
           path="/sync"
           icon="i-lucide-refresh-cw"
-          name="同步"
+          :name="showSidebarContent ? '同步' : ''"
+          :tooltip="!showSidebarContent ? '同步' : ''"
         />
 
         <SidebarSelector
           path="/search"
           icon="i-lucide-search"
-          name="搜索"
+          :name="showSidebarContent ? '搜索' : ''"
+          :tooltip="!showSidebarContent ? '搜索' : ''"
         />
 
         <SidebarSelector
           path="/settings"
           icon="i-lucide-settings"
-          name="设置"
+          :name="showSidebarContent ? '设置' : ''"
+          :tooltip="!showSidebarContent ? '设置' : ''"
         />
       </div>
 
-      <div class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary pt-4">
+      <!-- Chat groups -->
+      <div 
+        v-if="showSidebarContent"
+        class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary pt-4"
+      >
         <ChatsCollapse
           class="max-h-[85%] flex flex-col"
           :class="{ 'flex-1': activeChatGroup === 'user' }"
@@ -154,9 +288,35 @@ function toggleActiveChatGroup(group: ChatGroup) {
         />
       </div>
 
-      <div class="flex items-center justify-between p-4">
-        <div class="mr-3 flex items-center gap-3">
-          <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+      <!-- Collapsed chat icons -->
+      <div
+        v-if="!showSidebarContent"
+        class="flex-1 flex flex-col items-center justify-center gap-4 border-t border-t-secondary pt-4"
+      >
+        <div 
+          class="i-lucide-user h-5 w-5 text-complementary-500 cursor-pointer hover:text-primary transition-colors p-2 rounded-md hover:bg-neutral-100"
+          title="用户"
+          @click="toggleActiveChatGroup('user')"
+        />
+        <div 
+          class="i-lucide-users h-5 w-5 text-complementary-500 cursor-pointer hover:text-primary transition-colors p-2 rounded-md hover:bg-neutral-100"
+          title="群组"
+          @click="toggleActiveChatGroup('group')"
+        />
+        <div 
+          class="i-lucide-message-circle h-5 w-5 text-complementary-500 cursor-pointer hover:text-primary transition-colors p-2 rounded-md hover:bg-neutral-100"
+          title="频道"
+          @click="toggleActiveChatGroup('channel')"
+        />
+      </div>
+
+      <!-- User profile section -->
+      <div class="flex items-center justify-between p-4 border-t border-t-secondary">
+        <div 
+          v-if="showSidebarContent"
+          class="mr-3 flex items-center gap-3"
+        >
+          <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 ring-2 ring-offset-1 ring-primary/10">
             <Avatar
               :name="websocketStore.getActiveSession()?.me?.username"
               size="sm"
@@ -167,23 +327,47 @@ function toggleActiveChatGroup(group: ChatGroup) {
             <span class="whitespace-nowrap text-xs text-complementary-600">{{ websocketStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
           </div>
         </div>
-        <div class="flex items-center">
+
+        <!-- Collapsed user avatar -->
+        <div
+          v-if="!showSidebarContent"
+          class="flex justify-center w-full"
+        >
+          <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 ring-2 ring-offset-1 ring-primary/10">
+            <Avatar
+              :name="websocketStore.getActiveSession()?.me?.username"
+              size="sm"
+            />
+          </div>
+        </div>
+
+        <!-- Control buttons -->
+        <div 
+          class="flex items-center"
+          :class="{ 'flex-col gap-2': !showSidebarContent }"
+        >
           <Button
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100"
+            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 transition-colors"
+            :title="isDark ? '切换到亮色模式' : '切换到暗色模式'"
             @click="() => { isDark = !isDark }"
           />
 
           <Button
             icon="i-lucide-settings"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100"
+            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 transition-colors"
+            title="设置"
             @click="toggleSettingsDialog"
           />
         </div>
       </div>
     </div>
 
-    <div class="flex flex-1 flex-col overflow-auto">
+    <!-- Main content -->
+    <div 
+      class="flex flex-1 flex-col overflow-auto transition-all duration-300 ease-in-out"
+      :class="{ 'ml-0': isMobile }"
+    >
       <RouterView :key="$route.fullPath" />
     </div>
 
