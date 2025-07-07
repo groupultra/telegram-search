@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.16.2",
-    "@proj-airi/unocss-preset-chromatic": "^0.0.7",
+    "@proj-airi/unocss-preset-chromatic": "^1.0.0",
     "@types/node": "^24.0.10",
     "bumpp": "^10.2.0",
     "class-variance-authority": "^0.7.1",
