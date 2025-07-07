@@ -43,7 +43,7 @@
     "@vue-macros/volar": "^3.0.0-beta.15",
     "electron": "^37.1.0",
     "electron-builder": "^26.0.12",
-    "electron-vite": "^3.1.0",
+    "electron-vite": "^4.0.0",
     "pathe": "^2.0.3",
     "unocss": "^66.3.2",
     "unplugin-vue-macros": "^2.14.5",
