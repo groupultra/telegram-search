@@ -4,7 +4,7 @@ import type { ChatGroup } from '@tg-search/client'
 import { useAuthStore, useChatStore, useSettingsStore, useWebsocketStore } from '@tg-search/client'
 import { useDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import ChatsCollapse from '../components/layout/ChatsCollapse.vue'
@@ -51,15 +51,16 @@ const activeChatGroup = computed(() => {
 })
 
 // Responsive breakpoints
-const updateScreenSize = () => {
+function updateScreenSize() {
   const width = window.innerWidth
   isMobile.value = width < 768
   isTablet.value = width >= 768 && width < 1024
-  
+
   // Auto-collapse sidebar on tablet
   if (isTablet.value && !sidebarCollapsed.value) {
     sidebarCollapsed.value = true
-  } else if (!isMobile.value && !isTablet.value) {
+  }
+  else if (!isMobile.value && !isTablet.value) {
     sidebarCollapsed.value = false
   }
 }
@@ -73,12 +74,14 @@ const sidebarClasses = computed(() => {
       }`,
       backdrop: mobileDrawerOpen.value,
     }
-  } else if (isTablet.value) {
+  }
+  else if (isTablet.value) {
     return {
       container: `w-16 ${sidebarCollapsed.value ? 'w-16' : 'w-64'} transition-all duration-300 ease-in-out`,
       backdrop: false,
     }
-  } else {
+  }
+  else {
     return {
       container: `${sidebarCollapsed.value ? 'w-16' : 'w-80'} transition-all duration-300 ease-in-out`,
       backdrop: false,
@@ -122,7 +125,8 @@ function toggleActiveChatGroup(group: ChatGroup) {
 function toggleSidebar() {
   if (isMobile.value) {
     mobileDrawerOpen.value = !mobileDrawerOpen.value
-  } else {
+  }
+  else {
     sidebarCollapsed.value = !sidebarCollapsed.value
   }
 }
@@ -152,7 +156,7 @@ function closeMobileDrawer() {
     >
       <Button
         icon="i-lucide-menu"
-        class="h-10 w-10 flex items-center justify-center rounded-lg bg-background shadow-lg border touch-manipulation"
+        class="h-10 w-10 flex touch-manipulation items-center justify-center border rounded-lg bg-background shadow-lg"
         @click="toggleSidebar"
       />
     </div>
@@ -178,34 +182,34 @@ function closeMobileDrawer() {
     </div>
 
     <!-- Sidebar -->
-    <div 
+    <div
       :class="sidebarClasses.container"
-      class="flex flex-col border-r border-r-secondary h-dvh bg-background"
+      class="flex flex-col border-r border-r-secondary bg-background h-dvh"
     >
       <!-- Desktop collapse toggle -->
       <div
         v-if="!isMobile"
-        class="absolute -right-3 top-6 z-10"
+        class="absolute top-6 z-10 -right-3"
       >
         <Button
           :icon="sidebarCollapsed ? 'i-lucide-chevron-right' : 'i-lucide-chevron-left'"
-          class="h-6 w-6 flex items-center justify-center rounded-full bg-background shadow-md border text-xs hover:shadow-lg transition-shadow"
+          class="h-6 w-6 flex items-center justify-center border rounded-full bg-background text-xs shadow-md transition-shadow hover:shadow-lg"
           @click="toggleSidebar"
         />
       </div>
 
       <!-- Search section -->
-      <div 
+      <div
         v-if="showSidebarContent"
         class="relative p-4"
       >
         <div
-          class="i-lucide-search absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-complementary-500"
+          class="i-lucide-search absolute left-7 top-1/2 h-4 w-4 text-complementary-500 -translate-y-1/2"
         />
         <input
           v-model="searchParams"
           type="text"
-          class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 pl-9 ring-offset-background dark:border-neutral-700 dark:bg-neutral-800 placeholder:text-complementary-500 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+          class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 pl-9 ring-offset-background transition-all dark:border-neutral-700 dark:bg-neutral-800 placeholder:text-complementary-500 focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="Search"
         >
       </div>
@@ -213,9 +217,9 @@ function closeMobileDrawer() {
       <!-- Collapsed search icon -->
       <div
         v-if="!showSidebarContent"
-        class="p-4 flex justify-center"
+        class="flex justify-center p-4"
       >
-        <div class="i-lucide-search h-5 w-5 text-complementary-500 hover:text-primary transition-colors cursor-pointer" />
+        <div class="i-lucide-search h-5 w-5 cursor-pointer text-complementary-500 transition-colors hover:text-primary" />
       </div>
 
       <!-- Navigation -->
@@ -250,7 +254,7 @@ function closeMobileDrawer() {
       </div>
 
       <!-- Chat groups -->
-      <div 
+      <div
         v-if="showSidebarContent"
         class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary pt-4"
       >
@@ -291,28 +295,28 @@ function closeMobileDrawer() {
       <!-- Collapsed chat icons -->
       <div
         v-if="!showSidebarContent"
-        class="flex-1 flex flex-col items-center justify-center gap-4 border-t border-t-secondary pt-4"
+        class="flex flex-1 flex-col items-center justify-center gap-4 border-t border-t-secondary pt-4"
       >
-        <div 
-          class="i-lucide-user h-5 w-5 text-complementary-500 cursor-pointer hover:text-primary transition-colors p-2 rounded-md hover:bg-neutral-100"
+        <div
+          class="i-lucide-user h-5 w-5 cursor-pointer rounded-md p-2 text-complementary-500 transition-colors hover:bg-neutral-100 hover:text-primary"
           title="用户"
           @click="toggleActiveChatGroup('user')"
         />
-        <div 
-          class="i-lucide-users h-5 w-5 text-complementary-500 cursor-pointer hover:text-primary transition-colors p-2 rounded-md hover:bg-neutral-100"
+        <div
+          class="i-lucide-users h-5 w-5 cursor-pointer rounded-md p-2 text-complementary-500 transition-colors hover:bg-neutral-100 hover:text-primary"
           title="群组"
           @click="toggleActiveChatGroup('group')"
         />
-        <div 
-          class="i-lucide-message-circle h-5 w-5 text-complementary-500 cursor-pointer hover:text-primary transition-colors p-2 rounded-md hover:bg-neutral-100"
+        <div
+          class="i-lucide-message-circle h-5 w-5 cursor-pointer rounded-md p-2 text-complementary-500 transition-colors hover:bg-neutral-100 hover:text-primary"
           title="频道"
           @click="toggleActiveChatGroup('channel')"
         />
       </div>
 
       <!-- User profile section -->
-      <div class="flex items-center justify-between p-4 border-t border-t-secondary">
-        <div 
+      <div class="flex items-center justify-between border-t border-t-secondary p-4">
+        <div
           v-if="showSidebarContent"
           class="mr-3 flex items-center gap-3"
         >
@@ -331,7 +335,7 @@ function closeMobileDrawer() {
         <!-- Collapsed user avatar -->
         <div
           v-if="!showSidebarContent"
-          class="flex justify-center w-full"
+          class="w-full flex justify-center"
         >
           <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 ring-2 ring-offset-1 ring-primary/10">
             <Avatar
@@ -342,20 +346,20 @@ function closeMobileDrawer() {
         </div>
 
         <!-- Control buttons -->
-        <div 
+        <div
           class="flex items-center"
           :class="{ 'flex-col gap-2': !showSidebarContent }"
         >
           <Button
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 transition-colors"
+            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 transition-colors hover:bg-neutral-100"
             :title="isDark ? '切换到亮色模式' : '切换到暗色模式'"
             @click="() => { isDark = !isDark }"
           />
 
           <Button
             icon="i-lucide-settings"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 transition-colors"
+            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 transition-colors hover:bg-neutral-100"
             title="设置"
             @click="toggleSettingsDialog"
           />
@@ -364,7 +368,7 @@ function closeMobileDrawer() {
     </div>
 
     <!-- Main content -->
-    <div 
+    <div
       class="flex flex-1 flex-col overflow-auto transition-all duration-300 ease-in-out"
       :class="{ 'ml-0': isMobile }"
     >
