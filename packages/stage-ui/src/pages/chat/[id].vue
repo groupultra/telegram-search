@@ -22,9 +22,7 @@ const chatMessages = computed<CoreMessage[]>(() =>
       a.platformTimestamp - b.platformTimestamp,
     ),
 )
-const currentChat = computed<CoreDialog | undefined>(() =>
-  chatStore.getChat(id.toString()),
-)
+const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
 const isGlobalSearch = ref(false)
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
