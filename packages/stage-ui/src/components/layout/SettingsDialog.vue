@@ -14,7 +14,7 @@ const { isLoggedIn } = storeToRefs(sessionStore)
 const { logout } = sessionStore.handleAuth()
 
 const settingsStore = useSettingsStore()
-const { messageDebugMode } = storeToRefs(settingsStore)
+const { useCachedMessage } = storeToRefs(settingsStore)
 
 function handleLogout() {
   logout()
@@ -63,13 +63,13 @@ function handleLogin() {
       <div class="flex items-center justify-between rounded-lg p-3 text-primary-900 transition-colors hover:bg-neutral-100/50">
         <div class="flex items-center gap-2">
           <div class="i-lucide-database h-5 w-5" />
-          <span>不使用数据库拉取信息 (仅用于调试)</span>
+          <span>使用数据库缓存的聊天记录</span>
         </div>
         <Switch
-          v-model="messageDebugMode"
+          v-model="useCachedMessage"
           class="text-primary transition-colors hover:text-primary/80"
         >
-          {{ messageDebugMode ? '开启' : '关闭' }}
+          {{ useCachedMessage ? '开启' : '关闭' }}
         </Switch>
       </div>
     </div>

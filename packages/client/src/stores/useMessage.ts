@@ -40,7 +40,7 @@ export const useMessageStore = defineStore('message', () => {
       let restMessageLength = pagination.limit
       const dbMessages: CoreMessage[] = []
 
-      if (!useSettingsStore().messageDebugMode) {
+      if (useSettingsStore().useCachedMessage) {
         websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
         const { messages: dbMessages } = await websocketStore.waitForEvent('storage:messages')
 
