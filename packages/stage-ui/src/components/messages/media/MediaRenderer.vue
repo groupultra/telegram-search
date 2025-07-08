@@ -117,7 +117,7 @@ const finalError = computed(() => {
     <video
       v-else-if="processedMedia.type === 'sticker'"
       :src="processedMedia.src"
-      class="h-auto max-w-xs rounded-lg"
+      class="h-auto max-w-[12rem] rounded-lg"
       alt="Media content"
       autoplay loop muted playsinline
       @error="runtimeError = 'Sticker failed to load'"
