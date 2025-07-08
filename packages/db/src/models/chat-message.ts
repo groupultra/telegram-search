@@ -45,7 +45,7 @@ export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise
   }
 
   // First, record the messages
-  const dbMessages = (await recordMessages(messages))?.unwrap()
+  const dbMessages = (await recordMessages(messages))?.expect('Failed to record messages')
 
   // Then, collect and record photos that are linked to messages
   const allPhotoMedia = messages

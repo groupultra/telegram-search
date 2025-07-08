@@ -1,5 +1,3 @@
-import { useLogger } from '@tg-search/common'
-
 export interface Result<out T> {
   orDefault: <U extends T>(defaultValue: U) => T
   orUndefined: () => T | undefined
@@ -36,8 +34,6 @@ export function Ok<T>(value: T): Result<T> {
 }
 
 export function Err<T>(error: unknown): Result<T> {
-  useLogger('core:monnad').withError(error).warn('An error occurred')
-
   return {
     orDefault: (defaultValue: T) => defaultValue,
     orUndefined: () => undefined,
