@@ -2,7 +2,7 @@
 import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
 
 import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
-import { useScroll, useVirtualList } from '@vueuse/core'
+import { useScroll, useVirtualList, useWindowSize } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -22,15 +22,16 @@ const chatMessages = computed<CoreMessage[]>(() =>
       a.platformTimestamp - b.platformTimestamp,
     ),
 )
-const currentChat = computed<CoreDialog | undefined>(() =>
-  chatStore.getChat(id.toString()),
-)
+const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
 const isGlobalSearch = ref(false)
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
 const isLoadingMessages = ref(false)
 const messageLimit = ref(50)
 const messageOffset = ref(0)
+
+const { height: windowHeight } = useWindowSize()
+const minimumScrollHeight = computed(() => windowHeight.value * 0.3)
 
 const { list, containerProps, wrapperProps } = useVirtualList(
   chatMessages,
@@ -78,7 +79,7 @@ watch(() => chatMessages.value.length, () => {
 
 // TODO: useInfiniteScroll?
 watch(y, async () => {
-  if (y.value === 0 && !isLoadingMessages.value) {
+  if (y.value <= minimumScrollHeight.value && !isLoadingMessages.value) {
     isLoadingMessages.value = true
 
     await messageStore.fetchMessagesWithDatabase(id.toString(), { offset: messageOffset.value, limit: messageLimit.value })
