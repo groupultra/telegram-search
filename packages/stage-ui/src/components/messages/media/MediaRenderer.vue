@@ -87,9 +87,8 @@ const finalError = computed(() => {
   </div>
 
   <!-- Loading state -->
-  <div v-if="isLoading" class="flex items-center gap-2">
-    <div class="i-lucide-loader-circle h-4 w-4 animate-spin" />
-    <span class="text-xs text-complementary-600">处理媒体中...</span>
+  <div v-if="isLoading" class="h-20 w-20 flex items-center justify-center">
+    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 h-20 w-20 rounded-lg" />
   </div>
 
   <!-- Error state -->
