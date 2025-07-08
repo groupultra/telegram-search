@@ -14,5 +14,6 @@
     "workarounds:all"
   ],
   "rangeStrategy": "bump",
-  "labels": ["dependencies"]
+  "labels": ["dependencies"],
+  "ignoreDeps": ["crossws"]
 }
