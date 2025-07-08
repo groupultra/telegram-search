@@ -9,6 +9,7 @@ export function createMediaBlob(media: CoreMessageMedia) {
     const mimeType = getMediaMimeType(media.type)
     const blob = new Blob([buffer], { type: mimeType })
     const url = URL.createObjectURL(blob)
+    // FIXME: URL.revokeObjectURL()
     media.blobUrl = url
 
     // eslint-disable-next-line no-console
