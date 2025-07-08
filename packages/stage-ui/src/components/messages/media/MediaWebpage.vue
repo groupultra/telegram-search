@@ -14,7 +14,7 @@ function openLink(url: string) {
 
 <template>
   <div
-    class="max-w-md cursor-pointer overflow-hidden border border-gray-200 rounded-lg shadow-sm transition-shadow dark:border-gray-700 hover:shadow-md"
+    class="max-w-md cursor-pointer overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm bg-white dark:bg-gray-800 transition-shadow hover:shadow-md"
     @click="processedMedia.webpageData?.url && openLink(processedMedia.webpageData.url)"
   >
     <!-- 预览图 -->
@@ -40,7 +40,7 @@ function openLink(url: string) {
       </div>
 
       <!-- 标题 -->
-      <h3 class="line-clamp-2 mb-1 text-sm text-gray-900 font-medium dark:text-gray-100">
+      <h3 class="line-clamp-2 mb-1 text-sm text-gray-900 dark:text-gray-100 font-medium">
         {{ processedMedia.webpageData?.title }}
       </h3>
 

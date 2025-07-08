@@ -87,26 +87,26 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-background">
-    <div class="max-w-md w-full rounded-2xl bg-card p-10 shadow-2xl">
-      <h1 class="mb-6 text-center text-3xl font-bold tracking-tight">
+  <div class="min-h-screen flex items-center justify-center bg-background dark:bg-gray-900">
+    <div class="max-w-md w-full rounded-2xl bg-card dark:bg-gray-800 p-10 shadow-2xl">
+      <h1 class="mb-6 text-center text-3xl font-bold tracking-tight text-primary-900 dark:text-gray-100">
         Telegram 登录
       </h1>
       <Stepper :steps="steps" :current-step="state.currentStep" />
-      <p class="mb-8 text-center text-lg text-complementary-600 font-medium">
+      <p class="mb-8 text-center text-lg text-complementary-600 dark:text-gray-400 font-medium">
         {{ steps.find(s => s.value === state.currentStep)?.description }}
       </p>
 
       <!-- 手机号码表单 -->
       <form v-if="state.currentStep === 'phone'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="phoneNumber" class="mb-2 block text-base text-primary-900 font-semibold">手机号码</label>
+          <label for="phoneNumber" class="mb-2 block text-base text-primary-900 dark:text-gray-100 font-semibold">手机号码</label>
           <input
             id="phoneNumber"
             v-model="state.phoneNumber"
             type="tel"
             placeholder="+86 123 4567 8901"
-            class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl transition focus:outline-none focus:ring-2 focus:ring-primary"
+            class="w-full border border-neutral-200 dark:border-gray-600 rounded-xl bg-neutral-100 dark:bg-gray-700 px-5 py-4 text-xl text-primary-900 dark:text-gray-100 transition focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
             required
           >
         </div>
@@ -123,16 +123,16 @@ async function handleLogin() {
       <!-- 验证码表单 -->
       <form v-if="state.currentStep === 'code'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="verificationCode" class="mb-2 block text-base text-primary-900 font-semibold">验证码</label>
+          <label for="verificationCode" class="mb-2 block text-base text-primary-900 dark:text-gray-100 font-semibold">验证码</label>
           <input
             id="verificationCode"
             v-model="state.verificationCode"
             type="text"
             placeholder="请输入 Telegram 发送的验证码"
-            class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl transition focus:outline-none focus:ring-2 focus:ring-primary"
+            class="w-full border border-neutral-200 dark:border-gray-600 rounded-xl bg-neutral-100 dark:bg-gray-700 px-5 py-4 text-xl text-primary-900 dark:text-gray-100 transition focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
             required
           >
-          <p class="mt-2 text-sm text-complementary-600">
+          <p class="mt-2 text-sm text-complementary-600 dark:text-gray-400">
             请检查您的 Telegram 应用或短信
           </p>
         </div>
@@ -149,13 +149,13 @@ async function handleLogin() {
       <!-- 两步验证密码表单 -->
       <form v-if="state.currentStep === 'password'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="twoFactorPassword" class="mb-2 block text-base text-primary-900 font-semibold">两步验证密码</label>
+          <label for="twoFactorPassword" class="mb-2 block text-base text-primary-900 dark:text-gray-100 font-semibold">两步验证密码</label>
           <input
             id="twoFactorPassword"
             v-model="state.twoFactorPassword"
             type="password"
             placeholder="请输入您的两步验证密码"
-            class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl transition focus:outline-none focus:ring-2 focus:ring-primary"
+            class="w-full border border-neutral-200 dark:border-gray-600 rounded-xl bg-neutral-100 dark:bg-gray-700 px-5 py-4 text-xl text-primary-900 dark:text-gray-100 transition focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
             required
           >
         </div>
@@ -174,10 +174,10 @@ async function handleLogin() {
         <div class="mb-4 text-3xl">
           🎉
         </div>
-        <h2 class="text-xl text-primary-900 font-bold">
+        <h2 class="text-xl text-primary-900 dark:text-gray-100 font-bold">
           登录成功！
         </h2>
-        <p class="mt-2 text-lg text-complementary-600">
+        <p class="mt-2 text-lg text-complementary-600 dark:text-gray-400">
           您已成功登录 Telegram 账号
         </p>
         <button

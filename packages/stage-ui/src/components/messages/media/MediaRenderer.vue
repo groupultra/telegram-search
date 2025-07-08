@@ -82,18 +82,18 @@ const finalError = computed(() => {
 </script>
 
 <template>
-  <div v-if="message.content" class="mb-2">
+  <div v-if="message.content" class="mb-2 text-primary-900 dark:text-gray-100">
     {{ message.content }}
   </div>
 
   <!-- Loading state -->
   <div v-if="isLoading" class="flex items-center gap-2">
-    <div class="i-lucide-loader-circle h-4 w-4 animate-spin" />
-    <span class="text-xs text-complementary-600">处理媒体中...</span>
+    <div class="i-lucide-loader-circle h-4 w-4 animate-spin text-complementary-600 dark:text-gray-400" />
+    <span class="text-xs text-complementary-600 dark:text-gray-400">处理媒体中...</span>
   </div>
 
   <!-- Error state -->
-  <div v-if="finalError" class="flex items-center gap-2 rounded bg-red-100 p-2 dark:bg-red-900">
+  <div v-if="finalError" class="flex items-center gap-2 rounded bg-red-100 dark:bg-red-900 p-2">
     <div class="i-lucide-alert-circle h-4 w-4 text-red-500" />
     <span class="text-sm text-red-700 dark:text-red-300">{{ finalError }}</span>
   </div>
