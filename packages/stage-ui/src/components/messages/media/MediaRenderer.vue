@@ -88,7 +88,7 @@ const finalError = computed(() => {
 
   <!-- Loading state -->
   <div v-if="isLoading" class="h-20 w-20 flex items-center justify-center">
-    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 h-20 w-20 rounded-lg" />
+    <div class="h-20 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
   </div>
 
   <!-- Error state -->
