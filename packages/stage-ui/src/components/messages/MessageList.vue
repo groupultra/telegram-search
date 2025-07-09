@@ -4,6 +4,8 @@ import type { CoreMessage } from '@tg-search/core/types'
 import { useClipboard } from '@vueuse/core'
 import { ref } from 'vue'
 
+import Avatar from '../ui/Avatar.vue'
+
 const props = defineProps<{
   messages: CoreMessage[]
   keyword: string
@@ -29,7 +31,7 @@ function copyMessageLink(message: CoreMessage) {
     <li
       v-for="item in props.messages"
       :key="item.uuid"
-      class="group animate-slide-in relative flex cursor-pointer items-center gap-2 border-b p-2 transition-all duration-200 ease-in-out last:border-b-0 hover:bg-neutral-100/50"
+      class="group animate-slide-in relative flex cursor-pointer items-center gap-2 border-b p-2 transition-all duration-200 ease-in-out last:border-b-0 dark:border-gray-700 hover:bg-neutral-100/50 dark:hover:bg-gray-800/50"
       tabindex="0"
       @mouseenter="hoveredMessage = item"
       @mouseleave="hoveredMessage = null"
@@ -40,14 +42,14 @@ function copyMessageLink(message: CoreMessage) {
         size="sm"
       />
       <div class="min-w-0 flex-1">
-        <div class="truncate text-sm text-primary-900 font-semibold">
+        <div class="truncate text-sm text-primary-900 font-semibold dark:text-gray-100">
           {{ item.fromName }}
         </div>
-        <div class="break-words text-sm text-complementary-500" v-html="highlightKeyword(item.content, props.keyword)" />
+        <div class="break-words text-sm text-complementary-500 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
       </div>
       <div
         v-if="hoveredMessage === item"
-        class="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded bg-background/50 px-1 py-0.5 text-[10px] text-complementary-500 opacity-50"
+        class="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded bg-background/50 px-1 py-0.5 text-[10px] text-complementary-500 opacity-50 dark:bg-gray-800/50 dark:text-gray-400"
       >
         <span>{{ copied ? '已复制' : '按下复制消息链接' }}</span>
         <span v-if="!copied" class="i-lucide-corner-down-left h-2.5 w-2.5" />

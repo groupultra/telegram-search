@@ -3,8 +3,8 @@ import type { DBRetrievalMessages } from '@tg-search/db'
 import type { CoreContext } from '../context'
 import type { CoreDialog } from '../services'
 
-import { useLogger } from '@tg-search/common'
 import { convertToCoreRetrievalMessages, fetchChats, fetchMessagesWithPhotos, getChatMessagesStats, recordChats, recordMessagesWithPhotos, retrieveMessages } from '@tg-search/db'
+import { useLogger } from '@tg-search/logg'
 
 import { embedContents } from '../utils/embed'
 

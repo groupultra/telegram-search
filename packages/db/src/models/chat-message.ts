@@ -4,15 +4,17 @@ import type { UUID } from 'node:crypto'
 import type { CorePagination } from '@tg-search/common/utils/pagination'
 
 import type { CoreMessage, CoreMessageMedia } from '../../../core/src'
+import type { StickerMedia } from './stickers'
 import type { DBRetrievalMessages } from './utils/message'
 
-import { useLogger } from '@tg-search/common'
-import { Ok } from '@tg-search/common/utils/monad'
+import { useLogger } from '@tg-search/logg'
+import { Ok } from '@tg-search/result'
 import { desc, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../drizzle'
 import { chatMessagesTable } from '../schemas/chat_messages'
 import { findPhotosByMessageIds, recordPhotos } from './photos'
+import { recordStickers } from './stickers'
 import { convertToCoreMessageFromDB, convertToDBInsertMessage } from './utils/message'
 import { convertDBPhotoToCoreMessageMedia } from './utils/photos'
 import { retrieveJieba } from './utils/retrieve-jieba'
@@ -31,7 +33,24 @@ export async function recordMessages(messages: CoreMessage[]) {
     .onConflictDoUpdate({
       target: [chatMessagesTable.platform, chatMessagesTable.platform_message_id, chatMessagesTable.in_chat_id],
       set: {
+        // Content: always update with new content
         content: sql`excluded.content`,
+
+        // Vectors: update only if not null (vectors can be null in schema)
+        content_vector_1024: sql`COALESCE(excluded.content_vector_1024, ${chatMessagesTable.content_vector_1024})`,
+        content_vector_1536: sql`COALESCE(excluded.content_vector_1536, ${chatMessagesTable.content_vector_1536})`,
+        content_vector_768: sql`COALESCE(excluded.content_vector_768, ${chatMessagesTable.content_vector_768})`,
+
+        // Jieba tokens: update only if new array is not empty
+        jieba_tokens: sql`CASE 
+          WHEN excluded.jieba_tokens IS NOT NULL 
+               AND jsonb_array_length(excluded.jieba_tokens) > 0 
+          THEN excluded.jieba_tokens 
+          ELSE ${chatMessagesTable.jieba_tokens} 
+        END`,
+
+        // Platform timestamp: always update
+        platform_timestamp: sql`excluded.platform_timestamp`,
         updated_at: Date.now(),
       },
     })
@@ -45,7 +64,7 @@ export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise
   }
 
   // First, record the messages
-  const dbMessages = (await recordMessages(messages))?.unwrap()
+  const dbMessages = (await recordMessages(messages))?.expect('Failed to record messages')
 
   // Then, collect and record photos that are linked to messages
   const allPhotoMedia = messages
@@ -66,8 +85,26 @@ export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise
         })) || []
     }) satisfies CoreMessageMedia[]
 
+  const allStickerMedia = messages
+    .flatMap(message => message.media ?? [])
+    .filter(media => media.type === 'sticker')
+    .map((media) => {
+      const apiMedia = media.apiMedia as any
+      const stickerId = apiMedia?.document?.id?.toString() ?? ''
+      const emoji = apiMedia?.document?.attributes?.find((attr: any) => attr.alt)?.alt ?? ''
+
+      return {
+        ...media,
+        sticker_id: stickerId,
+        emoji,
+      }
+    }) satisfies StickerMedia[]
+
   if (allPhotoMedia.length > 0) {
     await recordPhotos(allPhotoMedia)
+  }
+  if (allStickerMedia.length > 0) {
+    await recordStickers(allStickerMedia)
   }
 }
 

@@ -1,7 +1,7 @@
 import type { CoreContext } from '../context'
 import type { GramEventsService } from '../services/gram-events'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 
 export function registerGramEventsEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx

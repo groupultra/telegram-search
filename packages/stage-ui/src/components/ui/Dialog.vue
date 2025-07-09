@@ -106,7 +106,7 @@ onUnmounted(() => {
           <div
             v-show="isVisible"
             ref="contentRef"
-            class="dialog-content relative w-full cursor-default rounded-lg bg-popover p-6 shadow-2xl ring-1 ring-secondary/10"
+            class="dialog-content relative w-full cursor-default rounded-lg bg-popover p-6 shadow-2xl ring-1 ring-secondary/10 dark:bg-gray-800 dark:ring-gray-700/50"
             :style="{ maxWidth: maxWidth || '32rem' }"
             @click.stop
           >

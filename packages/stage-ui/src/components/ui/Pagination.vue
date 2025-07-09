@@ -93,7 +93,7 @@ function changePage(page: number | string) {
       :class="[
         modelValue === 1
           ? 'text-gray-400 dark:text-gray-600'
-          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700',
+          : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
       ]"
       :disabled="modelValue === 1"
       @click="changePage(modelValue - 1)"
@@ -111,7 +111,7 @@ function changePage(page: number | string) {
           ? 'cursor-default text-gray-400 dark:text-gray-600'
           : page === modelValue
             ? themeClasses[theme]
-            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700',
+            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
       ]"
       @click="changePage(page)"
     >
@@ -124,7 +124,7 @@ function changePage(page: number | string) {
       :class="[
         modelValue === total
           ? 'text-gray-400 dark:text-gray-600'
-          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700',
+          : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
       ]"
       :disabled="modelValue === total"
       @click="changePage(modelValue + 1)"

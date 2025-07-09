@@ -1,8 +1,8 @@
-import type { Result } from '@tg-search/common/utils/monad'
+import type { Result } from '@tg-search/result'
 
 import type { CoreMessage } from '../utils/message'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 
 export interface MessageResolverOpts {
   messages: CoreMessage[]

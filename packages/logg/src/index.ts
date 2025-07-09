@@ -2,42 +2,20 @@ import { Format, LogLevel, setGlobalFormat, setGlobalLogLevel, useLogg } from '@
 import ErrorStackParser from 'error-stack-parser'
 import path from 'path-browserify-esm'
 
-import { isBrowser } from './browser'
-import { flags } from './flags'
+import { isBrowser } from './utils'
 
 export type Logger = ReturnType<typeof useLogg>
 export { Format as LoggerFormat, LogLevel as LoggerLevel }
 
 export function initLogger(
-  level = flags.logLevel,
-  format = flags.logFormat,
+  level = LogLevel.Verbose,
+  format = Format.Pretty,
 ) {
   setGlobalLogLevel(level)
   setGlobalFormat(format)
 
   const logger = useLogg('logger').useGlobalConfig()
   logger.withFields({ level: LogLevel[level], format }).log('Logger initialized')
-}
-
-export function circularStringify(object: Record<string, any>) {
-  const simpleObject: Record<string, any> = {}
-  for (const prop in object) {
-    if (!Object.prototype.hasOwnProperty.call(object, prop)) {
-      continue
-    }
-    if (typeof (object[prop]) === 'object') {
-      continue
-    }
-    if (typeof (object[prop]) == 'function') {
-      continue
-    }
-    simpleObject[prop] = object[prop]
-  }
-  return JSON.stringify(simpleObject)
-}
-
-export function circularObject(object: Record<string, any>) {
-  return JSON.parse(circularStringify(object))
 }
 
 export function useLogger(name?: string): Logger {

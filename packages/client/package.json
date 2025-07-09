@@ -2,7 +2,7 @@
   "name": "@tg-search/client",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.12.4",
+  "packageManager": "pnpm@10.13.1",
   "exports": {
     ".": "./src/index.ts"
   },

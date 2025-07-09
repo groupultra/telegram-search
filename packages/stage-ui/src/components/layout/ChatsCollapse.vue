@@ -33,11 +33,11 @@ function toggleActive() {
 <template>
   <div>
     <div
-      class="flex cursor-pointer items-center justify-between gap-4 py-2 hover:bg-neutral-100"
+      class="flex cursor-pointer items-center justify-between gap-4 py-2 hover:bg-neutral-100 dark:hover:bg-gray-700"
       @click="toggleActive"
     >
       <div
-        class="flex items-center gap-4 rounded-md px-6 text-primary-900"
+        class="flex items-center gap-4 rounded-md px-6 text-primary-900 dark:text-gray-100"
       >
         <span :class="icon" class="h-5 w-5" />
         <span class="whitespace-nowrap">{{ name }}</span>
@@ -45,7 +45,7 @@ function toggleActive() {
 
       <div
         :class="active ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
-        class="h-4 w-4 cursor-pointer px-6 transition-transform duration-200"
+        class="h-4 w-4 cursor-pointer px-6 text-primary-900 transition-transform duration-200 dark:text-gray-100"
       />
     </div>
 
@@ -57,8 +57,8 @@ function toggleActive() {
       <div
         v-for="chat in chats.filter(chat => chat.type === type)"
         :key="chat.id"
-        :class="{ 'bg-neutral-100': isActiveChat(chat.id.toString()) }"
-        class="flex flex-row cursor-pointer items-center justify-start gap-2 px-6 py-2 transition-all duration-200 hover:bg-neutral-100 hover:-translate-y-0.5"
+        :class="{ 'bg-neutral-100 dark:bg-gray-700': isActiveChat(chat.id.toString()) }"
+        class="flex flex-row cursor-pointer items-center justify-start gap-2 px-6 py-2 transition-all duration-200 hover:bg-neutral-100 hover:-translate-y-0.5 dark:hover:bg-gray-700"
         @click="router.push(`/chat/${chat.id}`)"
       >
         <Avatar
@@ -66,11 +66,11 @@ function toggleActive() {
           size="sm"
         />
         <div class="flex flex-col overflow-hidden">
-          <span class="truncate">
+          <span class="truncate text-primary-900 dark:text-gray-100">
             {{ chat.name }}
           </span>
 
-          <span class="whitespace-nowrap text-xs text-complementary-600">
+          <span class="whitespace-nowrap text-xs text-complementary-600 dark:text-gray-400">
             {{ chat.id }}
           </span>
         </div>

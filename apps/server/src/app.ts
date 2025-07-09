@@ -6,8 +6,8 @@ import type { App } from 'h3'
 
 import type { WsEventToClientData, WsMessageToServer } from './ws-event'
 
-import { useLogger } from '@tg-search/common'
 import { createCoreInstance } from '@tg-search/core'
+import { useLogger } from '@tg-search/logg'
 import { defineWebSocketHandler } from 'h3'
 
 import { sendWsEvent } from './ws-event'

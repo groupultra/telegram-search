@@ -140,7 +140,7 @@ function closeMobileDrawer() {
 
 <template>
   <div
-    class="h-screen w-full flex overflow-hidden bg-background text-sm font-medium"
+    class="h-screen w-full flex overflow-hidden bg-background text-sm font-medium dark:bg-gray-900"
   >
     <!-- Mobile backdrop -->
     <div
@@ -184,7 +184,7 @@ function closeMobileDrawer() {
     <!-- Sidebar -->
     <div
       :class="sidebarClasses.container"
-      class="flex flex-col border-r border-r-secondary bg-background h-dvh"
+      class="w-[20%] flex flex-col border-r border-r-secondary bg-white h-dvh md:w-[15%] dark:border-r-gray-700 dark:bg-gray-800"
     >
       <!-- Desktop collapse toggle -->
       <div
@@ -204,12 +204,12 @@ function closeMobileDrawer() {
         class="relative p-4"
       >
         <div
-          class="i-lucide-search absolute left-7 top-1/2 h-4 w-4 text-complementary-500 -translate-y-1/2"
+          class="i-lucide-search absolute left-7 top-1/2 h-4 w-4 text-gray-500 -translate-y-1/2 dark:text-gray-400"
         />
         <input
           v-model="searchParams"
           type="text"
-          class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 pl-9 ring-offset-background transition-all dark:border-neutral-700 dark:bg-neutral-800 placeholder:text-complementary-500 focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 pl-9 text-primary-900 ring-offset-background dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 placeholder:text-complementary-500 focus:outline-none focus:ring-2 focus:ring-primary dark:ring-offset-gray-800 dark:placeholder:text-gray-400"
           placeholder="Search"
         >
       </div>
@@ -256,7 +256,7 @@ function closeMobileDrawer() {
       <!-- Chat groups -->
       <div
         v-if="showSidebarContent"
-        class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary pt-4"
+        class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary pt-4 dark:border-t-gray-700"
       >
         <ChatsCollapse
           class="max-h-[85%] flex flex-col"
@@ -315,20 +315,20 @@ function closeMobileDrawer() {
       </div>
 
       <!-- User profile section -->
-      <div class="flex items-center justify-between border-t border-t-secondary p-4">
+      <div class="flex items-center justify-between border-t border-t-gray-200 p-4 dark:border-t-gray-700">
         <div
           v-if="showSidebarContent"
           class="mr-3 flex items-center gap-3"
         >
-          <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 ring-2 ring-offset-1 ring-primary/10">
+          <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 dark:bg-gray-700">
             <Avatar
               :name="websocketStore.getActiveSession()?.me?.username"
               size="sm"
             />
           </div>
           <div class="flex flex-col">
-            <span class="whitespace-nowrap text-sm text-primary-900 font-medium">{{ websocketStore.getActiveSession()?.me?.username }}</span>
-            <span class="whitespace-nowrap text-xs text-complementary-600">{{ websocketStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
+            <span class="whitespace-nowrap text-sm text-primary-900 font-medium dark:text-gray-100">{{ websocketStore.getActiveSession()?.me?.username }}</span>
+            <span class="whitespace-nowrap text-xs text-complementary-600 dark:text-gray-400">{{ websocketStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
           </div>
         </div>
 
@@ -352,14 +352,14 @@ function closeMobileDrawer() {
         >
           <Button
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 transition-colors hover:bg-neutral-100"
+            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
             :title="isDark ? '切换到亮色模式' : '切换到暗色模式'"
             @click="() => { isDark = !isDark }"
           />
 
           <Button
             icon="i-lucide-settings"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 transition-colors hover:bg-neutral-100"
+            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
             title="设置"
             @click="toggleSettingsDialog"
           />
@@ -369,7 +369,7 @@ function closeMobileDrawer() {
 
     <!-- Main content -->
     <div
-      class="flex flex-1 flex-col overflow-auto transition-all duration-300 ease-in-out"
+      class="flex flex-1 flex-col overflow-auto bg-white dark:bg-gray-900"
       :class="{ 'ml-0': isMobile }"
     >
       <RouterView :key="$route.fullPath" />

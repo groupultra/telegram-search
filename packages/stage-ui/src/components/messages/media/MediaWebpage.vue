@@ -14,7 +14,7 @@ function openLink(url: string) {
 
 <template>
   <div
-    class="max-w-md cursor-pointer overflow-hidden border border-gray-200 rounded-lg shadow-sm transition-shadow dark:border-gray-700 hover:shadow-md"
+    class="max-w-md cursor-pointer overflow-hidden border border-gray-200 rounded-lg bg-white shadow-sm transition-shadow dark:border-gray-700 dark:bg-gray-800 hover:shadow-md"
     @click="processedMedia.webpageData?.url && openLink(processedMedia.webpageData.url)"
   >
     <!-- 预览图 -->

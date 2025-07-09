@@ -3,9 +3,9 @@ import type { Api } from 'telegram'
 import type { CoreContext } from '../context'
 import type { TakeoutService } from '../services'
 
-import { useLogger } from '@tg-search/common'
 import { usePagination } from '@tg-search/common/utils/pagination'
 import { getChatMessageStatsByChatId } from '@tg-search/db'
+import { useLogger } from '@tg-search/logg'
 
 import { useConfig } from '../../../common/src/node'
 

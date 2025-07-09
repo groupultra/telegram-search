@@ -3,8 +3,8 @@ import type { Entity } from 'telegram/define'
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
 
-import { useLogger } from '@tg-search/common'
-import { Ok } from '@tg-search/common/utils/monad'
+import { useLogger } from '@tg-search/logg'
+import { Ok } from '@tg-search/result'
 
 import { resolveEntity } from '../utils/entity'
 

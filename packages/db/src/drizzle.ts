@@ -3,9 +3,10 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 import { PGlite } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
-import { DatabaseType, flags, useLogger } from '@tg-search/common'
+import { DatabaseType, flags } from '@tg-search/common'
 import { getDatabaseDSN, getDatabaseFilePath, getDrizzlePath, useConfig } from '@tg-search/common/node'
-import { Err, Ok } from '@tg-search/common/utils/monad'
+import { useLogger } from '@tg-search/logg'
+import { Err, Ok } from '@tg-search/result'
 import { sql } from 'drizzle-orm'
 import { drizzle as drizzlePGlite } from 'drizzle-orm/pglite'
 import { migrate as migratePGlite } from 'drizzle-orm/pglite/migrator'
@@ -131,7 +132,7 @@ export async function withDb<T>(
     return Ok(await fn(useDrizzle()))
   }
   catch (error) {
-    return Err<T>(error)
+    return Err<T>((error instanceof Error) ? error.cause : error)
   }
 }
 

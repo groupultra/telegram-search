@@ -1,7 +1,7 @@
 {
   "name": "@tg-search/server",
   "type": "module",
-  "version": "1.0.0-beta.17",
+  "version": "1.0.0-beta.18",
   "exports": {
     ".": "./src/index.ts",
     "./types": "./src/types.ts"
@@ -15,8 +15,9 @@
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "@tg-search/db": "workspace:*",
+    "@tg-search/logg": "workspace:*",
     "crossws": "0.3.5",
-    "es-toolkit": "^1.39.6",
+    "es-toolkit": "^1.39.7",
     "h3": "^1.15.3",
     "listhen": "^1.9.0",
     "tsx": "^4.20.3",

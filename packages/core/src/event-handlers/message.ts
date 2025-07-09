@@ -1,7 +1,7 @@
 import type { CoreContext } from '../context'
 import type { MessageService } from '../services'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 import { Api } from 'telegram/tl'
 
 import { useConfig } from '../../../common/src/node'

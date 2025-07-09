@@ -2,9 +2,10 @@ import type { NodeOptions } from 'crossws/adapters/node'
 
 import process from 'node:process'
 
-import { flags, initLogger, parseEnvFlags, useLogger } from '@tg-search/common'
+import { flags, parseEnvFlags } from '@tg-search/common'
 import { initConfig } from '@tg-search/common/node'
 import { initDrizzle } from '@tg-search/db'
+import { initLogger, useLogger } from '@tg-search/logg'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 

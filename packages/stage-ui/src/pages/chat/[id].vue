@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
+import type { CoreDialog } from '@tg-search/core/types'
 
 import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
-import { useScroll, useVirtualList } from '@vueuse/core'
+import { useScroll, useVirtualList, useWindowSize } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -16,25 +16,28 @@ const id = route.params.id
 
 const chatStore = useChatStore()
 const messageStore = useMessageStore()
-const chatMessages = computed<CoreMessage[]>(() =>
-  Array.from(messageStore.useMessageChatMap(id.toString()).values())
-    .sort((a, b) =>
-      a.platformTimestamp - b.platformTimestamp,
-    ),
+
+// FIXME: the performance issue
+const messagesMap = computed(() => messageStore.useMessageChatMap(id.toString()))
+const sortedChatMessageIds = computed<string[]>(() =>
+  Array.from(messagesMap.value.keys())
+    .sort((a, b) => Number(a) - Number(b)),
 )
-const currentChat = computed<CoreDialog | undefined>(() =>
-  chatStore.getChat(id.toString()),
-)
+const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
 const isGlobalSearch = ref(false)
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
-const isLoadingMessages = ref(false)
+const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString())
 const messageLimit = ref(50)
 const messageOffset = ref(0)
 
+const { height: windowHeight } = useWindowSize()
+const minimumScrollHeight = computed(() => windowHeight.value * 0.3)
+
 const { list, containerProps, wrapperProps } = useVirtualList(
-  chatMessages,
+  sortedChatMessageIds,
   {
+    // FIXME: dynamic height
     itemHeight: () => 80, // Estimated height for message bubble
 
     // What is this?
@@ -67,23 +70,24 @@ const messageInput = ref('')
 const { y } = useScroll(containerProps.ref)
 const lastMessagePosition = ref(0)
 
-watch(() => chatMessages.value.length, () => {
+watch(() => sortedChatMessageIds.value.length, () => {
   lastMessagePosition.value = containerProps.ref.value?.scrollHeight ?? 0
 
   nextTick(() => {
     y.value = (containerProps.ref.value?.scrollHeight ?? 0) - lastMessagePosition.value
+
+    // Due to chatMessages length change, we can infer that the messages is loaded
     messageOffset.value += messageLimit.value
   })
 })
 
 // TODO: useInfiniteScroll?
 watch(y, async () => {
-  if (y.value === 0 && !isLoadingMessages.value) {
-    isLoadingMessages.value = true
-
-    await messageStore.fetchMessagesWithDatabase(id.toString(), { offset: messageOffset.value, limit: messageLimit.value })
-
-    isLoadingMessages.value = false
+  if (y.value <= minimumScrollHeight.value && !isLoadingMessages.value) {
+    fetchMessages({
+      offset: messageOffset.value,
+      limit: messageLimit.value,
+    })
   }
 }, { immediate: true })
 
@@ -107,7 +111,7 @@ const isGlobalSearchOpen = ref(false)
   <div class="relative h-full flex flex-col">
     <!-- Chat Header -->
     <div class="flex items-center justify-between border-b p-4 dark:border-gray-700">
-      <h2 class="text-xl font-semibold dark:text-gray-100">
+      <h2 class="text-xl text-gray-900 font-semibold dark:text-gray-100">
         {{ [currentChat?.name, currentChat?.id].filter(Boolean).join('@') }}
       </h2>
       <Button
@@ -122,23 +126,23 @@ const isGlobalSearchOpen = ref(false)
     <!-- Messages Area -->
     <div
       v-bind="containerProps"
-      class="flex-1 overflow-y-auto p-4 space-y-4"
+      class="flex-1 overflow-y-auto bg-white p-4 space-y-4 dark:bg-gray-900"
     >
       <div v-bind="wrapperProps">
         <div v-for="{ data, index } in list" :key="index">
-          <MessageBubble :message="data" />
+          <MessageBubble :message="messagesMap.get(data)!" />
         </div>
       </div>
     </div>
 
     <!-- Message Input -->
-    <div class="border-t p-4 dark:border-gray-700">
+    <div class="border-t bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
       <div class="flex gap-2">
         <input
           v-model="messageInput"
           type="text"
           placeholder="Type a message..."
-          class="flex-1 border rounded-lg p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+          class="flex-1 border border-gray-300 rounded-lg bg-white p-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary dark:placeholder:text-gray-400 dark:focus:ring-offset-gray-800"
           @keyup.enter="sendMessage"
         >
         <button
@@ -160,7 +164,7 @@ const isGlobalSearchOpen = ref(false)
         <template #settings>
           <div class="flex items-center">
             <input id="searchContent" type="checkbox" class="mr-1 border-border rounded">
-            <label for="searchContent" class="text-sm text-primary-900">搜索内容</label>
+            <label for="searchContent" class="text-sm text-primary-900 dark:text-gray-100">搜索内容</label>
           </div>
         </template>
       </SearchDialog>
