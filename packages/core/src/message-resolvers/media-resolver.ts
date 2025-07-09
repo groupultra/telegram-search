@@ -55,10 +55,16 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                 const stickerResult = await findStickerByFileId(document.id.toString())
                 if (stickerResult) {
                   const sticker = stickerResult.unwrap()
-                  return {
-                    ...media,
-                    byte: sticker.sticker_bytes ?? undefined,
-                  } satisfies CoreMessageMedia
+                  // 只有当数据库中有 sticker_bytes 时才直接返回
+                  if (sticker.sticker_bytes) {
+                    return {
+                      apiMedia: media.apiMedia,
+                      byte: sticker.sticker_bytes,
+                      type: media.type,
+                      messageUUID: media.messageUUID,
+                      path: media.path,
+                    } satisfies CoreMessageMedia
+                  }
                 }
               }
             }

@@ -20,9 +20,6 @@ import { convertDBPhotoToCoreMessageMedia } from './utils/photos'
 import { retrieveJieba } from './utils/retrieve-jieba'
 import { retrieveVector } from './utils/retrieve-vector'
 
-interface Document { id?: string, alt?: string }
-type DocumentMedia = CoreMessageMedia & { document?: Document[] }
-
 export async function recordMessages(messages: CoreMessage[]) {
   const dbMessages = messages.map(convertToDBInsertMessage)
 
@@ -75,9 +72,9 @@ export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise
     .flatMap(message => message.media ?? [])
     .filter(media => media.type === 'sticker')
     .map((media) => {
-      const apiMedia = media.apiMedia as DocumentMedia
-      const stickerId = apiMedia?.document?.[0]?.id?.toString() ?? ''
-      const emoji = apiMedia?.document?.[0]?.alt ?? ''
+      const apiMedia = media.apiMedia as any
+      const stickerId = apiMedia?.document?.id?.toString() ?? ''
+      const emoji = apiMedia?.document?.attributes?.find((attr: any) => attr.alt)?.alt ?? ''
 
       return {
         ...media,

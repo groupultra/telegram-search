@@ -43,7 +43,7 @@ export async function recordSticker(sticker: StickerMedia) {
     .values({
       platform: 'telegram',
       file_id: sticker.sticker_id,
-      sticker_bytes: sticker.byte ?? Buffer.from(''),
+      sticker_bytes: sticker.byte,
       sticker_path: '',
       description: '',
       name: '',
@@ -53,8 +53,9 @@ export async function recordSticker(sticker: StickerMedia) {
     .onConflictDoUpdate({
       target: [stickersTable.file_id],
       set: {
-        sticker_bytes: sticker.byte ?? Buffer.from(''),
-        sticker_path: '',
+        sticker_bytes: sticker.byte,
+        emoji: sticker.emoji ?? '',
+        updated_at: Date.now(),
       },
     })
     .returning(),
@@ -66,12 +67,17 @@ export async function recordStickers(stickers: StickerMedia[]) {
     return []
   }
 
+  // 对贴纸数组进行去重，以 file_id 为唯一标识
+  const uniqueStickers = stickers.filter((sticker, index, self) =>
+    index === self.findIndex(s => s.sticker_id === sticker.sticker_id),
+  )
+
   return withDb(async db => db
     .insert(stickersTable)
-    .values(stickers.map(sticker => ({
+    .values(uniqueStickers.map(sticker => ({
       platform: 'telegram',
       file_id: sticker.sticker_id,
-      sticker_bytes: sticker.byte ?? Buffer.from(''),
+      sticker_bytes: sticker.byte,
       sticker_path: '',
       description: '',
       name: '',
@@ -82,7 +88,8 @@ export async function recordStickers(stickers: StickerMedia[]) {
       target: [stickersTable.file_id],
       set: {
         sticker_bytes: sql`EXCLUDED.sticker_bytes`,
-        sticker_path: sql`EXCLUDED.sticker_path`,
+        emoji: sql`EXCLUDED.emoji`,
+        updated_at: Date.now(),
       },
     })
     .returning(),
