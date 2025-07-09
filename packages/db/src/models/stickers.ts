@@ -35,31 +35,6 @@ export async function findStickerByFileId(fileId: string) {
   return Ok(sticker[0])
 }
 
-export async function recordSticker(sticker: StickerMedia) {
-  return withDb(async db => db
-    .insert(stickersTable)
-    .values({
-      platform: 'telegram',
-      file_id: sticker.sticker_id,
-      sticker_bytes: sticker.byte,
-      sticker_path: '',
-      description: '',
-      name: '',
-      emoji: sticker.emoji ?? '',
-      label: '',
-    })
-    .onConflictDoUpdate({
-      target: [stickersTable.file_id],
-      set: {
-        sticker_bytes: sticker.byte,
-        emoji: sticker.emoji ?? '',
-        updated_at: Date.now(),
-      },
-    })
-    .returning(),
-  )
-}
-
 export async function recordStickers(stickers: StickerMedia[]) {
   if (stickers.length === 0) {
     return []
