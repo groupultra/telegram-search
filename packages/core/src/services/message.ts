@@ -96,7 +96,15 @@ export function createMessageService(ctx: CoreContext) {
             const resultByUuid = new Map(result.map(m => [m.uuid, m]))
             emitMessages = emitMessages.map((m) => {
               const resolved = resultByUuid.get(m.uuid)
-              return resolved ? defu(m, resolved) : m
+              if (resolved) {
+                // 手动合并，确保 Buffer 对象不被 defu 破坏
+                return {
+                  ...m,
+                  ...resolved,
+                  media: resolved.media || m.media,
+                }
+              }
+              return m
             })
           }
         }
