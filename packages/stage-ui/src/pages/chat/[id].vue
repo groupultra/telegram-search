@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
+import type { CoreDialog } from '@tg-search/core/types'
 
 import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
 import { useScroll, useVirtualList, useWindowSize } from '@vueuse/core'
@@ -16,11 +16,12 @@ const id = route.params.id
 
 const chatStore = useChatStore()
 const messageStore = useMessageStore()
-const chatMessages = computed<CoreMessage[]>(() =>
-  Array.from(messageStore.useMessageChatMap(id.toString()).values())
-    .sort((a, b) =>
-      a.platformTimestamp - b.platformTimestamp,
-    ),
+
+// FIXME: the performance issue
+const messagesMap = computed(() => messageStore.useMessageChatMap(id.toString()))
+const sortedChatMessageIds = computed<string[]>(() =>
+  Array.from(messagesMap.value.keys())
+    .sort((a, b) => Number(a) - Number(b)),
 )
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
@@ -34,8 +35,9 @@ const { height: windowHeight } = useWindowSize()
 const minimumScrollHeight = computed(() => windowHeight.value * 0.3)
 
 const { list, containerProps, wrapperProps } = useVirtualList(
-  chatMessages,
+  sortedChatMessageIds,
   {
+    // FIXME: dynamic height
     itemHeight: () => 80, // Estimated height for message bubble
 
     // What is this?
@@ -68,11 +70,13 @@ const messageInput = ref('')
 const { y } = useScroll(containerProps.ref)
 const lastMessagePosition = ref(0)
 
-watch(() => chatMessages.value.length, () => {
+watch(() => sortedChatMessageIds.value.length, () => {
   lastMessagePosition.value = containerProps.ref.value?.scrollHeight ?? 0
 
   nextTick(() => {
     y.value = (containerProps.ref.value?.scrollHeight ?? 0) - lastMessagePosition.value
+
+    // Due to chatMessages length change, we can infer that the messages is loaded
     messageOffset.value += messageLimit.value
   })
 })
@@ -126,7 +130,7 @@ const isGlobalSearchOpen = ref(false)
     >
       <div v-bind="wrapperProps">
         <div v-for="{ data, index } in list" :key="index">
-          <MessageBubble :message="data" />
+          <MessageBubble :message="messagesMap.get(data)!" />
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { Format, LogLevel } from '@guiiai/logg'
 
 export const flags = {
-  logLevel: LogLevel.Log,
+  logLevel: LogLevel.Verbose,
   logFormat: Format.Pretty,
 
   isDebugMode: false,
