@@ -9,9 +9,9 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { useLogger } from '@tg-search/logg'
 import { getMediaPath, useConfig } from '@tg-search/common/node'
 import { findStickerByFileId } from '@tg-search/db'
+import { useLogger } from '@tg-search/logg'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
