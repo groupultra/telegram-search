@@ -45,7 +45,7 @@ function toggleActive() {
 
       <div
         :class="active ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
-        class="h-4 w-4 cursor-pointer px-6 transition-transform duration-200 text-primary-900 dark:text-gray-100"
+        class="h-4 w-4 cursor-pointer px-6 text-primary-900 transition-transform duration-200 dark:text-gray-100"
       />
     </div>
 
@@ -58,7 +58,7 @@ function toggleActive() {
         v-for="chat in chats.filter(chat => chat.type === type)"
         :key="chat.id"
         :class="{ 'bg-neutral-100 dark:bg-gray-700': isActiveChat(chat.id.toString()) }"
-        class="flex flex-row cursor-pointer items-center justify-start gap-2 px-6 py-2 transition-all duration-200 hover:bg-neutral-100 dark:hover:bg-gray-700 hover:-translate-y-0.5"
+        class="flex flex-row cursor-pointer items-center justify-start gap-2 px-6 py-2 transition-all duration-200 hover:bg-neutral-100 hover:-translate-y-0.5 dark:hover:bg-gray-700"
         @click="router.push(`/chat/${chat.id}`)"
       >
         <Avatar

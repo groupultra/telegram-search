@@ -70,9 +70,9 @@ watch(currentTaskProgress, (progress) => {
 </script>
 
 <template>
-  <header class="flex items-center border-b border-b-secondary dark:border-b-gray-700 p-4 px-4">
+  <header class="flex items-center border-b border-b-secondary p-4 px-4 dark:border-b-gray-700">
     <div class="flex items-center gap-2">
-      <span class="text-lg font-medium text-primary-900 dark:text-gray-100">Sync</span>
+      <span class="text-lg text-primary-900 font-medium dark:text-gray-100">Sync</span>
     </div>
 
     <div class="ml-auto flex items-center gap-2">
@@ -88,7 +88,7 @@ watch(currentTaskProgress, (progress) => {
 
   <div class="p-6">
     <div class="flex items-center justify-between">
-      <h3 class="text-lg text-primary-900 dark:text-gray-100 font-medium">
+      <h3 class="text-lg text-primary-900 font-medium dark:text-gray-100">
         选择要同步的聊天
       </h3>
       <div class="flex items-center gap-2">

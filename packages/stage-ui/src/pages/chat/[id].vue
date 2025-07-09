@@ -110,8 +110,8 @@ const isGlobalSearchOpen = ref(false)
 <template>
   <div class="relative h-full flex flex-col">
     <!-- Chat Header -->
-    <div class="flex items-center justify-between border-b dark:border-gray-700 p-4">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+    <div class="flex items-center justify-between border-b p-4 dark:border-gray-700">
+      <h2 class="text-xl text-gray-900 font-semibold dark:text-gray-100">
         {{ [currentChat?.name, currentChat?.id].filter(Boolean).join('@') }}
       </h2>
       <Button
@@ -126,7 +126,7 @@ const isGlobalSearchOpen = ref(false)
     <!-- Messages Area -->
     <div
       v-bind="containerProps"
-      class="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-gray-900"
+      class="flex-1 overflow-y-auto bg-white p-4 space-y-4 dark:bg-gray-900"
     >
       <div v-bind="wrapperProps">
         <div v-for="{ data, index } in list" :key="index">
@@ -136,13 +136,13 @@ const isGlobalSearchOpen = ref(false)
     </div>
 
     <!-- Message Input -->
-    <div class="border-t dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+    <div class="border-t bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
       <div class="flex gap-2">
         <input
           v-model="messageInput"
           type="text"
           placeholder="Type a message..."
-          class="flex-1 border rounded-lg p-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
+          class="flex-1 border border-gray-300 rounded-lg bg-white p-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary dark:placeholder:text-gray-400 dark:focus:ring-offset-gray-800"
           @keyup.enter="sendMessage"
         >
         <button

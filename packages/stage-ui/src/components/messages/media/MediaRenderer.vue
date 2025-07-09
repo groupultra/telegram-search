@@ -92,7 +92,7 @@ const finalError = computed(() => {
   </div>
 
   <!-- Error state -->
-  <div v-if="finalError" class="flex items-center gap-2 rounded bg-red-100 dark:bg-red-900 p-2">
+  <div v-if="finalError" class="flex items-center gap-2 rounded bg-red-100 p-2 dark:bg-red-900">
     <div class="i-lucide-alert-circle h-4 w-4 text-red-500" />
     <span class="text-sm text-red-700 dark:text-red-300">{{ finalError }}</span>
   </div>

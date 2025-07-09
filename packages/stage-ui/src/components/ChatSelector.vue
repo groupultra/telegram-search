@@ -107,7 +107,7 @@ watch([selectedType, searchQuery], () => {
         <input
           v-model="searchQuery"
           type="text"
-          class="w-full border border-neutral-200 dark:border-gray-600 rounded-md bg-neutral-100 dark:bg-gray-700 px-4 py-2 text-primary-900 dark:text-gray-100 focus:border-primary focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-700"
+          class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-4 py-2 text-primary-900 dark:border-gray-600 focus:border-primary dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-700"
           placeholder="Search"
         >
       </div>
@@ -127,7 +127,7 @@ watch([selectedType, searchQuery], () => {
       >
         <div class="min-w-0 flex-1">
           <div class="focus:outline-none">
-            <p class="flex items-center gap-2 text-sm font-medium text-primary-900 dark:text-gray-100">
+            <p class="flex items-center gap-2 text-sm text-primary-900 font-medium dark:text-gray-100">
               {{ chat.title }}
               <span v-if="isSelected(chat.id)" class="text-primary">
                 <div class="i-lucide-circle-check h-4 w-4" />

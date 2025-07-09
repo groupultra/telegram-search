@@ -23,13 +23,13 @@ const emit = defineEmits<{
 
 <template>
   <div>
-    <label v-if="label" class="mb-2 block text-sm text-complementary-600 dark:text-gray-400 font-medium">
+    <label v-if="label" class="mb-2 block text-sm text-complementary-600 font-medium dark:text-gray-400">
       {{ label }}
     </label>
     <div class="relative">
       <select
         :value="modelValue"
-        class="w-full appearance-none border border-neutral-200 dark:border-gray-600 rounded-md bg-neutral-100 dark:bg-gray-800 px-4 py-2.5 pr-10 text-primary-900 dark:text-gray-100 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800"
+        class="w-full appearance-none border border-neutral-200 rounded-md bg-neutral-100 px-4 py-2.5 pr-10 text-primary-900 transition-colors dark:border-gray-600 focus:border-primary dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800"
         :disabled="disabled"
         @change="($event: Event) => {
           const target = $event.target as HTMLSelectElement

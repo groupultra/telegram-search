@@ -59,7 +59,7 @@ function toggleActiveChatGroup(group: ChatGroup) {
 
 <template>
   <div
-    class="h-screen w-full flex overflow-hidden bg-background dark:bg-gray-900 text-sm font-medium"
+    class="h-screen w-full flex overflow-hidden bg-background text-sm font-medium dark:bg-gray-900"
   >
     <!-- Login prompt banner -->
     <div
@@ -80,15 +80,15 @@ function toggleActiveChatGroup(group: ChatGroup) {
       </div>
     </div>
 
-    <div class="w-[20%] flex flex-col border-r border-r-secondary dark:border-r-gray-700 h-dvh md:w-[15%] bg-white dark:bg-gray-800">
+    <div class="w-[20%] flex flex-col border-r border-r-secondary bg-white h-dvh md:w-[15%] dark:border-r-gray-700 dark:bg-gray-800">
       <div class="relative p-4">
         <div
-          class="i-lucide-search absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 dark:text-gray-400"
+          class="i-lucide-search absolute left-7 top-1/2 h-4 w-4 text-gray-500 -translate-y-1/2 dark:text-gray-400"
         />
         <input
           v-model="searchParams"
           type="text"
-          class="w-full border border-neutral-200 dark:border-gray-600 rounded-md bg-neutral-100 dark:bg-gray-700 px-3 py-2 pl-9 ring-offset-background dark:ring-offset-gray-800 text-primary-900 dark:text-gray-100 placeholder:text-complementary-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 pl-9 text-primary-900 ring-offset-background dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 placeholder:text-complementary-500 focus:outline-none focus:ring-2 focus:ring-primary dark:ring-offset-gray-800 dark:placeholder:text-gray-400"
           placeholder="Search"
         >
       </div>
@@ -119,7 +119,7 @@ function toggleActiveChatGroup(group: ChatGroup) {
         />
       </div>
 
-      <div class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary dark:border-t-gray-700 pt-4">
+      <div class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary pt-4 dark:border-t-gray-700">
         <ChatsCollapse
           class="max-h-[85%] flex flex-col"
           :class="{ 'flex-1': activeChatGroup === 'user' }"
@@ -154,7 +154,7 @@ function toggleActiveChatGroup(group: ChatGroup) {
         />
       </div>
 
-      <div class="flex items-center justify-between p-4 border-t border-t-gray-200 dark:border-t-gray-700">
+      <div class="flex items-center justify-between border-t border-t-gray-200 p-4 dark:border-t-gray-700">
         <div class="mr-3 flex items-center gap-3">
           <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 dark:bg-gray-700">
             <Avatar
@@ -163,20 +163,20 @@ function toggleActiveChatGroup(group: ChatGroup) {
             />
           </div>
           <div class="flex flex-col">
-            <span class="whitespace-nowrap text-sm text-primary-900 dark:text-gray-100 font-medium">{{ websocketStore.getActiveSession()?.me?.username }}</span>
+            <span class="whitespace-nowrap text-sm text-primary-900 font-medium dark:text-gray-100">{{ websocketStore.getActiveSession()?.me?.username }}</span>
             <span class="whitespace-nowrap text-xs text-complementary-600 dark:text-gray-400">{{ websocketStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
           </div>
         </div>
         <div class="flex items-center">
           <Button
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 dark:text-gray-100 hover:bg-neutral-100 dark:hover:bg-gray-700"
+            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
             @click="() => { isDark = !isDark }"
           />
 
           <Button
             icon="i-lucide-settings"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 dark:text-gray-100 hover:bg-neutral-100 dark:hover:bg-gray-700"
+            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
             @click="toggleSettingsDialog"
           />
         </div>

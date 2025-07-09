@@ -4,7 +4,7 @@
       <div class="text-8xl text-primary-900 dark:text-gray-100">
         <i class="i-lucide-circle-alert" />
       </div>
-      <h1 class="text-6xl text-primary-900 dark:text-gray-100 font-bold">
+      <h1 class="text-6xl text-primary-900 font-bold dark:text-gray-100">
         404
       </h1>
     </div>
