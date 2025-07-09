@@ -11,7 +11,7 @@
     "dev:server": "pnpm -F @tg-search/server dev",
     "dev:frontend": "pnpm -F @tg-search/frontend dev",
     "dev:electron": "pnpm -F @tg-search/electron dev",
-    "build": "pnpm -rF=\"./packages/*\" --parallel build",
+    "build:packages": "pnpm -rF=\"./packages/*\" --parallel build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "pnpm -r --parallel typecheck",
@@ -20,7 +20,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db.ts migrate",
     "db:push": "tsx scripts/db.ts push",
-    "db:kit": "tsx scripts/db.ts"
+    "db:kit": "tsx scripts/db.ts",
+    "postinstall": "pnpm build:packages"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.16.2",
