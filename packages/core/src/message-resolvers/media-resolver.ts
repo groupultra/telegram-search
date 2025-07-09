@@ -11,6 +11,7 @@ import { join } from 'node:path'
 
 import { useLogger } from '@tg-search/common'
 import { getMediaPath, useConfig } from '@tg-search/common/node'
+import { findStickerByFileId } from '@tg-search/db'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
@@ -42,11 +43,31 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           message.media.map(async (media) => {
             logger.withFields({ media }).debug('Media')
 
+            // TODO: move it to storage
             const userMediaPath = join(await useUserMediaPath(), message.chatId.toString())
             if (!existsSync(userMediaPath)) {
               mkdirSync(userMediaPath, { recursive: true })
             }
 
+            if (media.type === 'sticker') {
+              const document = (media.apiMedia as Api.MessageMediaDocument).document
+              if (document) {
+                const stickerResult = await findStickerByFileId(document.id.toString())
+                if (stickerResult) {
+                  const sticker = stickerResult.unwrap()
+                  // 只有当数据库中有 sticker_bytes 时才直接返回
+                  if (sticker.sticker_bytes) {
+                    return {
+                      apiMedia: media.apiMedia,
+                      byte: sticker.sticker_bytes,
+                      type: media.type,
+                      messageUUID: media.messageUUID,
+                      path: media.path,
+                    } satisfies CoreMessageMedia
+                  }
+                }
+              }
+            }
             const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
 
             const mediaPath = join(userMediaPath, message.platformMessageId)

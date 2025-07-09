@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
+import type { CoreDialog } from '@tg-search/core/types'
 
 import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
-import { useScroll, useVirtualList } from '@vueuse/core'
+import { useScroll, useVirtualList, useWindowSize } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -16,25 +16,28 @@ const id = route.params.id
 
 const chatStore = useChatStore()
 const messageStore = useMessageStore()
-const chatMessages = computed<CoreMessage[]>(() =>
-  Array.from(messageStore.useMessageChatMap(id.toString()).values())
-    .sort((a, b) =>
-      a.platformTimestamp - b.platformTimestamp,
-    ),
+
+// FIXME: the performance issue
+const messagesMap = computed(() => messageStore.useMessageChatMap(id.toString()))
+const sortedChatMessageIds = computed<string[]>(() =>
+  Array.from(messagesMap.value.keys())
+    .sort((a, b) => Number(a) - Number(b)),
 )
-const currentChat = computed<CoreDialog | undefined>(() =>
-  chatStore.getChat(id.toString()),
-)
+const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
 const isGlobalSearch = ref(false)
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
-const isLoadingMessages = ref(false)
+const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString())
 const messageLimit = ref(50)
 const messageOffset = ref(0)
 
+const { height: windowHeight } = useWindowSize()
+const minimumScrollHeight = computed(() => windowHeight.value * 0.3)
+
 const { list, containerProps, wrapperProps } = useVirtualList(
-  chatMessages,
+  sortedChatMessageIds,
   {
+    // FIXME: dynamic height
     itemHeight: () => 80, // Estimated height for message bubble
 
     // What is this?
@@ -67,23 +70,24 @@ const messageInput = ref('')
 const { y } = useScroll(containerProps.ref)
 const lastMessagePosition = ref(0)
 
-watch(() => chatMessages.value.length, () => {
+watch(() => sortedChatMessageIds.value.length, () => {
   lastMessagePosition.value = containerProps.ref.value?.scrollHeight ?? 0
 
   nextTick(() => {
     y.value = (containerProps.ref.value?.scrollHeight ?? 0) - lastMessagePosition.value
+
+    // Due to chatMessages length change, we can infer that the messages is loaded
     messageOffset.value += messageLimit.value
   })
 })
 
 // TODO: useInfiniteScroll?
 watch(y, async () => {
-  if (y.value === 0 && !isLoadingMessages.value) {
-    isLoadingMessages.value = true
-
-    await messageStore.fetchMessagesWithDatabase(id.toString(), { offset: messageOffset.value, limit: messageLimit.value })
-
-    isLoadingMessages.value = false
+  if (y.value <= minimumScrollHeight.value && !isLoadingMessages.value) {
+    fetchMessages({
+      offset: messageOffset.value,
+      limit: messageLimit.value,
+    })
   }
 }, { immediate: true })
 
@@ -126,7 +130,7 @@ const isGlobalSearchOpen = ref(false)
     >
       <div v-bind="wrapperProps">
         <div v-for="{ data, index } in list" :key="index">
-          <MessageBubble :message="data" />
+          <MessageBubble :message="messagesMap.get(data)!" />
         </div>
       </div>
     </div>

@@ -4,6 +4,8 @@ import type { CoreMessage } from '@tg-search/core/types'
 import { useClipboard } from '@vueuse/core'
 import { ref } from 'vue'
 
+import Avatar from '../ui/Avatar.vue'
+
 const props = defineProps<{
   messages: CoreMessage[]
   keyword: string

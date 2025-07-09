@@ -15,7 +15,7 @@ export const useChatStore = defineStore('chat', () => {
 
   const init = () => {
     // eslint-disable-next-line no-console
-    console.log('[Chat Store] init dialogs')
+    console.log('[ChatStore] Init dialogs')
 
     if (chats.value.length === 0) {
       websocketStore.sendEvent('storage:fetch:dialogs')

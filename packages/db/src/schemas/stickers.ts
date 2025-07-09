@@ -2,15 +2,17 @@
 
 import { bigint, index, pgTable, text, uuid, vector } from 'drizzle-orm/pg-core'
 
+import { bytea } from './type'
+
 export const stickersTable = pgTable('stickers', {
   id: uuid().primaryKey().defaultRandom(),
   platform: text().notNull().default(''),
   name: text().notNull().default(''),
   emoji: text().notNull().default(''),
   label: text().notNull().default(''),
-  file_id: text().notNull().default(''),
-  image_base64: text().notNull().default(''),
-  image_path: text().notNull().default(''),
+  file_id: text().notNull().unique(),
+  sticker_bytes: bytea(),
+  sticker_path: text().notNull().default(''),
   description: text().notNull().default(''),
   created_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
   updated_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),

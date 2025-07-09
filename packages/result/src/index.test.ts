@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { Err, Ok } from './monad'
+import { Err, Ok } from '.'
 
 describe('utils/monad', () => {
   it('works in sync', () => {

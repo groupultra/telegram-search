@@ -5,6 +5,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 
+import { createMediaBlob } from '../utils/blob'
 import { useSettingsStore } from './useSettings'
 import { useWebsocketStore } from './useWebsocket'
 
@@ -28,77 +29,59 @@ export const useMessageStore = defineStore('message', () => {
 
       const chatMap = useMessageChatMap(chatId)
 
-      function getMediaMimeType(mediaType: string): string {
-        switch (mediaType) {
-          case 'photo':
-            return 'image/jpeg'
-          case 'sticker':
-            // Telegram stickers are usually WebM or WebP
-            return 'video/webm'
-          case 'document':
-            return 'application/octet-stream'
-          default:
-            return 'application/octet-stream'
-        }
-      }
-
-      for (const media of message.media ?? []) {
-        if (media.byte) {
-          const buffer = new Uint8Array((media.byte as any).data)
-
-          const mimeType = getMediaMimeType(media.type)
-          const blob = new Blob([buffer], { type: mimeType })
-          const url = URL.createObjectURL(blob)
-          media.blobUrl = url
-
-          // eslint-disable-next-line no-console
-          console.log('[MessageStore] Blob URL created:', {
-            url,
-            mimeType,
-            blobSize: blob.size,
-          })
-
-          media.byte = undefined
-        }
-      }
+      message.media = message.media?.map(createMediaBlob)
 
       chatMap.set(message.platformMessageId, message)
     })
   }
 
-  async function fetchMessagesWithDatabase(chatId: string, pagination: CorePagination) {
-    toast.promise(async () => {
-      let restMessageLength = pagination.limit
-      const dbMessages: CoreMessage[] = []
+  function useFetchMessages(chatId: string) {
+    const isLoading = ref(false)
 
-      if (!useSettingsStore().messageDebugMode) {
-        websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
-        const { messages: dbMessages } = await websocketStore.waitForEvent('storage:messages')
+    function fetchMessages(pagination: CorePagination) {
+      toast.promise(async () => {
+        isLoading.value = true
 
-        restMessageLength = pagination.limit - dbMessages.length
-        // eslint-disable-next-line no-console
-        console.log(`[MessageStore] Fetched ${dbMessages.length} messages from database, rest messages length ${restMessageLength}`)
-      }
+        // First, fetch the messages from database
+        if (useSettingsStore().useCachedMessage) {
+          toast.promise(async () => {
+            websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
+          }, {
+            loading: 'Fetching messages from server...',
+          })
+        }
 
-      if (restMessageLength > 0) {
-        pagination.offset += dbMessages.length
+        // Then, fetch the messages from server & update the cache
         toast.promise(async () => {
           websocketStore.sendEvent('message:fetch', { chatId, pagination })
         }, {
           loading: 'Fetching messages from server...',
         })
-      }
-    }, {
-      loading: 'Loading messages from database...',
-      success: 'Messages loaded',
-      error: 'Error loading messages',
-    })
+
+        await Promise.race([
+          websocketStore.waitForEvent('message:data'),
+          websocketStore.waitForEvent('storage:messages'),
+        ])
+      }, {
+        loading: 'Loading messages from database...',
+        success: 'Messages loaded',
+        error: 'Error loading messages',
+        finally() {
+          isLoading.value = false
+        },
+      })
+    }
+
+    return {
+      isLoading,
+      fetchMessages,
+    }
   }
 
   return {
     messagesByChat,
     pushMessages,
     useMessageChatMap,
-    fetchMessagesWithDatabase,
+    useFetchMessages,
   }
 })

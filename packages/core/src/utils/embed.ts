@@ -2,7 +2,7 @@ import type { EmbedManyResult } from '@xsai/embed'
 
 import { EmbeddingProvider } from '@tg-search/common'
 import { useConfig } from '@tg-search/common/node'
-import { Ok } from '@tg-search/common/utils/monad'
+import { Ok } from '@tg-search/result'
 import { createOllama } from '@xsai-ext/providers-local'
 import { embedMany } from '@xsai/embed'
 

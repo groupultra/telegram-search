@@ -1,12 +1,12 @@
 import type { ProxyConfig } from '@tg-search/common'
-import type { Result } from '@tg-search/common/utils/monad'
+import type { Result } from '@tg-search/result'
 import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
 import type { StringSession } from 'telegram/sessions'
 
 import type { CoreContext } from '../context'
 
 import { useLogger } from '@tg-search/common'
-import { Err, Ok } from '@tg-search/common/utils/monad'
+import { Err, Ok } from '@tg-search/result'
 import { Api, TelegramClient } from 'telegram'
 
 import { waitForEvent } from '../utils/promise'

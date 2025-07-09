@@ -1,16 +1,17 @@
 {
   "name": "telegram-search",
   "type": "module",
-  "version": "1.0.0-beta.17",
+  "version": "1.0.0-beta.18",
   "private": true,
-  "packageManager": "pnpm@10.12.4",
+  "packageManager": "pnpm@10.13.1",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.17.0"
   },
   "scripts": {
     "dev:server": "pnpm -F @tg-search/server dev",
     "dev:frontend": "pnpm -F @tg-search/frontend dev",
     "dev:electron": "pnpm -F @tg-search/electron dev",
+    "build:packages": "pnpm -rF=\"./packages/*\" --parallel build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "pnpm -r --parallel typecheck",
@@ -19,12 +20,13 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db.ts migrate",
     "db:push": "tsx scripts/db.ts push",
-    "db:kit": "tsx scripts/db.ts"
+    "db:kit": "tsx scripts/db.ts",
+    "postinstall": "pnpm build:packages"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.16.2",
     "@proj-airi/unocss-preset-chromatic": "^1.0.0",
-    "@types/node": "^24.0.10",
+    "@types/node": "^24.0.12",
     "bumpp": "^10.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -34,7 +36,7 @@
     "taze": "^19.1.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "unocss": "^66.3.2",
+    "unocss": "^66.3.3",
     "unocss-preset-animations": "^1.2.1",
     "unocss-preset-shadcn": "^0.5.0",
     "unplugin-unused": "^0.5.1",

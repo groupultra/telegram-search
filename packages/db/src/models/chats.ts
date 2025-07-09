@@ -12,6 +12,9 @@ export async function fetchChats() {
     .select()
     .from(joinedChatsTable)
     .where(eq(joinedChatsTable.platform, 'telegram')),
+
+    // TODO: sort by telegram client
+    // .orderBy(desc(joinedChatsTable.updated_at)),
   )
 }
 

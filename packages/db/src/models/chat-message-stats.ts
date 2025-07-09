@@ -1,4 +1,4 @@
-import { Ok } from '@tg-search/common/utils/monad'
+import { Ok } from '@tg-search/result'
 import { and, eq } from 'drizzle-orm'
 
 import { withDb } from '../drizzle'
