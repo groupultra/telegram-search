@@ -2,8 +2,6 @@
 
 import type { CoreMessageMedia } from '../../../core/src'
 
-import { Buffer } from 'node:buffer'
-
 import { Ok } from '@tg-search/common/utils/monad'
 import { desc, eq, sql } from 'drizzle-orm'
 
