@@ -1,5 +1,5 @@
-import type { Result } from '@tg-search/result'
 import type { CorePagination } from '@tg-search/common/utils/pagination'
+import type { Result } from '@tg-search/result'
 import type { EntityLike } from 'telegram/define'
 
 import type { CoreContext } from '../context'
