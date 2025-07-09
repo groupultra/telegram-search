@@ -32,6 +32,11 @@ export async function recordMessages(messages: CoreMessage[]) {
       target: [chatMessagesTable.platform, chatMessagesTable.platform_message_id, chatMessagesTable.in_chat_id],
       set: {
         content: sql`excluded.content`,
+        content_vector_1024: sql`excluded.content_vector_1024`,
+        content_vector_1536: sql`excluded.content_vector_1536`,
+        content_vector_768: sql`excluded.content_vector_768`,
+        jieba_tokens: sql`excluded.jieba_tokens`,
+        platform_timestamp: sql`excluded.platform_timestamp`,
         updated_at: Date.now(),
       },
     })
