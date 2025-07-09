@@ -63,6 +63,9 @@ export function createMessageService(ctx: CoreContext) {
       // Return the messages first
       emitter.emit('message:data', { messages: coreMessages })
 
+      // Storage the messages first
+      emitter.emit('storage:record:messages', { messages: coreMessages })
+
       // Embedding or resolve messages
       for (const [name, resolver] of resolvers.registry.entries()) {
         logger.withFields({ name }).verbose('Process messages with resolver')
