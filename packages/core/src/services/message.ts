@@ -84,35 +84,7 @@ export function createMessageService(ctx: CoreContext) {
           }
 
           if (result.length > 0) {
-            // Using defu to merge two arrays of objects (coreMessages and result) is unsafe.
-            // defu merges arrays by index. If a resolver filters some messages and result
-            // becomes shorter than coreMessages, this will lead to incorrect merges and data
-            // corruption. For example, result[1] might be merged into coreMessages[1] even
-            // if they correspond to different original messages.
-
-            // A safer approach is to merge messages based on a unique identifier, like the uuid property.
-            // The general idea is to create a Map from the result array for efficient lookups and then mapping
-            // over coreMessages to merge correctly.
-
-            const resultByUuid = new Map(result.map(m => [m.uuid, m]))
-            const mergedMessages = coreMessages.map((m) => {
-              const resolved = resultByUuid.get(m.uuid)
-              if (resolved) {
-                // 手动合并，确保 Buffer 对象不被 defu 破坏
-                return {
-                  ...m,
-                  ...resolved,
-                  media: resolved.media || m.media,
-                }
-              }
-              return m
-            })
-
-            // Emit the merged messages
-            emitter.emit('message:data', { messages: mergedMessages })
-
-            // Store the merged messages
-            emitter.emit('storage:record:messages', { messages: mergedMessages })
+            emitter.emit('storage:record:messages', { messages: result })
           }
         }
         catch (error) {
