@@ -35,39 +35,57 @@ export const useMessageStore = defineStore('message', () => {
     })
   }
 
-  async function fetchMessagesWithDatabase(chatId: string, pagination: CorePagination) {
-    toast.promise(async () => {
-      let restMessageLength = pagination.limit
-      const dbMessages: CoreMessage[] = []
+  function useFetchMessages(chatId: string) {
+    const isLoading = ref(false)
 
-      if (useSettingsStore().useCachedMessage) {
-        websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
-        const { messages: dbMessages } = await websocketStore.waitForEvent('storage:messages')
+    function fetchMessages(pagination: CorePagination) {
+      toast.promise(async () => {
+        isLoading.value = true
+        try {
+          let restMessageLength = pagination.limit
+          let dbMessages: CoreMessage[] = []
 
-        restMessageLength = pagination.limit - dbMessages.length
-        // eslint-disable-next-line no-console
-        console.log(`[MessageStore] Fetched ${dbMessages.length} messages from database, rest messages length ${restMessageLength}`)
-      }
+          if (useSettingsStore().useCachedMessage) {
+            websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
+            const { messages } = await websocketStore.waitForEvent('storage:messages')
+            dbMessages = messages
 
-      if (restMessageLength > 0) {
-        pagination.offset += dbMessages.length
-        toast.promise(async () => {
-          websocketStore.sendEvent('message:fetch', { chatId, pagination })
-        }, {
-          loading: 'Fetching messages from server...',
-        })
-      }
-    }, {
-      loading: 'Loading messages from database...',
-      success: 'Messages loaded',
-      error: 'Error loading messages',
-    })
+            restMessageLength = pagination.limit - dbMessages.length
+            // eslint-disable-next-line no-console
+            console.log(`[MessageStore] Fetched ${dbMessages.length} messages from database, rest messages length ${restMessageLength}`)
+          }
+
+          if (restMessageLength > 0) {
+            pagination.offset += dbMessages.length
+            toast.promise(async () => {
+              websocketStore.sendEvent('message:fetch', { chatId, pagination })
+            }, {
+              loading: 'Fetching messages from server...',
+            })
+          }
+
+          await websocketStore.waitForEvent('message:data')
+        }
+        finally {
+          isLoading.value = false
+        }
+      }, {
+        loading: 'Loading messages from database...',
+        success: 'Messages loaded',
+        error: 'Error loading messages',
+      })
+    }
+
+    return {
+      isLoading,
+      fetchMessages,
+    }
   }
 
   return {
     messagesByChat,
     pushMessages,
     useMessageChatMap,
-    fetchMessagesWithDatabase,
+    useFetchMessages,
   }
 })

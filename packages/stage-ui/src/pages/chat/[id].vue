@@ -26,7 +26,7 @@ const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.
 
 const isGlobalSearch = ref(false)
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
-const isLoadingMessages = ref(false)
+const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString())
 const messageLimit = ref(50)
 const messageOffset = ref(0)
 
@@ -80,11 +80,10 @@ watch(() => chatMessages.value.length, () => {
 // TODO: useInfiniteScroll?
 watch(y, async () => {
   if (y.value <= minimumScrollHeight.value && !isLoadingMessages.value) {
-    isLoadingMessages.value = true
-
-    await messageStore.fetchMessagesWithDatabase(id.toString(), { offset: messageOffset.value, limit: messageLimit.value })
-
-    isLoadingMessages.value = false
+    fetchMessages({
+      offset: messageOffset.value,
+      limit: messageLimit.value,
+    })
   }
 }, { immediate: true })
 
