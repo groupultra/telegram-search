@@ -26,7 +26,7 @@ const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.
 
 const isGlobalSearch = ref(false)
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
-const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessagesWithDatabase(id.toString())
+const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString())
 const messageLimit = ref(50)
 const messageOffset = ref(0)
 

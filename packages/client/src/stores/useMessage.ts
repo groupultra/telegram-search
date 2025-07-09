@@ -35,7 +35,7 @@ export const useMessageStore = defineStore('message', () => {
     })
   }
 
-  function useFetchMessagesWithDatabase(chatId: string) {
+  function useFetchMessages(chatId: string) {
     const isLoading = ref(false)
 
     function fetchMessages(pagination: CorePagination) {
@@ -82,6 +82,6 @@ export const useMessageStore = defineStore('message', () => {
     messagesByChat,
     pushMessages,
     useMessageChatMap,
-    useFetchMessagesWithDatabase,
+    useFetchMessages,
   }
 })
