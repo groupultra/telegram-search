@@ -52,7 +52,7 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
 }
 
 export function convertToDBInsertMessage(message: CoreMessage): DBInsertMessage {
-  return {
+  const msg: DBInsertMessage = {
     platform: message.platform,
     from_id: message.fromId,
     platform_message_id: message.platformMessageId,
@@ -62,12 +62,26 @@ export function convertToDBInsertMessage(message: CoreMessage): DBInsertMessage 
     is_reply: message.reply.isReply,
     reply_to_name: message.reply.replyToName,
     reply_to_id: message.reply.replyToId,
-    content_vector_1536: message.vectors.vector1536?.length ? message.vectors.vector1536 : null,
-    content_vector_1024: message.vectors.vector1024?.length ? message.vectors.vector1024 : null,
-    content_vector_768: message.vectors.vector768?.length ? message.vectors.vector768 : null,
-    jieba_tokens: message.jiebaTokens,
     platform_timestamp: message.platformTimestamp,
-  } satisfies DBInsertMessage
+  }
+
+  if (message.vectors.vector1536?.length) {
+    msg.content_vector_1536 = message.vectors.vector1536
+  }
+
+  if (message.vectors.vector1024?.length) {
+    msg.content_vector_1024 = message.vectors.vector1024
+  }
+
+  if (message.vectors.vector768?.length) {
+    msg.content_vector_768 = message.vectors.vector768
+  }
+
+  if (message.jiebaTokens?.length) {
+    msg.jieba_tokens = message.jiebaTokens
+  }
+
+  return msg
 }
 
 export function convertToCoreRetrievalMessages(messages: DBRetrievalMessages[]): CoreRetrievalMessages[] {
