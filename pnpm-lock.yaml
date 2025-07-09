@@ -32,7 +32,7 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       '@types/node':
-        specifier: ^24.0.10
+        specifier: ^24.0.12
         version: 24.0.12
       bumpp:
         specifier: ^10.2.0
@@ -404,8 +404,8 @@ importers:
   packages/core:
     dependencies:
       '@moeru/std':
-        specifier: 0.1.0-beta.4
-        version: 0.1.0-beta.4
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
       '@node-rs/jieba':
         specifier: ^2.0.1
         version: 2.0.1
@@ -1559,8 +1559,8 @@ packages:
     resolution: {integrity: sha512-9QOtNffcOF/c1seMCDnjckb3R9WHcG34tky+FHpNKKCW0wc/scYLwMtO+ptyGUfMW0/b/n4qRiALlaFHc9Oj7Q==}
     engines: {node: '>= 10.0.0'}
 
-  '@moeru/std@0.1.0-beta.4':
-    resolution: {integrity: sha512-L2EPYM0x83MyOP96r80VJmd2BoK/VUlyUtkv3ybCLinIbOOvyYxi4BUxLBcDSxAxoRqp5YsfPniUN+xMPuToFg==}
+  '@moeru/std@0.1.0-beta.5':
+    resolution: {integrity: sha512-+/ex8ZExrboqpFDqiU5hJV1S5vH5ZUw6SPciOZm4VuwTvU/wcAq3+trm6RJqnHN7/+beHeYKHsBZAzH7gSPDaQ==}
 
   '@napi-rs/wasm-runtime@0.2.11':
     resolution: {integrity: sha512-9DPkXtvHydrcOsopiYpUgPHpmj0HWZKMUnL2dZqpvC42lsratuBG06V5ipyno0fUek5VlFsNQ+AcFATSrJXgMA==}
@@ -7422,7 +7422,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@moeru/std@0.1.0-beta.4': {}
+  '@moeru/std@0.1.0-beta.5': {}
 
   '@napi-rs/wasm-runtime@0.2.11':
     dependencies:
