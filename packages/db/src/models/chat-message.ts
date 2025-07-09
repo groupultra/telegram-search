@@ -8,7 +8,7 @@ import type { StickerMedia } from './stickers'
 import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@tg-search/common'
-import { Ok } from '@tg-search/common/utils/monad'
+import { Ok } from '@tg-search/result'
 import { desc, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../drizzle'

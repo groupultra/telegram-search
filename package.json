@@ -11,6 +11,7 @@
     "dev:server": "pnpm -F @tg-search/server dev",
     "dev:frontend": "pnpm -F @tg-search/frontend dev",
     "dev:electron": "pnpm -F @tg-search/electron dev",
+    "build": "pnpm -rF=\"./packages/*\" --parallel build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "pnpm -r --parallel typecheck",

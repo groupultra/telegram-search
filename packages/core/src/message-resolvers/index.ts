@@ -1,4 +1,4 @@
-import type { Result } from '@tg-search/common/utils/monad'
+import type { Result } from '@tg-search/result'
 
 import type { CoreMessage } from '../utils/message'
 

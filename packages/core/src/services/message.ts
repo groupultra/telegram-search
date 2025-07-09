@@ -5,7 +5,7 @@ import type { MessageResolverRegistryFn } from '../message-resolvers'
 import type { CoreMessage } from '../utils/message'
 
 import { useLogger } from '@tg-search/common'
-import { Err, Ok } from '@tg-search/common/utils/monad'
+import { Err, Ok } from '@tg-search/result'
 import { Api } from 'telegram'
 
 import { convertToCoreMessage } from '../utils/message'

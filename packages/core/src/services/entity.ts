@@ -1,8 +1,8 @@
-import type { Result } from '@tg-search/common/utils/monad'
+import type { Result } from '@tg-search/result'
 
 import type { CoreContext } from '../context'
 
-import { Ok } from '@tg-search/common/utils/monad'
+import { Ok } from '@tg-search/result'
 
 import { resolveEntity } from '../utils/entity'
 

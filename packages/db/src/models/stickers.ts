@@ -2,7 +2,7 @@
 
 import type { CoreMessageMedia } from '../../../core/src'
 
-import { Ok } from '@tg-search/common/utils/monad'
+import { Ok } from '@tg-search/result'
 import { desc, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../drizzle'

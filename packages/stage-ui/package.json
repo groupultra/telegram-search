@@ -10,11 +10,7 @@
     "./styles/main.css": "./src/styles/main.css"
   },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite --port 3333",
-    "typecheck": "vue-tsc --noEmit",
-    "preview": "vite preview",
-    "up": "taze major -I"
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.8.2",

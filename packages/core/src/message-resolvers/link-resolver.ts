@@ -2,7 +2,7 @@ import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreMessage } from '../utils/message'
 
 import { useLogger } from '@tg-search/common'
-import { Ok } from '@tg-search/common/utils/monad'
+import { Ok } from '@tg-search/result'
 
 export function createLinkResolver(): MessageResolver {
   const logger = useLogger('core:resolver:link')
