@@ -20,6 +20,7 @@
     "@tg-search/client": "workspace:*",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
+    "@tg-search/db": "workspace:*",
     "@tg-search/stage-ui": "workspace:^",
     "@vueuse/core": "^13.5.0",
     "defu": "^6.1.4",
