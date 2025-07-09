@@ -45,9 +45,11 @@ export async function recordStickers(stickers: StickerMedia[]) {
     index === self.findIndex(s => s.sticker_id === sticker.sticker_id),
   )
 
+  const filteredStickers = uniqueStickers.filter(sticker => sticker.byte != null)
+
   return withDb(async db => db
     .insert(stickersTable)
-    .values(uniqueStickers.map(sticker => ({
+    .values(filteredStickers.map(sticker => ({
       platform: 'telegram',
       file_id: sticker.sticker_id,
       sticker_bytes: sticker.byte,
