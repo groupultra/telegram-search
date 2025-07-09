@@ -33,7 +33,24 @@ export async function recordMessages(messages: CoreMessage[]) {
     .onConflictDoUpdate({
       target: [chatMessagesTable.platform, chatMessagesTable.platform_message_id, chatMessagesTable.in_chat_id],
       set: {
+        // Content: always update with new content
         content: sql`excluded.content`,
+
+        // Vectors: update only if not null (vectors can be null in schema)
+        content_vector_1024: sql`COALESCE(excluded.content_vector_1024, ${chatMessagesTable.content_vector_1024})`,
+        content_vector_1536: sql`COALESCE(excluded.content_vector_1536, ${chatMessagesTable.content_vector_1536})`,
+        content_vector_768: sql`COALESCE(excluded.content_vector_768, ${chatMessagesTable.content_vector_768})`,
+
+        // Jieba tokens: update only if new array is not empty
+        jieba_tokens: sql`CASE 
+          WHEN excluded.jieba_tokens IS NOT NULL 
+               AND jsonb_array_length(excluded.jieba_tokens) > 0 
+          THEN excluded.jieba_tokens 
+          ELSE ${chatMessagesTable.jieba_tokens} 
+        END`,
+
+        // Platform timestamp: always update
+        platform_timestamp: sql`excluded.platform_timestamp`,
         updated_at: Date.now(),
       },
     })

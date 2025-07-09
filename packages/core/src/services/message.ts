@@ -63,8 +63,10 @@ export function createMessageService(ctx: CoreContext) {
       // Return the messages first
       emitter.emit('message:data', { messages: coreMessages })
 
+      // Storage the messages first
+      emitter.emit('storage:record:messages', { messages: coreMessages })
+
       // Embedding or resolve messages
-      let emitMessages: CoreMessage[] = coreMessages
       for (const [name, resolver] of resolvers.registry.entries()) {
         logger.withFields({ name }).verbose('Process messages with resolver')
 
@@ -72,28 +74,28 @@ export function createMessageService(ctx: CoreContext) {
           let result: CoreMessage[] = []
 
           if (resolver.run) {
-            result = (await resolver.run({ messages: emitMessages })).unwrap()
+            result = (await resolver.run({ messages: coreMessages })).unwrap()
           }
           else if (resolver.stream) {
-            for await (const message of resolver.stream({ messages: emitMessages })) {
+            for await (const message of resolver.stream({ messages: coreMessages })) {
               result.push(message)
               emitter.emit('message:data', { messages: [message] })
             }
           }
 
           if (result.length > 0) {
-            // Using defu to merge two arrays of objects (emitMessages and result) is unsafe.
+            // Using defu to merge two arrays of objects (coreMessages and result) is unsafe.
             // defu merges arrays by index. If a resolver filters some messages and result
-            // becomes shorter than emitMessages, this will lead to incorrect merges and data
-            // corruption. For example, result[1] might be merged into emitMessages[1] even
+            // becomes shorter than coreMessages, this will lead to incorrect merges and data
+            // corruption. For example, result[1] might be merged into coreMessages[1] even
             // if they correspond to different original messages.
 
             // A safer approach is to merge messages based on a unique identifier, like the uuid property.
             // The general idea is to create a Map from the result array for efficient lookups and then mapping
-            // over emitMessages to merge correctly.
+            // over coreMessages to merge correctly.
 
             const resultByUuid = new Map(result.map(m => [m.uuid, m]))
-            emitMessages = emitMessages.map((m) => {
+            const mergedMessages = coreMessages.map((m) => {
               const resolved = resultByUuid.get(m.uuid)
               if (resolved) {
                 // 手动合并，确保 Buffer 对象不被 defu 破坏
@@ -105,14 +107,18 @@ export function createMessageService(ctx: CoreContext) {
               }
               return m
             })
+
+            // Emit the merged messages
+            emitter.emit('message:data', { messages: mergedMessages })
+
+            // Store the merged messages
+            emitter.emit('storage:record:messages', { messages: mergedMessages })
           }
         }
         catch (error) {
           logger.withFields({ error }).warn('Failed to process messages')
         }
       }
-
-      emitter.emit('storage:record:messages', { messages: emitMessages })
     }
 
     async function* fetchMessages(
