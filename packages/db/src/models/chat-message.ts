@@ -7,7 +7,7 @@ import type { CoreMessage, CoreMessageMedia } from '../../../core/src'
 import type { StickerMedia } from './stickers'
 import type { DBRetrievalMessages } from './utils/message'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 import { Ok } from '@tg-search/result'
 import { desc, eq, sql } from 'drizzle-orm'
 

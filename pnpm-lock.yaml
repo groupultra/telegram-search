@@ -112,8 +112,14 @@ importers:
       '@tg-search/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@tg-search/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@tg-search/logg':
+        specifier: workspace:*
+        version: link:../../packages/logg
       '@tg-search/stage-ui':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/stage-ui
       '@vueuse/core':
         specifier: ^13.5.0
@@ -312,6 +318,9 @@ importers:
       '@tg-search/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@tg-search/logg':
+        specifier: workspace:*
+        version: link:../../packages/logg
       crossws:
         specifier: 0.3.5
         version: 0.3.5
@@ -376,18 +385,15 @@ importers:
 
   packages/common:
     dependencies:
-      '@guiiai/logg':
-        specifier: ^1.0.10
-        version: 1.0.10
       '@pnpm/find-workspace-dir':
         specifier: ^1000.1.0
         version: 1000.1.0
+      '@tg-search/logg':
+        specifier: workspace:*
+        version: link:../logg
       defu:
         specifier: ^6.1.4
         version: 6.1.4
-      error-stack-parser:
-        specifier: ^2.1.4
-        version: 2.1.4
       path-browserify-esm:
         specifier: ^1.0.6
         version: 1.0.6
@@ -415,6 +421,9 @@ importers:
       '@tg-search/db':
         specifier: workspace:*
         version: link:../db
+      '@tg-search/logg':
+        specifier: workspace:*
+        version: link:../logg
       '@tg-search/result':
         specifier: workspace:*
         version: link:../result
@@ -460,6 +469,9 @@ importers:
       '@tg-search/common':
         specifier: workspace:*
         version: link:../common
+      '@tg-search/logg':
+        specifier: workspace:*
+        version: link:../logg
       '@tg-search/result':
         specifier: workspace:*
         version: link:../result
@@ -476,6 +488,21 @@ importers:
       '@types/pg':
         specifier: ^8.15.4
         version: 8.15.4
+
+  packages/logg:
+    dependencies:
+      '@guiiai/logg':
+        specifier: ^1.0.10
+        version: 1.0.10
+      error-stack-parser:
+        specifier: ^2.1.4
+        version: 2.1.4
+      path-browserify-esm:
+        specifier: ^1.0.6
+        version: 1.0.6
+      tsdown:
+        specifier: ^0.12.9
+        version: 0.12.9(typescript@5.8.3)(unplugin-unused@0.5.1)
 
   packages/result:
     dependencies:

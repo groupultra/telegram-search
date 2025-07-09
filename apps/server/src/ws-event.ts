@@ -1,7 +1,7 @@
 import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 
 export interface WsEventFromServer {
   'server:connected': (data: { sessionId: string, connected: boolean }) => void

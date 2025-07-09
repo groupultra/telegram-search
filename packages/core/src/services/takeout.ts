@@ -5,7 +5,7 @@ import type { EntityLike } from 'telegram/define'
 import type { CoreContext } from '../context'
 import type { CoreTask } from '../utils/task'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 import { Err, Ok } from '@tg-search/result'
 import bigInt from 'big-integer'
 import { Api } from 'telegram'

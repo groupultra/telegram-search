@@ -1,7 +1,8 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreMessage } from '../utils/message'
 
-import { EmbeddingDimension, useLogger } from '@tg-search/common'
+import { EmbeddingDimension } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 import { Err, Ok } from '@tg-search/result'
 
 import { embedContents } from '../utils/embed'

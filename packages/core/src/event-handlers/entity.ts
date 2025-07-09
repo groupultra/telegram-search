@@ -1,7 +1,7 @@
 import type { CoreContext } from '../context'
 import type { EntityService } from '../services/entity'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 
 export function registerEntityEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx

@@ -12,10 +12,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@guiiai/logg": "^1.0.10",
     "@pnpm/find-workspace-dir": "^1000.1.0",
+    "@tg-search/logg": "workspace:*",
     "defu": "^6.1.4",
-    "error-stack-parser": "^2.1.4",
     "path-browserify-esm": "^1.0.6",
     "pathe": "^2.0.3",
     "valibot": "^1.1.0",

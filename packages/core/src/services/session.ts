@@ -4,7 +4,7 @@ import type { CoreContext } from '../context'
 
 import { access, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 import { Err, Ok } from '@tg-search/result'
 import path from 'pathe'
 import { StringSession } from 'telegram/sessions'

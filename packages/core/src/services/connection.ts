@@ -5,7 +5,7 @@ import type { StringSession } from 'telegram/sessions'
 
 import type { CoreContext } from '../context'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 import { Err, Ok } from '@tg-search/result'
 import { Api, TelegramClient } from 'telegram'
 

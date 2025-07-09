@@ -5,9 +5,10 @@ import { homedir } from 'node:os'
 import { cwd } from 'node:process'
 
 import { findWorkspaceDir } from '@pnpm/find-workspace-dir'
+import { useLogger } from '@tg-search/logg'
 import { dirname, join, resolve } from 'pathe'
 
-import { DatabaseType, generateDefaultConfig, useLogger } from '../browser'
+import { DatabaseType, generateDefaultConfig } from '../browser'
 
 const logger = useLogger()
 

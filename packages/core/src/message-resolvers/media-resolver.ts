@@ -9,7 +9,7 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 import { getMediaPath, useConfig } from '@tg-search/common/node'
 import { findStickerByFileId } from '@tg-search/db'
 

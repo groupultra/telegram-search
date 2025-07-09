@@ -4,7 +4,7 @@ import type { CoreContext } from '../context'
 import type { MessageResolverRegistryFn } from '../message-resolvers'
 import type { CoreMessage } from '../utils/message'
 
-import { useLogger } from '@tg-search/common'
+import { useLogger } from '@tg-search/logg'
 import { Err, Ok } from '@tg-search/result'
 import { Api } from 'telegram'
 

@@ -15,6 +15,7 @@
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
     "@tg-search/db": "workspace:*",
+    "@tg-search/logg": "workspace:*",
     "@tg-search/result": "workspace:*",
     "@xsai-ext/providers-cloud": "catalog:",
     "@xsai-ext/providers-local": "catalog:",

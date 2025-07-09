@@ -1,8 +1,8 @@
-import { Format, LogLevel } from '@guiiai/logg'
+import { LoggerFormat, LoggerLevel } from '@tg-search/logg'
 
 export const flags = {
-  logLevel: LogLevel.Verbose,
-  logFormat: Format.Pretty,
+  logLevel: LoggerLevel.Verbose,
+  logFormat: LoggerFormat.Pretty,
 
   isDebugMode: false,
   isDatabaseDebugMode: false,
@@ -16,11 +16,11 @@ export function parseEnvFlags(env: Record<string, string>) {
     if (lowerKey === 'log_level') {
       switch (lowerValue) {
         case 'debug':
-          flags.logLevel = LogLevel.Debug
+          flags.logLevel = LoggerLevel.Debug
           flags.isDebugMode = true
           break
         case 'verbose':
-          flags.logLevel = LogLevel.Verbose
+          flags.logLevel = LoggerLevel.Verbose
           break
       }
     }

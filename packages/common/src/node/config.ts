@@ -3,6 +3,7 @@ import type { Config } from '../browser/config-schema'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 
+import { useLogger } from '@tg-search/logg'
 import defu from 'defu'
 import { join } from 'pathe'
 import { safeParse } from 'valibot'
@@ -10,7 +11,6 @@ import { parse, stringify } from 'yaml'
 
 import { configSchema } from '../browser/config-schema'
 import { generateDefaultConfig } from '../browser/default-config'
-import { useLogger } from '../browser/logger'
 import { resolveStoragePath, useAssetsPath, useConfigPath } from './path'
 
 let config: Config
