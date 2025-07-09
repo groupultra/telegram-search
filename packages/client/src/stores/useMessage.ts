@@ -41,30 +41,34 @@ export const useMessageStore = defineStore('message', () => {
     function fetchMessages(pagination: CorePagination) {
       toast.promise(async () => {
         isLoading.value = true
+        try {
+          let restMessageLength = pagination.limit
+          let dbMessages: CoreMessage[] = []
 
-        let restMessageLength = pagination.limit
-        const dbMessages: CoreMessage[] = []
+          if (useSettingsStore().useCachedMessage) {
+            websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
+            const { messages } = await websocketStore.waitForEvent('storage:messages')
+            dbMessages = messages
 
-        if (useSettingsStore().useCachedMessage) {
-          websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
-          const { messages: dbMessages } = await websocketStore.waitForEvent('storage:messages')
+            restMessageLength = pagination.limit - dbMessages.length
+            // eslint-disable-next-line no-console
+            console.log(`[MessageStore] Fetched ${dbMessages.length} messages from database, rest messages length ${restMessageLength}`)
+          }
 
-          restMessageLength = pagination.limit - dbMessages.length
-          // eslint-disable-next-line no-console
-          console.log(`[MessageStore] Fetched ${dbMessages.length} messages from database, rest messages length ${restMessageLength}`)
+          if (restMessageLength > 0) {
+            pagination.offset += dbMessages.length
+            toast.promise(async () => {
+              websocketStore.sendEvent('message:fetch', { chatId, pagination })
+            }, {
+              loading: 'Fetching messages from server...',
+            })
+          }
+
+          await websocketStore.waitForEvent('message:data')
         }
-
-        if (restMessageLength > 0) {
-          pagination.offset += dbMessages.length
-          toast.promise(async () => {
-            websocketStore.sendEvent('message:fetch', { chatId, pagination })
-          }, {
-            loading: 'Fetching messages from server...',
-          })
+        finally {
+          isLoading.value = false
         }
-
-        await websocketStore.waitForEvent('message:data')
-        isLoading.value = false
       }, {
         loading: 'Loading messages from database...',
         success: 'Messages loaded',
