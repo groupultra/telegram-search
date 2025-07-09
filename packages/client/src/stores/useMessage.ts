@@ -41,38 +41,34 @@ export const useMessageStore = defineStore('message', () => {
     function fetchMessages(pagination: CorePagination) {
       toast.promise(async () => {
         isLoading.value = true
-        try {
-          let restMessageLength = pagination.limit
-          let dbMessages: CoreMessage[] = []
 
-          if (useSettingsStore().useCachedMessage) {
+        // First, fetch the messages from database
+        if (useSettingsStore().useCachedMessage) {
+          toast.promise(async () => {
             websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
-            const { messages } = await websocketStore.waitForEvent('storage:messages')
-            dbMessages = messages
-
-            restMessageLength = pagination.limit - dbMessages.length
-            // eslint-disable-next-line no-console
-            console.log(`[MessageStore] Fetched ${dbMessages.length} messages from database, rest messages length ${restMessageLength}`)
-          }
-
-          if (restMessageLength > 0) {
-            pagination.offset += dbMessages.length
-            toast.promise(async () => {
-              websocketStore.sendEvent('message:fetch', { chatId, pagination })
-            }, {
-              loading: 'Fetching messages from server...',
-            })
-          }
-
-          await websocketStore.waitForEvent('message:data')
+          }, {
+            loading: 'Fetching messages from server...',
+          })
         }
-        finally {
-          isLoading.value = false
-        }
+
+        // Then, fetch the messages from server & update the cache
+        toast.promise(async () => {
+          websocketStore.sendEvent('message:fetch', { chatId, pagination })
+        }, {
+          loading: 'Fetching messages from server...',
+        })
+
+        await Promise.race([
+          websocketStore.waitForEvent('message:data'),
+          websocketStore.waitForEvent('storage:messages'),
+        ])
       }, {
         loading: 'Loading messages from database...',
         success: 'Messages loaded',
         error: 'Error loading messages',
+        finally() {
+          isLoading.value = false
+        },
       })
     }
 

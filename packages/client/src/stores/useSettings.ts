@@ -17,7 +17,7 @@ export type ChatGroup = DialogType | ''
 
 export const useSettingsStore = defineStore('settings', () => {
   const selectedGroup = useLocalStorage<ChatGroup>('settings/group-selected', 'user')
-  const useCachedMessage = useLocalStorage<boolean>('settings/use-cached-message', false)
+  const useCachedMessage = useLocalStorage<boolean>('settings/use-cached-message-v2', true)
 
   const theme = useLocalStorage<string>('settings/theme', 'default')
   const storageConfig = useLocalStorage<Config>('settings/config', generateDefaultConfig())
