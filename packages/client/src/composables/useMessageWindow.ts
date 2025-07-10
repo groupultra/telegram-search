@@ -25,8 +25,8 @@ export class MessageWindow {
 
     // Update ID range
     if (!Number.isNaN(numericId)) {
-      this.minId = Math.min(this.minId === Infinity ? numericId : this.minId, numericId)
-      this.maxId = Math.max(this.maxId === -Infinity ? numericId : this.maxId, numericId)
+      this.minId = Math.min(this.minId, numericId)
+      this.maxId = Math.max(this.maxId, numericId)
     }
 
     // Trigger cleanup if needed
