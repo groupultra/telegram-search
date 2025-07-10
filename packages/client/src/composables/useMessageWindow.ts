@@ -2,6 +2,13 @@ import type { CoreMessage } from '@tg-search/core'
 
 import { cleanupMediaBlobs } from '../utils/blob'
 
+export interface WindowInfo {
+  size: number
+  range: [number, number]
+  lastAccess: number
+  blobCount: number
+}
+
 export class MessageWindow {
   messages: Map<string, CoreMessage> = new Map()
   minId: number = Infinity
@@ -12,25 +19,6 @@ export class MessageWindow {
 
   constructor(maxSize: number = 50) {
     this.maxSize = maxSize
-  }
-
-  // Add a single message
-  add(message: CoreMessage): void {
-    const messageId = message.platformMessageId
-    const numericId = Number(messageId)
-
-    // Update message data
-    this.messages.set(messageId, message)
-    this.lastAccessTime = Date.now()
-
-    // Update ID range
-    if (!Number.isNaN(numericId)) {
-      this.minId = Math.min(this.minId, numericId)
-      this.maxId = Math.max(this.maxId, numericId)
-    }
-
-    // Trigger cleanup if needed
-    this.cleanup()
   }
 
   // Add multiple messages
@@ -109,7 +97,7 @@ export class MessageWindow {
     if (this.messages.size > 0) {
       // The new minimum ID is the first one that wasn't removed.
       // We can get it from the `sortedIds` array without re-sorting.
-      this.minId = Number(sortedIds[toRemove])
+      this.minId = toRemove < sortedIds.length ? Number(sortedIds[toRemove]) : Infinity
     }
     else {
       // If all messages were removed, reset min/max to initial state.
@@ -138,7 +126,7 @@ export class MessageWindow {
   }
 
   // Get debug info
-  getDebugInfo(): { size: number, range: [number, number], lastAccess: number, blobCount: number } {
+  getDebugInfo(): WindowInfo {
     // Count total blob URLs
     let blobCount = 0
     this.messages.forEach((message) => {

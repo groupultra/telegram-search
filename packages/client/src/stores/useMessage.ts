@@ -1,6 +1,8 @@
 import type { CorePagination } from '@tg-search/common/utils/pagination'
 import type { CoreMessage } from '@tg-search/core'
 
+import type { WindowInfo } from '../composables/useMessageWindow'
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
@@ -103,7 +105,7 @@ export const useMessageStore = defineStore('message', () => {
   }
 
   function getAllWindowsDebugInfo() {
-    const info: Record<string, { size: number, range: [number, number], lastAccess: number, blobCount: number }> = {}
+    const info: Record<string, WindowInfo> = {}
     messageWindows.value.forEach((window, chatId) => {
       info[chatId] = window.getDebugInfo()
     })
