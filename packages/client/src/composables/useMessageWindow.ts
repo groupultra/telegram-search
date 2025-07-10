@@ -105,10 +105,16 @@ export class MessageWindow {
       }
     }
 
-    // Update minId after cleanup
+    // Update minId and maxId after cleanup
     if (this.messages.size > 0) {
-      const remainingIds = this.getSortedIds()
-      this.minId = Number(remainingIds[0]) || this.minId
+      // The new minimum ID is the first one that wasn't removed.
+      // We can get it from the `sortedIds` array without re-sorting.
+      this.minId = Number(sortedIds[toRemove])
+    }
+    else {
+      // If all messages were removed, reset min/max to initial state.
+      this.minId = Infinity
+      this.maxId = -Infinity
     }
 
     console.warn(`[MessageWindow] Cleaned up ${toRemove} messages (${removedIds.join(', ')}), ${this.messages.size} remaining`)
