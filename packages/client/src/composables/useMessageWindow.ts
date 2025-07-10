@@ -1,0 +1,151 @@
+import type { CoreMessage } from '@tg-search/core'
+
+import { cleanupMediaBlobs } from '../utils/blob'
+
+export class MessageWindow {
+  messages: Map<string, CoreMessage> = new Map()
+  minId: number = Infinity
+  maxId: number = -Infinity
+  lastAccessTime: number = Date.now()
+
+  private readonly maxSize: number
+
+  constructor(maxSize: number = 50) {
+    this.maxSize = maxSize
+  }
+
+  // Add a single message
+  add(message: CoreMessage): void {
+    const messageId = message.platformMessageId
+    const numericId = Number(messageId)
+
+    // Update message data
+    this.messages.set(messageId, message)
+    this.lastAccessTime = Date.now()
+
+    // Update ID range
+    if (!Number.isNaN(numericId)) {
+      this.minId = Math.min(this.minId === Infinity ? numericId : this.minId, numericId)
+      this.maxId = Math.max(this.maxId === -Infinity ? numericId : this.maxId, numericId)
+    }
+
+    // Trigger cleanup if needed
+    this.cleanup()
+  }
+
+  // Add multiple messages
+  addBatch(messages: CoreMessage[]): void {
+    messages.forEach((message) => {
+      const messageId = message.platformMessageId
+      const numericId = Number(messageId)
+
+      this.messages.set(messageId, message)
+
+      if (!Number.isNaN(numericId)) {
+        this.minId = Math.min(this.minId === Infinity ? numericId : this.minId, numericId)
+        this.maxId = Math.max(this.maxId === -Infinity ? numericId : this.maxId, numericId)
+      }
+    })
+
+    this.lastAccessTime = Date.now()
+    this.cleanup()
+  }
+
+  // Get a message
+  get(messageId: string): CoreMessage | undefined {
+    this.lastAccessTime = Date.now()
+    return this.messages.get(messageId)
+  }
+
+  // Check if message exists
+  has(messageId: string): boolean {
+    return this.messages.has(messageId)
+  }
+
+  // Get all message IDs sorted
+  getSortedIds(): string[] {
+    return Array.from(this.messages.keys())
+      .sort((a, b) => Number(a) - Number(b))
+  }
+
+  // Get current size
+  size(): number {
+    return this.messages.size
+  }
+
+  // Clean up a single message and its blob URLs
+  private cleanupMessage(messageId: string): void {
+    const message = this.messages.get(messageId)
+    if (message?.media) {
+      // Clean up blob URLs to prevent memory leaks
+      cleanupMediaBlobs(message.media)
+    }
+    this.messages.delete(messageId)
+  }
+
+  // Simple cleanup: keep only the latest messages when exceeding maxSize
+  private cleanup(): void {
+    if (this.messages.size <= this.maxSize) {
+      return
+    }
+
+    // Get sorted message IDs (oldest first)
+    const sortedIds = this.getSortedIds()
+
+    // Calculate how many to remove
+    const toRemove = this.messages.size - this.maxSize
+
+    // Remove oldest messages and clean up their blobs
+    const removedIds: string[] = []
+    for (let i = 0; i < toRemove; i++) {
+      const oldestId = sortedIds[i]
+      if (oldestId) {
+        this.cleanupMessage(oldestId)
+        removedIds.push(oldestId)
+      }
+    }
+
+    // Update minId after cleanup
+    if (this.messages.size > 0) {
+      const remainingIds = this.getSortedIds()
+      this.minId = Number(remainingIds[0]) || this.minId
+    }
+
+    console.warn(`[MessageWindow] Cleaned up ${toRemove} messages (${removedIds.join(', ')}), ${this.messages.size} remaining`)
+  }
+
+  // Clear all messages and their blob URLs
+  clear(): void {
+    // Clean up all blob URLs before clearing
+    this.messages.forEach((message) => {
+      if (message.media) {
+        cleanupMediaBlobs(message.media)
+      }
+    })
+
+    this.messages.clear()
+    this.minId = Infinity
+    this.maxId = -Infinity
+    this.lastAccessTime = Date.now()
+
+    console.warn('[MessageWindow] All messages and blob URLs cleared')
+  }
+
+  // Get debug info
+  getDebugInfo(): { size: number, range: [number, number], lastAccess: number, blobCount: number } {
+    // Count total blob URLs
+    let blobCount = 0
+    this.messages.forEach((message) => {
+      if (message.media) {
+        blobCount += message.media.filter(media => media.blobUrl).length
+      }
+    })
+
+    return {
+      size: this.messages.size,
+      range: [this.minId, this.maxId],
+      lastAccess: this.lastAccessTime,
+      blobCount,
+    }
+  }
+}

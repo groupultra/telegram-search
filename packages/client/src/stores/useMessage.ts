@@ -5,33 +5,51 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 
+import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
 import { useSettingsStore } from './useSettings'
 import { useWebsocketStore } from './useWebsocket'
 
 export const useMessageStore = defineStore('message', () => {
-  // TODO: performance, LRU cache or shallow ref, vertical view
-  const messagesByChat = ref<Map<string, Map<string, CoreMessage>>>(new Map())
+  // Replace Map with MessageWindow for each chat
+  const messageWindows = ref<Map<string, MessageWindow>>(new Map())
 
   const websocketStore = useWebsocketStore()
 
-  function useMessageChatMap(chatId: string) {
-    if (!messagesByChat.value.has(chatId)) {
-      messagesByChat.value.set(chatId, new Map())
+  function getMessageWindow(chatId: string) {
+    if (!messageWindows.value.has(chatId)) {
+      messageWindows.value.set(chatId, new MessageWindow(50)) // 50 messages max
     }
+    return messageWindows.value.get(chatId)!
+  }
 
-    return messagesByChat.value.get(chatId)!
+  // Compatibility function for existing code
+  function useMessageChatMap(chatId: string) {
+    const window = getMessageWindow(chatId)
+    // Return the underlying Map for compatibility
+    return window.messages
   }
 
   async function pushMessages(messages: CoreMessage[]) {
+    // Group messages by chatId
+    const messagesByChat = new Map<string, CoreMessage[]>()
+
     messages.forEach((message) => {
       const { chatId } = message
 
-      const chatMap = useMessageChatMap(chatId)
-
+      // Process media
       message.media = message.media?.map(createMediaBlob)
 
-      chatMap.set(message.platformMessageId, message)
+      if (!messagesByChat.has(chatId)) {
+        messagesByChat.set(chatId, [])
+      }
+      messagesByChat.get(chatId)!.push(message)
+    })
+
+    // Add messages to their respective windows
+    messagesByChat.forEach((chatMessages, chatId) => {
+      const window = getMessageWindow(chatId)
+      window.addBatch(chatMessages)
     })
   }
 
@@ -78,10 +96,30 @@ export const useMessageStore = defineStore('message', () => {
     }
   }
 
+  // Debug functions
+  function getWindowDebugInfo(chatId: string) {
+    const window = messageWindows.value.get(chatId)
+    return window?.getDebugInfo() || null
+  }
+
+  function getAllWindowsDebugInfo() {
+    const info: Record<string, any> = {}
+    messageWindows.value.forEach((window, chatId) => {
+      info[chatId] = window.getDebugInfo()
+    })
+    return info
+  }
+
   return {
-    messagesByChat,
+    // Backward compatibility - note: type is not exactly Map<string, Map<string, CoreMessage>> but compatible for existing usage
+    messagesByChat: messageWindows as any, // Type assertion for compatibility
     pushMessages,
     useMessageChatMap,
     useFetchMessages,
+
+    // New MessageWindow specific methods
+    getMessageWindow,
+    getWindowDebugInfo,
+    getAllWindowsDebugInfo,
   }
 })
