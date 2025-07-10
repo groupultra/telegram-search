@@ -111,13 +111,12 @@ export const useMessageStore = defineStore('message', () => {
   }
 
   return {
-    // Backward compatibility - note: type is not exactly Map<string, Map<string, CoreMessage>> but compatible for existing usage
-    messagesByChat: messageWindows as any, // Type assertion for compatibility
+    messagesByChat: messageWindows,
     pushMessages,
     useMessageChatMap,
     useFetchMessages,
 
-    // New MessageWindow specific methods
+    // Message Window
     getMessageWindow,
     getWindowDebugInfo,
     getAllWindowsDebugInfo,
