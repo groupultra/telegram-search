@@ -103,7 +103,7 @@ export const useMessageStore = defineStore('message', () => {
   }
 
   function getAllWindowsDebugInfo() {
-    const info: Record<string, any> = {}
+    const info: Record<string, { size: number, range: [number, number], lastAccess: number, blobCount: number }> = {}
     messageWindows.value.forEach((window, chatId) => {
       info[chatId] = window.getDebugInfo()
     })
