@@ -10,7 +10,7 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { getMediaPath, useConfig } from '@tg-search/common/node'
-import { findStickerByFileId } from '@tg-search/db'
+import { findPhotoByFileId, findStickerByFileId } from '@tg-search/db'
 import { useLogger } from '@tg-search/logg'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
@@ -65,6 +65,23 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                       path: media.path,
                     } satisfies CoreMessageMedia
                   }
+                }
+              }
+            }
+            if (media.type === 'photo') {
+              const apiMedia = media.apiMedia as any
+              const photoId = apiMedia?.photo?.id?.toString() ?? ''
+              const photoResult = await findPhotoByFileId(photoId)
+              if (photoResult) {
+                const photo = photoResult.unwrap()
+                if (photo.image_bytes) {
+                  return {
+                    apiMedia: media.apiMedia,
+                    byte: photo.image_bytes,
+                    type: media.type,
+                    messageUUID: media.messageUUID,
+                    path: media.path,
+                  } satisfies CoreMessageMedia
                 }
               }
             }
