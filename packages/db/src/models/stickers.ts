@@ -46,8 +46,6 @@ export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
       platform: 'telegram',
       file_id: sticker.platformId ?? '',
       sticker_bytes: sticker.byte,
-      sticker_path: '',
-      description: '',
     // TODO: Emoji
     }))
 
@@ -58,7 +56,6 @@ export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
       target: [stickersTable.file_id],
       set: {
         sticker_bytes: sql`excluded.sticker_bytes`,
-        emoji: sql`excluded.emoji`,
         updated_at: Date.now(),
       },
     })

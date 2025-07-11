@@ -30,6 +30,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             // FIXME: move it to storage
             if (media.type === 'sticker') {
               const sticker = (await findStickerByFileId(media.platformId)).unwrap()
+
               // 只有当数据库中有 sticker_bytes 时才直接返回
               if (sticker && sticker.sticker_bytes) {
                 return {
@@ -48,7 +49,6 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               if (photo && photo.image_bytes) {
                 return {
                   messageUUID: message.uuid,
-                  apiMedia: media.apiMedia,
                   byte: photo.image_bytes,
                   type: media.type,
                   platformId: media.platformId,

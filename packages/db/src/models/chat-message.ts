@@ -81,7 +81,6 @@ export async function recordMessagesWithMedia(messages: CoreMessage[]): Promise<
         .map((media) => {
           return {
             ...media,
-            photo_id: media.platformId ?? '',
             messageUUID: dbMessage?.id as UUID,
           }
         }) || []
@@ -93,11 +92,7 @@ export async function recordMessagesWithMedia(messages: CoreMessage[]): Promise<
     .map((media) => {
       // const emoji = media.apiMedia?.document?.attributes?.find((attr: any) => attr.alt)?.alt ?? ''
 
-      return {
-        ...media,
-        sticker_id: media.platformId ?? '',
-        // emoji,
-      }
+      return media
     }) satisfies CoreMessageMediaSticker[]
 
   if (allPhotoMedia.length > 0) {
