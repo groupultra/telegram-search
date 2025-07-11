@@ -4,8 +4,8 @@ import type { UUID } from 'node:crypto'
 import { Api } from 'telegram'
 
 export interface CoreMessageMediaBase {
-  messageUUID?: UUID
-  platformId?: string
+  platformId: string
+  messageUUID: UUID
   byte: Buffer | undefined
 }
 
@@ -36,7 +36,7 @@ export type CoreMessageMediaFromServer = CoreMessageMedia & {
   apiMedia?: unknown // Api.TypeMessageMedia
 }
 
-export type CoreMessageMediaFromCache = CoreMessageMedia
+export type CoreMessageMediaFromCache = CoreMessageMedia & {}
 
 export type CoreMessageMediaFromBlob = CoreMessageMedia & {
   blobUrl?: string

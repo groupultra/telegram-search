@@ -111,6 +111,7 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
   const media: CoreMessageMediaFromServer[] = []
   if (message.media) {
     media.push({
+      messageUUID: randomUUID(), // TODO: is it correct?
       type: parseMediaType(message.media),
       apiMedia: message.media,
       platformId: parseMediaId(message.media),

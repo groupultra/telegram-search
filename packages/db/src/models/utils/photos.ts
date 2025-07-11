@@ -11,5 +11,6 @@ export function convertDBPhotoToCoreMessageMedia(dbPhoto: DBSelectPhoto): CoreMe
     type: 'photo',
     messageUUID: dbPhoto.message_id as UUID,
     byte: dbPhoto.image_bytes ?? undefined,
+    platformId: dbPhoto.file_id,
   } satisfies CoreMessageMediaPhoto
 }
