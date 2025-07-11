@@ -1,6 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/photos.ts
 
-import type { CoreMessageMedia } from '../../../core/src'
+import type { CoreMessageMediaPhoto } from '../../../core/src'
 import type { DBInsertPhoto } from './utils/photos'
 
 import { Ok } from '@tg-search/result'
@@ -9,8 +9,6 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import { withDb } from '../drizzle'
 import { photosTable } from '../schemas/photos'
 import { must0 } from './utils/must'
-
-export type PhotoMedia = CoreMessageMedia & { photo_id: string }
 
 export async function findPhotoByFileId(fileId: string) {
   const photos = (await withDb(db => db
@@ -27,20 +25,20 @@ export async function findPhotoByFileId(fileId: string) {
   return Ok(must0(photos))
 }
 
-export async function recordPhotos(media: PhotoMedia[]) {
+export async function recordPhotos(media: CoreMessageMediaPhoto[]) {
   if (media.length === 0) {
     return
   }
 
   const dataToInsert = media
-    .filter(media => media.byte != null && media.photo_id !== '')
+    .filter(media => media.byte != null)
     .map(
       media => ({
         platform: 'telegram',
-        file_id: media.photo_id,
+        file_id: media.platformId,
         message_id: media.messageUUID,
         image_bytes: media.byte,
-        image_path: media.path,
+        // image_path: media.path,
         description: '',
       } satisfies DBInsertPhoto),
     )

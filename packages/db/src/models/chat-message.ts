@@ -3,8 +3,7 @@ import type { UUID } from 'node:crypto'
 
 import type { CorePagination } from '@tg-search/common/utils/pagination'
 
-import type { CoreMessage, CoreMessageMedia } from '../../../core/src'
-import type { StickerMedia } from './stickers'
+import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../../../core/src'
 import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@tg-search/logg'
@@ -86,21 +85,20 @@ export async function recordMessagesWithMedia(messages: CoreMessage[]): Promise<
             messageUUID: dbMessage?.id as UUID,
           }
         }) || []
-    }) satisfies CoreMessageMedia[]
+    }) satisfies CoreMessageMediaPhoto[]
 
   const allStickerMedia = messages
     .flatMap(message => message.media ?? [])
     .filter(media => media.type === 'sticker')
     .map((media) => {
-      const stickerId = media.platformId ?? ''
       // const emoji = media.apiMedia?.document?.attributes?.find((attr: any) => attr.alt)?.alt ?? ''
 
       return {
         ...media,
-        sticker_id: stickerId,
+        sticker_id: media.platformId ?? '',
         // emoji,
       }
-    }) satisfies StickerMedia[]
+    }) satisfies CoreMessageMediaSticker[]
 
   if (allPhotoMedia.length > 0) {
     await recordPhotos(allPhotoMedia)

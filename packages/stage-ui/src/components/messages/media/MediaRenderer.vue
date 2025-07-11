@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import type { CoreMessage, CoreMessageMediaTypes } from '@tg-search/core/types'
+import type { CoreMessageMediaFromBlob } from '@tg-search/core'
+import type { CoreMessage } from '@tg-search/core/types'
 
 import { computed, ref } from 'vue'
 
 import MediaWebpage from './MediaWebpage.vue'
 
 const props = defineProps<{
-  message: CoreMessage
+  message: CoreMessage & {
+    media?: CoreMessageMediaFromBlob[]
+  }
 }>()
 
 const runtimeError = ref<string>()
@@ -26,7 +29,7 @@ export interface WebpageData {
 
 export interface ProcessedMedia {
   src: string | undefined
-  type: CoreMessageMediaTypes
+  type: CoreMessageMediaFromBlob['type']
   error?: string
   webpageData?: WebpageData
 }

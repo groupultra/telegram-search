@@ -1,6 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/stickers.ts
 
-import type { CoreMessageMedia } from '../../../core/src'
+import type { CoreMessageMediaSticker } from '../../../core/src'
 
 import { Ok } from '@tg-search/result'
 import { desc, eq, sql } from 'drizzle-orm'
@@ -9,8 +9,6 @@ import { withDb } from '../drizzle'
 import { recentSentStickersTable } from '../schemas/recent_sent_stickers'
 import { stickersTable } from '../schemas/stickers'
 import { must0 } from './utils/must'
-
-export type StickerMedia = CoreMessageMedia & { sticker_id: string, emoji?: string }
 
 export async function findStickerDescription(fileId: string) {
   const sticker = (await findStickerByFileId(fileId))?.unwrap()
@@ -32,14 +30,14 @@ export async function findStickerByFileId(fileId: string) {
   return Ok(must0(sticker))
 }
 
-export async function recordStickers(stickers: StickerMedia[]) {
+export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
   if (stickers.length === 0) {
     return []
   }
 
   // 对贴纸数组进行去重，以 file_id 为唯一标识
   const uniqueStickers = stickers.filter((sticker, index, self) =>
-    index === self.findIndex(s => s.sticker_id === sticker.sticker_id),
+    index === self.findIndex(s => s.platformId === sticker.platformId),
   )
 
   const filteredStickers = uniqueStickers.filter(sticker => sticker.byte != null)
@@ -48,12 +46,12 @@ export async function recordStickers(stickers: StickerMedia[]) {
     .insert(stickersTable)
     .values(filteredStickers.map(sticker => ({
       platform: 'telegram',
-      file_id: sticker.sticker_id,
+      file_id: sticker.platformId ?? '',
       sticker_bytes: sticker.byte,
       sticker_path: '',
       description: '',
       name: '',
-      emoji: sticker.emoji ?? '',
+      // emoji: sticker.emoji ?? '',
       label: '',
     })))
     .onConflictDoUpdate({

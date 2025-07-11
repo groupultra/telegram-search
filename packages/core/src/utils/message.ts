@@ -1,12 +1,15 @@
-import type { Buffer } from 'node:buffer'
 import type { UUID } from 'node:crypto'
 
 import type { Result } from '@tg-search/result'
+
+import type { CoreMessageMediaFromServer } from './media'
 
 import { randomUUID } from 'node:crypto'
 
 import { Err, Ok } from '@tg-search/result'
 import { Api } from 'telegram'
+
+import { parseMediaId, parseMediaType } from './media'
 
 export interface CoreMessage {
   uuid: UUID
@@ -19,7 +22,7 @@ export interface CoreMessage {
   fromName: string
 
   content: string
-  media?: CoreMessageMedia[]
+  media?: CoreMessageMediaFromServer[]
 
   reply: CoreMessageReply
   forward: CoreMessageForward
@@ -30,49 +33,6 @@ export interface CoreMessage {
   createdAt?: number
   updatedAt?: number
   deletedAt?: number
-}
-
-export type CoreMessageMediaTypes = 'photo' | 'sticker' | 'document' | 'webpage' | 'unknown'
-
-export interface CoreMessageMedia {
-  type: CoreMessageMediaTypes
-  messageUUID?: UUID
-  path?: string
-  byte?: Buffer
-  blobUrl?: string
-  apiMedia?: unknown // Api.TypeMessageMedia
-  platformId?: string
-}
-
-function parseMediaType(apiMedia: Api.TypeMessageMedia): CoreMessageMediaTypes {
-  switch (true) {
-    case apiMedia instanceof Api.MessageMediaPhoto:
-      return 'photo'
-    case apiMedia instanceof Api.MessageMediaDocument:
-      // TODO: Better way to check if it's a sticker
-      if (apiMedia.document && apiMedia.document.className === 'Document') {
-        const isSticker = apiMedia.document.attributes.find((attr: any) => attr.className === 'DocumentAttributeSticker')
-        if (isSticker) {
-          return 'sticker'
-        }
-      }
-      return 'document'
-    case apiMedia instanceof Api.MessageMediaWebPage:
-      return 'webpage'
-    default:
-      return 'unknown'
-  }
-}
-
-function parseMediaId(apiMedia: Api.TypeMessageMedia): string {
-  switch (true) {
-    case apiMedia instanceof Api.MessageMediaPhoto:
-      return apiMedia.photo?.id.toString() ?? ''
-    case apiMedia instanceof Api.MessageMediaDocument:
-      return apiMedia.document?.id.toString() ?? ''
-    default:
-      return ''
-  }
 }
 
 export interface CoreMessageReply {
@@ -148,12 +108,13 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
   }
 
   // Waiting for media resolver to fetch media
-  const media: CoreMessageMedia[] = []
+  const media: CoreMessageMediaFromServer[] = []
   if (message.media) {
     media.push({
       type: parseMediaType(message.media),
       apiMedia: message.media,
       platformId: parseMediaId(message.media),
+      byte: undefined,
     })
   }
 

@@ -1,8 +1,8 @@
-import type { CoreMessageMedia } from '@tg-search/core'
+import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
 import { getMediaMimeType } from './mime'
 
-export function createMediaBlob(media: CoreMessageMedia) {
+export function createMediaBlob(media: CoreMessageMediaFromBlob) {
   if (media.byte) {
     const buffer = new Uint8Array((media.byte as any).data)
 

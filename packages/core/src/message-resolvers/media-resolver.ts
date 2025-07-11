@@ -2,11 +2,11 @@ import type { Api } from 'telegram'
 
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
-import type { CoreMessage, CoreMessageMedia } from '../utils/message'
+import type { CoreMessageMediaFromServer } from '../utils/media'
+import type { CoreMessage } from '../utils/message'
 
 import { Buffer } from 'node:buffer'
 import { existsSync, mkdirSync } from 'node:fs'
-import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { getMediaPath, useConfig } from '@tg-search/common/node'
@@ -60,8 +60,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                     byte: sticker.sticker_bytes,
                     type: media.type,
                     messageUUID: media.messageUUID,
-                    path: media.path,
-                  } satisfies CoreMessageMedia
+                  } satisfies CoreMessageMediaFromServer
                 }
               }
             }
@@ -78,19 +77,18 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                   byte: photo.image_bytes,
                   type: media.type,
                   messageUUID: media.messageUUID,
-                  path: media.path,
-                } satisfies CoreMessageMedia
+                } satisfies CoreMessageMediaFromServer
               }
             }
 
             const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
 
-            const mediaPath = join(userMediaPath, message.platformMessageId)
-            logger.withFields({ mediaPath }).verbose('Media path')
-            if (mediaFetched instanceof Buffer) {
-              // write file to disk async
-              writeFile(mediaPath, mediaFetched)
-            }
+            // const mediaPath = join(userMediaPath, message.platformMessageId)
+            // logger.withFields({ mediaPath }).verbose('Media path')
+            // if (mediaFetched instanceof Buffer) {
+            //   // write file to disk async
+            //   writeFile(mediaPath, mediaFetched)
+            // }
 
             const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
 
@@ -99,8 +97,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               byte,
               type: media.type,
               messageUUID: media.messageUUID,
-              path: mediaPath,
-            } satisfies CoreMessageMedia
+            } satisfies CoreMessageMediaFromServer
           }),
         )
 
