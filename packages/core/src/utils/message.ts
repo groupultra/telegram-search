@@ -55,6 +55,8 @@ export interface CoreMessageVector {
 }
 
 export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> {
+  const messageUUID = randomUUID()
+
   const sender = message.sender
   const senderId = message.senderId
   if ((!sender && !senderId) || (sender instanceof Api.UserEmpty) || (sender instanceof Api.ChatEmpty)) {
@@ -111,7 +113,7 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
   const media: CoreMessageMediaFromServer[] = []
   if (message.media) {
     media.push({
-      messageUUID: randomUUID(), // TODO: is it correct?
+      messageUUID,
       type: parseMediaType(message.media),
       apiMedia: message.media,
       platformId: parseMediaId(message.media),
@@ -121,7 +123,7 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
 
   return Ok(
     {
-      uuid: randomUUID(),
+      uuid: messageUUID,
       platform: 'telegram',
       platformMessageId: messageId,
       chatId,
