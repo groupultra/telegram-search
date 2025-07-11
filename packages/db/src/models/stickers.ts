@@ -53,7 +53,7 @@ export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
     .insert(stickersTable)
     .values(dataToInsert)
     .onConflictDoUpdate({
-      target: [stickersTable.file_id],
+      target: [stickersTable.platform, stickersTable.file_id],
       set: {
         sticker_bytes: sql`excluded.sticker_bytes`,
         updated_at: Date.now(),
