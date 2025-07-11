@@ -32,7 +32,7 @@ export async function findStickerByFileId(fileId: string) {
 
 export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
   if (stickers.length === 0) {
-    return []
+    return
   }
 
   // 对贴纸数组进行去重，以 file_id 为唯一标识
@@ -40,25 +40,25 @@ export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
     index === self.findIndex(s => s.platformId === sticker.platformId),
   )
 
-  const filteredStickers = uniqueStickers.filter(sticker => sticker.byte != null)
-
-  return withDb(async db => db
-    .insert(stickersTable)
-    .values(filteredStickers.map(sticker => ({
+  const dataToInsert = uniqueStickers
+    .filter(sticker => sticker.byte != null)
+    .map(sticker => ({
       platform: 'telegram',
       file_id: sticker.platformId ?? '',
       sticker_bytes: sticker.byte,
       sticker_path: '',
       description: '',
-      name: '',
-      // emoji: sticker.emoji ?? '',
-      label: '',
-    })))
+    // TODO: Emoji
+    }))
+
+  return withDb(async db => db
+    .insert(stickersTable)
+    .values(dataToInsert)
     .onConflictDoUpdate({
       target: [stickersTable.file_id],
       set: {
-        sticker_bytes: sql`EXCLUDED.sticker_bytes`,
-        emoji: sql`EXCLUDED.emoji`,
+        sticker_bytes: sql`excluded.sticker_bytes`,
+        emoji: sql`excluded.emoji`,
         updated_at: Date.now(),
       },
     })

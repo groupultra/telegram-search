@@ -101,10 +101,10 @@ export async function recordMessagesWithMedia(messages: CoreMessage[]): Promise<
     }) satisfies CoreMessageMediaSticker[]
 
   if (allPhotoMedia.length > 0) {
-    await recordPhotos(allPhotoMedia)
+    (await recordPhotos(allPhotoMedia))?.expect('Failed to record photos')
   }
   if (allStickerMedia.length > 0) {
-    await recordStickers(allStickerMedia)
+    (await recordStickers(allStickerMedia))?.expect('Failed to record stickers')
   }
 }
 

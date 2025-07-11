@@ -39,7 +39,7 @@ export async function recordPhotos(media: CoreMessageMediaPhoto[]) {
         message_id: media.messageUUID,
         image_bytes: media.byte,
         // image_path: media.path,
-        description: '',
+        // description: '',
       } satisfies DBInsertPhoto),
     )
 
