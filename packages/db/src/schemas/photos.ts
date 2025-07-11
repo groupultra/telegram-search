@@ -7,7 +7,7 @@ import { bytea } from './type'
 export const photosTable = pgTable('photos', {
   id: uuid().primaryKey().defaultRandom(),
   platform: text().notNull().default(''),
-  file_id: text().notNull().default(''),
+  file_id: text().notNull().default('').unique(),
   message_id: uuid(),
   image_bytes: bytea(),
   image_path: text().notNull().default(''),
