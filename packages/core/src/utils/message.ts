@@ -41,9 +41,10 @@ export interface CoreMessageMedia {
   byte?: Buffer
   blobUrl?: string
   apiMedia?: unknown // Api.TypeMessageMedia
+  platformId?: string
 }
 
-export function parseMediaType(apiMedia: Api.TypeMessageMedia): CoreMessageMediaTypes {
+function parseMediaType(apiMedia: Api.TypeMessageMedia): CoreMessageMediaTypes {
   switch (true) {
     case apiMedia instanceof Api.MessageMediaPhoto:
       return 'photo'
@@ -60,6 +61,17 @@ export function parseMediaType(apiMedia: Api.TypeMessageMedia): CoreMessageMedia
       return 'webpage'
     default:
       return 'unknown'
+  }
+}
+
+function parseMediaId(apiMedia: Api.TypeMessageMedia): string {
+  switch (true) {
+    case apiMedia instanceof Api.MessageMediaPhoto:
+      return apiMedia.photo?.id.toString() ?? ''
+    case apiMedia instanceof Api.MessageMediaDocument:
+      return apiMedia.document?.id.toString() ?? ''
+    default:
+      return ''
   }
 }
 
@@ -89,6 +101,7 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
     return Err(new Error(`Message ${message.id} has no sender or sender is empty`))
   }
 
+  // FIXME: space
   let fromName = ''
   if (sender instanceof Api.User) {
     if ([sender.firstName, sender.lastName].some(Boolean)) {
@@ -140,6 +153,7 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
     media.push({
       type: parseMediaType(message.media),
       apiMedia: message.media,
+      platformId: parseMediaId(message.media),
     })
   }
 

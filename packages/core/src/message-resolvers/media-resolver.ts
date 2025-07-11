@@ -43,41 +43,21 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           message.media.map(async (media) => {
             logger.withFields({ media }).debug('Media')
 
-            // TODO: move it to storage
             const userMediaPath = join(await useUserMediaPath(), message.chatId.toString())
             if (!existsSync(userMediaPath)) {
               mkdirSync(userMediaPath, { recursive: true })
             }
 
+            // FIXME: move it to storage
             if (media.type === 'sticker') {
               const document = (media.apiMedia as Api.MessageMediaDocument).document
               if (document) {
-                const stickerResult = await findStickerByFileId(document.id.toString())
-                if (stickerResult) {
-                  const sticker = stickerResult.unwrap()
-                  // 只有当数据库中有 sticker_bytes 时才直接返回
-                  if (sticker.sticker_bytes) {
-                    return {
-                      apiMedia: media.apiMedia,
-                      byte: sticker.sticker_bytes,
-                      type: media.type,
-                      messageUUID: media.messageUUID,
-                      path: media.path,
-                    } satisfies CoreMessageMedia
-                  }
-                }
-              }
-            }
-            if (media.type === 'photo') {
-              const apiMedia = media.apiMedia as any
-              const photoId = apiMedia?.photo?.id?.toString() ?? ''
-              const photoResult = await findPhotoByFileId(photoId)
-              if (photoResult) {
-                const photo = photoResult.unwrap()
-                if (photo.image_bytes) {
+                const sticker = (await findStickerByFileId(document.id.toString())).unwrap()
+                // 只有当数据库中有 sticker_bytes 时才直接返回
+                if (sticker && sticker.sticker_bytes) {
                   return {
                     apiMedia: media.apiMedia,
-                    byte: photo.image_bytes,
+                    byte: sticker.sticker_bytes,
                     type: media.type,
                     messageUUID: media.messageUUID,
                     path: media.path,
@@ -85,13 +65,31 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                 }
               }
             }
+
+            // FIXME: move it to storage
+            if (media.type === 'photo') {
+              const apiMedia = media.apiMedia as any
+              const photoId = apiMedia?.photo?.id?.toString() ?? ''
+              const photo = (await findPhotoByFileId(photoId)).unwrap()
+
+              if (photo && photo.image_bytes) {
+                return {
+                  apiMedia: media.apiMedia,
+                  byte: photo.image_bytes,
+                  type: media.type,
+                  messageUUID: media.messageUUID,
+                  path: media.path,
+                } satisfies CoreMessageMedia
+              }
+            }
+
             const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
 
             const mediaPath = join(userMediaPath, message.platformMessageId)
             logger.withFields({ mediaPath }).verbose('Media path')
             if (mediaFetched instanceof Buffer) {
-            // write file to disk async
-              void writeFile(mediaPath, mediaFetched)
+              // write file to disk async
+              writeFile(mediaPath, mediaFetched)
             }
 
             const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined

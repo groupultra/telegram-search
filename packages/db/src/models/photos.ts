@@ -4,26 +4,27 @@ import type { CoreMessageMedia } from '../../../core/src'
 import type { DBInsertPhoto } from './utils/photos'
 
 import { Ok } from '@tg-search/result'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 
 import { withDb } from '../drizzle'
 import { photosTable } from '../schemas/photos'
+import { must0 } from './utils/must'
 
 export type PhotoMedia = CoreMessageMedia & { photo_id: string }
 
 export async function findPhotoByFileId(fileId: string) {
-  const photo = (await withDb(db => db
+  const photos = (await withDb(db => db
     .select()
     .from(photosTable)
-    .where(eq(photosTable.file_id, fileId))
-    .limit(1),
-  )).expect('Failed to find photo by file ID')
+    .where(
+      and(
+        eq(photosTable.platform, 'telegram'),
+        eq(photosTable.file_id, fileId),
+      ),
+    ),
+  )).expect('Failed to find photos by file ID')
 
-  if (photo.length === 0) {
-    return undefined
-  }
-
-  return Ok(photo[0])
+  return Ok(must0(photos))
 }
 
 export async function recordPhotos(media: PhotoMedia[]) {
@@ -31,23 +32,29 @@ export async function recordPhotos(media: PhotoMedia[]) {
     return
   }
 
-  const filteredMedia = media.filter(media => media.byte != null && media.photo_id !== '')
-
-  const dataToInsert = filteredMedia.map(
-    media => ({
-      platform: 'telegram',
-      file_id: media.photo_id,
-      message_id: media.messageUUID,
-      image_bytes: media.byte,
-      image_path: media.path,
-      description: '',
-    } satisfies DBInsertPhoto),
-  )
+  const dataToInsert = media
+    .filter(media => media.byte != null && media.photo_id !== '')
+    .map(
+      media => ({
+        platform: 'telegram',
+        file_id: media.photo_id,
+        message_id: media.messageUUID,
+        image_bytes: media.byte,
+        image_path: media.path,
+        description: '',
+      } satisfies DBInsertPhoto),
+    )
 
   return withDb(async db => db
     .insert(photosTable)
     .values(dataToInsert)
-    .onConflictDoNothing()
+    .onConflictDoUpdate({
+      target: [photosTable.platform, photosTable.file_id],
+      set: {
+        image_bytes: sql`excluded.image_bytes`,
+        updated_at: Date.now(),
+      },
+    })
     .returning(),
   )
 }

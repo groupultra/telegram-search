@@ -8,6 +8,7 @@ import { desc, eq, sql } from 'drizzle-orm'
 import { withDb } from '../drizzle'
 import { recentSentStickersTable } from '../schemas/recent_sent_stickers'
 import { stickersTable } from '../schemas/stickers'
+import { must0 } from './utils/must'
 
 export type StickerMedia = CoreMessageMedia & { sticker_id: string, emoji?: string }
 
@@ -28,11 +29,7 @@ export async function findStickerByFileId(fileId: string) {
     .limit(1),
   )).expect('Failed to find sticker by file ID')
 
-  if (sticker.length === 0) {
-    return undefined
-  }
-
-  return Ok(sticker[0])
+  return Ok(must0(sticker))
 }
 
 export async function recordStickers(stickers: StickerMedia[]) {

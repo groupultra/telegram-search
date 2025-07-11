@@ -80,11 +80,9 @@ export async function recordMessagesWithMedia(messages: CoreMessage[]): Promise<
 
       return message.media?.filter(media => media.type === 'photo')
         .map((media) => {
-          const apiMedia = media.apiMedia as any
-          const photoId = apiMedia?.photo?.id?.toString() ?? ''
           return {
             ...media,
-            photo_id: photoId,
+            photo_id: media.platformId ?? '',
             messageUUID: dbMessage?.id as UUID,
           }
         }) || []
@@ -94,14 +92,13 @@ export async function recordMessagesWithMedia(messages: CoreMessage[]): Promise<
     .flatMap(message => message.media ?? [])
     .filter(media => media.type === 'sticker')
     .map((media) => {
-      const apiMedia = media.apiMedia as any
-      const stickerId = apiMedia?.document?.id?.toString() ?? ''
-      const emoji = apiMedia?.document?.attributes?.find((attr: any) => attr.alt)?.alt ?? ''
+      const stickerId = media.platformId ?? ''
+      // const emoji = media.apiMedia?.document?.attributes?.find((attr: any) => attr.alt)?.alt ?? ''
 
       return {
         ...media,
         sticker_id: stickerId,
-        emoji,
+        // emoji,
       }
     }) satisfies StickerMedia[]
 
