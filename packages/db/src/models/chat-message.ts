@@ -58,7 +58,7 @@ export async function recordMessages(messages: CoreMessage[]) {
   )
 }
 
-export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise<void> {
+export async function recordMessagesWithMedia(messages: CoreMessage[]): Promise<void> {
   if (messages.length === 0) {
     return
   }
