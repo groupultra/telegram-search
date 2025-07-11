@@ -16,6 +16,7 @@ export type CoreMessageMediaPhoto = CoreMessageMediaBase & {
 export type CoreMessageMediaSticker = CoreMessageMediaBase & {
   type: 'sticker'
   emoji?: string
+  tgsAnimationData?: string
 }
 
 export type CoreMessageMediaDocument = CoreMessageMediaBase & {
@@ -34,12 +35,16 @@ type CoreMessageMedia = CoreMessageMediaPhoto | CoreMessageMediaSticker | CoreMe
 
 export type CoreMessageMediaFromServer = CoreMessageMedia & {
   apiMedia?: unknown // Api.TypeMessageMedia
+  mimeType?: string
 }
 
-export type CoreMessageMediaFromCache = CoreMessageMedia & {}
+export type CoreMessageMediaFromCache = CoreMessageMedia & {
+  mimeType?: string
+}
 
 export type CoreMessageMediaFromBlob = CoreMessageMedia & {
   blobUrl?: string
+  mimeType?: string
 }
 
 export function parseMediaType(apiMedia: Api.TypeMessageMedia): CoreMessageMedia['type'] {

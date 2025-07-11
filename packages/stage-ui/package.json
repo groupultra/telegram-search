@@ -22,6 +22,7 @@
     "@tg-search/core": "workspace:^",
     "@vueuse/core": "^13.5.0",
     "defu": "^6.1.4",
+    "lottie-web": "^5.13.0",
     "ofetch": "^1.4.1",
     "pinia": "^3.0.3",
     "radix-vue": "^1.9.17",

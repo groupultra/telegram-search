@@ -23,6 +23,7 @@
     "big-integer": "^1.6.52",
     "defu": "^6.1.4",
     "eventemitter3": "^5.0.1",
+    "file-type": "^21.0.0",
     "grammy": "^1.37.0",
     "pathe": "^2.0.3",
     "telegram": "^2.26.22",

@@ -1,26 +1,28 @@
 import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
-import { getMediaMimeType } from './mime'
+import pako from 'pako'
 
 export function createMediaBlob(media: CoreMessageMediaFromBlob) {
   if (media.byte) {
     const buffer = new Uint8Array((media.byte as any).data)
 
-    const mimeType = getMediaMimeType(media.type)
-    const blob = new Blob([buffer], { type: mimeType })
-    const url = URL.createObjectURL(blob)
-    // FIXME: URL.revokeObjectURL()
-    media.blobUrl = url
+    if (media.type === 'sticker' && media.mimeType === 'application/gzip') {
+      media.tgsAnimationData = pako.inflate(buffer, { to: 'string' })
+    }
+    else {
+      const blob = new Blob([buffer], { type: media.mimeType })
+      const url = URL.createObjectURL(blob)
+      // FIXME: URL.revokeObjectURL()
+      media.blobUrl = url
 
-    // eslint-disable-next-line no-console
-    console.log('[Blob] Blob URL created:', {
-      url,
-      mimeType,
-      blobSize: blob.size,
-    })
-
-    media.byte = undefined
+      // eslint-disable-next-line no-console
+      console.log('[Blob] Blob URL created:', {
+        url,
+        blobSize: blob.size,
+      })
+    }
   }
 
+  media.byte = undefined
   return media
 }

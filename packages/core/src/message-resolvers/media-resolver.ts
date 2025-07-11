@@ -9,6 +9,7 @@ import { Buffer } from 'node:buffer'
 
 import { findPhotoByFileId, findStickerByFileId } from '@tg-search/db'
 import { useLogger } from '@tg-search/logg'
+import { fileTypeFromBuffer } from 'file-type'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
@@ -38,6 +39,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                   byte: sticker.sticker_bytes,
                   type: media.type,
                   platformId: media.platformId,
+                  mimeType: (await fileTypeFromBuffer(sticker.sticker_bytes))?.mime,
                 } satisfies CoreMessageMediaFromCache
               }
             }
@@ -52,19 +54,20 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                   byte: photo.image_bytes,
                   type: media.type,
                   platformId: media.platformId,
+                  mimeType: (await fileTypeFromBuffer(photo.image_bytes))?.mime,
                 } satisfies CoreMessageMediaFromServer
               }
             }
 
             const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
             const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
-
             return {
               messageUUID: message.uuid,
               apiMedia: media.apiMedia,
               byte,
               type: media.type,
               platformId: media.platformId,
+              mimeType: byte ? (await fileTypeFromBuffer(byte))?.mime : undefined,
             } satisfies CoreMessageMediaFromServer
           }),
         )
