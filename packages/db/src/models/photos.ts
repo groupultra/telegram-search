@@ -31,7 +31,7 @@ export async function recordPhotos(media: PhotoMedia[]) {
     return
   }
 
-  const filteredMedia = media.filter(media => media.byte != null)
+  const filteredMedia = media.filter(media => media.byte != null && media.photo_id !== '')
 
   const dataToInsert = filteredMedia.map(
     media => ({
