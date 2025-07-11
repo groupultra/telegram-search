@@ -29,26 +29,21 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
             // FIXME: move it to storage
             if (media.type === 'sticker') {
-              const document = (media.apiMedia as Api.MessageMediaDocument).document
-              if (document) {
-                const sticker = (await findStickerByFileId(document.id.toString())).unwrap()
-                // 只有当数据库中有 sticker_bytes 时才直接返回
-                if (sticker && sticker.sticker_bytes) {
-                  return {
-                    messageUUID: message.uuid,
-                    byte: sticker.sticker_bytes,
-                    type: media.type,
-                    platformId: media.platformId,
-                  } satisfies CoreMessageMediaFromCache
-                }
+              const sticker = (await findStickerByFileId(media.platformId)).unwrap()
+              // 只有当数据库中有 sticker_bytes 时才直接返回
+              if (sticker && sticker.sticker_bytes) {
+                return {
+                  messageUUID: message.uuid,
+                  byte: sticker.sticker_bytes,
+                  type: media.type,
+                  platformId: media.platformId,
+                } satisfies CoreMessageMediaFromCache
               }
             }
 
             // FIXME: move it to storage
             if (media.type === 'photo') {
-              const apiMedia = media.apiMedia as any
-              const photoId = apiMedia?.photo?.id?.toString() ?? ''
-              const photo = (await findPhotoByFileId(photoId)).unwrap()
+              const photo = (await findPhotoByFileId(media.platformId)).unwrap()
 
               if (photo && photo.image_bytes) {
                 return {
