@@ -79,10 +79,15 @@ export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise
       useLogger().withFields({ dbMessageId: dbMessage?.id }).debug('DB message ID')
 
       return message.media?.filter(media => media.type === 'photo')
-        .map(media => ({
-          ...media,
-          messageUUID: dbMessage?.id as UUID,
-        })) || []
+        .map((media) => {
+          const apiMedia = media.apiMedia as any
+          const photoId = apiMedia?.photo?.id?.toString() ?? ''
+          return {
+            ...media,
+            photo_id: photoId,
+            messageUUID: dbMessage?.id as UUID,
+          }
+        }) || []
     }) satisfies CoreMessageMedia[]
 
   const allStickerMedia = messages

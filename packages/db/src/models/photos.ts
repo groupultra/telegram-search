@@ -31,7 +31,9 @@ export async function recordPhotos(media: PhotoMedia[]) {
     return
   }
 
-  const dataToInsert = media.map(
+  const filteredMedia = media.filter(media => media.byte != null)
+
+  const dataToInsert = filteredMedia.map(
     media => ({
       platform: 'telegram',
       file_id: media.photo_id,
