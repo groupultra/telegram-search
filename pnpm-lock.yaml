@@ -41,7 +41,7 @@ importers:
         specifier: 'catalog:'
         version: 1.0.1(@unocss/eslint-plugin@66.3.3(eslint@9.31.0(jiti@2.4.2))(typescript@5.8.3))(@vue/compiler-sfc@3.5.17)(eslint@9.31.0(jiti@2.4.2))(typescript@5.8.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.0.13)(jiti@2.4.2)(lightningcss@1.30.1)(tsx@4.20.3)(yaml@2.8.0))
       '@types/node':
-        specifier: ^24.0.12
+        specifier: ^24.0.13
         version: 24.0.13
       bumpp:
         specifier: ^10.2.0
@@ -56,7 +56,7 @@ importers:
         specifier: ^0.31.4
         version: 0.31.4
       eslint:
-        specifier: ^9.30.1
+        specifier: ^9.31.0
         version: 9.31.0(jiti@2.4.2)
       tailwind-merge:
         specifier: ^3.3.1
@@ -107,7 +107,7 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       '@tanstack/vue-query':
-        specifier: ^5.81.5
+        specifier: ^5.83.0
         version: 5.83.0(vue@3.5.17(typescript@5.8.3))
       '@tanstack/vue-table':
         specifier: ^8.21.3
@@ -171,7 +171,7 @@ importers:
         specifier: ^1.0.1
         version: 1.0.1(@types/node@24.0.13)
       '@iconify-json/lucide':
-        specifier: ^1.2.56
+        specifier: ^1.2.57
         version: 1.2.57
       '@rollup/plugin-alias':
         specifier: ^5.1.1
@@ -186,7 +186,7 @@ importers:
         specifier: ^3.0.0-beta.15
         version: 3.0.0-beta.15(typescript@5.8.3)(vue-tsc@3.0.1(typescript@5.8.3))(vue@3.5.17(typescript@5.8.3))
       electron:
-        specifier: ^37.2.0
+        specifier: ^37.2.1
         version: 37.2.1
       electron-builder:
         specifier: ^26.0.12
@@ -225,13 +225,13 @@ importers:
         specifier: ^0.8.2
         version: 0.8.2
       '@iconify-json/lucide':
-        specifier: ^1.2.56
+        specifier: ^1.2.57
         version: 1.2.57
       '@iconify/vue':
         specifier: ^5.0.0
         version: 5.0.0(vue@3.5.17(typescript@5.8.3))
       '@tanstack/vue-query':
-        specifier: ^5.81.5
+        specifier: ^5.83.0
         version: 5.83.0(vue@3.5.17(typescript@5.8.3))
       '@tanstack/vue-table':
         specifier: ^8.21.3
@@ -513,13 +513,13 @@ importers:
         specifier: ^0.8.2
         version: 0.8.2
       '@iconify-json/lucide':
-        specifier: ^1.2.56
+        specifier: ^1.2.57
         version: 1.2.57
       '@iconify/vue':
         specifier: ^5.0.0
         version: 5.0.0(vue@3.5.17(typescript@5.8.3))
       '@tanstack/vue-query':
-        specifier: ^5.81.5
+        specifier: ^5.83.0
         version: 5.83.0(vue@3.5.17(typescript@5.8.3))
       '@tanstack/vue-table':
         specifier: ^8.21.3

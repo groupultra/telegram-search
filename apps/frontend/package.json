@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.8.2",
-    "@iconify-json/lucide": "^1.2.56",
+    "@iconify-json/lucide": "^1.2.57",
     "@iconify/vue": "^5.0.0",
-    "@tanstack/vue-query": "^5.81.5",
+    "@tanstack/vue-query": "^5.83.0",
     "@tanstack/vue-table": "^8.21.3",
     "@tg-search/client": "workspace:^",
     "@tg-search/core": "workspace:^",
