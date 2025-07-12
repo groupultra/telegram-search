@@ -15,7 +15,7 @@
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "@tg-search/db": "workspace:*",
-    "@tg-search/logg": "workspace:*",
+    "@tg-search/logg": "catalog:",
     "crossws": "0.3.5",
     "es-toolkit": "^1.39.7",
     "h3": "^1.15.3",
