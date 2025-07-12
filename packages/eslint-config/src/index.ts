@@ -3,6 +3,8 @@ import type { OptionsConfig, TypedFlatConfigItem } from '@antfu/eslint-config'
 import antfu from '@antfu/eslint-config'
 
 export default function (config: OptionsConfig & Omit<TypedFlatConfigItem, 'files'>) {
+  const { rules, ...rest } = config
+
   return antfu({
     rules: {
       'import/order': 'off',
@@ -27,7 +29,8 @@ export default function (config: OptionsConfig & Omit<TypedFlatConfigItem, 'file
           newlinesBetween: 'always',
         },
       ],
+      ...rules,
     },
-    ...config,
+    ...rest,
   })
 }

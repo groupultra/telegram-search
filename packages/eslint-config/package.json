@@ -1,7 +1,7 @@
 {
   "name": "@tg-search/eslint-config",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "exports": {
     ".": "./dist/index.mjs"
   },
