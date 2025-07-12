@@ -24,8 +24,8 @@
     "postinstall": "pnpm build:packages"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.16.2",
     "@proj-airi/unocss-preset-chromatic": "^1.0.0",
+    "@tg-search/eslint-config": "workspace:*",
     "@types/node": "^24.0.12",
     "bumpp": "^10.2.0",
     "class-variance-authority": "^0.7.1",
