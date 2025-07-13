@@ -3,7 +3,9 @@ import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 import pako from 'pako'
 
 export function createMediaBlob(media: CoreMessageMediaFromBlob) {
-  if (media.byte) {
+  // when media.type is 'webpage'
+  // media.byte (preview image) might be an empty buffer
+  if (media.byte && (media.byte as any).data?.length) {
     const buffer = new Uint8Array((media.byte as any).data)
 
     if (media.type === 'sticker' && media.mimeType === 'application/gzip') {

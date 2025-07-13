@@ -41,10 +41,6 @@ export interface ProcessedMedia {
 const processedMedia = computed<ProcessedMedia>(() => {
   if (isMedia.value) {
     for (const mediaItem of props.message.media!) {
-      const isTgsAnimation = mediaItem.type === 'sticker' && mediaItem.mimeType === 'application/gzip'
-      if ((!isTgsAnimation && !mediaItem.blobUrl) || (isTgsAnimation && !mediaItem.tgsAnimationData))
-        continue
-
       switch (mediaItem.type) {
         case 'webpage': {
           // TODO: add webpage to core media
