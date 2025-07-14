@@ -2,32 +2,17 @@ import type { Api } from 'telegram'
 
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
-import type { CoreMessage, CoreMessageMedia } from '../utils/message'
+import type { CoreMessageMediaFromCache, CoreMessageMediaFromServer } from '../utils/media'
+import type { CoreMessage } from '../utils/message'
 
 import { Buffer } from 'node:buffer'
-import { existsSync, mkdirSync } from 'node:fs'
-import { writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
 
-import { getMediaPath, useConfig } from '@tg-search/common/node'
-import { findStickerByFileId } from '@tg-search/db'
+import { findPhotoByFileId, findStickerByFileId } from '@tg-search/db'
 import { useLogger } from '@tg-search/logg'
+import { fileTypeFromBuffer } from 'file-type'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
-  const { getClient } = ctx
-
-  const mediaPath = getMediaPath(useConfig().path.storage)
-
-  async function useUserMediaPath() {
-    const userId = (await getClient().getMe()).id.toString()
-    const userMediaPath = join(mediaPath, userId)
-    if (!existsSync(userMediaPath)) {
-      mkdirSync(userMediaPath, { recursive: true })
-    }
-
-    return userMediaPath
-  }
 
   return {
     async* stream(opts: MessageResolverOpts) {
@@ -43,49 +28,47 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           message.media.map(async (media) => {
             logger.withFields({ media }).debug('Media')
 
-            // TODO: move it to storage
-            const userMediaPath = join(await useUserMediaPath(), message.chatId.toString())
-            if (!existsSync(userMediaPath)) {
-              mkdirSync(userMediaPath, { recursive: true })
-            }
-
+            // FIXME: move it to storage
             if (media.type === 'sticker') {
-              const document = (media.apiMedia as Api.MessageMediaDocument).document
-              if (document) {
-                const stickerResult = await findStickerByFileId(document.id.toString())
-                if (stickerResult) {
-                  const sticker = stickerResult.unwrap()
-                  // 只有当数据库中有 sticker_bytes 时才直接返回
-                  if (sticker.sticker_bytes) {
-                    return {
-                      apiMedia: media.apiMedia,
-                      byte: sticker.sticker_bytes,
-                      type: media.type,
-                      messageUUID: media.messageUUID,
-                      path: media.path,
-                    } satisfies CoreMessageMedia
-                  }
-                }
+              const sticker = (await findStickerByFileId(media.platformId)).unwrap()
+
+              // 只有当数据库中有 sticker_bytes 时才直接返回
+              if (sticker && sticker.sticker_bytes) {
+                return {
+                  messageUUID: message.uuid,
+                  byte: sticker.sticker_bytes,
+                  type: media.type,
+                  platformId: media.platformId,
+                  mimeType: (await fileTypeFromBuffer(sticker.sticker_bytes))?.mime,
+                } satisfies CoreMessageMediaFromCache
               }
             }
-            const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
 
-            const mediaPath = join(userMediaPath, message.platformMessageId)
-            logger.withFields({ mediaPath }).verbose('Media path')
-            if (mediaFetched instanceof Buffer) {
-            // write file to disk async
-              void writeFile(mediaPath, mediaFetched)
+            // FIXME: move it to storage
+            if (media.type === 'photo') {
+              const photo = (await findPhotoByFileId(media.platformId)).unwrap()
+
+              if (photo && photo.image_bytes) {
+                return {
+                  messageUUID: message.uuid,
+                  byte: photo.image_bytes,
+                  type: media.type,
+                  platformId: media.platformId,
+                  mimeType: (await fileTypeFromBuffer(photo.image_bytes))?.mime,
+                } satisfies CoreMessageMediaFromServer
+              }
             }
 
+            const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
             const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
-
             return {
+              messageUUID: message.uuid,
               apiMedia: media.apiMedia,
               byte,
               type: media.type,
-              messageUUID: media.messageUUID,
-              path: mediaPath,
-            } satisfies CoreMessageMedia
+              platformId: media.platformId,
+              mimeType: byte ? (await fileTypeFromBuffer(byte))?.mime : undefined,
+            } satisfies CoreMessageMediaFromServer
           }),
         )
 

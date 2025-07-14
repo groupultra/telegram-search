@@ -1,6 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/stickers.ts
 
-import type { CoreMessageMedia } from '../../../core/src'
+import type { CoreMessageMediaSticker } from '../../../core/src'
 
 import { Ok } from '@tg-search/result'
 import { desc, eq, sql } from 'drizzle-orm'
@@ -8,8 +8,7 @@ import { desc, eq, sql } from 'drizzle-orm'
 import { withDb } from '../drizzle'
 import { recentSentStickersTable } from '../schemas/recent_sent_stickers'
 import { stickersTable } from '../schemas/stickers'
-
-export type StickerMedia = CoreMessageMedia & { sticker_id: string, emoji?: string }
+import { must0 } from './utils/must'
 
 export async function findStickerDescription(fileId: string) {
   const sticker = (await findStickerByFileId(fileId))?.unwrap()
@@ -28,42 +27,35 @@ export async function findStickerByFileId(fileId: string) {
     .limit(1),
   )).expect('Failed to find sticker by file ID')
 
-  if (sticker.length === 0) {
-    return undefined
-  }
-
-  return Ok(sticker[0])
+  return Ok(must0(sticker))
 }
 
-export async function recordStickers(stickers: StickerMedia[]) {
+export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
   if (stickers.length === 0) {
-    return []
+    return
   }
 
   // 对贴纸数组进行去重，以 file_id 为唯一标识
   const uniqueStickers = stickers.filter((sticker, index, self) =>
-    index === self.findIndex(s => s.sticker_id === sticker.sticker_id),
+    index === self.findIndex(s => s.platformId === sticker.platformId),
   )
 
-  const filteredStickers = uniqueStickers.filter(sticker => sticker.byte != null)
+  const dataToInsert = uniqueStickers
+    .filter(sticker => sticker.byte != null)
+    .map(sticker => ({
+      platform: 'telegram',
+      file_id: sticker.platformId ?? '',
+      sticker_bytes: sticker.byte,
+    // TODO: Emoji
+    }))
 
   return withDb(async db => db
     .insert(stickersTable)
-    .values(filteredStickers.map(sticker => ({
-      platform: 'telegram',
-      file_id: sticker.sticker_id,
-      sticker_bytes: sticker.byte,
-      sticker_path: '',
-      description: '',
-      name: '',
-      emoji: sticker.emoji ?? '',
-      label: '',
-    })))
+    .values(dataToInsert)
     .onConflictDoUpdate({
-      target: [stickersTable.file_id],
+      target: [stickersTable.platform, stickersTable.file_id],
       set: {
-        sticker_bytes: sql`EXCLUDED.sticker_bytes`,
-        emoji: sql`EXCLUDED.emoji`,
+        sticker_bytes: sql`excluded.sticker_bytes`,
         updated_at: Date.now(),
       },
     })

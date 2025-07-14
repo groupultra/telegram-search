@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import type { CoreMessage, CoreMessageMediaTypes } from '@tg-search/core/types'
+import type { CoreMessageMediaFromBlob } from '@tg-search/core'
+import type { CoreMessage } from '@tg-search/core/types'
+import type { AnimationItem } from 'lottie-web'
 
-import { computed, ref } from 'vue'
+import lottie from 'lottie-web'
+import { computed, onUnmounted, ref, watch } from 'vue'
 
 import MediaWebpage from './MediaWebpage.vue'
 
 const props = defineProps<{
-  message: CoreMessage
+  message: CoreMessage & {
+    media?: CoreMessageMediaFromBlob[]
+  }
 }>()
 
 const runtimeError = ref<string>()
@@ -26,17 +31,16 @@ export interface WebpageData {
 
 export interface ProcessedMedia {
   src: string | undefined
-  type: CoreMessageMediaTypes
+  type: CoreMessageMediaFromBlob['type']
   error?: string
   webpageData?: WebpageData
+  mimeType?: string
+  tgsAnimationData?: string
 }
 
 const processedMedia = computed<ProcessedMedia>(() => {
   if (isMedia.value) {
     for (const mediaItem of props.message.media!) {
-      if (!mediaItem.blobUrl)
-        continue
-
       switch (mediaItem.type) {
         case 'webpage': {
           // TODO: add webpage to core media
@@ -61,6 +65,8 @@ const processedMedia = computed<ProcessedMedia>(() => {
           return {
             src: mediaItem.blobUrl,
             type: mediaItem.type,
+            mimeType: mediaItem.mimeType,
+            tgsAnimationData: mediaItem.type === 'sticker' ? mediaItem.tgsAnimationData : undefined,
           } satisfies ProcessedMedia
       }
     }
@@ -73,11 +79,47 @@ const processedMedia = computed<ProcessedMedia>(() => {
 })
 
 const isLoading = computed(() => {
-  return !processedMedia.value.src && isMedia.value
+  return !processedMedia.value.src && !processedMedia.value.tgsAnimationData && isMedia.value
 })
 
 const finalError = computed(() => {
   return processedMedia.value.error || runtimeError.value
+})
+
+let animation: AnimationItem | null = null
+const tgsContainer = ref<HTMLElement | null>(null)
+
+watch(processedMedia, (newMedia) => {
+  if (animation) {
+    animation.destroy()
+    animation = null
+  }
+
+  if (
+    newMedia.type === 'sticker'
+    && newMedia.mimeType === 'application/gzip'
+    && newMedia.tgsAnimationData
+    && tgsContainer.value
+  ) {
+    try {
+      animation = lottie.loadAnimation({
+        container: tgsContainer.value,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        animationData: JSON.parse(newMedia.tgsAnimationData),
+      })
+    }
+    catch (e) {
+      console.error('Failed to parse Lottie animation data', e)
+      runtimeError.value = 'Sticker failed to load'
+    }
+  }
+}, { flush: 'post' })
+
+onUnmounted(() => {
+  if (animation)
+    animation.destroy()
 })
 </script>
 
@@ -98,28 +140,27 @@ const finalError = computed(() => {
   </div>
 
   <!-- Media content -->
-  <div v-if="processedMedia.src">
+  <div v-if="processedMedia.src || processedMedia.tgsAnimationData">
     <MediaWebpage
-      v-if="processedMedia.type === 'webpage'"
-      v-model:runtime-error="runtimeError"
+      v-if="processedMedia.type === 'webpage'" v-model:runtime-error="runtimeError"
       :processed-media="processedMedia"
     />
 
     <img
-      v-if="processedMedia.type === 'photo'"
-      :src="processedMedia.src"
-      class="h-auto max-w-xs rounded-lg"
-      alt="Media content"
+      v-else-if="processedMedia.mimeType?.startsWith('image/')"
+      :src="processedMedia.src" class="h-auto max-w-xs rounded-lg" alt="Media content"
       @error="runtimeError = 'Image failed to load'"
     >
 
     <video
-      v-else-if="processedMedia.type === 'sticker'"
-      :src="processedMedia.src"
-      class="h-auto max-w-[12rem] rounded-lg"
-      alt="Media content"
-      autoplay loop muted playsinline
+      v-else-if="processedMedia.mimeType?.startsWith('video/')" :src="processedMedia.src"
+      class="h-auto max-w-[12rem] rounded-lg" alt="Media content" autoplay loop muted playsinline
       @error="runtimeError = 'Sticker failed to load'"
+    />
+
+    <div
+      v-else-if="processedMedia.mimeType === 'application/gzip'" ref="tgsContainer"
+      class="h-auto max-w-[12rem] rounded-lg"
     />
   </div>
 </template>

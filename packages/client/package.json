@@ -17,12 +17,14 @@
     "culori": "^4.0.2",
     "defu": "^6.1.4",
     "ofetch": "^1.4.1",
+    "pako": "^2.1.0",
     "pinia": "^3.0.3",
     "uuid": "^11.1.0",
     "vue": "^3.5.17",
     "vue-sonner": "^2.0.1"
   },
   "devDependencies": {
-    "@types/culori": "^4.0.0"
+    "@types/culori": "^4.0.0",
+    "@types/pako": "^2.0.3"
   }
 }

@@ -3,8 +3,7 @@ import type { UUID } from 'node:crypto'
 
 import type { CorePagination } from '@tg-search/common/utils/pagination'
 
-import type { CoreMessage, CoreMessageMedia } from '../../../core/src'
-import type { StickerMedia } from './stickers'
+import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../../../core/src'
 import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@tg-search/logg'
@@ -58,7 +57,7 @@ export async function recordMessages(messages: CoreMessage[]) {
   )
 }
 
-export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise<void> {
+export async function recordMessagesWithMedia(messages: CoreMessage[]): Promise<void> {
   if (messages.length === 0) {
     return
   }
@@ -79,32 +78,28 @@ export async function recordMessagesWithPhotos(messages: CoreMessage[]): Promise
       useLogger().withFields({ dbMessageId: dbMessage?.id }).debug('DB message ID')
 
       return message.media?.filter(media => media.type === 'photo')
-        .map(media => ({
-          ...media,
-          messageUUID: dbMessage?.id as UUID,
-        })) || []
-    }) satisfies CoreMessageMedia[]
+        .map((media) => {
+          return {
+            ...media,
+            messageUUID: dbMessage?.id as UUID,
+          }
+        }) || []
+    }) satisfies CoreMessageMediaPhoto[]
 
   const allStickerMedia = messages
     .flatMap(message => message.media ?? [])
     .filter(media => media.type === 'sticker')
     .map((media) => {
-      const apiMedia = media.apiMedia as any
-      const stickerId = apiMedia?.document?.id?.toString() ?? ''
-      const emoji = apiMedia?.document?.attributes?.find((attr: any) => attr.alt)?.alt ?? ''
+      // const emoji = media.apiMedia?.document?.attributes?.find((attr: any) => attr.alt)?.alt ?? ''
 
-      return {
-        ...media,
-        sticker_id: stickerId,
-        emoji,
-      }
-    }) satisfies StickerMedia[]
+      return media
+    }) satisfies CoreMessageMediaSticker[]
 
   if (allPhotoMedia.length > 0) {
-    await recordPhotos(allPhotoMedia)
+    (await recordPhotos(allPhotoMedia))?.expect('Failed to record photos')
   }
   if (allStickerMedia.length > 0) {
-    await recordStickers(allStickerMedia)
+    (await recordStickers(allStickerMedia))?.expect('Failed to record stickers')
   }
 }
 

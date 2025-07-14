@@ -1,7 +1,7 @@
 {
   "name": "telegram-search",
   "type": "module",
-  "version": "1.0.0-beta.18",
+  "version": "1.0.0-beta.19",
   "private": true,
   "packageManager": "pnpm@10.13.1",
   "engines": {
@@ -24,14 +24,14 @@
     "postinstall": "pnpm build:packages"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.16.2",
     "@proj-airi/unocss-preset-chromatic": "^1.0.0",
-    "@types/node": "^24.0.12",
+    "@tg-search/eslint-config": "catalog:",
+    "@types/node": "^24.0.13",
     "bumpp": "^10.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-kit": "^0.31.4",
-    "eslint": "^9.30.1",
+    "eslint": "^9.31.0",
     "tailwind-merge": "^3.3.1",
     "taze": "^19.1.0",
     "tsx": "^4.20.3",

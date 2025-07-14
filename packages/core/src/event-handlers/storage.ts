@@ -3,7 +3,7 @@ import type { DBRetrievalMessages } from '@tg-search/db'
 import type { CoreContext } from '../context'
 import type { CoreDialog } from '../services'
 
-import { convertToCoreRetrievalMessages, fetchChats, fetchMessagesWithPhotos, getChatMessagesStats, recordChats, recordMessagesWithPhotos, retrieveMessages } from '@tg-search/db'
+import { convertToCoreRetrievalMessages, fetchChats, fetchMessagesWithPhotos, getChatMessagesStats, recordChats, recordMessagesWithMedia, retrieveMessages } from '@tg-search/db'
 import { useLogger } from '@tg-search/logg'
 
 import { embedContents } from '../utils/embed'
@@ -31,7 +31,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
           },
         })),
     ).debug('Recording messages')
-    await recordMessagesWithPhotos(messages)
+    await recordMessagesWithMedia(messages)
   })
 
   emitter.on('storage:fetch:dialogs', async () => {

@@ -1,30 +1,34 @@
-import type { CoreMessageMedia } from '@tg-search/core'
+import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
-import { getMediaMimeType } from './mime'
+import pako from 'pako'
 
-export function createMediaBlob(media: CoreMessageMedia) {
-  if (media.byte) {
+export function createMediaBlob(media: CoreMessageMediaFromBlob) {
+  // when media.type is 'webpage'
+  // media.byte (preview image) might be an empty buffer
+  if (media.byte && (media.byte as any).data?.length) {
     const buffer = new Uint8Array((media.byte as any).data)
 
-    const mimeType = getMediaMimeType(media.type)
-    const blob = new Blob([buffer], { type: mimeType })
-    const url = URL.createObjectURL(blob)
-    media.blobUrl = url
+    if (media.type === 'sticker' && media.mimeType === 'application/gzip') {
+      media.tgsAnimationData = pako.inflate(buffer, { to: 'string' })
+    }
+    else {
+      const blob = new Blob([buffer], { type: media.mimeType })
+      const url = URL.createObjectURL(blob)
+      media.blobUrl = url
 
-    // eslint-disable-next-line no-console
-    console.log('[Blob] Blob URL created:', {
-      url,
-      mimeType,
-      blobSize: blob.size,
-    })
-
-    media.byte = undefined
+      // eslint-disable-next-line no-console
+      console.log('[Blob] Blob URL created:', {
+        url,
+        blobSize: blob.size,
+      })
+    }
   }
 
+  media.byte = undefined
   return media
 }
 
-export function cleanupMediaBlob(media: CoreMessageMedia): void {
+export function cleanupMediaBlob(media: CoreMessageMediaFromBlob): void {
   if (media.blobUrl) {
     URL.revokeObjectURL(media.blobUrl)
 
@@ -35,6 +39,6 @@ export function cleanupMediaBlob(media: CoreMessageMedia): void {
   }
 }
 
-export function cleanupMediaBlobs(mediaArray: CoreMessageMedia[]): void {
+export function cleanupMediaBlobs(mediaArray: CoreMessageMediaFromBlob[]): void {
   mediaArray.forEach(cleanupMediaBlob)
 }
