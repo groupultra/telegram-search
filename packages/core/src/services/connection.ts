@@ -22,6 +22,7 @@ export interface ConnectionEventFromCore {
   'auth:code:needed': () => void
   'auth:password:needed': () => void
   'auth:connected': () => void
+  'auth:error': (data: { error: unknown }) => void
 }
 
 export type ConnectionEvent = ConnectionEventFromCore & ConnectionEventToCore
@@ -128,6 +129,7 @@ export function createConnectionService(ctx: CoreContext) {
               return password
             },
             onError: (err: Error) => {
+              emitter.emit('auth:error', { error: err })
               withError(err, 'Failed to sign in to Telegram')
             },
           })
@@ -149,6 +151,7 @@ export function createConnectionService(ctx: CoreContext) {
         return Ok(client)
       }
       catch (error) {
+        emitter.emit('auth:error', { error })
         return Err(withError(error, 'Failed to connect to Telegram'))
       }
     }

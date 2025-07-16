@@ -18,6 +18,7 @@ export const useAuthStore = defineStore('session', () => {
   const authStatus = ref({
     needCode: false,
     needPassword: false,
+    isLoading: false,
   })
 
   const activeSessionComputed = computed(() => websocketStore.getActiveSession())
