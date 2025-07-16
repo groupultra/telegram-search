@@ -8,9 +8,9 @@ catalog:
   '@tg-search/eslint-config': ^1.0.1
   '@tg-search/logg': ^1.0.0-beta.18
   '@tg-search/result': ^1.0.0-beta.18
-  '@xsai-ext/providers-cloud': ^0.3.0-beta.8
-  '@xsai-ext/providers-local': ^0.3.0-beta.8
-  '@xsai/embed': ^0.3.0-beta.8
+  '@xsai-ext/providers-cloud': ^0.3.1
+  '@xsai-ext/providers-local': ^0.3.1
+  '@xsai/embed': ^0.3.1
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - better-sqlite3

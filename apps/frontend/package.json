@@ -27,7 +27,7 @@
     "reka-ui": "^2.3.2",
     "uuid": "^11.1.0",
     "vue": "^3.5.17",
-    "vue-i18n": "^11.1.9",
+    "vue-i18n": "^11.1.10",
     "vue-router": "^4.5.1",
     "vue-sonner": "^2.0.1"
   },
@@ -36,7 +36,7 @@
     "@unocss/eslint-plugin": "^66.3.3",
     "@unocss/reset": "^66.3.3",
     "@vitejs/plugin-vue": "^6.0.0",
-    "@vue-macros/volar": "^3.0.0-beta.15",
+    "@vue-macros/volar": "^3.0.0-beta.16",
     "unocss": "^66.3.3",
     "unplugin-vue-macros": "^2.14.5",
     "unplugin-vue-router": "^0.14.0",
