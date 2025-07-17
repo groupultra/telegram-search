@@ -45,7 +45,7 @@ function copyMessageLink(message: CoreMessage) {
         <div class="truncate text-sm text-primary-900 font-semibold dark:text-gray-100">
           {{ item.fromName }}
         </div>
-        <div class="break-words text-sm text-complementary-500 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
+        <div class="whitespace-pre-wrap break-words text-sm text-complementary-500 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
       </div>
       <div
         v-if="hoveredMessage === item"
