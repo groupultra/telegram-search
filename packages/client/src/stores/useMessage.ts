@@ -3,7 +3,6 @@ import type { CoreMessage } from '@tg-search/core'
 
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { toast } from 'vue-sonner'
 
 import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
@@ -57,37 +56,22 @@ export const useMessageStore = defineStore('message', () => {
     const isLoading = ref(false)
 
     function fetchMessages(pagination: CorePagination) {
-      toast.promise(async () => {
-        isLoading.value = true
+      isLoading.value = true
 
-        // First, fetch the messages from database
-        if (useSettingsStore().useCachedMessage) {
-          toast.promise(async () => {
-            websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
-          }, {
-            loading: 'Fetching messages from server...',
-          })
-        }
+      // First, fetch the messages from database
+      if (useSettingsStore().useCachedMessage) {
+        websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
+      }
 
-        // Then, fetch the messages from server & update the cache
-        toast.promise(async () => {
-          websocketStore.sendEvent('message:fetch', { chatId, pagination })
-        }, {
-          loading: 'Fetching messages from server...',
-        })
+      // FIXME: Then, fetch the messages from server & update the cache
+      // websocketStore.sendEvent('message:fetch', { chatId, pagination })
 
-        // Trigger isLoading to false
-        await Promise.race([
-          websocketStore.waitForEvent('message:data'),
-          websocketStore.waitForEvent('storage:messages'),
-        ])
-      }, {
-        loading: 'Loading messages from database...',
-        success: 'Messages loaded',
-        error: 'Error loading messages',
-        finally() {
-          isLoading.value = false
-        },
+      // Trigger isLoading to false
+      Promise.race([
+        websocketStore.waitForEvent('message:data'),
+        websocketStore.waitForEvent('storage:messages'),
+      ]).then(() => {
+        isLoading.value = false
       })
     }
 

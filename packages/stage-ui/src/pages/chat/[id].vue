@@ -94,6 +94,8 @@ function sendMessage() {
 }
 
 const isGlobalSearchOpen = ref(false)
+
+// TODO: virtual list
 </script>
 
 <template>
