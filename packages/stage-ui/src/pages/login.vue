@@ -16,15 +16,15 @@ const websocketStore = useWebsocketStore()
 const { isLoggedIn } = storeToRefs(authStore)
 
 const state = ref({
-  isLoading: false,
-  isConnected: false,
   currentStep: 'phone' as LoginStep,
   showAdvancedSettings: false,
-
   phoneNumber: websocketStore.getActiveSession()?.phoneNumber ?? '',
   verificationCode: '',
   twoFactorPassword: '',
 })
+authStore.auth.needCode = false
+authStore.auth.needPassword = false
+authStore.auth.isLoading = false
 
 const {
   login,
@@ -33,13 +33,24 @@ const {
 } = authStore.handleAuth()
 
 watch(() => authStore.auth.needCode, (value) => {
-  if (value)
+  if (value) {
+    authStore.auth.isLoading = false
     state.value.currentStep = 'code'
+  }
 })
 
 watch(() => authStore.auth.needPassword, (value) => {
-  if (value)
+  if (value) {
+    authStore.auth.isLoading = false
     state.value.currentStep = 'password'
+  }
+})
+
+watch(isLoggedIn, (value) => {
+  if (value) {
+    authStore.auth.isLoading = false
+    state.value.currentStep = 'complete'
+  }
 })
 
 const steps = [
@@ -54,14 +65,8 @@ function redirectRoot() {
   router.push('/')
 }
 
-watch(isLoggedIn, (value) => {
-  if (value) {
-    redirectRoot()
-  }
-})
-
 async function handleLogin() {
-  state.value.isLoading = true
+  authStore.auth.isLoading = true
 
   try {
     switch (state.value.currentStep) {
@@ -73,15 +78,11 @@ async function handleLogin() {
         break
       case 'password':
         submitPassword(state.value.twoFactorPassword)
-        state.value.currentStep = 'complete'
         break
     }
   }
   catch (error) {
     toast.error(error instanceof Error ? error.message : String(error))
-  }
-  finally {
-    state.value.isLoading = false
   }
 }
 </script>
@@ -106,17 +107,18 @@ async function handleLogin() {
             v-model="state.phoneNumber"
             type="tel"
             placeholder="+86 123 4567 8901"
-            class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl text-primary-900 transition dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
+            class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl text-primary-900 transition disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
             required
+            :disabled="authStore.auth.isLoading"
           >
         </div>
         <button
           type="submit"
-          class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-white font-bold transition hover:bg-primary/90"
-          :disabled="state.isLoading"
+          class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-white font-bold transition disabled:cursor-not-allowed disabled:bg-gray-300 hover:bg-primary/90 dark:disabled:bg-gray-700"
+          :disabled="authStore.auth.isLoading"
         >
-          <span v-if="state.isLoading" class="mr-2 animate-spin" />
-          {{ state.isLoading ? '处理中...' : '登录' }}
+          <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
+          {{ authStore.auth.isLoading ? '处理中...' : '登录' }}
         </button>
       </form>
 
@@ -129,8 +131,9 @@ async function handleLogin() {
             v-model="state.verificationCode"
             type="text"
             placeholder="请输入 Telegram 发送的验证码"
-            class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl text-primary-900 transition dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
+            class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl text-primary-900 transition disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
             required
+            :disabled="authStore.auth.isLoading"
           >
           <p class="mt-2 text-sm text-complementary-600 dark:text-gray-400">
             请检查您的 Telegram 应用或短信
@@ -138,11 +141,11 @@ async function handleLogin() {
         </div>
         <button
           type="submit"
-          class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-white font-bold transition hover:bg-primary/90"
-          :disabled="state.isLoading"
+          class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-white font-bold transition disabled:cursor-not-allowed disabled:bg-gray-300 hover:bg-primary/90 dark:disabled:bg-gray-700"
+          :disabled="authStore.auth.isLoading"
         >
-          <span v-if="state.isLoading" class="mr-2 animate-spin" />
-          {{ state.isLoading ? '处理中...' : '验证' }}
+          <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
+          {{ authStore.auth.isLoading ? '处理中...' : '验证' }}
         </button>
       </form>
 
@@ -155,17 +158,18 @@ async function handleLogin() {
             v-model="state.twoFactorPassword"
             type="password"
             placeholder="请输入您的两步验证密码"
-            class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl text-primary-900 transition dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
+            class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl text-primary-900 transition disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
             required
+            :disabled="authStore.auth.isLoading"
           >
         </div>
         <button
           type="submit"
-          class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-white font-bold transition hover:bg-primary/90"
-          :disabled="state.isLoading"
+          class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-white font-bold transition disabled:cursor-not-allowed disabled:bg-gray-300 hover:bg-primary/90 dark:disabled:bg-gray-700"
+          :disabled="authStore.auth.isLoading"
         >
-          <span v-if="state.isLoading" class="mr-2 animate-spin" />
-          {{ state.isLoading ? '处理中...' : '登录' }}
+          <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
+          {{ authStore.auth.isLoading ? '处理中...' : '登录' }}
         </button>
       </form>
 
@@ -182,7 +186,7 @@ async function handleLogin() {
         </p>
         <button
           class="mt-6 w-full rounded-xl bg-primary py-4 text-lg text-white font-bold transition hover:bg-primary/90"
-          @click="$router.push('/')"
+          @click="redirectRoot"
         >
           进入主页
         </button>
