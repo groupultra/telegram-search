@@ -109,6 +109,10 @@ const isGlobalSearchOpen = ref(false)
 
 <template>
   <div class="relative h-full flex flex-col">
+    <div class="absolute h-10 w-full flex items-center justify-center text-sm text-gray-500">
+      {{ messagesMap.size }} messages
+      {{ sortedChatMessageIds[0] }} - {{ sortedChatMessageIds[sortedChatMessageIds.length - 1] }}
+    </div>
     <!-- Chat Header -->
     <div class="flex items-center justify-between border-b p-4 dark:border-gray-700">
       <h2 class="text-xl text-gray-900 font-semibold dark:text-gray-100">

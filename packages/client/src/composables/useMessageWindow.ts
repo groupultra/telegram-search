@@ -2,13 +2,6 @@ import type { CoreMessage } from '@tg-search/core'
 
 import { cleanupMediaBlobs } from '../utils/blob'
 
-export interface WindowInfo {
-  size: number
-  range: [number, number]
-  lastAccess: number
-  blobCount: number
-}
-
 export class MessageWindow {
   messages: Map<string, CoreMessage> = new Map()
   minId: number = Infinity
@@ -123,23 +116,5 @@ export class MessageWindow {
     this.lastAccessTime = Date.now()
 
     console.warn('[MessageWindow] All messages and blob URLs cleared')
-  }
-
-  // Get debug info
-  getDebugInfo(): WindowInfo {
-    // Count total blob URLs
-    let blobCount = 0
-    this.messages.forEach((message) => {
-      if (message.media) {
-        blobCount += message.media.filter(media => media.blobUrl).length
-      }
-    })
-
-    return {
-      size: this.messages.size,
-      range: [this.minId, this.maxId],
-      lastAccess: this.lastAccessTime,
-      blobCount,
-    }
   }
 }

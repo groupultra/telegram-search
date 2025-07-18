@@ -1,8 +1,6 @@
 import type { CorePagination } from '@tg-search/common/utils/pagination'
 import type { CoreMessage } from '@tg-search/core'
 
-import type { WindowInfo } from '../composables/useMessageWindow'
-
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
@@ -78,6 +76,7 @@ export const useMessageStore = defineStore('message', () => {
           loading: 'Fetching messages from server...',
         })
 
+        // Trigger isLoading to false
         await Promise.race([
           websocketStore.waitForEvent('message:data'),
           websocketStore.waitForEvent('storage:messages'),
@@ -98,20 +97,6 @@ export const useMessageStore = defineStore('message', () => {
     }
   }
 
-  // Debug functions
-  function getWindowDebugInfo(chatId: string) {
-    const window = messageWindows.value.get(chatId)
-    return window?.getDebugInfo() || null
-  }
-
-  function getAllWindowsDebugInfo() {
-    const info: Record<string, WindowInfo> = {}
-    messageWindows.value.forEach((window, chatId) => {
-      info[chatId] = window.getDebugInfo()
-    })
-    return info
-  }
-
   return {
     messagesByChat: messageWindows,
     pushMessages,
@@ -120,7 +105,5 @@ export const useMessageStore = defineStore('message', () => {
 
     // Message Window
     getMessageWindow,
-    getWindowDebugInfo,
-    getAllWindowsDebugInfo,
   }
 })
