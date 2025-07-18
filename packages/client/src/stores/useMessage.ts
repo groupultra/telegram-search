@@ -2,7 +2,7 @@ import type { CorePagination } from '@tg-search/common/utils/pagination'
 import type { CoreMessage } from '@tg-search/core'
 
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
@@ -11,48 +11,25 @@ import { useWebsocketStore } from './useWebsocket'
 
 export const useMessageStore = defineStore('message', () => {
   // Replace Map with MessageWindow for each chat
-  const messageWindows = ref<Map<string, MessageWindow>>(new Map())
+  const currentChatId = ref<string>()
+  const messageWindow = ref<MessageWindow>()
 
   const websocketStore = useWebsocketStore()
 
-  function getMessageWindow(chatId: string) {
-    if (!messageWindows.value.has(chatId)) {
-      messageWindows.value.set(chatId, new MessageWindow(50)) // 50 messages max
-    }
-    return messageWindows.value.get(chatId)!
-  }
-
-  // Compatibility function for existing code
-  function useMessageChatMap(chatId: string) {
-    const window = getMessageWindow(chatId)
-    // Return the underlying Map for compatibility
-    return window.messages
-  }
-
   async function pushMessages(messages: CoreMessage[]) {
-    // Group messages by chatId
-    const messagesByChat = new Map<string, CoreMessage[]>()
-
-    messages.forEach((message) => {
-      const { chatId } = message
-
-      // Process media
-      message.media = message.media?.map(createMediaBlob)
-
-      if (!messagesByChat.has(chatId)) {
-        messagesByChat.set(chatId, [])
-      }
-      messagesByChat.get(chatId)!.push(message)
-    })
-
-    // Add messages to their respective windows
-    messagesByChat.forEach((chatMessages, chatId) => {
-      const window = getMessageWindow(chatId)
-      window.addBatch(chatMessages)
-    })
+    messageWindow.value!.addBatch(
+      messages.map(message => ({
+        ...message,
+        media: message.media?.map(createMediaBlob),
+      })),
+    )
   }
 
   function useFetchMessages(chatId: string) {
+    // Cleanup message window
+    currentChatId.value = chatId
+    messageWindow.value = new MessageWindow(50)
+
     const isLoading = ref(false)
 
     function fetchMessages(pagination: CorePagination) {
@@ -82,12 +59,11 @@ export const useMessageStore = defineStore('message', () => {
   }
 
   return {
-    messagesByChat: messageWindows,
-    pushMessages,
-    useMessageChatMap,
-    useFetchMessages,
+    chatId: computed(() => currentChatId),
+    sortedMessageIds: computed(() => messageWindow.value?.getSortedIds() ?? []),
+    messageWindow,
 
-    // Message Window
-    getMessageWindow,
+    pushMessages,
+    useFetchMessages,
   }
 })

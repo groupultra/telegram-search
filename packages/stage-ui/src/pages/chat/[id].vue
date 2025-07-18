@@ -3,6 +3,7 @@ import type { CoreDialog } from '@tg-search/core/types'
 
 import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
 import { useScroll, useWindowSize } from '@vueuse/core'
+import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -17,11 +18,7 @@ const id = route.params.id
 const chatStore = useChatStore()
 const messageStore = useMessageStore()
 
-const messagesMap = computed(() => messageStore.useMessageChatMap(id.toString()))
-const sortedChatMessageIds = computed<string[]>(() =>
-  Array.from(messagesMap.value.keys())
-    .sort((a, b) => Number(a) - Number(b)),
-)
+const { sortedMessageIds, messageWindow } = storeToRefs(messageStore)
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
 const isGlobalSearch = ref(false)
@@ -59,7 +56,7 @@ const messageInput = ref('')
 const { y } = useScroll(messageAreaRef)
 const lastMessagePosition = ref(0)
 
-watch(() => sortedChatMessageIds.value.length, () => {
+watch(() => sortedMessageIds.value.length, () => {
   lastMessagePosition.value = messageAreaRef.value?.scrollHeight ?? 0
 
   nextTick(() => {
@@ -101,8 +98,8 @@ const isGlobalSearchOpen = ref(false)
 <template>
   <div class="relative h-full flex flex-col">
     <div class="absolute h-10 w-full flex items-center justify-center text-sm text-gray-500">
-      {{ messagesMap.size }} messages
-      {{ sortedChatMessageIds[0] }} - {{ sortedChatMessageIds[sortedChatMessageIds.length - 1] }}
+      {{ sortedMessageIds.length }} messages
+      {{ sortedMessageIds[0] }} - {{ sortedMessageIds[sortedMessageIds.length - 1] }}
     </div>
     <!-- Chat Header -->
     <div class="flex items-center justify-between border-b p-4 dark:border-gray-700">
@@ -123,8 +120,8 @@ const isGlobalSearchOpen = ref(false)
       ref="messageAreaRef"
       class="flex-1 overflow-y-auto bg-white p-4 space-y-4 dark:bg-gray-900"
     >
-      <div v-for="messageId in sortedChatMessageIds" :key="messageId">
-        <MessageBubble :message="messagesMap.get(messageId)!" />
+      <div v-for="messageId in sortedMessageIds" :key="messageId">
+        <MessageBubble :message="messageWindow!.get(messageId)!" />
       </div>
     </div>
 
