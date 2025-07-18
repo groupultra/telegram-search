@@ -17,8 +17,10 @@ export const useMessageStore = defineStore('message', () => {
   const websocketStore = useWebsocketStore()
 
   async function pushMessages(messages: CoreMessage[]) {
+    const filteredMessages = messages.filter(msg => msg.chatId === currentChatId.value)
+
     messageWindow.value!.addBatch(
-      messages.map(message => ({
+      filteredMessages.map(message => ({
         ...message,
         media: message.media?.map(createMediaBlob),
       })),
