@@ -45,6 +45,25 @@ watch(keywordDebounced, (newKeyword) => {
     isLoading.value = false
   })
 })
+
+// function handleClickOutside(event: MouseEvent) {
+//   if (isOpen.value && searchDialogRef.value) {
+//     const target = event.target as HTMLElement
+//     const searchElement = searchDialogRef.value.$el as HTMLElement
+//     const searchButton = document.querySelector('[data-search-button]') as HTMLElement
+//     if (!searchElement.contains(target) && !searchButton?.contains(target)) {
+//       isOpen.value = false
+//     }
+//   }
+// }
+
+// onMounted(() => {
+//   document.addEventListener('click', handleClickOutside)
+// })
+
+// onUnmounted(() => {
+//   document.removeEventListener('click', handleClickOutside)
+// })
 </script>
 
 <template>

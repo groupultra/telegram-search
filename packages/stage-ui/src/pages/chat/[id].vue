@@ -17,11 +17,11 @@ const id = route.params.id
 
 const chatStore = useChatStore()
 const messageStore = useMessageStore()
+const websocketStore = useWebsocketStore()
 
 const { sortedMessageIds, messageWindow } = storeToRefs(messageStore)
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
-const isGlobalSearch = ref(false)
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
 const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString())
 const messageLimit = ref(50)
@@ -29,27 +29,6 @@ const messageOffset = ref(0)
 
 const { height: windowHeight } = useWindowSize()
 const minimumScrollHeight = computed(() => windowHeight.value * 0.3)
-
-function handleClickOutside(event: MouseEvent) {
-  if (isGlobalSearch.value && searchDialogRef.value) {
-    const target = event.target as HTMLElement
-    const searchElement = searchDialogRef.value.$el as HTMLElement
-    const searchButton = document.querySelector('[data-search-button]') as HTMLElement
-    if (!searchElement.contains(target) && !searchButton?.contains(target)) {
-      isGlobalSearch.value = false
-    }
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
-
-const websocketStore = useWebsocketStore()
 
 const messageAreaRef = ref()
 const messageInput = ref('')
