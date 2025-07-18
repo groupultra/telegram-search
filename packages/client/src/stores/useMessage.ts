@@ -10,7 +10,6 @@ import { useSettingsStore } from './useSettings'
 import { useWebsocketStore } from './useWebsocket'
 
 export const useMessageStore = defineStore('message', () => {
-  // Replace Map with MessageWindow for each chat
   const currentChatId = ref<string>()
   const messageWindow = ref<MessageWindow>()
 
@@ -19,6 +18,8 @@ export const useMessageStore = defineStore('message', () => {
   async function pushMessages(messages: CoreMessage[]) {
     const filteredMessages = messages.filter(msg => msg.chatId === currentChatId.value)
 
+    // eslint-disable-next-line no-console
+    console.log(`[MessageStore] Push ${filteredMessages.length} messages`, filteredMessages)
     messageWindow.value!.addBatch(
       filteredMessages.map(message => ({
         ...message,
@@ -27,15 +28,19 @@ export const useMessageStore = defineStore('message', () => {
     )
   }
 
-  function useFetchMessages(chatId: string) {
+  function useFetchMessages(chatId: string, limit: number) {
     // Cleanup message window
     currentChatId.value = chatId
-    messageWindow.value = new MessageWindow(50)
+    messageWindow.value?.clear()
+    messageWindow.value = new MessageWindow(limit)
 
     const isLoading = ref(false)
 
     function fetchMessages(pagination: CorePagination) {
       isLoading.value = true
+
+      // eslint-disable-next-line no-console
+      console.log(`[MessageStore] Fetching messages for chat ${chatId}`, pagination.offset)
 
       // First, fetch the messages from database
       if (useSettingsStore().useCachedMessage) {

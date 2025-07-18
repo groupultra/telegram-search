@@ -16,16 +16,13 @@ export class MessageWindow {
 
   // Add multiple messages
   addBatch(messages: CoreMessage[]): void {
-    messages.forEach((message) => {
-      const messageId = message.platformMessageId
-      const numericId = Number(messageId)
+    messages.forEach((msg) => {
+      const msgId = msg.platformMessageId
 
-      this.messages.set(messageId, message)
+      this.messages.set(msgId, msg)
 
-      if (!Number.isNaN(numericId)) {
-        this.minId = Math.min(this.minId === Infinity ? numericId : this.minId, numericId)
-        this.maxId = Math.max(this.maxId === -Infinity ? numericId : this.maxId, numericId)
-      }
+      this.minId = Math.min(Number(msgId), this.minId)
+      this.maxId = Math.max(Number(msgId), this.maxId)
     })
 
     this.lastAccessTime = Date.now()
@@ -33,14 +30,14 @@ export class MessageWindow {
   }
 
   // Get a message
-  get(messageId: string): CoreMessage | undefined {
+  get(msgId: string): CoreMessage | undefined {
     this.lastAccessTime = Date.now()
-    return this.messages.get(messageId)
+    return this.messages.get(msgId)
   }
 
   // Check if message exists
-  has(messageId: string): boolean {
-    return this.messages.has(messageId)
+  has(msgId: string): boolean {
+    return this.messages.has(msgId)
   }
 
   // Get all message IDs sorted
@@ -55,13 +52,13 @@ export class MessageWindow {
   }
 
   // Clean up a single message and its blob URLs
-  private cleanupMessage(messageId: string): void {
-    const message = this.messages.get(messageId)
+  private cleanupMessage(msgId: string): void {
+    const message = this.messages.get(msgId)
     if (message?.media) {
       // Clean up blob URLs to prevent memory leaks
       cleanupMediaBlobs(message.media)
     }
-    this.messages.delete(messageId)
+    this.messages.delete(msgId)
   }
 
   // Simple cleanup: keep only the latest messages when exceeding maxSize

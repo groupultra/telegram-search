@@ -4,7 +4,7 @@ import type { CoreDialog } from '@tg-search/core/types'
 import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
 import { useScroll, useWindowSize } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
@@ -22,20 +22,27 @@ const websocketStore = useWebsocketStore()
 const { sortedMessageIds, messageWindow } = storeToRefs(messageStore)
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
-const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
-const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString())
-const messageLimit = ref(50)
+const messageLimit = ref(20)
 const messageOffset = ref(0)
+const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString(), messageLimit.value)
 
 const { height: windowHeight } = useWindowSize()
-const minimumScrollHeight = computed(() => windowHeight.value * 0.3)
+// const minimumScrollHeight = computed(() => windowHeight.value * 0.3)
 
 const messageAreaRef = ref()
-const messageInput = ref('')
 const { y } = useScroll(messageAreaRef)
 const lastMessagePosition = ref(0)
 
-watch(() => sortedMessageIds.value.length, () => {
+const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
+const isGlobalSearchOpen = ref(false)
+
+const messageInput = ref('')
+
+// TODO: virtual list
+watch(() => isLoadingMessages, () => {
+  if (isLoadingMessages.value)
+    return
+
   lastMessagePosition.value = messageAreaRef.value?.scrollHeight ?? 0
 
   nextTick(() => {
@@ -48,7 +55,7 @@ watch(() => sortedMessageIds.value.length, () => {
 
 // TODO: useInfiniteScroll?
 watch(y, async () => {
-  if (y.value <= minimumScrollHeight.value && !isLoadingMessages.value) {
+  if (y.value <= 0 && !isLoadingMessages.value) {
     fetchMessages({
       offset: messageOffset.value,
       limit: messageLimit.value,
@@ -68,22 +75,28 @@ function sendMessage() {
 
   toast.success('Message sent')
 }
-
-const isGlobalSearchOpen = ref(false)
-
-// TODO: virtual list
 </script>
 
 <template>
   <div class="relative h-full flex flex-col">
-    <div class="absolute h-10 w-full flex items-center justify-center text-sm text-gray-500">
-      {{ sortedMessageIds.length }} messages
-      {{ sortedMessageIds[0] }} - {{ sortedMessageIds[sortedMessageIds.length - 1] }}
+    <!-- Debug Panel -->
+    <div class="absolute right-4 top-24 w-1/4 flex flex-col justify-left gap-2 rounded-lg bg-neutral-200 p-2 text-sm text-gray-500 font-mono dark:bg-neutral-800">
+      <span>
+        Height: {{ windowHeight }} / {{ y }}
+      </span>
+      <span>
+        {{ sortedMessageIds.length }} messages
+        ({{ sortedMessageIds[0] }} - {{ sortedMessageIds[sortedMessageIds.length - 1] }})
+      </span>
+      <span>
+        isLoading: {{ isLoadingMessages }} / offset: {{ messageOffset }}
+      </span>
     </div>
+
     <!-- Chat Header -->
     <div class="flex items-center justify-between border-b p-4 dark:border-gray-700">
       <h2 class="text-xl text-gray-900 font-semibold dark:text-gray-100">
-        {{ [currentChat?.name, currentChat?.id].filter(Boolean).join('@') }}
+        {{ [currentChat?.name, currentChat?.id].filter(Boolean).join(' @ ') }}
       </h2>
       <Button
         icon="i-lucide-search"
