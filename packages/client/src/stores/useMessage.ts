@@ -42,8 +42,8 @@ export const useMessageStore = defineStore('message', () => {
         websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
       }
 
-      // FIXME: Then, fetch the messages from server & update the cache
-      // websocketStore.sendEvent('message:fetch', { chatId, pagination })
+      // Then, fetch the messages from server & update the cache
+      websocketStore.sendEvent('message:fetch', { chatId, pagination })
 
       // Trigger isLoading to false
       Promise.race([
