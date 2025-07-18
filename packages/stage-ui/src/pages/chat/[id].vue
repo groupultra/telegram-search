@@ -2,7 +2,7 @@
 import type { CoreDialog } from '@tg-search/core/types'
 
 import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
-import { useScroll, useVirtualList, useWindowSize } from '@vueuse/core'
+import { useScroll, useWindowSize } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -17,7 +17,6 @@ const id = route.params.id
 const chatStore = useChatStore()
 const messageStore = useMessageStore()
 
-// FIXME: the performance issue
 const messagesMap = computed(() => messageStore.useMessageChatMap(id.toString()))
 const sortedChatMessageIds = computed<string[]>(() =>
   Array.from(messagesMap.value.keys())
@@ -33,17 +32,6 @@ const messageOffset = ref(0)
 
 const { height: windowHeight } = useWindowSize()
 const minimumScrollHeight = computed(() => windowHeight.value * 0.3)
-
-const { list, containerProps, wrapperProps } = useVirtualList(
-  sortedChatMessageIds,
-  {
-    // FIXME: dynamic height
-    itemHeight: () => 80, // Estimated height for message bubble
-
-    // What is this?
-    overscan: 40,
-  },
-)
 
 function handleClickOutside(event: MouseEvent) {
   if (isGlobalSearch.value && searchDialogRef.value) {
@@ -66,15 +54,16 @@ onUnmounted(() => {
 
 const websocketStore = useWebsocketStore()
 
+const messageAreaRef = ref()
 const messageInput = ref('')
-const { y } = useScroll(containerProps.ref)
+const { y } = useScroll(messageAreaRef)
 const lastMessagePosition = ref(0)
 
 watch(() => sortedChatMessageIds.value.length, () => {
-  lastMessagePosition.value = containerProps.ref.value?.scrollHeight ?? 0
+  lastMessagePosition.value = messageAreaRef.value?.scrollHeight ?? 0
 
   nextTick(() => {
-    y.value = (containerProps.ref.value?.scrollHeight ?? 0) - lastMessagePosition.value
+    y.value = (messageAreaRef.value?.scrollHeight ?? 0) - lastMessagePosition.value
 
     // Due to chatMessages length change, we can infer that the messages is loaded
     messageOffset.value += messageLimit.value
@@ -129,13 +118,11 @@ const isGlobalSearchOpen = ref(false)
 
     <!-- Messages Area -->
     <div
-      v-bind="containerProps"
+      ref="messageAreaRef"
       class="flex-1 overflow-y-auto bg-white p-4 space-y-4 dark:bg-gray-900"
     >
-      <div v-bind="wrapperProps">
-        <div v-for="{ data, index } in list" :key="index">
-          <MessageBubble :message="messagesMap.get(data)!" />
-        </div>
+      <div v-for="messageId in sortedChatMessageIds" :key="messageId">
+        <MessageBubble :message="messagesMap.get(messageId)!" />
       </div>
     </div>
 
