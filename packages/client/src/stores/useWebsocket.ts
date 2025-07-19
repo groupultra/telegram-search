@@ -41,7 +41,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
     return `${protocol}//${host}${WS_API_BASE}?sessionId=${storageActiveSessionId.value}`
   })
 
-  const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed.value, {
+  const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed, {
     onDisconnected: () => {
       // eslint-disable-next-line no-console
       console.log('[WebSocket] Disconnected')
