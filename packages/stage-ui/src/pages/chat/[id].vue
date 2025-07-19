@@ -38,8 +38,8 @@ const isGlobalSearchOpen = ref(false)
 
 const messageInput = ref('')
 
-// TODO: virtual list
-watch(() => isLoadingMessages, () => {
+// FIXME: virtual list
+watch(isLoadingMessages, () => {
   if (isLoadingMessages.value)
     return
 
@@ -47,9 +47,6 @@ watch(() => isLoadingMessages, () => {
 
   nextTick(() => {
     y.value = (messageAreaRef.value?.scrollHeight ?? 0) - lastMessagePosition.value
-
-    // Due to chatMessages length change, we can infer that the messages is loaded
-    messageOffset.value += messageLimit.value
   })
 })
 
@@ -60,6 +57,8 @@ watch(y, async () => {
       offset: messageOffset.value,
       limit: messageLimit.value,
     })
+
+    messageOffset.value += messageLimit.value
   }
 }, { immediate: true })
 

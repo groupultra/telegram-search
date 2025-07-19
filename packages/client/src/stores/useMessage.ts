@@ -6,7 +6,6 @@ import { computed, ref } from 'vue'
 
 import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
-import { useSettingsStore } from './useSettings'
 import { useWebsocketStore } from './useWebsocket'
 
 export const useMessageStore = defineStore('message', () => {
@@ -43,9 +42,9 @@ export const useMessageStore = defineStore('message', () => {
       console.log(`[MessageStore] Fetching messages for chat ${chatId}`, pagination.offset)
 
       // First, fetch the messages from database
-      if (useSettingsStore().useCachedMessage) {
-        websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
-      }
+      // if (useSettingsStore().useCachedMessage) {
+      //   websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
+      // }
 
       // Then, fetch the messages from server & update the cache
       websocketStore.sendEvent('message:fetch', { chatId, pagination })
