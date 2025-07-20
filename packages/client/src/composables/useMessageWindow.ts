@@ -31,7 +31,7 @@ export class MessageWindow {
     this.lastAccessTime = Date.now()
 
     // FIXME: up, down
-    this.cleanup(this.minId.toString())
+    // this.cleanup(this.minId.toString())
   }
 
   // Get a message

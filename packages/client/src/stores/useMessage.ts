@@ -50,6 +50,7 @@ export const useMessageStore = defineStore('message', () => {
       websocketStore.sendEvent('message:fetch', { chatId, pagination })
 
       // Trigger isLoading to false
+      // We do not need the result of this promise
       Promise.race([
         websocketStore.waitForEvent('message:data'),
         websocketStore.waitForEvent('storage:messages'),
