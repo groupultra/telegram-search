@@ -15,7 +15,12 @@ export class MessageWindow {
   }
 
   // Add multiple messages
-  addBatch(messages: CoreMessage[]): void {
+  addBatch(messages: CoreMessage[], direction: 'older' | 'newer' | 'initial' = 'initial'): void {
+    if (messages.length === 0)
+      return
+
+    const sortedNewMessages = messages.sort((a, b) => Number(a.platformMessageId) - Number(b.platformMessageId))
+
     messages.forEach((msg) => {
       const msgId = msg.platformMessageId
 
@@ -26,12 +31,12 @@ export class MessageWindow {
     })
 
     // eslint-disable-next-line no-console
-    console.log('[MessageWindow] Add batch', messages.length, messages[0].platformMessageId, messages[messages.length - 1].platformMessageId)
+    console.log('[MessageWindow] Add batch', messages.length, `${sortedNewMessages[0].platformMessageId} - ${sortedNewMessages[sortedNewMessages.length - 1].platformMessageId}`, `direction: ${direction}`)
 
     this.lastAccessTime = Date.now()
 
-    // FIXME: up, down
-    // this.cleanup(this.minId.toString())
+    // Trigger cleanup based on direction
+    this.cleanupByDirection(direction)
   }
 
   // Get a message
@@ -56,6 +61,16 @@ export class MessageWindow {
     return this.messages.size
   }
 
+  // Get center message ID (approximately middle of the window)
+  getCenterMessageId(): string | undefined {
+    const sortedIds = this.getSortedIds()
+    if (sortedIds.length === 0)
+      return undefined
+
+    const centerIndex = Math.floor(sortedIds.length / 2)
+    return sortedIds[centerIndex]
+  }
+
   // Clean up a single message and its blob URLs
   private cleanupMessage(msgId: string): void {
     const message = this.messages.get(msgId)
@@ -66,9 +81,62 @@ export class MessageWindow {
     this.messages.delete(msgId)
   }
 
-  // 传递一个中心点 messageId 和保留范围
-  private cleanup(currentViewMessageId?: string, keepCount: number = 50): void {
+  // Direction-based cleanup: when loading older messages, keep newer ones; when loading newer, keep older ones
+  private cleanupByDirection(direction: 'older' | 'newer' | 'initial'): void {
     if (this.messages.size <= this.maxSize) {
+      return
+    }
+
+    const sortedIds = this.getSortedIds()
+    const excessCount = this.messages.size - this.maxSize
+    const removedIds: string[] = []
+
+    if (direction === 'older') {
+      // When loading older messages, remove the newest (highest ID) messages
+      const idsToRemove = sortedIds.slice(-excessCount)
+      idsToRemove.forEach((id) => {
+        this.cleanupMessage(id)
+        removedIds.push(id)
+      })
+    }
+    else if (direction === 'newer') {
+      // When loading newer messages, remove the oldest (lowest ID) messages
+      const idsToRemove = sortedIds.slice(0, excessCount)
+      idsToRemove.forEach((id) => {
+        this.cleanupMessage(id)
+        removedIds.push(id)
+      })
+    }
+    else {
+      // For initial load, keep the most recent messages (default behavior)
+      const idsToRemove = sortedIds.slice(0, excessCount)
+      idsToRemove.forEach((id) => {
+        this.cleanupMessage(id)
+        removedIds.push(id)
+      })
+    }
+
+    // 更新minId和maxId
+    if (this.messages.size > 0) {
+      const remainingIds = this.getSortedIds()
+      this.minId = Number(remainingIds[0])
+      this.maxId = Number(remainingIds[remainingIds.length - 1])
+    }
+    else {
+      this.minId = Infinity
+      this.maxId = -Infinity
+    }
+
+    if (removedIds.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`[MessageWindow] Cleaned up ${removedIds.length} messages (${direction}), removed: ${removedIds[0]} - ${removedIds[removedIds.length - 1]}`)
+    }
+  }
+
+  // 传递一个中心点 messageId 和保留范围 (kept for backward compatibility)
+  cleanup(currentViewMessageId?: string, keepCount?: number): void {
+    const effectiveKeepCount = keepCount ?? this.maxSize
+    if (this.messages.size <= effectiveKeepCount) {
       return
     }
 
@@ -80,7 +148,7 @@ export class MessageWindow {
       const currentIndex = sortedIds.indexOf(currentViewMessageId)
 
       // 计算要保留的消息范围（前后各保留一半）
-      const halfKeep = Math.floor(keepCount / 2)
+      const halfKeep = Math.floor(effectiveKeepCount / 2)
       const startIdx = Math.max(0, currentIndex - halfKeep)
       const endIdx = Math.min(sortedIds.length - 1, currentIndex + halfKeep)
 
@@ -89,7 +157,7 @@ export class MessageWindow {
     }
     else {
       // 如果没有指定中心消息，默认保留最近的消息
-      idsToKeep = new Set(sortedIds.slice(-keepCount))
+      idsToKeep = new Set(sortedIds.slice(-effectiveKeepCount))
     }
 
     // 删除不在保留范围内的消息
@@ -114,8 +182,10 @@ export class MessageWindow {
       this.maxId = -Infinity
     }
 
-    // eslint-disable-next-line no-console
-    console.log(`[MessageWindow] Cleaned up ${removedIds.length} messages, ${removedIds[0]} - ${removedIds[removedIds.length - 1]}`)
+    if (removedIds.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`[MessageWindow] Cleaned up ${removedIds.length} messages, ${removedIds[0]} - ${removedIds[removedIds.length - 1]}`)
+    }
   }
 
   // Clear all messages and their blob URLs

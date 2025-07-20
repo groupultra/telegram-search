@@ -27,38 +27,130 @@ const messageOffset = ref(0)
 const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString(), messageLimit.value)
 
 const { height: windowHeight } = useWindowSize()
-// const minimumScrollHeight = computed(() => windowHeight.value * 0.3)
 
 const messageAreaRef = ref()
-const { y } = useScroll(messageAreaRef)
-const lastMessagePosition = ref(0)
+const { y, arrivedState } = useScroll(messageAreaRef)
+const lastScrollPosition = ref(0)
+const isLoadingOlder = ref(false)
+const isLoadingNewer = ref(false)
 
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
 const isGlobalSearchOpen = ref(false)
 
 const messageInput = ref('')
 
-// FIXME: virtual list
+// Handle scroll position preservation after loading new messages
 watch(isLoadingMessages, () => {
-  if (isLoadingMessages.value)
+  if (isLoadingMessages.value) {
+    lastScrollPosition.value = y.value
     return
-
-  lastMessagePosition.value = messageAreaRef.value?.scrollHeight ?? 0
+  }
 
   nextTick(() => {
-    y.value = (messageAreaRef.value?.scrollHeight ?? 0) - lastMessagePosition.value
+    // Maintain scroll position after loading
+    if (lastScrollPosition.value > 0) {
+      y.value = lastScrollPosition.value
+    }
   })
 })
 
-// TODO: useInfiniteScroll?
-watch(y, async () => {
-  if (y.value <= 0 && !isLoadingMessages.value) {
-    fetchMessages({
+// Load older messages when scrolling to top
+async function loadOlderMessages() {
+  if (isLoadingOlder.value || isLoadingMessages.value)
+    return
+
+  isLoadingOlder.value = true
+
+  try {
+    await fetchMessages({
       offset: messageOffset.value,
       limit: messageLimit.value,
     })
-
     messageOffset.value += messageLimit.value
+  }
+  finally {
+    isLoadingOlder.value = false
+  }
+}
+
+// Load newer messages when scrolling to bottom
+async function loadNewerMessages() {
+  if (isLoadingNewer.value || isLoadingMessages.value)
+    return
+
+  // Get the current max message ID to fetch messages after it
+  const currentMaxId = messageWindow.value?.maxId
+  if (!currentMaxId || currentMaxId === -Infinity) {
+    // eslint-disable-next-line no-console
+    console.log('No messages loaded yet, cannot fetch newer messages')
+    return
+  }
+
+  isLoadingNewer.value = true
+
+  try {
+    // Use a separate fetch function for newer messages with minId
+    await fetchNewerMessages({
+      minId: currentMaxId,
+      limit: messageLimit.value,
+    })
+  }
+  finally {
+    isLoadingNewer.value = false
+  }
+}
+
+// Separate function to fetch newer messages using minId
+async function fetchNewerMessages(options: { minId: number, limit: number }) {
+  // eslint-disable-next-line no-console
+  console.log(`[Chat] Fetching newer messages after ID ${options.minId}`)
+
+  // Send event to fetch messages with minId parameter
+  websocketStore.sendEvent('message:fetch', {
+    chatId: id.toString(),
+    pagination: {
+      offset: 0,
+      limit: options.limit,
+    },
+    minId: options.minId,
+  })
+
+  // Wait for the response with timeout
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Timeout')), 10000),
+  )
+
+  try {
+    await Promise.race([
+      websocketStore.waitForEvent('message:data'),
+      websocketStore.waitForEvent('storage:messages'),
+      timeout,
+    ])
+    // eslint-disable-next-line no-console
+    console.log('[Chat] Newer messages loaded successfully')
+  }
+  catch (error) {
+    console.warn('[Chat] Failed to load newer messages:', error)
+  }
+}
+
+// Scroll-based infinite loading
+watch(arrivedState, async () => {
+  // Load older messages when scrolled to top
+  if (arrivedState.top && !isLoadingOlder.value && !isLoadingMessages.value) {
+    await loadOlderMessages()
+  }
+
+  // Load newer messages when scrolled to bottom
+  if (arrivedState.bottom && !isLoadingNewer.value && !isLoadingMessages.value) {
+    await loadNewerMessages()
+  }
+})
+
+// Initial load when scrolled to top
+watch(y, async () => {
+  if (y.value <= 0 && !isLoadingMessages.value && !isLoadingOlder.value) {
+    await loadOlderMessages()
   }
 }, { immediate: true })
 
@@ -81,15 +173,38 @@ function sendMessage() {
     <!-- Debug Panel -->
     <div class="absolute right-4 top-24 w-1/4 flex flex-col justify-left gap-2 rounded-lg bg-neutral-200 p-2 text-sm text-gray-500 font-mono dark:bg-neutral-800">
       <span>
-        Height: {{ windowHeight }} / {{ y }}
+        Height: {{ windowHeight }} / Scroll: {{ Math.round(y) }}
       </span>
       <span>
         {{ sortedMessageIds.length }} messages
         ({{ sortedMessageIds[0] }} - {{ sortedMessageIds[sortedMessageIds.length - 1] }})
       </span>
       <span>
-        isLoading: {{ isLoadingMessages }} / offset: {{ messageOffset }}
+        MinId: {{ messageWindow?.minId }} / MaxId: {{ messageWindow?.maxId }}
       </span>
+      <span>
+        Loading: {{ isLoadingMessages }} / Older: {{ isLoadingOlder }} / Newer: {{ isLoadingNewer }}
+      </span>
+      <span>
+        Offset: {{ messageOffset }} / Top: {{ arrivedState.top }} / Bottom: {{ arrivedState.bottom }}
+      </span>
+      <span>
+        Can load older: {{ !isLoadingOlder && !isLoadingMessages && arrivedState.top }}
+      </span>
+      <button
+        class="rounded bg-blue-500 px-2 py-1 text-xs text-white"
+        :disabled="isLoadingOlder || isLoadingMessages"
+        @click="loadOlderMessages"
+      >
+        Force Load Older
+      </button>
+      <button
+        class="rounded bg-green-500 px-2 py-1 text-xs text-white"
+        :disabled="isLoadingNewer || isLoadingMessages"
+        @click="loadNewerMessages"
+      >
+        Force Load Newer
+      </button>
     </div>
 
     <!-- Chat Header -->

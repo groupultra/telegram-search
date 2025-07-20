@@ -14,24 +14,28 @@ export const useMessageStore = defineStore('message', () => {
 
   const websocketStore = useWebsocketStore()
 
-  async function pushMessages(messages: CoreMessage[]) {
+  async function pushMessages(messages: CoreMessage[], direction: 'older' | 'newer' | 'initial' = 'initial') {
     const filteredMessages = messages.filter(msg => msg.chatId === currentChatId.value)
 
     // eslint-disable-next-line no-console
-    console.log(`[MessageStore] Push ${filteredMessages.length} messages`, filteredMessages)
+    console.log(`[MessageStore] Push ${filteredMessages.length} messages (${direction})`, filteredMessages)
+
     messageWindow.value!.addBatch(
       filteredMessages.map(message => ({
         ...message,
         media: message.media?.map(createMediaBlob),
       })),
+      direction,
     )
   }
 
   function useFetchMessages(chatId: string, limit: number) {
-    // Cleanup message window
-    currentChatId.value = chatId
-    messageWindow.value?.clear()
-    messageWindow.value = new MessageWindow(limit)
+    // Only initialize if chatId changes
+    if (currentChatId.value !== chatId) {
+      currentChatId.value = chatId
+      messageWindow.value?.clear()
+      messageWindow.value = new MessageWindow(limit)
+    }
 
     const isLoading = ref(false)
 
@@ -41,21 +45,24 @@ export const useMessageStore = defineStore('message', () => {
       // eslint-disable-next-line no-console
       console.log(`[MessageStore] Fetching messages for chat ${chatId}`, pagination.offset)
 
-      // First, fetch the messages from database
-      // if (useSettingsStore().useCachedMessage) {
-      //   websocketStore.sendEvent('storage:fetch:messages', { chatId, pagination })
-      // }
-
       // Then, fetch the messages from server & update the cache
       websocketStore.sendEvent('message:fetch', { chatId, pagination })
 
-      // Trigger isLoading to false
-      // We do not need the result of this promise
+      // Trigger isLoading to false with timeout
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 10000),
+      )
+
       Promise.race([
         websocketStore.waitForEvent('message:data'),
         websocketStore.waitForEvent('storage:messages'),
+        timeout,
       ]).then(() => {
         isLoading.value = false
+      }).catch(() => {
+        // Handle errors and reset loading state
+        isLoading.value = false
+        console.warn('[MessageStore] Message fetch timed out or failed')
       })
     }
 
