@@ -1,11 +1,11 @@
 import { spawn } from 'node:child_process'
 import process from 'node:process'
 
+import { useLogger } from '@tg-search/logg'
+
 import { getDatabaseDSN, initConfig, useConfig } from '../packages/common/src/node'
-import { initLogger, useLogger } from '../packages/logg/src'
 
 (async () => {
-  initLogger()
   await initConfig()
   const logger = useLogger('script:drizzle')
 
