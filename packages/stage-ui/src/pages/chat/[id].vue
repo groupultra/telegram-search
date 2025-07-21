@@ -2,15 +2,15 @@
 import type { CoreDialog } from '@tg-search/core/types'
 
 import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
-import { useScroll, useWindowSize } from '@vueuse/core'
+import { useWindowSize } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
-import MessageBubble from '../../components/messages/MessageBubble.vue'
 import SearchDialog from '../../components/SearchDialog.vue'
 import { Button } from '../../components/ui/Button'
+import VirtualMessageList from '../../components/VirtualMessageList.vue'
 
 const route = useRoute('/chat/:id')
 const id = route.params.id
@@ -28,11 +28,9 @@ const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMes
 
 const { height: windowHeight } = useWindowSize()
 
-const messageAreaRef = ref()
-const { y, arrivedState } = useScroll(messageAreaRef)
-const lastScrollPosition = ref(0)
 const isLoadingOlder = ref(false)
 const isLoadingNewer = ref(false)
+const virtualListRef = ref<InstanceType<typeof VirtualMessageList>>()
 
 const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
 const isGlobalSearchOpen = ref(false)
@@ -98,7 +96,7 @@ async function loadNewerMessages() {
       {
         offset: 0,
         limit: messageLimit.value,
-      minId: currentMaxId,
+        minId: currentMaxId,
       },
       'newer',
     )
@@ -184,14 +182,15 @@ function sendMessage() {
       </Button>
     </div>
 
-    <!-- Messages Area -->
-    <div
-      ref="messageAreaRef"
-      class="flex-1 overflow-y-auto bg-white p-4 space-y-4 dark:bg-gray-900"
-    >
-      <div v-for="messageId in sortedMessageIds" :key="messageId">
-        <MessageBubble :message="messageWindow!.get(messageId)!" />
-      </div>
+    <!-- Messages Area with Virtual List -->
+    <div class="flex-1 bg-white dark:bg-gray-900 overflow-hidden">
+      <VirtualMessageList
+        ref="virtualListRef"
+        :messages="messagesArray"
+        :on-scroll-to-top="loadOlderMessages"
+        :on-scroll-to-bottom="loadNewerMessages"
+        @scroll="handleVirtualListScroll"
+      />
     </div>
 
     <!-- Message Input -->

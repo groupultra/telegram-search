@@ -148,19 +148,19 @@ onUnmounted(() => {
 
     <img
       v-else-if="processedMedia.mimeType?.startsWith('image/')"
-      :src="processedMedia.src" class="h-auto max-w-xs rounded-lg" alt="Media content"
+      :src="processedMedia.src" class="h-auto max-w-xs rounded-lg" alt="Image"
       @error="runtimeError = 'Image failed to load'"
     >
-
-    <video
-      v-else-if="processedMedia.mimeType?.startsWith('video/')" :src="processedMedia.src"
-      class="h-auto max-w-[12rem] rounded-lg" alt="Media content" autoplay loop muted playsinline
-      @error="runtimeError = 'Sticker failed to load'"
-    />
 
     <div
       v-else-if="processedMedia.mimeType === 'application/gzip'" ref="tgsContainer"
       class="h-auto max-w-[12rem] rounded-lg"
+    />
+
+    <video
+      v-else-if="processedMedia.mimeType?.startsWith('video/')" :src="processedMedia.src"
+      class="h-auto max-w-[12rem] rounded-lg" alt="Video" autoplay loop muted playsinline
+      @error="runtimeError = 'Sticker failed to load'"
     />
   </div>
 </template>
