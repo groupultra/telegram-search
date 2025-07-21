@@ -113,7 +113,8 @@ onMounted(() => {
     if (virtualListContainer.value) {
       const height = virtualListContainer.value.clientHeight
       containerHeight.value = height > 0 ? height : Math.max(windowHeight.value - 200, 400)
-    } else {
+    }
+    else {
       containerHeight.value = Math.max(windowHeight.value - 200, 400)
     }
     // Update virtual list with initial height

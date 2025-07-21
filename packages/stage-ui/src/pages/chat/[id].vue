@@ -183,7 +183,7 @@ function sendMessage() {
     </div>
 
     <!-- Messages Area with Virtual List -->
-    <div class="flex-1 bg-white dark:bg-gray-900 overflow-hidden">
+    <div class="flex-1 overflow-hidden bg-white dark:bg-gray-900">
       <VirtualMessageList
         ref="virtualListRef"
         :messages="messagesArray"
