@@ -8,6 +8,12 @@ import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
 import { useWebsocketStore } from './useWebsocket'
 
+function createContextWithTimeout(timeout: number) {
+  return new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Timeout')), timeout),
+  )
+}
+
 export const useMessageStore = defineStore('message', () => {
   const currentChatId = ref<string>()
   const messageWindow = ref<MessageWindow>()
@@ -39,24 +45,38 @@ export const useMessageStore = defineStore('message', () => {
 
     const isLoading = ref(false)
 
-    function fetchMessages(pagination: CorePagination) {
+    function fetchMessages(
+      pagination: CorePagination & {
+        minId?: number
+      },
+      direction: 'older' | 'newer' = 'older',
+    ) {
       isLoading.value = true
 
       // eslint-disable-next-line no-console
       console.log(`[MessageStore] Fetching messages for chat ${chatId}`, pagination.offset)
 
       // Then, fetch the messages from server & update the cache
-      websocketStore.sendEvent('message:fetch', { chatId, pagination })
-
-      // Trigger isLoading to false with timeout
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout')), 10000),
-      )
+      switch (direction) {
+        case 'older':
+          websocketStore.sendEvent('message:fetch', { chatId, pagination })
+          break
+        case 'newer':
+          websocketStore.sendEvent('message:fetch', {
+            chatId,
+            pagination: {
+              offset: 0,
+              limit: pagination.limit,
+            },
+            minId: pagination.minId,
+          })
+          break
+      }
 
       Promise.race([
         websocketStore.waitForEvent('message:data'),
         websocketStore.waitForEvent('storage:messages'),
-        timeout,
+        createContextWithTimeout(10000),
       ]).then(() => {
         isLoading.value = false
       }).catch(() => {

@@ -39,19 +39,23 @@ const isGlobalSearchOpen = ref(false)
 
 const messageInput = ref('')
 
-// Handle scroll position preservation after loading new messages
-watch(isLoadingMessages, () => {
-  if (isLoadingMessages.value) {
-    lastScrollPosition.value = y.value
-    return
+// Initial load when component mounts
+onMounted(async () => {
+  // Only load if there are no messages yet
+  if (sortedMessageIds.value.length === 0) {
+    await loadOlderMessages()
   }
+})
 
-  nextTick(() => {
-    // Maintain scroll position after loading
-    if (lastScrollPosition.value > 0) {
-      y.value = lastScrollPosition.value
-    }
-  })
+// Get messages as array for virtual list
+const messagesArray = computed(() => {
+  return sortedMessageIds.value
+    .map(id => messageWindow.value?.get(id))
+    .filter(Boolean)
+    .map(msg => ({
+      id: msg!.uuid,
+      ...msg,
+    }))
 })
 
 // Load older messages when scrolling to top
@@ -62,10 +66,10 @@ async function loadOlderMessages() {
   isLoadingOlder.value = true
 
   try {
-    await fetchMessages({
+    fetchMessages({
       offset: messageOffset.value,
       limit: messageLimit.value,
-    })
+    }, 'older')
     messageOffset.value += messageLimit.value
   }
   finally {
@@ -90,69 +94,32 @@ async function loadNewerMessages() {
 
   try {
     // Use a separate fetch function for newer messages with minId
-    await fetchNewerMessages({
+    fetchMessages(
+      {
+        offset: 0,
+        limit: messageLimit.value,
       minId: currentMaxId,
-      limit: messageLimit.value,
-    })
+      },
+      'newer',
+    )
   }
   finally {
     isLoadingNewer.value = false
   }
 }
 
-// Separate function to fetch newer messages using minId
-async function fetchNewerMessages(options: { minId: number, limit: number }) {
-  // eslint-disable-next-line no-console
-  console.log(`[Chat] Fetching newer messages after ID ${options.minId}`)
-
-  // Send event to fetch messages with minId parameter
-  websocketStore.sendEvent('message:fetch', {
-    chatId: id.toString(),
-    pagination: {
-      offset: 0,
-      limit: options.limit,
-    },
-    minId: options.minId,
-  })
-
-  // Wait for the response with timeout
-  const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Timeout')), 10000),
-  )
-
-  try {
-    await Promise.race([
-      websocketStore.waitForEvent('message:data'),
-      websocketStore.waitForEvent('storage:messages'),
-      timeout,
-    ])
-    // eslint-disable-next-line no-console
-    console.log('[Chat] Newer messages loaded successfully')
-  }
-  catch (error) {
-    console.warn('[Chat] Failed to load newer messages:', error)
-  }
-}
-
-// Scroll-based infinite loading
-watch(arrivedState, async () => {
+// Handle virtual list scroll events
+function handleVirtualListScroll({ isAtTop, isAtBottom }: { scrollTop: number, isAtTop: boolean, isAtBottom: boolean }) {
   // Load older messages when scrolled to top
-  if (arrivedState.top && !isLoadingOlder.value && !isLoadingMessages.value) {
-    await loadOlderMessages()
+  if (isAtTop && !isLoadingOlder.value && !isLoadingMessages.value) {
+    loadOlderMessages()
   }
 
   // Load newer messages when scrolled to bottom
-  if (arrivedState.bottom && !isLoadingNewer.value && !isLoadingMessages.value) {
-    await loadNewerMessages()
+  if (isAtBottom && !isLoadingNewer.value && !isLoadingMessages.value) {
+    loadNewerMessages()
   }
-})
-
-// Initial load when scrolled to top
-watch(y, async () => {
-  if (y.value <= 0 && !isLoadingMessages.value && !isLoadingOlder.value) {
-    await loadOlderMessages()
-  }
-}, { immediate: true })
+}
 
 function sendMessage() {
   if (!messageInput.value.trim())
@@ -173,11 +140,10 @@ function sendMessage() {
     <!-- Debug Panel -->
     <div class="absolute right-4 top-24 w-1/4 flex flex-col justify-left gap-2 rounded-lg bg-neutral-200 p-2 text-sm text-gray-500 font-mono dark:bg-neutral-800">
       <span>
-        Height: {{ windowHeight }} / Scroll: {{ Math.round(y) }}
+        Height: {{ windowHeight }} / Messages: {{ messagesArray.length }}
       </span>
       <span>
-        {{ sortedMessageIds.length }} messages
-        ({{ sortedMessageIds[0] }} - {{ sortedMessageIds[sortedMessageIds.length - 1] }})
+        IDs: {{ sortedMessageIds[0] }} - {{ sortedMessageIds[sortedMessageIds.length - 1] }}
       </span>
       <span>
         MinId: {{ messageWindow?.minId }} / MaxId: {{ messageWindow?.maxId }}
@@ -186,10 +152,7 @@ function sendMessage() {
         Loading: {{ isLoadingMessages }} / Older: {{ isLoadingOlder }} / Newer: {{ isLoadingNewer }}
       </span>
       <span>
-        Offset: {{ messageOffset }} / Top: {{ arrivedState.top }} / Bottom: {{ arrivedState.bottom }}
-      </span>
-      <span>
-        Can load older: {{ !isLoadingOlder && !isLoadingMessages && arrivedState.top }}
+        Offset: {{ messageOffset }}
       </span>
       <button
         class="rounded bg-blue-500 px-2 py-1 text-xs text-white"
