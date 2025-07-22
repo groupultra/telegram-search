@@ -107,6 +107,7 @@ export class MessageWindow {
 
     // Update minId and maxId
     if (this.messages.size > 0) {
+      // TODO: performance issue?
       const remainingIds = this.getSortedIds()
       this.minId = Number(remainingIds[0])
       this.maxId = Number(remainingIds[remainingIds.length - 1])
