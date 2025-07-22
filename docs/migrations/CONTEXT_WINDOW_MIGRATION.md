@@ -171,7 +171,7 @@ const messageWindow = new MessageWindow(50)
 
 // Custom size for performance tuning
 const messageWindow = new MessageWindow(100) // More memory, better UX
-const messageWindow = new MessageWindow(25)  // Less memory, more loading
+const messageWindow = new MessageWindow(25) // Less memory, more loading
 ```
 
 ### **Batch Size Configuration**
@@ -262,7 +262,7 @@ If issues arise, you can temporarily revert by:
 
 ### **Related Files Modified**
 - `packages/client/src/composables/useMessageWindow.ts` - Core implementation
-- `packages/client/src/stores/useMessage.ts` - Store refactoring  
+- `packages/client/src/stores/useMessage.ts` - Store refactoring
 - `packages/client/src/utils/blob.ts` - Memory management
 - `packages/stage-ui/src/pages/chat/[id].vue` - UI integration
 
@@ -278,8 +278,8 @@ If issues arise, you can temporarily revert by:
 The Context Window implementation represents a significant architectural improvement that:
 
 - ✅ **Solves memory issues** with large chat histories
-- ✅ **Maintains smooth UX** through intelligent message management  
+- ✅ **Maintains smooth UX** through intelligent message management
 - ✅ **Provides comprehensive testing** for reliability
 - ✅ **Enables future optimizations** through modular design
 
-This migration sets the foundation for handling enterprise-scale Telegram data while maintaining excellent user experience. 
+This migration sets the foundation for handling enterprise-scale Telegram data while maintaining excellent user experience.
