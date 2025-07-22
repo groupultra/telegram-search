@@ -1,5 +1,3 @@
-import type { UUID } from 'node:crypto'
-
 import type { CoreMessage, CoreRetrievalMessages } from '../../../../core/src/index'
 import type { chatMessagesTable } from '../../schemas/chat_messages'
 
@@ -14,7 +12,7 @@ export interface DBRetrievalMessages extends Omit<DBSelectMessage, 'content_vect
 
 export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessage {
   return {
-    uuid: message.id as UUID,
+    uuid: message.id,
 
     platform: message.platform as 'telegram',
     platformMessageId: message.platform_message_id,

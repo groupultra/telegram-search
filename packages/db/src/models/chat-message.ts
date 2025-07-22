@@ -1,4 +1,3 @@
-import type { UUID } from 'node:crypto'
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chat-message.ts
 
 import type { CorePagination } from '@tg-search/common/utils/pagination'
@@ -81,7 +80,7 @@ export async function recordMessagesWithMedia(messages: CoreMessage[]): Promise<
         .map((media) => {
           return {
             ...media,
-            messageUUID: dbMessage?.id as UUID,
+            messageUUID: dbMessage?.id,
           }
         }) || []
     }) satisfies CoreMessageMediaPhoto[]

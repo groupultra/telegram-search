@@ -8,7 +8,7 @@ export class MessageWindow {
   maxId: number = -Infinity
   lastAccessTime: number = Date.now()
 
-  private readonly maxSize: number
+  readonly maxSize: number
 
   constructor(maxSize: number = 50) {
     this.maxSize = maxSize

@@ -1,11 +1,10 @@
 import type { Buffer } from 'node:buffer'
-import type { UUID } from 'node:crypto'
 
 import { Api } from 'telegram'
 
 export interface CoreMessageMediaBase {
   platformId: string
-  messageUUID: UUID
+  messageUUID?: string
   byte: Buffer | undefined
 }
 

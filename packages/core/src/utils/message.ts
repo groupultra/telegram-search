@@ -1,4 +1,3 @@
-import type { UUID } from 'node:crypto'
 
 import type { Result } from '@tg-search/result'
 
@@ -12,7 +11,7 @@ import { Api } from 'telegram'
 import { parseMediaId, parseMediaType } from './media'
 
 export interface CoreMessage {
-  uuid: UUID
+  uuid: string
 
   platform: 'telegram'
   platformMessageId: string

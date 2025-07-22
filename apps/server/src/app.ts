@@ -1,5 +1,3 @@
-import type { UUID } from 'node:crypto'
-
 import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { App, EventHandler } from 'h3'
 
@@ -31,7 +29,7 @@ export function setupWsRoutes(app: App) {
 
   function useSessionId(peer: Peer) {
     const url = new URL(peer.request.url)
-    const urlSessionId = url.searchParams.get('sessionId') as UUID
+    const urlSessionId = url.searchParams.get('sessionId')
     return urlSessionId || crypto.randomUUID()
   }
 
@@ -74,7 +72,7 @@ export function setupWsRoutes(app: App) {
   app.use('/ws', defineWebSocketHandler({
     async upgrade(req) {
       const url = new URL(req.url)
-      const urlSessionId = url.searchParams.get('sessionId') as UUID
+      const urlSessionId = url.searchParams.get('sessionId')
 
       if (!urlSessionId) {
         // TODO: add error response
