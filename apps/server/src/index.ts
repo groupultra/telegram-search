@@ -1,4 +1,4 @@
-import type { NodeOptions } from 'crossws/adapters/node'
+import type { CrossWSOptions } from 'listhen'
 
 import process from 'node:process'
 
@@ -103,7 +103,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000
   // const { handleUpgrade } = wsAdapter(app.websocket as NodeOptions)
-  await listen(listener, { port, ws: app.websocket as NodeOptions })
+  await listen(listener, { port, ws: app.websocket as CrossWSOptions })
   // const server = createServer(listener).listen(port)
   // server.on('upgrade', handleUpgrade)
 
