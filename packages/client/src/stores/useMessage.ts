@@ -98,6 +98,7 @@ export const useMessageStore = defineStore('message', () => {
   return {
     chatId: computed(() => currentChatId),
     sortedMessageIds: computed(() => messageWindow.value?.getSortedIds() ?? []),
+    sortedMessageArray: computed(() => messageWindow.value?.getSortedIds().map(id => messageWindow.value?.get(id)).filter(Boolean) ?? []),
     messageWindow,
 
     pushMessages,
