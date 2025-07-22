@@ -133,61 +133,6 @@ export class MessageWindow {
     }
   }
 
-  // 传递一个中心点 messageId 和保留范围 (kept for backward compatibility)
-  cleanup(currentViewMessageId?: string, keepCount?: number): void {
-    const effectiveKeepCount = keepCount ?? this.maxSize
-    if (this.messages.size <= effectiveKeepCount) {
-      return
-    }
-
-    const sortedIds = this.getSortedIds()
-    let idsToKeep: Set<string>
-
-    if (currentViewMessageId && this.messages.has(currentViewMessageId)) {
-      // 找到当前查看消息的索引
-      const currentIndex = sortedIds.indexOf(currentViewMessageId)
-
-      // 计算要保留的消息范围（前后各保留一半）
-      const halfKeep = Math.floor(effectiveKeepCount / 2)
-      const startIdx = Math.max(0, currentIndex - halfKeep)
-      const endIdx = Math.min(sortedIds.length - 1, currentIndex + halfKeep)
-
-      // 获取要保留的消息ID
-      idsToKeep = new Set(sortedIds.slice(startIdx, endIdx + 1))
-    }
-    else {
-      // 如果没有指定中心消息，默认保留最近的消息
-      idsToKeep = new Set(sortedIds.slice(-effectiveKeepCount))
-    }
-
-    // 删除不在保留范围内的消息
-    const removedIds: string[] = []
-    for (const id of sortedIds) {
-      if (!idsToKeep.has(id)) {
-        this.cleanupMessage(id)
-        removedIds.push(id)
-      }
-    }
-
-    // 更新minId和maxId
-    if (this.messages.size > 0) {
-      // 计算新的minId和maxId
-      const remainingIds = this.getSortedIds()
-      this.minId = Number(remainingIds[0])
-      this.maxId = Number(remainingIds[remainingIds.length - 1])
-    }
-    else {
-      // If all messages were removed, reset min/max to initial state.
-      this.minId = Infinity
-      this.maxId = -Infinity
-    }
-
-    if (removedIds.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(`[MessageWindow] Cleaned up ${removedIds.length} messages, ${removedIds[0]} - ${removedIds[removedIds.length - 1]}`)
-    }
-  }
-
   // Clear all messages and their blob URLs
   clear(): void {
     // Clean up all blob URLs before clearing
