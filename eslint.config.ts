@@ -6,5 +6,6 @@ export default await config({
   ignores: [
     'cspell.config.yaml',
     '**/drizzle/**/*.json',
+    '**/*.md',
   ],
 })
