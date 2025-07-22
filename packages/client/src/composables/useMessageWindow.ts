@@ -106,7 +106,7 @@ export class MessageWindow {
       })
     }
 
-    // 更新minId和maxId
+    // Update minId and maxId
     if (this.messages.size > 0) {
       const remainingIds = this.getSortedIds()
       this.minId = Number(remainingIds[0])

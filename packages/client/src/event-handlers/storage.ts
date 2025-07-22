@@ -11,8 +11,7 @@ export function registerStorageEventHandlers(
   })
 
   registerEventHandler('storage:messages', ({ messages }) => {
-    const messageStore = useMessageStore()
-    messageStore.pushMessages(messages)
+    useMessageStore().pushMessages(messages)
   })
 
   // Wait for result event

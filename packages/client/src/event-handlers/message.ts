@@ -6,7 +6,6 @@ export function registerMessageEventHandlers(
   registerEventHandler: ClientRegisterEventHandlerFn,
 ) {
   registerEventHandler('message:data', ({ messages }) => {
-    const messageStore = useMessageStore()
-    messageStore.pushMessages(messages)
+    useMessageStore().pushMessages(messages)
   })
 }
