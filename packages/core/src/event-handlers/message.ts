@@ -16,20 +16,12 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
       messageService.processMessages(messages)
     })
 
-    emitter.on('message:fetch', async ({ chatId, pagination, minId, maxId, startTime, endTime, skipMedia, messageTypes }) => {
-      logger.withFields({ chatId, minId, maxId }).verbose('Fetching messages')
+    emitter.on('message:fetch', async (opts) => {
+      logger.withFields({ chatId: opts.chatId, minId: opts.minId, maxId: opts.maxId }).verbose('Fetching messages')
       const batchSize = useConfig().message.batch.size
 
       let messages: Api.Message[] = []
-      for await (const message of messageService.fetchMessages(chatId, {
-        pagination,
-        minId,
-        maxId,
-        startTime,
-        endTime,
-        skipMedia,
-        messageTypes,
-      })) {
+      for await (const message of messageService.fetchMessages(opts.chatId, opts)) {
         messages.push(message)
 
         if (messages.length >= batchSize) {

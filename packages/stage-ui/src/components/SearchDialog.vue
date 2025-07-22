@@ -46,24 +46,7 @@ watch(keywordDebounced, (newKeyword) => {
   })
 })
 
-// function handleClickOutside(event: MouseEvent) {
-//   if (isOpen.value && searchDialogRef.value) {
-//     const target = event.target as HTMLElement
-//     const searchElement = searchDialogRef.value.$el as HTMLElement
-//     const searchButton = document.querySelector('[data-search-button]') as HTMLElement
-//     if (!searchElement.contains(target) && !searchButton?.contains(target)) {
-//       isOpen.value = false
-//     }
-//   }
-// }
-
-// onMounted(() => {
-//   document.addEventListener('click', handleClickOutside)
-// })
-
-// onUnmounted(() => {
-//   document.removeEventListener('click', handleClickOutside)
-// })
+// TODO: handle click outside to close the dialog
 </script>
 
 <template>
