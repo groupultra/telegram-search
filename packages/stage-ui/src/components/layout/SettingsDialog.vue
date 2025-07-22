@@ -14,7 +14,7 @@ const { isLoggedIn } = storeToRefs(sessionStore)
 const { logout } = sessionStore.handleAuth()
 
 const settingsStore = useSettingsStore()
-const { useCachedMessage } = storeToRefs(settingsStore)
+const { useCachedMessage, debugMode } = storeToRefs(settingsStore)
 
 function handleLogout() {
   logout()
@@ -59,6 +59,19 @@ function handleLogin() {
           </button>
         </div>
       </template>
+
+      <div class="flex items-center justify-between rounded-lg p-3 text-primary-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
+        <div class="flex items-center gap-2">
+          <div class="i-lucide-database h-5 w-5" />
+          <span>调试模式</span>
+        </div>
+        <Switch
+          v-model="debugMode"
+          class="text-primary transition-colors hover:text-primary/80"
+        >
+          {{ debugMode ? '开启' : '关闭' }}
+        </Switch>
+      </div>
 
       <div class="flex items-center justify-between rounded-lg p-3 text-primary-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
         <div class="flex items-center gap-2">

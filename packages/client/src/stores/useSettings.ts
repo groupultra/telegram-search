@@ -16,6 +16,7 @@ const getHueFrom = (color?: string) => color ? convert(color)?.h : DEFAULT_THEME
 export type ChatGroup = DialogType | ''
 
 export const useSettingsStore = defineStore('settings', () => {
+  const debugMode = useLocalStorage<boolean>('settings/debug', false)
   const selectedGroup = useLocalStorage<ChatGroup>('settings/group-selected', 'user')
   const useCachedMessage = useLocalStorage<boolean>('settings/use-cached-message-v2', true)
 
@@ -63,5 +64,6 @@ export const useSettingsStore = defineStore('settings', () => {
     config: storageConfig,
     selectedGroup,
     useCachedMessage,
+    debugMode,
   }
 })

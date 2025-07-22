@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreDialog } from '@tg-search/core/types'
 
-import { useChatStore, useMessageStore, useWebsocketStore } from '@tg-search/client'
+import { useChatStore, useMessageStore, useSettingsStore, useWebsocketStore } from '@tg-search/client'
 import { useWindowSize } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
@@ -18,6 +18,7 @@ const id = route.params.id
 const chatStore = useChatStore()
 const messageStore = useMessageStore()
 const websocketStore = useWebsocketStore()
+const { debugMode } = storeToRefs(useSettingsStore())
 
 const { sortedMessageIds, messageWindow, sortedMessageArray } = storeToRefs(messageStore)
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
@@ -125,7 +126,7 @@ function sendMessage() {
 <template>
   <div class="relative h-full flex flex-col">
     <!-- Debug Panel -->
-    <div class="absolute right-4 top-24 w-1/4 flex flex-col justify-left gap-2 rounded-lg bg-neutral-200 p-2 text-sm text-gray-500 font-mono dark:bg-neutral-800">
+    <div v-if="debugMode" class="absolute right-4 top-24 w-1/4 flex flex-col justify-left gap-2 rounded-lg bg-neutral-200 p-2 text-sm text-gray-500 font-mono dark:bg-neutral-800">
       <span>
         Height: {{ windowHeight }} / Messages: {{ sortedMessageArray.length }}
       </span>

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+// TODO: use vue-virtual-scroller instead
+
+import type { CoreMessage } from '@tg-search/core'
+
 import type { VirtualListItem } from '../composables/useVirtualList'
 
 import { useResizeObserver, useWindowSize } from '@vueuse/core'
@@ -8,10 +12,7 @@ import { useVirtualList } from '../composables/useVirtualList'
 import MessageBubble from './messages/MessageBubble.vue'
 
 interface Props {
-  messages: Array<{
-    id: string | number
-    [key: string]: any
-  }>
+  messages: CoreMessage[]
   onScrollToTop?: () => void
   onScrollToBottom?: () => void
   autoScrollToBottom?: boolean
@@ -34,7 +35,7 @@ const virtualItems = ref<VirtualListItem[]>([])
 
 watch(() => props.messages, (newMessages) => {
   virtualItems.value = newMessages.map(msg => ({
-    id: msg.id,
+    id: msg.uuid,
     data: msg,
     // Estimate height based on message content
     height: estimateMessageHeight(msg),
