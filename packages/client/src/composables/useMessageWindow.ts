@@ -21,7 +21,7 @@ export class MessageWindow {
 
     const sortedNewMessages = messages.sort((a, b) => Number(a.platformMessageId) - Number(b.platformMessageId))
 
-    messages.forEach((msg) => {
+    sortedNewMessages.forEach((msg) => {
       const msgId = msg.platformMessageId
 
       this.messages.set(msgId, msg)
@@ -52,8 +52,7 @@ export class MessageWindow {
 
   // Get all message IDs sorted
   getSortedIds(): string[] {
-    return Array.from(this.messages.keys())
-      .sort((a, b) => Number(a) - Number(b))
+    return Array.from(this.messages.keys()).sort((a, b) => Number(a) - Number(b))
   }
 
   // Get current size
