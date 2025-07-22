@@ -2,7 +2,6 @@ import type { ClientRegisterEventHandler } from '.'
 
 import { useChatStore } from '../stores/useChat'
 import { useMessageStore } from '../stores/useMessage'
-import { determineMessageDirection } from '../utils/messageDirection'
 
 export function registerStorageEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
@@ -13,8 +12,7 @@ export function registerStorageEventHandlers(
 
   registerEventHandler('storage:messages', ({ messages }) => {
     const messageStore = useMessageStore()
-    const direction = determineMessageDirection(messages, messageStore.messageWindow)
-    messageStore.pushMessages(messages, direction)
+    messageStore.pushMessages(messages)
   })
 
   // Wait for result event

@@ -6,6 +6,7 @@ import { computed, ref } from 'vue'
 
 import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
+import { determineMessageDirection } from '../utils/message'
 import { useWebsocketStore } from './useWebsocket'
 
 function createContextWithTimeout(timeout: number) {
@@ -20,8 +21,10 @@ export const useMessageStore = defineStore('message', () => {
 
   const websocketStore = useWebsocketStore()
 
-  async function pushMessages(messages: CoreMessage[], direction: 'older' | 'newer' | 'initial' = 'initial') {
+  async function pushMessages(messages: CoreMessage[]) {
     const filteredMessages = messages.filter(msg => msg.chatId === currentChatId.value)
+
+    const direction = determineMessageDirection(filteredMessages, messageWindow.value)
 
     // eslint-disable-next-line no-console
     console.log(`[MessageStore] Push ${filteredMessages.length} messages (${direction})`, filteredMessages)

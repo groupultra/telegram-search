@@ -2,7 +2,6 @@ import type { CoreMessage } from '@tg-search/core'
 
 import type { MessageWindow } from '../composables/useMessageWindow'
 
-// Determine message direction based on current window state
 export function determineMessageDirection(
   messages: CoreMessage[],
   messageWindow: MessageWindow | undefined,
