@@ -61,16 +61,6 @@ export class MessageWindow {
     return this.messages.size
   }
 
-  // Get center message ID (approximately middle of the window)
-  getCenterMessageId(): string | undefined {
-    const sortedIds = this.getSortedIds()
-    if (sortedIds.length === 0)
-      return undefined
-
-    const centerIndex = Math.floor(sortedIds.length / 2)
-    return sortedIds[centerIndex]
-  }
-
   // Clean up a single message and its blob URLs
   private cleanupMessage(msgId: string): void {
     const message = this.messages.get(msgId)
