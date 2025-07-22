@@ -19,7 +19,7 @@ const chatStore = useChatStore()
 const messageStore = useMessageStore()
 const websocketStore = useWebsocketStore()
 
-const { sortedMessageIds, messageWindow } = storeToRefs(messageStore)
+const { sortedMessageIds, messageWindow, sortedMessageArray } = storeToRefs(messageStore)
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
 const messageLimit = ref(20)
@@ -43,17 +43,6 @@ onMounted(async () => {
   if (sortedMessageIds.value.length === 0) {
     await loadOlderMessages()
   }
-})
-
-// Get messages as array for virtual list
-const messagesArray = computed(() => {
-  return sortedMessageIds.value
-    .map(id => messageWindow.value?.get(id))
-    .filter(Boolean)
-    .map(msg => ({
-      id: msg!.uuid,
-      ...msg,
-    }))
 })
 
 // Load older messages when scrolling to top
@@ -138,7 +127,7 @@ function sendMessage() {
     <!-- Debug Panel -->
     <div class="absolute right-4 top-24 w-1/4 flex flex-col justify-left gap-2 rounded-lg bg-neutral-200 p-2 text-sm text-gray-500 font-mono dark:bg-neutral-800">
       <span>
-        Height: {{ windowHeight }} / Messages: {{ messagesArray.length }}
+        Height: {{ windowHeight }} / Messages: {{ sortedMessageArray.length }}
       </span>
       <span>
         IDs: {{ sortedMessageIds[0] }} - {{ sortedMessageIds[sortedMessageIds.length - 1] }}
@@ -186,7 +175,7 @@ function sendMessage() {
     <div class="flex-1 overflow-hidden bg-white dark:bg-gray-900">
       <VirtualMessageList
         ref="virtualListRef"
-        :messages="messagesArray"
+        :messages="sortedMessageArray"
         :on-scroll-to-top="loadOlderMessages"
         :on-scroll-to-bottom="loadNewerMessages"
         @scroll="handleVirtualListScroll"

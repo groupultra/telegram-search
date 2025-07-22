@@ -98,6 +98,8 @@ export const useMessageStore = defineStore('message', () => {
   return {
     chatId: computed(() => currentChatId),
     sortedMessageIds: computed(() => messageWindow.value?.getSortedIds() ?? []),
+    // FIXME: too heavy to compute every time
+    sortedMessageArray: computed(() => messageWindow.value?.getSortedIds().map(id => messageWindow.value!.get(id)!)!),
     messageWindow,
 
     pushMessages,
