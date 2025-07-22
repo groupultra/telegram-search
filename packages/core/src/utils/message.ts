@@ -1,4 +1,3 @@
-
 import type { Result } from '@tg-search/result'
 
 import type { CoreMessageMediaFromServer } from './media'
