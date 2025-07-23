@@ -42,14 +42,14 @@ function copyMessageLink(message: CoreMessage) {
         size="sm"
       />
       <div class="min-w-0 flex-1">
-        <div class="truncate text-sm text-primary-900 font-semibold dark:text-gray-100">
+        <div class="truncate text-sm text-gray-900 font-semibold dark:text-gray-100">
           {{ item.fromName }}
         </div>
-        <div class="whitespace-pre-wrap break-words text-sm text-complementary-500 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
+        <div class="whitespace-pre-wrap break-words text-sm text-gray-500 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
       </div>
       <div
         v-if="hoveredMessage === item"
-        class="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded bg-background/50 px-1 py-0.5 text-[10px] text-complementary-500 opacity-50 dark:bg-gray-800/50 dark:text-gray-400"
+        class="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded bg-background/50 px-1 py-0.5 text-[10px] text-gray-500 opacity-50 dark:bg-gray-800/50 dark:text-gray-400"
       >
         <span>{{ copied ? '已复制' : '按下复制消息链接' }}</span>
         <span v-if="!copied" class="i-lucide-corner-down-left h-2.5 w-2.5" />

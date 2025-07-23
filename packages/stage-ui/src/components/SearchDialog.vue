@@ -56,11 +56,11 @@ watch(keywordDebounced, (newKeyword) => {
       <div class="flex items-center gap-2 border-b px-4 py-3 dark:border-gray-700">
         <input
           v-model="keyword"
-          class="w-full bg-transparent text-primary-900 outline-none dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+          class="w-full bg-transparent text-gray-900 outline-none dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
           placeholder="搜索消息..."
         >
         <button
-          class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
+          class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
           @click="showSettings = !showSettings"
         >
           <span class="i-lucide-chevron-down h-4 w-4 transition-transform" :class="{ 'rotate-180': showSettings }" />
@@ -82,13 +82,13 @@ watch(keywordDebounced, (newKeyword) => {
           <MessageList :messages="searchResult" :keyword="keyword" />
         </template>
         <template v-else-if="isLoading">
-          <div class="flex flex-col items-center justify-center py-12 text-complementary-500 opacity-70 dark:text-gray-400">
+          <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
             <span class="i-lucide-loader-circle mb-2 animate-spin text-3xl" />
             <span>搜索中...</span>
           </div>
         </template>
         <template v-else-if="searchResult.length === 0">
-          <div class="flex flex-col items-center justify-center py-12 text-complementary-500 opacity-70 dark:text-gray-400">
+          <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
             <span class="i-lucide-search mb-2 text-3xl" />
             <span>没有找到相关消息</span>
           </div>

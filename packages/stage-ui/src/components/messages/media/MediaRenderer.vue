@@ -124,7 +124,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="message.content" class="mb-2 whitespace-pre-wrap text-primary-900 dark:text-gray-100">
+  <div v-if="message.content" class="mb-2 whitespace-pre-wrap text-gray-900 dark:text-gray-100">
     {{ message.content }}
   </div>
 

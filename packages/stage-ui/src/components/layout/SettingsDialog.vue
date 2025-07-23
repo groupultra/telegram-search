@@ -29,16 +29,16 @@ function handleLogin() {
   <Dialog v-model="showDialog">
     <div class="mb-6 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <div class="i-lucide-settings h-5 w-5 text-primary-900 dark:text-gray-100" />
-        <span class="text-lg text-primary-900 font-medium dark:text-gray-100">设置</span>
+        <div class="i-lucide-settings h-5 w-5 text-gray-900 dark:text-gray-100" />
+        <span class="text-lg text-gray-900 font-medium dark:text-gray-100">设置</span>
       </div>
-      <button class="rounded-md p-1 text-primary-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50" @click="showDialog = false">
+      <button class="rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50" @click="showDialog = false">
         <div class="i-lucide-x h-5 w-5" />
       </button>
     </div>
     <div class="space-y-4">
       <template v-if="!isLoggedIn">
-        <div class="flex items-center justify-between rounded-lg p-3 text-primary-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
+        <div class="flex items-center justify-between rounded-lg p-3 text-gray-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
           <div class="flex items-center gap-2">
             <div class="i-lucide-log-in h-5 w-5" />
             <span>登录</span>
@@ -49,7 +49,7 @@ function handleLogin() {
         </div>
       </template>
       <template v-else>
-        <div class="flex items-center justify-between rounded-lg p-3 text-primary-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
+        <div class="flex items-center justify-between rounded-lg p-3 text-gray-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
           <div class="flex items-center gap-2">
             <div class="i-lucide-log-out h-5 w-5" />
             <span>退出登录</span>
@@ -60,7 +60,7 @@ function handleLogin() {
         </div>
       </template>
 
-      <div class="flex items-center justify-between rounded-lg p-3 text-primary-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
+      <div class="flex items-center justify-between rounded-lg p-3 text-gray-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
         <div class="flex items-center gap-2">
           <div class="i-lucide-database h-5 w-5" />
           <span>调试模式</span>
@@ -73,7 +73,7 @@ function handleLogin() {
         </Switch>
       </div>
 
-      <div class="flex items-center justify-between rounded-lg p-3 text-primary-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
+      <div class="flex items-center justify-between rounded-lg p-3 text-gray-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
         <div class="flex items-center gap-2">
           <div class="i-lucide-database h-5 w-5" />
           <span>使用数据库缓存的聊天记录</span>

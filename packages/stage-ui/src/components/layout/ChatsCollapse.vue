@@ -37,7 +37,7 @@ function toggleActive() {
       @click="toggleActive"
     >
       <div
-        class="flex items-center gap-4 rounded-md px-6 text-primary-900 dark:text-gray-100"
+        class="flex items-center gap-4 rounded-md px-6 text-gray-900 dark:text-gray-100"
       >
         <span :class="icon" class="h-5 w-5" />
         <span class="whitespace-nowrap">{{ name }}</span>
@@ -45,7 +45,7 @@ function toggleActive() {
 
       <div
         :class="active ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
-        class="h-4 w-4 cursor-pointer px-6 text-primary-900 transition-transform duration-200 dark:text-gray-100"
+        class="h-4 w-4 cursor-pointer px-6 text-gray-900 transition-transform duration-200 dark:text-gray-100"
       />
     </div>
 
@@ -66,11 +66,11 @@ function toggleActive() {
           size="sm"
         />
         <div class="flex flex-col overflow-hidden">
-          <span class="truncate text-primary-900 dark:text-gray-100">
+          <span class="truncate text-gray-900 dark:text-gray-100">
             {{ chat.name }}
           </span>
 
-          <span class="whitespace-nowrap text-xs text-complementary-600 dark:text-gray-400">
+          <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
             {{ chat.id }}
           </span>
         </div>

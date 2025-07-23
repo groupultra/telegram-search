@@ -212,7 +212,7 @@ function sendMessage() {
         <template #settings>
           <div class="flex items-center">
             <input id="searchContent" type="checkbox" class="mr-1 border-border rounded">
-            <label for="searchContent" class="text-sm text-primary-900 dark:text-gray-100">搜索内容</label>
+            <label for="searchContent" class="text-sm text-gray-900 dark:text-gray-100">搜索内容</label>
           </div>
         </template>
       </SearchDialog>

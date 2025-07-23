@@ -49,7 +49,7 @@ watch(keywordDebounced, (newKeyword) => {
   <div class="h-full flex flex-col">
     <header class="flex items-center border-b border-b-neutral-200 p-4 px-4 dark:border-b-gray-700">
       <div class="flex items-center gap-2">
-        <span class="text-lg text-primary-900 font-medium dark:text-gray-100">Search</span>
+        <span class="text-lg text-gray-900 font-medium dark:text-gray-100">Search</span>
       </div>
     </header>
 
@@ -58,11 +58,11 @@ watch(keywordDebounced, (newKeyword) => {
       <div class="w-full flex items-center gap-2">
         <input
           v-model="keyword"
-          class="flex-1 border border-neutral-200 rounded-md bg-white px-4 py-2 text-primary-900 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
+          class="flex-1 border border-neutral-200 rounded-md bg-white px-4 py-2 text-gray-900 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
           placeholder="Search messages..."
         >
         <button
-          class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-primary-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
+          class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
           @click="showSettings = !showSettings"
         >
           <span class="i-lucide-chevron-down h-4 w-4 transition-transform" :class="{ 'rotate-180': showSettings }" />
@@ -85,13 +85,13 @@ watch(keywordDebounced, (newKeyword) => {
         <MessageList :messages="searchResult" :keyword="keyword" />
       </template>
       <template v-else-if="isLoading">
-        <div class="flex flex-col items-center justify-center py-12 text-complementary-500 opacity-70 dark:text-gray-400">
+        <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
           <span class="i-lucide-loader-circle mb-2 animate-spin text-3xl" />
           <span>搜索中...</span>
         </div>
       </template>
       <template v-else-if="searchResult.length === 0">
-        <div class="flex flex-col items-center justify-center py-12 text-complementary-500 opacity-70 dark:text-gray-400">
+        <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
           <span class="i-lucide-search mb-2 text-3xl" />
           <span>没有找到相关消息</span>
         </div>
