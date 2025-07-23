@@ -28,7 +28,7 @@
     "@proj-airi/unocss-preset-chromatic": "^1.0.0",
     "@tg-search/eslint-config": "catalog:",
     "@tg-search/logg": "catalog:",
-    "@types/node": "^24.0.14",
+    "@types/node": "^24.1.0",
     "bumpp": "^10.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

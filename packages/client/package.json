@@ -20,8 +20,8 @@
     "pako": "^2.1.0",
     "pinia": "^3.0.3",
     "uuid": "^11.1.0",
-    "vue": "^3.5.17",
-    "vue-sonner": "^2.0.1"
+    "vue": "^3.5.18",
+    "vue-sonner": "^2.0.2"
   },
   "devDependencies": {
     "@types/culori": "^4.0.0",
