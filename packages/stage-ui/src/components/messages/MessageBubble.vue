@@ -27,7 +27,7 @@ const formattedTimestamp = computed(() => {
     </div>
     <div class="flex-1">
       <div class="mb-1 flex items-center gap-2">
-        <span class="whitespace-nowrap text-primary text-gray-900 font-medium dark:text-gray-100">{{ message.fromName }}</span>
+        <span class="whitespace-nowrap text-gray-900 text-primary font-medium dark:text-gray-100">{{ message.fromName }}</span>
         <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ formattedTimestamp }}</span>
         <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ message.platformMessageId }}</span>
       </div>
