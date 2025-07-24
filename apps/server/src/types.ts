@@ -1,2 +1,1 @@
-export type * from './app'
-export type * from './ws-event'
+export type * from './ws'
