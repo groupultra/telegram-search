@@ -8,6 +8,7 @@ import type { DialogEventFromCore, DialogEventToCore } from './services/dialog'
 import type { EntityEventFromCore, EntityEventToCore } from './services/entity'
 import type { GramEventsEventFromCore, GramEventsEventToCore } from './services/gram-events'
 import type { MessageEventFromCore, MessageEventToCore } from './services/message'
+import type { MessageResolverEventFromCore, MessageResolverEventToCore } from './services/message-resolver'
 import type { StorageEventFromCore, StorageEventToCore } from './services/storage'
 import type { TakeoutEventFromCore, TakeoutEventToCore } from './services/takeout'
 
@@ -15,7 +16,6 @@ import { useLogger } from '@tg-search/logg'
 import { EventEmitter } from 'eventemitter3'
 import { Api } from 'telegram'
 import { FloodWaitError } from 'telegram/errors'
-import type { MessageResolverEventFromCore, MessageResolverEventToCore } from './services/message-resolver'
 
 export type FromCoreEvent = ClientInstanceEventFromCore
   & MessageEventFromCore
