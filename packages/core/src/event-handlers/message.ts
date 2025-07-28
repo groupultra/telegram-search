@@ -11,11 +11,6 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
   const logger = useLogger('core:message:event')
 
   return (messageService: MessageService) => {
-    // TODO: debounce, background tasks
-    emitter.on('message:process', ({ messages }) => {
-      messageService.processMessages(messages)
-    })
-
     emitter.on('message:fetch', async (opts) => {
       logger.withFields({ chatId: opts.chatId, minId: opts.minId, maxId: opts.maxId }).verbose('Fetching messages')
       const batchSize = useConfig().message.batch.size

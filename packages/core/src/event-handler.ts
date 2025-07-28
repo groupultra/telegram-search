@@ -11,6 +11,7 @@ import { registerDialogEventHandlers } from './event-handlers/dialog'
 import { registerEntityEventHandlers } from './event-handlers/entity'
 import { registerGramEventsEventHandlers } from './event-handlers/gram-events'
 import { registerMessageEventHandlers } from './event-handlers/message'
+import { registerMessageResolverEventHandlers } from './event-handlers/message-resolver'
 import { registerSessionEventHandlers } from './event-handlers/session'
 import { registerStorageEventHandlers } from './event-handlers/storage'
 import { registerTakeoutEventHandlers } from './event-handlers/takeout'
@@ -26,6 +27,7 @@ import { createDialogService } from './services/dialog'
 import { createEntityService } from './services/entity'
 import { createGramEventsService } from './services/gram-events'
 import { createMessageService } from './services/message'
+import { createMessageResolverService } from './services/message-resolver'
 import { createSessionService } from './services/session'
 import { createTakeoutService } from './services/takeout'
 
@@ -35,6 +37,8 @@ export function authEventHandler(
   ctx: CoreContext,
   config: Config,
 ): EventHandler {
+  const registry = useMessageResolverRegistry()
+
   const sessionService = useService(ctx, createSessionService)
   const connectionService = useService(ctx, createConnectionService)({
     apiId: Number(config.api.telegram.apiId),
@@ -42,11 +46,19 @@ export function authEventHandler(
     proxy: config.api.telegram.proxy,
   })
   const configService = useService(ctx, createConfigService)
+  const messageResolverService = useService(ctx, createMessageResolverService)(registry)
+
+  registry.register('media', createMediaResolver(ctx))
+  registry.register('user', createUserResolver(ctx))
+  registry.register('link', createLinkResolver())
+  registry.register('embedding', createEmbeddingResolver())
+  registry.register('jieba', createJiebaResolver())
 
   registerAuthEventHandlers(ctx)(connectionService, sessionService)
   registerSessionEventHandlers(ctx)(sessionService)
   registerStorageEventHandlers(ctx)
   registerConfigEventHandlers(ctx)(configService)
+  registerMessageResolverEventHandlers(ctx)(messageResolverService)
 
   return () => {}
 }
@@ -56,20 +68,13 @@ export function afterConnectedEventHandler(
   _config: Config,
 ): EventHandler {
   const { emitter } = ctx
-  const registry = useMessageResolverRegistry()
 
   emitter.on('auth:connected', () => {
-    const messageService = useService(ctx, createMessageService)(registry)
+    const messageService = useService(ctx, createMessageService)
     const dialogService = useService(ctx, createDialogService)
     const takeoutService = useService(ctx, createTakeoutService)
     const entityService = useService(ctx, createEntityService)
     const gramEventsService = useService(ctx, createGramEventsService)
-
-    registry.register('media', createMediaResolver(ctx))
-    registry.register('user', createUserResolver(ctx))
-    registry.register('link', createLinkResolver())
-    registry.register('embedding', createEmbeddingResolver())
-    registry.register('jieba', createJiebaResolver())
 
     registerMessageEventHandlers(ctx)(messageService)
     registerDialogEventHandlers(ctx)(dialogService)

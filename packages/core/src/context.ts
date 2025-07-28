@@ -15,6 +15,7 @@ import { useLogger } from '@tg-search/logg'
 import { EventEmitter } from 'eventemitter3'
 import { Api } from 'telegram'
 import { FloodWaitError } from 'telegram/errors'
+import type { MessageResolverEventFromCore, MessageResolverEventToCore } from './services/message-resolver'
 
 export type FromCoreEvent = ClientInstanceEventFromCore
   & MessageEventFromCore
@@ -26,6 +27,7 @@ export type FromCoreEvent = ClientInstanceEventFromCore
   & StorageEventFromCore
   & ConfigEventFromCore
   & GramEventsEventFromCore
+  & MessageResolverEventFromCore
 
 export type ToCoreEvent = ClientInstanceEventToCore
   & MessageEventToCore
@@ -37,6 +39,7 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & StorageEventToCore
   & ConfigEventToCore
   & GramEventsEventToCore
+  & MessageResolverEventToCore
 
 export type CoreEvent = FromCoreEvent & ToCoreEvent
 
