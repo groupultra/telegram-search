@@ -5,6 +5,7 @@ import type { CoreMessageMediaFromServer } from './media'
 import { randomUUID } from 'node:crypto'
 
 import { Err, Ok } from '@tg-search/result'
+import bigInt from 'big-integer'
 import { Api } from 'telegram'
 
 import { parseMediaId, parseMediaType } from './media'
@@ -56,7 +57,8 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
   const messageUUID = randomUUID()
 
   const sender = message.sender
-  const senderId = message.senderId
+  const senderId = typeof message.senderId === 'string' ? bigInt(Number(message.senderId)) : message.senderId
+
   if ((!sender && !senderId) || (sender instanceof Api.UserEmpty) || (sender instanceof Api.ChatEmpty)) {
     return Err(new Error(`Message ${message.id} has no sender or sender is empty`))
   }
