@@ -14,14 +14,24 @@ import { chatMessagesTable } from '../../schemas/chat_messages'
 
 let jieba: Jieba | undefined
 
+export async function ensureJieba() {
+  const logger = useLogger('models:retrieve-jieba')
+
+  if (!jieba) {
+    const dictPath = useConfig().path.dict
+    if (existsSync(dictPath)) {
+      logger.withFields({ dictPath }).log('Loading jieba dict')
+      jieba = Jieba.withDict(readFileSync(dictPath))
+    }
+  }
+
+  return jieba
+}
+
 export async function retrieveJieba(chatId: string | undefined, content: string, pagination?: CorePagination): Promise<DBRetrievalMessages[]> {
   const logger = useLogger('models:retrieve-jieba')
 
-  const dictPath = useConfig().path.dict
-  if (existsSync(dictPath)) {
-    logger.withFields({ dictPath }).log('Loading jieba dict')
-    jieba = Jieba.withDict(readFileSync(dictPath))
-  }
+  const jieba = await ensureJieba()
 
   const jiebaTokens = jieba?.cut(content) || []
   if (jiebaTokens.length === 0) {
