@@ -57,7 +57,7 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
   const messageUUID = randomUUID()
 
   const sender = message.sender
-  const senderId = typeof message.senderId === 'string' ? bigInt(Number(message.senderId)) : message.senderId
+  const senderId = typeof message.senderId === 'string' ? bigInt(message.senderId) : message.senderId
 
   if ((!sender && !senderId) || (sender instanceof Api.UserEmpty) || (sender instanceof Api.ChatEmpty)) {
     return Err(new Error(`Message ${message.id} has no sender or sender is empty`))
