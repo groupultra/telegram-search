@@ -12,27 +12,26 @@ import { and, eq, sql } from 'drizzle-orm'
 import { withDb } from '../../drizzle'
 import { chatMessagesTable } from '../../schemas/chat_messages'
 
-let jieba: Jieba | undefined
+let _jieba: Jieba | undefined
 
-export async function ensureJieba() {
+export function ensureJieba() {
   const logger = useLogger('models:retrieve-jieba')
 
-  if (!jieba) {
+  if (!_jieba) {
     const dictPath = useConfig().path.dict
     if (existsSync(dictPath)) {
       logger.withFields({ dictPath }).log('Loading jieba dict')
-      jieba = Jieba.withDict(readFileSync(dictPath))
+      _jieba = Jieba.withDict(readFileSync(dictPath))
     }
   }
 
-  return jieba
+  return _jieba
 }
 
 export async function retrieveJieba(chatId: string | undefined, content: string, pagination?: CorePagination): Promise<DBRetrievalMessages[]> {
   const logger = useLogger('models:retrieve-jieba')
 
-  const jieba = await ensureJieba()
-
+  const jieba = ensureJieba()
   const jiebaTokens = jieba?.cut(content) || []
   if (jiebaTokens.length === 0) {
     return []
