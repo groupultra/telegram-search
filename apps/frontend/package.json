@@ -41,7 +41,7 @@
     "unplugin-vue-macros": "^2.14.5",
     "unplugin-vue-router": "^0.14.0",
     "vite-plugin-inspect": "^11.3.2",
-    "vite-plugin-vue-devtools": "^7.7.7",
+    "vite-plugin-vue-devtools": "^8.0.0",
     "vite-plugin-vue-layouts": "^0.11.0",
     "vue-tsc": "^3.0.4"
   }
