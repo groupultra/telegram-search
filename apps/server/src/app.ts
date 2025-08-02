@@ -18,7 +18,7 @@ async function initCore(): Promise<ReturnType<typeof useLogger>> {
   await initConfig()
 
   try {
-    await initDrizzle()
+    await initDrizzle(logger)
     logger.log('Database initialized successfully')
   }
   catch (error) {
