@@ -1,0 +1,1 @@
+export const MESSAGE_PROCESS_BATCH_SIZE = 100
