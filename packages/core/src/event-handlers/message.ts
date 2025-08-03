@@ -4,7 +4,7 @@ import type { MessageService } from '../services'
 import { useLogger } from '@tg-search/logg'
 import { Api } from 'telegram/tl'
 
-import { useConfig } from '../../../common/src/node'
+import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 
 export function registerMessageEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
@@ -13,13 +13,12 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
   return (messageService: MessageService) => {
     emitter.on('message:fetch', async (opts) => {
       logger.withFields({ chatId: opts.chatId, minId: opts.minId, maxId: opts.maxId }).verbose('Fetching messages')
-      const batchSize = useConfig().message.batch.size
 
       let messages: Api.Message[] = []
       for await (const message of messageService.fetchMessages(opts.chatId, opts)) {
         messages.push(message)
 
-        if (messages.length >= batchSize) {
+        if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
           emitter.emit('message:process', { messages })
           messages = []
         }

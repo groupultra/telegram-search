@@ -44,20 +44,8 @@ export const databaseConfigSchema = object({
   url: optional(string()),
 })
 
-export const messageConfigSchema = object({
-  export: optional(object({
-    batchSize: optional(number(), 200),
-    concurrent: optional(number(), 3),
-    retryTimes: optional(number(), 3),
-    maxTakeoutRetries: optional(number(), 3),
-  }), {}),
-  batch: optional(object({
-    size: optional(number(), 100),
-  }), {}),
-})
-
 export const pathConfigSchema = object({
-  storage: optional(string(), '~/.telegram-search'),
+  storage: optional(string(), '.cache'),
   dict: optional(string(), ''),
   assets: optional(string(), ''),
 })
@@ -84,7 +72,6 @@ export const apiConfigSchema = object({
 
 export const configSchema = object({
   database: optional(databaseConfigSchema, {}),
-  message: optional(messageConfigSchema, {}),
   path: optional(pathConfigSchema, {}),
   api: optional(apiConfigSchema, {}),
 })

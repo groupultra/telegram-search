@@ -2,36 +2,13 @@
 database:
   # Database type: postgres, pglite
   type: postgres
+
   # PostgreSQL configuration (used when type: postgres)
-  # Can use URL or separate field configuration
-  # url: postgres://postgres:postgres@localhost:5432/tg_search
   host: localhost
-  port: 5433
+  port: 5433 # 5433 for local, 5432 for docker
   user: postgres
   password: '123456'
   database: postgres
-
-# Message settings
-message:
-  # Export settings
-  export:
-    # Number of messages to fetch in each request
-    batchSize: 200
-    # Number of concurrent requests
-    concurrent: 3
-    # Number of retry attempts
-    retryTimes: 3
-    # Number of retry attempts for takeout session (0 means infinite retries)
-    maxTakeoutRetries: 3
-  # Database batch settings
-  batch:
-    # Number of messages to save in each batch
-    size: 100
-
-# Path settings
-path:
-  # Storage path
-  storage: ~/.telegram-search
 
 # API settings
 api:

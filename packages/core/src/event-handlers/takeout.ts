@@ -7,7 +7,7 @@ import { usePagination } from '@tg-search/common/utils/pagination'
 import { getChatMessageStatsByChatId } from '@tg-search/db'
 import { useLogger } from '@tg-search/logg'
 
-import { useConfig } from '../../../common/src/node'
+import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 
 export function registerTakeoutEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
@@ -17,7 +17,6 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
     emitter.on('takeout:run', async ({ chatIds, increase }) => {
       logger.withFields({ chatIds, increase }).verbose('Running takeout')
       const pagination = usePagination()
-      const batchSize = useConfig().message.batch.size
 
       // Increase export
       const increaseOptions: { chatId: string, firstMessageId: number, latestMessageId: number }[] = await Promise.all(
@@ -49,7 +48,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
           messages.push(message)
           // logger.withFields(message).debug('Message taken out')
 
-          if (messages.length >= batchSize) {
+          if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
             emitter.emit('message:process', { messages })
             messages = []
           }
