@@ -75,8 +75,7 @@ export function setupWsRoutes(app: App) {
       const urlSessionId = url.searchParams.get('sessionId')
 
       if (!urlSessionId) {
-        // TODO: add error response
-        return new Response('Session ID is required', { status: 400 })
+        return Response.json({ success: false, error: 'Session ID is required' }, { status: 400 })
       }
     },
 
