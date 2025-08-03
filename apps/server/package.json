@@ -6,8 +6,8 @@
     "./types": "./src/types.ts"
   },
   "scripts": {
-    "serve": "vite-node src/index.ts",
-    "dev": "vite-node src/index.ts",
+    "serve": "tsx src/app.ts",
+    "dev": "tsx src/app.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

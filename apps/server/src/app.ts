@@ -114,8 +114,8 @@ async function bootstrap() {
     server.close()
     process.exit(0)
   }
-  process.on('SIGINT', shutdown)
-  process.on('SIGTERM', shutdown)
+  process.prependListener('SIGINT', shutdown)
+  process.prependListener('SIGTERM', shutdown)
 
   return app
 }
