@@ -15,7 +15,7 @@
     "@formkit/auto-animate": "^0.8.2",
     "@iconify/vue": "^5.0.0",
     "@node-rs/jieba": "^2.0.1",
-    "@tanstack/vue-query": "^5.83.0",
+    "@tanstack/vue-query": "^5.83.1",
     "@tanstack/vue-table": "^8.21.3",
     "@tg-search/client": "workspace:*",
     "@tg-search/common": "workspace:*",
@@ -38,21 +38,21 @@
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^1.0.1",
-    "@iconify-json/lucide": "^1.2.59",
+    "@iconify-json/lucide": "^1.2.60",
     "@rollup/plugin-alias": "^5.1.1",
-    "@unocss/reset": "^66.3.3",
+    "@unocss/reset": "^66.4.1",
     "@vitejs/plugin-vue": "^6.0.1",
-    "@vue-macros/volar": "^3.0.0-beta.19",
+    "@vue-macros/volar": "^3.0.0-beta.20",
     "electron": "^37.2.5",
     "electron-builder": "^26.0.12",
     "electron-vite": "^4.0.0",
     "pathe": "^2.0.3",
-    "unocss": "^66.3.3",
+    "unocss": "^66.4.1",
     "unplugin-vue-macros": "^2.14.5",
     "unplugin-vue-router": "^0.14.0",
     "vite-plugin-inspect": "^11.3.2",
     "vite-plugin-vue-devtools": "^8.0.0",
     "vite-plugin-vue-layouts": "^0.11.0",
-    "vue-tsc": "^3.0.4"
+    "vue-tsc": "^3.0.5"
   }
 }

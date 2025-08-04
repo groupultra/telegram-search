@@ -10,9 +10,9 @@ catalog:
   '@unbird/eslint-config': ^1.0.1
   '@unbird/logg': ^1.1.0
   '@unbird/result': ^1.1.0
-  '@xsai-ext/providers-cloud': ^0.3.3
-  '@xsai-ext/providers-local': ^0.3.3
-  '@xsai/embed': ^0.3.3
+  '@xsai-ext/providers-cloud': ^0.3.5
+  '@xsai-ext/providers-local': ^0.3.5
+  '@xsai/embed': ^0.3.5
 
 onlyBuiltDependencies:
   - '@parcel/watcher'

@@ -3,9 +3,9 @@
   "type": "module",
   "version": "1.0.0-beta.21",
   "private": true,
-  "packageManager": "pnpm@10.13.1",
+  "packageManager": "pnpm@10.14.0",
   "engines": {
-    "node": ">=22.17.1"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "dev:server": "pnpm -F @tg-search/server dev",
@@ -26,10 +26,10 @@
   },
   "devDependencies": {
     "@proj-airi/unocss-preset-chromatic": "^1.0.0",
-    "@types/node": "^24.1.0",
+    "@types/node": "^24.2.0",
     "@unbird/eslint-config": "catalog:",
     "@unbird/logg": "catalog:",
-    "bumpp": "^10.2.1",
+    "bumpp": "^10.2.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-kit": "^0.31.4",
@@ -37,8 +37,8 @@
     "tailwind-merge": "^3.3.1",
     "taze": "^19.1.0",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3",
-    "unocss": "^66.3.3",
+    "typescript": "^5.9.2",
+    "unocss": "^66.4.1",
     "unocss-preset-animations": "^1.2.1",
     "unocss-preset-shadcn": "^0.5.0",
     "unplugin-unused": "^0.5.1",
