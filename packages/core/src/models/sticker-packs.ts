@@ -2,7 +2,7 @@
 
 import { desc } from 'drizzle-orm'
 
-import { withDb } from '../drizzle'
+import { withDb } from '../db'
 import { stickerPacksTable } from '../schemas/sticker_packs'
 
 export async function recordStickerPack(platformId: string, name: string, platform = 'telegram') {

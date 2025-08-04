@@ -4,7 +4,7 @@ import type { CoreDialog } from '../../../core/src'
 
 import { desc, eq, sql } from 'drizzle-orm'
 
-import { withDb } from '../drizzle'
+import { withDb } from '../db'
 import { joinedChatsTable } from '../schemas/joined_chats'
 
 export async function fetchChats() {

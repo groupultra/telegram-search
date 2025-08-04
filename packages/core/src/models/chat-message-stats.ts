@@ -1,7 +1,7 @@
 import { Ok } from '@unbird/result'
 import { and, eq } from 'drizzle-orm'
 
-import { withDb } from '../drizzle'
+import { withDb } from '../db'
 import { chatMessageStatsView } from '../schemas/chat_message_stats'
 
 export async function getChatMessagesStats() {

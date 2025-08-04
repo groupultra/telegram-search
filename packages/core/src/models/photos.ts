@@ -6,7 +6,7 @@ import type { DBInsertPhoto } from './utils/photos'
 import { Ok } from '@unbird/result'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
-import { withDb } from '../drizzle'
+import { withDb } from '../db'
 import { photosTable } from '../schemas/photos'
 import { must0 } from './utils/must'
 

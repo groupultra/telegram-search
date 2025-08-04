@@ -7,8 +7,7 @@ import process from 'node:process'
 
 import { parseEnvFlags } from '@tg-search/common'
 import { initConfig } from '@tg-search/common/node'
-import { createCoreInstance } from '@tg-search/core'
-import { initDrizzle } from '@tg-search/db'
+import { createCoreInstance, initDrizzle } from '@tg-search/core'
 import { initLogger, useLogger } from '@unbird/logg'
 import { ipcMain } from 'electron/main'
 

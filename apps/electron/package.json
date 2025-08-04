@@ -20,7 +20,6 @@
     "@tg-search/client": "workspace:*",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
-    "@tg-search/db": "workspace:*",
     "@tg-search/stage-ui": "workspace:*",
     "@unbird/logg": "catalog:",
     "@vueuse/core": "^13.6.0",

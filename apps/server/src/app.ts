@@ -4,7 +4,7 @@ import process from 'node:process'
 
 import { flags, parseEnvFlags } from '@tg-search/common'
 import { initConfig } from '@tg-search/common/node'
-import { initDrizzle } from '@tg-search/db'
+import { initDrizzle } from '@tg-search/core'
 import { initLogger, useLogger } from '@unbird/logg'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'

@@ -9,7 +9,7 @@ import { useLogger } from '@unbird/logg'
 import { Ok } from '@unbird/result'
 import { desc, eq, sql } from 'drizzle-orm'
 
-import { withDb } from '../drizzle'
+import { withDb } from '../db'
 import { chatMessagesTable } from '../schemas/chat_messages'
 import { findPhotosByMessageIds, recordPhotos } from './photos'
 import { recordStickers } from './stickers'

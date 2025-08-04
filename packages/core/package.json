@@ -11,10 +11,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.3.6",
     "@moeru/std": "0.1.0-beta.7",
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
-    "@tg-search/db": "workspace:*",
     "@unbird/logg": "catalog:",
     "@unbird/result": "catalog:",
     "@xsai-ext/providers-cloud": "catalog:",
@@ -22,11 +22,17 @@
     "@xsai/embed": "catalog:",
     "big-integer": "^1.6.52",
     "defu": "^6.1.4",
+    "drizzle-orm": "^0.44.4",
     "eventemitter3": "^5.0.1",
     "file-type": "^21.0.0",
     "grammy": "^1.37.0",
     "pathe": "^2.0.3",
+    "pg": "^8.16.3",
+    "postgres": "^3.4.7",
     "telegram": "^2.26.22",
     "valibot": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5"
   }
 }

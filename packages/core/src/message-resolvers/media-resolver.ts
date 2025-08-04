@@ -7,9 +7,10 @@ import type { CoreMessage } from '../utils/message'
 
 import { Buffer } from 'node:buffer'
 
-import { findPhotoByFileId, findStickerByFileId } from '@tg-search/db'
 import { useLogger } from '@unbird/logg'
 import { fileTypeFromBuffer } from 'file-type'
+
+import { findPhotoByFileId, findStickerByFileId } from '../models'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')

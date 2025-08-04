@@ -6,7 +6,7 @@ import { EmbeddingDimension } from '@tg-search/common'
 import { useConfig } from '@tg-search/common/node'
 import { and, desc, eq, gt, sql } from 'drizzle-orm'
 
-import { withDb } from '../../drizzle'
+import { withDb } from '../../db'
 import { chatMessagesTable } from '../../schemas/chat_messages'
 import { getSimilaritySql } from './similarity'
 

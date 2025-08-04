@@ -5,7 +5,7 @@ import type { CoreMessageMediaSticker } from '../../../core/src'
 import { Ok } from '@unbird/result'
 import { desc, eq, sql } from 'drizzle-orm'
 
-import { withDb } from '../drizzle'
+import { withDb } from '../db'
 import { recentSentStickersTable } from '../schemas/recent_sent_stickers'
 import { stickersTable } from '../schemas/stickers'
 import { must0 } from './utils/must'
