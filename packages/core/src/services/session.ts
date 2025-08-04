@@ -1,11 +1,11 @@
-import type { Result } from '@tg-search/result'
+import type { Result } from '@unbird/result'
 
 import type { CoreContext } from '../context'
 
 import { access, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 
-import { useLogger } from '@tg-search/logg'
-import { Err, Ok } from '@tg-search/result'
+import { useLogger } from '@unbird/logg'
+import { Err, Ok } from '@unbird/result'
 import path from 'pathe'
 import { StringSession } from 'telegram/sessions'
 

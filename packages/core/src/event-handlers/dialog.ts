@@ -1,7 +1,7 @@
 import type { CoreContext } from '../context'
 import type { DialogService } from '../services'
 
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 
 export function registerDialogEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx

@@ -1,8 +1,8 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreMessage } from '../utils/message'
 
-import { useLogger } from '@tg-search/logg'
-import { Ok } from '@tg-search/result'
+import { useLogger } from '@unbird/logg'
+import { Ok } from '@unbird/result'
 
 export function createLinkResolver(): MessageResolver {
   const logger = useLogger('core:resolver:link')

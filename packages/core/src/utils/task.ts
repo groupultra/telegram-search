@@ -1,6 +1,6 @@
 import type { TakeoutTaskMetadata } from '../services/takeout'
 
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 import defu from 'defu'
 
 type CoreTaskType = 'takeout' | 'getMessage' | 'embed'

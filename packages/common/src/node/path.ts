@@ -5,7 +5,7 @@ import { homedir } from 'node:os'
 import { cwd } from 'node:process'
 
 import { findWorkspaceDir } from '@pnpm/find-workspace-dir'
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 import { dirname, join, resolve } from 'pathe'
 
 import { DatabaseType, generateDefaultConfig } from '../browser'

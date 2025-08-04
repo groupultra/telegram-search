@@ -14,7 +14,7 @@
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "@tg-search/db": "workspace:*",
-    "@tg-search/logg": "catalog:",
+    "@unbird/logg": "catalog:",
     "es-toolkit": "^1.39.8",
     "h3": "^1.15.4",
     "listhen": "^1.9.0",

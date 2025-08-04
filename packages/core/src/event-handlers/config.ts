@@ -1,7 +1,7 @@
 import type { CoreContext } from '../context'
 import type { ConfigService } from '../services/config'
 
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 
 export function registerConfigEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx

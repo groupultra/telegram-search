@@ -3,7 +3,7 @@
 import type { CoreMessageMediaPhoto } from '../../../core/src'
 import type { DBInsertPhoto } from './utils/photos'
 
-import { Ok } from '@tg-search/result'
+import { Ok } from '@unbird/result'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
 import { withDb } from '../drizzle'

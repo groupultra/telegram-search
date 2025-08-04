@@ -3,8 +3,8 @@ import type { CorePagination } from '@tg-search/common/utils/pagination'
 import type { CoreContext } from '../context'
 import type { CoreMessage } from '../utils/message'
 
-import { useLogger } from '@tg-search/logg'
-import { Err, Ok } from '@tg-search/result'
+import { useLogger } from '@unbird/logg'
+import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
 export interface MessageEventToCore {

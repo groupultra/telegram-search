@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@pnpm/find-workspace-dir": "^1000.1.1",
-    "@tg-search/logg": "catalog:",
+    "@unbird/logg": "catalog:",
     "defu": "^6.1.4",
     "path-browserify-esm": "^1.0.6",
     "pathe": "^2.0.3",

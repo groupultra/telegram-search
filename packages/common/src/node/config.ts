@@ -3,7 +3,7 @@ import type { Config } from '../browser/config-schema'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 import defu from 'defu'
 import { join } from 'pathe'
 import { safeParse } from 'valibot'

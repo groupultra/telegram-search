@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import process from 'node:process'
 
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 
 import { getDatabaseDSN, initConfig, useConfig } from '../packages/common/src/node'
 

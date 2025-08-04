@@ -1,4 +1,4 @@
-import { Ok } from '@tg-search/result'
+import { Ok } from '@unbird/result'
 import { and, eq } from 'drizzle-orm'
 
 import { withDb } from '../drizzle'

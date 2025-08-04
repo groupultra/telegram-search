@@ -13,8 +13,8 @@
     "@electric-sql/pglite": "^0.3.6",
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
-    "@tg-search/logg": "catalog:",
-    "@tg-search/result": "catalog:",
+    "@unbird/logg": "catalog:",
+    "@unbird/result": "catalog:",
     "drizzle-orm": "^0.44.4",
     "pg": "^8.16.3",
     "postgres": "^3.4.7"

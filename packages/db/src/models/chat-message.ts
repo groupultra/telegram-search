@@ -5,8 +5,8 @@ import type { CorePagination } from '@tg-search/common/utils/pagination'
 import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../../../core/src'
 import type { DBRetrievalMessages } from './utils/message'
 
-import { useLogger } from '@tg-search/logg'
-import { Ok } from '@tg-search/result'
+import { useLogger } from '@unbird/logg'
+import { Ok } from '@unbird/result'
 import { desc, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../drizzle'

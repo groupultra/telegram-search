@@ -1,4 +1,4 @@
-import config from '@tg-search/eslint-config'
+import config from '@unbird/eslint-config'
 
 export default await config({
   vue: true,

@@ -1,8 +1,8 @@
-import type { Result } from '@tg-search/result'
+import type { Result } from '@unbird/result'
 
 import type { CoreMessage } from '../utils/message'
 
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 
 export interface MessageResolverOpts {
   messages: CoreMessage[]

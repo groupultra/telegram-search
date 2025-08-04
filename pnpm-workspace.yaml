@@ -2,20 +2,24 @@ packages:
   - packages/*
   - libs/*
   - apps/*
+
 patchedDependencies:
   electron-vite: patches/electron-vite.patch
+
 catalog:
-  '@tg-search/eslint-config': ^1.0.1
-  '@tg-search/logg': ^1.0.0-beta.18
-  '@tg-search/result': ^1.0.0-beta.18
+  '@unbird/eslint-config': ^1.0.1
+  '@unbird/logg': ^1.1.0
+  '@unbird/result': ^1.1.0
   '@xsai-ext/providers-cloud': ^0.3.3
   '@xsai-ext/providers-local': ^0.3.3
   '@xsai/embed': ^0.3.3
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - better-sqlite3
   - bufferutil
   - electron
+  - electron-winstaller
   - es5-ext
   - esbuild
   - sharp

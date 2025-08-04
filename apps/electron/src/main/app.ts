@@ -9,7 +9,7 @@ import { parseEnvFlags } from '@tg-search/common'
 import { initConfig } from '@tg-search/common/node'
 import { createCoreInstance } from '@tg-search/core'
 import { initDrizzle } from '@tg-search/db'
-import { initLogger, useLogger } from '@tg-search/logg'
+import { initLogger, useLogger } from '@unbird/logg'
 import { ipcMain } from 'electron/main'
 
 import { createWsMessage } from './ws-event'

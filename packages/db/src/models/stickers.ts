@@ -2,7 +2,7 @@
 
 import type { CoreMessageMediaSticker } from '../../../core/src'
 
-import { Ok } from '@tg-search/result'
+import { Ok } from '@unbird/result'
 import { desc, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../drizzle'

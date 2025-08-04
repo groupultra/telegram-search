@@ -1,9 +1,9 @@
-import type { Result } from '@tg-search/result'
+import type { Result } from '@unbird/result'
 import type { Entity } from 'telegram/define'
 
 import type { CoreEntity } from '../services/entity'
 
-import { Err, Ok } from '@tg-search/result'
+import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
 export function resolveEntity(entity: Entity): Result<CoreEntity> {

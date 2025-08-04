@@ -2,7 +2,7 @@ import type { Config } from '@tg-search/common'
 
 import type { CoreContext } from './context'
 
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 
 import { useService } from './context'
 import { registerAuthEventHandlers } from './event-handlers/auth'

@@ -4,7 +4,7 @@ import type { CoreContext } from '../context'
 import type { CoreDialog } from '../services'
 
 import { convertToCoreRetrievalMessages, fetchChats, fetchMessagesWithPhotos, getChatMessagesStats, recordChats, recordMessagesWithMedia, retrieveMessages } from '@tg-search/db'
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 
 import { embedContents } from '../utils/embed'
 

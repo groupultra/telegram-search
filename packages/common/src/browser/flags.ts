@@ -1,4 +1,4 @@
-import { LoggerFormat, LoggerLevel } from '@tg-search/logg'
+import { LoggerFormat, LoggerLevel } from '@unbird/logg'
 
 export const flags = {
   logLevel: LoggerLevel.Verbose,

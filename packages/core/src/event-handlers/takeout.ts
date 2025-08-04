@@ -5,7 +5,7 @@ import type { TakeoutService } from '../services'
 
 import { usePagination } from '@tg-search/common/utils/pagination'
 import { getChatMessageStatsByChatId } from '@tg-search/db'
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 
 import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 

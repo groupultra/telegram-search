@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from 'node:fs'
 
 import { Jieba } from '@node-rs/jieba'
 import { useConfig } from '@tg-search/common/node'
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 import { and, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../../drizzle'

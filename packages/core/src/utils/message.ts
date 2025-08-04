@@ -1,10 +1,10 @@
-import type { Result } from '@tg-search/result'
+import type { Result } from '@unbird/result'
 
 import type { CoreMessageMediaFromServer } from './media'
 
 import { randomUUID } from 'node:crypto'
 
-import { Err, Ok } from '@tg-search/result'
+import { Err, Ok } from '@unbird/result'
 import bigInt from 'big-integer'
 import { Api } from 'telegram'
 

@@ -2,7 +2,7 @@ import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 
 import type { Peer } from './routes'
 
-import { useLogger } from '@tg-search/logg'
+import { useLogger } from '@unbird/logg'
 
 export interface WsEventFromServer {
   'server:connected': (data: { sessionId: string, connected: boolean }) => void

@@ -46,6 +46,7 @@ words:
   - tsdown
   - tsquery
   - tsvector
+  - unbird
   - unocss
   - unplugin
   - uuidv4

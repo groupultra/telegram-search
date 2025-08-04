@@ -1,12 +1,12 @@
 import type { CorePagination } from '@tg-search/common/utils/pagination'
-import type { Result } from '@tg-search/result'
+import type { Result } from '@unbird/result'
 import type { EntityLike } from 'telegram/define'
 
 import type { CoreContext } from '../context'
 import type { CoreTask } from '../utils/task'
 
-import { useLogger } from '@tg-search/logg'
-import { Err, Ok } from '@tg-search/result'
+import { useLogger } from '@unbird/logg'
+import { Err, Ok } from '@unbird/result'
 import bigInt from 'big-integer'
 import { Api } from 'telegram'
 

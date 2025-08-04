@@ -1,8 +1,8 @@
-import type { Result } from '@tg-search/result'
+import type { Result } from '@unbird/result'
 
 import type { CoreContext } from '../context'
 
-import { Ok } from '@tg-search/result'
+import { Ok } from '@unbird/result'
 
 import { resolveEntity } from '../utils/entity'
 
