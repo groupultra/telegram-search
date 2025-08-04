@@ -9,16 +9,26 @@ import { Err, Ok } from '@unbird/result'
 
 import { useConfig } from '../../../common/src/node'
 
-let jieba: Jieba | undefined
+let _jieba: Jieba | undefined
+
+export function ensureJieba() {
+  const logger = useLogger('models:retrieve-jieba')
+
+  if (!_jieba) {
+    const dictPath = useConfig().path.dict
+    if (existsSync(dictPath)) {
+      logger.withFields({ dictPath }).log('Loading jieba dict')
+      _jieba = Jieba.withDict(readFileSync(dictPath))
+    }
+  }
+
+  return _jieba
+}
 
 export function createJiebaResolver(): MessageResolver {
   const logger = useLogger('core:resolver:jieba')
 
-  const dictPath = useConfig().path.dict
-  if (existsSync(dictPath)) {
-    logger.withFields({ dictPath }).log('Loading jieba dict')
-    jieba = Jieba.withDict(readFileSync(dictPath))
-  }
+  const jieba = ensureJieba()
 
   return {
     run: async (opts: MessageResolverOpts) => {
