@@ -27,5 +27,5 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue"
-, "../../packages/core/signal.spec.ts"  ]
+  ]
 }
