@@ -1,29 +1,10 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreMessage } from '../utils/message'
 
-import { existsSync, readFileSync } from 'node:fs'
-
-import { Jieba } from '@node-rs/jieba'
 import { useLogger } from '@unbird/logg'
 import { Err, Ok } from '@unbird/result'
 
-import { useConfig } from '../../../common/src/node'
-
-let _jieba: Jieba | undefined
-
-export function ensureJieba() {
-  const logger = useLogger('models:retrieve-jieba')
-
-  if (!_jieba) {
-    const dictPath = useConfig().path.dict
-    if (existsSync(dictPath)) {
-      logger.withFields({ dictPath }).log('Loading jieba dict')
-      _jieba = Jieba.withDict(readFileSync(dictPath))
-    }
-  }
-
-  return _jieba
-}
+import { ensureJieba } from '../utils/jieba'
 
 export function createJiebaResolver(): MessageResolver {
   const logger = useLogger('core:resolver:jieba')

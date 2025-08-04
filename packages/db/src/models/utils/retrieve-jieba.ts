@@ -2,31 +2,12 @@ import type { CorePagination } from '@tg-search/common/utils/pagination'
 
 import type { DBRetrievalMessages } from './message'
 
-import { existsSync, readFileSync } from 'node:fs'
-
-import { Jieba } from '@node-rs/jieba'
-import { useConfig } from '@tg-search/common/node'
 import { useLogger } from '@unbird/logg'
 import { and, eq, sql } from 'drizzle-orm'
 
+import { ensureJieba } from '../../../../core/src/utils/jieba'
 import { withDb } from '../../drizzle'
 import { chatMessagesTable } from '../../schemas/chat_messages'
-
-let _jieba: Jieba | undefined
-
-export function ensureJieba() {
-  const logger = useLogger('models:retrieve-jieba')
-
-  if (!_jieba) {
-    const dictPath = useConfig().path.dict
-    if (existsSync(dictPath)) {
-      logger.withFields({ dictPath }).log('Loading jieba dict')
-      _jieba = Jieba.withDict(readFileSync(dictPath))
-    }
-  }
-
-  return _jieba
-}
 
 export async function retrieveJieba(chatId: string | undefined, content: string, pagination?: CorePagination): Promise<DBRetrievalMessages[]> {
   const logger = useLogger('models:retrieve-jieba')
