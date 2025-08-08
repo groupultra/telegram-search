@@ -1,10 +1,10 @@
-import  DrizzleORMMigrations from '@proj-airi/unplugin-drizzle-orm-migrations/rolldown'
+import DrizzleORMMigrations from '@proj-airi/unplugin-drizzle-orm-migrations/rolldown'
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
   entry: [
     'src/index.ts',
-    'src/types.ts'
+    'src/types.ts',
   ],
   dts: true,
   sourcemap: true,
@@ -12,7 +12,7 @@ export default defineConfig({
   fixedExtension: true,
   plugins: [
     DrizzleORMMigrations({
-      root: '../..'
+      root: '../..',
     }),
   ],
 })
