@@ -12,3 +12,4 @@ auto-imports.d.ts
 components.d.ts
 .eslintcache
 node-compile-cache
+data/
