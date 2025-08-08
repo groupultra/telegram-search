@@ -27,11 +27,9 @@ async function applyMigrations(logger: Logger, db: CoreDB, dbType: DatabaseType)
   try {
     switch (dbType) {
       case DatabaseType.POSTGRES:
-        // @ts-expect-error - TODO: fix this
         await migratePg(db as PostgresDB, migrations)
         break
       case DatabaseType.PGLITE:
-        // @ts-expect-error - TODO: fix this
         await migratePGlite(db as PgliteDB, migrations)
         break
     }
