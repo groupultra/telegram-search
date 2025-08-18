@@ -18,6 +18,6 @@
     "path-browserify-esm": "^1.0.6",
     "pathe": "^2.0.3",
     "valibot": "^1.1.0",
-    "yaml": "^2.8.0"
+    "yaml": "^2.8.1"
   }
 }
