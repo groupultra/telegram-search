@@ -1,0 +1,4 @@
+{
+   // The zed editor may break the behavior of other editors and needs to be silenced
+  "format_on_save": "off"
+}
