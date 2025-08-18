@@ -29,6 +29,7 @@
     "@xsai-ext/providers-local": "catalog:",
     "@xsai/embed": "catalog:",
     "big-integer": "^1.6.52",
+    "buffer": "^6.0.3",
     "defu": "^6.1.4",
     "drizzle-orm": "^0.44.4",
     "eventemitter3": "^5.0.1",
