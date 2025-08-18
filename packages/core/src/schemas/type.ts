@@ -1,4 +1,5 @@
-import type { Buffer } from 'node:buffer'
+/* eslint-disable unicorn/prefer-node-protocol */
+import type { Buffer } from 'buffer'
 
 import { customType } from 'drizzle-orm/pg-core'
 
