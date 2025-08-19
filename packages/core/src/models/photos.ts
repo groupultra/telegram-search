@@ -1,6 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/photos.ts
 
-import type { CoreMessageMediaPhoto } from '../../../core/src'
+import type { CoreMessageMediaPhoto } from '../index'
 import type { DBInsertPhoto } from './utils/photos'
 
 import { Ok } from '@unbird/result'

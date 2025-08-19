@@ -1,6 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chats.ts
 
-import type { CoreDialog } from '../../../core/src'
+import type { CoreDialog } from '../index'
 
 import { desc, eq, sql } from 'drizzle-orm'
 

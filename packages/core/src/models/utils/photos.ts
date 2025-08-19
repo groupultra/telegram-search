@@ -1,4 +1,4 @@
-import type { CoreMessageMediaPhoto } from '../../../../core/src'
+import type { CoreMessageMediaPhoto } from '../../index'
 import type { photosTable } from '../../schemas/photos'
 
 export type DBInsertPhoto = typeof photosTable.$inferInsert

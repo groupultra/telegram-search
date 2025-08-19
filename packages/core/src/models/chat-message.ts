@@ -2,7 +2,7 @@
 
 import type { CorePagination } from '@tg-search/common/utils/pagination'
 
-import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../../../core/src'
+import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../index'
 import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@unbird/logg'

@@ -1,6 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/stickers.ts
 
-import type { CoreMessageMediaSticker } from '../../../core/src'
+import type { CoreMessageMediaSticker } from '../index'
 
 import { Ok } from '@unbird/result'
 import { desc, eq, sql } from 'drizzle-orm'
