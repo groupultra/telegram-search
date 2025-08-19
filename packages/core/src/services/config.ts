@@ -3,9 +3,8 @@ import type { Config } from '@tg-search/common'
 import type { CoreContext } from '../context'
 
 import { configSchema } from '@tg-search/common'
+import { updateConfig as updateConfigToFile, useConfig } from '@tg-search/common/node'
 import { safeParse } from 'valibot'
-
-import { updateConfig as updateConfigToFile, useConfig } from '../../../common/src/node'
 
 export interface ConfigEventToCore {
   'config:fetch': () => void

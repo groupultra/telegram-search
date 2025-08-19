@@ -4,12 +4,11 @@ import type { CoreContext } from '../context'
 
 import { access, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 
+import { getSessionPath, useConfig } from '@tg-search/common/node'
 import { useLogger } from '@unbird/logg'
 import { Err, Ok } from '@unbird/result'
 import path from 'pathe'
 import { StringSession } from 'telegram/sessions'
-
-import { getSessionPath, useConfig } from '../../../common/src/node'
 
 export interface SessionEventToCore {
   'session:update': (data: { phoneNumber: string, session: string }) => void
