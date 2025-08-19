@@ -1,6 +1,5 @@
 import type { Config } from '@tg-search/common'
 import type { Logger } from '@unbird/logg'
-import type { SQL } from 'drizzle-orm'
 
 import { PGlite } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
@@ -15,12 +14,9 @@ import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import migrations from 'virtual:drizzle-migrations.sql'
 
-interface BaseDB {
-  execute: (query: SQL) => Promise<unknown>
-}
+type PostgresDB = ReturnType<typeof drizzlePg>
+type PgliteDB = ReturnType<typeof drizzlePGlite>
 
-type PostgresDB = ReturnType<typeof drizzlePg> & BaseDB
-type PgliteDB = ReturnType<typeof drizzlePGlite> & BaseDB
 export type CoreDB = PostgresDB | PgliteDB
 
 let dbInstance: CoreDB

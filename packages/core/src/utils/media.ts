@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/prefer-node-protocol */
+// eslint-disable-next-line unicorn/prefer-node-protocol
 import type { Buffer } from 'buffer'
 
 import { Api } from 'telegram'

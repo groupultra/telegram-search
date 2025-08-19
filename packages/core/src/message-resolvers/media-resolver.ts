@@ -5,7 +5,7 @@ import type { CoreContext } from '../context'
 import type { CoreMessageMediaFromCache, CoreMessageMediaFromServer } from '../utils/media'
 import type { CoreMessage } from '../utils/message'
 
-/* eslint-disable unicorn/prefer-node-protocol */
+// eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
 
 import { useLogger } from '@unbird/logg'

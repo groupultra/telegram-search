@@ -13,8 +13,8 @@
   "dependencies": {
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
-    "@unbird/logg": "^1.1.2",
-    "es-toolkit": "^1.39.8",
+    "@unbird/logg": "catalog:",
+    "es-toolkit": "^1.39.9",
     "h3": "^1.15.4",
     "listhen": "^1.9.0",
     "vite-node": "^3.2.4",
