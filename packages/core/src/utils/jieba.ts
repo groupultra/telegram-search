@@ -1,13 +1,15 @@
 import { Buffer } from 'node:buffer'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 import { Jieba } from '@node-rs/jieba'
+import { getDataPath } from '@tg-search/common/node'
 import { useLogger } from '@unbird/logg'
 
 let _jieba: Jieba | undefined
 
 const DICT_URL = 'https://github.com/fxsjy/jieba/raw/master/extra_dict/dict.txt.small'
-const DICT_PATH = './data/dict.txt'
+const DICT_PATH = resolve(getDataPath(), 'dict.txt')
 
 async function downloadDict(): Promise<Buffer> {
   const logger = useLogger('jieba:downloader')
@@ -21,9 +23,6 @@ async function downloadDict(): Promise<Buffer> {
     }
 
     const buffer = Buffer.from(await response.arrayBuffer())
-
-    // Ensure data directory exists
-    mkdirSync('./data', { recursive: true })
 
     // Cache the dictionary locally
     writeFileSync(DICT_PATH, buffer)

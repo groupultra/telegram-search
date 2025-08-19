@@ -9,12 +9,14 @@ import { DatabaseType, generateDefaultConfig } from '../browser'
 
 const logger = useLogger()
 
+export const ROOT_DIR = resolve('../../')
+
 export function getRootPath(): string {
-  return resolve('../../')
+  return ROOT_DIR
 }
 
 export function getDataPath(): string {
-  return resolve('../../', './data')
+  return resolve(ROOT_DIR, './data')
 }
 
 export function getDatabaseFilePath(config: Config): string {
