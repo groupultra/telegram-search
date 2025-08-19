@@ -10,7 +10,7 @@
   "scripts": {
     "dev:server": "pnpm run packages:build && pnpm -F @tg-search/server dev",
     "dev:frontend": "pnpm -F @tg-search/frontend dev",
-    "dev:electron": "pnpm -F @tg-search/electron dev",
+    "dev:electron": "pnpm run packages:build && pnpm -F @tg-search/electron dev",
     "build:packages": "pnpm -rF=\"./packages/*\" --parallel build",
     "packages:build": "pnpm -rF=\"./packages/*\" --parallel build",
     "test": "vitest",
