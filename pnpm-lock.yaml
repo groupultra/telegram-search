@@ -213,6 +213,103 @@ importers:
         specifier: ^3.0.5
         version: 3.0.5(typescript@5.9.2)
 
+  apps/frontend:
+    dependencies:
+      '@formkit/auto-animate':
+        specifier: ^0.8.2
+        version: 0.8.2
+      '@iconify-json/lucide':
+        specifier: ^1.2.62
+        version: 1.2.62
+      '@iconify/vue':
+        specifier: ^5.0.0
+        version: 5.0.0(vue@3.5.18(typescript@5.9.2))
+      '@tanstack/vue-query':
+        specifier: ^5.85.1
+        version: 5.85.1(vue@3.5.18(typescript@5.9.2))
+      '@tanstack/vue-table':
+        specifier: ^8.21.3
+        version: 8.21.3(vue@3.5.18(typescript@5.9.2))
+      '@tg-search/client':
+        specifier: workspace:^
+        version: link:../../packages/client
+      '@tg-search/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+      '@tg-search/stage-ui':
+        specifier: workspace:^
+        version: link:../../packages/stage-ui
+      '@vueuse/core':
+        specifier: ^13.6.0
+        version: 13.6.0(vue@3.5.18(typescript@5.9.2))
+      defu:
+        specifier: ^6.1.4
+        version: 6.1.4
+      ofetch:
+        specifier: ^1.4.1
+        version: 1.4.1
+      pinia:
+        specifier: ^3.0.3
+        version: 3.0.3(typescript@5.9.2)(vue@3.5.18(typescript@5.9.2))
+      radix-vue:
+        specifier: ^1.9.17
+        version: 1.9.17(vue@3.5.18(typescript@5.9.2))
+      reka-ui:
+        specifier: ^2.4.1
+        version: 2.4.1(typescript@5.9.2)(vue@3.5.18(typescript@5.9.2))
+      uuid:
+        specifier: ^11.1.0
+        version: 11.1.0
+      vue:
+        specifier: ^3.5.18
+        version: 3.5.18(typescript@5.9.2)
+      vue-i18n:
+        specifier: ^11.1.11
+        version: 11.1.11(vue@3.5.18(typescript@5.9.2))
+      vue-router:
+        specifier: ^4.5.1
+        version: 4.5.1(vue@3.5.18(typescript@5.9.2))
+      vue-sonner:
+        specifier: ^2.0.2
+        version: 2.0.2
+    devDependencies:
+      '@unocss/eslint-config':
+        specifier: ^66.4.2
+        version: 66.4.2(eslint@9.33.0(jiti@2.5.1))(typescript@5.9.2)
+      '@unocss/eslint-plugin':
+        specifier: ^66.4.2
+        version: 66.4.2(eslint@9.33.0(jiti@2.5.1))(typescript@5.9.2)
+      '@unocss/reset':
+        specifier: ^66.4.2
+        version: 66.4.2
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.1
+        version: 6.0.1(rolldown-vite@7.1.2(@types/node@24.2.1)(esbuild@0.25.6)(jiti@2.5.1)(tsx@4.20.4)(yaml@2.8.1))(vue@3.5.18(typescript@5.9.2))
+      '@vue-macros/volar':
+        specifier: ^3.0.0-beta.21
+        version: 3.0.0-beta.21(typescript@5.9.2)(vue-tsc@3.0.5(typescript@5.9.2))(vue@3.5.18(typescript@5.9.2))
+      unocss:
+        specifier: ^66.4.2
+        version: 66.4.2(postcss@8.5.6)(rolldown-vite@7.1.2(@types/node@24.2.1)(esbuild@0.25.6)(jiti@2.5.1)(tsx@4.20.4)(yaml@2.8.1))
+      unplugin-vue-macros:
+        specifier: ^2.14.5
+        version: 2.14.5(@vueuse/core@13.6.0(vue@3.5.18(typescript@5.9.2)))(esbuild@0.25.6)(rolldown-vite@7.1.2(@types/node@24.2.1)(esbuild@0.25.6)(jiti@2.5.1)(tsx@4.20.4)(yaml@2.8.1))(rollup@4.45.0)(typescript@5.9.2)(vue-tsc@3.0.5(typescript@5.9.2))(vue@3.5.18(typescript@5.9.2))
+      unplugin-vue-router:
+        specifier: ^0.15.0
+        version: 0.15.0(@vue/compiler-sfc@3.5.18)(typescript@5.9.2)(vue-router@4.5.1(vue@3.5.18(typescript@5.9.2)))(vue@3.5.18(typescript@5.9.2))
+      vite-plugin-inspect:
+        specifier: ^11.3.2
+        version: 11.3.2(rolldown-vite@7.1.2(@types/node@24.2.1)(esbuild@0.25.6)(jiti@2.5.1)(tsx@4.20.4)(yaml@2.8.1))
+      vite-plugin-vue-devtools:
+        specifier: ^8.0.0
+        version: 8.0.0(rolldown-vite@7.1.2(@types/node@24.2.1)(esbuild@0.25.6)(jiti@2.5.1)(tsx@4.20.4)(yaml@2.8.1))(vue@3.5.18(typescript@5.9.2))
+      vite-plugin-vue-layouts:
+        specifier: ^0.11.0
+        version: 0.11.0(rolldown-vite@7.1.2(@types/node@24.2.1)(esbuild@0.25.6)(jiti@2.5.1)(tsx@4.20.4)(yaml@2.8.1))(vue-router@4.5.1(vue@3.5.18(typescript@5.9.2)))(vue@3.5.18(typescript@5.9.2))
+      vue-tsc:
+        specifier: ^3.0.5
+        version: 3.0.5(typescript@5.9.2)
+
   apps/server:
     dependencies:
       '@tg-search/common':
