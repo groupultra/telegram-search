@@ -10,4 +10,10 @@ export default defineConfig({
       root: '../..',
     }),
   ],
+
+  resolve: {
+    alias: {
+      '@tg-search/core': '../../packages/core/src',
+    },
+  },
 })

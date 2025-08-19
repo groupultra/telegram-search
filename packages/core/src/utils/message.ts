@@ -2,11 +2,10 @@ import type { Result } from '@unbird/result'
 
 import type { CoreMessageMediaFromServer } from './media'
 
-import { randomUUID } from 'node:crypto'
-
 import { Err, Ok } from '@unbird/result'
 import bigInt from 'big-integer'
 import { Api } from 'telegram'
+import { v4 as uuidv4 } from 'uuid'
 
 import { parseMediaId, parseMediaType } from './media'
 
@@ -54,7 +53,7 @@ export interface CoreMessageVector {
 }
 
 export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> {
-  const messageUUID = randomUUID()
+  const messageUUID = uuidv4()
 
   const sender = message.sender
   const senderId = typeof message.senderId === 'string' ? bigInt(message.senderId) : message.senderId
