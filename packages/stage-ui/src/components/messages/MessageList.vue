@@ -3,6 +3,7 @@ import type { CoreMessage } from '@tg-search/core/types'
 
 import { useClipboard } from '@vueuse/core'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import Avatar from '../ui/Avatar.vue'
 
@@ -10,7 +11,7 @@ const props = defineProps<{
   messages: CoreMessage[]
   keyword: string
 }>()
-
+const { t } = useI18n()
 const hoveredMessage = ref<CoreMessage | null>(null)
 const { copy, copied } = useClipboard()
 
@@ -51,7 +52,7 @@ function copyMessageLink(message: CoreMessage) {
         v-if="hoveredMessage === item"
         class="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded bg-background/50 px-1 py-0.5 text-[10px] text-gray-500 opacity-50 dark:bg-gray-800/50 dark:text-gray-400"
       >
-        <span>{{ copied ? '已复制' : '按下复制消息链接' }}</span>
+        <span>{{ copied ? t('messages.copied') : t('messages.copyMessageLink') }}</span>
         <span v-if="!copied" class="i-lucide-corner-down-left h-2.5 w-2.5" />
         <span v-else class="i-lucide-check h-2.5 w-2.5" />
       </div>

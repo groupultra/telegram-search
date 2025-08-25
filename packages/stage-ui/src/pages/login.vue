@@ -2,11 +2,13 @@
 import { useAuthStore, useWebsocketStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import Stepper from '../components/ui/Stepper.vue'
 
+const { t } = useI18n()
 type LoginStep = 'phone' | 'code' | 'password' | 'complete'
 
 const router = useRouter()
@@ -54,14 +56,14 @@ watch(isLoggedIn, (value) => {
 })
 
 const steps = [
-  { step: 1, value: 'phone', title: '手机号', description: '输入您的 Telegram 手机号' },
-  { step: 2, value: 'code', title: '验证码', description: '输入 Telegram 发送的验证码' },
-  { step: 3, value: 'password', title: '二次验证', description: '输入两步验证密码' },
-  { step: 4, value: 'complete', title: '完成', description: '登录成功' },
+  { step: 1, value: 'phone', title: t('login.phone'), description: t('login.phoneDescription') },
+  { step: 2, value: 'code', title: t('login.code'), description: t('login.codeDescription') },
+  { step: 3, value: 'password', title: t('login.password'), description: t('login.passwordDescription') },
+  { step: 4, value: 'complete', title: t('login.complete'), description: t('login.completeDescription') },
 ]
 
 function redirectRoot() {
-  toast.success('登录成功')
+  toast.success(t('login.loginSuccess'))
   router.push('/')
 }
 
@@ -91,7 +93,7 @@ async function handleLogin() {
   <div class="min-h-screen flex items-center justify-center bg-background dark:bg-gray-900">
     <div class="max-w-md w-full rounded-2xl bg-card p-10 shadow-2xl dark:bg-gray-800">
       <h1 class="mb-6 text-center text-3xl text-gray-900 font-bold tracking-tight dark:text-gray-100">
-        Telegram 登录
+        {{ t('login.telegramLogin') }}
       </h1>
       <Stepper :steps="steps" :current-step="state.currentStep" />
       <p class="mb-8 text-center text-lg text-gray-600 font-medium dark:text-gray-400">
@@ -101,12 +103,12 @@ async function handleLogin() {
       <!-- 手机号码表单 -->
       <form v-if="state.currentStep === 'phone'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="phoneNumber" class="mb-2 block text-base text-gray-900 font-semibold dark:text-gray-100">手机号码</label>
+          <label for="phoneNumber" class="mb-2 block text-base text-gray-900 font-semibold dark:text-gray-100">{{ t('login.phoneNumber') }}</label>
           <input
             id="phoneNumber"
             v-model="state.phoneNumber"
             type="tel"
-            placeholder="+86 123 4567 8901"
+            :placeholder="t('login.phoneNumberPlaceholder')"
             class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl text-gray-900 transition disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
             required
             :disabled="authStore.auth.isLoading"
@@ -118,25 +120,25 @@ async function handleLogin() {
           :disabled="authStore.auth.isLoading"
         >
           <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
-          {{ authStore.auth.isLoading ? '处理中...' : '登录' }}
+          {{ authStore.auth.isLoading ? t('login.processing') : t('login.login') }}
         </button>
       </form>
 
       <!-- 验证码表单 -->
       <form v-if="state.currentStep === 'code'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="verificationCode" class="mb-2 block text-base text-gray-900 font-semibold dark:text-gray-100">验证码</label>
+          <label for="verificationCode" class="mb-2 block text-base text-gray-900 font-semibold dark:text-gray-100">{{ t('login.verificationCode') }}</label>
           <input
             id="verificationCode"
             v-model="state.verificationCode"
             type="text"
-            placeholder="请输入 Telegram 发送的验证码"
+            :placeholder="t('login.verificationCodePlaceholder')"
             class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl text-gray-900 transition disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
             required
             :disabled="authStore.auth.isLoading"
           >
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            请检查您的 Telegram 应用或短信
+            {{ t('login.verificationCodeDescription') }}
           </p>
         </div>
         <button
@@ -145,19 +147,19 @@ async function handleLogin() {
           :disabled="authStore.auth.isLoading"
         >
           <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
-          {{ authStore.auth.isLoading ? '处理中...' : '验证' }}
+          {{ authStore.auth.isLoading ? t('login.processing') : t('login.verify') }}
         </button>
       </form>
 
       <!-- 两步验证密码表单 -->
       <form v-if="state.currentStep === 'password'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="twoFactorPassword" class="mb-2 block text-base text-gray-900 font-semibold dark:text-gray-100">两步验证密码</label>
+          <label for="twoFactorPassword" class="mb-2 block text-base text-gray-900 font-semibold dark:text-gray-100">{{ t('login.twoFactorPassword') }}</label>
           <input
             id="twoFactorPassword"
             v-model="state.twoFactorPassword"
             type="password"
-            placeholder="请输入您的两步验证密码"
+            :placeholder="t('login.twoFactorPasswordPlaceholder')"
             class="w-full border border-neutral-200 rounded-xl bg-neutral-100 px-5 py-4 text-xl text-gray-900 transition disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
             required
             :disabled="authStore.auth.isLoading"
@@ -169,7 +171,7 @@ async function handleLogin() {
           :disabled="authStore.auth.isLoading"
         >
           <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
-          {{ authStore.auth.isLoading ? '处理中...' : '登录' }}
+          {{ authStore.auth.isLoading ? t('login.processing') : t('login.login') }}
         </button>
       </form>
 
@@ -179,16 +181,16 @@ async function handleLogin() {
           🎉
         </div>
         <h2 class="text-xl text-gray-900 font-bold dark:text-gray-100">
-          登录成功！
+          {{ t('login.loginSuccess') }}
         </h2>
         <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
-          您已成功登录 Telegram 账号
+          {{ t('login.loginSuccessDescription') }}
         </p>
         <button
           class="mt-6 w-full rounded-xl bg-primary py-4 text-lg text-white font-bold transition hover:bg-primary/90"
           @click="redirectRoot"
         >
-          进入主页
+          {{ t('login.enterHome') }}
         </button>
       </div>
     </div>

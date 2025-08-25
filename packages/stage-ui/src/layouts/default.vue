@@ -5,6 +5,7 @@ import { useAuthStore, useChatStore, useSettingsStore, useWebsocketStore } from 
 import { breakpointsTailwind, useBreakpoints, useDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import ChatsCollapse from '../components/layout/ChatsCollapse.vue'
@@ -23,6 +24,8 @@ const { isLoggedIn } = storeToRefs(authStore)
 
 const router = useRouter()
 const route = useRoute()
+
+const { t } = useI18n()
 
 const settingsDialog = ref(false)
 const searchParams = ref('')
@@ -132,14 +135,14 @@ function closeMobileDrawer() {
     >
       <div class="flex items-center justify-center gap-2">
         <div class="i-lucide-alert-triangle" />
-        <span>请先登录 Telegram 账号以使用完整功能</span>
+        <span>{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
         <Button
           size="sm"
           icon="i-lucide-user"
           class="ml-2 border border-yellow-700 bg-yellow-600 text-yellow-100 hover:bg-yellow-700"
           @click="router.push('/login')"
         >
-          去登录
+          {{ t('loginPromptBanner.login') }}
         </Button>
       </div>
     </div>
@@ -162,7 +165,7 @@ function closeMobileDrawer() {
             v-model="searchParams"
             type="text"
             class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 pl-9 ring-offset-background transition-all dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary dark:ring-offset-gray-800 dark:placeholder:text-gray-400"
-            placeholder="Search"
+            :placeholder="t('search.search')"
           >
         </div>
       </div>
@@ -172,25 +175,25 @@ function closeMobileDrawer() {
         <SidebarSelector
           path="/"
           icon="i-lucide-home"
-          name="主页"
+          :name="t('home.home')"
         />
 
         <SidebarSelector
           path="/sync"
           icon="i-lucide-refresh-cw"
-          name="同步"
+          :name="t('sync.sync')"
         />
 
         <SidebarSelector
           path="/search"
           icon="i-lucide-search"
-          name="搜索"
+          :name="t('search.search')"
         />
 
         <SidebarSelector
           path="/settings"
           icon="i-lucide-settings"
-          name="设置"
+          :name="t('settings.settings')"
         />
       </div>
 
@@ -202,7 +205,7 @@ function closeMobileDrawer() {
         <ChatsCollapse
           class="max-h-[85%] flex flex-col"
           :class="{ 'flex-1': activeChatGroup === 'user' }"
-          name="用户"
+          :name="t('chatGroups.user')"
           icon="i-lucide-user"
           type="user"
           :chats="chatsFiltered.filter(chat => chat.type === 'user')"
@@ -213,7 +216,7 @@ function closeMobileDrawer() {
         <ChatsCollapse
           class="max-h-[85%] flex flex-col"
           :class="{ 'flex-1': activeChatGroup === 'group' }"
-          name="群组"
+          :name="t('chatGroups.group')"
           icon="i-lucide-users"
           type="group"
           :chats="chatsFiltered.filter(chat => chat.type === 'group')"
@@ -224,7 +227,7 @@ function closeMobileDrawer() {
         <ChatsCollapse
           class="max-h-[85%] flex flex-col"
           :class="{ 'flex-1': activeChatGroup === 'channel' }"
-          name="频道"
+          :name="t('chatGroups.channel')"
           icon="i-lucide-message-circle"
           type="channel"
           :chats="chatsFiltered.filter(chat => chat.type === 'channel')"
@@ -244,7 +247,7 @@ function closeMobileDrawer() {
           </div>
           <div class="flex flex-col">
             <span class="whitespace-nowrap text-sm text-gray-900 font-medium dark:text-gray-100">{{ websocketStore.getActiveSession()?.me?.username }}</span>
-            <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ websocketStore.getActiveSession()?.isConnected ? '已链接' : '未链接' }}</span>
+            <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
           </div>
         </div>
 
@@ -253,14 +256,14 @@ function closeMobileDrawer() {
           <Button
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
             class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
-            :title="isDark ? '切换到亮色模式' : '切换到暗色模式'"
+            :title="isDark ? t('settings.switchToLightMode') : t('settings.switchToDarkMode')"
             @click="() => { isDark = !isDark }"
           />
 
           <Button
             icon="i-lucide-settings"
             class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
-            title="设置"
+            :title="t('settings.settings')"
             @click="toggleSettingsDialog"
           />
         </div>

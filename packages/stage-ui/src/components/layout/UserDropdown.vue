@@ -3,9 +3,12 @@ import { useAuthStore } from '@tg-search/client'
 import { onClickOutside } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, useTemplateRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import Avatar from '../ui/Avatar.vue'
+
+const { t } = useI18n()
 
 const authStore = useAuthStore()
 const { isLoggedIn, activeSessionComputed } = storeToRefs(authStore)
@@ -52,7 +55,7 @@ const userId = computed(() => activeSessionComputed.value?.me?.id)
         @click="handleLoginLogout"
       >
         <div :class="isLoggedIn ? 'i-lucide-log-out' : 'i-lucide-log-in'" class="h-4 w-4" />
-        {{ isLoggedIn ? '退出登录' : '登录' }}
+        {{ isLoggedIn ? t('settings.logout') : t('settings.login') }}
       </button>
     </div>
   </div>

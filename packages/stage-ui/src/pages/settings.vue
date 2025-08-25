@@ -2,10 +2,13 @@
 import { useSettingsStore, useWebsocketStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import { Button } from '../components/ui/Button'
 import SelectDropdown from '../components/ui/SelectDropdown.vue'
+
+const { t } = useI18n()
 
 const isEditing = ref(false)
 const { config } = storeToRefs(useSettingsStore())
@@ -23,7 +26,7 @@ async function updateConfig() {
   websocketStore.sendEvent('config:update', { config: config.value })
 
   isEditing.value = false
-  toast.success('Settings saved successfully')
+  toast.success(t('settings.settingsSavedSuccessfully'))
 }
 
 onMounted(() => {
@@ -34,7 +37,7 @@ onMounted(() => {
 <template>
   <header class="flex items-center border-b border-b-secondary p-4 px-4 dark:border-b-gray-700">
     <div class="flex items-center gap-2">
-      <span class="text-lg text-gray-900 font-medium dark:text-gray-100">Settings</span>
+      <span class="text-lg text-gray-900 font-medium dark:text-gray-100">{{ t('settings.settings') }}</span>
     </div>
 
     <div class="ml-auto flex items-center gap-2">
@@ -43,7 +46,7 @@ onMounted(() => {
         :disabled="isEditing"
         @click="isEditing = !isEditing"
       >
-        Edit
+        {{ t('settings.edit') }}
       </Button>
 
       <Button
@@ -51,7 +54,7 @@ onMounted(() => {
         :disabled="!isEditing"
         @click="updateConfig"
       >
-        Save
+        {{ t('settings.save') }}
       </Button>
     </div>
   </header>
@@ -62,7 +65,7 @@ onMounted(() => {
       <!-- Database settings -->
       <div class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
         <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
-          Database Settings
+          {{ t('settings.databaseSettings') }}
         </h2>
         <div class="grid gap-4 md:grid-cols-2">
           <div>
@@ -116,13 +119,13 @@ onMounted(() => {
       <!-- API settings -->
       <div class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
         <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
-          API Settings
+          {{ t('settings.apiSettings') }}
         </h2>
         <div class="space-y-4">
           <!-- Telegram API -->
           <div>
             <h3 class="mb-2 text-lg text-gray-900 font-medium dark:text-gray-100">
-              Telegram API
+              {{ t('settings.telegramApi') }}
             </h3>
             <div class="grid gap-4 md:grid-cols-2">
               <div>
@@ -149,7 +152,7 @@ onMounted(() => {
           <!-- OpenAI API -->
           <div>
             <h3 class="mb-2 text-lg text-gray-900 font-medium dark:text-gray-100">
-              Embedding
+              {{ t('settings.embedding') }}
             </h3>
             <div class="grid gap-4">
               <div>
@@ -157,7 +160,7 @@ onMounted(() => {
                 <SelectDropdown v-model="config.api.embedding.provider" :options="embeddingProviderOptions" :disabled="!isEditing" />
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Model</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.model') }}</label>
                 <input
                   v-model="config.api.embedding.model"
                   :disabled="!isEditing"
@@ -165,7 +168,7 @@ onMounted(() => {
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Dimension</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.dimension') }}</label>
                 <input
                   v-model="config.api.embedding.dimension"
                   :disabled="!isEditing"
@@ -173,7 +176,7 @@ onMounted(() => {
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">API Key</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiKey') }}</label>
                 <input
                   v-model="config.api.embedding.apiKey"
                   type="password"
@@ -182,7 +185,7 @@ onMounted(() => {
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">API Base URL</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiBaseUrl') }}</label>
                 <input
                   v-model="config.api.embedding.apiBase"
                   type="text"

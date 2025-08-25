@@ -3,6 +3,7 @@ import type { CoreDialog } from '@tg-search/core/types'
 
 import { usePagination } from '@tg-search/client'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import Pagination from './ui/Pagination.vue'
 import SelectDropdown from './ui/SelectDropdown.vue'
@@ -11,16 +12,17 @@ const props = defineProps<{
   chats: CoreDialog[]
 }>()
 
+const { t } = useI18n()
+
 const selectedChats = defineModel<number[]>('selectedChats', {
   required: true,
 })
 
 const chatTypeOptions = ref([
-  { label: 'User', value: 'user' },
-  { label: 'Group', value: 'group' },
-  { label: 'Channel', value: 'channel' },
+  { label: t('chatSelector.user'), value: 'user' },
+  { label: t('chatSelector.group'), value: 'group' },
+  { label: t('chatSelector.channel'), value: 'channel' },
 ])
-
 const selectedType = ref<string>('user')
 const searchQuery = ref('')
 
@@ -45,8 +47,8 @@ const filteredChats = computed(() => {
 
   return filtered.map(chat => ({
     id: chat.id,
-    title: chat.name || `Chat ${chat.id}`,
-    subtitle: `ID: ${chat.id}`,
+    title: chat.name || t('chatSelector.chat', { id: chat.id }),
+    subtitle: t('chatSelector.id', { id: chat.id }),
     type: chat.type,
   })).sort((a, b) => {
     const aSelected = selectedChats.value.includes(a.id)
@@ -98,7 +100,7 @@ watch([selectedType, searchQuery], () => {
         <SelectDropdown
           v-model="selectedType"
           :options="chatTypeOptions"
-          label="Type"
+          :label="t('chatSelector.type')"
         />
       </div>
 
@@ -108,7 +110,7 @@ watch([selectedType, searchQuery], () => {
           v-model="searchQuery"
           type="text"
           class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-4 py-2 text-gray-900 dark:border-gray-600 focus:border-primary dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-700"
-          placeholder="Search"
+          :placeholder="t('chatSelector.search')"
         >
       </div>
     </div>
@@ -151,7 +153,7 @@ watch([selectedType, searchQuery], () => {
 
     <!-- No Results Message -->
     <div v-if="filteredChats.length === 0" class="py-8 text-center text-gray-600 dark:text-gray-400">
-      No chats found
+      {{ t('chatSelector.noChatsFound') }}
     </div>
   </div>
 </template>

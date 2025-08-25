@@ -2,11 +2,14 @@
 import { useAuthStore, useChatStore, useSyncTaskStore, useWebsocketStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
 import { Button } from '../components/ui/Button'
 import { Switch } from '../components/ui/Switch'
+
+const { t } = useI18n()
 
 const selectedChats = ref<number[]>([])
 
@@ -33,7 +36,7 @@ function handleSync() {
     increase: increase.value,
   })
 
-  loadingToast.value = toast.loading('开始同步...')
+  loadingToast.value = toast.loading(t('sync.startSync'))
 }
 
 function handleAbort() {
@@ -43,7 +46,7 @@ function handleAbort() {
     })
   }
   else {
-    toast.error('没有正在进行的同步任务')
+    toast.error(t('sync.noInProgressTask'))
   }
 }
 
@@ -52,16 +55,16 @@ watch(currentTaskProgress, (progress) => {
 
   if (progress === 100) {
     toast.dismiss(loadingToast.value)
-    toast.success('同步完成')
+    toast.success(t('sync.syncCompleted'))
   }
   else if (progress < 0 && currentTask.value?.lastError) {
     toast.dismiss(loadingToast.value)
     toast.error(currentTask.value.lastError)
   }
   else {
-    loadingToast.value = toast.loading(currentTask.value?.lastMessage ?? '同步中...', {
+    loadingToast.value = toast.loading(currentTask.value?.lastMessage ?? t('sync.syncing'), {
       action: {
-        label: '取消',
+        label: t('sync.cancel'),
         onClick: handleAbort,
       },
     })
@@ -72,7 +75,7 @@ watch(currentTaskProgress, (progress) => {
 <template>
   <header class="flex items-center border-b border-b-secondary p-4 px-4 dark:border-b-gray-700">
     <div class="flex items-center gap-2">
-      <span class="text-lg text-gray-900 font-medium dark:text-gray-100">Sync</span>
+      <span class="text-lg text-gray-900 font-medium dark:text-gray-100">{{ t('sync.sync') }}</span>
     </div>
 
     <div class="ml-auto flex items-center gap-2">
@@ -81,7 +84,7 @@ watch(currentTaskProgress, (progress) => {
         :disabled="isButtonDisabled"
         @click="handleSync"
       >
-        同步
+        {{ t('sync.sync') }}
       </Button>
     </div>
   </header>
@@ -89,17 +92,17 @@ watch(currentTaskProgress, (progress) => {
   <div class="p-6">
     <div class="flex items-center justify-between">
       <h3 class="text-lg text-gray-900 font-medium dark:text-gray-100">
-        选择要同步的聊天
+        {{ t('sync.selectChats') }}
       </h3>
       <div class="flex items-center gap-2">
         <div>
           <Switch
             v-model="increase"
-            label="增量同步"
+            :label="t('sync.incrementalSync')"
           />
         </div>
         <span class="text-sm text-gray-600 dark:text-gray-400">
-          已选择 {{ selectedChats.length }} 个聊天
+          {{ t('sync.selectedChats', { count: selectedChats.length }) }}
         </span>
       </div>
     </div>

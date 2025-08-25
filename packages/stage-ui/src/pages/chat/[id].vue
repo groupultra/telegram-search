@@ -5,12 +5,15 @@ import { useChatStore, useMessageStore, useSettingsStore, useWebsocketStore } fr
 import { useWindowSize } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import SearchDialog from '../../components/SearchDialog.vue'
 import { Button } from '../../components/ui/Button'
 import VirtualMessageList from '../../components/VirtualMessageList.vue'
+
+const { t } = useI18n()
 
 const route = useRoute('/chat/:id')
 const id = route.params.id
@@ -119,7 +122,7 @@ function sendMessage() {
   })
   messageInput.value = ''
 
-  toast.success('Message sent')
+  toast.success(t('chat.messageSent'))
 }
 </script>
 
@@ -147,14 +150,14 @@ function sendMessage() {
         :disabled="isLoadingOlder || isLoadingMessages"
         @click="loadOlderMessages"
       >
-        Force Load Older
+        {{ t('chat.forceLoadOlder') }}
       </button>
       <button
         class="rounded bg-green-500 px-2 py-1 text-xs text-white"
         :disabled="isLoadingNewer || isLoadingMessages"
         @click="loadNewerMessages"
       >
-        Force Load Newer
+        {{ t('chat.forceLoadNewer') }}
       </button>
     </div>
 
@@ -168,7 +171,7 @@ function sendMessage() {
         data-search-button
         @click="isGlobalSearchOpen = !isGlobalSearchOpen"
       >
-        Search
+        {{ t('chat.search') }}
       </Button>
     </div>
 
@@ -189,7 +192,7 @@ function sendMessage() {
         <input
           v-model="messageInput"
           type="text"
-          placeholder="Type a message..."
+          :placeholder="t('chat.typeAMessage')"
           class="flex-1 border border-gray-300 rounded-lg bg-white p-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary dark:placeholder:text-gray-400 dark:focus:ring-offset-gray-800"
           @keyup.enter="sendMessage"
         >
@@ -197,7 +200,7 @@ function sendMessage() {
           class="rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
           @click="sendMessage"
         >
-          Send
+          {{ t('chat.send') }}
         </button>
       </div>
     </div>
@@ -212,7 +215,7 @@ function sendMessage() {
         <template #settings>
           <div class="flex items-center">
             <input id="searchContent" type="checkbox" class="mr-1 border-border rounded">
-            <label for="searchContent" class="text-sm text-gray-900 dark:text-gray-100">搜索内容</label>
+            <label for="searchContent" class="text-sm text-gray-900 dark:text-gray-100">{{ t('chat.searchContent') }}</label>
           </div>
         </template>
       </SearchDialog>

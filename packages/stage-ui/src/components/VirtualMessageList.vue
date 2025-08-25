@@ -7,6 +7,7 @@ import type { VirtualListItem } from '../composables/useVirtualList'
 
 import { useResizeObserver, useWindowSize } from '@vueuse/core'
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useVirtualList } from '../composables/useVirtualList'
 import MessageBubble from './messages/MessageBubble.vue'
@@ -25,6 +26,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   scroll: [{ scrollTop: number, isAtTop: boolean, isAtBottom: boolean }]
 }>()
+
+const { t } = useI18n()
 
 const { height: windowHeight } = useWindowSize()
 const virtualListContainer = ref<HTMLElement>()
@@ -245,7 +248,7 @@ defineExpose({
       v-if="state.isScrolling"
       class="absolute right-2 top-2 rounded bg-black/20 px-2 py-1 text-xs text-white"
     >
-      Scrolling...
+      {{ t('virtualMessageList.scrolling') }}
     </div>
 
     <!-- Scroll to bottom button -->

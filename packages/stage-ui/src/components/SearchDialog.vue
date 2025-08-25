@@ -4,12 +4,15 @@ import type { CoreRetrievalMessages } from '@tg-search/core/types'
 import { useWebsocketStore } from '@tg-search/client'
 import { useDebounce } from '@vueuse/core'
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import MessageList from './messages/MessageList.vue'
 
 const props = defineProps<{
   chatId?: string
 }>()
+
+const { t } = useI18n()
 
 const isOpen = defineModel<boolean>('open', { required: true })
 const isLoading = ref(false)
@@ -57,7 +60,7 @@ watch(keywordDebounced, (newKeyword) => {
         <input
           v-model="keyword"
           class="w-full bg-transparent text-gray-900 outline-none dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-          placeholder="搜索消息..."
+          :placeholder="t('searchDialog.searchMessages')"
         >
         <button
           class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
@@ -84,13 +87,13 @@ watch(keywordDebounced, (newKeyword) => {
         <template v-else-if="isLoading">
           <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
             <span class="i-lucide-loader-circle mb-2 animate-spin text-3xl" />
-            <span>搜索中...</span>
+            <span>{{ t('searchDialog.searching') }}</span>
           </div>
         </template>
         <template v-else-if="searchResult.length === 0">
           <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
             <span class="i-lucide-search mb-2 text-3xl" />
-            <span>没有找到相关消息</span>
+            <span>{{ t('searchDialog.noRelatedMessages') }}</span>
           </div>
         </template>
       </div>

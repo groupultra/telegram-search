@@ -4,8 +4,11 @@ import type { CoreRetrievalMessages } from '@tg-search/core/types'
 import { useWebsocketStore } from '@tg-search/client'
 import { useDebounce } from '@vueuse/core'
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import MessageList from '../../components/messages/MessageList.vue'
+
+const { t } = useI18n()
 
 const isLoading = ref(false)
 const showSettings = ref(false)
@@ -44,7 +47,7 @@ watch(keywordDebounced, (newKeyword) => {
   <div class="h-full flex flex-col">
     <header class="flex items-center border-b border-b-neutral-200 p-4 px-4 dark:border-b-gray-700">
       <div class="flex items-center gap-2">
-        <span class="text-lg text-gray-900 font-medium dark:text-gray-100">Search</span>
+        <span class="text-lg text-gray-900 font-medium dark:text-gray-100">{{ t('search.search') }}</span>
       </div>
     </header>
 
@@ -54,7 +57,7 @@ watch(keywordDebounced, (newKeyword) => {
         <input
           v-model="keyword"
           class="flex-1 border border-neutral-200 rounded-md bg-white px-4 py-2 text-gray-900 outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-800"
-          placeholder="Search messages..."
+          :placeholder="t('search.searchMessages')"
         >
         <button
           class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
@@ -82,13 +85,13 @@ watch(keywordDebounced, (newKeyword) => {
       <template v-else-if="isLoading">
         <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
           <span class="i-lucide-loader-circle mb-2 animate-spin text-3xl" />
-          <span>搜索中...</span>
+          <span>{{ t('search.searching') }}</span>
         </div>
       </template>
       <template v-else-if="searchResult.length === 0">
         <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
           <span class="i-lucide-search mb-2 text-3xl" />
-          <span>没有找到相关消息</span>
+          <span>{{ t('search.noRelatedMessages') }}</span>
         </div>
       </template>
     </div>
