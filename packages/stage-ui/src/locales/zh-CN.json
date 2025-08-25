@@ -1,2 +1,110 @@
 {
+  "chatSelector": {
+    "user": "用户",
+    "group": "群组",
+    "channel": "频道",
+    "type": "类型",
+    "search": "搜索",
+    "chat": "聊天 {id}",
+    "id": "ID: {id}",
+    "noChatsFound": "没有找到聊天"
+  },
+  "searchDialog": {
+    "searchMessages": "搜索消息...",
+    "searching": "搜索中...",
+    "noRelatedMessages": "没有找到相关消息"
+  },
+  "virtualMessageList": {
+    "scrolling": "滚动中..."
+  },
+  "settings": {
+    "settings": "设置",
+    "login": "登录",
+    "logout": "退出登录",
+    "debugMode": "调试模式",
+    "useCachedMessage": "使用数据库缓存的聊天记录",
+    "open": "开启",
+    "close": "关闭",
+    "connected": "已连接",
+    "disconnected": "未连接",
+    "switchToLightMode": "切换到亮色模式",
+    "switchToDarkMode": "切换到暗色模式",
+    "settingsSavedSuccessfully": "设置保存成功",
+    "edit": "编辑",
+    "save": "保存",
+    "databaseSettings": "数据库设置",
+    "apiSettings": "API 设置",
+    "telegramApi": "Telegram API",
+    "embedding": "嵌入模型",
+    "model": "模型",
+    "dimension": "维度",
+    "apiKey": "API 密钥",
+    "apiBaseUrl": "API 基础 URL"
+  },
+  "messages": {
+    "copied": "已复制",
+    "copyMessageLink": "按下复制消息链接"
+  },
+  "loginPromptBanner": {
+    "pleaseLoginToUseFullFeatures": "请先登录 Telegram 账号以使用完整功能",
+    "login": "去登录"
+  },
+  "search": {
+    "search": "搜索",
+    "searchMessages": "搜索消息...",
+    "searching": "搜索中...",
+    "noRelatedMessages": "没有找到相关消息"
+  },
+  "home": {
+    "home": "主页"
+  },
+  "sync": {
+    "sync": "同步",
+    "startSync": "开始同步",
+    "noInProgressTask": "没有进行中的任务",
+    "syncCompleted": "同步完成",
+    "syncing": "同步中...",
+    "cancel": "取消",
+    "selectChats": "选择聊天",
+    "incrementalSync": "增量同步",
+    "selectedChats": "已选择 {count} 个聊天"
+  },
+  "chatGroups": {
+    "user": "用户",
+    "group": "群组",
+    "channel": "频道"
+  },
+  "login": {
+    "telegramLogin": "Telegram 登录",
+    "phone": "手机号",
+    "phoneDescription": "请输入您的手机号码",
+    "code": "验证码",
+    "codeDescription": "请输入收到的验证码",
+    "password": "两步验证密码",
+    "passwordDescription": "请输入您的两步验证密码",
+    "complete": "完成",
+    "completeDescription": "登录成功！",
+    "loginSuccess": "登录成功！",
+    "phoneNumber": "手机号码",
+    "phoneNumberPlaceholder": "请输入手机号码",
+    "processing": "处理中...",
+    "login": "登录",
+    "verificationCode": "验证码",
+    "verificationCodePlaceholder": "请输入验证码",
+    "verificationCodeDescription": "请输入您收到的验证码",
+    "verify": "验证",
+    "twoFactorPassword": "两步验证密码",
+    "twoFactorPasswordPlaceholder": "请输入两步验证密码",
+    "loginSuccessDescription": "您已成功登录 Telegram 账号",
+    "enterHome": "进入主页"
+  },
+  "chat": {
+    "messageSent": "消息已发送",
+    "forceLoadOlder": "强制加载更早的消息",
+    "forceLoadNewer": "强制加载更新的消息",
+    "search": "搜索",
+    "typeAMessage": "输入消息...",
+    "send": "发送",
+    "searchContent": "搜索内容"
+  }
 }

@@ -1,2 +1,110 @@
 {
+  "chatSelector": {
+    "user": "User",
+    "group": "Group",
+    "channel": "Channel",
+    "type": "Type",
+    "search": "Search",
+    "chat": "Chat {id}",
+    "id": "ID: {id}",
+    "noChatsFound": "No chats found"
+  },
+  "searchDialog": {
+    "searchMessages": "Search messages...",
+    "searching": "Searching...",
+    "noRelatedMessages": "No related messages found"
+  },
+  "virtualMessageList": {
+    "scrolling": "Scrolling..."
+  },
+  "settings": {
+    "settings": "Settings",
+    "login": "Login",
+    "logout": "Logout",
+    "debugMode": "Debug Mode",
+    "useCachedMessage": "Use cached messages from database",
+    "open": "Open",
+    "close": "Close",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "switchToLightMode": "Switch to light mode",
+    "switchToDarkMode": "Switch to dark mode",
+    "settingsSavedSuccessfully": "Settings saved successfully",
+    "edit": "Edit",
+    "save": "Save",
+    "databaseSettings": "Database Settings",
+    "apiSettings": "API Settings",
+    "telegramApi": "Telegram API",
+    "embedding": "Embedding Model",
+    "model": "Model",
+    "dimension": "Dimension",
+    "apiKey": "API Key",
+    "apiBaseUrl": "API Base URL"
+  },
+  "messages": {
+    "copied": "Copied",
+    "copyMessageLink": "Press to copy message link"
+  },
+  "loginPromptBanner": {
+    "pleaseLoginToUseFullFeatures": "Please login to your Telegram account to use full features",
+    "login": "Login"
+  },
+  "search": {
+    "search": "Search",
+    "searchMessages": "Search messages...",
+    "searching": "Searching...",
+    "noRelatedMessages": "No related messages found"
+  },
+  "home": {
+    "home": "Home"
+  },
+  "sync": {
+    "sync": "Sync",
+    "startSync": "Start Sync",
+    "noInProgressTask": "No task in progress",
+    "syncCompleted": "Sync completed",
+    "syncing": "Syncing...",
+    "cancel": "Cancel",
+    "selectChats": "Select Chats",
+    "incrementalSync": "Incremental Sync",
+    "selectedChats": "{count} chats selected"
+  },
+  "chatGroups": {
+    "user": "Users",
+    "group": "Groups",
+    "channel": "Channels"
+  },
+  "login": {
+    "telegramLogin": "Telegram Login",
+    "phone": "Phone",
+    "phoneDescription": "Please enter your phone number",
+    "code": "Code",
+    "codeDescription": "Please enter the verification code you received",
+    "password": "Two-factor Password",
+    "passwordDescription": "Please enter your two-factor authentication password",
+    "complete": "Complete",
+    "completeDescription": "Login successful!",
+    "loginSuccess": "Login successful!",
+    "phoneNumber": "Phone Number",
+    "phoneNumberPlaceholder": "Enter your phone number",
+    "processing": "Processing...",
+    "login": "Login",
+    "verificationCode": "Verification Code",
+    "verificationCodePlaceholder": "Enter verification code",
+    "verificationCodeDescription": "Please enter the verification code you received",
+    "verify": "Verify",
+    "twoFactorPassword": "Two-factor Password",
+    "twoFactorPasswordPlaceholder": "Enter your two-factor password",
+    "loginSuccessDescription": "You have successfully logged into your Telegram account",
+    "enterHome": "Go to Home"
+  },
+  "chat": {
+    "messageSent": "Message sent",
+    "forceLoadOlder": "Force load older messages",
+    "forceLoadNewer": "Force load newer messages",
+    "search": "Search",
+    "typeAMessage": "Type a message...",
+    "send": "Send",
+    "searchContent": "Search content"
+  }
 }
