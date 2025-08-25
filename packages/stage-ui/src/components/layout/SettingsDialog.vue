@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
-import { computed, watch } from 'vue'
+import { watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
