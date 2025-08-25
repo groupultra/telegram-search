@@ -39,7 +39,10 @@
     "model": "模型",
     "dimension": "维度",
     "apiKey": "API 密钥",
-    "apiBaseUrl": "API 基础 URL"
+    "apiBaseUrl": "API 基础 URL",
+    "language": "语言",
+    "chinese": "中文",
+    "english": "English"
   },
   "messages": {
     "copied": "已复制",

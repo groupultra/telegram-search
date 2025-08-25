@@ -39,7 +39,10 @@
     "model": "Model",
     "dimension": "Dimension",
     "apiKey": "API Key",
-    "apiBaseUrl": "API Base URL"
+    "apiBaseUrl": "API Base URL",
+    "language": "Language",
+    "chinese": "中文",
+    "english": "English"
   },
   "messages": {
     "copied": "Copied",

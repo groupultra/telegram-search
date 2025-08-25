@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { useAuthStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import Dialog from '../ui/Dialog.vue'
+import SelectDropdown from '../ui/SelectDropdown.vue'
 import { Switch } from '../ui/Switch'
 
 const { t } = useI18n()
+const { locale } = useI18n()
 
 const router = useRouter()
 const showDialog = defineModel<boolean>('showDialog', { required: true })
@@ -17,7 +20,18 @@ const { isLoggedIn } = storeToRefs(sessionStore)
 const { logout } = sessionStore.handleAuth()
 
 const settingsStore = useSettingsStore()
-const { useCachedMessage, debugMode } = storeToRefs(settingsStore)
+const { useCachedMessage, debugMode, language } = storeToRefs(settingsStore)
+
+// Language options
+const languageOptions = [
+  { label: t('settings.chinese'), value: 'zhCN' },
+  { label: t('settings.english'), value: 'en' },
+]
+
+// Sync language with i18n locale
+watch(language, (newValue: string) => {
+  locale.value = newValue
+}, { immediate: true })
 
 function handleLogout() {
   logout()
@@ -40,6 +54,19 @@ function handleLogin() {
       </button>
     </div>
     <div class="space-y-4">
+      <!-- Language Selection -->
+      <div class="flex items-center justify-between rounded-lg p-3 text-gray-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
+        <div class="flex items-center gap-2">
+          <div class="i-lucide-globe h-5 w-5" />
+          <span>{{ t('settings.language') }}</span>
+        </div>
+        <SelectDropdown
+          v-model="language"
+          :options="languageOptions"
+          class="min-w-[120px]"
+        />
+      </div>
+
       <template v-if="!isLoggedIn">
         <div class="flex items-center justify-between rounded-lg p-3 text-gray-900 transition-colors hover:bg-neutral-100/50 dark:text-gray-100 dark:hover:bg-gray-700/50">
           <div class="flex items-center gap-2">
