@@ -27,7 +27,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const themeColorsHueDynamic = useLocalStorage('settings/theme/colors/hue-dynamic', false)
 
   // Language settings
-  const language = useLocalStorage<string>('settings/language', 'zhCN')
+  const language = useLocalStorage<string>('settings/language', 'en')
 
   function setThemeColorsHue(hue = DEFAULT_THEME_COLORS_HUE) {
     themeColorsHue.value = hue

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -23,10 +23,10 @@ const settingsStore = useSettingsStore()
 const { useCachedMessage, debugMode, language } = storeToRefs(settingsStore)
 
 // Language options
-const languageOptions = [
+const languageOptions = computed(() => [
   { label: t('settings.chinese'), value: 'zhCN' },
   { label: t('settings.english'), value: 'en' },
-]
+])
 
 // Sync language with i18n locale
 watch(language, (newValue: string) => {
