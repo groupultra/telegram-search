@@ -50,11 +50,9 @@ export default defineConfig({
     alias: {
       telegram: resolve(import.meta.dirname, 'node_modules/telegram'),
     },
-    mainFields: ['browser', 'module', 'main'],
   },
   optimizeDeps: {
-    exclude: ['@electric-sql/pglite'],
-    include: ['@tg-search/common'],
+    exclude: ['@electric-sql/pglite']
   },
   // Proxy API requests to local development server
   server: {

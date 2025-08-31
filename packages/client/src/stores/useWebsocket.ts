@@ -2,6 +2,7 @@ import type { WsEventToClient, WsEventToServer, WsEventToServerData, WsMessageTo
 
 import type { SessionContext } from './useAuth'
 
+import { initConfig } from '@tg-search/common'
 import { defineStore, storeToRefs } from 'pinia'
 
 import { useCoreBridgeWebsocketStore } from './useCoreBridgeWebsocket'
@@ -12,7 +13,7 @@ export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T
 
 export const useWebsocketStore = defineStore('websocket', () => {
   let websocketStore: ReturnType<typeof useOriginWebsocketStore> | ReturnType<typeof useCoreBridgeWebsocketStore>
-
+  initConfig()
   if (false) {
     websocketStore = useOriginWebsocketStore()
   }

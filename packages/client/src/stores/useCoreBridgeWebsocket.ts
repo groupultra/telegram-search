@@ -5,7 +5,7 @@ import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event
 import type { SessionContext } from './useAuth'
 import type { ClientSendEventFn } from './useWebsocket'
 
-import { initConfig, useConfig } from '@tg-search/common/browser'
+import { useConfig } from '@tg-search/common'
 import { createCoreInstance, initDrizzle } from '@tg-search/core'
 import { useLogger } from '@unbird/logg'
 import { useLocalStorage } from '@vueuse/core'
@@ -19,7 +19,6 @@ import { getRegisterEventHandler, registerAllEventHandlers } from '../event-hand
 export const useCoreBridgeWebsocketStore = defineStore('corebridge_websocket', () => {
   const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
   const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
-  initConfig()
   const config = useConfig()
   const core = createCoreInstance(config)
   const logger = useLogger('corebridge_websocket')

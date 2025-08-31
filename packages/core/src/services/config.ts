@@ -3,6 +3,7 @@ import type { Config } from '@tg-search/common'
 import type { CoreContext } from '../context'
 
 import { configSchema, updateConfig as updateConfigToFile, useConfig } from '@tg-search/common'
+import { isBrowser } from '@unbird/logg/utils'
 import { safeParse } from 'valibot'
 
 export interface ConfigEventToCore {
@@ -34,7 +35,13 @@ export function createConfigService(ctx: CoreContext) {
       throw new Error('Invalid config')
     }
 
-    updateConfigToFile(validatedConfig.output)
+    if (isBrowser()) {
+      updateConfigToFile(validatedConfig.output)
+    }
+    else {
+      const { updateConfig: updateConfigToFile } = await import('@tg-search/common/node')
+      updateConfigToFile(validatedConfig.output)
+    }
 
     emitter.emit('config:data', { config: validatedConfig.output })
   }
