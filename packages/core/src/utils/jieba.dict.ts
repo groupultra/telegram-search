@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { getDataPath } from '@tg-search/common/node'
+import { getDataPath } from '@tg-search/common'
 import { useLogger } from '@unbird/logg'
 
 const DICT_URL = 'https://github.com/fxsjy/jieba/raw/master/extra_dict/dict.txt.small'

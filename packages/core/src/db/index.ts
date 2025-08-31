@@ -1,12 +1,12 @@
 import type { Config } from '@tg-search/common'
 import type { Logger } from '@unbird/logg'
 
-import { PGlite } from '@electric-sql/pglite'
+import { IdbFs, PGlite } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
 import { migrate as migratePg } from '@proj-airi/drizzle-orm-browser-migrator/pg'
 import { migrate as migratePGlite } from '@proj-airi/drizzle-orm-browser-migrator/pglite'
 import { DatabaseType, flags } from '@tg-search/common'
-import { getDatabaseDSN, getDatabaseFilePath } from '@tg-search/common/node'
+import { isBrowser } from '@unbird/logg/utils'
 import { Err, Ok } from '@unbird/result'
 import { sql } from 'drizzle-orm'
 import { drizzle as drizzlePGlite } from 'drizzle-orm/pglite'
@@ -43,13 +43,14 @@ export async function initDrizzle(logger: Logger, config: Config, dbPath?: strin
   logger.log('Initializing database...')
 
   // Get configuration
-  const dbType = config.database.type || DatabaseType.POSTGRES
+  const dbType = config.database.type || DatabaseType.PGLITE
 
   logger.log(`Using database type: ${dbType}`)
 
   switch (dbType) {
     case DatabaseType.POSTGRES: {
       // Initialize PostgreSQL database
+      const { getDatabaseDSN } = await import('@tg-search/common/node')
       const connectionString = getDatabaseDSN(config)
       logger.log(`Connecting to PostgreSQL database: ${connectionString}`)
 
@@ -65,15 +66,24 @@ export async function initDrizzle(logger: Logger, config: Config, dbPath?: strin
     }
 
     case DatabaseType.PGLITE: {
-      // Initialize PGlite database
-      const dbFilePath = dbPath || getDatabaseFilePath(config)
-      logger.log(`Using PGlite database file: ${dbFilePath}`)
-
       try {
-        // Initialize PGlite instance
-        const pg = new PGlite(dbFilePath, {
-          extensions: { vector },
-        })
+        let pg: PGlite
+        if (isBrowser()) {
+          logger.log('Using PGlite in browser')
+          pg = new PGlite({
+            extensions: { vector },
+            fs: new IdbFs('pglite'),
+          })
+        }
+        else {
+          const { getDatabaseFilePath } = await import('@tg-search/common/node')
+          const dbFilePath = dbPath || getDatabaseFilePath(config)
+          logger.log(`Using PGlite in node: ${dbFilePath}`)
+          pg = new PGlite(dbFilePath, {
+            extensions: { vector },
+
+          })
+        }
 
         // Create Drizzle instance
         dbInstance = drizzlePGlite(pg) as CoreDB

@@ -4,8 +4,12 @@
   "version": "1.0.0-beta.22",
   "private": true,
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "import": "./src/node/index.ts",
+      "browser": "./src/browser/index.ts"
+    },
     "./node": "./src/node/index.ts",
+    "./browser": "./src/browser/index.ts",
     "./utils/*": "./src/utils/*.ts"
   },
   "scripts": {

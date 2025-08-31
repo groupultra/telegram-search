@@ -3,6 +3,9 @@ import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToSe
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 import type { SessionContext } from './useAuth'
 
+import { generateDefaultConfig } from '@tg-search/common'
+import { createCoreInstance, initDrizzle } from '@tg-search/core'
+import { useLogger } from '@unbird/logg'
 import { useLocalStorage, useWebSocket } from '@vueuse/core'
 import { defu } from 'defu'
 import { defineStore } from 'pinia'
@@ -19,6 +22,8 @@ export const useWebsocketStore = defineStore('websocket', () => {
   const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
   const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
 
+  initDrizzle(useLogger(), generateDefaultConfig())
+  const _core = createCoreInstance(generateDefaultConfig())
   const getActiveSession = () => {
     return storageSessions.value.get(storageActiveSessionId.value)
   }

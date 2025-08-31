@@ -1,7 +1,6 @@
 import type { EmbedManyResult } from '@xsai/embed'
 
-import { EmbeddingProvider } from '@tg-search/common'
-import { useConfig } from '@tg-search/common/node'
+import { EmbeddingProvider, useConfig } from '@tg-search/common'
 import { Ok } from '@unbird/result'
 import { createOllama } from '@xsai-ext/providers-local'
 import { embedMany } from '@xsai/embed'

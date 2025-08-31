@@ -1,4 +1,4 @@
-import type { Config } from '../browser/config-schema'
+import type { Config } from '../config-schema'
 
 import { readFileSync, writeFileSync } from 'node:fs'
 
@@ -7,8 +7,8 @@ import defu from 'defu'
 import { safeParse } from 'valibot'
 import { parse, stringify } from 'yaml'
 
-import { configSchema } from '../browser/config-schema'
-import { generateDefaultConfig } from '../browser/default-config'
+import { configSchema } from '../config-schema'
+import { generateDefaultConfig } from '../default-config'
 import { useConfigPath } from './path'
 
 let config: Config

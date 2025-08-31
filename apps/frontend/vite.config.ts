@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { env } from 'node:process'
 
 import Vue from '@vitejs/plugin-vue'
@@ -45,6 +46,16 @@ export default defineConfig({
     UnoCSS(),
   ],
 
+  resolve: {
+    alias: {
+      telegram: resolve(import.meta.dirname, 'node_modules/telegram'),
+    },
+    mainFields: ['browser', 'module', 'main'],
+  },
+  optimizeDeps: {
+    exclude: ['@electric-sql/pglite'],
+    include: ['@tg-search/common'],
+  },
   // Proxy API requests to local development server
   server: {
     proxy: {

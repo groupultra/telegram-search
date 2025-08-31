@@ -35,7 +35,7 @@ export const proxyConfigSchema = object({
 })
 
 export const databaseConfigSchema = object({
-  type: optional(enumType(DatabaseType), DatabaseType.POSTGRES),
+  type: optional(enumType(DatabaseType), DatabaseType.PGLITE),
   host: optional(string()),
   port: optional(number()),
   user: optional(string()),

@@ -2,7 +2,7 @@ import type { Api } from 'telegram'
 
 import type { CoreContext } from '../context'
 
-import { useConfig } from '@tg-search/common/node'
+import { useConfig } from '@tg-search/common'
 import { NewMessage } from 'telegram/events'
 
 export interface GramEventsEventToCore {}
