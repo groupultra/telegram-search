@@ -6,13 +6,14 @@ import { safeParse } from 'valibot'
 
 import { configSchema } from '../config-schema'
 import { generateDefaultConfig } from '../default-config'
+import { isBrowser } from '@unbird/logg/utils'
 
 const logger = useLogger('common:config')
 let config: Config
 
 // 简单的 localStorage 包装器，不依赖 Vue
 function getLocalStorage(key: string): any {
-  if (typeof window === 'undefined')
+  if (!isBrowser())
     return null
   try {
     const item = localStorage.getItem(key)
@@ -24,7 +25,7 @@ function getLocalStorage(key: string): any {
 }
 
 function setLocalStorage(key: string, value: any): void {
-  if (typeof window === 'undefined')
+  if (!isBrowser())
     return
   try {
     localStorage.setItem(key, JSON.stringify(value))
