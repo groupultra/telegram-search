@@ -9,14 +9,14 @@ export async function ensureJieba(): Promise<Jieba | undefined> {
 
   if (!_jieba) {
     try {
-      if (!isBrowser()) {
+      if (isBrowser()) {
+        _jieba = new Jieba()
+      }
+      else {
         const { loadDict } = await import('./jieba.dict')
 
         const dictBuffer = await loadDict()
         _jieba = Jieba.withDict(dictBuffer)
-      }
-      else {
-        _jieba = new Jieba()
       }
 
       logger.log('Jieba initialized successfully')
