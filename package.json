@@ -13,6 +13,8 @@
     "dev:electron": "pnpm run packages:build && pnpm -F @tg-search/electron dev",
     "build:packages": "pnpm -rF=\"./packages/*\" --parallel build",
     "packages:build": "pnpm -rF=\"./packages/*\" --parallel build",
+    "build:web": "pnpm run packages:build && pnpm -F @tg-search/frontend build",
+    "preview:web": "pnpm run build:web && pnpm -F @tg-search/frontend preview",
     "test": "vitest",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache . --fix",
