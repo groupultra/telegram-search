@@ -77,11 +77,13 @@ export async function initDrizzle(logger: Logger, config: Config, dbPath?: strin
         }
         else {
           const { getDatabaseFilePath } = await import('@tg-search/common/node')
+          const { mkdirSync } = await import('node:fs')
+          const { dirname } = await import('node:path')
           const dbFilePath = dbPath || getDatabaseFilePath(config)
+          mkdirSync(dirname(dbFilePath), { recursive: true })
           logger.log(`Using PGlite in node: ${dbFilePath}`)
           pg = new PGlite(dbFilePath, {
             extensions: { vector },
-
           })
         }
 
