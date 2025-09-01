@@ -127,26 +127,6 @@ function closeMobileDrawer() {
       />
     </div>
 
-    <!-- Login prompt banner -->
-    <div
-      v-if="!isLoggedIn"
-      class="fixed left-0 right-0 top-0 z-50 bg-yellow-500 px-4 py-2 text-center text-sm text-yellow-900 font-medium transition-all duration-300 ease-in-out"
-      :class="{ 'left-80': !isMobile }"
-    >
-      <div class="flex items-center justify-center gap-2">
-        <div class="i-lucide-alert-triangle" />
-        <span>{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
-        <Button
-          size="sm"
-          icon="i-lucide-user"
-          class="ml-2 border border-yellow-700 bg-yellow-600 text-yellow-100 hover:bg-yellow-700"
-          @click="router.push('/login')"
-        >
-          {{ t('loginPromptBanner.login') }}
-        </Button>
-      </div>
-    </div>
-
     <!-- Sidebar -->
     <div
       :class="sidebarClasses.container"
@@ -275,6 +255,25 @@ function closeMobileDrawer() {
       class="flex flex-1 flex-col overflow-auto bg-background transition-all duration-300 ease-in-out dark:bg-gray-900"
       :class="{ 'ml-0': isMobile }"
     >
+      <!-- Login prompt banner -->
+      <div
+        v-if="!isLoggedIn"
+        class="bg-yellow-500 px-4 py-2 text-center text-sm text-yellow-900 font-medium transition-all duration-300 ease-in-out"
+        :class="{ 'left-80': !isMobile }"
+      >
+        <div class="flex items-center justify-center gap-2">
+          <div class="i-lucide-alert-triangle" />
+          <span>{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
+          <Button
+            size="sm"
+            icon="i-lucide-user"
+            class="ml-2 border border-yellow-700 bg-yellow-600 text-yellow-100 hover:bg-yellow-700"
+            @click="router.push('/login')"
+          >
+            {{ t('loginPromptBanner.login') }}
+          </Button>
+        </div>
+      </div>
       <RouterView :key="$route.fullPath" />
     </div>
 
