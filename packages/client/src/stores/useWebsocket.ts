@@ -12,11 +12,11 @@ export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T
 export const useWebsocketStore = defineStore('websocket', () => {
   let websocketStore: ReturnType<typeof useOriginWebsocketStore> | ReturnType<typeof useCoreBridgeWebsocketStore>
   initConfig()
-  if (true) {
-    websocketStore = useOriginWebsocketStore()
+  if (import.meta.env.VITE_CORE_IN_BROWSER) {
+    websocketStore = useCoreBridgeWebsocketStore()
   }
   else {
-    websocketStore = useCoreBridgeWebsocketStore()
+    websocketStore = useOriginWebsocketStore()
   }
 
   const { getActiveSession, updateActiveSession, cleanup, sendEvent, waitForEvent } = websocketStore
