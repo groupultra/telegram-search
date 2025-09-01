@@ -15,6 +15,7 @@
   "dependencies": {
     "@pnpm/find-workspace-dir": "^1000.1.2",
     "@unbird/logg": "catalog:",
+    "@vueuse/core": "^13.7.0",
     "defu": "^6.1.4",
     "path-browserify-esm": "^1.0.6",
     "pathe": "^2.0.3",

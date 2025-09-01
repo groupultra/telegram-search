@@ -48,7 +48,8 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      telegram: resolve(import.meta.dirname, 'node_modules/telegram'),
+      'telegram': resolve(import.meta.dirname, 'node_modules/telegram'),
+      '@tg-search/common': resolve(import.meta.dirname, '../../packages/common/src'),
     },
   },
   optimizeDeps: {

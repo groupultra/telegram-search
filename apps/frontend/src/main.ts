@@ -8,12 +8,24 @@ import { createI18n } from 'vue-i18n'
 import { createRouter, createWebHistory } from 'vue-router'
 import { routes as generatedRoutes } from 'vue-router/auto-routes'
 
+import { initConfig, updateConfig, useConfig } from '../../../packages/common/src/browser/config'
+
 import '@unocss/reset/tailwind.css'
 import 'uno.css'
 import 'vue-sonner/style.css'
 import '@tg-search/stage-ui/styles/main.css'
 
 const app = createApp(App)
+
+const has_config = localStorage.getItem('config')
+if (!has_config) {
+  initConfig()
+  const config = useConfig()
+  config.api.telegram.apiId = import.meta.env.VITE_TELEGRAM_APP_ID
+  config.api.telegram.apiHash = import.meta.env.VITE_TELEGRAM_APP_HASH
+  updateConfig(config)
+}
+
 const pinia = createPinia()
 const routes = setupLayouts(generatedRoutes)
 const router = createRouter({

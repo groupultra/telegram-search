@@ -1,44 +1,22 @@
 import type { Config } from '../config-schema'
 
 import { useLogger } from '@unbird/logg'
+import { useLocalStorage } from '@vueuse/core'
 import defu from 'defu'
 import { safeParse } from 'valibot'
 
 import { configSchema } from '../config-schema'
 import { generateDefaultConfig } from '../default-config'
-import { isBrowser } from '@unbird/logg/utils'
 
 const logger = useLogger('common:config')
 let config: Config
 
-// 简单的 localStorage 包装器，不依赖 Vue
-function getLocalStorage(key: string): any {
-  if (!isBrowser())
-    return null
-  try {
-    const item = localStorage.getItem(key)
-    return item ? JSON.parse(item) : null
-  }
-  catch {
-    return null
-  }
-}
-
-function setLocalStorage(key: string, value: any): void {
-  if (!isBrowser())
-    return
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  }
-  catch {
-    console.error('Failed to set localStorage')
-  }
-}
+const configStorage = useLocalStorage('settings/config', generateDefaultConfig())
 
 export async function initConfig(): Promise<Config> {
   if (!config) {
     // 尝试从 localStorage 加载，如果没有则使用默认配置
-    const savedConfig = getLocalStorage('config')
+    const savedConfig = configStorage.value
     if (savedConfig) {
       const validatedConfig = safeParse(configSchema, savedConfig)
       if (validatedConfig.success) {
@@ -66,7 +44,7 @@ export async function updateConfig(newConfig: Partial<Config>): Promise<Config> 
   config = validatedConfig.output
 
   // 保存到 localStorage
-  setLocalStorage('config', config)
+  configStorage.value = config
 
   return config
 }
