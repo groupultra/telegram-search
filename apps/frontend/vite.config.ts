@@ -52,7 +52,36 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['@electric-sql/pglite']
+    exclude: ['@electric-sql/pglite'],
+    include: ['vue-i18n', 'buffer'],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // 预加载模块 - 只包含 preload.ts 本身
+          if (id.includes('preload.ts')) {
+            return 'preload'
+          }
+          // Buffer 单独一个 chunk
+          if (id.includes('buffer')) {
+            return 'buffer-polyfill'
+          }
+          // i18n 单独一个 chunk
+          if (id.includes('vue-i18n')) {
+            return 'vue-i18n'
+          }
+          // PGLite 单独一个 chunk
+          if (id.includes('@electric-sql/pglite')) {
+            return 'pglite'
+          }
+          // 其他第三方库
+          if (id.includes('node_modules')) {
+            return 'vendor'
+          }
+        },
+      },
+    },
   },
   // Proxy API requests to local development server
   server: {
