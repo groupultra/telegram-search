@@ -1,4 +1,4 @@
-import type { Config } from '@tg-search/common'
+import type { Config, ProxyConfig } from '@tg-search/common'
 
 import type { CoreContext } from './context'
 import type { SessionService } from './services/session'
@@ -45,8 +45,8 @@ export function basicEventHandler(
 
   const connectionService = useService(ctx, createConnectionService)({
     apiId: Number(config.api.telegram.apiId),
-    apiHash: config.api.telegram.apiHash,
-    proxy: config.api.telegram.proxy,
+    apiHash: config.api.telegram.apiHash as string,
+    proxy: config.api.telegram.proxy as ProxyConfig,
   })
   const configService = useService(ctx, createConfigService)
   const messageResolverService = useService(ctx, createMessageResolverService)(registry)

@@ -3,7 +3,8 @@
   "compilerOptions": {
     "types": [
       "@proj-airi/unplugin-drizzle-orm-migrations/types",
-      "node"
+      "node",
+      "vite/client"
     ]
   },
   "include": [

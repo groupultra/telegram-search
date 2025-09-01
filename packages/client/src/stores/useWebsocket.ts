@@ -1,6 +1,4 @@
-import type { WsEventToClient, WsEventToServer, WsEventToServerData, WsMessageToServer } from '@tg-search/server/types'
-
-import type { SessionContext } from './useAuth'
+import type { WsEventToServer, WsEventToServerData, WsMessageToServer } from '@tg-search/server/types'
 
 import { initConfig } from '@tg-search/common'
 import { defineStore, storeToRefs } from 'pinia'

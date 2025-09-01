@@ -45,7 +45,6 @@ export const databaseConfigSchema = object({
 })
 
 export const telegramConfigSchema = object({
-
   apiId: optional(string(), import.meta.env.VITE_TELEGRAM_APP_ID || ''),
   apiHash: optional(string(), import.meta.env.VITE_TELEGRAM_APP_HASH || ''),
   proxy: optional(proxyConfigSchema),

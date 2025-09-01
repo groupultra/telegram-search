@@ -82,7 +82,7 @@ export const useCoreBridgeWebsocketStore = defineStore('corebridge_websocket', (
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {
     logger.withFields({ event }).log('Waiting for event from core')
-    return new Promise((resolve) => {
+    return new Promise<WsEventToClientData<T>>((resolve) => {
       const handlers = eventHandlersQueue.get(event) ?? []
       handlers.push((data) => {
         resolve(data)
