@@ -82,8 +82,7 @@ export function createConnectionService(ctx: CoreContext) {
         {
           connectionRetries: 3,
           retryDelay: 10000,
-          useWSS: proxy ? false : undefined,
-          proxy,
+          useWSS: true,
         },
       )
 
