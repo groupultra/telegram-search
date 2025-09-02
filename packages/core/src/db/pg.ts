@@ -1,0 +1,55 @@
+import type { Config } from '@tg-search/common'
+import type { Logger } from '@unbird/logg'
+import type { drizzle as drizzlePg } from 'drizzle-orm/postgres-js'
+
+import { migrate as migratePg } from '@proj-airi/drizzle-orm-browser-migrator/pg'
+import { flags } from '@tg-search/common'
+import { getDatabaseDSN } from '@tg-search/common/node'
+import { sql } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+import migrations from 'virtual:drizzle-migrations.sql'
+
+export type PostgresDB = ReturnType<typeof drizzlePg>
+
+async function applyMigrations(logger: Logger, db: PostgresDB) {
+  try {
+    await migratePg(db as PostgresDB, migrations)
+  }
+  catch (error) {
+    logger.withError(error).error('Failed to apply database migrations')
+    throw error
+  }
+}
+
+export async function initPgDrizzle(logger: Logger, config: Config) {
+  logger.log('Initializing database...')
+
+  // Initialize PostgreSQL database
+  const connectionString = getDatabaseDSN(config)
+  logger.log(`Connecting to PostgreSQL database: ${connectionString}`)
+
+  const client = postgres(connectionString, {
+    max: 1,
+    onnotice: (notice) => {
+      logger.withFields({ notice }).verbose('Database connection notice')
+    },
+  })
+
+  const db = drizzle(client, { logger: flags.isDatabaseDebugMode }) as PostgresDB
+
+  // Check database connection
+  try {
+    await db.execute(sql`select 1`)
+    logger.log('Database connection established successfully')
+
+    // Migrate database
+    await applyMigrations(logger, db)
+  }
+  catch (error) {
+    logger.withError(error).error('Failed to connect to database')
+    throw error
+  }
+
+  return db
+}
