@@ -8,8 +8,6 @@ import { createI18n } from 'vue-i18n'
 import { createRouter, createWebHistory } from 'vue-router'
 import { routes as generatedRoutes } from 'vue-router/auto-routes'
 
-import { initConfig, updateConfig, useConfig } from '../../../packages/common/src/browser/config'
-
 import '@unocss/reset/tailwind.css'
 import 'uno.css'
 import 'vue-sonner/style.css'
