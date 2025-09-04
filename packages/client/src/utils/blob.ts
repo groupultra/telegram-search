@@ -1,31 +1,45 @@
 import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
 import pako from 'pako'
+import { Buffer } from 'buffer'
+
+function isBrowser() {
+  return typeof window !== 'undefined'
+}
 
 export function createMediaBlob(media: CoreMessageMediaFromBlob) {
-  // when media.type is 'webpage'
-  // media.byte (preview image) might be an empty buffer
-  if (media.byte && (media.byte as any).data?.length) {
-    const buffer = new Uint8Array((media.byte as any).data)
-
-    if (media.type === 'sticker' && media.mimeType === 'application/gzip') {
-      media.tgsAnimationData = pako.inflate(buffer, { to: 'string' })
+  const mediaCopy = { ...media }
+  
+  if (mediaCopy.byte?.length) {
+    let buffer: Uint8Array
+    
+    // 统一处理：Buffer、Uint8Array 或序列化格式
+    if (mediaCopy.byte instanceof Buffer || mediaCopy.byte instanceof Uint8Array) {
+      buffer = new Uint8Array(mediaCopy.byte)
+    } else if ((mediaCopy.byte as any).data) {
+      buffer = new Uint8Array((mediaCopy.byte as any).data)
+    } else {
+      return mediaCopy
     }
-    else {
-      const blob = new Blob([buffer], { type: media.mimeType })
-      const url = URL.createObjectURL(blob)
-      media.blobUrl = url
 
-      // eslint-disable-next-line no-console
-      console.log('[Blob] Blob URL created:', {
-        url,
-        blobSize: blob.size,
-      })
+    if (mediaCopy.type === 'sticker' && mediaCopy.mimeType === 'application/gzip') {
+      try {
+        mediaCopy.tgsAnimationData = pako.inflate(buffer, { to: 'string' })
+      } catch {
+        console.error('Failed to inflate TGS data')
+      }
+    } else {
+      try {
+        const blob = new Blob([buffer], { type: mediaCopy.mimeType })
+        mediaCopy.blobUrl = URL.createObjectURL(blob)
+      } catch {
+        console.error('Failed to create blob URL')
+      }
     }
   }
 
-  media.byte = undefined
-  return media
+  mediaCopy.byte = undefined
+  return mediaCopy
 }
 
 export function cleanupMediaBlob(media: CoreMessageMediaFromBlob): void {
