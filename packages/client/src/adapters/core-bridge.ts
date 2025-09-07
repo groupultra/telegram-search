@@ -19,13 +19,17 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const storageSessions = useLocalStorage('core-bridge/sessions', new Map<string, SessionContext>())
   const storageActiveSessionId = useLocalStorage('core-bridge/active-session-id', uuidv4())
 
-  const config = useConfig()
   const logger = useLogger('CoreBridge')
   let ctx: CoreContext
 
   function ensureCtx() {
     if (!ctx) {
       initLogger()
+
+      const config = useConfig()
+      config.api.telegram.apiId = import.meta.env.VITE_TELEGRAM_APP_ID
+      config.api.telegram.apiHash = import.meta.env.VITE_TELEGRAM_APP_HASH
+
       ctx = createCoreInstance(config)
       initDrizzle(logger, config)
     }

@@ -65,6 +65,8 @@ export default defineConfig({
     exclude: ['@electric-sql/pglite'],
   },
 
+  envDir: '../..',
+
   // Proxy API requests to local development server
   server: {
     proxy: {
