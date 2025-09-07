@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { ChatGroup } from '@tg-search/client'
 
-import { useAuthStore, useChatStore, useSettingsStore, useWebsocketStore } from '@tg-search/client'
+import { useAuthStore, useChatStore, useSettingsStore, useBridgeStore } from '@tg-search/client'
 import { breakpointsTailwind, useBreakpoints, useDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
@@ -18,7 +18,7 @@ const settingsStore = useSettingsStore()
 const { theme } = storeToRefs(settingsStore)
 const isDark = useDark()
 
-const websocketStore = useWebsocketStore()
+const websocketStore = useBridgeStore()
 const authStore = useAuthStore()
 const { isLoggedIn } = storeToRefs(authStore)
 

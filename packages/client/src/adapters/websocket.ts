@@ -18,7 +18,7 @@ import { getRegisterEventHandler, registerAllEventHandlers } from '../event-hand
 export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
 
-export const useOriginWebsocketStore = defineStore('origin_websocket', () => {
+export const useWebsocketStore = defineStore('origin_websocket', () => {
   const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
   const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
 

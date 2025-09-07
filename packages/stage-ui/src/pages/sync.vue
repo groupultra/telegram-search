@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore, useChatStore, useSyncTaskStore, useWebsocketStore } from '@tg-search/client'
+import { useAuthStore, useChatStore, useSyncTaskStore, useBridgeStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -15,7 +15,7 @@ const selectedChats = ref<number[]>([])
 
 const sessionStore = useAuthStore()
 const { isLoggedIn } = storeToRefs(sessionStore)
-const websocketStore = useWebsocketStore()
+const websocketStore = useBridgeStore()
 
 const chatsStore = useChatStore()
 const { chats } = storeToRefs(chatsStore)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
-import { useWebsocketStore } from '@tg-search/client'
+import { useBridgeStore } from '@tg-search/client'
 import { useDebounce } from '@vueuse/core'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -22,7 +22,7 @@ const showSettings = ref(false)
 const keyword = ref<string>('')
 const keywordDebounced = useDebounce(keyword, 1000)
 
-const websocketStore = useWebsocketStore()
+const websocketStore = useBridgeStore()
 const searchResult = ref<CoreRetrievalMessages[]>([])
 
 // TODO: Infinite scroll

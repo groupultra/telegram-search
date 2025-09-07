@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore, useWebsocketStore } from '@tg-search/client'
+import { useAuthStore, useBridgeStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -14,7 +14,7 @@ type LoginStep = 'phone' | 'code' | 'password' | 'complete'
 const router = useRouter()
 
 const authStore = useAuthStore()
-const websocketStore = useWebsocketStore()
+const websocketStore = useBridgeStore()
 const { isLoggedIn } = storeToRefs(authStore)
 
 const state = ref({

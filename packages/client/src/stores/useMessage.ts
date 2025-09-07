@@ -7,7 +7,7 @@ import { computed, ref } from 'vue'
 import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
 import { determineMessageDirection } from '../utils/message'
-import { useWebsocketStore } from './useWebsocket'
+import { useBridgeStore } from './useBridge'
 
 function createContextWithTimeout(timeout: number) {
   return new Promise((_, reject) =>
@@ -19,7 +19,7 @@ export const useMessageStore = defineStore('message', () => {
   const currentChatId = ref<string>()
   const messageWindow = ref<MessageWindow>()
 
-  const websocketStore = useWebsocketStore()
+  const websocketStore = useBridgeStore()
 
   async function pushMessages(messages: CoreMessage[]) {
     const filteredMessages = messages.filter(msg => msg.chatId === currentChatId.value)

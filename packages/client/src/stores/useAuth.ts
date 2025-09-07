@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
 import { useChatStore } from './useChat'
-import { useWebsocketStore } from './useWebsocket'
+import { useBridgeStore } from './useBridge'
 
 export interface SessionContext {
   phoneNumber?: string
@@ -13,7 +13,7 @@ export interface SessionContext {
 }
 
 export const useAuthStore = defineStore('session', () => {
-  const websocketStore = useWebsocketStore()
+  const websocketStore = useBridgeStore()
 
   const authStatus = ref({
     needCode: false,

@@ -2,8 +2,8 @@ import type { CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsMessageToClient, WsMessageToServer } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { SessionContext } from './useAuth'
-import type { ClientSendEventFn } from './useWebsocket'
+import type { SessionContext } from '../stores/useAuth'
+import type { ClientSendEventFn } from '../stores/useBridge'
 
 import { useConfig } from '@tg-search/common'
 import { createCoreInstance, initDrizzle } from '@tg-search/core'
@@ -16,12 +16,12 @@ import { onMounted } from 'vue'
 
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
 
-export const useCoreBridgeWebsocketStore = defineStore('corebridge_websocket', () => {
+export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
   const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
   const config = useConfig()
   const core = createCoreInstance(config)
-  const logger = useLogger('corebridge_websocket')
+  const logger = useLogger('core-bridge')
 
   const getActiveSession = () => {
     return storageSessions.value.get(storageActiveSessionId.value)

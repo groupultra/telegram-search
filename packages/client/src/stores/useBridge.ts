@@ -3,20 +3,20 @@ import type { WsEventToServer, WsEventToServerData, WsMessageToServer } from '@t
 import { initConfig } from '@tg-search/common'
 import { defineStore, storeToRefs } from 'pinia'
 
-import { useCoreBridgeWebsocketStore } from './useCoreBridgeWebsocket'
-import { useOriginWebsocketStore } from './useOriginWebsocket'
+import { useCoreBridgeStore } from '../adapters/core-bridge'
+import { useWebsocketStore } from '../adapters/websocket'
 
 export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
 
-export const useWebsocketStore = defineStore('websocket', () => {
-  let websocketStore: ReturnType<typeof useOriginWebsocketStore> | ReturnType<typeof useCoreBridgeWebsocketStore>
+export const useBridgeStore = defineStore('websocket', () => {
+  let websocketStore: ReturnType<typeof useWebsocketStore> | ReturnType<typeof useCoreBridgeStore>
   initConfig()
   if (import.meta.env.VITE_CORE_IN_BROWSER) {
-    websocketStore = useCoreBridgeWebsocketStore()
+    websocketStore = useCoreBridgeStore()
   }
   else {
-    websocketStore = useOriginWebsocketStore()
+    websocketStore = useWebsocketStore()
   }
 
   const { getActiveSession, updateActiveSession, cleanup, sendEvent, waitForEvent } = websocketStore

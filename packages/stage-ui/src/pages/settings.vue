@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useSettingsStore, useWebsocketStore } from '@tg-search/client'
+import { useSettingsStore, useBridgeStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -12,7 +12,7 @@ const { t } = useI18n()
 
 const isEditing = ref(false)
 const { config } = storeToRefs(useSettingsStore())
-const websocketStore = useWebsocketStore()
+const websocketStore = useBridgeStore()
 
 const embeddingProviderOptions = [
   { label: 'OpenAI', value: 'openai' },

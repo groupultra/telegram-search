@@ -3,11 +3,11 @@ import type { CoreDialog } from '@tg-search/core'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import { useWebsocketStore } from './useWebsocket'
+import { useBridgeStore } from './useBridge'
 
 export const useChatStore = defineStore('chat', () => {
   const chats = ref<CoreDialog[]>([])
-  const websocketStore = useWebsocketStore()
+  const websocketStore = useBridgeStore()
 
   const getChat = (id: string) => {
     return chats.value.find(chat => chat.id === Number(id))
