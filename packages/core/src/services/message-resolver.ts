@@ -8,7 +8,6 @@ import { useLogger } from '@unbird/logg'
 
 import { convertToCoreMessage } from '../utils/message'
 
-
 export interface MessageResolverEventToCore {
   'message:process': (data: { messages: Api.Message[] }) => void
 }
@@ -42,7 +41,7 @@ export function createMessageResolverService(ctx: CoreContext) {
 
       // Embedding or resolve messages
       let currentMessages = coreMessages
-      
+
       for (const [name, resolver] of resolvers.registry.entries()) {
         logger.withFields({ name }).verbose('Process messages with resolver')
 
@@ -61,7 +60,7 @@ export function createMessageResolverService(ctx: CoreContext) {
 
           if (result.length > 0) {
             currentMessages = result
-            
+
             emitter.emit('storage:record:messages', { messages: result })
           }
         }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore, useChatStore, useSyncTaskStore, useBridgeStore } from '@tg-search/client'
+import { useAuthStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'

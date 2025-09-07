@@ -1,6 +1,6 @@
 export * from './useAuth'
+export * from './useBridge'
 export * from './useChat'
 export * from './useMessage'
 export * from './useSettings'
 export * from './useSyncTask'
-export * from './useBridge'

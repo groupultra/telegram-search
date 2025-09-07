@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useSettingsStore, useBridgeStore } from '@tg-search/client'
+import { useBridgeStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'

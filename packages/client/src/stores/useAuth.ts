@@ -3,8 +3,8 @@ import type { CoreUserEntity } from '@tg-search/core'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
-import { useChatStore } from './useChat'
 import { useBridgeStore } from './useBridge'
+import { useChatStore } from './useChat'
 
 export interface SessionContext {
   phoneNumber?: string
