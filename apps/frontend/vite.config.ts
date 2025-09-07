@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import { env } from 'node:process'
 
+import DrizzleORMMigrations from '@proj-airi/unplugin-drizzle-orm-migrations/vite'
 import Vue from '@vitejs/plugin-vue'
 import UnoCSS from 'unocss/vite'
 import Unused from 'unplugin-unused/vite'
@@ -44,12 +45,19 @@ export default defineConfig({
     // https://github.com/antfu/unocss
     // see uno.config.ts for config
     UnoCSS(),
+
+    DrizzleORMMigrations({
+      root: '../..',
+    }),
+
   ],
 
   resolve: {
     alias: {
       'telegram': resolve(import.meta.dirname, 'node_modules/telegram'),
       '@tg-search/common': resolve(import.meta.dirname, '../../packages/common/src'),
+      '@tg-search/core': resolve(import.meta.dirname, '../../packages/core/src'),
+      '@tg-search/client': resolve(import.meta.dirname, '../../packages/client/src'),
     },
   },
 

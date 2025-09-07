@@ -9,10 +9,10 @@
   },
   "scripts": {
     "dev:server": "pnpm run packages:build && pnpm -F @tg-search/server dev",
-    "dev:frontend": "pnpm run packages:build && pnpm -F @tg-search/frontend dev",
+    "dev:frontend": "pnpm -F @tg-search/frontend dev",
     "dev:electron": "pnpm run packages:build && pnpm -F @tg-search/electron dev",
-    "dev": "VITE_WITH_CORE=true pnpm run packages:build && pnpm -F @tg-search/frontend dev",
-    "build": "VITE_WITH_CORE=true pnpm run packages:build && pnpm -F @tg-search/frontend build",
+    "dev": "VITE_WITH_CORE=true pnpm -F @tg-search/frontend dev",
+    "build": "VITE_WITH_CORE=true pnpm -F @tg-search/frontend build",
     "preview": "pnpm run build && pnpm -F @tg-search/frontend preview",
     "build:packages": "pnpm -rF=\"./packages/*\" --parallel build",
     "packages:build": "pnpm -rF=\"./packages/*\" --parallel build",

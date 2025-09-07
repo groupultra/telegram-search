@@ -1,6 +1,11 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "paths": {
+      "@tg-search/core": ["../../packages/core/src"],
+      "@tg-search/common": ["../../packages/common/src"],
+      "@tg-search/client": ["../../packages/client/src"]
+    },
     "types": [
       "vite/client"
     ]

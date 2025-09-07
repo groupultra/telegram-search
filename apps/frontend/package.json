@@ -35,6 +35,7 @@
     "vue-sonner": "catalog:"
   },
   "devDependencies": {
+    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.2",
     "@unocss/eslint-config": "^66.4.2",
     "@unocss/eslint-plugin": "^66.4.2",
     "@unocss/reset": "^66.4.2",

@@ -12,7 +12,6 @@ import { useLocalStorage } from '@vueuse/core'
 import defu from 'defu'
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
-import { onMounted } from 'vue'
 
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
 
