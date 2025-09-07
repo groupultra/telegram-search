@@ -1,9 +1,9 @@
-import type { CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsMessageToClient, WsMessageToServer } from '@tg-search/server/types'
 
+import type { ClientSendEventFn } from '../composables/useBridge'
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 import type { SessionContext } from '../stores/useAuth'
-import type { ClientSendEventFn } from '../stores/useBridge'
 
 import { useConfig } from '@tg-search/common'
 import { createCoreInstance, initDrizzle } from '@tg-search/core'
@@ -20,13 +20,17 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
 
   const config = useConfig()
-  const ctx = createCoreInstance(config)
   const logger = useLogger('CoreBridge')
+  let ctx: CoreContext
 
-  function init() {
-    initLogger()
-    initDrizzle(logger, config)
-    sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
+  function ensureCtx() {
+    if (!ctx) {
+      initLogger()
+      ctx = createCoreInstance(config)
+      initDrizzle(logger, config)
+    }
+
+    return ctx
   }
 
   const getActiveSession = () => {
@@ -47,6 +51,8 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
   // to core
   const sendEvent: ClientSendEventFn = (event, data) => {
+    const ctx = ensureCtx()
+
     logger.withFields({ event, data }).log('Receive event from client')
     const event_server = { type: event, data } as unknown as WsMessageToServer
     try {
@@ -84,7 +90,11 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const eventHandlers: ClientEventHandlerMap = new Map()
   const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
-  registerAllEventHandlers(registerEventHandler)
+
+  function init() {
+    registerAllEventHandlers(registerEventHandler)
+    sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
+  }
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {
     logger.withFields({ event }).log('Waiting for event from core')

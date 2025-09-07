@@ -1,7 +1,7 @@
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient, WsMessageToServer } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { SessionContext } from './useAuth'
+import type { SessionContext } from '../stores/useAuth'
 
 import { generateDefaultConfig } from '@tg-search/common'
 import { createCoreInstance, initDrizzle } from '@tg-search/core'
@@ -132,6 +132,8 @@ export const useWebsocketStore = defineStore('origin_websocket', () => {
   })
 
   return {
+    init: () => {},
+
     sessions: storageSessions,
     activeSessionId: storageActiveSessionId,
     getActiveSession,

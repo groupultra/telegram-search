@@ -1,6 +1,7 @@
 import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
-import { Buffer } from 'node:buffer'
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import { Buffer } from 'buffer'
 
 import pako from 'pako'
 

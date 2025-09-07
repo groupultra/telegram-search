@@ -1,6 +1,6 @@
 import type { WsEventToClient, WsEventToClientData } from '@tg-search/server/types'
 
-import type { ClientSendEventFn } from '../stores/useBridge'
+import type { ClientSendEventFn } from '../composables/useBridge'
 
 import { registerBasicEventHandlers } from './auth'
 import { registerConfigEventHandlers } from './config'

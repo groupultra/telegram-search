@@ -2,7 +2,7 @@ import type { ClientRegisterEventHandler } from '.'
 
 import { toast } from 'vue-sonner'
 
-import { useBridgeStore } from '../stores/useBridge'
+import { useBridgeStore } from '../composables/useBridge'
 
 export function registerServerEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,

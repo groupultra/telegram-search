@@ -1,13 +1,18 @@
 <script setup lang="ts">
 // https://github.com/moeru-ai/airi/blob/bd497051fe7090dc021888f127ae7b0d78095210/apps/stage-web/src/App.vue
 
-import { useSettingsStore } from '@tg-search/client'
+import { useBridgeStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
-import { watch } from 'vue'
+import { onMounted, watch } from 'vue'
 import { RouterView } from 'vue-router'
 import { Toaster } from 'vue-sonner'
 
 const settings = storeToRefs(useSettingsStore())
+
+onMounted(() => {
+  useBridgeStore()?.init()
+})
+
 // const isDark = useDark()
 
 // const primaryColor = computed(() => {

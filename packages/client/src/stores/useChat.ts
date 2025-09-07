@@ -3,7 +3,7 @@ import type { CoreDialog } from '@tg-search/core'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import { useBridgeStore } from './useBridge'
+import { useBridgeStore } from '../composables/useBridge'
 
 export const useChatStore = defineStore('chat', () => {
   const chats = ref<CoreDialog[]>([])

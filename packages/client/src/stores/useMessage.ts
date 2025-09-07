@@ -4,10 +4,10 @@ import type { CoreMessage } from '@tg-search/core'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { useBridgeStore } from '../composables/useBridge'
 import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
 import { determineMessageDirection } from '../utils/message'
-import { useBridgeStore } from './useBridge'
 
 function createContextWithTimeout(timeout: number) {
   return new Promise((_, reject) =>

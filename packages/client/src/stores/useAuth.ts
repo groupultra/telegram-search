@@ -3,7 +3,7 @@ import type { CoreUserEntity } from '@tg-search/core'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
-import { useBridgeStore } from './useBridge'
+import { useBridgeStore } from '../composables/useBridge'
 import { useChatStore } from './useChat'
 
 export interface SessionContext {

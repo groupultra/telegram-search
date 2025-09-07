@@ -1,6 +1,6 @@
 import type { ClientRegisterEventHandler } from '.'
 
-import { useBridgeStore } from '../stores/useBridge'
+import { useBridgeStore } from '../composables/useBridge'
 
 export function registerEntityEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
