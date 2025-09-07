@@ -1,12 +1,11 @@
-import type { Config } from '../config-schema'
+import type { Config } from './config-schema'
 
 import { useLogger } from '@unbird/logg'
 import { useLocalStorage } from '@vueuse/core'
 import defu from 'defu'
 import { safeParse } from 'valibot'
 
-import { configSchema } from '../config-schema'
-import { generateDefaultConfig } from '../default-config'
+import { configSchema, generateDefaultConfig } from './config-schema'
 
 const logger = useLogger('common:config')
 let config: Config

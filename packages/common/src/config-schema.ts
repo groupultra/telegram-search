@@ -1,6 +1,6 @@
 import type { InferOutput } from 'valibot'
 
-import { boolean, enum as enumType, number, object, optional, string } from 'valibot'
+import { boolean, enum as enumType, number, object, optional, safeParse, string } from 'valibot'
 
 export enum SocksType {
   SOCKS4 = 4,
@@ -71,3 +71,13 @@ export const configSchema = object({
 
 export type Config = InferOutput<typeof configSchema>
 export type ProxyConfig = InferOutput<typeof proxyConfigSchema>
+
+export function generateDefaultConfig(): Config {
+  const defaultConfig = safeParse(configSchema, {})
+
+  if (!defaultConfig.success) {
+    throw new Error('Failed to generate default config', { cause: defaultConfig.issues })
+  }
+
+  return defaultConfig.output
+}

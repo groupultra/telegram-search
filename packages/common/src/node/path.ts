@@ -1,11 +1,11 @@
-import type { Config } from '../browser'
+import type { Config } from '../config-schema'
 
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 
 import { useLogger } from '@unbird/logg'
 import { dirname, resolve } from 'pathe'
 
-import { DatabaseType, generateDefaultConfig } from '../browser'
+import { DatabaseType, generateDefaultConfig } from '../config-schema'
 
 const logger = useLogger()
 

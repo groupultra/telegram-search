@@ -1,5 +1,5 @@
 import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
-import type { WsEventToClient, WsEventToClientData, WsMessageToClient, WsMessageToServer } from '@tg-search/server/types'
+import type { WsEventToClient, WsEventToClientData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientSendEventFn } from '../composables/useBridge'
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'

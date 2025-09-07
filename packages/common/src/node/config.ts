@@ -7,8 +7,7 @@ import defu from 'defu'
 import { safeParse } from 'valibot'
 import { parse, stringify } from 'yaml'
 
-import { configSchema } from '../config-schema'
-import { generateDefaultConfig } from '../default-config'
+import { configSchema, generateDefaultConfig } from '../config-schema'
 import { useConfigPath } from './path'
 
 let config: Config

@@ -5,20 +5,15 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
-    "./node": "./src/node/index.ts",
-    "./browser": "./src/browser/index.ts",
-    "./utils/*": "./src/utils/*.ts"
+    "./node": "./src/node/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pnpm/find-workspace-dir": "^1000.1.2",
-    "@types/node": "24.3.0",
     "@unbird/logg": "catalog:",
     "@vueuse/core": "^13.7.0",
     "defu": "^6.1.4",
-    "path-browserify-esm": "^1.0.6",
     "pathe": "^2.0.3",
     "valibot": "^1.1.0",
     "yaml": "^2.8.1"

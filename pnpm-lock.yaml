@@ -413,12 +413,6 @@ importers:
 
   packages/common:
     dependencies:
-      '@pnpm/find-workspace-dir':
-        specifier: ^1000.1.2
-        version: 1000.1.2
-      '@types/node':
-        specifier: 24.3.0
-        version: 24.3.0
       '@unbird/logg':
         specifier: 'catalog:'
         version: 1.1.3
@@ -428,9 +422,6 @@ importers:
       defu:
         specifier: ^6.1.4
         version: 6.1.4
-      path-browserify-esm:
-        specifier: ^1.0.6
-        version: 1.0.6
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
@@ -2214,18 +2205,6 @@ packages:
   '@pkgr/core@0.2.9':
     resolution: {integrity: sha512-QNqXyfVS2wm9hweSYD2O7F0G06uurj9kZ96TRQE5Y9hU7+tgdZwIkbAKc5Ocy1HxEY2kuDQa6cQ1WRs/O5LFKA==}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
-
-  '@pnpm/constants@1001.3.0':
-    resolution: {integrity: sha512-ZFRekNHbDlu//67Byg+mG8zmtmCsfBhNsg1wKBLRtF7VjH+Q5TDGMX0+8aJYSikQDuzM2FOhvQcDwyjILKshJQ==}
-    engines: {node: '>=18.12'}
-
-  '@pnpm/error@1000.0.4':
-    resolution: {integrity: sha512-22mG/Mq4u2r7gr2+XY5j4GlN7J4Mg4WiCfT9flvsUc1uZecShocv6WkyoA20qs14M64f6I+aaWB6b6xsDiITlg==}
-    engines: {node: '>=18.12'}
-
-  '@pnpm/find-workspace-dir@1000.1.2':
-    resolution: {integrity: sha512-QU7LqV0T5lCuHwNoNT5YeArsrIYo4qcCEHz4F21tu42n6d1km3CGnpL6/7LMT0fgHL6cN55YyRU14imN/5b7vg==}
-    engines: {node: '>=18.12'}
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -10101,17 +10080,6 @@ snapshots:
     optional: true
 
   '@pkgr/core@0.2.9': {}
-
-  '@pnpm/constants@1001.3.0': {}
-
-  '@pnpm/error@1000.0.4':
-    dependencies:
-      '@pnpm/constants': 1001.3.0
-
-  '@pnpm/find-workspace-dir@1000.1.2':
-    dependencies:
-      '@pnpm/error': 1000.0.4
-      find-up: 5.0.0
 
   '@polka/url@1.0.0-next.29': {}
 
