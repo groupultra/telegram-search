@@ -27,8 +27,8 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       initLogger()
 
       const config = useConfig()
-      config.api.telegram.apiId = import.meta.env.VITE_TELEGRAM_APP_ID
-      config.api.telegram.apiHash = import.meta.env.VITE_TELEGRAM_APP_HASH
+      config.api.telegram.apiId ||= import.meta.env.VITE_TELEGRAM_APP_ID
+      config.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_APP_HASH
 
       ctx = createCoreInstance(config)
       initDrizzle(logger, config)
