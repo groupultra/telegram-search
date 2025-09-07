@@ -9,17 +9,18 @@ export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
 
 export const useBridgeStore = defineStore('websocket', () => {
-  let websocketStore: ReturnType<typeof useWebsocketStore> | ReturnType<typeof useCoreBridgeStore>
+  let store: ReturnType<typeof useWebsocketStore> | ReturnType<typeof useCoreBridgeStore>
 
-  if (import.meta.env.VITE_CORE_IN_BROWSER) {
-    websocketStore = useCoreBridgeStore()
+  if (import.meta.env.VITE_WITH_CORE) {
+    store = useCoreBridgeStore()
+    store.init()
   }
   else {
-    websocketStore = useWebsocketStore()
+    store = useWebsocketStore()
   }
 
-  const { getActiveSession, updateActiveSession, cleanup, sendEvent, waitForEvent } = websocketStore
-  const { sessions, activeSessionId } = storeToRefs(websocketStore)
+  const { getActiveSession, updateActiveSession, cleanup, sendEvent, waitForEvent } = store
+  const { sessions, activeSessionId } = storeToRefs(store)
 
   return {
     sessions,

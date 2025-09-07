@@ -7,7 +7,7 @@ import type { ClientSendEventFn } from '../stores/useBridge'
 
 import { useConfig } from '@tg-search/common'
 import { createCoreInstance, initDrizzle } from '@tg-search/core'
-import { useLogger } from '@unbird/logg'
+import { initLogger, useLogger } from '@unbird/logg'
 import { useLocalStorage } from '@vueuse/core'
 import defu from 'defu'
 import { defineStore } from 'pinia'
@@ -23,6 +23,12 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const config = useConfig()
   const ctx = createCoreInstance(config)
   const logger = useLogger('CoreBridge')
+
+  function init() {
+    initLogger()
+    initDrizzle(logger, config)
+    sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
+  }
 
   const getActiveSession = () => {
     return storageSessions.value.get(storageActiveSessionId.value)
@@ -116,12 +122,9 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     }
   }
 
-  onMounted(() => {
-    initDrizzle(logger, config)
-    sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
-  })
-
   return {
+    init,
+
     sessions: storageSessions,
     activeSessionId: storageActiveSessionId,
     getActiveSession,
