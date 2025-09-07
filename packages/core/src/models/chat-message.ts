@@ -1,6 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chat-message.ts
 
-import type { CorePagination } from '@tg-search/common/utils/pagination'
+import type { CorePagination } from '@tg-search/common'
 
 import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../index'
 import type { DBRetrievalMessages } from './utils/message'

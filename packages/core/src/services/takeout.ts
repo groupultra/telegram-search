@@ -1,4 +1,4 @@
-import type { CorePagination } from '@tg-search/common/utils/pagination'
+import type { CorePagination } from '@tg-search/common'
 import type { Result } from '@unbird/result'
 import type { EntityLike } from 'telegram/define'
 

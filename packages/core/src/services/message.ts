@@ -1,4 +1,4 @@
-import type { CorePagination } from '@tg-search/common/utils/pagination'
+import type { CorePagination } from '@tg-search/common'
 
 import type { CoreContext } from '../context'
 import type { CoreMessage } from '../utils/message'
