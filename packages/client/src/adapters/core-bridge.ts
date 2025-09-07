@@ -16,8 +16,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
-  const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
-  const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
+  const storageSessions = useLocalStorage('core-bridge/sessions', new Map<string, SessionContext>())
+  const storageActiveSessionId = useLocalStorage('core-bridge/active-session-id', uuidv4())
 
   const config = useConfig()
   const logger = useLogger('CoreBridge')
@@ -73,11 +73,9 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
       switch (event_server.type) {
         case 'auth:login':
-          logger.log('auth:login')
           ctx.emitter.once('auth:connected', () => {})
           break
         case 'auth:logout':
-          logger.log('auth:logout')
           ctx.emitter.once('auth:logout', () => {})
           break
       }
