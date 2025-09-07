@@ -5,8 +5,7 @@ import type { WsEventToClientData, WsMessageToClient, WsMessageToServer } from '
 
 import process from 'node:process'
 
-import { parseEnvFlags } from '@tg-search/common'
-import { initConfig, useConfig } from '@tg-search/common/node'
+import { initConfig, parseEnvFlags, useConfig } from '@tg-search/common'
 import { createCoreInstance, initDrizzle } from '@tg-search/core'
 import { initLogger, useLogger } from '@unbird/logg'
 import { ipcMain } from 'electron/main'

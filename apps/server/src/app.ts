@@ -2,8 +2,7 @@ import type { CrossWSOptions } from 'listhen'
 
 import process from 'node:process'
 
-import { flags, parseEnvFlags } from '@tg-search/common'
-import { initConfig } from '@tg-search/common/node'
+import { flags, initConfig, parseEnvFlags } from '@tg-search/common'
 import { initDrizzle } from '@tg-search/core'
 import { initLogger, useLogger } from '@unbird/logg'
 import { createApp, toNodeListener } from 'h3'

@@ -5,6 +5,7 @@ import type { StringSession } from 'telegram/sessions'
 
 import type { CoreContext } from '../context'
 
+import { updateConfig, useConfig } from '@tg-search/common'
 import { useLogger } from '@unbird/logg'
 import { Err, Ok } from '@unbird/result'
 import { Api, TelegramClient } from 'telegram'
@@ -116,6 +117,11 @@ export function createConnectionService(ctx: CoreContext) {
           }, {
             phoneNumber,
             phoneCode: async () => {
+              // Set auto reconnect to false
+              // TODO: reactivity
+              useConfig().api.telegram.autoReconnect = false
+              updateConfig(useConfig())
+
               logger.verbose('Waiting for code')
               emitter.emit('auth:code:needed')
               const { code } = await waitForEvent(emitter, 'auth:code')
@@ -133,6 +139,10 @@ export function createConnectionService(ctx: CoreContext) {
             },
           })
         }
+
+        // TODO: reactivity
+        useConfig().api.telegram.autoReconnect = true
+        updateConfig(useConfig())
 
         // NOTE: The client will return string session, so convert it directly
         const sessionString = await client.session.save() as unknown as string
