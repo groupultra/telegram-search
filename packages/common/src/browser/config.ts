@@ -51,7 +51,7 @@ export async function updateConfig(newConfig: Partial<Config>): Promise<Config> 
 
 export function useConfig(): Config {
   if (!config) {
-    throw new Error('Config not initialized. Call initConfig() first.')
+    initConfig()
   }
 
   return config

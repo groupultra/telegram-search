@@ -19,9 +19,10 @@ import { getRegisterEventHandler, registerAllEventHandlers } from '../event-hand
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
   const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
+
   const config = useConfig()
-  const core = createCoreInstance(config)
-  const logger = useLogger('core-bridge')
+  const ctx = createCoreInstance(config)
+  const logger = useLogger('CoreBridge')
 
   const getActiveSession = () => {
     return storageSessions.value.get(storageActiveSessionId.value)
@@ -51,22 +52,22 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
             logger.withFields({ eventName }).log('Sending event to client')
             sendWsEvent({ type: eventName as any, data })
           }
-          core.emitter.on(eventName, fn as any)
+          ctx.emitter.on(eventName, fn as any)
         }
       }
       else {
         logger.withFields({ event: event_server.type, data: event_server.data }).log('Emit event to core')
-        core.emitter.emit(event_server.type, event_server.data as CoreEventData<keyof ToCoreEvent>)
+        ctx.emitter.emit(event_server.type, event_server.data as CoreEventData<keyof ToCoreEvent>)
       }
 
       switch (event_server.type) {
         case 'auth:login':
           logger.log('auth:login')
-          core.emitter.once('auth:connected', () => {})
+          ctx.emitter.once('auth:connected', () => {})
           break
         case 'auth:logout':
           logger.log('auth:logout')
-          core.emitter.once('auth:logout', () => {})
+          ctx.emitter.once('auth:logout', () => {})
           break
       }
     }

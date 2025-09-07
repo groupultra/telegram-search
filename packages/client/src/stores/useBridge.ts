@@ -1,6 +1,5 @@
 import type { WsEventToServer, WsEventToServerData, WsMessageToServer } from '@tg-search/server/types'
 
-import { initConfig } from '@tg-search/common'
 import { defineStore, storeToRefs } from 'pinia'
 
 import { useCoreBridgeStore } from '../adapters/core-bridge'
@@ -11,7 +10,7 @@ export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T
 
 export const useBridgeStore = defineStore('websocket', () => {
   let websocketStore: ReturnType<typeof useWebsocketStore> | ReturnType<typeof useCoreBridgeStore>
-  initConfig()
+
   if (import.meta.env.VITE_CORE_IN_BROWSER) {
     websocketStore = useCoreBridgeStore()
   }
