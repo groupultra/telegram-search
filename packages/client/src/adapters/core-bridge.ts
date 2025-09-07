@@ -57,25 +57,25 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const sendEvent: ClientSendEventFn = (event, data) => {
     const ctx = ensureCtx()
 
-    logger.withFields({ event, data }).log('Receive event from client')
-    const event_server = { type: event, data } as unknown as WsMessageToServer
+    logger.withFields({ event, data }).debug('Receive event from client')
+
     try {
-      if (event_server.type === 'server:event:register') {
-        if (!event_server.data.event.startsWith('server:')) {
-          const eventName = event_server.data.event as keyof FromCoreEvent
+      if (event === 'server:event:register') {
+        if (!event.startsWith('server:')) {
+          const eventName = event as keyof FromCoreEvent
           const fn = (data: WsEventToClientData<keyof FromCoreEvent>) => {
-            logger.withFields({ eventName }).log('Sending event to client')
+            logger.withFields({ eventName }).debug('Sending event to client')
             sendWsEvent({ type: eventName as any, data })
           }
           ctx.emitter.on(eventName, fn as any)
         }
       }
       else {
-        logger.withFields({ event: event_server.type, data: event_server.data }).log('Emit event to core')
-        ctx.emitter.emit(event_server.type, event_server.data as CoreEventData<keyof ToCoreEvent>)
+        logger.withFields({ event, data }).debug('Emit event to core')
+        ctx.emitter.emit(event, data as CoreEventData<keyof ToCoreEvent>)
       }
 
-      switch (event_server.type) {
+      switch (event) {
         case 'auth:login':
           ctx.emitter.once('auth:connected', () => {})
           break
@@ -99,7 +99,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   }
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {
-    logger.withFields({ event }).log('Waiting for event from core')
+    logger.withFields({ event }).debug('Waiting for event from core')
     return new Promise<WsEventToClientData<T>>((resolve) => {
       const handlers = eventHandlersQueue.get(event) ?? []
       handlers.push((data) => {
@@ -111,7 +111,8 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
   // to bridge
   function sendWsEvent(event: WsMessageToClient) {
-    logger.withFields({ event: event.type, data: event.data }).log('Event send to bridge')
+    logger.withFields({ event }).debug('Event send to bridge')
+
     if (eventHandlers.has(event.type)) {
       const fn = eventHandlers.get(event.type)
       try {
@@ -121,6 +122,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
         logger.withError(error).error('Failed to handle event')
       }
     }
+
     if (eventHandlersQueue.has(event.type)) {
       const fnQueue = eventHandlersQueue.get(event.type)
       try {
