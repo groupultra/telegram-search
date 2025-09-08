@@ -1,5 +1,4 @@
 import type { CoreMessageMediaFromBlob } from '@tg-search/core'
-
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
 
@@ -32,7 +31,11 @@ export function createMediaBlob(media: CoreMessageMediaFromBlob) {
     }
     else {
       try {
-        const blob = new Blob([buffer], { type: mediaCopy.mimeType })
+        // 创建一个新的 ArrayBuffer 来存储数据
+        const arrayBuffer = new ArrayBuffer(buffer.length)
+        const view = new Uint8Array(arrayBuffer)
+        view.set(buffer)
+        const blob = new Blob([arrayBuffer], { type: mediaCopy.mimeType })
         mediaCopy.blobUrl = URL.createObjectURL(blob)
       }
       catch {

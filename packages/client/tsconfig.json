@@ -7,7 +7,8 @@
       "@tg-search/client": ["../../packages/client/src"]
     },
     "types": [
-      "vite/client"
+      "vite/client",
+      "@proj-airi/unplugin-drizzle-orm-migrations/types"
     ]
   },
   "include": [

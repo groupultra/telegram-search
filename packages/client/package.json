@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@types/culori": "^4.0.0",
-    "@types/pako": "^2.0.4"
+    "@types/pako": "^2.0.4",
+    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.2"
   }
 }
