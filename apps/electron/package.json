@@ -41,7 +41,7 @@
     "@unocss/reset": "^66.4.2",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue-macros/volar": "^3.0.0-beta.21",
-    "electron": "^37.3.1",
+    "electron": "^38.1.0",
     "electron-builder": "^26.0.12",
     "electron-vite": "^4.0.0",
     "pathe": "^2.0.3",
