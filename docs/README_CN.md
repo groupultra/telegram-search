@@ -3,7 +3,7 @@
 <h1 align="center">Telegram Search</h1>
 
 <p align="center">
-  [<a href="https://discord.gg/NzYsmJSgCT">Join Discord Server</a>] [<a href="./README.md">English</a>]
+  [<a href="https://discord.gg/NzYsmJSgCT">Join Discord Server</a>] [<a href="../README.md">English</a>] [<a href="./README_JA.md">日本語</a>]
 </p>
 
 <p align="center">
