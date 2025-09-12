@@ -2,7 +2,7 @@ import type { Config } from '@tg-search/common'
 
 import type { CoreContext } from '../context'
 
-import { configSchema, useConfig } from '@tg-search/common'
+import { configSchema, useConfig, updateConfig as updateConfigCommon } from '@tg-search/common'
 import { safeParse } from 'valibot'
 
 export interface ConfigEventToCore {
@@ -33,8 +33,7 @@ export function createConfigService(ctx: CoreContext) {
     if (!validatedConfig.success) {
       throw new Error('Invalid config')
     }
-
-    updateConfig(validatedConfig.output)
+    updateConfigCommon(validatedConfig.output)
 
     emitter.emit('config:data', { config: validatedConfig.output })
   }
