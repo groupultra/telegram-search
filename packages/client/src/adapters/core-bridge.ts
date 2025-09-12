@@ -74,15 +74,6 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
         logger.withFields({ event, data }).debug('Emit event to core')
         ctx.emitter.emit(event, data as CoreEventData<keyof ToCoreEvent>)
       }
-
-      switch (event) {
-        case 'auth:login':
-          ctx.emitter.once('auth:connected', () => {})
-          break
-        case 'auth:logout':
-          ctx.emitter.once('auth:logout', () => {})
-          break
-      }
     }
     catch (error) {
       logger.withError(error).error('Failed to send event to core')
