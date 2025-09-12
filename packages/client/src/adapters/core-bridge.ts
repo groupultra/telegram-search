@@ -21,6 +21,10 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const logger = useLogger('CoreBridge')
   let ctx: CoreContext
 
+  const eventHandlers: ClientEventHandlerMap = new Map()
+  const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
+  const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
+
   function ensureCtx() {
     if (!ctx) {
       initLogger()
@@ -52,8 +56,10 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     storageActiveSessionId.value = uuidv4()
   }
 
-  // to core
-  const sendEvent = <T extends keyof WsEventToServer>(event: T, data: WsEventToServerData<T>) => {
+  /**
+   * Send event to core
+   */
+  function sendEvent<T extends keyof WsEventToServer>(event: T, data: WsEventToServerData<T>) {
     const ctx = ensureCtx()
     logger.withFields({ event, data }).debug('Receive event from client')
 
@@ -81,10 +87,6 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     }
   }
 
-  const eventHandlers: ClientEventHandlerMap = new Map()
-  const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
-  const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
-
   function init() {
     registerAllEventHandlers(registerEventHandler)
     sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
@@ -101,7 +103,9 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     })
   }
 
-  // to bridge
+  /**
+   * Send event to bridge
+   */
   function sendWsEvent(event: WsMessageToClient) {
     logger.withFields({ event }).debug('Event send to bridge')
 
