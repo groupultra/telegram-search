@@ -10,7 +10,6 @@ export default defineConfig({
   sourcemap: true,
   unused: true,
   fixedExtension: true,
-  unbundle: true,
   plugins: [
     DrizzleORMMigrations({
       root: '../..',

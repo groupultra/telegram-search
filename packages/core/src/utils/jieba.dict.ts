@@ -2,17 +2,15 @@ import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+import { getDataPath } from '@tg-search/common/node'
 import { useLogger } from '@unbird/logg'
 
 const DICT_URL = 'https://github.com/fxsjy/jieba/raw/master/extra_dict/dict.txt.small'
-async function getDictPath(): Promise<string> {
-  const { getDataPath } = await import('@tg-search/common/node')
-  return resolve(getDataPath(), 'dict.txt')
-}
+const DICT_PATH = resolve(getDataPath(), 'dict.txt')
 
 async function downloadDict(): Promise<Buffer> {
   const logger = useLogger('jieba:downloader')
-  const DICT_PATH = await getDictPath()
+
   try {
     logger.withFields({ url: DICT_URL }).log('Downloading jieba dictionary')
     const response = await fetch(DICT_URL)
@@ -37,7 +35,6 @@ async function downloadDict(): Promise<Buffer> {
 
 export async function loadDict() {
   let dictBuffer: Buffer
-  const DICT_PATH = await getDictPath()
 
   const logger = useLogger('jieba:loader')
 

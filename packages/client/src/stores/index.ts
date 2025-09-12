@@ -1,4 +1,3 @@
-export * from '../composables/useBridge'
 export * from './useAuth'
 export * from './useChat'
 export * from './useMessage'
