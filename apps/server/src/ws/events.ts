@@ -10,7 +10,7 @@ export interface WsEventFromServer {
 }
 
 export interface WsEventFromClient {
-  'server:event:register': (data: { event: keyof WsEventToServer }) => void
+  'server:event:register': (data: { event: keyof WsEventToClient }) => void
 }
 
 export type WsEventToServer = ToCoreEvent & WsEventFromClient
