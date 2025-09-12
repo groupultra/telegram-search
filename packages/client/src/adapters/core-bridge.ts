@@ -59,7 +59,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   /**
    * Send event to core
    */
-  function sendEvent<T extends keyof WsEventToServer>(event: T, data: WsEventToServerData<T>) {
+  function sendEvent<T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) {
     const ctx = ensureCtx()
     logger.withFields({ event, data }).debug('Receive event from client')
 
