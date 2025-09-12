@@ -21,6 +21,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const useCachedMessage = useLocalStorage<boolean>('settings/use-cached-message-v2', true)
 
   const theme = useLocalStorage<string>('settings/theme', 'default')
+
+  // FIXME: Merge with common/config
   const storageConfig = useLocalStorage<Config>('settings/config', generateDefaultConfig())
 
   const themeColorsHue = useLocalStorage('settings/theme/colors/hue', DEFAULT_THEME_COLORS_HUE)
