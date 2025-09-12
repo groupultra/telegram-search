@@ -1,7 +1,6 @@
 import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
-import type { ClientSendEventFn } from '../composables/useBridge'
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 import type { SessionContext } from '../stores/useAuth'
 
@@ -54,22 +53,21 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   }
 
   // to core
-  const sendEvent: ClientSendEventFn = <T extends keyof WsEventToServer>(
-    event: T, 
-    data: WsEventToServerData<T>
-  ) => {
+  const sendEvent = <T extends keyof WsEventToServer>(event: T, data: WsEventToServerData<T>) => {
     const ctx = ensureCtx()
-
     logger.withFields({ event, data }).debug('Receive event from client')
+
     try {
       if (event === 'server:event:register') {
-        const eventName =  (data as WsEventToServerData<'server:event:register'>).event
+        data = data as WsEventToServerData<'server:event:register'>
+        const eventName = data.event as keyof FromCoreEvent
 
         if (!eventName.startsWith('server:')) {
           const fn = (data: WsEventToClientData<keyof FromCoreEvent>) => {
             logger.withFields({ eventName }).debug('Sending event to client')
             sendWsEvent({ type: eventName as any, data })
           }
+
           ctx.emitter.on(eventName, fn as any)
         }
       }
@@ -119,6 +117,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     if (eventHandlersQueue.has(event.type)) {
       const fnQueue = eventHandlersQueue.get(event.type)
+
       try {
         fnQueue?.[0]?.(event.data)
         fnQueue?.shift()
