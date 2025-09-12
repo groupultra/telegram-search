@@ -61,8 +61,8 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     try {
       if (event === 'server:event:register') {
-        if (!event.startsWith('server:')) {
-          const eventName = event as keyof FromCoreEvent
+        const eventName = (data as unknown as { event: keyof FromCoreEvent }).event
+        if (!eventName.startsWith('server:')) {
           const fn = (data: WsEventToClientData<keyof FromCoreEvent>) => {
             logger.withFields({ eventName }).debug('Sending event to client')
             sendWsEvent({ type: eventName as any, data })
