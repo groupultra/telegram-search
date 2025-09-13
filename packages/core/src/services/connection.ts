@@ -7,11 +7,11 @@ import type { CoreContext } from '../context'
 
 import { updateConfig, useConfig } from '@tg-search/common'
 import { useLogger } from '@unbird/logg'
+import { isBrowser } from '@unbird/logg/utils'
 import { Err, Ok } from '@unbird/result'
 import { Api, TelegramClient } from 'telegram'
 
 import { waitForEvent } from '../utils/promise'
-import { isBrowser } from '@unbird/logg/utils'
 
 export interface ConnectionEventToCore {
   'auth:login': (data: { phoneNumber: string }) => void
@@ -84,7 +84,7 @@ export function createConnectionService(ctx: CoreContext) {
         {
           connectionRetries: 3,
           retryDelay: 10000,
-          useWSS: !isBrowser() && proxy !== undefined ? true : false,
+          useWSS: !!(!isBrowser() && proxy !== undefined),
           proxy: isBrowser() ? undefined : proxy,
         },
       )
