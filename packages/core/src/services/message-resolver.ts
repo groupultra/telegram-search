@@ -38,6 +38,9 @@ export function createMessageResolverService(ctx: CoreContext) {
 
       // Return the messages first
       emitter.emit('message:data', { messages: coreMessages })
+      
+       // Storage the messages first
+      emitter.emit('storage:record:messages', { messages: coreMessages })
 
       // Embedding or resolve messages
       let currentMessages = coreMessages
@@ -60,14 +63,14 @@ export function createMessageResolverService(ctx: CoreContext) {
 
           if (result.length > 0) {
             currentMessages = result
-
-            emitter.emit('storage:record:messages', { messages: result })
           }
         }
         catch (error) {
           logger.withFields({ error }).warn('Failed to process messages')
         }
       }
+
+      emitter.emit('storage:record:messages', { messages: currentMessages })
     }
 
     return {
