@@ -61,16 +61,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             }
 
             const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
-            let byte: Buffer | undefined
-            if (mediaFetched instanceof Buffer) {
-              byte = mediaFetched
-            }
-            else if (mediaFetched instanceof Uint8Array) {
-              byte = Buffer.from(mediaFetched.buffer)
-            }
-            else {
-              logger.error('Media fetched is not a Buffer or Uint8Array')
-            }
+            const byte = mediaFetched as Buffer
 
             return {
               messageUUID: message.uuid,
