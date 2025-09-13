@@ -1,12 +1,12 @@
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import type { Buffer } from 'buffer'
+
 import type { Api } from 'telegram'
 
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
 import type { CoreMessageMediaFromCache, CoreMessageMediaFromServer } from '../utils/media'
 import type { CoreMessage } from '../utils/message'
-
-// eslint-disable-next-line unicorn/prefer-node-protocol
-import { Buffer } from 'buffer'
 
 import { useLogger } from '@unbird/logg'
 import { fileTypeFromBuffer } from 'file-type'
