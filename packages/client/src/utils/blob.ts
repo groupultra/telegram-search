@@ -1,12 +1,9 @@
 import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
-// eslint-disable-next-line unicorn/prefer-node-protocol
-import { Buffer } from 'buffer'
-
 import pako from 'pako'
 
 export function createMediaBlob(media: CoreMessageMediaFromBlob) {
-  if (media.byte != undefined) {
+  if (media.byte !== undefined) {
     if (media.type === 'sticker' && media.mimeType === 'application/gzip') {
       try {
         media.tgsAnimationData = pako.inflate(media.byte, { to: 'string' })
@@ -17,7 +14,7 @@ export function createMediaBlob(media: CoreMessageMediaFromBlob) {
     }
     else {
       try {
-        const blob = new Blob([media.byte], { type: media.mimeType })
+        const blob = new Blob([media.byte as ArrayBufferView<ArrayBuffer>], { type: media.mimeType })
         media.blobUrl = URL.createObjectURL(blob)
       }
       catch {

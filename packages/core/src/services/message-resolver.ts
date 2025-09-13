@@ -38,8 +38,8 @@ export function createMessageResolverService(ctx: CoreContext) {
 
       // Return the messages first
       emitter.emit('message:data', { messages: coreMessages })
-      
-       // Storage the messages first
+
+      // Storage the messages first
       emitter.emit('storage:record:messages', { messages: coreMessages })
 
       // Embedding or resolve messages
