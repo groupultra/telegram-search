@@ -1,4 +1,3 @@
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { resolve } from 'node:path'
 import { env } from 'node:process'
 
@@ -10,6 +9,7 @@ import VueMacros from 'unplugin-vue-macros/vite'
 import VueRouter from 'unplugin-vue-router/vite'
 import { defineConfig } from 'vite'
 import Inspect from 'vite-plugin-inspect'
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import Devtools from 'vite-plugin-vue-devtools'
 import Layouts from 'vite-plugin-vue-layouts'
 
@@ -51,7 +51,7 @@ export default defineConfig({
       root: '../..',
     }),
 
-    nodePolyfills()
+    nodePolyfills(),
   ],
 
   resolve: {
