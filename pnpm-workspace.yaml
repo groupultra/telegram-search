@@ -25,3 +25,6 @@ onlyBuiltDependencies:
   - utf-8-validate
   - vue-demi
   - websocket
+
+patchedDependencies:
+  cipher-base: patches/cipher-base.patch
