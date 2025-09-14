@@ -1,3 +1,4 @@
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { resolve } from 'node:path'
 import { env } from 'node:process'
 
@@ -50,6 +51,7 @@ export default defineConfig({
       root: '../..',
     }),
 
+    nodePolyfills()
   ],
 
   resolve: {

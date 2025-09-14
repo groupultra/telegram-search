@@ -3,9 +3,6 @@ packages:
   - libs/*
   - apps/*
 
-patchedDependencies:
-  electron-vite: patches/electron-vite.patch
-
 catalog:
   '@unbird/eslint-config': ^1.0.2
   '@unbird/logg': ^1.1.3
