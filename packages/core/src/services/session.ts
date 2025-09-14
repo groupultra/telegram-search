@@ -2,7 +2,7 @@ import type { Result } from '@unbird/result'
 
 import type { CoreContext } from '../context'
 
-import { access, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
+import fs from 'node:fs/promises'
 
 import { getSessionPath } from '@tg-search/common/node'
 import { useLogger } from '@unbird/logg'
@@ -36,7 +36,7 @@ export function createSessionService(ctx: CoreContext) {
     const sessionFilePath = getSessionFilePath(phoneNumber)
 
     try {
-      await unlink(sessionFilePath)
+      await fs.unlink(sessionFilePath)
       logger.withFields({ sessionFile: sessionFilePath, phoneNumber }).verbose('Deleted session file')
       return Ok(null)
     }
@@ -53,10 +53,10 @@ export function createSessionService(ctx: CoreContext) {
 
       try {
         // Ensure session directory exists
-        await mkdir(dirname(sessionFilePath), { recursive: true })
+        await fs.mkdir(dirname(sessionFilePath), { recursive: true })
 
         try {
-          const session = await readFile(sessionFilePath, 'utf-8')
+          const session = await fs.readFile(sessionFilePath, 'utf-8')
           return Ok(new StringSession(session))
         }
         catch (error) {
@@ -77,13 +77,13 @@ export function createSessionService(ctx: CoreContext) {
 
       try {
         try {
-          await access(dirname(sessionFilePath))
+          await fs.access(dirname(sessionFilePath))
         }
         catch {
-          await mkdir(dirname(sessionFilePath), { recursive: true })
+          await fs.mkdir(dirname(sessionFilePath), { recursive: true })
         }
 
-        await writeFile(sessionFilePath, session, 'utf-8')
+        await fs.writeFile(sessionFilePath, session, 'utf-8')
         logger.withFields({ sessionFilePath, phoneNumber }).verbose('Saving session to file')
         return Ok(null)
       }

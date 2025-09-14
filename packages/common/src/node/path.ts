@@ -1,6 +1,6 @@
 import type { Config } from '../config-schema'
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import fs from 'node:fs'
 
 import { useLogger } from '@unbird/logg'
 import { dirname, resolve } from 'pathe'
@@ -39,9 +39,9 @@ export async function useConfigPath(): Promise<string> {
 
   logger.withFields({ configPath }).log('Config path')
 
-  if (!existsSync(configPath)) {
-    mkdirSync(dirname(configPath), { recursive: true })
-    writeFileSync(configPath, JSON.stringify(generateDefaultConfig()))
+  if (!fs.existsSync(configPath)) {
+    fs.mkdirSync(dirname(configPath), { recursive: true })
+    fs.writeFileSync(configPath, JSON.stringify(generateDefaultConfig()))
   }
 
   return configPath
@@ -49,8 +49,8 @@ export async function useConfigPath(): Promise<string> {
 
 export function getSessionPath(): string {
   const sessionPath = resolve(getDataPath(), 'sessions')
-  if (!existsSync(sessionPath)) {
-    mkdirSync(sessionPath, { recursive: true })
+  if (!fs.existsSync(sessionPath)) {
+    fs.mkdirSync(sessionPath, { recursive: true })
   }
 
   logger.withFields({ sessionPath }).log('Session path')

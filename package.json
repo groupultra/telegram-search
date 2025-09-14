@@ -47,5 +47,10 @@
     "unplugin-unused": "^0.5.2",
     "vite": "^7.1.3",
     "vitest": "^3.2.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "rollup": "4.43.0"
+    }
   }
 }

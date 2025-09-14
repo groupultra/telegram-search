@@ -1,6 +1,6 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import fs from 'node:fs'
 import { resolve } from 'node:path'
 
 import { getDataPath } from '@tg-search/common/node'
@@ -23,7 +23,7 @@ async function downloadDict(): Promise<Buffer> {
     const buffer = Buffer.from(await response.arrayBuffer())
 
     // Cache the dictionary locally
-    writeFileSync(DICT_PATH, buffer)
+    fs.writeFileSync(DICT_PATH, buffer)
     logger.log('Dictionary downloaded and cached successfully')
 
     return buffer
@@ -40,9 +40,9 @@ export async function loadDict() {
   const logger = useLogger('jieba:loader')
 
   // Try to load from cache first
-  if (existsSync(DICT_PATH)) {
+  if (fs.existsSync(DICT_PATH)) {
     logger.withFields({ dictPath: DICT_PATH }).log('Loading cached jieba dict')
-    dictBuffer = readFileSync(DICT_PATH)
+    dictBuffer = fs.readFileSync(DICT_PATH)
   }
   else {
     // Download if not cached

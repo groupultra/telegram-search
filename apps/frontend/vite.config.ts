@@ -52,7 +52,10 @@ export default defineConfig({
     }),
 
     nodePolyfills({
-      exclude: ['buffer', 'fs', 'stream'],
+      overrides: {
+        fs: resolve(import.meta.dirname, './shims/empty'),
+      },
+      exclude: ['buffer', 'stream'],
     }),
   ],
 
@@ -66,6 +69,13 @@ export default defineConfig({
 
   optimizeDeps: {
     exclude: ['@electric-sql/pglite'],
+  },
+
+  build: {
+    rollupOptions: {
+      // https://github.com/rollup/rollup/issues/6012#issuecomment-3065953828
+      external: ['postgres'],
+    },
   },
 
   envDir: '../..',

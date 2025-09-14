@@ -2,7 +2,7 @@ import type { Config } from '@tg-search/common'
 import type { Logger } from '@unbird/logg'
 import type { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 
-import { mkdirSync } from 'node:fs'
+import fs from 'node:fs'
 import { dirname } from 'node:path'
 
 import { PGlite } from '@electric-sql/pglite'
@@ -31,7 +31,7 @@ export async function initPgliteDrizzleInNode(logger: Logger, config: Config, db
 
   try {
     const dbFilePath = dbPath || getDatabaseFilePath(config)
-    mkdirSync(dirname(dbFilePath), { recursive: true })
+    fs.mkdirSync(dirname(dbFilePath), { recursive: true })
     logger.log(`Using PGlite in node: ${dbFilePath}`)
     const pglite = new PGlite(dbFilePath, {
       extensions: { vector },
