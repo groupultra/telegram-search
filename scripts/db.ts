@@ -3,7 +3,7 @@ import process from 'node:process'
 
 import { useLogger } from '@unbird/logg'
 
-import { getDatabaseDSN, initConfig, useConfig } from '../packages/common/src/node'
+import { getDatabaseDSN, initConfig, useConfig } from '../packages/common/src'
 
 (async () => {
   await initConfig()
