@@ -1,4 +1,5 @@
-import { Buffer } from 'node:buffer'
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import { Buffer } from 'buffer'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 

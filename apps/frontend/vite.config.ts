@@ -51,12 +51,13 @@ export default defineConfig({
       root: '../..',
     }),
 
-    nodePolyfills(),
+    nodePolyfills({
+      exclude: ['buffer', 'fs', 'stream'],
+    }),
   ],
 
   resolve: {
     alias: {
-      'telegram': resolve(import.meta.dirname, 'node_modules/telegram'),
       '@tg-search/common': resolve(import.meta.dirname, '../../packages/common/src'),
       '@tg-search/core': resolve(import.meta.dirname, '../../packages/core/src'),
       '@tg-search/client': resolve(import.meta.dirname, '../../packages/client/src'),
