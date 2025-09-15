@@ -138,7 +138,6 @@ export const useWebsocketStore = defineStore('websocket', () => {
     updateActiveSession,
     cleanup,
 
-    // WebSocket
     sendEvent,
     waitForEvent,
   }

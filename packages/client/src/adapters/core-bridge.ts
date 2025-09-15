@@ -94,11 +94,14 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {
     logger.withFields({ event }).debug('Waiting for event from core')
+
     return new Promise<WsEventToClientData<T>>((resolve) => {
       const handlers = eventHandlersQueue.get(event) ?? []
+
       handlers.push((data) => {
         resolve(data)
       })
+
       eventHandlersQueue.set(event, handlers)
     })
   }
@@ -120,11 +123,13 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     }
 
     if (eventHandlersQueue.has(event.type)) {
-      const fnQueue = eventHandlersQueue.get(event.type)
+      const fnQueue = eventHandlersQueue.get(event.type) ?? []
 
       try {
-        fnQueue?.[0]?.(event.data)
-        fnQueue?.shift()
+        fnQueue.forEach((inQueueFn) => {
+          inQueueFn(event.data)
+          fnQueue.pop()
+        })
       }
       catch (error) {
         logger.withError(error).error('Failed to handle event')
@@ -141,7 +146,6 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     updateActiveSession,
     cleanup,
 
-    // WebSocket
     sendEvent,
     waitForEvent,
   }
