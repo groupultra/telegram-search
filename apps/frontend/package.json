@@ -26,7 +26,8 @@
     "vue": "^3.5.19",
     "vue-i18n": "^11.1.11",
     "vue-router": "^4.5.1",
-    "vue-sonner": "catalog:"
+    "vue-sonner": "catalog:",
+    "vite": "npm:rolldown-vite@latest"
   },
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.2",
