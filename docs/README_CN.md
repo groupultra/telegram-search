@@ -3,7 +3,11 @@
 <h1 align="center">Telegram Search</h1>
 
 <p align="center">
-  [<a href="https://discord.gg/NzYsmJSgCT">Join Discord Server</a>] [<a href="../README.md">English</a>] [<a href="./README_JA.md">日本語</a>]
+  <a href="https://trendshift.io/repositories/13868" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13868" alt="groupultra%2Ftelegram-search | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+</p>
+
+<p align="center">
+  [<a href="https://tgsearch.netlify.app">立即体验</a>] [<a href="https://discord.gg/NzYsmJSgCT">Join Discord Server</a>] [<a href="../README.md">English</a>] [<a href="./README_JA.md">日本語</a>]
 </p>
 
 <p align="center">
@@ -19,13 +23,19 @@
 >
 > 本软件仅可导出您自己的聊天记录以便搜索，请勿用于非法用途。
 
-<a href="https://trendshift.io/repositories/13868" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13868" alt="groupultra%2Ftelegram-search | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
 一个功能强大的 Telegram 聊天记录搜索工具，支持向量搜索和语义匹配。基于 OpenAI 的语义向量技术，让你的 Telegram 消息检索更智能、更精准。
 
 ## 💖 赞助者
 
 ![Sponsors](https://github.com/luoling8192/luoling8192/raw/master/sponsorkit/sponsors.svg)
+
+## 🌐 立即使用
+
+我们提供了一个在线版本，无需自行部署，即可体验 Telegram Search 的全部功能。访问以下网址开始使用:
+
+> 我们承诺不会收集任何用户隐私数据，您可以放心使用
+
+https://tgsearch.netlify.app
 
 ## 🚀 快速开始
 
@@ -57,6 +67,24 @@ docker compose up -d
 访问 `http://localhost:3333` 即可打开搜索界面。
 
 ## 💻 开发教程
+
+### 网页模式
+
+1. 克隆仓库
+
+2. 安装依赖
+
+```bash
+pnpm install
+```
+
+3. 启动开发服务器：
+
+```bash
+pnpm run dev
+```
+
+### 后端模式
 
 1. 克隆仓库
 

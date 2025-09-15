@@ -13,3 +13,6 @@ components.d.ts
 .eslintcache
 node-compile-cache
 data/
+
+# Local Netlify folder
+.netlify
