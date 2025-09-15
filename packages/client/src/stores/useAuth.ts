@@ -1,6 +1,5 @@
 import type { CoreUserEntity } from '@tg-search/core'
 
-import { useConfig } from '@tg-search/common'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
