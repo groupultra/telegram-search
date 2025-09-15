@@ -7,10 +7,10 @@ catalog:
   '@unbird/eslint-config': ^1.0.2
   '@unbird/logg': ^1.1.3
   '@unbird/result': ^1.1.1
-  '@xsai-ext/providers-cloud': ^0.4.0-beta.1
-  '@xsai-ext/providers-local': ^0.4.0-beta.1
-  '@xsai/embed': ^0.4.0-beta.1
-  vue-sonner: ^2.0.2
+  '@xsai-ext/providers-cloud': ^0.4.0-beta.3
+  '@xsai-ext/providers-local': ^0.4.0-beta.3
+  '@xsai/embed': ^0.4.0-beta.3
+  vue-sonner: ^2.0.8
 
 onlyBuiltDependencies:
   - '@parcel/watcher'
