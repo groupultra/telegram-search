@@ -31,7 +31,7 @@ export async function recordPhotos(media: CoreMessageMediaPhoto[]) {
   }
 
   const dataToInsert = media
-    .filter(media => media.byte !== undefined)
+    .filter(media => media.byte != null)
     .map(
       media => ({
         platform: 'telegram',
