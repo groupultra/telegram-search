@@ -17,7 +17,12 @@ export default defineConfig({
   plugins: [
     Inspect(),
 
-    Unused(),
+    Unused({
+      ignore: [
+        '@iconify-json/lucide',
+        '@node-rs/jieba-wasm32-wasi',
+      ],
+    }),
 
     Devtools(),
 
