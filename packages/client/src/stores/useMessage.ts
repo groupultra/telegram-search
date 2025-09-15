@@ -29,6 +29,9 @@ export const useMessageStore = defineStore('message', () => {
     // eslint-disable-next-line no-console
     console.log(`[MessageStore] Push ${filteredMessages.length} messages (${direction})`, filteredMessages)
 
+    if(messages.length === 0) {
+      return
+    }
     messageWindow.value!.addBatch(
       filteredMessages.map(message => ({
         ...message,
