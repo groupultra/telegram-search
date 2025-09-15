@@ -3,9 +3,6 @@ packages:
   - libs/*
   - apps/*
 
-patchedDependencies:
-  cipher-base: patches/cipher-base.patch
-
 catalog:
   '@unbird/eslint-config': ^1.0.2
   '@unbird/logg': ^1.1.3

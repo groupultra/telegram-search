@@ -23,7 +23,6 @@
     "pinia": "^3.0.3",
     "telegram": "^2.26.21",
     "uuid": "^11.1.0",
-    "vite": "npm:rolldown-vite@latest",
     "vue": "^3.5.19",
     "vue-i18n": "^11.1.11",
     "vue-router": "^4.5.1",
@@ -40,7 +39,6 @@
     "unplugin-vue-macros": "^2.14.5",
     "unplugin-vue-router": "^0.15.0",
     "vite-plugin-inspect": "^11.3.3",
-    "vite-plugin-node-polyfills": "^0.24.0",
     "vite-plugin-vue-devtools": "^8.0.1",
     "vite-plugin-vue-layouts": "^0.11.0",
     "vue-tsc": "^3.0.6"

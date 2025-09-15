@@ -3,7 +3,6 @@ import type { Logger } from '@unbird/logg'
 import type { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 
 import fs from 'node:fs'
-import { dirname } from 'node:path'
 
 import { PGlite } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
@@ -12,6 +11,7 @@ import { flags } from '@tg-search/common'
 import { getDatabaseFilePath } from '@tg-search/common/node'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/pglite'
+import path from 'pathe'
 import migrations from 'virtual:drizzle-migrations.sql'
 
 export type PgliteDB = ReturnType<typeof drizzlePglite>
@@ -31,7 +31,7 @@ export async function initPgliteDrizzleInNode(logger: Logger, config: Config, db
 
   try {
     const dbFilePath = dbPath || getDatabaseFilePath(config)
-    fs.mkdirSync(dirname(dbFilePath), { recursive: true })
+    fs.mkdirSync(path.dirname(dbFilePath), { recursive: true })
     logger.log(`Using PGlite in node: ${dbFilePath}`)
     const pglite = new PGlite(dbFilePath, {
       extensions: { vector },

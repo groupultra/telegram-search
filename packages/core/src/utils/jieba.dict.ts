@@ -1,13 +1,13 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
 import fs from 'node:fs'
-import { resolve } from 'node:path'
 
 import { getDataPath } from '@tg-search/common/node'
 import { useLogger } from '@unbird/logg'
+import path from 'pathe'
 
 const DICT_URL = 'https://github.com/fxsjy/jieba/raw/master/extra_dict/dict.txt.small'
-const DICT_PATH = resolve(getDataPath(), 'dict.txt')
+const DICT_PATH = path.resolve(getDataPath(), 'dict.txt')
 
 async function downloadDict(): Promise<Buffer> {
   const logger = useLogger('jieba:downloader')

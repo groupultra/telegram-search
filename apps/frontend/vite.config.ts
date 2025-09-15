@@ -61,6 +61,7 @@ export default defineConfig({
       '@tg-search/common': resolve(import.meta.dirname, '../../packages/common/src'),
       '@tg-search/core': resolve(import.meta.dirname, '../../packages/core/src'),
       '@tg-search/client': resolve(import.meta.dirname, '../../packages/client/src'),
+
       // telegram browser version, more detail -> https://t.me/gramjs/13
       'telegram': resolve(import.meta.dirname, './node_modules/telegram'),
     },
