@@ -4,7 +4,7 @@ import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToSe
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 import type { SessionContext } from '../stores/useAuth'
 
-import { useConfig } from '@tg-search/common'
+import { initConfig, useConfig } from '@tg-search/common'
 import { createCoreInstance, initDrizzle } from '@tg-search/core'
 import { initLogger, useLogger } from '@unbird/logg'
 import { useLocalStorage } from '@vueuse/core'
@@ -88,8 +88,10 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   }
 
   function init() {
-    registerAllEventHandlers(registerEventHandler)
-    sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
+    initConfig().then(() => {
+      registerAllEventHandlers(registerEventHandler)
+      sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
+    })
   }
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {

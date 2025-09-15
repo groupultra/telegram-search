@@ -10,31 +10,27 @@ import { configSchema, generateDefaultConfig } from './config-schema'
 
 let config: Config
 const logger = useLogger('common:config')
-
 const CONFIG_STORAGE_KEY = 'settings/config'
 
-export function getDatabaseDSN(config: Config): string {
+function getDatabaseDSN(config: Config): string {
   const { database } = config
   return database.url || `postgres://${database.user}:${database.password}@${database.host}:${database.port}/${database.database}`
 }
 
 export async function initConfig() {
   if (isBrowser()) {
-    if (!config) {
-      const configStorage = useLocalStorage(CONFIG_STORAGE_KEY, generateDefaultConfig())
+    const configStorage = useLocalStorage(CONFIG_STORAGE_KEY, generateDefaultConfig())
 
-      // 尝试从 localStorage 加载，如果没有则使用默认配置
-      const savedConfig = configStorage.value
-      if (savedConfig) {
-        const validatedConfig = safeParse(configSchema, savedConfig)
-        if (validatedConfig.success) {
-          config = validatedConfig.output
-          return config
-        }
+    const savedConfig = configStorage.value
+    if (savedConfig) {
+      const validatedConfig = safeParse(configSchema, savedConfig)
+      if (validatedConfig.success) {
+        config = validatedConfig.output
+        return config
       }
-      config = generateDefaultConfig()
     }
 
+    config = generateDefaultConfig()
     return config
   }
 
@@ -79,7 +75,6 @@ export async function updateConfig(newConfig: Partial<Config>) {
 
     config = validatedConfig.output
 
-    // 保存到 localStorage
     configStorage.value = config
 
     return config
@@ -110,7 +105,7 @@ export async function updateConfig(newConfig: Partial<Config>) {
 
 export function useConfig(): Config {
   if (!config) {
-    initConfig()
+    throw new Error('Config not initialized')
   }
 
   return config
