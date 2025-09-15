@@ -3,7 +3,7 @@ import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 import pako from 'pako'
 
 export function createMediaBlob(media: CoreMessageMediaFromBlob) {
-  if (media.byte !== undefined) {
+  if (media.byte) {
     if (media.type === 'sticker' && media.mimeType === 'application/gzip') {
       try {
         media.tgsAnimationData = pako.inflate(media.byte, { to: 'string' })
@@ -16,11 +16,20 @@ export function createMediaBlob(media: CoreMessageMediaFromBlob) {
       try {
         const blob = new Blob([media.byte as ArrayBufferView<ArrayBuffer>], { type: media.mimeType })
         media.blobUrl = URL.createObjectURL(blob)
+
+        // eslint-disable-next-line no-console
+        console.log('[Blob] Blob URL created:', {
+          url: media.blobUrl,
+          blobSize: blob.size,
+        })
       }
       catch {
         console.error('Failed to create blob URL')
       }
     }
+
+    // Since we don't need the byte anymore, we can free up the memory
+    media.byte = undefined
   }
 
   return media

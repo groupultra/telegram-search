@@ -46,6 +46,8 @@ export async function initPgliteDrizzleInBrowser(logger: Logger) {
 
       // Migrate database
       await applyMigrations(logger, db)
+
+      console.log(await db.execute(sql`select * from chat_messages limit 10`))
     }
     catch (error) {
       logger.withError(error).error('Failed to connect to database')

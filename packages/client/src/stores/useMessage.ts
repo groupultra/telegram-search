@@ -33,7 +33,12 @@ export const useMessageStore = defineStore('message', () => {
       return
     }
 
-    messageWindow.value!.addBatch(
+    if (!messageWindow.value) {
+      console.warn('[MessageStore] Message window not initialized')
+      return
+    }
+
+    messageWindow.value.addBatch(
       filteredMessages.map(message => ({
         ...message,
         media: message.media?.map(createMediaBlob),
