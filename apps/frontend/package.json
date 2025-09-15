@@ -23,11 +23,11 @@
     "pinia": "^3.0.3",
     "telegram": "^2.26.21",
     "uuid": "^11.1.0",
+    "vite": "npm:rolldown-vite@latest",
     "vue": "^3.5.19",
     "vue-i18n": "^11.1.11",
     "vue-router": "^4.5.1",
-    "vue-sonner": "catalog:",
-    "vite": "npm:rolldown-vite@latest"
+    "vue-sonner": "catalog:"
   },
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.2",

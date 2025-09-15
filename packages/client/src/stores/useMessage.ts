@@ -32,7 +32,7 @@ export const useMessageStore = defineStore('message', () => {
     if (messages.length === 0) {
       return
     }
-    
+
     messageWindow.value!.addBatch(
       filteredMessages.map(message => ({
         ...message,
