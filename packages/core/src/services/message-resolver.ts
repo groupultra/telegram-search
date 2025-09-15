@@ -43,8 +43,6 @@ export function createMessageResolverService(ctx: CoreContext) {
       emitter.emit('storage:record:messages', { messages: coreMessages })
 
       // Embedding or resolve messages
-      let currentMessages = coreMessages
-
       for (const [name, resolver] of resolvers.registry.entries()) {
         logger.withFields({ name }).verbose('Process messages with resolver')
 
@@ -52,25 +50,23 @@ export function createMessageResolverService(ctx: CoreContext) {
           let result: CoreMessage[] = []
 
           if (resolver.run) {
-            result = (await resolver.run({ messages: currentMessages })).unwrap()
+            result = (await resolver.run({ messages: coreMessages })).unwrap()
           }
           else if (resolver.stream) {
-            for await (const message of resolver.stream({ messages: currentMessages })) {
+            for await (const message of resolver.stream({ messages: coreMessages })) {
               result.push(message)
               emitter.emit('message:data', { messages: [message] })
             }
           }
 
           if (result.length > 0) {
-            currentMessages = result
+            emitter.emit('storage:record:messages', { messages: result })
           }
         }
         catch (error) {
           logger.withFields({ error }).warn('Failed to process messages')
         }
       }
-
-      emitter.emit('storage:record:messages', { messages: currentMessages })
     }
 
     return {

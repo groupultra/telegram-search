@@ -12,7 +12,7 @@ let config: Config
 const logger = useLogger('common:config')
 const CONFIG_STORAGE_KEY = 'settings/config'
 
-function getDatabaseDSN(config: Config): string {
+export function getDatabaseDSN(config: Config): string {
   const { database } = config
   return database.url || `postgres://${database.user}:${database.password}@${database.host}:${database.port}/${database.database}`
 }
