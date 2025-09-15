@@ -21,7 +21,7 @@ export async function initDrizzle(logger: Logger, config: Config, dbPath?: strin
 
   switch (dbType) {
     case DatabaseType.POSTGRES: {
-      const { initPgDrizzle } = await import(/* @vite-ignore */ './pg')
+      const { initPgDrizzle } = await import('./pg')
       dbInstance = await initPgDrizzle(logger, config)
       break
     }
@@ -32,7 +32,7 @@ export async function initDrizzle(logger: Logger, config: Config, dbPath?: strin
         dbInstance = await initPgliteDrizzleInBrowser(logger)
       }
       else {
-        const { initPgliteDrizzleInNode } = await import(/* @vite-ignore */ './pglite')
+        const { initPgliteDrizzleInNode } = await import('./pglite')
         dbInstance = await initPgliteDrizzleInNode(logger, config, dbPath)
       }
       break

@@ -1,4 +1,1 @@
-export default {
-  existsSync: () => false,
-  mkdirSync: () => {},
-}
+export default {}
