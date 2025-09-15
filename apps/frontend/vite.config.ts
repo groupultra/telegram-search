@@ -55,13 +55,6 @@ export default defineConfig({
     DrizzleORMMigrations({
       root: '../..',
     }),
-
-    nodePolyfills({
-      overrides: {
-        fs: resolve(import.meta.dirname, './shims/empty'),
-      },
-      exclude: ['buffer', 'stream'],
-    }),
   ],
 
   resolve: {

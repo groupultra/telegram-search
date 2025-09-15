@@ -19,7 +19,6 @@
     "@tg-search/core": "workspace:^",
     "@tg-search/stage-ui": "workspace:^",
     "@vueuse/core": "^13.7.0",
-    "buffer": "^6.0.3",
     "defu": "^6.1.4",
     "pinia": "^3.0.3",
     "telegram": "^2.26.21",

@@ -121,9 +121,6 @@ importers:
       '@vueuse/core':
         specifier: ^13.7.0
         version: 13.7.0(vue@3.5.19(typescript@5.9.2))
-      buffer:
-        specifier: ^6.0.3
-        version: 6.0.3
       defu:
         specifier: ^6.1.4
         version: 6.1.4
