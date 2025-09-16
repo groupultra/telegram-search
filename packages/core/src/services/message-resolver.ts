@@ -2,7 +2,6 @@ import type { Api } from 'telegram'
 
 import type { CoreContext } from '../context'
 import type { MessageResolverRegistryFn } from '../message-resolvers'
-import type { CoreMessage } from '../utils/message'
 
 import { useLogger } from '@unbird/logg'
 
