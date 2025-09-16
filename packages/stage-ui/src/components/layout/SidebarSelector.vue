@@ -15,24 +15,22 @@ const isCurrentPage = computed(() => route.path === props.path)
 </script>
 
 <template>
-  <div
-    :class="{ 'bg-neutral-100/90 dark:bg-gray-700/80': isCurrentPage }"
-    class="relative select-none px-4 text-gray-900 transition-all hover:bg-neutral-100/70 dark:text-gray-100 dark:hover:bg-gray-700/60"
+  <button
+    type="button"
     :aria-current="isCurrentPage ? 'page' : undefined"
+    class="w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition focus:outline-none"
+    :class="isCurrentPage
+      ? 'bg-[#3A3A3C] text-white'
+      : 'bg-transparent text-gray-300 hover:bg-[#353538]'
+    "
     role="link"
     @click="router.push(props.path)"
   >
-    <!-- Active left accent bar -->
+    <span :class="icon" class="h-5 w-5 flex-shrink-0" />
+    <span class="flex-1 truncate text-left">{{ name }}</span>
     <span
       v-if="isCurrentPage"
-      class="absolute left-0 top-0 h-full w-[2px] rounded-r bg-primary"
+      class="i-lucide-chevron-right h-4 w-4 text-gray-400"
     />
-
-    <div
-      class="w-full flex cursor-pointer items-center gap-4 p-2"
-    >
-      <span :class="icon" class="h-5 w-5 flex-shrink-0 opacity-90" />
-      <span class="truncate">{{ name }}</span>
-    </div>
-  </div>
+  </button>
 </template>

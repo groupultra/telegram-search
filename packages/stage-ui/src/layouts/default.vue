@@ -8,7 +8,6 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
-import ChatsCollapse from '../components/layout/ChatsCollapse.vue'
 import SettingsDialog from '../components/layout/SettingsDialog.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
 import Avatar from '../components/ui/Avatar.vue'
@@ -25,7 +24,7 @@ const { isLoggedIn } = storeToRefs(authStore)
 const router = useRouter()
 const route = useRoute()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const settingsDialog = ref(false)
 const searchParams = ref('')
@@ -43,6 +42,43 @@ const chatsFiltered = computed(() => {
   return chats.value.filter(chat => chat.name.toLowerCase().includes(searchParams.value.toLowerCase()))
 })
 
+type NamedChatGroup = Exclude<ChatGroup, ''>
+
+interface ChatGroupTab {
+  key: NamedChatGroup
+  label: string
+  icon: string
+  count: number
+}
+
+const chatGroupOrder: NamedChatGroup[] = ['user', 'group', 'channel']
+
+const chatTabs = computed<ChatGroupTab[]>(() => {
+  const counts = chatsFiltered.value.reduce<Record<NamedChatGroup, number>>((acc, chat) => {
+    acc[chat.type] += 1
+    return acc
+  }, {
+    user: 0,
+    group: 0,
+    channel: 0,
+  })
+
+  const icons: Record<NamedChatGroup, string> = {
+    user: 'i-lucide-user',
+    group: 'i-lucide-users',
+    channel: 'i-lucide-message-circle',
+  }
+
+  return chatGroupOrder.map((key) => {
+    return {
+      key,
+      label: t(`chatGroups.${key}`),
+      icon: icons[key],
+      count: counts[key],
+    }
+  })
+})
+
 const { selectedGroup } = storeToRefs(useSettingsStore())
 const activeChatGroup = computed(() => {
   if (route.params.chatId) {
@@ -53,6 +89,39 @@ const activeChatGroup = computed(() => {
   }
   return selectedGroup.value
 })
+
+const visibleChats = computed(() => {
+  const group = activeChatGroup.value
+  if (!group) {
+    return chatsFiltered.value
+  }
+
+  return chatsFiltered.value.filter(chat => chat.type === group)
+})
+
+const timeFormatter = computed(() => new Intl.DateTimeFormat(locale.value, {
+  hour: '2-digit',
+  minute: '2-digit',
+}))
+
+function formatChatTimestamp(date?: Date) {
+  if (!date)
+    return ''
+
+  return timeFormatter.value.format(date)
+}
+
+const compactNumberFormatter = computed(() => new Intl.NumberFormat(locale.value, {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+}))
+
+function formatUnreadCount(count?: number) {
+  if (!count)
+    return ''
+
+  return compactNumberFormatter.value.format(count)
+}
 
 // Computed classes for responsive design
 const sidebarClasses = computed(() => {
@@ -89,6 +158,10 @@ function toggleSettingsDialog() {
 
 function toggleActiveChatGroup(group: ChatGroup) {
   selectedGroup.value = group
+}
+
+function isActiveChat(chatId: string) {
+  return route.params.chatId === chatId
 }
 
 function toggleSidebar() {
@@ -130,98 +203,136 @@ function closeMobileDrawer() {
     <!-- Sidebar -->
     <div
       :class="sidebarClasses.container"
-      class="flex flex-col border-r border-r-secondary bg-background/95 backdrop-blur-sm h-dvh dark:border-r-gray-700 dark:bg-gray-800/90"
+      class="flex flex-col border-r border-black/30 bg-[#1C1C1E] text-gray-200 shadow-xl h-dvh"
     >
-      <!-- Search section -->
       <div
         v-if="!isMobile || mobileDrawerOpen"
-        class="p-4"
+        class="flex flex-col gap-5 px-4 pb-5 pt-6"
       >
-        <div class="relative">
+        <div class="flex items-center gap-3">
           <div
-            class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-gray-500 -translate-y-1/2 dark:text-gray-400"
+            class="i-lucide-menu hidden h-5 w-5 text-gray-500 md:block"
           />
-          <input
-            v-model="searchParams"
-            type="text"
-            class="w-full border border-neutral-200 rounded-full bg-neutral-100/80 px-3 py-2 pl-9 ring-offset-background transition-all dark:border-gray-600 dark:bg-gray-700/80 hover:bg-neutral-100 dark:text-gray-100 placeholder:text-gray-500 focus:(outline-none ring-2 ring-primary/50) dark:ring-offset-gray-800 dark:placeholder:text-gray-400"
-            :placeholder="t('search.search')"
-          >
-        </div>
-      </div>
-
-      <!-- Navigation -->
-      <div class="mb-4">
-        <SidebarSelector
-          path="/sync"
-          icon="i-lucide-refresh-cw"
-          :name="t('sync.sync')"
-        />
-
-        <SidebarSelector
-          path="/search"
-          icon="i-lucide-search"
-          :name="t('search.search')"
-        />
-
-        <SidebarSelector
-          path="/settings"
-          icon="i-lucide-settings"
-          :name="t('settings.settings')"
-        />
-      </div>
-
-      <!-- Chat groups -->
-      <div
-        v-if="!isMobile || mobileDrawerOpen"
-        class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary pt-2 dark:border-t-gray-700"
-      >
-        <ChatsCollapse
-          class="max-h-[85%] flex flex-col"
-          :class="{ 'flex-1': activeChatGroup === 'user' }"
-          :name="t('chatGroups.user')"
-          icon="i-lucide-user"
-          type="user"
-          :chats="chatsFiltered.filter(chat => chat.type === 'user')"
-          :active="activeChatGroup === 'user'"
-          @update:toggle-active="toggleActiveChatGroup('user')"
-        />
-
-        <ChatsCollapse
-          class="max-h-[85%] flex flex-col"
-          :class="{ 'flex-1': activeChatGroup === 'group' }"
-          :name="t('chatGroups.group')"
-          icon="i-lucide-users"
-          type="group"
-          :chats="chatsFiltered.filter(chat => chat.type === 'group')"
-          :active="activeChatGroup === 'group'"
-          @update:toggle-active="toggleActiveChatGroup('group')"
-        />
-
-        <ChatsCollapse
-          class="max-h-[85%] flex flex-col"
-          :class="{ 'flex-1': activeChatGroup === 'channel' }"
-          :name="t('chatGroups.channel')"
-          icon="i-lucide-message-circle"
-          type="channel"
-          :chats="chatsFiltered.filter(chat => chat.type === 'channel')"
-          :active="activeChatGroup === 'channel'"
-          @update:toggle-active="toggleActiveChatGroup('channel')"
-        />
-      </div>
-
-      <!-- User profile section -->
-      <div class="flex items-center justify-between border-t border-t-secondary p-4 dark:border-t-gray-700">
-        <div class="mr-3 flex items-center gap-3">
-          <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 ring-2 ring-offset-1 ring-primary/10 dark:bg-gray-700">
+          <div class="relative flex-1">
+            <div
+              class="i-lucide-search pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 text-gray-400 -translate-y-1/2"
+            />
+            <input
+              v-model="searchParams"
+              type="text"
+              class="w-full rounded-full bg-[#2C2C2E] px-4 py-3 pl-12 text-sm text-gray-100 shadow-inner transition placeholder:text-gray-500 focus:(outline-none ring-2 ring-[#6C5CE7])"
+              :placeholder="t('search.search')"
+            >
+          </div>
+          <div class="hidden h-10 w-10 items-center justify-center rounded-full bg-[#2C2C2E] shadow-inner md:flex">
             <Avatar
               :name="websocketStore.getActiveSession()?.me?.name"
               size="sm"
             />
           </div>
-          <div class="flex flex-col">
-            <span class="whitespace-nowrap text-sm text-gray-900 font-medium dark:text-gray-100">{{ websocketStore.getActiveSession()?.me?.name }}</span>
-            <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto" role="tablist">
+          <button
+            v-for="tab in chatTabs"
+            :key="tab.key"
+            type="button"
+            :aria-pressed="activeChatGroup === tab.key"
+            class="flex flex-shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition"
+            :class="activeChatGroup === tab.key
+              ? 'bg-[#6C5CE7] text-white'
+              : 'bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C]'
+            "
+            @click="toggleActiveChatGroup(tab.key)"
+          >
+            <span :class="tab.icon" class="h-4 w-4" />
+            <span class="whitespace-nowrap">{{ tab.label }}</span>
+            <span
+              v-if="tab.count"
+              class="h-5 min-w-[1.75rem] flex items-center justify-center rounded-full bg-white/25 px-2 text-[11px] text-white"
+            >
+              {{ tab.count }}
+            </span>
+          </button>
+        </div>
+
+        <div class="flex flex-col gap-2 rounded-3xl bg-[#2C2C2E]/60 p-3 shadow-inner">
+          <SidebarSelector
+            path="/sync"
+            icon="i-lucide-refresh-cw"
+            :name="t('sync.sync')"
+          />
+          <SidebarSelector
+            path="/search"
+            icon="i-lucide-search"
+            :name="t('search.search')"
+          />
+          <SidebarSelector
+            path="/settings"
+            icon="i-lucide-settings"
+            :name="t('settings.settings')"
+          />
+        </div>
+      </div>
+
+      <div
+        v-if="!isMobile || mobileDrawerOpen"
+        class="flex-1 overflow-y-auto px-3 pb-4"
+      >
+        <div
+          v-for="chat in visibleChats"
+          :key="chat.id"
+          class="group flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 transition-all duration-200 hover:bg-[#2F2F31]"
+          :class="isActiveChat(chat.id.toString()) ? 'bg-[#2F2F31]' : ''"
+          @click="router.push(`/chat/${chat.id}`)"
+        >
+          <Avatar
+            :name="chat.name"
+            size="md"
+          />
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="flex-1 truncate text-sm text-gray-100 font-semibold">{{ chat.name }}</span>
+              <span
+                v-if="formatChatTimestamp(chat.lastMessageDate)"
+                class="text-xs text-gray-500"
+              >
+                {{ formatChatTimestamp(chat.lastMessageDate) }}
+              </span>
+            </div>
+            <div class="mt-1 flex items-center gap-2">
+              <span class="flex-1 truncate text-xs text-gray-400">
+                {{ chat.lastMessage ?? t('sidebar.noRecentMessages') }}
+              </span>
+              <span
+                v-if="chat.unreadCount"
+                class="h-6 min-w-[2.25rem] flex items-center justify-center rounded-full bg-[#6C5CE7] px-2 text-[11px] text-white font-semibold"
+              >
+                {{ formatUnreadCount(chat.unreadCount) }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          v-if="!visibleChats.length"
+          class="mt-10 text-center text-xs text-gray-500"
+        >
+          {{ t('sidebar.noResults') }}
+        </div>
+      </div>
+
+      <!-- User profile section -->
+      <div class="flex items-center justify-between gap-3 border-t border-[#2A2A2C] px-4 py-4">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 flex items-center justify-center overflow-hidden rounded-full bg-[#2C2C2E]">
+            <Avatar
+              :name="websocketStore.getActiveSession()?.me?.name"
+              size="sm"
+            />
+          </div>
+          <div class="min-w-0 flex flex-col">
+            <span class="truncate text-sm text-gray-100 font-semibold">{{ websocketStore.getActiveSession()?.me?.name }}</span>
+            <span class="text-xs text-gray-500">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
           </div>
         </div>
 
@@ -229,14 +340,14 @@ function closeMobileDrawer() {
         <div class="flex items-center gap-2">
           <Button
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100/80 dark:text-gray-100 dark:hover:bg-gray-700/70"
+            class="h-9 w-9 flex items-center justify-center rounded-full bg-[#2C2C2E] text-gray-200 transition hover:bg-[#353538]"
             :title="isDark ? t('settings.switchToLightMode') : t('settings.switchToDarkMode')"
             @click="() => { isDark = !isDark }"
           />
 
           <Button
             icon="i-lucide-settings"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100/80 dark:text-gray-100 dark:hover:bg-gray-700/70"
+            class="h-9 w-9 flex items-center justify-center rounded-full bg-[#2C2C2E] text-gray-200 transition hover:bg-[#353538]"
             :title="t('settings.settings')"
             @click="toggleSettingsDialog"
           />

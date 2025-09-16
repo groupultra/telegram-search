@@ -69,6 +69,10 @@
     "searchMessages": "Search messages...",
     "searching": "Searching..."
   },
+  "sidebar": {
+    "noRecentMessages": "No recent messages",
+    "noResults": "No chats match your search"
+  },
   "settings": {
     "apiBaseUrl": "API Base URL",
     "apiKey": "API Key",

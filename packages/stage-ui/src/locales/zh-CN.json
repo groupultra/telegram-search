@@ -69,6 +69,10 @@
     "searchMessages": "搜索消息...",
     "searching": "搜索中..."
   },
+  "sidebar": {
+    "noRecentMessages": "暂无新消息",
+    "noResults": "没有符合条件的聊天"
+  },
   "settings": {
     "apiBaseUrl": "API 基础 URL",
     "apiKey": "API 密钥",
