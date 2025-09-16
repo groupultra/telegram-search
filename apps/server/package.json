@@ -21,6 +21,6 @@
     "web-streams-polyfill": "^4.2.0"
   },
   "devDependencies": {
-    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.2"
+    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3"
   }
 }
