@@ -20,9 +20,11 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.3.7",
+    "@moeru/std": "0.1.0-beta.10",
     "@node-rs/jieba": "^2.0.1",
     "@proj-airi/drizzle-orm-browser-migrator": "^0.1.2",
     "@tg-search/common": "workspace:*",
+    "@unbird/eventa": "^0.0.11",
     "@unbird/logg": "catalog:",
     "@unbird/result": "catalog:",
     "@vueuse/core": "^13.7.0",

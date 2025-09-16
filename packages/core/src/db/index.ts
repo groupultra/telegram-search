@@ -12,7 +12,8 @@ export type CoreDB = PostgresDB | PgliteDB
 
 let dbInstance: CoreDB
 
-export async function initDrizzle(logger: Logger, config: Config, dbPath?: string) {
+// TODO: options? here should contain dbPath, config.
+export async function initDrizzle(logger: Logger, config: Config, dbPath?: string, options?: { debuggerWebSocketUrl?: string }) {
   logger.log('Initializing database...')
 
   // Get configuration
@@ -29,7 +30,7 @@ export async function initDrizzle(logger: Logger, config: Config, dbPath?: strin
     case DatabaseType.PGLITE: {
       if (isBrowser()) {
         const { initPgliteDrizzleInBrowser } = await import('./pglite.browser')
-        dbInstance = await initPgliteDrizzleInBrowser(logger)
+        dbInstance = await initPgliteDrizzleInBrowser(logger, options)
       }
       else {
         const { initPgliteDrizzleInNode } = await import('./pglite')
