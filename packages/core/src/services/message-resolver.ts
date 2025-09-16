@@ -43,34 +43,29 @@ export function createMessageResolverService(ctx: CoreContext) {
       emitter.emit('storage:record:messages', { messages: coreMessages })
 
       // Embedding or resolve messages
-      const promises: Promise<void>[] = []
-      for (const [name, resolver] of resolvers.registry.entries()) {
-        promises.push((async () => {
+      const promises = Array.from(resolvers.registry.entries())
+        .map(([name, resolver]) => (async () => {
           logger.withFields({ name }).verbose('Process messages with resolver')
 
           try {
-            let result: CoreMessage[] = []
-
             if (resolver.run) {
-              result = (await resolver.run({ messages: coreMessages })).unwrap()
-            }
+              const result = (await resolver.run({ messages: coreMessages })).unwrap()
 
-            if (resolver.stream) {
+              if (result.length > 0) {
+                emitter.emit('storage:record:messages', { messages: result })
+              }
+            }
+            else if (resolver.stream) {
               for await (const message of resolver.stream({ messages: coreMessages })) {
                 emitter.emit('message:data', { messages: [message] })
                 emitter.emit('storage:record:messages', { messages: [message] })
               }
-            }
-
-            if (result.length > 0) {
-              emitter.emit('storage:record:messages', { messages: result })
             }
           }
           catch (error) {
             logger.withError(error).warn('Failed to process messages')
           }
         })())
-      }
 
       await Promise.allSettled(promises)
     }
