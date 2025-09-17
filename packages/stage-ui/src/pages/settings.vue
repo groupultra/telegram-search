@@ -7,6 +7,7 @@ import { toast } from 'vue-sonner'
 
 import { Button } from '../components/ui/Button'
 import SelectDropdown from '../components/ui/SelectDropdown.vue'
+import { isCore } from '../lib/utils'
 
 const { t } = useI18n()
 
@@ -32,6 +33,8 @@ async function updateConfig() {
 onMounted(() => {
   websocketStore.sendEvent('config:fetch')
 })
+
+
 </script>
 
 <template>
@@ -63,7 +66,7 @@ onMounted(() => {
     <!-- Settings form -->
     <div class="space-y-6">
       <!-- Database settings -->
-      <div class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
+      <div v-if="!isCore()" class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
         <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
           {{ t('settings.databaseSettings') }}
         </h2>
