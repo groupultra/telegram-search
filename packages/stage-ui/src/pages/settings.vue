@@ -40,7 +40,7 @@ onMounted(() => {
 <template>
   <header class="flex items-center border-b border-b-secondary p-4 px-4 dark:border-b-gray-700">
     <div class="flex items-center gap-2">
-      <span class="text-lg text-gray-900 font-medium dark:text-gray-100">{{ t('settings.settings') }}</span>
+      <span class="text-lg gs-text-primary font-medium">{{ t('settings.settings') }}</span>
     </div>
 
     <div class="ml-auto flex items-center gap-2">
@@ -66,8 +66,8 @@ onMounted(() => {
     <!-- Settings form -->
     <div class="space-y-6">
       <!-- Database settings -->
-      <div v-if="!isCore()" class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
-        <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
+      <div v-if="!isCore()" class="gs-border gs-bg-surface rounded-lg p-4">
+        <h2 class="mb-4 text-xl gs-text-primary font-semibold">
           {{ t('settings.databaseSettings') }}
         </h2>
         <div class="grid gap-4 md:grid-cols-2">
@@ -120,14 +120,14 @@ onMounted(() => {
       </div>
 
       <!-- API settings -->
-      <div class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
-        <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
+      <div class="gs-border gs-bg-surface rounded-lg p-4">
+        <h2 class="mb-4 text-xl gs-text-primary font-semibold">
           {{ t('settings.apiSettings') }}
         </h2>
         <div class="space-y-4">
           <!-- Telegram API -->
           <div>
-            <h3 class="mb-2 text-lg text-gray-900 font-medium dark:text-gray-100">
+            <h3 class="mb-2 text-lg gs-text-primary font-medium">
               {{ t('settings.telegramApi') }}
             </h3>
             <div class="grid gap-4 md:grid-cols-2">
@@ -154,7 +154,7 @@ onMounted(() => {
 
           <!-- OpenAI API -->
           <div>
-            <h3 class="mb-2 text-lg text-gray-900 font-medium dark:text-gray-100">
+            <h3 class="mb-2 text-lg gs-text-primary font-medium">
               {{ t('settings.embedding') }}
             </h3>
             <div class="grid gap-4">
