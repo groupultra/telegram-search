@@ -375,7 +375,7 @@ function closeMobileDrawer() {
           <Button
             size="sm"
             icon="i-lucide-user"
-            class="ml-2 border border-white/20 bg-white/20 text-white hover:bg-white/30 transition-colors"
+            class="ml-2 border border-white/20 bg-white/20 text-white transition-colors hover:bg-white/30"
             @click="router.push('/login')"
           >
             {{ t('loginPromptBanner.login') }}
