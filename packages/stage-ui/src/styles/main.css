@@ -4,15 +4,87 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-}
-
-html.dark {
-  background: #121212;
+  background: var(--gs-color-app-bg);
 }
 
 :root {
   --theme-transition-duration: 0.4s;
   --theme-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Light theme palette */
+  --gs-color-app-bg: #f2f2f7;
+  --gs-color-surface: #ffffff;
+  --gs-color-surface-muted: #e5e5ea;
+  --gs-color-surface-elevated: #ffffff;
+  --gs-color-border: rgba(28, 28, 30, 0.12);
+  --gs-color-text-primary: #1c1c1e;
+  --gs-color-text-secondary: #6b6b7a;
+  --gs-color-text-muted: #8e8e93;
+  --gs-color-text-inverse: #ffffff;
+  --gs-color-accent: #6c5ce7;
+  --gs-color-accent-soft: rgba(108, 92, 231, 0.16);
+  --gs-color-accent-strong: #6c5ce7;
+  --gs-color-sidebar-shadow: rgba(12, 12, 12, 0.08);
+
+  /* shadcn tokens */
+  --background: 240 24% 96%;
+  --foreground: 240 3% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 3% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 3% 15%;
+  --primary: 247 74% 63%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 11% 91%;
+  --secondary-foreground: 240 7% 45%;
+  --muted: 240 11% 91%;
+  --muted-foreground: 240 7% 45%;
+  --accent: 247 74% 63%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 10% 88%;
+  --input: 240 11% 85%;
+  --ring: 247 74% 63%;
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  /* Dark theme palette */
+  --gs-color-app-bg: #1c1c1e;
+  --gs-color-surface: #2c2c2e;
+  --gs-color-surface-muted: #3a3a3c;
+  --gs-color-surface-elevated: #2c2c2e;
+  --gs-color-border: rgba(255, 255, 255, 0.08);
+  --gs-color-text-primary: #f2f2f7;
+  --gs-color-text-secondary: #d1d1d6;
+  --gs-color-text-muted: #8e8e93;
+  --gs-color-text-inverse: #1c1c1e;
+  --gs-color-accent: #8e7cff;
+  --gs-color-accent-soft: rgba(108, 92, 231, 0.24);
+  --gs-color-accent-strong: #8e7cff;
+  --gs-color-sidebar-shadow: rgba(0, 0, 0, 0.4);
+
+  --background: 240 3% 11%;
+  --foreground: 240 24% 96%;
+  --card: 240 2% 18%;
+  --card-foreground: 240 24% 96%;
+  --popover: 240 2% 18%;
+  --popover-foreground: 240 24% 96%;
+  --primary: 248 100% 74%;
+  --primary-foreground: 240 3% 11%;
+  --secondary: 240 2% 23%;
+  --secondary-foreground: 240 6% 83%;
+  --muted: 240 2% 23%;
+  --muted-foreground: 240 2% 57%;
+  --accent: 248 100% 74%;
+  --accent-foreground: 240 3% 11%;
+  --destructive: 0 62% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 3% 30%;
+  --input: 240 2% 23%;
+  --ring: 248 100% 74%;
 }
 
 /* View Transitions API 基础设置 */
@@ -83,3 +155,126 @@ html.dark::view-transition-new(root) {
 
 :root { --is-dark: 0%; }
 .dark { --is-dark: 100%; }
+
+/* GramSearch design tokens */
+.gs-bg-app {
+  background-color: var(--gs-color-app-bg);
+}
+
+.gs-bg-surface {
+  background-color: var(--gs-color-surface);
+}
+
+.gs-bg-surface-muted {
+  background-color: var(--gs-color-surface-muted);
+}
+
+.gs-bg-surface-elevated {
+  background-color: var(--gs-color-surface-elevated);
+}
+
+.gs-text-primary {
+  color: var(--gs-color-text-primary);
+}
+
+.gs-text-secondary {
+  color: var(--gs-color-text-secondary);
+}
+
+.gs-text-muted {
+  color: var(--gs-color-text-muted);
+}
+
+.gs-text-inverse {
+  color: var(--gs-color-text-inverse);
+}
+
+.gs-border {
+  border-color: var(--gs-color-border);
+}
+
+.gs-accent-bg {
+  background-color: var(--gs-color-accent);
+  color: var(--gs-color-text-inverse);
+}
+
+.gs-accent-soft {
+  background-color: var(--gs-color-accent-soft);
+}
+
+.gs-accent-strong {
+  color: var(--gs-color-accent-strong);
+}
+
+.gs-shadow-sidebar {
+  box-shadow: 0 10px 40px -24px var(--gs-color-sidebar-shadow);
+}
+
+.gs-divider {
+  border-color: var(--gs-color-border);
+}
+
+/* Override frequently used Tailwind utilities to align with GramSearch palette */
+.text-gray-900,
+.text-gray-800,
+.dark .text-gray-900,
+.dark .text-gray-100 {
+  color: var(--gs-color-text-primary) !important;
+}
+
+.text-gray-600,
+.text-gray-500,
+.dark .text-gray-200 {
+  color: var(--gs-color-text-secondary) !important;
+}
+
+.text-gray-400,
+.text-gray-300,
+.dark .text-gray-400,
+.dark .text-gray-300 {
+  color: var(--gs-color-text-muted) !important;
+}
+
+.bg-background,
+.dark .bg-background {
+  background-color: var(--gs-color-app-bg) !important;
+}
+
+.bg-white,
+.bg-neutral-100,
+.bg-neutral-200,
+.dark .bg-gray-900,
+.dark .bg-gray-800,
+.dark .bg-gray-700 {
+  background-color: var(--gs-color-surface) !important;
+}
+
+.bg-neutral-100/80,
+.bg-neutral-100\/80,
+.bg-neutral-100\/90 {
+  background-color: color-mix(in srgb, var(--gs-color-surface-muted) 90%, transparent) !important;
+}
+
+.hover\:bg-neutral-100:hover,
+.hover\:bg-neutral-100\/70:hover,
+.hover\:bg-neutral-100\/50:hover {
+  background-color: var(--gs-color-surface-muted) !important;
+}
+
+.dark .dark\:hover\:bg-gray-700:hover,
+.dark .dark\:hover\:bg-gray-700\/60:hover,
+.dark .dark\:hover\:bg-gray-700\/80:hover {
+  background-color: var(--gs-color-surface-muted) !important;
+}
+
+.border-neutral-200,
+.border-gray-200,
+.border-gray-300,
+.dark .border-gray-600,
+.dark .border-gray-700 {
+  border-color: var(--gs-color-border) !important;
+}
+
+.text-gray-100 {
+  color: var(--gs-color-text-secondary) !important;
+}
