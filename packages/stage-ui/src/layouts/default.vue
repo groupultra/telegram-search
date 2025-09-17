@@ -366,22 +366,23 @@ function closeMobileDrawer() {
       <!-- Login prompt banner -->
       <div
         v-if="!isLoggedIn"
-        class="bg-yellow-500 px-4 py-2 text-center text-sm text-yellow-900 font-medium transition-all duration-300 ease-in-out"
+        class="bg-[var(--gs-color-accent)] px-4 py-2 text-center text-sm font-medium transition-all duration-300 ease-in-out"
         :class="{ 'left-80': !isMobile }"
       >
-        <div class="flex items-center justify-center gap-2">
+        <div class="flex items-center justify-center gap-2 text-white">
           <div class="i-lucide-alert-triangle" />
           <span>{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
           <Button
             size="sm"
             icon="i-lucide-user"
-            class="ml-2 border border-yellow-700 bg-yellow-600 text-yellow-100 hover:bg-yellow-700"
+            class="ml-2 border border-white/20 bg-white/20 text-white hover:bg-white/30 transition-colors"
             @click="router.push('/login')"
           >
             {{ t('loginPromptBanner.login') }}
           </Button>
         </div>
       </div>
+
       <RouterView :key="$route.fullPath" />
     </div>
 
