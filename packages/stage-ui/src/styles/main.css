@@ -249,7 +249,7 @@ html.dark::view-transition-new(root) {
   background-color: var(--gs-color-surface) !important;
 }
 
-.bg-neutral-100/80,
+.bg-neutral-100\/80,
 .bg-neutral-100\/80,
 .bg-neutral-100\/90 {
   background-color: color-mix(in srgb, var(--gs-color-surface-muted) 90%, transparent) !important;

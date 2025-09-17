@@ -4,7 +4,7 @@ import { computed } from 'vue'
 interface Props {
   src?: string
   name?: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   isOnline?: boolean
 }
 
@@ -14,6 +14,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const sizeMap = {
+  xs: 'h-4 w-4',
   sm: 'h-6 w-6',
   md: 'h-10 w-10',
   lg: 'h-12 w-12',
@@ -69,7 +70,7 @@ const backgroundColor = computed(() => {
         :alt="name"
         class="h-full w-full object-cover"
       >
-      <span v-else class="text-sm">{{ initials }}</span>
+      <span v-else :class="avatarSize !== 'xs' ? 'text-xs' : 'text-sm'">{{ initials }}</span>
     </div>
     <div
       v-if="isOnline"

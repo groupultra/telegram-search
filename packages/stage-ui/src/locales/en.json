@@ -98,7 +98,8 @@
     "switchToDarkMode": "Switch to dark mode",
     "switchToLightMode": "Switch to light mode",
     "telegramApi": "Telegram API",
-    "useCachedMessage": "Use cached messages from database"
+    "useCachedMessage": "Use cached messages from database",
+    "darkMode": "Dark Mode"
   },
   "sync": {
     "cancel": "Cancel",

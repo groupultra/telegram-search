@@ -98,7 +98,8 @@
     "switchToDarkMode": "切换到暗色模式",
     "switchToLightMode": "切换到亮色模式",
     "telegramApi": "Telegram API",
-    "useCachedMessage": "使用数据库缓存的聊天记录"
+    "useCachedMessage": "使用数据库缓存的聊天记录",
+    "darkMode": "夜间模式"
   },
   "sync": {
     "cancel": "取消",

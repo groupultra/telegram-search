@@ -12,6 +12,7 @@ import SettingsDialog from '../components/layout/SettingsDialog.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
 import Avatar from '../components/ui/Avatar.vue'
 import { Button } from '../components/ui/Button'
+import SettingsMenu from '../components/SettingsMenu.vue'
 
 const settingsStore = useSettingsStore()
 const { theme } = storeToRefs(settingsStore)
@@ -210,9 +211,13 @@ function closeMobileDrawer() {
         class="flex flex-col gap-5 px-4 pb-5 pt-6"
       >
         <div class="flex items-center gap-3">
+<<<<<<< Updated upstream
+=======
           <div
-            class="i-lucide-menu hidden h-5 w-5 text-[var(--gs-color-text-muted)] md:block"
+            class="i-lucide-menu hidden h-5 w-5 text-gray-500 md:block"
           />
+>>>>>>> Stashed changes
+          <SettingsMenu/>
           <div class="relative flex-1">
             <div
               class="i-lucide-search pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 text-[var(--gs-color-text-muted)] -translate-y-1/2"
