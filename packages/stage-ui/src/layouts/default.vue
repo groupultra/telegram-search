@@ -249,7 +249,7 @@ function closeMobileDrawer() {
             <span class="whitespace-nowrap">{{ tab.label }}</span>
             <span
               v-if="tab.count"
-              class="h-5 min-w-[1.75rem] flex items-center justify-center rounded-full bg-white/25 px-2 text-[11px] text-white"
+              class="h-4 min-w-[1.75rem] flex items-center justify-center rounded-full bg-white/25 px-2 text-[11px] text-white"
             >
               {{ tab.count }}
             </span>
