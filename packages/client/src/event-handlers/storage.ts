@@ -16,4 +16,5 @@ export function registerStorageEventHandlers(
 
   // Wait for result event
   registerEventHandler('storage:search:messages:data', ({ messages: _messages }) => {})
+  registerEventHandler('storage:messages:context', ({ chatId: _chatId, messageId: _messageId, messages: _messages }) => {})
 }
