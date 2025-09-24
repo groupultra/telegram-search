@@ -25,6 +25,7 @@ export interface StorageEventToCore {
   'storage:record:dialogs': (data: { dialogs: CoreDialog[] }) => void
 
   'storage:search:messages': (data: CoreMessageSearchParams) => void
+
   'storage:fetch:message-context': (data: {
     chatId: string
     messageId: string
@@ -39,6 +40,7 @@ export interface StorageEventFromCore {
   'storage:dialogs': (data: { dialogs: CoreDialog[] }) => void
 
   'storage:search:messages:data': (data: { messages: CoreRetrievalMessages[] }) => void
+
   'storage:messages:context': (data: { chatId: string, messageId: string, messages: CoreMessage[] }) => void
 }
 
