@@ -23,13 +23,9 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
 
     logger.withFields({ chatId, messageId, before: safeBefore, after: safeAfter }).verbose('Fetching message context')
 
-    const messages = (await fetchMessageContextWithPhotos(chatId, messageId, safeBefore, safeAfter)).unwrap()
+    const messages = (await fetchMessageContextWithPhotos({ chatId, messageId, before: safeBefore, after: safeAfter })).unwrap()
 
-    emitter.emit('storage:messages:context', {
-      chatId,
-      messageId,
-      messages,
-    })
+    emitter.emit('storage:messages:context', { chatId, messageId, messages })
   })
 
   emitter.on('storage:record:messages', async ({ messages }) => {

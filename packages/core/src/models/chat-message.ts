@@ -2,7 +2,7 @@
 
 import type { CorePagination } from '@tg-search/common'
 
-import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../index'
+import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker, StorageMessageContextParams } from '../index'
 import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@unbird/logg'
@@ -140,12 +140,7 @@ export async function fetchMessagesWithPhotos(chatId: string, pagination: CorePa
   }) satisfies CoreMessage))
 }
 
-export async function fetchMessageContextWithPhotos(
-  chatId: string,
-  messageId: string,
-  before: number,
-  after: number,
-) {
+export async function fetchMessageContextWithPhotos({ chatId, messageId, before, after }: Required<StorageMessageContextParams>) {
   const targetMessages = (await withDb(db => db
     .select()
     .from(chatMessagesTable)

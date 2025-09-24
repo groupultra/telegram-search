@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CoreDialog } from '@tg-search/core/types'
+import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
 
 import { useBridgeStore, useChatStore, useMessageStore, useSettingsStore } from '@tg-search/client'
 import { useWindowSize } from '@vueuse/core'
@@ -171,7 +171,7 @@ async function openMessageContext(messageId: string, messageUuid?: string) {
     await nextTick()
 
     const targetUuid = messageUuid
-      ?? messages.find(msg => msg.platformMessageId === messageId)?.uuid
+      ?? messages.find((msg: CoreMessage) => msg.platformMessageId === messageId)?.uuid
 
     if (targetUuid) {
       await nextTick()
