@@ -24,4 +24,10 @@ WORKDIR /app
 
 COPY --from=builder /app /app
 
-ENTRYPOINT ["/bin/sh", "-c", "pnpm run db:migrate && DATABASE_URL=postgresql://postgres:123456@pgvector:5432/postgres pnpm run start"]
+ENV DATABASE_URL=""
+ENV TELEGRAM_API_ID=""
+ENV TELEGRAM_API_HASH=""
+ENV EMBEDDING_API_KEY=""
+ENV EMBEDDING_BASE_URL=""
+
+ENTRYPOINT ["/bin/sh", "-c", "pnpm run db:migrate && exec pnpm run start"]

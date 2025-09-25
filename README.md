@@ -36,28 +36,63 @@ Visit: https://search.lingogram.app
 
 ## 🚀 Quick Start
 
+### Runtime environment variables
+
+Set the following environment variables before starting the containerized services:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `TELEGRAM_API_ID` | ✅ | Telegram app ID from [my.telegram.org](https://my.telegram.org/apps). |
+| `TELEGRAM_API_HASH` | ✅ | Telegram app hash from the same page. |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string used by the server and migrations. |
+| `EMBEDDING_API_KEY` | ✅ | API key for the embedding provider (OpenAI key, Ollama token, etc.). |
+| `EMBEDDING_BASE_URL` | optional | Custom base URL for self-hosted or compatible embedding providers. |
+| `EMBEDDING_PROVIDER` | optional | Override embedding provider (`openai` or `ollama`). |
+| `EMBEDDING_MODEL` | optional | Override embedding model name. |
+| `EMBEDDING_DIMENSION` | optional | Override embedding dimension (e.g. `1536`, `1024`, `768`). |
+| `PGVECTOR_HOST_PORT` | optional | Publish pgvector on a host port when set (e.g. `15432`). |
+| `PGVECTOR_HOST_IP` | optional | Bind pgvector to a specific host interface when exposing the port. |
+
 ### Start with Docker Image
 
-1. Run docker image
+1. Run docker image with the required environment variables:
 
 ```bash
-docker run ghcr.io/groupultra/telegram-search:latest -d
+docker run -d --name telegram-search \
+  -p 3333:3333 \
+  -e TELEGRAM_API_ID=123456 \
+  -e TELEGRAM_API_HASH=0123456789abcdef0123456789abcdef \
+  -e DATABASE_URL=postgresql://postgres:123456@<postgres-host>:5432/postgres \
+  -e EMBEDDING_API_KEY=sk-xxxx \
+  -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \
+  ghcr.io/groupultra/telegram-search:latest
 ```
+
+Replace `<postgres-host>` with the hostname or IP address of the PostgreSQL instance you want to use.
 
 2. Access `http://localhost:3333` to open the search interface.
 
-
 ### Start with Docker Compose
 
-1. Clone repository
+1. Clone repository.
 
-2. Run docker compose to start all services including database
+2. Create a `.env` file at the repository root with the environment variables listed above (only include the ones you use).
+
+3. Run docker compose to start all services including the database:
 
 ```bash
 docker compose up -d
 ```
 
-3. Access `http://localhost:3333` to open the search interface.
+4. Access `http://localhost:3333` to open the search interface.
+
+5. To expose the pgvector database port outside Docker set `PGVECTOR_HOST_PORT` when starting:
+
+```bash
+PGVECTOR_HOST_PORT=15432 docker compose up -d
+```
+
+   Optionally set `PGVECTOR_HOST_IP=127.0.0.1` to bind on a specific interface.
 
 ## 💻 Development Guide
 

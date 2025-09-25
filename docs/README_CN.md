@@ -38,27 +38,63 @@
 
 ## 🚀 快速开始
 
+### 运行时环境变量
+
+启动容器前请准备以下环境变量：
+
+| 变量 | 是否必填 | 说明 |
+| --- | --- | --- |
+| `TELEGRAM_API_ID` | ✅ | 来自 [my.telegram.org](https://my.telegram.org/apps) 的 Telegram 应用 ID。 |
+| `TELEGRAM_API_HASH` | ✅ | 来自同一页面的 Telegram 应用 Hash。 |
+| `DATABASE_URL` | ✅ | 后端及迁移脚本使用的 PostgreSQL 连接串。 |
+| `EMBEDDING_API_KEY` | ✅ | 向量嵌入提供商的 API Key（OpenAI、Ollama 等）。 |
+| `EMBEDDING_BASE_URL` | 选填 | 自建或兼容服务的 API Base URL。 |
+| `EMBEDDING_PROVIDER` | 选填 | 指定嵌入服务提供商（`openai` 或 `ollama`）。 |
+| `EMBEDDING_MODEL` | 选填 | 覆盖默认的嵌入模型名称。 |
+| `EMBEDDING_DIMENSION` | 选填 | 覆盖嵌入向量维度（如 `1536`、`1024`、`768`）。 |
+| `PGVECTOR_HOST_PORT` | 选填 | 需要向外暴露数据库时使用的宿主机端口（例如 `15432`）。 |
+| `PGVECTOR_HOST_IP` | 选填 | 暴露端口时绑定的宿主机 IP（例如仅监听本地的 `127.0.0.1`）。 |
+
 ### 使用 Docker 镜像
 
-1. 运行 Docker 镜像
+1. 携带必要环境变量运行镜像：
 
 ```bash
-docker run ghcr.io/groupultra/telegram-search:latest -d
+docker run -d --name telegram-search \
+  -p 3333:3333 \
+  -e TELEGRAM_API_ID=123456 \
+  -e TELEGRAM_API_HASH=0123456789abcdef0123456789abcdef \
+  -e DATABASE_URL=postgresql://postgres:123456@<postgres-host>:5432/postgres \
+  -e EMBEDDING_API_KEY=sk-xxxx \
+  -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \
+  ghcr.io/groupultra/telegram-search:latest
 ```
 
-2. 访问 `http://localhost:3333` 即可打开搜索界面。
+请将 `<postgres-host>` 替换为实际的 PostgreSQL 主机名或 IP 地址。
+
+2. 浏览器访问 `http://localhost:3333` 打开搜索界面。
 
 ### 使用 Docker Compose
 
-1. 克隆仓库
+1. 克隆仓库。
 
-2. 运行 docker compose 启动所有服务包括数据库
+2. 在仓库根目录创建 `.env` 文件，写入上表中的环境变量（仅保留实际需要的条目）。
+
+3. 运行 docker compose 启动包括数据库在内的全部服务：
 
 ```bash
 docker compose up -d
 ```
 
-3. 访问 `http://localhost:3333` 即可打开搜索界面。
+4. 浏览器访问 `http://localhost:3333` 打开搜索界面。
+
+5. 如需向外暴露 pgvector 端口，可在启动时设置 `PGVECTOR_HOST_PORT`：
+
+```bash
+PGVECTOR_HOST_PORT=15432 docker compose up -d
+```
+
+   如果只想监听本机，可额外设置 `PGVECTOR_HOST_IP=127.0.0.1`。
 
 ## 💻 开发教程
 

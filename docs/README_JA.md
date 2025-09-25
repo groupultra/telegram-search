@@ -37,27 +37,63 @@
 
 ## 🚀 クイックスタート
 
-### 使用 Docker イメージ
+### ランタイム環境変数
 
-1. Docker イメージを実行
+コンテナを起動する前に、以下の環境変数を設定してください。
+
+| 変数 | 必須 | 説明 |
+| --- | --- | --- |
+| `TELEGRAM_API_ID` | ✅ | [my.telegram.org](https://my.telegram.org/apps) で取得した Telegram アプリ ID。 |
+| `TELEGRAM_API_HASH` | ✅ | 同じページで取得できる Telegram アプリ Hash。 |
+| `DATABASE_URL` | ✅ | サーバーとマイグレーションが利用する PostgreSQL 接続文字列。 |
+| `EMBEDDING_API_KEY` | ✅ | 埋め込みプロバイダーの API キー（OpenAI、Ollama など）。 |
+| `EMBEDDING_BASE_URL` | 任意 | 自前ホストや互換プロバイダー向けの API ベース URL。 |
+| `EMBEDDING_PROVIDER` | 任意 | 埋め込みプロバイダーを上書き（`openai` または `ollama`）。 |
+| `EMBEDDING_MODEL` | 任意 | 使用する埋め込みモデル名を上書き。 |
+| `EMBEDDING_DIMENSION` | 任意 | 埋め込みベクトルの次元数を上書き（`1536`、`1024`、`768` など）。 |
+| `PGVECTOR_HOST_PORT` | 任意 | pgvector を外部公開するときのホスト側ポート（例: `15432`）。 |
+| `PGVECTOR_HOST_IP` | 任意 | ポート公開時にバインドするホスト IP（例: `127.0.0.1` のみで待ち受け）。 |
+
+### Docker イメージから起動
+
+1. 必要な環境変数を指定してイメージを実行します。
 
 ```bash
-docker run ghcr.io/groupultra/telegram-search:latest -d
+docker run -d --name telegram-search \
+  -p 3333:3333 \
+  -e TELEGRAM_API_ID=123456 \
+  -e TELEGRAM_API_HASH=0123456789abcdef0123456789abcdef \
+  -e DATABASE_URL=postgresql://postgres:123456@<postgres-host>:5432/postgres \
+  -e EMBEDDING_API_KEY=sk-xxxx \
+  -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \
+  ghcr.io/groupultra/telegram-search:latest
 ```
+
+`<postgres-host>` には利用したい PostgreSQL のホスト名または IP アドレスを指定してください。
 
 2. http://localhost:3333 にアクセスして検索インターフェースを開きます。
 
-### 使用 Docker Compose
+### Docker Compose で起動
 
-1. リポジトリをクローン
+1. リポジトリをクローンします。
 
-2. docker compose を実行してすべてのサービスを起動します。
+2. ルートディレクトリに `.env` ファイルを作成し、上記の環境変数（必要なものだけ）を記載します。
+
+3. docker compose を実行してすべてのサービスを起動します。
 
 ```bash
 docker compose up -d
 ```
 
-3. http://localhost:3333 にアクセスして検索インターフェースを開きます。
+4. http://localhost:3333 にアクセスして検索インターフェースを開きます。
+
+5. pgvector のポートを外部公開したい場合は、起動時に `PGVECTOR_HOST_PORT` を指定してください。
+
+```bash
+PGVECTOR_HOST_PORT=15432 docker compose up -d
+```
+
+   特定のインターフェースだけで待ち受けたい場合は `PGVECTOR_HOST_IP=127.0.0.1` も併せて指定します。
 
 ## 💻 開発ガイド
 

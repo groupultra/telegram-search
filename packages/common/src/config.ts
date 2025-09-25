@@ -52,12 +52,86 @@ export async function initConfig() {
     throw new Error('Failed to validate config')
   }
 
-  validatedConfig.output.database.url = flags.dbUrl || getDatabaseDSN(validatedConfig.output)
+  const runtimeOverrides = buildRuntimeOverrides(validatedConfig.output)
+  const runtimeConfig = defu(runtimeOverrides, validatedConfig.output) as Config
 
-  config = validatedConfig.output
+  config = runtimeConfig
 
   logger.withFields(config).log('Config loaded')
   return config
+}
+
+type PartialDeep<T> = {
+  [K in keyof T]?: T[K] extends Record<string, unknown> ? PartialDeep<T[K]> : T[K]
+}
+
+function buildRuntimeOverrides(baseConfig: Config): PartialDeep<Config> {
+  const overrides: PartialDeep<Config> = {
+    database: {
+      url: flags.dbUrl || getDatabaseDSN(baseConfig),
+    },
+  }
+
+  const ensureApiOverrides = (): NonNullable<PartialDeep<Config>['api']> => {
+    if (!overrides.api) {
+      overrides.api = {}
+    }
+
+    return overrides.api as NonNullable<PartialDeep<Config>['api']>
+  }
+
+  if (
+    typeof flags.telegramApiId === 'string'
+    || typeof flags.telegramApiHash === 'string'
+  ) {
+    const apiOverrides = ensureApiOverrides()
+    const telegramOverrides: NonNullable<typeof apiOverrides['telegram']> = {}
+
+    if (typeof flags.telegramApiId === 'string') {
+      telegramOverrides.apiId = flags.telegramApiId
+    }
+
+    if (typeof flags.telegramApiHash === 'string') {
+      telegramOverrides.apiHash = flags.telegramApiHash
+    }
+
+    apiOverrides.telegram = telegramOverrides
+  }
+
+  if (
+    flags.embeddingProvider
+    || typeof flags.embeddingModel === 'string'
+    || typeof flags.embeddingDimension === 'number'
+    || typeof flags.embeddingApiKey === 'string'
+    || typeof flags.embeddingApiBase === 'string'
+  ) {
+    const apiOverrides = ensureApiOverrides()
+    const embeddingOverrides: NonNullable<typeof apiOverrides['embedding']> = {}
+
+    if (flags.embeddingProvider) {
+      embeddingOverrides.provider = flags.embeddingProvider
+    }
+
+    if (typeof flags.embeddingModel === 'string') {
+      embeddingOverrides.model = flags.embeddingModel
+    }
+
+    if (typeof flags.embeddingDimension === 'number') {
+      embeddingOverrides.dimension = flags.embeddingDimension
+    }
+
+    if (typeof flags.embeddingApiKey === 'string') {
+      embeddingOverrides.apiKey = flags.embeddingApiKey
+    }
+
+    if (typeof flags.embeddingApiBase === 'string') {
+      embeddingOverrides.apiBase = flags.embeddingApiBase
+    }
+
+    apiOverrides.embedding = embeddingOverrides
+  }
+
+  return overrides
 }
 
 export async function updateConfig(newConfig: Partial<Config>) {
