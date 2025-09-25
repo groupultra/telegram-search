@@ -64,8 +64,8 @@ onMounted(() => {
     <!-- Settings form -->
     <div class="space-y-6">
       <!-- Database settings -->
-      <div v-if="!isCore()" class="gs-border gs-bg-surface rounded-lg p-4">
-        <h2 class="gs-text-primary mb-4 text-xl font-semibold">
+      <div v-if="!isCore()" class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
+        <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
           {{ t('settings.databaseSettings') }}
         </h2>
         <div class="grid gap-4 md:grid-cols-2">

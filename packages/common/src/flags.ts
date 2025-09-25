@@ -6,6 +6,8 @@ export const flags = {
 
   isDebugMode: false,
   isDatabaseDebugMode: false,
+
+  dbUrl: '',
 }
 
 export function parseEnvFlags(env: Record<string, string>) {
@@ -27,6 +29,10 @@ export function parseEnvFlags(env: Record<string, string>) {
 
     if (lowerKey === 'database_debug') {
       flags.isDatabaseDebugMode = lowerValue === 'true'
+    }
+
+    if (lowerKey === 'database_url') {
+      flags.dbUrl = value
     }
   }
 

@@ -37,32 +37,27 @@
 
 ## 🚀 クイックスタート
 
-1. リポジトリをクローン:
+### 使用 Docker イメージ
+
+1. Docker イメージを実行
 
 ```bash
-git clone https://github.com/GramSearch/telegram-search.git
-cd telegram-search
-
-# リリースブランチに切り替え
-git switch release
+docker run ghcr.io/groupultra/telegram-search:latest -d
 ```
 
-2. 設定を構成:
+2. http://localhost:3333 にアクセスして検索インターフェースを開きます。
 
-```bash
-# 必要に応じて config/config.yaml の設定を変更します。
-# 設定の database.host の値を "pgvector" に変更してください。
+### 使用 Docker Compose
 
-cp config/config.example.yaml config/config.yaml
-```
+1. リポジトリをクローン
 
-3. サービスを起動:
+2. docker compose を実行してすべてのサービスを起動します。
 
 ```bash
 docker compose up -d
 ```
 
-http://localhost:3333 にアクセスして検索インターフェースを開きます。
+3. http://localhost:3333 にアクセスして検索インターフェースを開きます。
 
 ## 💻 開発ガイド
 
@@ -94,6 +89,10 @@ pnpm install
 
 3. 環境を設定
 
+```bash
+cp config/config.example.yaml config/config.yaml
+```
+
 4. データベースコンテナを起動:
 
 ```bash
@@ -111,10 +110,10 @@ pnpm run db:migrate
 
 ```bash
 # バックエンドを起動
-pnpm run dev:server
+pnpm run server:dev
 
 # フロントエンドを起動
-pnpm run dev:frontend
+pnpm run web:dev
 ```
 
 ## 🏗️ アーキテクチャ

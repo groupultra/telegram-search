@@ -17,6 +17,13 @@ export type CoreRetrievalMessages = CoreMessage & {
   combinedScore?: number
 }
 
+export interface StorageMessageContextParams {
+  chatId: string
+  messageId: string
+  before?: number
+  after?: number
+}
+
 export interface StorageEventToCore {
   'storage:fetch:messages': (data: { chatId: string, pagination: CorePagination }) => void
   'storage:record:messages': (data: { messages: CoreMessage[] }) => void
@@ -25,6 +32,8 @@ export interface StorageEventToCore {
   'storage:record:dialogs': (data: { dialogs: CoreDialog[] }) => void
 
   'storage:search:messages': (data: CoreMessageSearchParams) => void
+
+  'storage:fetch:message-context': (data: StorageMessageContextParams) => void
 }
 
 export interface StorageEventFromCore {
@@ -33,6 +42,8 @@ export interface StorageEventFromCore {
   'storage:dialogs': (data: { dialogs: CoreDialog[] }) => void
 
   'storage:search:messages:data': (data: { messages: CoreRetrievalMessages[] }) => void
+
+  'storage:messages:context': (data: { messages: CoreMessage[] } & StorageMessageContextParams) => void
 }
 
 export type StorageEvent = StorageEventFromCore & StorageEventToCore

@@ -2,12 +2,12 @@
 
 import type { CorePagination } from '@tg-search/common'
 
-import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../index'
+import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker, StorageMessageContextParams } from '../index'
 import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@unbird/logg'
 import { Ok } from '@unbird/result'
-import { desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
 import { chatMessagesTable } from '../schemas/chat_messages'
@@ -136,6 +136,67 @@ export async function fetchMessagesWithPhotos(chatId: string, pagination: CorePa
   return Ok(coreMessages.map((message, index) => ({
     ...message,
     media: (photosByMessage[dbMessagesResults[index].id] || [])
+      .map(convertDBPhotoToCoreMessageMedia),
+  }) satisfies CoreMessage))
+}
+
+export async function fetchMessageContextWithPhotos({ chatId, messageId, before, after }: Required<StorageMessageContextParams>) {
+  const targetMessages = (await withDb(db => db
+    .select()
+    .from(chatMessagesTable)
+    .where(and(
+      eq(chatMessagesTable.in_chat_id, chatId),
+      eq(chatMessagesTable.platform_message_id, messageId),
+    ))
+    .limit(1),
+  )).expect('Failed to locate target message')
+
+  if (targetMessages.length === 0)
+    return Ok<CoreMessage[]>([])
+
+  const targetMessage = targetMessages[0]
+
+  const previousMessages = (await withDb(db => db
+    .select()
+    .from(chatMessagesTable)
+    .where(and(
+      eq(chatMessagesTable.in_chat_id, chatId),
+      lt(chatMessagesTable.platform_timestamp, targetMessage.platform_timestamp),
+    ))
+    .orderBy(desc(chatMessagesTable.platform_timestamp))
+    .limit(before),
+  )).expect('Failed to fetch previous messages')
+
+  const nextMessages = (await withDb(db => db
+    .select()
+    .from(chatMessagesTable)
+    .where(and(
+      eq(chatMessagesTable.in_chat_id, chatId),
+      gt(chatMessagesTable.platform_timestamp, targetMessage.platform_timestamp),
+    ))
+    .orderBy(asc(chatMessagesTable.platform_timestamp))
+    .limit(after),
+  )).expect('Failed to fetch next messages')
+
+  const combinedDbMessages = [
+    ...previousMessages.reverse(),
+    targetMessage,
+    ...nextMessages,
+  ]
+
+  if (combinedDbMessages.length === 0)
+    return Ok<CoreMessage[]>([])
+
+  const messageIds = combinedDbMessages.map(msg => msg.id)
+  const photos = (await findPhotosByMessageIds(messageIds)).unwrap()
+  const photosByMessage = Object.groupBy(
+    photos.filter(photo => photo.message_id),
+    photo => photo.message_id!,
+  )
+
+  return Ok(combinedDbMessages.map(message => ({
+    ...convertToCoreMessageFromDB(message),
+    media: (photosByMessage[message.id] || [])
       .map(convertDBPhotoToCoreMessageMedia),
   }) satisfies CoreMessage))
 }

@@ -1,7 +1,6 @@
-FROM node:23.11.1-alpine AS builder
+FROM node:alpine3.21 AS builder
 
 # Install pnpm and basic tools
-RUN apk add --no-cache git python3 make build-base
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
@@ -9,9 +8,10 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN CI=true pnpm install --frozen-lockfile --ignore-scripts
 
-# RUN pnpm run build
+# Build web client
+ENTRYPOINT ["/bin/sh", "-c", "pnpm run web:build"]
 
 # ---------------------------------
 # --------- Runtime Stage ---------
@@ -24,4 +24,4 @@ WORKDIR /app
 
 COPY --from=builder /app /app
 
-ENTRYPOINT ["/bin/sh", "-c", "pnpm run db:migrate && pnpm run dev:frontend --host 0.0.0.0 & pnpm run dev:server"]
+ENTRYPOINT ["/bin/sh", "-c", "pnpm run db:migrate && DATABASE_URL=postgresql://postgres:123456@pgvector:5432/postgres pnpm run start"]

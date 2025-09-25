@@ -10,8 +10,8 @@ Telegram Search is a powerful Telegram chat history search tool with vector sear
 
 ### Core Development
 - `pnpm install` - Install all dependencies
-- `pnpm run dev:server` - Start backend server (port varies)
-- `pnpm run dev:frontend` - Start frontend development server (port 3333)
+- `pnpm run server:dev` - Start backend server (port varies)
+- `pnpm run web:dev` - Start frontend development server (port 3333)
 - `pnpm run dev:electron` - Start Electron desktop app
 
 ### Building and Testing
@@ -64,8 +64,8 @@ Frontend (Vue) ↔ WebSocket ↔ Server ↔ Core Context ↔ Telegram API
 2. Start database: `docker compose up -d pgvector`
 3. Run migrations: `pnpm run db:migrate`
 4. Start development servers:
-   - Backend: `pnpm run dev:server`
-   - Frontend: `pnpm run dev:frontend`
+   - Backend: `pnpm run server:dev`
+   - Frontend: `pnpm run web:dev`
 
 ## Important Development Notes
 

@@ -88,6 +88,7 @@ const {
   // visibleRange is available but not currently used
   handleScroll,
   measureItem,
+  scrollToItem,
   scrollToBottom,
   getScrollOffset,
   restoreScrollPosition,
@@ -198,6 +199,14 @@ async function scrollToLatest() {
   isAtBottom.value = true
 }
 
+async function scrollToMessage(messageId: string | number) {
+  const targetIndex = virtualItems.value.findIndex(item => item.id === messageId)
+  if (targetIndex === -1)
+    return
+
+  await scrollToItem(targetIndex, 'center')
+}
+
 defineExpose({
   scrollToBottom: scrollToLatest,
   scrollToTop: () => {
@@ -207,6 +216,7 @@ defineExpose({
   },
   getScrollOffset,
   restoreScrollPosition,
+  scrollToMessage,
 })
 </script>
 
