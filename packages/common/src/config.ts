@@ -7,6 +7,7 @@ import defu from 'defu'
 import { safeParse } from 'valibot'
 
 import { configSchema, generateDefaultConfig } from './config-schema'
+import { flags } from './flags'
 
 let config: Config
 const logger = useLogger('common:config')
@@ -51,7 +52,7 @@ export async function initConfig() {
     throw new Error('Failed to validate config')
   }
 
-  validatedConfig.output.database.url = getDatabaseDSN(validatedConfig.output)
+  validatedConfig.output.database.url = flags.dbUrl || getDatabaseDSN(validatedConfig.output)
 
   config = validatedConfig.output
 

@@ -14,8 +14,8 @@
 
 ## Build, Test, and Development Commands
 - Install: `pnpm install` (Node >= 22.18)
-- Frontend dev: `pnpm run dev:frontend` → http://localhost:3333
-- Server dev: `pnpm run dev:server` (requires DB ready)
+- Frontend dev: `pnpm run web:dev` → http://localhost:3333
+- Server dev: `pnpm run server:dev` (requires DB ready)
 - Electron dev: `pnpm run dev:electron`
 - Build web: `pnpm run build`; preview: `pnpm run preview`
 - Build packages: `pnpm run packages:build`

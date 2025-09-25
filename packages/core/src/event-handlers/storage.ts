@@ -4,7 +4,7 @@ import type { CoreDialog } from '../services'
 
 import { useLogger } from '@unbird/logg'
 
-import { convertToCoreRetrievalMessages, fetchChats, fetchMessagesWithPhotos, getChatMessagesStats, recordChats, recordMessagesWithMedia, retrieveMessages } from '../models'
+import { convertToCoreRetrievalMessages, fetchChats, fetchMessageContextWithPhotos, fetchMessagesWithPhotos, getChatMessagesStats, recordChats, recordMessagesWithMedia, retrieveMessages } from '../models'
 import { embedContents } from '../utils/embed'
 
 export function registerStorageEventHandlers(ctx: CoreContext) {
@@ -15,6 +15,17 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
     logger.withFields({ chatId, pagination }).verbose('Fetching messages')
     const messages = (await fetchMessagesWithPhotos(chatId, pagination)).unwrap()
     emitter.emit('storage:messages', { messages })
+  })
+
+  emitter.on('storage:fetch:message-context', async ({ chatId, messageId, before = 20, after = 20 }) => {
+    const safeBefore = Math.max(0, before)
+    const safeAfter = Math.max(0, after)
+
+    logger.withFields({ chatId, messageId, before: safeBefore, after: safeAfter }).verbose('Fetching message context')
+
+    const messages = (await fetchMessageContextWithPhotos({ chatId, messageId, before: safeBefore, after: safeAfter })).unwrap()
+
+    emitter.emit('storage:messages:context', { chatId, messageId, messages })
   })
 
   emitter.on('storage:record:messages', async ({ messages }) => {

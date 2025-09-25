@@ -2,8 +2,6 @@ name: telegram-search
 services:
   pgvector:
     image: ghcr.io/tensorchord/pgvecto-rs:pg17-v0.4.0
-    ports:
-      - 5433:5432
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DATABASE: postgres
@@ -25,11 +23,12 @@ services:
     ports:
       - 3333:3333
     depends_on:
-      - pgvector
+      pgvector:
+        condition: service_healthy
     volumes:
       - ./config/:/app/config/
       - app_data:/root/.telegram-search
-    restart: unless-stopped
+    restart: none
 
 volumes:
   pgvector_data:

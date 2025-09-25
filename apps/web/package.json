@@ -1,14 +1,13 @@
 {
-  "name": "@tg-search/frontend",
+  "name": "@tg-search/web",
   "type": "module",
   "private": true,
   "packageManager": "pnpm@10.16.1",
   "scripts": {
-    "build": "vite build",
     "dev": "vite --port 3333",
-    "typecheck": "vue-tsc --noEmit",
-    "preview": "vite preview",
-    "up": "taze major -I"
+    "build": "vite build",
+    "preview": "vite preview --port 3333",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.8.4",

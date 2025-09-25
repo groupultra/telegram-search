@@ -4,6 +4,7 @@ import type { CoreMessage } from '@tg-search/core/types'
 import { useClipboard } from '@vueuse/core'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 
 import Avatar from '../ui/Avatar.vue'
 
@@ -12,6 +13,7 @@ const props = defineProps<{
   keyword: string
 }>()
 const { t } = useI18n()
+const router = useRouter()
 const hoveredMessage = ref<CoreMessage | null>(null)
 const { copy, copied } = useClipboard()
 
@@ -25,6 +27,16 @@ function highlightKeyword(text: string, keyword: string) {
 function copyMessageLink(message: CoreMessage) {
   copy(`https://t.me/c/${message.chatId}/${message.platformMessageId}`)
 }
+
+function navigateToMessage(message: CoreMessage) {
+  router.push({
+    path: `/chat/${message.chatId}`,
+    query: {
+      messageId: message.platformMessageId,
+      messageUuid: message.uuid,
+    },
+  })
+}
 </script>
 
 <template>
@@ -37,6 +49,7 @@ function copyMessageLink(message: CoreMessage) {
       @mouseenter="hoveredMessage = item"
       @mouseleave="hoveredMessage = null"
       @keydown.enter="copyMessageLink(item)"
+      @click="navigateToMessage(item)"
     >
       <Avatar
         :name="item.fromName"

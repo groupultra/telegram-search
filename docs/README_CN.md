@@ -38,32 +38,27 @@
 
 ## 🚀 快速开始
 
+### 使用 Docker 镜像
+
+1. 运行 Docker 镜像
+
+```bash
+docker run ghcr.io/groupultra/telegram-search:latest -d
+```
+
+2. 访问 `http://localhost:3333` 即可打开搜索界面。
+
+### 使用 Docker Compose
+
 1. 克隆仓库
 
-```bash
-git clone https://github.com/GramSearch/telegram-search.git
-cd telegram-search
-
-# 切换到 release 分支
-git switch release
-```
-
-2. 修改配置文件
-
-```bash
-# 根据需要，修改 `config/config.yaml` 中的设置
-# 务必修改配置中的 `database.host` 的值为数据库容器的服务名称 "pgvector"
-
-cp config/config.example.yaml config/config.yaml
-```
-
-3. 启动服务
+2. 运行 docker compose 启动所有服务包括数据库
 
 ```bash
 docker compose up -d
 ```
 
-访问 `http://localhost:3333` 即可打开搜索界面。
+3. 访问 `http://localhost:3333` 即可打开搜索界面。
 
 ## 💻 开发教程
 
@@ -95,6 +90,10 @@ pnpm install
 
 3. 修改配置文件
 
+```bash
+cp config/config.example.yaml config/config.yaml
+```
+
 4. 启动数据库容器：
 
 ```bash
@@ -112,10 +111,10 @@ pnpm run db:migrate
 
 ```bash
 # 启动后端服务
-pnpm run dev:server
+pnpm run server:dev
 
 # 启动前端界面
-pnpm run dev:frontend
+pnpm run web:dev
 ```
 
 ## 🏗️ 系统架构

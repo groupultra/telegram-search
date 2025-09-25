@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { CoreDialog } from '@tg-search/core/types'
+import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
 
 import { useBridgeStore, useChatStore, useMessageStore, useSettingsStore } from '@tg-search/client'
 import { useWindowSize } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -40,17 +40,32 @@ const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
 const isGlobalSearchOpen = ref(false)
 
 const messageInput = ref('')
+const isContextMode = ref(false)
+const isContextLoading = ref(false)
+
+const targetMessageParams = computed(() => ({
+  messageId: route.query.messageId as string | undefined,
+  messageUuid: route.query.messageUuid as string | undefined,
+}))
 
 // Initial load when component mounts
 onMounted(async () => {
-  // Only load if there are no messages yet
-  if (sortedMessageIds.value.length === 0) {
+  const initialMessageId = targetMessageParams.value.messageId
+
+  if (typeof initialMessageId === 'string' && initialMessageId.length > 0) {
+    await openMessageContext(initialMessageId, targetMessageParams.value.messageUuid)
+  }
+
+  // Only load if there are no messages yet and we are not in context mode
+  if (!isContextMode.value && sortedMessageIds.value.length === 0) {
     await loadOlderMessages()
   }
 })
 
 // Load older messages when scrolling to top
 async function loadOlderMessages() {
+  if (isContextMode.value)
+    return
   if (isLoadingOlder.value || isLoadingMessages.value)
     return
 
@@ -70,6 +85,8 @@ async function loadOlderMessages() {
 
 // Load newer messages when scrolling to bottom
 async function loadNewerMessages() {
+  if (isContextMode.value)
+    return
   if (isLoadingNewer.value || isLoadingMessages.value)
     return
 
@@ -124,6 +141,65 @@ function sendMessage() {
 
   toast.success(t('chat.messageSent'))
 }
+
+function resetPagination() {
+  messageOffset.value = 0
+}
+
+async function openMessageContext(messageId: string, messageUuid?: string) {
+  if (!messageId || isContextLoading.value)
+    return
+
+  isContextLoading.value = true
+  isContextMode.value = true
+  resetPagination()
+
+  try {
+    const messages = await messageStore.loadMessageContext(id.toString(), messageId, {
+      before: 40,
+      after: 40,
+      limit: messageLimit.value,
+    })
+
+    if (messages.length === 0) {
+      isContextMode.value = false
+      toast.warning(t('search.noRelatedMessages'))
+      await loadOlderMessages()
+      return
+    }
+
+    await nextTick()
+
+    const targetUuid = messageUuid
+      ?? messages.find((msg: CoreMessage) => msg.platformMessageId === messageId)?.uuid
+
+    if (targetUuid) {
+      await nextTick()
+      virtualListRef.value?.scrollToMessage(targetUuid)
+    }
+  }
+  finally {
+    isContextLoading.value = false
+  }
+}
+
+watch(
+  () => [targetMessageParams.value.messageId, targetMessageParams.value.messageUuid],
+  async ([newMessageId, newMessageUuid], [oldMessageId]) => {
+    if (newMessageId === oldMessageId)
+      return
+
+    if (typeof newMessageId === 'string' && newMessageId.length > 0) {
+      await openMessageContext(newMessageId, typeof newMessageUuid === 'string' ? newMessageUuid : undefined)
+    }
+    else if (oldMessageId) {
+      isContextMode.value = false
+      resetPagination()
+      messageStore.replaceMessages([], { chatId: id.toString(), limit: messageLimit.value })
+      await loadOlderMessages()
+    }
+  },
+)
 </script>
 
 <template>
@@ -182,6 +258,7 @@ function sendMessage() {
         :messages="sortedMessageArray"
         :on-scroll-to-top="loadOlderMessages"
         :on-scroll-to-bottom="loadNewerMessages"
+        :auto-scroll-to-bottom="!isContextMode"
         @scroll="handleVirtualListScroll"
       />
     </div>

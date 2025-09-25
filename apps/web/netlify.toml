@@ -1,7 +1,7 @@
 [build]
 base = "/"
 command = "pnpm run build"
-publish = "/apps/frontend/dist"
+publish = "/apps/web/dist"
 
 [build.environment]
 NODE_VERSION = "24"
