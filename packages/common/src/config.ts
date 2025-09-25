@@ -52,8 +52,7 @@ export async function initConfig() {
     throw new Error('Failed to validate config')
   }
 
-  const runtimeOverrides = buildRuntimeOverrides(validatedConfig.output)
-  const runtimeConfig = defu(runtimeOverrides, validatedConfig.output) as Config
+  const runtimeConfig = applyRuntimeOverrides(validatedConfig.output)
 
   config = runtimeConfig
 
@@ -61,41 +60,29 @@ export async function initConfig() {
   return config
 }
 
-type PartialDeep<T> = {
-  [K in keyof T]?: T[K] extends Record<string, unknown> ? PartialDeep<T[K]> : T[K]
-}
-
-function buildRuntimeOverrides(baseConfig: Config): PartialDeep<Config> {
-  const overrides: PartialDeep<Config> = {
+function applyRuntimeOverrides(baseConfig: Config): Config {
+  const runtimeConfig: Config = {
+    ...baseConfig,
     database: {
-      url: flags.dbUrl || getDatabaseDSN(baseConfig),
+      ...baseConfig.database,
     },
+    api: baseConfig.api
+      ? {
+          ...baseConfig.api,
+        }
+      : undefined,
   }
 
-  const ensureApiOverrides = (): NonNullable<PartialDeep<Config>['api']> => {
-    if (!overrides.api) {
-      overrides.api = {}
+  runtimeConfig.database.url = flags.dbUrl || runtimeConfig.database.url || getDatabaseDSN(runtimeConfig)
+
+  if (flags.telegramApiId || flags.telegramApiHash) {
+    runtimeConfig.api = runtimeConfig.api || {}
+    const currentTelegram = runtimeConfig.api.telegram || {}
+    runtimeConfig.api.telegram = {
+      ...currentTelegram,
+      apiId: flags.telegramApiId || currentTelegram.apiId,
+      apiHash: flags.telegramApiHash || currentTelegram.apiHash,
     }
-
-    return overrides.api as NonNullable<PartialDeep<Config>['api']>
-  }
-
-  if (
-    typeof flags.telegramApiId === 'string'
-    || typeof flags.telegramApiHash === 'string'
-  ) {
-    const apiOverrides = ensureApiOverrides()
-    const telegramOverrides: NonNullable<typeof apiOverrides['telegram']> = {}
-
-    if (typeof flags.telegramApiId === 'string') {
-      telegramOverrides.apiId = flags.telegramApiId
-    }
-
-    if (typeof flags.telegramApiHash === 'string') {
-      telegramOverrides.apiHash = flags.telegramApiHash
-    }
-
-    apiOverrides.telegram = telegramOverrides
   }
 
   if (
@@ -105,33 +92,19 @@ function buildRuntimeOverrides(baseConfig: Config): PartialDeep<Config> {
     || typeof flags.embeddingApiKey === 'string'
     || typeof flags.embeddingApiBase === 'string'
   ) {
-    const apiOverrides = ensureApiOverrides()
-    const embeddingOverrides: NonNullable<typeof apiOverrides['embedding']> = {}
-
-    if (flags.embeddingProvider) {
-      embeddingOverrides.provider = flags.embeddingProvider
+    runtimeConfig.api = runtimeConfig.api || {}
+    const currentEmbedding = runtimeConfig.api.embedding || {}
+    runtimeConfig.api.embedding = {
+      ...currentEmbedding,
+      provider: flags.embeddingProvider || currentEmbedding.provider,
+      model: flags.embeddingModel || currentEmbedding.model,
+      dimension: flags.embeddingDimension || currentEmbedding.dimension,
+      apiKey: flags.embeddingApiKey || currentEmbedding.apiKey,
+      apiBase: flags.embeddingApiBase || currentEmbedding.apiBase,
     }
-
-    if (typeof flags.embeddingModel === 'string') {
-      embeddingOverrides.model = flags.embeddingModel
-    }
-
-    if (typeof flags.embeddingDimension === 'number') {
-      embeddingOverrides.dimension = flags.embeddingDimension
-    }
-
-    if (typeof flags.embeddingApiKey === 'string') {
-      embeddingOverrides.apiKey = flags.embeddingApiKey
-    }
-
-    if (typeof flags.embeddingApiBase === 'string') {
-      embeddingOverrides.apiBase = flags.embeddingApiBase
-    }
-
-    apiOverrides.embedding = embeddingOverrides
   }
 
-  return overrides
+  return runtimeConfig
 }
 
 export async function updateConfig(newConfig: Partial<Config>) {
