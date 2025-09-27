@@ -19,7 +19,7 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.3.8",
+    "@electric-sql/pglite": "^0.3.10",
     "@moeru/std": "0.1.0-beta.10",
     "@node-rs/jieba": "^2.0.1",
     "@proj-airi/drizzle-orm-browser-migrator": "^0.1.3",
@@ -45,6 +45,6 @@
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3",
     "@types/pg": "^8.15.5",
-    "tsdown": "^0.14.2"
+    "tsdown": "^0.15.5"
   }
 }
