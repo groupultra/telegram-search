@@ -6,7 +6,7 @@ import process from 'node:process'
 import { initConfig, parseEnvFlags } from '@tg-search/common'
 import { initDrizzle } from '@tg-search/core'
 import { initLogger, useLogger } from '@unbird/logg'
-import { createApp, toNodeListener } from 'h3'
+import { createApp, createRouter, defineEventHandler, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 
 import { setupWsRoutes } from './ws/routes'
@@ -71,6 +71,12 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
   //   }
   // }))
 
+  const router = createRouter()
+  router.get('/health', defineEventHandler(() => {
+    return Response.json({ success: true })
+  }))
+
+  app.use(router)
   setupWsRoutes(app)
 
   return app

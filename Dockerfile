@@ -1,3 +1,6 @@
+# ---------------------------------
+# --------- Builder Stage ---------
+# ---------------------------------
 FROM node:alpine3.21 AS builder
 
 # Install pnpm and basic tools
@@ -10,15 +13,18 @@ COPY . .
 # Install dependencies
 RUN CI=true pnpm install --frozen-lockfile --ignore-scripts
 
+# Build packages first (required by web build)
+RUN pnpm run packages:build
+
 # Build web client
-ENTRYPOINT ["/bin/sh", "-c", "pnpm run web:build"]
+RUN pnpm run web:build
 
 # ---------------------------------
 # --------- Runtime Stage ---------
 # ---------------------------------
 FROM alpine:latest
 
-RUN apk add --no-cache nodejs pnpm
+RUN apk add --no-cache nodejs pnpm curl
 
 WORKDIR /app
 

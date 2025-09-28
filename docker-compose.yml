@@ -29,6 +29,14 @@ services:
       - ./config/:/app/config/
       - app_data:/root/.telegram-search
     restart: none
+    healthcheck:
+      test: |
+        curl -f http://localhost:3333 || exit 1;
+        curl -f http://localhost:3333/api/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   pgvector_data:
