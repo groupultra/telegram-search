@@ -5,7 +5,7 @@ database:
 
   # PostgreSQL configuration (used when type: postgres)
   host: localhost
-  port: 5433 # 5433 for local, 5432 for docker
+  port: 5433
   user: postgres
   password: '123456'
   database: postgres
