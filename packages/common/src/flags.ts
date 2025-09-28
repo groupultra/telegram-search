@@ -9,7 +9,7 @@ export interface RuntimeFlags {
   isDebugMode: boolean
   isDatabaseDebugMode: boolean
 
-  dbUrl: string
+  dbUrl?: string
 
   telegramApiId?: string
   telegramApiHash?: string
@@ -21,14 +21,12 @@ export interface RuntimeFlags {
   embeddingApiBase?: string
 }
 
-export const flags: RuntimeFlags = {
+const DEFAULT_FLAGS: RuntimeFlags = {
   logLevel: LoggerLevel.Verbose,
   logFormat: LoggerFormat.Pretty,
 
   isDebugMode: false,
   isDatabaseDebugMode: false,
-
-  dbUrl: '',
 }
 
 const TRUE_VALUES: ReadonlySet<string> = new Set(['1', 'true', 'yes'])
@@ -67,68 +65,57 @@ function readIntegerEnv(key: string, env: Record<string, string | undefined>): n
   return undefined
 }
 
-export function parseEnvFlags(env: Record<string, string | undefined>): void {
+function assignIfPresent<T>(target: T, key: keyof T, value: T[keyof T] | undefined): void {
+  if (value !== undefined) {
+    target[key] = value
+  }
+}
+
+export function parseEnvFlags(env: Record<string, string | undefined>): RuntimeFlags {
+  const result: RuntimeFlags = { ...DEFAULT_FLAGS }
+
   const logLevelValue = readEnvValue('LOG_LEVEL', env)
   if (logLevelValue) {
     const normalized = logLevelValue.toLowerCase()
     switch (normalized) {
       case 'debug':
-        flags.logLevel = LoggerLevel.Debug
-        flags.isDebugMode = true
+        result.logLevel = LoggerLevel.Debug
+        result.isDebugMode = true
         break
       case 'verbose':
-        flags.logLevel = LoggerLevel.Verbose
-        flags.isDebugMode = false
+        result.logLevel = LoggerLevel.Verbose
+        result.isDebugMode = false
         break
     }
   }
 
-  flags.isDatabaseDebugMode = readBooleanEnv('DATABASE_DEBUG', env)
+  result.isDatabaseDebugMode = readBooleanEnv('DATABASE_DEBUG', env)
 
-  const dbUrlValue = readEnvValue('DATABASE_URL', env)
-  if (dbUrlValue) {
-    flags.dbUrl = dbUrlValue
-  }
-
-  const telegramId = readEnvValue('TELEGRAM_API_ID', env)
-  if (telegramId) {
-    flags.telegramApiId = telegramId
-  }
-
-  const telegramHash = readEnvValue('TELEGRAM_API_HASH', env)
-  if (telegramHash) {
-    flags.telegramApiHash = telegramHash
-  }
+  assignIfPresent(result, 'dbUrl', readEnvValue('DATABASE_URL', env))
+  assignIfPresent(result, 'telegramApiId', readEnvValue('TELEGRAM_API_ID', env))
+  assignIfPresent(result, 'telegramApiHash', readEnvValue('TELEGRAM_API_HASH', env))
 
   const embeddingProviderValue = readEnvValue('EMBEDDING_PROVIDER', env)
   if (embeddingProviderValue) {
     const normalized = embeddingProviderValue.toLowerCase()
     const provider = EMBEDDING_PROVIDER_ALIASES[normalized]
     if (provider) {
-      flags.embeddingProvider = provider
+      result.embeddingProvider = provider
     }
   }
 
-  const embeddingModelValue = readEnvValue('EMBEDDING_MODEL', env)
-  if (embeddingModelValue) {
-    flags.embeddingModel = embeddingModelValue
-  }
+  assignIfPresent(result, 'embeddingModel', readEnvValue('EMBEDDING_MODEL', env))
 
   const embeddingDimensionValue = readIntegerEnv('EMBEDDING_DIMENSION', env)
   if (
     typeof embeddingDimensionValue === 'number'
     && Object.values(EmbeddingDimension).includes(embeddingDimensionValue as EmbeddingDimension)
   ) {
-    flags.embeddingDimension = embeddingDimensionValue
+    result.embeddingDimension = embeddingDimensionValue
   }
 
-  const embeddingKeyValue = readEnvValue('EMBEDDING_API_KEY', env)
-  if (embeddingKeyValue) {
-    flags.embeddingApiKey = embeddingKeyValue
-  }
+  assignIfPresent(result, 'embeddingApiKey', readEnvValue('EMBEDDING_API_KEY', env))
+  assignIfPresent(result, 'embeddingApiBase', readEnvValue('EMBEDDING_BASE_URL', env))
 
-  const embeddingBaseValue = readEnvValue('EMBEDDING_BASE_URL', env)
-  if (embeddingBaseValue) {
-    flags.embeddingApiBase = embeddingBaseValue
-  }
+  return result
 }

@@ -46,7 +46,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       config.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_APP_HASH
 
       ctx = createCoreInstance(config)
-      initDrizzle(logger, config, undefined, { debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL })
+      initDrizzle(logger, config, { debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL, isDatabaseDebugMode: import.meta.env.VITE_DB_DEBUG })
     }
 
     return ctx

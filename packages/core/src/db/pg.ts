@@ -21,7 +21,13 @@ async function applyMigrations(logger: Logger, db: PostgresDB) {
   }
 }
 
-export async function initPgDrizzle(logger: Logger, config: Config) {
+export async function initPgDrizzle(
+  logger: Logger,
+  config: Config,
+  options: {
+    isDatabaseDebugMode?: boolean
+  } = {},
+) {
   logger.log('Initializing database...')
 
   // Initialize PostgreSQL database
@@ -35,7 +41,7 @@ export async function initPgDrizzle(logger: Logger, config: Config) {
     },
   })
 
-  const db = drizzle(client, { logger: flags.isDatabaseDebugMode }) as PostgresDB
+  const db = drizzle(client, { logger: options.isDatabaseDebugMode }) as PostgresDB
 
   // Check database connection
   try {
