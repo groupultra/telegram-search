@@ -1,4 +1,5 @@
 import type { Config } from './config-schema'
+import type { RuntimeFlags } from './flags'
 
 import { useLogger } from '@unbird/logg'
 import { isBrowser } from '@unbird/logg/utils'
@@ -7,7 +8,6 @@ import defu from 'defu'
 import { safeParse } from 'valibot'
 
 import { configSchema, generateDefaultConfig } from './config-schema'
-import { flags } from './flags'
 
 let config: Config
 const logger = useLogger('common:config')
@@ -18,17 +18,62 @@ export function getDatabaseDSN(config: Config): string {
   return database.url || `postgres://${database.user}:${database.password}@${database.host}:${database.port}/${database.database}`
 }
 
-export async function initConfig() {
+function validateAndMergeConfig(newConfig: Partial<Config>, baseConfig?: Config): Config {
+  const mergedConfig = defu({}, newConfig, baseConfig || generateDefaultConfig())
+  const validatedConfig = safeParse(configSchema, mergedConfig)
+
+  if (!validatedConfig.success) {
+    logger.withFields({ issues: validatedConfig.issues }).error('Failed to validate config')
+    throw new Error('Failed to validate config')
+  }
+
+  return validatedConfig.output
+}
+
+function applyTelegramOverrides(config: Config, flags: RuntimeFlags): void {
+  if (flags.telegramApiId || flags.telegramApiHash) {
+    config.api = config.api || {}
+    const currentTelegram = config.api.telegram || {}
+    config.api.telegram = {
+      ...currentTelegram,
+      ...(flags.telegramApiId && { apiId: flags.telegramApiId }),
+      ...(flags.telegramApiHash && { apiHash: flags.telegramApiHash }),
+    }
+  }
+}
+
+function applyEmbeddingOverrides(config: Config, flags: RuntimeFlags): void {
+  if (
+    flags.embeddingProvider
+    || flags.embeddingModel
+    || flags.embeddingDimension
+    || flags.embeddingApiKey
+    || flags.embeddingApiBase
+  ) {
+    config.api = config.api || {}
+    const currentEmbedding = config.api.embedding || {}
+    config.api.embedding = {
+      ...currentEmbedding,
+      ...(flags.embeddingProvider && { provider: flags.embeddingProvider }),
+      ...(flags.embeddingModel && { model: flags.embeddingModel }),
+      ...(flags.embeddingDimension && { dimension: flags.embeddingDimension }),
+      ...(flags.embeddingApiKey && { apiKey: flags.embeddingApiKey }),
+      ...(flags.embeddingApiBase && { apiBase: flags.embeddingApiBase }),
+    }
+  }
+}
+
+export async function initConfig(flags: RuntimeFlags) {
   if (isBrowser()) {
     const configStorage = useLocalStorage(CONFIG_STORAGE_KEY, generateDefaultConfig())
 
     const savedConfig = configStorage.value
     if (savedConfig) {
-      const validatedConfig = safeParse(configSchema, savedConfig)
-      if (validatedConfig.success) {
-        config = validatedConfig.output
+      try {
+        config = validateAndMergeConfig(savedConfig)
         return config
       }
+      catch {}
     }
 
     config = generateDefaultConfig()
@@ -44,15 +89,8 @@ export async function initConfig() {
   const configData = readFileSync(configPath, 'utf-8')
   const configParsedData = parse(configData)
 
-  const mergedConfig = defu({}, configParsedData, generateDefaultConfig())
-  const validatedConfig = safeParse(configSchema, mergedConfig)
-
-  if (!validatedConfig.success) {
-    logger.withFields({ issues: validatedConfig.issues }).error('Failed to validate config')
-    throw new Error('Failed to validate config')
-  }
-
-  const runtimeConfig = applyRuntimeOverrides(validatedConfig.output)
+  const validatedConfig = validateAndMergeConfig(configParsedData)
+  const runtimeConfig = applyRuntimeOverrides(validatedConfig, flags)
 
   config = runtimeConfig
 
@@ -60,49 +98,22 @@ export async function initConfig() {
   return config
 }
 
-function applyRuntimeOverrides(baseConfig: Config): Config {
+function applyRuntimeOverrides(baseConfig: Config, flags: RuntimeFlags): Config {
   const runtimeConfig: Config = {
     ...baseConfig,
-    database: {
-      ...baseConfig.database,
-    },
-    api: baseConfig.api
-      ? {
-          ...baseConfig.api,
-        }
-      : undefined,
+    database: { ...baseConfig.database },
   }
 
+  if (baseConfig.api) {
+    runtimeConfig.api = { ...baseConfig.api }
+  }
+
+  // Apply database URL override
   runtimeConfig.database.url = flags.dbUrl || runtimeConfig.database.url || getDatabaseDSN(runtimeConfig)
 
-  if (flags.telegramApiId || flags.telegramApiHash) {
-    runtimeConfig.api = runtimeConfig.api || {}
-    const currentTelegram = runtimeConfig.api.telegram || {}
-    runtimeConfig.api.telegram = {
-      ...currentTelegram,
-      apiId: flags.telegramApiId || currentTelegram.apiId,
-      apiHash: flags.telegramApiHash || currentTelegram.apiHash,
-    }
-  }
-
-  if (
-    flags.embeddingProvider
-    || typeof flags.embeddingModel === 'string'
-    || typeof flags.embeddingDimension === 'number'
-    || typeof flags.embeddingApiKey === 'string'
-    || typeof flags.embeddingApiBase === 'string'
-  ) {
-    runtimeConfig.api = runtimeConfig.api || {}
-    const currentEmbedding = runtimeConfig.api.embedding || {}
-    runtimeConfig.api.embedding = {
-      ...currentEmbedding,
-      provider: flags.embeddingProvider || currentEmbedding.provider,
-      model: flags.embeddingModel || currentEmbedding.model,
-      dimension: flags.embeddingDimension || currentEmbedding.dimension,
-      apiKey: flags.embeddingApiKey || currentEmbedding.apiKey,
-      apiBase: flags.embeddingApiBase || currentEmbedding.apiBase,
-    }
-  }
+  // Apply API overrides
+  applyTelegramOverrides(runtimeConfig, flags)
+  applyEmbeddingOverrides(runtimeConfig, flags)
 
   return runtimeConfig
 }
@@ -111,18 +122,11 @@ export async function updateConfig(newConfig: Partial<Config>) {
   if (isBrowser()) {
     const configStorage = useLocalStorage(CONFIG_STORAGE_KEY, generateDefaultConfig())
 
-    const mergedConfig = defu({}, newConfig, config)
-    const validatedConfig = safeParse(configSchema, mergedConfig)
+    const validatedConfig = validateAndMergeConfig(newConfig, config)
 
-    if (!validatedConfig.success) {
-      logger.withFields({ issues: validatedConfig.issues }).error('Failed to validate config')
-      throw new Error('Failed to validate config')
-    }
+    logger.withFields({ config: validatedConfig }).log('Updating config')
 
-    logger.withFields({ config: validatedConfig.output }).log('Updating config')
-
-    config = validatedConfig.output
-
+    config = validatedConfig
     configStorage.value = config
 
     return config
@@ -134,20 +138,13 @@ export async function updateConfig(newConfig: Partial<Config>) {
 
   const configPath = await useConfigPath()
 
-  const mergedConfig = defu({}, newConfig, config)
-  const validatedConfig = safeParse(configSchema, mergedConfig)
+  const validatedConfig = validateAndMergeConfig(newConfig, config)
+  validatedConfig.database.url = getDatabaseDSN(validatedConfig)
 
-  if (!validatedConfig.success) {
-    logger.withFields({ issues: validatedConfig.issues }).error('Failed to validate config')
-    throw new Error('Failed to validate config')
-  }
+  logger.withFields({ config: validatedConfig }).log('Updating config')
+  writeFileSync(configPath, stringify(validatedConfig))
 
-  validatedConfig.output.database.url = getDatabaseDSN(validatedConfig.output)
-
-  logger.withFields({ config: validatedConfig.output }).log('Updating config')
-  writeFileSync(configPath, stringify(validatedConfig.output))
-
-  config = validatedConfig.output
+  config = validatedConfig
   return config
 }
 

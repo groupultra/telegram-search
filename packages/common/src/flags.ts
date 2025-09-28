@@ -117,5 +117,8 @@ export function parseEnvFlags(env: Record<string, string | undefined>): RuntimeF
   assignIfPresent(result, 'embeddingApiKey', readEnvValue('EMBEDDING_API_KEY', env))
   assignIfPresent(result, 'embeddingApiBase', readEnvValue('EMBEDDING_BASE_URL', env))
 
+  // eslint-disable-next-line no-console
+  console.log('Flags parsed', result)
+
   return result
 }
