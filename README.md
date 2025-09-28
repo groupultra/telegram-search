@@ -42,27 +42,36 @@ Set the following environment variables before starting the containerized servic
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `TELEGRAM_API_ID` | ✅ | Telegram app ID from [my.telegram.org](https://my.telegram.org/apps). |
-| `TELEGRAM_API_HASH` | ✅ | Telegram app hash from the same page. |
-| `DATABASE_URL` | ✅ | PostgreSQL connection string used by the server and migrations. |
-| `EMBEDDING_API_KEY` | ✅ | API key for the embedding provider (OpenAI key, Ollama token, etc.). |
+| `TELEGRAM_API_ID` | optional | Telegram app ID from [my.telegram.org](https://my.telegram.org/apps). |
+| `TELEGRAM_API_HASH` | optional | Telegram app hash from the same page. |
+| `DATABASE_TYPE` | optional | Database type (`postgres` or `pglite`). |
+| `DATABASE_URL` | optional | Database connection string used by the server and migrations (Only support when `DATABASE_TYPE` is `postgres`). |
+| `EMBEDDING_API_KEY` | optional | API key for the embedding provider (OpenAI key, Ollama token, etc.). |
 | `EMBEDDING_BASE_URL` | optional | Custom base URL for self-hosted or compatible embedding providers. |
 | `EMBEDDING_PROVIDER` | optional | Override embedding provider (`openai` or `ollama`). |
 | `EMBEDDING_MODEL` | optional | Override embedding model name. |
 | `EMBEDDING_DIMENSION` | optional | Override embedding dimension (e.g. `1536`, `1024`, `768`). |
-| `PGVECTOR_HOST_PORT` | optional | Publish pgvector on a host port when set (e.g. `15432`). |
-| `PGVECTOR_HOST_IP` | optional | Bind pgvector to a specific host interface when exposing the port. |
 
 ### Start with Docker Image
 
-1. Run docker image with the required environment variables:
+1. Run docker image default without any environment variables:
+
+```bash
+docker run -d --name telegram-search \
+  -p 3333:3333 \
+  ghcr.io/groupultra/telegram-search:latest
+```
+
+<details>
+<summary>Example with environment variables</summary>
 
 ```bash
 docker run -d --name telegram-search \
   -p 3333:3333 \
   -e TELEGRAM_API_ID=611335 \
   -e TELEGRAM_API_HASH=d524b414d21f4d37f08684c1df41ac9c \
-  -e DATABASE_URL=postgresql://postgres:123456@<postgres-host>:5432/postgres \
+  -e DATABASE_TYPE=postgres \
+  -e DATABASE_URL=postgresql://<postgres-host>:5432/postgres \
   -e EMBEDDING_API_KEY=sk-xxxx \
   -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \
   ghcr.io/groupultra/telegram-search:latest
@@ -70,29 +79,21 @@ docker run -d --name telegram-search \
 
 Replace `<postgres-host>` with the hostname or IP address of the PostgreSQL instance you want to use.
 
+</details>
+
 2. Access `http://localhost:3333` to open the search interface.
 
 ### Start with Docker Compose
 
 1. Clone repository.
 
-2. Create a `.env` file at the repository root with the environment variables listed above (only include the ones you use).
-
-3. Run docker compose to start all services including the database:
+2. Run docker compose to start all services including the database:
 
 ```bash
 docker compose up -d
 ```
 
-4. Access `http://localhost:3333` to open the search interface.
-
-5. To expose the pgvector database port outside Docker set `PGVECTOR_HOST_PORT` when starting:
-
-```bash
-PGVECTOR_HOST_PORT=15432 docker compose up -d
-```
-
-   Optionally set `PGVECTOR_HOST_IP=127.0.0.1` to bind on a specific interface.
+3. Access `http://localhost:3333` to open the search interface.
 
 ## 💻 Development Guide
 
