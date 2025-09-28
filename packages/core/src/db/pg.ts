@@ -3,7 +3,7 @@ import type { Logger } from '@unbird/logg'
 import type { drizzle as drizzlePg } from 'drizzle-orm/postgres-js'
 
 import { migrate as migratePg } from '@proj-airi/drizzle-orm-browser-migrator/pg'
-import { flags, getDatabaseDSN } from '@tg-search/common'
+import { getDatabaseDSN } from '@tg-search/common'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
@@ -41,7 +41,7 @@ export async function initPgDrizzle(
     },
   })
 
-  const db = drizzle(client, { logger: options.isDatabaseDebugMode }) as PostgresDB
+  const db = drizzle(client, { logger: !!options.isDatabaseDebugMode }) as PostgresDB
 
   // Check database connection
   try {

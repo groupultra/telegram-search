@@ -9,13 +9,6 @@ services:
     volumes:
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgvector_data:/var/lib/postgresql/data
-    expose:
-      - 5432
-    ports:
-      - target: 5432
-        published: ${PGVECTOR_HOST_PORT:-null}
-        protocol: tcp
-        host_ip: ${PGVECTOR_HOST_IP:-null}
     healthcheck:
       test: [CMD-SHELL, pg_isready -d postgres -U postgres]
       interval: 10s

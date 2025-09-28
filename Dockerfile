@@ -24,7 +24,7 @@ WORKDIR /app
 
 COPY --from=builder /app /app
 
-ENV DATABASE_URL=""
+ENV DATABASE_URL="postgresql://postgres:123456@pgvector:5432/postgres"
 ENV TELEGRAM_API_ID=""
 ENV TELEGRAM_API_HASH=""
 ENV EMBEDDING_API_KEY=""

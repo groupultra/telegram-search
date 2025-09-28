@@ -30,8 +30,8 @@ function validateAndMergeConfig(newConfig: Partial<Config>, baseConfig?: Config)
   return validatedConfig.output
 }
 
-function applyTelegramOverrides(config: Config, flags: RuntimeFlags): void {
-  if (flags.telegramApiId || flags.telegramApiHash) {
+function applyTelegramOverrides(config: Config, flags?: RuntimeFlags): void {
+  if (flags?.telegramApiId || flags?.telegramApiHash) {
     config.api = config.api || {}
     const currentTelegram = config.api.telegram || {}
     config.api.telegram = {
@@ -42,13 +42,13 @@ function applyTelegramOverrides(config: Config, flags: RuntimeFlags): void {
   }
 }
 
-function applyEmbeddingOverrides(config: Config, flags: RuntimeFlags): void {
+function applyEmbeddingOverrides(config: Config, flags?: RuntimeFlags): void {
   if (
-    flags.embeddingProvider
-    || flags.embeddingModel
-    || flags.embeddingDimension
-    || flags.embeddingApiKey
-    || flags.embeddingApiBase
+    flags?.embeddingProvider
+    || flags?.embeddingModel
+    || flags?.embeddingDimension
+    || flags?.embeddingApiKey
+    || flags?.embeddingApiBase
   ) {
     config.api = config.api || {}
     const currentEmbedding = config.api.embedding || {}
@@ -63,7 +63,7 @@ function applyEmbeddingOverrides(config: Config, flags: RuntimeFlags): void {
   }
 }
 
-export async function initConfig(flags: RuntimeFlags) {
+export async function initConfig(flags?: RuntimeFlags) {
   if (isBrowser()) {
     const configStorage = useLocalStorage(CONFIG_STORAGE_KEY, generateDefaultConfig())
 
@@ -98,7 +98,7 @@ export async function initConfig(flags: RuntimeFlags) {
   return config
 }
 
-function applyRuntimeOverrides(baseConfig: Config, flags: RuntimeFlags): Config {
+function applyRuntimeOverrides(baseConfig: Config, flags?: RuntimeFlags): Config {
   const runtimeConfig: Config = {
     ...baseConfig,
     database: { ...baseConfig.database },
@@ -109,7 +109,7 @@ function applyRuntimeOverrides(baseConfig: Config, flags: RuntimeFlags): Config 
   }
 
   // Apply database URL override
-  runtimeConfig.database.url = flags.dbUrl || runtimeConfig.database.url || getDatabaseDSN(runtimeConfig)
+  runtimeConfig.database.url = flags?.dbUrl || runtimeConfig.database.url || getDatabaseDSN(runtimeConfig)
 
   // Apply API overrides
   applyTelegramOverrides(runtimeConfig, flags)

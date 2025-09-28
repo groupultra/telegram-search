@@ -46,7 +46,7 @@ export async function initDrizzle(
       }
       else {
         const { initPgliteDrizzleInNode } = await import('./pglite')
-        dbInstance = await initPgliteDrizzleInNode(logger, config, dbPath, {
+        dbInstance = await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
         })
       }

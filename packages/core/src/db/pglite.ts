@@ -44,7 +44,7 @@ export async function initPgliteDrizzleInNode(
     })
 
     // Create Drizzle instance
-    const db = drizzle(pglite, { logger: options.isDatabaseDebugMode }) as PgliteDB
+    const db = drizzle(pglite, { logger: !!options.isDatabaseDebugMode }) as PgliteDB
 
     // Check database connection
     try {

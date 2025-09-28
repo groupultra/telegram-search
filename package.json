@@ -23,7 +23,7 @@
     "test": "vitest",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache . --fix",
-    "typecheck": "tsc --noEmit && pnpm -r --parallel typecheck",
+    "typecheck": "pnpm run packages:build && tsc --noEmit && pnpm -r --parallel typecheck",
     "bump": "bumpp",
     "bump:deps": "taze -I -f -w -r",
     "db:generate": "drizzle-kit generate",

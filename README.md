@@ -60,8 +60,8 @@ Set the following environment variables before starting the containerized servic
 ```bash
 docker run -d --name telegram-search \
   -p 3333:3333 \
-  -e TELEGRAM_API_ID=123456 \
-  -e TELEGRAM_API_HASH=0123456789abcdef0123456789abcdef \
+  -e TELEGRAM_API_ID=611335 \
+  -e TELEGRAM_API_HASH=d524b414d21f4d37f08684c1df41ac9c \
   -e DATABASE_URL=postgresql://postgres:123456@<postgres-host>:5432/postgres \
   -e EMBEDDING_API_KEY=sk-xxxx \
   -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \

@@ -3,10 +3,11 @@ import process from 'node:process'
 
 import { useLogger } from '@unbird/logg'
 
-import { getDatabaseDSN, initConfig, useConfig } from '../packages/common/src'
+import { getDatabaseDSN, initConfig, parseEnvFlags, useConfig } from '../packages/common/src'
 
 (async () => {
-  await initConfig()
+  const flags = parseEnvFlags(process.env)
+  await initConfig(flags)
   const logger = useLogger('script:drizzle')
 
   const dsn = getDatabaseDSN(useConfig())
