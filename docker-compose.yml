@@ -29,6 +29,9 @@ services:
       - ./config/:/app/config/
       - app_data:/root/.telegram-search
     restart: none
+    environment:
+      DATABASE_TYPE: postgres
+      DATABASE_URL: "postgresql://postgres:123456@pgvector:5432/postgres"
     healthcheck:
       test: |
         curl -f http://localhost:3333 || exit 1;

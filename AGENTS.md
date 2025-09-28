@@ -21,7 +21,6 @@
 - Build packages: `pnpm run packages:build`
 - Tests: `pnpm test` (Vitest)
 - Lint: `pnpm lint` | fix: `pnpm lint:fix`
-- DB (Drizzle): `pnpm run db:migrate` | `pnpm run db:push`
 
 ## Coding Style & Naming Conventions
 - Language: TypeScript, strict mode enabled. Vue 3 for UI.

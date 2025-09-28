@@ -1,3 +1,5 @@
+import type { DatabaseType } from './config-schema'
+
 import { LoggerFormat, LoggerLevel } from '@unbird/logg'
 
 import { EmbeddingDimension, EmbeddingProvider } from './config-schema'
@@ -9,6 +11,7 @@ export interface RuntimeFlags {
   isDebugMode: boolean
   isDatabaseDebugMode: boolean
 
+  dbProvider?: DatabaseType
   dbUrl?: string
 
   telegramApiId?: string
@@ -91,6 +94,7 @@ export function parseEnvFlags(env: Record<string, string | undefined>): RuntimeF
 
   result.isDatabaseDebugMode = readBooleanEnv('DATABASE_DEBUG', env)
 
+  assignIfPresent(result, 'dbProvider', readEnvValue('DATABASE_TYPE', env))
   assignIfPresent(result, 'dbUrl', readEnvValue('DATABASE_URL', env))
   assignIfPresent(result, 'telegramApiId', readEnvValue('TELEGRAM_API_ID', env))
   assignIfPresent(result, 'telegramApiHash', readEnvValue('TELEGRAM_API_HASH', env))

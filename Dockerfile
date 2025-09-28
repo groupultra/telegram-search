@@ -30,10 +30,11 @@ WORKDIR /app
 
 COPY --from=builder /app /app
 
-ENV DATABASE_URL="postgresql://postgres:123456@pgvector:5432/postgres"
-ENV TELEGRAM_API_ID=""
-ENV TELEGRAM_API_HASH=""
-ENV EMBEDDING_API_KEY=""
-ENV EMBEDDING_BASE_URL=""
+ENV DATABASE_TYPE="pglite"
+ENV DATABASE_URL=""
+ENV TELEGRAM_API_ID="611335"
+ENV TELEGRAM_API_HASH="d524b414d21f4d37f08684c1df41ac9c"
+ENV EMBEDDING_API_KEY="sk-proj-1234567890"
+ENV EMBEDDING_BASE_URL="https://api.openai.com/v1"
 
-ENTRYPOINT ["/bin/sh", "-c", "pnpm run db:migrate && exec pnpm run start"]
+ENTRYPOINT ["/bin/sh", "-c", "exec pnpm run start"]

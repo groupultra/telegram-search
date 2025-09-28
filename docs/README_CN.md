@@ -137,13 +137,7 @@ cp config/config.example.yaml config/config.yaml
 docker compose up -d pgvector
 ```
 
-5. 同步数据库表结构：
-
-```bash
-pnpm run db:migrate
-```
-
-6. 启动服务：
+5. 启动服务：
 
 ```bash
 # 启动后端服务

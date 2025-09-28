@@ -21,8 +21,6 @@ Telegram Search is a powerful Telegram chat history search tool with vector sear
 - `pnpm run typecheck` - Run TypeScript type checking across all packages
 
 ### Database Operations
-- `pnpm run db:migrate` - Run database migrations
-- `pnpm run db:push` - Push schema changes to database
 - `pnpm run db:generate` - Generate Drizzle migration files
 - `pnpm run db:kit` - Run database utility scripts
 
@@ -62,8 +60,7 @@ Frontend (Vue) ↔ WebSocket ↔ Server ↔ Core Context ↔ Telegram API
 
 1. Copy configuration: `cp config/config.example.yaml config/config.yaml`
 2. Start database: `docker compose up -d pgvector`
-3. Run migrations: `pnpm run db:migrate`
-4. Start development servers:
+3. Start development servers:
    - Backend: `pnpm run server:dev`
    - Frontend: `pnpm run web:dev`
 

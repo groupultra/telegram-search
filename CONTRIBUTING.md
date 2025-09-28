@@ -39,13 +39,7 @@ cp config/config.example.yaml config/config.yaml
 docker compose up -d pgvector
 ```
 
-5. Sync database schema:
-
-```bash
-pnpm run db:migrate
-```
-
-6. Start services:
+5. Start services:
 
 ```bash
 # Start backend

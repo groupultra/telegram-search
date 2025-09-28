@@ -109,6 +109,7 @@ function applyRuntimeOverrides(baseConfig: Config, flags?: RuntimeFlags): Config
   }
 
   // Apply database URL override
+  runtimeConfig.database.type = flags?.dbProvider || runtimeConfig.database.type
   runtimeConfig.database.url = flags?.dbUrl || runtimeConfig.database.url || getDatabaseDSN(runtimeConfig)
 
   // Apply API overrides

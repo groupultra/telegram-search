@@ -136,13 +136,7 @@ cp config/config.example.yaml config/config.yaml
 docker compose up -d pgvector
 ```
 
-5. データベーススキーマを同期:
-
-```bash
-pnpm run db:migrate
-```
-
-6. サービスを起動:
+5. サービスを起動:
 
 ```bash
 # バックエンドを起動

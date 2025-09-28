@@ -27,8 +27,6 @@
     "bump": "bumpp",
     "bump:deps": "taze -I -f -w -r",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx scripts/db.ts migrate",
-    "db:push": "tsx scripts/db.ts push",
     "db:kit": "tsx scripts/db.ts",
     "postinstall": "pnpm run packages:build"
   },
