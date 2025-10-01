@@ -1,6 +1,6 @@
 import type { InferOutput } from 'valibot'
 
-import { boolean, enum as enumType, number, object, optional, safeParse, string } from 'valibot'
+import { array, boolean, enum as enumType, number, object, optional, safeParse, string } from 'valibot'
 
 export enum SocksType {
   SOCKS4 = 4,
@@ -67,9 +67,14 @@ export const apiConfigSchema = object({
   embedding: optional(embeddingConfigSchema, {}),
 })
 
+export const resolversConfigSchema = object({
+  disabledResolvers: optional(array(string()), []),
+})
+
 export const configSchema = object({
   database: optional(databaseConfigSchema, {}),
   api: optional(apiConfigSchema, {}),
+  resolvers: optional(resolversConfigSchema, {}),
 })
 
 export type Config = InferOutput<typeof configSchema>

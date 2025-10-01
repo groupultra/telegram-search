@@ -5,6 +5,7 @@ import type { MessageResolverRegistryFn } from '../message-resolvers'
 
 import { useLogger } from '@unbird/logg'
 
+import { useConfig } from '../../../common/src/config'
 import { convertToCoreMessage } from '../utils/message'
 
 export interface MessageResolverEventToCore {
@@ -43,6 +44,7 @@ export function createMessageResolverService(ctx: CoreContext) {
 
       // Embedding or resolve messages
       const promises = Array.from(resolvers.registry.entries())
+        .filter(([name]) => !useConfig().resolvers.disabledResolvers.includes(name))
         .map(([name, resolver]) => (async () => {
           logger.withFields({ name }).verbose('Process messages with resolver')
 

@@ -10,6 +10,7 @@ import { Toaster } from 'vue-sonner'
 const settings = storeToRefs(useSettingsStore())
 
 onMounted(() => {
+  useSettingsStore().init()
   useBridgeStore().init()
   useAuthStore().init()
 })

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useBridgeStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
@@ -18,6 +18,45 @@ const embeddingProviderOptions = [
   { label: 'OpenAI', value: 'openai' },
   { label: 'Ollama', value: 'ollama' },
 ]
+
+// Message resolvers configuration
+const messageResolvers = [
+  { key: 'media', label: 'Media Resolver' },
+  { key: 'user', label: 'User Resolver' },
+  { key: 'link', label: 'Link Resolver' },
+  { key: 'embedding', label: 'Embedding Resolver' },
+  { key: 'jieba', label: 'Jieba Resolver' },
+]
+
+// Computed properties for message resolver switches
+const isResolverEnabled = computed(() => (resolverKey: string) => {
+  if (!config.value?.resolvers?.disabledResolvers)
+    return true
+  return !config.value.resolvers.disabledResolvers.includes(resolverKey)
+})
+
+function toggleMessageResolver(resolverKey: string, enabled: boolean) {
+  if (!config.value?.resolvers) {
+    if (!config.value)
+      return
+    config.value.resolvers = { disabledResolvers: [] }
+  }
+  if (!config.value.resolvers.disabledResolvers) {
+    config.value.resolvers.disabledResolvers = []
+  }
+
+  const disabledResolvers = config.value.resolvers.disabledResolvers
+  const index = disabledResolvers.indexOf(resolverKey)
+
+  if (enabled && index !== -1) {
+    // Enable resolver - remove from disabled list
+    disabledResolvers.splice(index, 1)
+  }
+  else if (!enabled && index === -1) {
+    // Disable resolver - add to disabled list
+    disabledResolvers.push(resolverKey)
+  }
+}
 
 async function updateConfig() {
   if (!config.value)
@@ -41,19 +80,11 @@ onMounted(() => {
     </div>
 
     <div class="ml-auto flex items-center gap-2">
-      <Button
-        icon="i-lucide-pencil"
-        :disabled="isEditing"
-        @click="isEditing = !isEditing"
-      >
+      <Button icon="i-lucide-pencil" :disabled="isEditing" @click="isEditing = !isEditing">
         {{ t('settings.edit') }}
       </Button>
 
-      <Button
-        icon="i-lucide-save"
-        :disabled="!isEditing"
-        @click="updateConfig"
-      >
+      <Button icon="i-lucide-save" :disabled="!isEditing" @click="updateConfig">
         {{ t('settings.save') }}
       </Button>
     </div>
@@ -71,45 +102,35 @@ onMounted(() => {
           <div>
             <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Host</label>
             <input
-              v-model="config.database.host"
-              type="text"
-              :disabled="!isEditing"
+              v-model="config.database.host" type="text" :disabled="!isEditing"
               class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             >
           </div>
           <div>
             <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Port</label>
             <input
-              v-model.number="config.database.port"
-              type="number"
-              :disabled="!isEditing"
+              v-model.number="config.database.port" type="number" :disabled="!isEditing"
               class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             >
           </div>
           <div>
             <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Username</label>
             <input
-              v-model="config.database.user"
-              type="text"
-              :disabled="!isEditing"
+              v-model="config.database.user" type="text" :disabled="!isEditing"
               class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             >
           </div>
           <div>
             <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Password</label>
             <input
-              v-model="config.database.password"
-              type="password"
-              :disabled="!isEditing"
+              v-model="config.database.password" type="password" :disabled="!isEditing"
               class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             >
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Database Name</label>
             <input
-              v-model="config.database.database"
-              type="text"
-              :disabled="!isEditing"
+              v-model="config.database.database" type="text" :disabled="!isEditing"
               class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             >
           </div>
@@ -131,18 +152,14 @@ onMounted(() => {
               <div>
                 <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">API ID</label>
                 <input
-                  v-model="config.api.telegram.apiId"
-                  type="text"
-                  :disabled="!isEditing"
+                  v-model="config.api.telegram.apiId" type="text" :disabled="!isEditing"
                   class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
               </div>
               <div>
                 <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">API Hash</label>
                 <input
-                  v-model="config.api.telegram.apiHash"
-                  type="password"
-                  :disabled="!isEditing"
+                  v-model="config.api.telegram.apiHash" type="password" :disabled="!isEditing"
                   class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
               </div>
@@ -157,42 +174,72 @@ onMounted(() => {
             <div class="grid gap-4">
               <div>
                 <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Provider</label>
-                <SelectDropdown v-model="config.api.embedding.provider" :options="embeddingProviderOptions" :disabled="!isEditing" />
+                <SelectDropdown
+                  v-model="config.api.embedding.provider" :options="embeddingProviderOptions"
+                  :disabled="!isEditing"
+                />
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.model') }}</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.model')
+                }}</label>
                 <input
-                  v-model="config.api.embedding.model"
-                  :disabled="!isEditing"
+                  v-model="config.api.embedding.model" :disabled="!isEditing"
                   class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.dimension') }}</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.dimension')
+                }}</label>
                 <input
-                  v-model="config.api.embedding.dimension"
-                  :disabled="!isEditing"
+                  v-model="config.api.embedding.dimension" :disabled="!isEditing"
                   class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiKey') }}</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiKey')
+                }}</label>
                 <input
-                  v-model="config.api.embedding.apiKey"
-                  type="password"
-                  :disabled="!isEditing"
+                  v-model="config.api.embedding.apiKey" type="password" :disabled="!isEditing"
                   class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiBaseUrl') }}</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiBaseUrl')
+                }}</label>
                 <input
-                  v-model="config.api.embedding.apiBase"
-                  type="text"
-                  :disabled="!isEditing"
+                  v-model="config.api.embedding.apiBase" type="text" :disabled="!isEditing"
                   class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resolvers settings -->
+      <div class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
+        <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
+          {{ t('settings.resolversSettings') }}
+        </h2>
+        <div class="space-y-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            {{ t('settings.resolversDescription') }}
+          </p>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div v-for="resolver in messageResolvers" :key="resolver.key" class="flex items-center justify-between">
+              <label class="text-sm text-gray-600 font-medium dark:text-gray-400">
+                {{ t(`settings.${resolver.key}Resolver`) }}
+              </label>
+              <label class="relative inline-flex cursor-pointer items-center">
+                <input
+                  :checked="isResolverEnabled(resolver.key)"
+                  type="checkbox"
+                  :disabled="!isEditing"
+                  class="peer sr-only"
+                  @change="toggleMessageResolver(resolver.key, ($event.target as HTMLInputElement).checked)"
+                >
+                <div class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:border after:border-gray-300 dark:border-gray-600 after:rounded-full after:bg-white dark:bg-gray-700 peer-checked:bg-blue-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white dark:peer-focus:ring-blue-800" />
+              </label>
             </div>
           </div>
         </div>
