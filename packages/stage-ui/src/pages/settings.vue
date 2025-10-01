@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useBridgeStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
@@ -25,7 +25,6 @@ const databaseProviderOptions = [
 
 // Check if VITE_WITH_CORE is enabled
 const isWithCore = import.meta.env.VITE_WITH_CORE === 'true'
-
 
 // Message resolvers configuration
 const messageResolvers = [
