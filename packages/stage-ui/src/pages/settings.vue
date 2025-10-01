@@ -26,6 +26,11 @@ const databaseProviderOptions = [
 // Check if VITE_WITH_CORE is enabled
 const isWithCore = import.meta.env.VITE_WITH_CORE === 'true'
 
+// Computed properties for dynamic form behavior
+const isPostgresSelected = computed(() => config.value?.database?.type === 'postgres')
+const hasConnectionUrl = computed(() => !!config.value?.database?.url?.trim())
+const shouldDisableIndividualFields = computed(() => isPostgresSelected.value && hasConnectionUrl.value)
+
 // Message resolvers configuration
 const messageResolvers = [
   { key: 'media' },
@@ -107,7 +112,7 @@ onMounted(() => {
               :options="databaseProviderOptions"
             />
           </div>
-          <div>
+          <div v-if="isPostgresSelected">
             <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Connection URL</label>
             <input
               v-model="config.database.url"
@@ -119,13 +124,18 @@ onMounted(() => {
               Optional: Use connection URL instead of individual fields below
             </p>
           </div>
-          <div class="grid gap-4 md:grid-cols-2">
+          <div v-if="isPostgresSelected" class="grid gap-4 md:grid-cols-2">
             <div>
               <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">Host</label>
               <input
                 v-model="config.database.host"
                 type="text"
-                class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                :disabled="shouldDisableIndividualFields"
+                class="mt-1 block w-full border border-neutral-200 rounded-md px-3 py-2 text-gray-900 dark:border-gray-600 dark:text-gray-100"
+                :class="{
+                  'bg-gray-200 dark:bg-gray-600 cursor-not-allowed opacity-60': shouldDisableIndividualFields,
+                  'bg-neutral-100 dark:bg-gray-700': !shouldDisableIndividualFields,
+                }"
               >
             </div>
             <div>
@@ -133,7 +143,12 @@ onMounted(() => {
               <input
                 v-model.number="config.database.port"
                 type="number"
-                class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                :disabled="shouldDisableIndividualFields"
+                class="mt-1 block w-full border border-neutral-200 rounded-md px-3 py-2 text-gray-900 dark:border-gray-600 dark:text-gray-100"
+                :class="{
+                  'bg-gray-200 dark:bg-gray-600 cursor-not-allowed opacity-60': shouldDisableIndividualFields,
+                  'bg-neutral-100 dark:bg-gray-700': !shouldDisableIndividualFields,
+                }"
               >
             </div>
             <div>
@@ -141,7 +156,12 @@ onMounted(() => {
               <input
                 v-model="config.database.user"
                 type="text"
-                class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                :disabled="shouldDisableIndividualFields"
+                class="mt-1 block w-full border border-neutral-200 rounded-md px-3 py-2 text-gray-900 dark:border-gray-600 dark:text-gray-100"
+                :class="{
+                  'bg-gray-200 dark:bg-gray-600 cursor-not-allowed opacity-60': shouldDisableIndividualFields,
+                  'bg-neutral-100 dark:bg-gray-700': !shouldDisableIndividualFields,
+                }"
               >
             </div>
             <div>
@@ -149,7 +169,12 @@ onMounted(() => {
               <input
                 v-model="config.database.password"
                 type="password"
-                class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                :disabled="shouldDisableIndividualFields"
+                class="mt-1 block w-full border border-neutral-200 rounded-md px-3 py-2 text-gray-900 dark:border-gray-600 dark:text-gray-100"
+                :class="{
+                  'bg-gray-200 dark:bg-gray-600 cursor-not-allowed opacity-60': shouldDisableIndividualFields,
+                  'bg-neutral-100 dark:bg-gray-700': !shouldDisableIndividualFields,
+                }"
               >
             </div>
             <div class="md:col-span-2">
@@ -157,7 +182,12 @@ onMounted(() => {
               <input
                 v-model="config.database.database"
                 type="text"
-                class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                :disabled="shouldDisableIndividualFields"
+                class="mt-1 block w-full border border-neutral-200 rounded-md px-3 py-2 text-gray-900 dark:border-gray-600 dark:text-gray-100"
+                :class="{
+                  'bg-gray-200 dark:bg-gray-600 cursor-not-allowed opacity-60': shouldDisableIndividualFields,
+                  'bg-neutral-100 dark:bg-gray-700': !shouldDisableIndividualFields,
+                }"
               >
             </div>
           </div>
@@ -209,24 +239,21 @@ onMounted(() => {
                 />
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.model')
-                }}</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.model') }}</label>
                 <input
                   v-model="config.api.embedding.model"
                   class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.dimension')
-                }}</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.dimension') }}</label>
                 <input
                   v-model="config.api.embedding.dimension"
                   class="mt-1 block w-full border border-neutral-200 rounded-md bg-neutral-100 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiKey')
-                }}</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiKey') }}</label>
                 <input
                   v-model="config.api.embedding.apiKey"
                   type="password"
@@ -234,8 +261,7 @@ onMounted(() => {
                 >
               </div>
               <div>
-                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiBaseUrl')
-                }}</label>
+                <label class="block text-sm text-gray-600 font-medium dark:text-gray-400">{{ t('settings.apiBaseUrl') }}</label>
                 <input
                   v-model="config.api.embedding.apiBase"
                   type="text"
