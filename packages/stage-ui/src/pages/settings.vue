@@ -21,11 +21,11 @@ const embeddingProviderOptions = [
 
 // Message resolvers configuration
 const messageResolvers = [
-  { key: 'media', label: 'Media Resolver' },
-  { key: 'user', label: 'User Resolver' },
-  { key: 'link', label: 'Link Resolver' },
-  { key: 'embedding', label: 'Embedding Resolver' },
-  { key: 'jieba', label: 'Jieba Resolver' },
+  { key: 'media' },
+  { key: 'user' },
+  { key: 'link' },
+  { key: 'embedding' },
+  { key: 'jieba' },
 ]
 
 // Computed properties for message resolver switches
@@ -36,14 +36,13 @@ const isResolverEnabled = computed(() => (resolverKey: string) => {
 })
 
 function toggleMessageResolver(resolverKey: string, enabled: boolean) {
-  if (!config.value?.resolvers) {
-    if (!config.value)
-      return
-    config.value.resolvers = { disabledResolvers: [] }
+  if (!config.value) {
+    return
   }
-  if (!config.value.resolvers.disabledResolvers) {
-    config.value.resolvers.disabledResolvers = []
-  }
+
+  // Ensure resolvers and disabledResolvers are initialized.
+  config.value.resolvers ??= { disabledResolvers: [] }
+  config.value.resolvers.disabledResolvers ??= []
 
   const disabledResolvers = config.value.resolvers.disabledResolvers
   const index = disabledResolvers.indexOf(resolverKey)
