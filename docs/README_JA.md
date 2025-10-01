@@ -138,7 +138,13 @@ docker compose up -d
 pnpm install
 ```
 
-3. 開発サーバーを起動：
+3. 環境を設定
+
+```bash
+cp .env.example .env
+```
+
+4. 開発サーバーを起動：
 
 ```bash
 pnpm run dev

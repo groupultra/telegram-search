@@ -138,7 +138,13 @@ docker compose up -d
 pnpm install
 ```
 
-3. 启动开发服务器：
+3. 复制环境变量文件
+
+```bash
+cp .env.example .env
+```
+
+4. 启动开发服务器：
 
 ```bash
 pnpm run dev

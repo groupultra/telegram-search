@@ -137,7 +137,13 @@ docker compose up -d
 pnpm install
 ```
 
-3. Start development server:
+3. Copy environment variables
+
+```bash
+cp .env.example .env
+```
+
+4. Start development server:
 
 ```bash
 pnpm run dev
