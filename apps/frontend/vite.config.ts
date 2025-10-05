@@ -4,6 +4,7 @@ import { env } from 'node:process'
 import DrizzleORMMigrations from '@proj-airi/unplugin-drizzle-orm-migrations/vite'
 import Vue from '@vitejs/plugin-vue'
 import UnoCSS from 'unocss/vite'
+import Info from 'unplugin-info/vite'
 import Unused from 'unplugin-unused/vite'
 import VueMacros from 'unplugin-vue-macros/vite'
 import VueRouter from 'unplugin-vue-router/vite'
@@ -14,6 +15,13 @@ import Layouts from 'vite-plugin-vue-layouts'
 
 export default defineConfig({
   plugins: [
+    Info({
+      rootDir: resolve(import.meta.dirname, '../..'),
+      packageJsonPath: resolve(import.meta.dirname, '../../package.json'),
+      additional: {
+        target: '@tg-search/frontend',
+      },
+    }),
     Inspect(),
 
     Unused({

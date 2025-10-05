@@ -30,6 +30,29 @@ const { t } = useI18n()
 const settingsDialog = ref(false)
 const searchParams = ref('')
 
+const buildInfo = __UNPLUGIN_INFO__
+
+const buildVersionLabel = computed(() => {
+  const version = buildInfo.package.version ?? 'dev'
+  const commit = buildInfo.git.commitShortHash
+
+  return commit ? `${version} (${commit})` : version
+})
+
+const buildTimeLabel = computed(() => {
+  const iso = buildInfo.buildTime
+  const date = new Date(iso)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date)
+})
+
 // Use VueUse breakpoints for responsive design
 const breakpoints = useBreakpoints(breakpointsTailwind)
 const isMobile = breakpoints.smaller('md') // < 768px
@@ -211,35 +234,45 @@ function closeMobileDrawer() {
       </div>
 
       <!-- User profile section -->
-      <div class="flex items-center justify-between border-t border-t-secondary p-4 dark:border-t-gray-700">
-        <div class="mr-3 flex items-center gap-3">
-          <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 ring-2 ring-offset-1 ring-primary/10 dark:bg-gray-700">
-            <Avatar
-              :name="websocketStore.getActiveSession()?.me?.name"
-              size="sm"
-            />
+      <div class="flex flex-col gap-2 border-t border-t-secondary p-4 dark:border-t-gray-700">
+        <div class="flex items-center justify-between">
+          <div class="mr-3 flex items-center gap-3">
+            <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 ring-2 ring-offset-1 ring-primary/10 dark:bg-gray-700">
+              <Avatar
+                :name="websocketStore.getActiveSession()?.me?.name"
+                size="sm"
+              />
+            </div>
+            <div class="flex flex-col">
+              <span class="whitespace-nowrap text-sm text-gray-900 font-medium dark:text-gray-100">{{ websocketStore.getActiveSession()?.me?.name }}</span>
+              <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
+            </div>
           </div>
-          <div class="flex flex-col">
-            <span class="whitespace-nowrap text-sm text-gray-900 font-medium dark:text-gray-100">{{ websocketStore.getActiveSession()?.me?.name }}</span>
-            <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
+
+          <!-- Control buttons -->
+          <div class="flex items-center gap-2">
+            <Button
+              :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
+              class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100/80 dark:text-gray-100 dark:hover:bg-gray-700/70"
+              :title="isDark ? t('settings.switchToLightMode') : t('settings.switchToDarkMode')"
+              @click="() => { isDark = !isDark }"
+            />
+
+            <Button
+              icon="i-lucide-settings"
+              class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100/80 dark:text-gray-100 dark:hover:bg-gray-700/70"
+              :title="t('settings.settings')"
+              @click="toggleSettingsDialog"
+            />
           </div>
         </div>
 
-        <!-- Control buttons -->
-        <div class="flex items-center gap-2">
-          <Button
-            :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100/80 dark:text-gray-100 dark:hover:bg-gray-700/70"
-            :title="isDark ? t('settings.switchToLightMode') : t('settings.switchToDarkMode')"
-            @click="() => { isDark = !isDark }"
-          />
-
-          <Button
-            icon="i-lucide-settings"
-            class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100/80 dark:text-gray-100 dark:hover:bg-gray-700/70"
-            :title="t('settings.settings')"
-            @click="toggleSettingsDialog"
-          />
+        <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+          <span class="truncate">Build: {{ buildVersionLabel }}</span>
+          <span
+            v-if="buildTimeLabel"
+            class="truncate"
+          >{{ buildTimeLabel }}</span>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 .idea
 node_modules
 dist
+!packages/unplugin-info/dist/
 .env
 .session
 .DS_Store
