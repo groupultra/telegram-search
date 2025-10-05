@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuthStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
+import NProgress from 'nprogress'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -39,6 +40,9 @@ function handleSync() {
   loadingToast.value = toast.loading(t('sync.startSync'), {
     description: t('sync.startSyncPrompt'),
   })
+
+  // Start NProgress
+  NProgress.start()
 }
 
 function handleAbort() {
@@ -58,10 +62,14 @@ watch(currentTaskProgress, (progress) => {
   if (progress === 100) {
     toast.dismiss(loadingToast.value)
     toast.success(t('sync.syncCompleted'))
+    // Complete NProgress
+    NProgress.done()
   }
   else if (progress < 0 && currentTask.value?.lastError) {
     toast.dismiss(loadingToast.value)
     toast.error(currentTask.value.lastError)
+    // Complete NProgress on error
+    NProgress.done()
   }
   else {
     loadingToast.value = toast.loading(currentTask.value?.lastMessage ?? t('sync.syncing'), {
@@ -70,6 +78,10 @@ watch(currentTaskProgress, (progress) => {
         onClick: handleAbort,
       },
     })
+    // Update NProgress with actual progress
+    if (progress >= 0 && progress < 100) {
+      NProgress.set(progress / 100)
+    }
   }
 })
 </script>

@@ -1,5 +1,6 @@
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
+import NProgress from 'nprogress'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
 import { createApp } from 'vue'
@@ -12,6 +13,7 @@ import { en, zhCN } from './locales'
 
 import '@unocss/reset/tailwind.css'
 import 'uno.css'
+import 'nprogress/nprogress.css'
 import 'vue-sonner/style.css'
 import './styles/main.css'
 
@@ -28,6 +30,22 @@ const routes = setupLayouts(generatedRoutes.filter((route) => {
 const router = createRouter({
   routes,
   history: createWebHistory(import.meta.env.BASE_URL),
+})
+
+// Configure NProgress
+NProgress.configure({ showSpinner: false })
+
+// Add router navigation guards for NProgress
+router.beforeEach(() => {
+  NProgress.start()
+})
+
+router.afterEach(() => {
+  NProgress.done()
+})
+
+router.onError(() => {
+  NProgress.done()
 })
 
 const i18n = createI18n({
