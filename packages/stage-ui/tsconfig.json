@@ -13,9 +13,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "types": [
-      "vite/client",
+      "node",
       "vite-plugin-vue-layouts/client",
-      "node"
+      "vite/client",
+      "unplugin-info/client"
     ],
     "allowImportingTsExtensions": true,
     "noEmit": true,

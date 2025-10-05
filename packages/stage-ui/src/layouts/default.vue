@@ -3,6 +3,9 @@ import type { ChatGroup } from '@tg-search/client'
 
 import { useAuthStore, useBridgeStore, useChatStore, useSettingsStore } from '@tg-search/client'
 import { breakpointsTailwind, useBreakpoints, useDark } from '@vueuse/core'
+import { abbreviatedSha as gitShortSha } from '~build/git'
+import { version as pkgVersion } from '~build/package'
+import buildTime from '~build/time'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -30,28 +33,24 @@ const { t } = useI18n()
 const settingsDialog = ref(false)
 const searchParams = ref('')
 
-const buildInfo = __UNPLUGIN_INFO__
-
+// --- Build info using unplugin-info ---
 const buildVersionLabel = computed(() => {
-  const version = buildInfo.package.version ?? 'dev'
-  const commit = buildInfo.git.commitShortHash
-
+  const version = pkgVersion ?? 'dev'
+  const commit = gitShortSha
   return commit ? `${version} (${commit})` : version
 })
 
 const buildTimeLabel = computed(() => {
-  const iso = buildInfo.buildTime
-  const date = new Date(iso)
-
+  const date = new Date(buildTime)
   if (Number.isNaN(date.getTime())) {
     return null
   }
-
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(date)
 })
+// --------------------------------------
 
 // Use VueUse breakpoints for responsive design
 const breakpoints = useBreakpoints(breakpointsTailwind)

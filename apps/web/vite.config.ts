@@ -16,12 +16,9 @@ import Layouts from 'vite-plugin-vue-layouts'
 export default defineConfig({
   plugins: [
     Info({
-      rootDir: resolve(import.meta.dirname, '../..'),
-      packageJsonPath: resolve(import.meta.dirname, '../../package.json'),
-      additional: {
-        target: '@tg-search/frontend',
-      },
+      root: resolve(import.meta.dirname, '../..'),
     }),
+
     Inspect(),
 
     Unused({
@@ -107,6 +104,6 @@ export default defineConfig({
 
   // Allow all hosts in preview mode for reverse proxy deployments by setting VITE_PREVIEW_ALLOW_ALL_HOSTS=true
   preview: {
-    allowedHosts: env.VITE_PREVIEW_ALLOW_ALL_HOSTS === 'true',
+    allowedHosts: env.VITE_PREVIEW_ALLOW_ALL_HOSTS === 'true' ? true : [],
   },
 })
