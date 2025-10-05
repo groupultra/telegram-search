@@ -16,8 +16,8 @@ defineProps<{
         <div
           class="h-12 w-12 flex items-center justify-center border-2 rounded-full text-xl font-bold transition"
           :class="{
-            'bg-[var(--gs-color-accent)] text-[var(--gs-color-text-inverse)] border-[var(--gs-color-accent)] shadow-lg': currentStep === step.value,
-            'gs-bg-surface-muted gs-text-secondary gs-border': steps.findIndex(s => s.value === currentStep) !== idx,
+            'border-primary bg-primary text-primary-foreground shadow-lg': currentStep === step.value,
+            'border-border bg-muted text-muted-foreground': steps.findIndex(s => s.value === currentStep) !== idx,
           }"
         >
           <span>{{ idx + 1 }}</span>

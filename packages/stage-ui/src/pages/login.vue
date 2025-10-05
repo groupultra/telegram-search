@@ -90,33 +90,33 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="gs-bg-app min-h-screen flex items-center justify-center">
-    <div class="gs-bg-surface gs-shadow-sidebar max-w-md w-full rounded-2xl p-10">
-      <h1 class="gs-text-primary mb-6 text-center text-3xl font-bold tracking-tight">
+  <div class="flex min-h-screen items-center justify-center bg-background text-foreground">
+    <div class="w-full max-w-md rounded-2xl bg-card p-10 shadow-[0_10px_40px_-24px_rgba(15,23,42,0.18)] dark:shadow-[0_10px_40px_-24px_rgba(15,15,15,0.45)]">
+      <h1 class="mb-6 text-center text-3xl font-bold tracking-tight text-foreground">
         {{ t('login.telegramLogin') }}
       </h1>
       <Stepper :steps="steps" :current-step="state.currentStep" />
-      <p class="gs-text-secondary mb-8 text-center text-lg font-medium">
+      <p class="mb-8 text-center text-lg font-medium text-muted-foreground">
         {{ steps.find(s => s.value === state.currentStep)?.description }}
       </p>
 
       <!-- 手机号码表单 -->
       <form v-if="state.currentStep === 'phone'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="phoneNumber" class="gs-text-primary mb-2 block text-base font-semibold">{{ t('login.phoneNumber') }}</label>
+          <label for="phoneNumber" class="mb-2 block text-base font-semibold text-foreground">{{ t('login.phoneNumber') }}</label>
           <input
             id="phoneNumber"
             v-model="state.phoneNumber"
             type="tel"
             :placeholder="t('login.phoneNumberPlaceholder')"
-            class="gs-border gs-bg-surface-muted gs-text-primary w-full rounded-xl px-5 py-4 text-xl transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[var(--gs-color-accent)]"
+            class="w-full rounded-xl border border-border bg-muted px-5 py-4 text-xl text-foreground transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary"
             required
             :disabled="authStore.auth.isLoading"
           >
         </div>
         <button
           type="submit"
-          class="w-full flex items-center justify-center rounded-xl bg-[var(--gs-color-accent)] py-4 text-lg text-[var(--gs-color-text-inverse)] font-bold transition disabled:cursor-not-allowed hover:bg-[var(--gs-color-accent)]/90 disabled:opacity-50"
+          class="flex w-full items-center justify-center rounded-xl bg-primary py-4 text-lg font-bold text-primary-foreground transition disabled:cursor-not-allowed disabled:opacity-50 hover:bg-primary/90"
           :disabled="authStore.auth.isLoading"
         >
           <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
@@ -127,23 +127,23 @@ async function handleLogin() {
       <!-- 验证码表单 -->
       <form v-if="state.currentStep === 'code'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="verificationCode" class="gs-text-primary mb-2 block text-base font-semibold">{{ t('login.verificationCode') }}</label>
+          <label for="verificationCode" class="mb-2 block text-base font-semibold text-foreground">{{ t('login.verificationCode') }}</label>
           <input
             id="verificationCode"
             v-model="state.verificationCode"
             type="text"
             :placeholder="t('login.verificationCodePlaceholder')"
-            class="gs-border gs-bg-surface-muted gs-text-primary w-full rounded-xl px-5 py-4 text-xl transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[var(--gs-color-accent)]"
+            class="w-full rounded-xl border border-border bg-muted px-5 py-4 text-xl text-foreground transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary"
             required
             :disabled="authStore.auth.isLoading"
           >
-          <p class="gs-text-secondary mt-2 text-sm">
+          <p class="mt-2 text-sm text-muted-foreground">
             {{ t('login.verificationCodeDescription') }}
           </p>
         </div>
         <button
           type="submit"
-          class="w-full flex items-center justify-center rounded-xl bg-[var(--gs-color-accent)] py-4 text-lg text-[var(--gs-color-text-inverse)] font-bold transition disabled:cursor-not-allowed hover:bg-[var(--gs-color-accent)]/90 disabled:opacity-50"
+          class="flex w-full items-center justify-center rounded-xl bg-primary py-4 text-lg font-bold text-primary-foreground transition disabled:cursor-not-allowed disabled:opacity-50 hover:bg-primary/90"
           :disabled="authStore.auth.isLoading"
         >
           <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
@@ -154,20 +154,20 @@ async function handleLogin() {
       <!-- 两步验证密码表单 -->
       <form v-if="state.currentStep === 'password'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
-          <label for="twoFactorPassword" class="gs-text-primary mb-2 block text-base font-semibold">{{ t('login.twoFactorPassword') }}</label>
+          <label for="twoFactorPassword" class="mb-2 block text-base font-semibold text-foreground">{{ t('login.twoFactorPassword') }}</label>
           <input
             id="twoFactorPassword"
             v-model="state.twoFactorPassword"
             type="password"
             :placeholder="t('login.twoFactorPasswordPlaceholder')"
-            class="gs-border gs-bg-surface-muted gs-text-primary w-full rounded-xl px-5 py-4 text-xl transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[var(--gs-color-accent)]"
+            class="w-full rounded-xl border border-border bg-muted px-5 py-4 text-xl text-foreground transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary"
             required
             :disabled="authStore.auth.isLoading"
           >
         </div>
         <button
           type="submit"
-          class="w-full flex items-center justify-center rounded-xl bg-[var(--gs-color-accent)] py-4 text-lg text-[var(--gs-color-text-inverse)] font-bold transition disabled:cursor-not-allowed hover:bg-[var(--gs-color-accent)]/90 disabled:opacity-50"
+          class="flex w-full items-center justify-center rounded-xl bg-primary py-4 text-lg font-bold text-primary-foreground transition disabled:cursor-not-allowed disabled:opacity-50 hover:bg-primary/90"
           :disabled="authStore.auth.isLoading"
         >
           <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
@@ -180,14 +180,14 @@ async function handleLogin() {
         <div class="mb-4 text-3xl">
           🎉
         </div>
-        <h2 class="gs-text-primary text-xl font-bold">
+        <h2 class="text-xl font-bold text-foreground">
           {{ t('login.loginSuccess') }}
         </h2>
-        <p class="gs-text-secondary mt-2 text-lg">
+        <p class="mt-2 text-lg text-muted-foreground">
           {{ t('login.loginSuccessDescription') }}
         </p>
         <button
-          class="mt-6 w-full rounded-xl bg-[var(--gs-color-accent)] py-4 text-lg text-[var(--gs-color-text-inverse)] font-bold transition hover:bg-[var(--gs-color-accent)]/90"
+          class="mt-6 w-full rounded-xl bg-primary py-4 text-lg font-bold text-primary-foreground transition hover:bg-primary/90"
           @click="redirectRoot"
         >
           {{ t('login.enterHome') }}

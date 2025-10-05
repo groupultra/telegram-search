@@ -11,6 +11,12 @@ import presetAnimations from 'unocss-preset-animations'
 import { presetShadcn } from 'unocss-preset-shadcn'
 
 export function sharedUnoConfig() {
+  const chromaticBaseHue = 220.25
+  const chromaticColorOffsets = {
+    primary: 0,
+    complementary: 180,
+  } as const
+
   return defineConfig({
     presets: [
       presetWind3(),
@@ -27,11 +33,8 @@ export function sharedUnoConfig() {
         color: 'blue',
       }),
       presetChromatic({
-        baseHue: 220.44,
-        colors: {
-          primary: 0,
-          complementary: 180,
-        },
+        baseHue: chromaticBaseHue,
+        colors: chromaticColorOffsets,
       }),
     ],
     // Content extraction configuration for shadcn-vue

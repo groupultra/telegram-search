@@ -101,6 +101,12 @@
     "useCachedMessage": "使用数据库缓存的聊天记录",
     "darkMode": "夜间模式"
   },
+  "theme": {
+    "hue": "主题色相",
+    "description": "通过 Chromatic 色板调节界面的基础色相，亮暗模式会实时同步更新。",
+    "primaryScale": "主色阶",
+    "complementaryScale": "互补色阶"
+  },
   "sync": {
     "cancel": "取消",
     "incrementalSync": "增量同步",

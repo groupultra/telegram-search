@@ -101,6 +101,12 @@
     "useCachedMessage": "Use cached messages from database",
     "darkMode": "Dark Mode"
   },
+  "theme": {
+    "hue": "Theme hue",
+    "description": "Adjust the Chromatic hue to align the interface with your brand palette. Changes apply immediately across light and dark themes.",
+    "primaryScale": "Primary scale",
+    "complementaryScale": "Complementary scale"
+  },
   "sync": {
     "cancel": "Cancel",
     "incrementalSync": "Incremental Sync",

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { SwitchRoot, SwitchThumb } from 'radix-vue'
 import { computed } from 'vue'
+
 import { cn } from '../../../lib/utils'
 
 type SwitchSize = 'sm' | 'md'
@@ -43,11 +44,11 @@ const sizeClasses = {
 // 计算开关容器类名
 const switchClasses = computed(() => cn(
   'flex-shrink-0 rounded-full',
-  'bg-[var(--gs-color-surface-muted)]',
+  'bg-muted',
   'transition-colors duration-200 ease-in-out',
   'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
-  'focus:outline-none focus:ring-2 focus:ring-[var(--gs-color-accent)]/25',
-  'data-[state=checked]:bg-[var(--gs-color-accent)]',
+  'focus:outline-none focus:ring-2 focus:ring-primary/25',
+  'data-[state=checked]:bg-primary',
   sizeClasses[props.size].switch,
 ))
 
@@ -64,22 +65,22 @@ const thumbClasses = computed(() => cn(
 // 计算标签类名
 const labelClasses = computed(() => cn(
   'ml-3',
-  'text-[var(--gs-color-text-primary)]',
+  'text-foreground',
   sizeClasses[props.size].label,
 ))
 </script>
 
 <template>
   <div class="inline-flex items-center gap-2" :class="{ 'cursor-wait': loading }">
-      <SwitchRoot
-        :checked="modelValue"
-        :disabled="disabled || loading"
-        :class="switchClasses"
-        @update:checked="(val) => {
-          emit('update:modelValue', val)
-          emit('change', val)
-        }"
-      >
+    <SwitchRoot
+      :checked="modelValue"
+      :disabled="disabled || loading"
+      :class="switchClasses"
+      @update:checked="(val) => {
+        emit('update:modelValue', val)
+        emit('change', val)
+      }"
+    >
       <SwitchThumb :class="thumbClasses" />
     </SwitchRoot>
     <span v-if="label" :class="labelClasses">{{ label }}</span>

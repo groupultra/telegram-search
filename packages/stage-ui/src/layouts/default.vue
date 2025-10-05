@@ -10,9 +10,9 @@ import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import SettingsDialog from '../components/layout/SettingsDialog.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
+import SettingsMenu from '../components/SettingsMenu.vue'
 import Avatar from '../components/ui/Avatar.vue'
 import { Button } from '../components/ui/Button'
-import SettingsMenu from '../components/SettingsMenu.vue'
 
 const settingsStore = useSettingsStore()
 const { theme } = storeToRefs(settingsStore)
@@ -180,7 +180,7 @@ function closeMobileDrawer() {
 
 <template>
   <div
-    class="gs-bg-app h-screen w-full flex overflow-hidden text-sm font-medium"
+    class="flex h-screen w-full overflow-hidden bg-background text-sm font-medium text-foreground"
   >
     <!-- Mobile backdrop -->
     <div
@@ -196,7 +196,7 @@ function closeMobileDrawer() {
     >
       <Button
         icon="i-lucide-menu"
-        class="gs-border h-10 w-10 flex touch-manipulation items-center justify-center border rounded-xl bg-[var(--gs-color-surface)] text-[var(--gs-color-text-primary)] shadow-md backdrop-blur-sm transition-all hover:bg-[var(--gs-color-surface-muted)] hover:shadow-lg"
+        class="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-card-foreground shadow-md backdrop-blur-sm transition-all hover:bg-muted hover:shadow-lg touch-manipulation"
         @click="toggleSidebar"
       />
     </div>
@@ -204,29 +204,29 @@ function closeMobileDrawer() {
     <!-- Sidebar -->
     <div
       :class="sidebarClasses.container"
-      class="gs-border gs-bg-surface gs-text-primary gs-shadow-sidebar flex flex-col border-r h-dvh"
+      class="flex h-dvh flex-col border-r border-border bg-card text-card-foreground shadow-[0_10px_40px_-24px_rgba(15,23,42,0.18)] dark:shadow-[0_10px_40px_-24px_rgba(15,15,15,0.45)]"
     >
       <div
         v-if="!isMobile || mobileDrawerOpen"
         class="flex flex-col gap-5 px-4 pb-5 pt-6"
       >
         <div class="flex items-center gap-3">
-          <SettingsMenu/>
+          <SettingsMenu />
           <div
-            class="i-lucide-menu hidden h-5 w-5 text-[var(--gs-color-text-muted)] md:block"
+            class="i-lucide-menu hidden h-5 w-5 text-muted-foreground md:block"
           />
           <div class="relative flex-1">
             <div
-              class="i-lucide-search pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 text-[var(--gs-color-text-muted)] -translate-y-1/2"
+              class="i-lucide-search pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-muted-foreground"
             />
             <input
               v-model="searchParams"
               type="text"
-              class="w-full rounded-full bg-[var(--gs-color-surface-muted)] px-4 py-3 pl-12 text-sm text-[var(--gs-color-text-primary)] shadow-inner transition placeholder:text-[var(--gs-color-text-muted)] focus:(outline-none ring-2 ring-[var(--gs-color-accent)])"
+              class="w-full rounded-full bg-muted px-4 py-3 pl-12 text-sm text-foreground shadow-inner transition placeholder:text-muted-foreground focus:(outline-none ring-2 ring-primary)"
               :placeholder="t('search.search')"
             >
           </div>
-          <div class="hidden h-10 w-10 items-center justify-center rounded-full bg-[var(--gs-color-surface-muted)] shadow-inner md:flex">
+          <div class="hidden h-10 w-10 items-center justify-center rounded-full bg-muted shadow-inner md:flex">
             <Avatar
               :name="websocketStore.getActiveSession()?.me?.name"
               size="sm"
@@ -242,8 +242,8 @@ function closeMobileDrawer() {
             :aria-pressed="activeChatGroup === tab.key"
             class="flex flex-shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition"
             :class="activeChatGroup === tab.key
-              ? 'bg-[var(--gs-color-accent)] text-[var(--gs-color-text-inverse)] shadow-sm'
-              : 'bg-[var(--gs-color-surface-muted)] text-[var(--gs-color-text-secondary)] hover:bg-[var(--gs-color-surface-elevated)]'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-muted text-muted-foreground hover:bg-card'
             "
             @click="toggleActiveChatGroup(tab.key)"
           >
@@ -251,14 +251,14 @@ function closeMobileDrawer() {
             <span class="whitespace-nowrap">{{ tab.label }}</span>
             <span
               v-if="tab.count"
-              class="h-5 min-w-[1.75rem] flex items-center justify-center rounded-full bg-[var(--gs-color-accent-soft)] px-2 text-[11px] text-[var(--gs-color-text-primary)]"
+              class="flex h-5 min-w-[1.75rem] items-center justify-center rounded-full bg-primary/20 px-2 text-[11px] text-primary"
             >
               {{ tab.count }}
             </span>
           </button>
         </div>
 
-        <div class="flex flex-col gap-2 rounded-3xl bg-[var(--gs-color-surface-muted)]/80 p-3 shadow-inner">
+        <div class="flex flex-col gap-2 rounded-3xl bg-muted/80 p-3 shadow-inner">
           <SidebarSelector
             path="/sync"
             icon="i-lucide-refresh-cw"
@@ -286,8 +286,8 @@ function closeMobileDrawer() {
           :key="chat.id"
           class="group flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 transition-all duration-200"
           :class="isActiveChat(chat.id.toString())
-            ? 'bg-[var(--gs-color-surface-muted)]'
-            : 'hover:bg-[var(--gs-color-surface-muted)]'
+            ? 'bg-muted'
+            : 'hover:bg-muted'
           "
           @click="router.push(`/chat/${chat.id}`)"
         >
@@ -297,21 +297,21 @@ function closeMobileDrawer() {
           />
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <span class="gs-text-primary flex-1 truncate text-sm font-semibold">{{ chat.name }}</span>
+              <span class="flex-1 truncate text-sm font-semibold text-foreground">{{ chat.name }}</span>
               <span
                 v-if="formatChatTimestamp(chat.lastMessageDate)"
-                class="gs-text-muted text-xs"
+                class="text-xs text-muted-foreground"
               >
                 {{ formatChatTimestamp(chat.lastMessageDate) }}
               </span>
             </div>
             <div class="mt-1 flex items-center gap-2">
-              <span class="gs-text-secondary flex-1 truncate text-xs">
+              <span class="flex-1 truncate text-xs text-muted-foreground">
                 {{ chat.lastMessage ?? t('sidebar.noRecentMessages') }}
               </span>
               <span
                 v-if="chat.unreadCount"
-                class="h-6 min-w-[2.25rem] flex items-center justify-center rounded-full bg-[var(--gs-color-accent)] px-2 text-[11px] text-[var(--gs-color-text-inverse)] font-semibold"
+                class="flex h-6 min-w-[2.25rem] items-center justify-center rounded-full bg-primary px-2 text-[11px] font-semibold text-primary-foreground"
               >
                 {{ formatUnreadCount(chat.unreadCount) }}
               </span>
@@ -320,24 +320,24 @@ function closeMobileDrawer() {
         </div>
         <div
           v-if="!visibleChats.length"
-          class="gs-text-muted mt-10 text-center text-xs"
+          class="mt-10 text-center text-xs text-muted-foreground"
         >
           {{ t('sidebar.noResults') }}
         </div>
       </div>
 
       <!-- User profile section -->
-      <div class="gs-border flex items-center justify-between gap-3 border-t px-4 py-4">
+      <div class="flex items-center justify-between gap-3 border-t border-border px-4 py-4">
         <div class="flex items-center gap-3">
-          <div class="h-10 w-10 flex items-center justify-center overflow-hidden rounded-full bg-[var(--gs-color-surface-muted)]">
+          <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-muted">
             <Avatar
               :name="websocketStore.getActiveSession()?.me?.name"
               size="sm"
             />
           </div>
           <div class="min-w-0 flex flex-col">
-            <span class="gs-text-primary truncate text-sm font-semibold">{{ websocketStore.getActiveSession()?.me?.name }}</span>
-            <span class="gs-text-secondary text-xs">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
+            <span class="truncate text-sm font-semibold text-foreground">{{ websocketStore.getActiveSession()?.me?.name }}</span>
+            <span class="text-xs text-muted-foreground">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
           </div>
         </div>
 
@@ -345,14 +345,14 @@ function closeMobileDrawer() {
         <div class="flex items-center gap-2">
           <Button
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
-            class="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--gs-color-surface-muted)] text-[var(--gs-color-text-primary)] transition hover:bg-[var(--gs-color-surface-elevated)]"
+            class="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground transition hover:bg-card"
             :title="isDark ? t('settings.switchToLightMode') : t('settings.switchToDarkMode')"
             @click="() => { isDark = !isDark }"
           />
 
           <Button
             icon="i-lucide-settings"
-            class="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--gs-color-surface-muted)] text-[var(--gs-color-text-primary)] transition hover:bg-[var(--gs-color-surface-elevated)]"
+            class="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground transition hover:bg-card"
             :title="t('settings.settings')"
             @click="toggleSettingsDialog"
           />
@@ -362,16 +362,16 @@ function closeMobileDrawer() {
 
     <!-- Main content -->
     <div
-      class="gs-bg-app flex flex-1 flex-col overflow-auto transition-all duration-300 ease-in-out"
+      class="flex flex-1 flex-col overflow-auto bg-background transition-all duration-300 ease-in-out"
       :class="{ 'ml-0': isMobile }"
     >
       <!-- Login prompt banner -->
       <div
         v-if="!isLoggedIn"
-        class="bg-[var(--gs-color-accent)] px-4 py-2 text-center text-sm font-medium transition-all duration-300 ease-in-out"
+        class="bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground transition-all duration-300 ease-in-out"
         :class="{ 'left-80': !isMobile }"
       >
-        <div class="flex items-center justify-center gap-2 text-white">
+        <div class="flex items-center justify-center gap-2 text-primary-foreground">
           <div class="i-lucide-alert-triangle" />
           <span>{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
           <Button

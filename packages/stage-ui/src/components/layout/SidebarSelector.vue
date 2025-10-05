@@ -18,10 +18,10 @@ const isCurrentPage = computed(() => route.path === props.path)
   <button
     type="button"
     :aria-current="isCurrentPage ? 'page' : undefined"
-    class="w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition focus:outline-none"
+    class="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm transition focus:outline-none"
     :class="isCurrentPage
-      ? 'bg-[var(--gs-color-accent)] text-[var(--gs-color-text-inverse)] shadow-sm'
-      : 'bg-transparent text-[var(--gs-color-text-secondary)] hover:bg-[var(--gs-color-surface-muted)]'
+      ? 'bg-primary text-primary-foreground shadow-sm'
+      : 'bg-transparent text-muted-foreground hover:bg-muted'
     "
     role="link"
     @click="router.push(props.path)"
