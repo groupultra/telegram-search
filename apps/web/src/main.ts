@@ -14,7 +14,7 @@ import { en, zhCN } from './locales'
 import '@unocss/reset/tailwind.css'
 import 'uno.css'
 import 'vue-sonner/style.css'
-import '@tg-search/stage-ui/styles/main.css'
+import './styles/main.css'
 
 const app = createApp(App)
 
