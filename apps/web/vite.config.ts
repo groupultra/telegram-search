@@ -56,6 +56,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      devOptions: {
+        enabled: true,
+      },
       manifest: {
         name: 'Telegram Search',
         short_name: 'TG Search',

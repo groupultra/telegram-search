@@ -42,6 +42,7 @@
     "vite-plugin-pwa": "^1.0.3",
     "vite-plugin-vue-devtools": "^8.0.2",
     "vite-plugin-vue-layouts": "^0.11.0",
-    "vue-tsc": "^3.0.8"
+    "vue-tsc": "^3.0.8",
+    "workbox-window": "^7.3.0"
   }
 }

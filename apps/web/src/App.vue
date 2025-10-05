@@ -12,7 +12,7 @@ import { usePWAStore } from './stores/pwa'
 const settings = storeToRefs(useSettingsStore())
 
 onMounted(() => {
-  usePWAStore()
+  usePWAStore().init()
   useSettingsStore().init()
   useBridgeStore().init()
   useAuthStore().init()
