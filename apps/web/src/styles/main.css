@@ -83,3 +83,22 @@ html.dark::view-transition-new(root) {
 
 :root { --is-dark: 0%; }
 .dark { --is-dark: 100%; }
+
+/* NProgress customization to match app theme */
+#nprogress .bar {
+  background: #0ea5e9 !important; /* Tailwind sky-500, matches primary theme */
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #0ea5e9, 0 0 5px #0ea5e9 !important;
+}
+
+/* Dark mode support for NProgress */
+.dark #nprogress .bar {
+  background: #38bdf8 !important; /* Tailwind sky-400, brighter for dark mode */
+}
+
+.dark #nprogress .peg {
+  box-shadow: 0 0 10px #38bdf8, 0 0 5px #38bdf8 !important;
+}
