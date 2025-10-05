@@ -120,5 +120,16 @@
   },
   "virtualMessageList": {
     "scrolling": "滚动中..."
+  },
+  "base": {
+    "toaster": {
+      "pwaUpdateReady": {
+        "message": "有新的版本可用。请更新到最新版本。",
+        "action": {
+          "notNow": "不更新",
+          "ok": "更新"
+        }
+      }
+    }
   }
 }

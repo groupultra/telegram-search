@@ -6,10 +6,12 @@ import { storeToRefs } from 'pinia'
 import { onMounted, watch } from 'vue'
 import { RouterView } from 'vue-router'
 import { Toaster } from 'vue-sonner'
+import { usePWAStore } from './stores/pwa'
 
 const settings = storeToRefs(useSettingsStore())
 
 onMounted(() => {
+  usePWAStore()
   useSettingsStore().init()
   useBridgeStore().init()
   useAuthStore().init()

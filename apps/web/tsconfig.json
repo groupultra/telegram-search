@@ -16,7 +16,9 @@
       "node",
       "vite/client",
       "vite-plugin-vue-layouts/client",
-      "unplugin-info/client"
+      "vite-plugin-pwa/client",
+      "unplugin-vue-macros/macros-global",
+      "unplugin-vue-router/client",
     ],
     "allowImportingTsExtensions": true,
     "noEmit": true,

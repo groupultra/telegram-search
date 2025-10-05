@@ -120,5 +120,16 @@
   },
   "virtualMessageList": {
     "scrolling": "Scrolling..."
+  },
+  "base": {
+    "toaster": {
+      "pwaUpdateReady": {
+        "message": "A new version of the app is available. Please update to the latest version.",
+        "action": {
+          "notNow": "Not now",
+          "ok": "Update"
+        }
+      }
+    }
   }
 }
