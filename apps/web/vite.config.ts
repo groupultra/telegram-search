@@ -10,6 +10,7 @@ import VueMacros from 'unplugin-vue-macros/vite'
 import VueRouter from 'unplugin-vue-router/vite'
 import { defineConfig } from 'vite'
 import Inspect from 'vite-plugin-inspect'
+import { VitePWA } from 'vite-plugin-pwa'
 import Devtools from 'vite-plugin-vue-devtools'
 import Layouts from 'vite-plugin-vue-layouts'
 
@@ -51,6 +52,35 @@ export default defineConfig({
     // https://github.com/antfu/unocss
     // see uno.config.ts for config
     UnoCSS(),
+
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg'],
+      manifest: {
+        name: 'Telegram Search',
+        short_name: 'TG Search',
+        description: 'Search and explore Telegram content with a rich progressive web experience.',
+        theme_color: '#0f172a',
+        background_color: '#0f172a',
+        start_url: '/',
+        display: 'standalone',
+        lang: 'en',
+        icons: [
+          {
+            src: 'favicon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any',
+          },
+          {
+            src: 'favicon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'maskable',
+          },
+        ],
+      },
+    }),
 
     DrizzleORMMigrations({
       root: '../..',

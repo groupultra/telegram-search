@@ -2,6 +2,7 @@ import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
+import { registerSW } from 'virtual:pwa-register'
 import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -33,6 +34,11 @@ const i18n = createI18n({
     en,
     zhCN,
   },
+})
+
+// Register immediately so returning visitors always see the freshest offline bundle.
+registerSW({
+  immediate: true,
 })
 
 app.use(i18n)
