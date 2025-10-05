@@ -76,7 +76,9 @@ docker run -d --name telegram-search \
 | `EMBEDDING_PROVIDER` | 选填 | 指定嵌入服务提供商（`openai` 或 `ollama`）。 |
 | `EMBEDDING_MODEL` | 选填 | 覆盖默认的嵌入模型名称。 |
 | `EMBEDDING_DIMENSION` | 选填 | 覆盖嵌入向量维度（如 `1536`、`1024`、`768`）。 |
-| `PROXY_URL` | 选填 | 代理配置 URL（如 `socks5://user:pass@host:port`）。 |
+| `PROXY_URL` | 选填 | 代理配置 URL（如 `socks5://user:pass@host:port`）。(#366) |
+| `VITE_PREVIEW_ALLOW_ALL_HOSTS` | 选填 | 允许所有主机访问预览页面。(#371) |
+| `VITE_DISABLE_SETTINGS` | 选填 | 禁用设置页面。 |
 
 ### 代理 URL 格式
 

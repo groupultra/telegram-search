@@ -8,6 +8,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { converter } from 'culori'
 import { defu } from 'defu'
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
 export const DEFAULT_THEME_COLORS_HUE = 220.44
 
@@ -17,6 +18,7 @@ const getHueFrom = (color?: string) => color ? convert(color)?.h : DEFAULT_THEME
 export type ChatGroup = DialogType | ''
 
 export const useSettingsStore = defineStore('settings', () => {
+  const disableSettings = ref(import.meta.env.VITE_DISABLE_SETTINGS === 'true')
   const debugMode = useLocalStorage<boolean>('settings/debug', false)
   const selectedGroup = useLocalStorage<ChatGroup>('settings/group-selected', 'user')
   const useCachedMessage = useLocalStorage<boolean>('settings/use-cached-message-v2', true)
@@ -68,6 +70,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return {
     init,
+    disableSettings,
     theme,
     themeColorsHue,
     themeColorsHueDynamic,

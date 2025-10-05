@@ -76,7 +76,9 @@ docker run -d --name telegram-search \
 | `EMBEDDING_PROVIDER` | 任意 | 埋め込みプロバイダーを上書き（`openai` または `ollama`）。 |
 | `EMBEDDING_MODEL` | 任意 | 使用する埋め込みモデル名を上書き。 |
 | `EMBEDDING_DIMENSION` | 任意 | 埋め込みベクトルの次元数を上書き（`1536`、`1024`、`768` など）。 |
-| `PROXY_URL` | 任意 | プロキシ設定URL（例：`socks5://user:pass@host:port`）。 |
+| `PROXY_URL` | 任意 | プロキシ設定URL（例：`socks5://user:pass@host:port`）。(#366) |
+| `VITE_PREVIEW_ALLOW_ALL_HOSTS` | 任意 | プレビュー ページへのすべてのホストのアクセスを許可します。(#371) |
+| `VITE_DISABLE_SETTINGS` | 任意 | 設定ページを無効化。 |
 
 ### プロキシURL形式
 

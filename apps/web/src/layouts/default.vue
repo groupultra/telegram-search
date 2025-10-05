@@ -18,7 +18,7 @@ import Avatar from '../components/ui/Avatar.vue'
 import { Button } from '../components/ui/Button'
 
 const settingsStore = useSettingsStore()
-const { theme } = storeToRefs(settingsStore)
+const { theme, disableSettings } = storeToRefs(settingsStore)
 const isDark = useDark()
 
 const websocketStore = useBridgeStore()
@@ -187,6 +187,7 @@ function closeMobileDrawer() {
         />
 
         <SidebarSelector
+          v-if="!disableSettings"
           path="/settings"
           icon="i-lucide-settings"
           :name="t('settings.settings')"
