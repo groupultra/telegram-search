@@ -13,6 +13,7 @@ import Inspect from 'vite-plugin-inspect'
 import { VitePWA } from 'vite-plugin-pwa'
 import Devtools from 'vite-plugin-vue-devtools'
 import Layouts from 'vite-plugin-vue-layouts'
+import { Workbox } from 'workbox-window'
 
 export default defineConfig({
   plugins: [
@@ -83,6 +84,9 @@ export default defineConfig({
           },
         ],
       },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+      }
     }),
 
     DrizzleORMMigrations({
