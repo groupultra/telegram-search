@@ -1,12 +1,14 @@
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
-import { App, en, zhCN } from '@tg-search/stage-ui'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
 import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
 import { createRouter, createWebHistory } from 'vue-router'
 import { routes as generatedRoutes } from 'vue-router/auto-routes'
+
+import App from './App.vue'
+import { en, zhCN } from './locales'
 
 import '@unocss/reset/tailwind.css'
 import 'uno.css'

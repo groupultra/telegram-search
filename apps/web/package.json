@@ -16,7 +16,6 @@
     "@tanstack/vue-query": "^5.90.2",
     "@tg-search/client": "workspace:^",
     "@tg-search/core": "workspace:^",
-    "@tg-search/stage-ui": "workspace:^",
     "@vueuse/core": "^13.9.0",
     "defu": "^6.1.4",
     "pinia": "^3.0.3",
