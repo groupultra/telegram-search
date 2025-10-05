@@ -31,13 +31,9 @@ export default defineConfig({
     Devtools(),
 
     // https://github.com/posva/unplugin-vue-router
-    VueRouter({
-      routesFolder: '../../packages/stage-ui/src/pages',
-    }),
+    VueRouter(),
 
-    Layouts({
-      layoutsDirs: '../../packages/stage-ui/src/layouts',
-    }),
+    Layouts(),
 
     VueMacros({
       defineOptions: false,
