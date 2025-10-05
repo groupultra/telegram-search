@@ -3,6 +3,8 @@
 # ---------------------------------
 FROM node:alpine3.21 AS builder
 
+RUN apk add --no-cache git
+
 # Install pnpm and basic tools
 RUN corepack enable && corepack prepare pnpm@latest --activate
 

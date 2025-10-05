@@ -11,7 +11,6 @@ import { configSchema, generateDefaultConfig } from './config-schema'
 import { parseProxyUrl } from './proxy-url-parser'
 
 let config: Config
-const logger = useLogger('common:config')
 const CONFIG_STORAGE_KEY = 'settings/config'
 
 export function getDatabaseDSN(config: Config): string {
@@ -24,7 +23,7 @@ function validateAndMergeConfig(newConfig: Partial<Config>, baseConfig?: Config)
   const validatedConfig = safeParse(configSchema, mergedConfig)
 
   if (!validatedConfig.success) {
-    logger.withFields({ issues: validatedConfig.issues }).error('Failed to validate config')
+    useLogger().withFields({ issues: validatedConfig.issues }).error('Failed to validate config')
     throw new Error('Failed to validate config')
   }
 
@@ -114,6 +113,28 @@ function applyProxyOverrides(config: Config, flags?: RuntimeFlags): void {
   }
 }
 
+function applyRuntimeOverrides(baseConfig: Config, flags?: RuntimeFlags): Config {
+  const runtimeConfig: Config = {
+    ...baseConfig,
+    database: { ...baseConfig.database },
+  }
+
+  if (baseConfig.api) {
+    runtimeConfig.api = { ...baseConfig.api }
+  }
+
+  // Apply database URL override
+  runtimeConfig.database.type = flags?.dbProvider || runtimeConfig.database.type
+  runtimeConfig.database.url = flags?.dbUrl || runtimeConfig.database.url || getDatabaseDSN(runtimeConfig)
+
+  // Apply API overrides
+  applyTelegramOverrides(runtimeConfig, flags)
+  applyEmbeddingOverrides(runtimeConfig, flags)
+  applyProxyOverrides(runtimeConfig, flags)
+
+  return runtimeConfig
+}
+
 export async function initConfig(flags?: RuntimeFlags) {
   if (isBrowser()) {
     const configStorage = useLocalStorage(CONFIG_STORAGE_KEY, generateDefaultConfig())
@@ -145,39 +166,16 @@ export async function initConfig(flags?: RuntimeFlags) {
 
   config = runtimeConfig
 
-  logger.withFields(config).log('Config loaded')
+  useLogger().withFields(config).log('Config loaded')
   return config
 }
 
-function applyRuntimeOverrides(baseConfig: Config, flags?: RuntimeFlags): Config {
-  const runtimeConfig: Config = {
-    ...baseConfig,
-    database: { ...baseConfig.database },
-  }
-
-  if (baseConfig.api) {
-    runtimeConfig.api = { ...baseConfig.api }
-  }
-
-  // Apply database URL override
-  runtimeConfig.database.type = flags?.dbProvider || runtimeConfig.database.type
-  runtimeConfig.database.url = flags?.dbUrl || runtimeConfig.database.url || getDatabaseDSN(runtimeConfig)
-
-  // Apply API overrides
-  applyTelegramOverrides(runtimeConfig, flags)
-  applyEmbeddingOverrides(runtimeConfig, flags)
-  applyProxyOverrides(runtimeConfig, flags)
-
-  return runtimeConfig
-}
-
 export async function updateConfig(newConfig: Partial<Config>) {
+  const validatedConfig = validateAndMergeConfig(newConfig, config)
+  useLogger().withFields({ config: validatedConfig }).log('Updating config')
+
   if (isBrowser()) {
     const configStorage = useLocalStorage(CONFIG_STORAGE_KEY, generateDefaultConfig())
-
-    const validatedConfig = validateAndMergeConfig(newConfig, config)
-
-    logger.withFields({ config: validatedConfig }).log('Updating config')
 
     config = validatedConfig
     configStorage.value = config
@@ -189,12 +187,9 @@ export async function updateConfig(newConfig: Partial<Config>) {
   const { writeFileSync } = await import('node:fs')
   const { stringify } = await import('yaml')
 
-  const configPath = await useConfigPath()
-
-  const validatedConfig = validateAndMergeConfig(newConfig, config)
   validatedConfig.database.url = getDatabaseDSN(validatedConfig)
 
-  logger.withFields({ config: validatedConfig }).log('Updating config')
+  const configPath = await useConfigPath()
   writeFileSync(configPath, stringify(validatedConfig))
 
   config = validatedConfig

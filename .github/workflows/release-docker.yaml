@@ -17,13 +17,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Fetch version
         id: version
         run: |
           export LAST_TAGGED_COMMIT=$(git rev-list --tags --max-count=1)
-          export LAST_TAG=$(git describe --tags $LAST_TAGGED_COMMIT)
-          echo "version=${LAST_TAG#v}" >> $GITHUB_OUTPUT
+          if [ -z "$LAST_TAGGED_COMMIT" ]; then
+            echo "No tags found, using 'dev' as version"
+            echo "version=dev" >> $GITHUB_OUTPUT
+          else
+            export LAST_TAG=$(git describe --tags $LAST_TAGGED_COMMIT)
+            echo "version=${LAST_TAG#v}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

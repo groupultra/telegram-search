@@ -37,7 +37,6 @@ const messageResolvers = [
   { key: 'user' },
   { key: 'link' },
   { key: 'embedding' },
-  { key: 'jieba' },
 ]
 
 // Computed properties for message resolver switches

@@ -75,7 +75,14 @@ Set the following environment variables before starting the containerized servic
 | `EMBEDDING_PROVIDER` | optional | Override embedding provider (`openai` or `ollama`). |
 | `EMBEDDING_MODEL` | optional | Override embedding model name. |
 | `EMBEDDING_DIMENSION` | optional | Override embedding dimension (e.g. `1536`, `1024`, `768`). |
-| `PROXY_URL` | optional | Proxy configuration URL (e.g., `socks5://user:pass@host:port`). |
+| `PROXY_URL` | optional | Proxy configuration URL (e.g., `socks5://user:pass@host:port`). (#366) |
+
+The following environment variables can only take effect at compile time (not at `docker run` time):
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `VITE_PREVIEW_ALLOW_ALL_HOSTS` | optional (`true`) | Allow all hosts to access preview page. (#371) |
+| `VITE_DISABLE_SETTINGS` | optional (`true`) | Disable settings page. |
 
 ### Proxy URL Format
 
