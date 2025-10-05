@@ -184,34 +184,52 @@ pnpm run web:dev
 
 ## 🏗️ Architecture
 
+### Package Structure
+
+The project is organized as a monorepo with the following packages:
+
+- **`apps/web`**: Frontend application built with Vue 3, Pinia, and Vue Router
+- **`apps/server`**: Backend WebSocket server for real-time communication
+- **`packages/client`**: Client-side adapters, event handlers, and stores
+- **`packages/core`**: Core event system, services, database models, and business logic
+- **`packages/common`**: Shared utilities and logger configuration
+
 ```mermaid
 graph TB
-    subgraph "🖥️ Frontend Layer"
-        Frontend["Web Frontend<br/>(Vue 3 + Pinia)"]
-        Electron["Electron Desktop"]
+    subgraph "🖥️ Frontend Layer (apps/web)"
+        Frontend["Web Application<br/>(Vue 3 + Pinia + Vue Router)"]
+    end
+
+    subgraph "📦 Client Package (packages/client)"
+        subgraph "Client Adapters"
+            WsAdapter["WebSocket Adapter"]
+            CoreBridge["Core Bridge Adapter"]
+        end
         
         subgraph "Client Event Handlers"
             ClientAuth["Auth Handler"]
             ClientMessage["Message Handler"] 
             ClientStorage["Storage Handler"]
             ClientEntity["Entity Handler"]
+            ClientDialog["Dialog Handler"]
+            ClientConfig["Config Handler"]
             ClientServer["Server Handler"]
+        end
+        
+        subgraph "Client Stores"
+            AuthStore["Auth Store"]
+            ChatStore["Chat Store"]
+            MessageStore["Message Store"]
+            SettingsStore["Settings Store"]
+            SyncTaskStore["Sync Task Store"]
         end
     end
 
     subgraph "🌐 Communication Layer"
-        WS["WebSocket Event Bridge<br/>Real-time Bidirectional<br/>• Event Registration<br/>• Event Forwarding<br/>• Session Management"]
+        WS["WebSocket Server<br/>(apps/server)<br/>Real-time Bidirectional<br/>• Event Registration<br/>• Event Forwarding<br/>• Session Management"]
     end
 
-    subgraph "🚀 Backend Service Layer"
-        Server["Backend Server<br/>(REST API)"]
-        
-        subgraph "Session Management"
-            SessionMgr["Session Manager<br/>• Client State<br/>• CoreContext Instance<br/>• Event Listeners"]
-        end
-    end
-
-    subgraph "🎯 Core Event System"
+    subgraph "🎯 Core Package (packages/core)"
         Context["CoreContext<br/>🔥 Central Event Bus<br/>(EventEmitter3)<br/>• ToCoreEvent<br/>• FromCoreEvent<br/>• Event Wrappers<br/>• Error Handling"]
         
         subgraph "Core Event Handlers"
@@ -221,67 +239,98 @@ graph TB
             StorageHandler["📦 Storage Handler"]
             ConfigHandler["⚙️ Config Handler"]
             EntityHandler["👤 Entity Handler"]
+            SessionHandler["🔑 Session Handler"]
             GramEventsHandler["📡 Gram Events Handler"]
             MessageResolverHandler["🔄 Message Resolver Handler"]
+            TakeoutHandler["📤 Takeout Handler"]
         end
-    end
-
-    subgraph "🔧 Business Service Layer"
-        subgraph "Services"
-            AuthService["Authentication<br/>Service"]
-            MessageService["Message<br/>Service"]
-            DialogService["Dialog<br/>Service"]
-            StorageService["Storage<br/>Service"]
-            ConfigService["Config<br/>Service"]
-            EntityService["Entity<br/>Service"]
-            ConnectionService["Connection<br/>Service"]
-            TakeoutService["Takeout<br/>Service"]
+        
+        subgraph "Core Services"
+            AuthService["Authentication Service"]
+            MessageService["Message Service"]
+            DialogService["Dialog Service"]
+            StorageService["Storage Service"]
+            ConfigService["Config Service"]
+            EntityService["Entity Service"]
+            SessionService["Session Service"]
+            ConnectionService["Connection Service"]
+            TakeoutService["Takeout Service"]
         end
         
         subgraph "Message Processing Pipeline"
-            MsgResolverService["Message Resolver<br/>Service"]
+            MsgResolverService["Message Resolver Service"]
             
             subgraph "Message Resolvers"
-                EmbeddingResolver["🤖 Embedding<br/>Resolver<br/>(OpenAI)"]
-                JiebaResolver["📚 Jieba<br/>Resolver<br/>(Chinese Segmentation)"]
-                LinkResolver["🔗 Link<br/>Resolver"]
-                MediaResolver["📸 Media<br/>Resolver"]
-                UserResolver["👤 User<br/>Resolver"]
+                EmbeddingResolver["🤖 Embedding Resolver<br/>(OpenAI/Ollama)"]
+                JiebaResolver["📚 Jieba Resolver<br/>(Chinese Segmentation)"]
+                LinkResolver["🔗 Link Resolver"]
+                MediaResolver["📸 Media Resolver"]
+                UserResolver["👤 User Resolver"]
             end
+        end
+        
+        subgraph "Database Layer"
+            Models["Database Models"]
+            Schemas["Drizzle Schemas"]
         end
     end
 
-    subgraph "🗄️ Data Layer"
-        DB["PostgreSQL<br/>+ pgvector"]
-        Drizzle["Drizzle ORM"]
+    subgraph "🗄️ Data Storage"
+        DB["Database<br/>(PostgreSQL + pgvector)<br/>or (PGlite)"]
     end
 
     subgraph "📡 External APIs"
         TelegramAPI["Telegram API<br/>(gram.js)"]
-        OpenAI["OpenAI API<br/>Vector Embeddings"]
+        EmbeddingAPI["Embedding API<br/>(OpenAI/Ollama)"]
     end
 
-    %% WebSocket Event Flow
-    Frontend -.->|"WsEventToServer<br/>• auth:login<br/>• message:query<br/>• dialog:fetch"| WS
-    WS -.->|"WsEventToClient<br/>• message:data<br/>• auth:status<br/>• storage:progress"| Frontend
+    subgraph "🛠️ Common Package (packages/common)"
+        Logger["Logger (@unbird/logg)"]
+        Utils["Shared Utilities"]
+    end
+
+    %% Frontend to Client Package
+    Frontend --> WsAdapter
+    Frontend --> CoreBridge
+    Frontend --> AuthStore
+    Frontend --> ChatStore
+    Frontend --> MessageStore
+    Frontend --> SettingsStore
+    Frontend --> SyncTaskStore
+
+    %% Client Package Internal
+    WsAdapter --> ClientAuth
+    WsAdapter --> ClientMessage
+    WsAdapter --> ClientStorage
+    WsAdapter --> ClientEntity
+    WsAdapter --> ClientDialog
+    WsAdapter --> ClientConfig
+    WsAdapter --> ClientServer
     
-    Electron -.->|"WebSocket Events"| WS
-    WS -.->|"Real-time Updates"| Electron
+    ClientAuth --> AuthStore
+    ClientMessage --> MessageStore
+    ClientStorage --> SyncTaskStore
+    ClientEntity --> ChatStore
+    ClientDialog --> ChatStore
 
-    %% Server Layer
-    WS <--> Server
-    Server --> SessionMgr
-    SessionMgr --> Context
+    %% WebSocket Event Flow
+    WsAdapter -.->|"WsEventToServer<br/>• auth:login<br/>• message:query<br/>• dialog:fetch<br/>• storage:sync"| WS
+    WS -.->|"WsEventToClient<br/>• message:data<br/>• auth:status<br/>• storage:progress<br/>• dialog:list"| WsAdapter
 
-    %% Core Event System (Key Architecture Highlight)
+    %% Server to Core
+    WS <--> Context
+
+    %% Core Event System
     Context <==> AuthHandler
     Context <==> MessageHandler
     Context <==> DialogHandler
     Context <==> StorageHandler
     Context <==> ConfigHandler
     Context <==> EntityHandler
+    Context <==> SessionHandler
     Context <==> GramEventsHandler
     Context <==> MessageResolverHandler
+    Context <==> TakeoutHandler
 
     %% Event Handlers to Services
     AuthHandler --> AuthService
@@ -290,8 +339,10 @@ graph TB
     StorageHandler --> StorageService
     ConfigHandler --> ConfigService
     EntityHandler --> EntityService
+    SessionHandler --> SessionService
     GramEventsHandler --> ConnectionService
     MessageResolverHandler --> MsgResolverService
+    TakeoutHandler --> TakeoutService
 
     %% Message Processing Pipeline
     MessageService --> MsgResolverService
@@ -302,69 +353,126 @@ graph TB
     MsgResolverService --> UserResolver
 
     %% Data Layer
-    StorageService --> Drizzle
-    Drizzle --> DB
+    StorageService --> Models
+    Models --> Schemas
+    Schemas --> DB
 
     %% External APIs
     AuthService --> TelegramAPI
     MessageService --> TelegramAPI
     DialogService --> TelegramAPI
     EntityService --> TelegramAPI
-    EmbeddingResolver --> OpenAI
+    ConnectionService --> TelegramAPI
+    SessionService --> TelegramAPI
+    EmbeddingResolver --> EmbeddingAPI
 
-    %% Client Event System
-    Frontend --> ClientAuth
-    Frontend --> ClientMessage
-    Frontend --> ClientStorage
-    Frontend --> ClientEntity
-    Frontend --> ClientServer
+    %% Common Package Usage
+    Context --> Logger
+    AuthService --> Logger
+    MessageService --> Logger
+    StorageService --> Logger
 
     %% Styling
     classDef frontend fill:#4CAF50,stroke:#2E7D32,color:#fff,stroke-width:2px
+    classDef client fill:#8BC34A,stroke:#558B2F,color:#fff,stroke-width:2px
     classDef websocket fill:#FF9800,stroke:#E65100,color:#fff,stroke-width:3px
-    classDef server fill:#2196F3,stroke:#1565C0,color:#fff,stroke-width:2px
     classDef context fill:#E91E63,stroke:#AD1457,color:#fff,stroke-width:4px
     classDef handler fill:#9C27B0,stroke:#6A1B9A,color:#fff,stroke-width:2px
     classDef service fill:#607D8B,stroke:#37474F,color:#fff,stroke-width:2px
     classDef resolver fill:#795548,stroke:#3E2723,color:#fff,stroke-width:2px
     classDef data fill:#3F51B5,stroke:#1A237E,color:#fff,stroke-width:2px
     classDef external fill:#F44336,stroke:#C62828,color:#fff,stroke-width:2px
+    classDef common fill:#00BCD4,stroke:#006064,color:#fff,stroke-width:2px
 
-    class Frontend,Electron,ClientAuth,ClientMessage,ClientStorage,ClientEntity,ClientServer frontend
+    class Frontend frontend
+    class WsAdapter,CoreBridge,ClientAuth,ClientMessage,ClientStorage,ClientEntity,ClientDialog,ClientConfig,ClientServer,AuthStore,ChatStore,MessageStore,SettingsStore,SyncTaskStore client
     class WS websocket
-    class Server,SessionMgr server
     class Context context
-    class AuthHandler,MessageHandler,DialogHandler,StorageHandler,ConfigHandler,EntityHandler,GramEventsHandler,MessageResolverHandler handler
-    class AuthService,MessageService,DialogService,StorageService,ConfigService,EntityService,ConnectionService,TakeoutService,MsgResolverService service
+    class AuthHandler,MessageHandler,DialogHandler,StorageHandler,ConfigHandler,EntityHandler,SessionHandler,GramEventsHandler,MessageResolverHandler,TakeoutHandler handler
+    class AuthService,MessageService,DialogService,StorageService,ConfigService,EntityService,SessionService,ConnectionService,TakeoutService,MsgResolverService service
     class EmbeddingResolver,JiebaResolver,LinkResolver,MediaResolver,UserResolver resolver
-    class DB,Drizzle data
-    class TelegramAPI,OpenAI external
+    class DB,Models,Schemas data
+    class TelegramAPI,EmbeddingAPI external
+    class Logger,Utils common
 ```
 
 ### Event-Driven Architecture Overview
 
-- **🎯 CoreContext - Central Event Bus**: The heart of the system using EventEmitter3 for managing all events
+#### 📦 Package Responsibilities
+
+- **`packages/core`**: The heart of the application containing:
+  - **CoreContext**: Central event bus using EventEmitter3
+  - **Event Handlers**: Listen to and process events from the event bus
+  - **Services**: Business logic implementations (Auth, Message, Storage, etc.)
+  - **Message Resolvers**: Process messages through various resolvers (Embedding, Jieba, Link, Media, User)
+  - **Database Models & Schemas**: Drizzle ORM models and PostgreSQL schemas
+
+- **`packages/client`**: Client-side integration layer containing:
+  - **Adapters**: WebSocket and Core Bridge adapters for different runtime environments
+  - **Event Handlers**: Client-side event handlers that communicate with the backend
+  - **Stores**: Pinia stores for state management (Auth, Chat, Message, Settings, Sync)
+  - **Composables**: Reusable Vue composition functions
+
+- **`packages/common`**: Shared utilities:
+  - **Logger**: Centralized logging using @unbird/logg
+  - **Utilities**: Common helper functions
+
+- **`apps/server`**: WebSocket server:
+  - Manages WebSocket connections
+  - Routes events between clients and CoreContext instances
+  - Handles session management
+
+- **`apps/web`**: Vue 3 frontend application:
+  - User interface built with Vue 3, Pinia, and Vue Router
+  - Integrates with packages/client for backend communication
+  - Supports both browser-only mode (with PGlite) and server mode (with PostgreSQL)
+
+#### 🎯 Core Event System
+
+- **CoreContext - Central Event Bus**: The heart of the system using EventEmitter3 for managing all events
   - **ToCoreEvent**: Events sent to the core system (auth:login, message:query, etc.)
   - **FromCoreEvent**: Events emitted from core system (message:data, auth:status, etc.)
   - **Event Wrapping**: Automatic error handling and logging for all events
   - **Session Management**: Each client session gets its own CoreContext instance
 
-- **🌐 WebSocket Event Bridge**: Real-time bidirectional communication layer
+#### 🌐 Communication Layer
+
+- **WebSocket Server**: Real-time bidirectional communication
   - **Event Registration**: Clients register for specific events they want to receive
   - **Event Forwarding**: Seamlessly forwards events between frontend and CoreContext
   - **Session Persistence**: Maintains client state and event listeners across connections
 
-- **🔄 Message Processing Pipeline**: Stream-based message processing through multiple resolvers
-  - **Embedding Resolver**: Generates vector embeddings using OpenAI for semantic search
-  - **Jieba Resolver**: Chinese word segmentation for better search capabilities
-  - **Link/Media/User Resolvers**: Extract and process various message content types
+- **Client Adapters**: Support multiple runtime environments
+  - **WebSocket Adapter**: For server mode with real-time backend connection
+  - **Core Bridge Adapter**: For browser-only mode with in-browser database (PGlite)
 
-- **📡 Event Flow**:
-  1. Frontend emits events via WebSocket (e.g., `auth:login`, `message:query`)
-  2. Server forwards events to appropriate CoreContext instance
-  3. Event handlers process events and call corresponding services
-  4. Services emit result events back through CoreContext
-  5. WebSocket forwards events to frontend for real-time updates
+#### 🔄 Message Processing Pipeline
+
+Stream-based message processing through multiple resolvers:
+- **Embedding Resolver**: Generates vector embeddings using OpenAI/Ollama for semantic search
+- **Jieba Resolver**: Chinese word segmentation for better search capabilities
+- **Link Resolver**: Extracts and processes links from messages
+- **Media Resolver**: Handles media attachments (photos, videos, documents)
+- **User Resolver**: Processes user mentions and references
+
+#### 📡 Event Flow
+
+1. **Frontend** → User interaction triggers an action in Vue component
+2. **Client Store** → Store dispatches an event via WebSocket Adapter
+3. **WebSocket** → Event is sent to backend server
+4. **CoreContext** → Event bus routes to appropriate event handler
+5. **Event Handler** → Processes event and calls corresponding service
+6. **Service** → Executes business logic (may call Telegram API or database)
+7. **Service** → Emits result event back through CoreContext
+8. **WebSocket** → Forwards event to frontend client
+9. **Client Event Handler** → Updates client store with new data
+10. **Frontend** → Vue components reactively update UI
+
+#### 🗄️ Database Support
+
+The application supports two database modes:
+- **PostgreSQL + pgvector**: For production deployments with full vector search capabilities
+- **PGlite**: In-browser PostgreSQL for browser-only mode (experimental)
 
 ## 🚀 Activity
 
