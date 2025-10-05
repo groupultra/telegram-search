@@ -4,12 +4,11 @@ import NProgress from 'nprogress'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
 import { createApp } from 'vue'
-import { createI18n } from 'vue-i18n'
 import { createRouter, createWebHistory } from 'vue-router'
 import { routes as generatedRoutes } from 'vue-router/auto-routes'
 
 import App from './App.vue'
-import { en, zhCN } from './locales'
+import { i18n } from './modules/i18n'
 
 import '@unocss/reset/tailwind.css'
 import 'uno.css'
@@ -46,17 +45,6 @@ router.afterEach(() => {
 
 router.onError(() => {
   NProgress.done()
-})
-
-const i18n = createI18n({
-  legacy: false,
-  locale: 'en',
-  fallbackLocale: 'en',
-  globalInjection: true,
-  messages: {
-    en,
-    zhCN,
-  },
 })
 
 app.use(i18n)
