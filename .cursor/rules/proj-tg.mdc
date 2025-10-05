@@ -15,7 +15,7 @@ alwaysApply: true
 
 数据库 ORM 使用 drizzle，使用 gram.js 操作 Telegram。
 
-项目使用 pnpm 作为包管理器，例如 `pnpm run dev:server`。对于安装了 ni 工具的环境，也可以使用 `ni` 和 `nr` 简化命令，例如 `nr dev:server`。
+项目使用 pnpm 作为包管理器，例如 `pnpm run server:dev`。对于安装了 ni 工具的环境，也可以使用 `ni` 和 `nr` 简化命令，例如 `nr server:dev`。
 
 ## Logger
 

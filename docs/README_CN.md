@@ -1,6 +1,6 @@
 ![preview](./assets/preview.png)
 
-<h1 align="center">Telegram Search</h1>
+---
 
 <p align="center">
   <a href="https://trendshift.io/repositories/13868" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13868" alt="groupultra%2Ftelegram-search | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
@@ -18,8 +18,10 @@
   <a href="https://t.me/+Gs3SH2qAPeFhYmU9"><img src="https://img.shields.io/badge/Telegram-%235AA9E6?logo=telegram&labelColor=FFFFFF"></a>
 </p>
 
+> [!WARNING]
 > 我们未发行任何虚拟货币，请勿上当受骗。
->
+
+> [!CAUTION]
 > 本软件仅可导出您自己的聊天记录以便搜索，请勿用于非法用途。
 
 一个功能强大的 Telegram 聊天记录搜索工具，支持向量搜索和语义匹配。基于 OpenAI 的语义向量技术，让你的 Telegram 消息检索更智能、更精准。
@@ -32,40 +34,99 @@
 
 我们提供了一个在线版本，无需自行部署，即可体验 Telegram Search 的全部功能。
 
+> [!NOTE]
 > 我们承诺不会收集任何用户隐私数据，您可以放心使用
 
 访问以下网址开始使用: https://search.lingogram.app
 
 ## 🚀 快速开始
 
-1. 克隆仓库
+### 运行时环境变量
+
+> [!TIP]
+> 所有环境变量都是可选的。应用程序将使用默认设置运行，但您可以通过设置这些变量来自定义行为。
+
+### 使用 Docker 镜像
+
+> [!IMPORTANT]
+> 最简单的开始方式是不带任何配置运行 Docker 镜像。所有功能都将使用合理的默认设置。
+
+1. 不带任何环境变量运行默认镜像：
 
 ```bash
-git clone https://github.com/GramSearch/telegram-search.git
-cd telegram-search
-
-# 切换到 release 分支
-git switch release
+docker run -d --name telegram-search \
+  -p 3333:3333 \
+  -v telegram-search-data:/app/data \
+  ghcr.io/groupultra/telegram-search:latest
 ```
 
-2. 修改配置文件
+<details>
+<summary>带环境变量的示例</summary>
+
+启动容器前请准备以下环境变量：
+
+| 变量 | 是否必填 | 说明 |
+| --- | --- | --- |
+| `TELEGRAM_API_ID` | 选填 | 来自 [my.telegram.org](https://my.telegram.org/apps) 的 Telegram 应用 ID。 |
+| `TELEGRAM_API_HASH` | 选填 | 来自同一页面的 Telegram 应用 Hash。 |
+| `DATABASE_TYPE` | 选填 | 数据库类型（`postgres` 或 `pglite`）。 |
+| `DATABASE_URL` | 选填 | 后端及迁移脚本使用的数据库连接串（仅当 `DATABASE_TYPE` 为 `postgres` 时支持）。 |
+| `EMBEDDING_API_KEY` | 选填 | 向量嵌入提供商的 API Key（OpenAI、Ollama 等）。 |
+| `EMBEDDING_BASE_URL` | 选填 | 自建或兼容服务的 API Base URL。 |
+| `EMBEDDING_PROVIDER` | 选填 | 指定嵌入服务提供商（`openai` 或 `ollama`）。 |
+| `EMBEDDING_MODEL` | 选填 | 覆盖默认的嵌入模型名称。 |
+| `EMBEDDING_DIMENSION` | 选填 | 覆盖嵌入向量维度（如 `1536`、`1024`、`768`）。 |
+| `PROXY_URL` | 选填 | 代理配置 URL（如 `socks5://user:pass@host:port`）。 |
+
+### 代理 URL 格式
+
+`PROXY_URL` 环境变量支持以下格式：
+
+- **SOCKS4**: `socks4://username:password@host:port?timeout=15`
+- **SOCKS5**: `socks5://username:password@host:port?timeout=15`
+- **HTTP**: `http://username:password@host:port?timeout=15`
+- **MTProxy**: `mtproxy://secret@host:port?timeout=15`
+
+示例：
+- `PROXY_URL=socks5://myuser:mypass@proxy.example.com:1080`
+- `PROXY_URL=mtproxy://secret123@mtproxy.example.com:443`
+- `PROXY_URL=socks5://proxy.example.com:1080?timeout=30` （无认证）
 
 ```bash
-# 根据需要，修改 `config/config.yaml` 中的设置
-# 务必修改配置中的 `database.host` 的值为数据库容器的服务名称 "pgvector"
-
-cp config/config.example.yaml config/config.yaml
+docker run -d --name telegram-search \
+  -p 3333:3333 \
+  -v telegram-search-data:/app/data \
+  -e TELEGRAM_API_ID=611335 \
+  -e TELEGRAM_API_HASH=d524b414d21f4d37f08684c1df41ac9c \
+  -e DATABASE_TYPE=postgres \
+  -e DATABASE_URL=postgresql://<postgres-host>:5432/postgres \
+  -e EMBEDDING_API_KEY=sk-xxxx \
+  -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \
+  ghcr.io/groupultra/telegram-search:latest
 ```
 
-3. 启动服务
+请将 `<postgres-host>` 替换为实际的 PostgreSQL 主机名或 IP 地址。
+
+</details>
+
+2. 浏览器访问 `http://localhost:3333` 打开搜索界面。
+
+### 使用 Docker Compose
+
+1. 克隆仓库。
+
+2. 运行 docker compose 启动包括数据库在内的全部服务：
 
 ```bash
 docker compose up -d
 ```
 
-访问 `http://localhost:3333` 即可打开搜索界面。
+3. 浏览器访问 `http://localhost:3333` 打开搜索界面。
 
 ## 💻 开发教程
+
+> [!CAUTION]
+> 开发模式需要 Node.js >= 22.18 和 pnpm。请确保在继续之前安装了正确的版本。
 
 ### 网页模式
 
@@ -77,7 +138,13 @@ docker compose up -d
 pnpm install
 ```
 
-3. 启动开发服务器：
+3. 复制环境变量文件
+
+```bash
+cp .env.example .env
+```
+
+4. 启动开发服务器：
 
 ```bash
 pnpm run dev
@@ -95,6 +162,10 @@ pnpm install
 
 3. 修改配置文件
 
+```bash
+cp config/config.example.yaml config/config.yaml
+```
+
 4. 启动数据库容器：
 
 ```bash
@@ -102,20 +173,14 @@ pnpm install
 docker compose up -d pgvector
 ```
 
-5. 同步数据库表结构：
-
-```bash
-pnpm run db:migrate
-```
-
-6. 启动服务：
+5. 启动服务：
 
 ```bash
 # 启动后端服务
-pnpm run dev:server
+pnpm run server:dev
 
 # 启动前端界面
-pnpm run dev:frontend
+pnpm run web:dev
 ```
 
 ## 🏗️ 系统架构

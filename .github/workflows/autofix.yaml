@@ -1,10 +1,11 @@
 name: autofix.ci
-on:
-  pull_request:
-    branches: [main]
 
 permissions:
   contents: read
+
+on:
+  pull_request:
+    branches: [main]
 
 jobs:
   autofix:
@@ -18,7 +19,7 @@ jobs:
           cache: pnpm
 
       - run: pnpm install
-      - run: pnpm run typecheck
+      - run: pnpm prune && pnpm dedupe
       - run: pnpm run lint:fix
 
       - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27

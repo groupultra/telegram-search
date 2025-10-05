@@ -5,7 +5,6 @@ import type { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 import { IdbFs, PGlite } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
 import { migrate } from '@proj-airi/drizzle-orm-browser-migrator/pglite'
-import { flags } from '@tg-search/common'
 import { defineInvokeEventa, defineInvokeHandler } from '@unbird/eventa'
 import { createContext } from '@unbird/eventa/adapters/websocket/native'
 import { sql } from 'drizzle-orm'
@@ -26,8 +25,14 @@ async function applyMigrations(logger: Logger, db: PgliteDB) {
   }
 }
 
-export async function initPgliteDrizzleInBrowser(logger: Logger, options?: { debuggerWebSocketUrl?: string }) {
-  logger.log('Initializing database...')
+export async function initPgliteDrizzleInBrowser(
+  logger: Logger,
+  options: {
+    debuggerWebSocketUrl?: string
+    isDatabaseDebugMode?: boolean
+  } = {},
+) {
+  logger.log('Initializing pglite drizzle in browser...')
 
   try {
     logger.log('Using PGlite in browser')
@@ -54,7 +59,7 @@ export async function initPgliteDrizzleInBrowser(logger: Logger, options?: { deb
     }
 
     // Create Drizzle instance
-    const db = drizzle(pglite, { logger: flags.isDatabaseDebugMode }) as PgliteDB
+    const db = drizzle(pglite, { logger: !!options.isDatabaseDebugMode }) as PgliteDB
 
     // Check database connection
     try {

@@ -1,131 +1,4 @@
-![preview](./docs/assets/preview.png)
-
----
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/13868" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13868" alt="groupultra%2Ftelegram-search | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
-
-<p align="center">
-   [<a href="https://search.lingogram.app">Try it Now</a>] [<a href="https://discord.gg/NzYsmJSgCT">Join Discord Server</a>] [<a href="./docs/README_CN.md">简体中文</a>] [<a href="./docs/README_JA.md">日本語</a>]
-</p>
-
-<p align="center">
-  <a href="https://app.netlify.com/projects/tgsearch/deploys"><img src="https://api.netlify.com/api/v1/badges/89bfbfd2-0f73-41b0-8db4-4ab6b6512f6e/deploy-status"></a>
-  <a href="https://deepwiki.com/GramSearch/telegram-search"><img src="https://deepwiki.com/badge.svg"></a>
-  <a href="https://github.com/GramSearch/telegram-search/blob/main/LICENSE"><img src="https://img.shields.io/github/license/GramSearch/telegram-search.svg?style=flat&colorA=080f12&colorB=1fa669"></a>
-    <a href="https://discord.gg/NzYsmJSgCT"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2FNzYsmJSgCT%3Fwith_counts%3Dtrue&query=%24.approximate_member_count&suffix=%20members&logo=discord&logoColor=white&label=%20&color=7389D8&labelColor=6A7EC2"></a>
-  <a href="https://t.me/+Gs3SH2qAPeFhYmU9"><img src="https://img.shields.io/badge/Telegram-%235AA9E6?logo=telegram&labelColor=FFFFFF"></a>
-</p>
-
-> [!WARNING]
-> We have not issued any virtual currency, please do not be deceived.
-
-> [!CAUTION]
-> This software can only export your own chat records for search, please do not use it for illegal purposes.
-
-A powerful Telegram chat history search tool that supports vector search and semantic matching. Based on OpenAI's semantic vector technology, it makes your Telegram message retrieval smarter and more precise.
-
-## 💖 Sponsors
-
-![Sponsors](https://github.com/luoling8192/luoling8192/raw/master/sponsorkit/sponsors.svg)
-## 🌐 Try it Now
-
-We provide an online version where you can experience all features of Telegram Search without self-deployment.
-
-> [!NOTE]
-> We promise not to collect any user privacy data, you can use it with confidence
-
-Visit: https://search.lingogram.app
-
-## 🚀 Quick Start
-
-### Runtime environment variables
-
-> [!TIP]
-> All environment variables are optional. The application will work with default settings, but you can customize behavior by setting these variables.
-
-### Start with Docker Image
-
-> [!IMPORTANT]
-> The simplest way to get started is to run the Docker image without any configuration. All features will work with sensible defaults.
-
-1. Run docker image default without any environment variables:
-
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  ghcr.io/groupultra/telegram-search:latest
-```
-
-<details>
-<summary>Example with environment variables</summary>
-
-Set the following environment variables before starting the containerized services:
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `TELEGRAM_API_ID` | optional | Telegram app ID from [my.telegram.org](https://my.telegram.org/apps). |
-| `TELEGRAM_API_HASH` | optional | Telegram app hash from the same page. |
-| `DATABASE_TYPE` | optional | Database type (`postgres` or `pglite`). |
-| `DATABASE_URL` | optional | Database connection string used by the server and migrations (Only support when `DATABASE_TYPE` is `postgres`). |
-| `EMBEDDING_API_KEY` | optional | API key for the embedding provider (OpenAI key, Ollama token, etc.). |
-| `EMBEDDING_BASE_URL` | optional | Custom base URL for self-hosted or compatible embedding providers. |
-| `EMBEDDING_PROVIDER` | optional | Override embedding provider (`openai` or `ollama`). |
-| `EMBEDDING_MODEL` | optional | Override embedding model name. |
-| `EMBEDDING_DIMENSION` | optional | Override embedding dimension (e.g. `1536`, `1024`, `768`). |
-| `PROXY_URL` | optional | Proxy configuration URL (e.g., `socks5://user:pass@host:port`). |
-
-### Proxy URL Format
-
-The `PROXY_URL` environment variable supports these formats:
-
-- **SOCKS4**: `socks4://username:password@host:port?timeout=15`
-- **SOCKS5**: `socks5://username:password@host:port?timeout=15`
-- **HTTP**: `http://username:password@host:port?timeout=15`
-- **MTProxy**: `mtproxy://secret@host:port?timeout=15`
-
-Examples:
-- `PROXY_URL=socks5://myuser:mypass@proxy.example.com:1080`
-- `PROXY_URL=mtproxy://secret123@mtproxy.example.com:443`
-- `PROXY_URL=socks5://proxy.example.com:1080?timeout=30` (no auth)
-
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  -e TELEGRAM_API_ID=611335 \
-  -e TELEGRAM_API_HASH=d524b414d21f4d37f08684c1df41ac9c \
-  -e DATABASE_TYPE=postgres \
-  -e DATABASE_URL=postgresql://<postgres-host>:5432/postgres \
-  -e EMBEDDING_API_KEY=sk-xxxx \
-  -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \
-  ghcr.io/groupultra/telegram-search:latest
-```
-
-Replace `<postgres-host>` with the hostname or IP address of the PostgreSQL instance you want to use.
-
-</details>
-
-2. Access `http://localhost:3333` to open the search interface.
-
-### Start with Docker Compose
-
-1. Clone repository.
-
-2. Run docker compose to start all services including the database:
-
-```bash
-docker compose up -d
-```
-
-3. Access `http://localhost:3333` to open the search interface.
-
-## 💻 Development Guide
-
-> [!CAUTION]
-> Development mode requires Node.js >= 22.18 and pnpm. Make sure you have the correct versions installed before proceeding.
+## Development Guide
 
 ### Browser Only
 
@@ -137,13 +10,7 @@ docker compose up -d
 pnpm install
 ```
 
-3. Copy environment variables
-
-```bash
-cp .env.example .env
-```
-
-4. Start development server:
+3. Start development server:
 
 ```bash
 pnpm run dev
@@ -182,7 +49,7 @@ pnpm run server:dev
 pnpm run web:dev
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph TB
@@ -365,9 +232,3 @@ graph TB
   3. Event handlers process events and call corresponding services
   4. Services emit result events back through CoreContext
   5. WebSocket forwards events to frontend for real-time updates
-
-## 🚀 Activity
-
-![Alt](https://repobeats.axiom.co/api/embed/69d5ef9f5e72cd7901b32ff71b5f359bc7ca42ea.svg "Repobeats analytics image")
-
-[![Star History Chart](https://api.star-history.com/svg?repos=luoling8192/telegram-search&type=Date)](https://star-history.com/#luoling8192/telegram-search&Date)

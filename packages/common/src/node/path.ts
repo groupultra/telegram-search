@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { useLogger } from '@unbird/logg'
 import { dirname, resolve } from 'pathe'
 
-import { DatabaseType, generateDefaultConfig } from '../config-schema'
+import { DatabaseType } from '../config-schema'
 
 const logger = useLogger()
 
@@ -42,7 +42,7 @@ export async function useConfigPath(): Promise<string> {
 
   if (!fs.existsSync(configPath)) {
     fs.mkdirSync(dirname(configPath), { recursive: true })
-    fs.writeFileSync(configPath, JSON.stringify(generateDefaultConfig()))
+    fs.copyFileSync(resolve(dirname(configPath), 'config.example.yaml'), configPath)
   }
 
   return configPath

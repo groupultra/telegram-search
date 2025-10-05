@@ -36,7 +36,9 @@ function handleSync() {
     increase: increase.value,
   })
 
-  loadingToast.value = toast.loading(t('sync.startSync'))
+  loadingToast.value = toast.loading(t('sync.startSync'), {
+    description: t('sync.startSyncPrompt'),
+  })
 }
 
 function handleAbort() {

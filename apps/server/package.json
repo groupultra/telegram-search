@@ -1,16 +1,16 @@
 {
   "name": "@tg-search/server",
   "type": "module",
-  "version": "1.1.6",
+  "version": "1.1.16",
   "exports": {
     "./types": "./src/types.ts"
   },
   "scripts": {
-    "serve": "vite-node src/app.ts",
     "dev": "vite-node src/app.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "@unbird/logg": "catalog:",
@@ -19,8 +19,5 @@
     "listhen": "^1.9.0",
     "vite-node": "^3.2.4",
     "web-streams-polyfill": "^4.2.0"
-  },
-  "devDependencies": {
-    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3"
   }
 }

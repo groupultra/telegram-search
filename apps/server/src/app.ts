@@ -1,32 +1,15 @@
+import type { RuntimeFlags } from '@tg-search/common'
 import type { CrossWSOptions } from 'listhen'
 
 import process from 'node:process'
 
-import { flags, initConfig, parseEnvFlags } from '@tg-search/common'
+import { initConfig, parseEnvFlags } from '@tg-search/common'
 import { initDrizzle } from '@tg-search/core'
 import { initLogger, useLogger } from '@unbird/logg'
-import { createApp, toNodeListener } from 'h3'
+import { createApp, createRouter, defineEventHandler, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 
 import { setupWsRoutes } from './ws/routes'
-
-async function initCore(): Promise<ReturnType<typeof useLogger>> {
-  parseEnvFlags(process.env as Record<string, string>)
-  initLogger()
-  const logger = useLogger()
-  const config = await initConfig()
-
-  try {
-    await initDrizzle(logger, config)
-    logger.log('Database initialized successfully')
-  }
-  catch (error) {
-    logger.withError(error).error('Failed to initialize services')
-    process.exit(1)
-  }
-
-  return logger
-}
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
   // TODO: fix type
@@ -38,7 +21,7 @@ function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
   process.on('unhandledRejection', error => handleError(error, 'Unhandled rejection'))
 }
 
-function configureServer(logger: ReturnType<typeof useLogger>) {
+function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFlags) {
   const app = createApp({
     debug: flags.isDebugMode,
     onRequest(event) {
@@ -88,16 +71,35 @@ function configureServer(logger: ReturnType<typeof useLogger>) {
   //   }
   // }))
 
+  const router = createRouter()
+  router.get('/health', defineEventHandler(() => {
+    return Response.json({ success: true })
+  }))
+
+  app.use(router)
   setupWsRoutes(app)
 
   return app
 }
 
 async function bootstrap() {
-  const logger = await initCore()
+  const flags = parseEnvFlags(process.env as Record<string, string>)
+  initLogger()
+  const logger = useLogger()
+  const config = await initConfig(flags)
+
+  try {
+    await initDrizzle(logger, config, { isDatabaseDebugMode: flags.isDatabaseDebugMode })
+    logger.log('Database initialized successfully')
+  }
+  catch (error) {
+    logger.withError(error).error('Failed to initialize services')
+    process.exit(1)
+  }
+
   setupErrorHandlers(logger)
 
-  const app = configureServer(logger)
+  const app = configureServer(logger, flags)
   const listener = toNodeListener(app)
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000

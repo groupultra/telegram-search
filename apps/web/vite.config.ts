@@ -104,4 +104,9 @@ export default defineConfig({
       },
     },
   },
+
+  // Allow all hosts in preview mode for reverse proxy deployments by setting VITE_PREVIEW_ALLOW_ALL_HOSTS=true
+  preview: {
+    allowedHosts: env.VITE_PREVIEW_ALLOW_ALL_HOSTS === 'true',
+  },
 })

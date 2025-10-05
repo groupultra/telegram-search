@@ -6,6 +6,7 @@ import type { DialogType } from '@tg-search/core'
 import { generateDefaultConfig } from '@tg-search/common'
 import { useLocalStorage } from '@vueuse/core'
 import { converter } from 'culori'
+import { defu } from 'defu'
 import { defineStore } from 'pinia'
 
 export const DEFAULT_THEME_COLORS_HUE = 220.44
@@ -60,7 +61,13 @@ export const useSettingsStore = defineStore('settings', () => {
     return hueDifference < 0.01 || hueDifference > 359.99
   }
 
+  function init() {
+    // Merge with default config
+    storageConfig.value = defu({}, storageConfig.value, generateDefaultConfig())
+  }
+
   return {
+    init,
     theme,
     themeColorsHue,
     themeColorsHueDynamic,

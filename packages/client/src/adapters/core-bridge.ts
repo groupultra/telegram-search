@@ -25,7 +25,10 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
 
-  function deepClone<T>(data: T): T {
+  function deepClone<T>(data?: T): T | undefined {
+    if (!data)
+      return data
+
     try {
       return JSON.parse(JSON.stringify(data)) as T
     }
@@ -46,7 +49,10 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       config.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_APP_HASH
 
       ctx = createCoreInstance(config)
-      initDrizzle(logger, config, undefined, { debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL })
+      initDrizzle(logger, config, {
+        debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL as string,
+        isDatabaseDebugMode: import.meta.env.VITE_DB_DEBUG === 'true',
+      })
     }
 
     return ctx

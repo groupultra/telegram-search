@@ -1,13 +1,13 @@
 ![preview](./assets/preview.png)
 
-<h1 align="center">Telegram Search</h1>
+---
 
 <p align="center">
   <a href="https://trendshift.io/repositories/13868" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13868" alt="groupultra%2Ftelegram-search | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </p>
 
 <p align="center">
-  [<a href="https://search.lingogram.app">すぐに使用</a>] [<a href="https://discord.gg/NzYsmJSgCT">Discordサーバーに参加</a>] [<a href="../README.md">English</a>] [<a href="./README_CN.md">简体中文</a>]
+  [<a href="https://search.lingogram.app">すぐに使用</a>] [<a href="https://discord.gg/NzYsmJSgCT">Discord サーバーに参加</a>] [<a href="../README.md">English</a>] [<a href="./README_CN.md">简体中文</a>]
 </p>
 
 <p align="center">
@@ -18,11 +18,13 @@
   <a href="https://t.me/+Gs3SH2qAPeFhYmU9"><img src="https://img.shields.io/badge/Telegram-%235AA9E6?logo=telegram&labelColor=FFFFFF"></a>
 </p>
 
+> [!WARNING]
 > 仮想通貨は一切発行していません。詐欺にご注意ください。
->
+
+> [!CAUTION]
 > このソフトウェアは自分のチャット履歴をエクスポートして検索するためのものです。違法な目的で使用しないでください。
 
-ベクトル検索とセマンティックマッチングをサポートする強力なTelegramチャット履歴検索ツール。OpenAIのセマンティックベクトル技術に基づいて、Telegramメッセージの検索をよりスマートで正確にします。
+ベクトル検索とセマンティックマッチングをサポートする強力な Telegram チャット履歴検索ツール。OpenAI のセマンティックベクトル技術に基づいて、Telegram メッセージの検索をよりスマートで正確にします。
 
 ## 💖 スポンサー
 
@@ -30,41 +32,101 @@
 
 ## 🌐 すぐに使用
 
-我々はオンラインバージョンを提供しており、Telegram Searchのすべての機能を体験できます。
+我々はオンラインバージョンを提供しており、Telegram Search のすべての機能を体験できます。
+
+> [!NOTE]
 > 我々はあなたのプライバシーを尊重します。
 
-以下のURLから開始してください: https://search.lingogram.app
+以下の URL から開始してください：https://search.lingogram.app
 
 ## 🚀 クイックスタート
 
-1. リポジトリをクローン:
+### ランタイム環境変数
+
+> [!TIP]
+> すべての環境変数は任意です。アプリケーションはデフォルト設定で動作しますが、これらの変数を設定することで動作をカスタマイズできます。
+
+### Docker イメージから起動
+
+> [!IMPORTANT]
+> 最も簡単な始め方は、設定なしで Docker イメージを実行することです。すべての機能が合理的なデフォルト設定で動作します。
+
+1. 環境変数なしでデフォルトイメージを実行します。
 
 ```bash
-git clone https://github.com/GramSearch/telegram-search.git
-cd telegram-search
-
-# リリースブランチに切り替え
-git switch release
+docker run -d --name telegram-search \
+  -p 3333:3333 \
+  -v telegram-search-data:/app/data \
+  ghcr.io/groupultra/telegram-search:latest
 ```
 
-2. 設定を構成:
+<details>
+<summary>環境変数ありの例</summary>
+
+コンテナを起動する前に、以下の環境変数を設定してください。
+
+| 変数 | 必須 | 説明 |
+| --- | --- | --- |
+| `TELEGRAM_API_ID` | 任意 | [my.telegram.org](https://my.telegram.org/apps) で取得した Telegram アプリ ID。 |
+| `TELEGRAM_API_HASH` | 任意 | 同じページで取得できる Telegram アプリ Hash。 |
+| `DATABASE_TYPE` | 任意 | データベースタイプ（`postgres` または `pglite`）。 |
+| `DATABASE_URL` | 任意 | サーバーとマイグレーションが利用するデータベース接続文字列（`DATABASE_TYPE` が `postgres` の場合のみサポート）。 |
+| `EMBEDDING_API_KEY` | 任意 | 埋め込みプロバイダーの API キー（OpenAI、Ollama など）。 |
+| `EMBEDDING_BASE_URL` | 任意 | 自前ホストや互換プロバイダー向けの API ベース URL。 |
+| `EMBEDDING_PROVIDER` | 任意 | 埋め込みプロバイダーを上書き（`openai` または `ollama`）。 |
+| `EMBEDDING_MODEL` | 任意 | 使用する埋め込みモデル名を上書き。 |
+| `EMBEDDING_DIMENSION` | 任意 | 埋め込みベクトルの次元数を上書き（`1536`、`1024`、`768` など）。 |
+| `PROXY_URL` | 任意 | プロキシ設定URL（例：`socks5://user:pass@host:port`）。 |
+
+### プロキシURL形式
+
+`PROXY_URL` 環境変数は以下の形式をサポートします：
+
+- **SOCKS4**: `socks4://username:password@host:port?timeout=15`
+- **SOCKS5**: `socks5://username:password@host:port?timeout=15`
+- **HTTP**: `http://username:password@host:port?timeout=15`
+- **MTProxy**: `mtproxy://secret@host:port?timeout=15`
+
+例：
+- `PROXY_URL=socks5://myuser:mypass@proxy.example.com:1080`
+- `PROXY_URL=mtproxy://secret123@mtproxy.example.com:443`
+- `PROXY_URL=socks5://proxy.example.com:1080?timeout=30` （認証なし）
 
 ```bash
-# 必要に応じて config/config.yaml の設定を変更します。
-# 設定の database.host の値を "pgvector" に変更してください。
-
-cp config/config.example.yaml config/config.yaml
+docker run -d --name telegram-search \
+  -p 3333:3333 \
+  -v telegram-search-data:/app/data \
+  -e TELEGRAM_API_ID=611335 \
+  -e TELEGRAM_API_HASH=d524b414d21f4d37f08684c1df41ac9c \
+  -e DATABASE_TYPE=postgres \
+  -e DATABASE_URL=postgresql://<postgres-host>:5432/postgres \
+  -e EMBEDDING_API_KEY=sk-xxxx \
+  -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \
+  ghcr.io/groupultra/telegram-search:latest
 ```
 
-3. サービスを起動:
+`<postgres-host>` には利用したい PostgreSQL のホスト名または IP アドレスを指定してください。
+
+</details>
+
+2. http://localhost:3333 にアクセスして検索インターフェースを開きます。
+
+### Docker Compose で起動
+
+1. リポジトリをクローンします。
+
+2. docker compose を実行してすべてのサービスを起動します。
 
 ```bash
 docker compose up -d
 ```
 
-http://localhost:3333 にアクセスして検索インターフェースを開きます。
+3. http://localhost:3333 にアクセスして検索インターフェースを開きます。
 
 ## 💻 開発ガイド
+
+> [!CAUTION]
+> 開発モードには Node.js >= 22.18 と pnpm が必要です。続行する前に正しいバージョンがインストールされていることを確認してください。
 
 ### ウェブモード
 
@@ -76,7 +138,13 @@ http://localhost:3333 にアクセスして検索インターフェースを開�
 pnpm install
 ```
 
-3. 開発サーバーを起動:
+3. 環境を設定
+
+```bash
+cp .env.example .env
+```
+
+4. 開発サーバーを起動：
 
 ```bash
 pnpm run dev
@@ -94,27 +162,25 @@ pnpm install
 
 3. 環境を設定
 
-4. データベースコンテナを起動:
+```bash
+cp config/config.example.yaml config/config.yaml
+```
+
+4. データベースコンテナを起動：
 
 ```bash
-# ローカル開発では、Dockerはデータベースコンテナのみに使用されます。
+# ローカル開発では、Docker はデータベースコンテナのみに使用されます。
 docker compose up -d pgvector
 ```
 
-5. データベーススキーマを同期:
-
-```bash
-pnpm run db:migrate
-```
-
-6. サービスを起動:
+5. サービスを起動：
 
 ```bash
 # バックエンドを起動
-pnpm run dev:server
+pnpm run server:dev
 
 # フロントエンドを起動
-pnpm run dev:frontend
+pnpm run web:dev
 ```
 
 ## 🏗️ アーキテクチャ
@@ -122,8 +188,8 @@ pnpm run dev:frontend
 ```mermaid
 graph TB
     subgraph "🖥️ フロントエンドレイヤー"
-        Frontend["Webフロントエンド<br/>(Vue 3 + Pinia)"]
-        Electron["Electronデスクトップ"]
+        Frontend["Web フロントエンド<br/>(Vue 3 + Pinia)"]
+        Electron["Electron デスクトップ"]
         
         subgraph "クライアントイベントハンドラー"
             ClientAuth["認証ハンドラー"]
@@ -135,14 +201,14 @@ graph TB
     end
 
     subgraph "🌐 通信レイヤー"
-        WS["WebSocketイベントブリッジ<br/>リアルタイム双方向通信<br/>• イベント登録<br/>• イベント転送<br/>• セッション管理"]
+        WS["WebSocket イベントブリッジ<br/>リアルタイム双方向通信<br/>• イベント登録<br/>• イベント転送<br/>• セッション管理"]
     end
 
     subgraph "🚀 バックエンドサービスレイヤー"
         Server["バックエンドサーバー<br/>(REST API)"]
         
         subgraph "セッション管理"
-            SessionMgr["セッションマネージャー<br/>• クライアント状態<br/>• CoreContextインスタンス<br/>• イベントリスナー"]
+            SessionMgr["セッションマネージャー<br/>• クライアント状態<br/>• CoreContext インスタンス<br/>• イベントリスナー"]
         end
     end
 
@@ -156,7 +222,7 @@ graph TB
             StorageHandler["📦 ストレージハンドラー"]
             ConfigHandler["⚙️ 設定ハンドラー"]
             EntityHandler["👤 エンティティハンドラー"]
-            GramEventsHandler["📡 Gramイベントハンドラー"]
+            GramEventsHandler["📡 Gram イベントハンドラー"]
             MessageResolverHandler["🔄 メッセージリゾルバーハンドラー"]
         end
     end
@@ -178,7 +244,7 @@ graph TB
             
             subgraph "メッセージリゾルバー"
                 EmbeddingResolver["🤖 埋め込み<br/>リゾルバー<br/>(OpenAI)"]
-                JiebaResolver["📚 Jieba<br/>リゾルバー<br/>(中国語分割)"]
+                JiebaResolver["📚 Jieba<br/>リゾルバー<br/>（中国語分割）"]
                 LinkResolver["🔗 リンク<br/>リゾルバー"]
                 MediaResolver["📸 メディア<br/>リゾルバー"]
                 UserResolver["👤 ユーザー<br/>リゾルバー"]
@@ -191,16 +257,16 @@ graph TB
         Drizzle["Drizzle ORM"]
     end
 
-    subgraph "📡 外部API"
+    subgraph "📡 外部 API"
         TelegramAPI["Telegram API<br/>(gram.js)"]
         OpenAI["OpenAI API<br/>ベクトル埋め込み"]
     end
 
-    %% WebSocketイベントフロー
+    %% WebSocket イベントフロー
     Frontend -.->|"WsEventToServer<br/>• auth:login<br/>• message:query<br/>• dialog:fetch"| WS
     WS -.->|"WsEventToClient<br/>• message:data<br/>• auth:status<br/>• storage:progress"| Frontend
     
-    Electron -.->|"WebSocketイベント"| WS
+    Electron -.->|"WebSocket イベント"| WS
     WS -.->|"リアルタイム更新"| Electron
 
     %% サーバーレイヤー
@@ -240,7 +306,7 @@ graph TB
     StorageService --> Drizzle
     Drizzle --> DB
 
-    %% 外部API
+    %% 外部 API
     AuthService --> TelegramAPI
     MessageService --> TelegramAPI
     DialogService --> TelegramAPI
@@ -278,28 +344,28 @@ graph TB
 
 ### イベント駆動アーキテクチャの概要
 
-- **🎯 CoreContext - 中央イベントバス**: EventEmitter3を使用してすべてのイベントを管理するシステムの中心
-  - **ToCoreEvent**: コアシステムに送信されるイベント（auth:login、message:queryなど）
-  - **FromCoreEvent**: コアシステムから発行されるイベント（message:data、auth:statusなど）
+- **🎯 CoreContext - 中央イベントバス**: EventEmitter3 を使用してすべてのイベントを管理するシステムの中心
+  - **ToCoreEvent**: コアシステムに送信されるイベント（auth:login、message:query など）
+  - **FromCoreEvent**: コアシステムから発行されるイベント（message:data、auth:status など）
   - **イベントラッピング**: すべてのイベントの自動エラー処理とロギング
-  - **セッション管理**: 各クライアントセッションに独自のCoreContextインスタンス
+  - **セッション管理**: 各クライアントセッションに独自の CoreContext インスタンス
 
-- **🌐 WebSocketイベントブリッジ**: リアルタイム双方向通信レイヤー
+- **🌐 WebSocket イベントブリッジ**: リアルタイム双方向通信レイヤー
   - **イベント登録**: クライアントが受信したい特定のイベントを登録
-  - **イベント転送**: フロントエンドとCoreContext間でイベントをシームレスに転送
+  - **イベント転送**: フロントエンドと CoreContext 間でイベントをシームレスに転送
   - **セッション永続性**: 接続全体でクライアント状態とイベントリスナーを維持
 
 - **🔄 メッセージ処理パイプライン**: 複数のリゾルバーを通じたストリームベースのメッセージ処理
-  - **埋め込みリゾルバー**: セマンティック検索のためにOpenAIを使用してベクトル埋め込みを生成
-  - **Jiebaリゾルバー**: より良い検索機能のための中国語単語分割
+  - **埋め込みリゾルバー**: セマンティック検索のために OpenAI を使用してベクトル埋め込みを生成
+  - **Jieba リゾルバー**: より良い検索機能のための中国語単語分割
   - **リンク/メディア/ユーザーリゾルバー**: さまざまなメッセージコンテンツタイプを抽出して処理
 
 - **📡 イベントフロー**:
-  1. フロントエンドがWebSocket経由でイベントを発行（例: `auth:login`、`message:query`）
-  2. サーバーが適切なCoreContextインスタンスにイベントを転送
+  1. フロントエンドが WebSocket 経由でイベントを発行（例：`auth:login`、`message:query`）
+  2. サーバーが適切な CoreContext インスタンスにイベントを転送
   3. イベントハンドラーがイベントを処理し、対応するサービスを呼び出す
-  4. サービスがCoreContext経由で結果イベントを発行
-  5. WebSocketがリアルタイム更新のためにフロントエンドにイベントを転送
+  4. サービスが CoreContext 経由で結果イベントを発行
+  5. WebSocket がリアルタイム更新のためにフロントエンドにイベントを転送
 
 ## 🚀 アクティビティ
 

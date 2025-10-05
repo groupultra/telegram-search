@@ -13,28 +13,46 @@ export type CoreDB = PostgresDB | PgliteDB
 let dbInstance: CoreDB
 
 // TODO: options? here should contain dbPath, config.
-export async function initDrizzle(logger: Logger, config: Config, dbPath?: string, options?: { debuggerWebSocketUrl?: string }) {
+export async function initDrizzle(
+  logger: Logger,
+  config: Config,
+  options?: {
+    dbPath?: string
+    debuggerWebSocketUrl?: string
+    isDatabaseDebugMode?: boolean
+  },
+) {
   logger.log('Initializing database...')
 
   // Get configuration
-  const dbType = config.database.type || DatabaseType.PGLITE
+  let dbType = config.database.type || DatabaseType.PGLITE
+  if (isBrowser()) {
+    dbType = DatabaseType.PGLITE
+  }
+
   logger.log(`Using database type: ${dbType}`)
 
   switch (dbType) {
     case DatabaseType.POSTGRES: {
       const { initPgDrizzle } = await import('./pg')
-      dbInstance = await initPgDrizzle(logger, config)
+      dbInstance = await initPgDrizzle(logger, config, {
+        isDatabaseDebugMode: options?.isDatabaseDebugMode,
+      })
       break
     }
 
     case DatabaseType.PGLITE: {
       if (isBrowser()) {
         const { initPgliteDrizzleInBrowser } = await import('./pglite.browser')
-        dbInstance = await initPgliteDrizzleInBrowser(logger, options)
+        dbInstance = await initPgliteDrizzleInBrowser(logger, {
+          isDatabaseDebugMode: options?.isDatabaseDebugMode,
+        })
       }
       else {
         const { initPgliteDrizzleInNode } = await import('./pglite')
-        dbInstance = await initPgliteDrizzleInNode(logger, config, dbPath)
+        dbInstance = await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
+          isDatabaseDebugMode: options?.isDatabaseDebugMode,
+        })
       }
       break
     }

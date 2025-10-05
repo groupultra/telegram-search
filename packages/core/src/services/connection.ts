@@ -42,8 +42,10 @@ export function createConnectionService(ctx: CoreContext) {
     const logger = useLogger()
 
     const getProxyInterface = (proxyConfig: ProxyConfig | undefined): ProxyInterface | undefined => {
-      if (!proxyConfig)
+      // Check if we have a valid proxy configuration
+      if (!proxyConfig || !proxyConfig.ip || !proxyConfig.port) {
         return undefined
+      }
 
       if (proxyConfig.MTProxy && proxyConfig.secret) {
         // MTProxy configuration

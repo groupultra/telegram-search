@@ -7,7 +7,6 @@ import fs from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
 import { migrate } from '@proj-airi/drizzle-orm-browser-migrator/pglite'
-import { flags } from '@tg-search/common'
 import { getDatabaseFilePath } from '@tg-search/common/node'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/pglite'
@@ -26,8 +25,15 @@ async function applyMigrations(logger: Logger, db: PgliteDB) {
   }
 }
 
-export async function initPgliteDrizzleInNode(logger: Logger, config: Config, dbPath?: string) {
-  logger.log('Initializing database...')
+export async function initPgliteDrizzleInNode(
+  logger: Logger,
+  config: Config,
+  dbPath?: string,
+  options: {
+    isDatabaseDebugMode?: boolean
+  } = {},
+) {
+  logger.log('Initializing pglite drizzle...')
 
   try {
     const dbFilePath = dbPath || getDatabaseFilePath(config)
@@ -38,7 +44,7 @@ export async function initPgliteDrizzleInNode(logger: Logger, config: Config, db
     })
 
     // Create Drizzle instance
-    const db = drizzle(pglite, { logger: flags.isDatabaseDebugMode }) as PgliteDB
+    const db = drizzle(pglite, { logger: !!options.isDatabaseDebugMode }) as PgliteDB
 
     // Check database connection
     try {

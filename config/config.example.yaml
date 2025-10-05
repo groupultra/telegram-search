@@ -5,7 +5,7 @@ database:
 
   # PostgreSQL configuration (used when type: postgres)
   host: localhost
-  port: 5433 # 5433 for local, 5432 for docker
+  port: 5433
   user: postgres
   password: '123456'
   database: postgres
@@ -18,16 +18,22 @@ api:
     apiId: '611335'
     apiHash: d524b414d21f4d37f08684c1df41ac9c
     receiveMessage: false
+
     # Optional proxy settings
+    # Proxy configuration can be set via environment variables or config file settings.
+    # Environment variables take precedence over config file settings.
+    #
+    # Use PROXY_URL environment variable for simplified proxy configuration
+    # Environment variable: PROXY_URL
+    # Supported formats:
+    # - socks4://username:password@host:port?timeout=15
+    # - socks5://username:password@host:port?timeout=15
+    # - http://username:password@host:port?timeout=15
+    # - mtproxy://secret@host:port?timeout=15
+    #
     # proxy:
-    #   ip: ''            # Proxy host (IP or hostname)
-    #   port: 0          # Proxy port
-    #   MTProxy: false   # Whether it's an MTProxy or a normal Socks proxy
-    #   secret: ''       # If using MTProxy, provide a secret
-    #   socksType: 5     # If using Socks, choose 4 or 5
-    #   timeout: 2       # Timeout (in seconds) for connection
-    #   username: ''     # Optional username for proxy auth
-    #   password: ''     # Optional password for proxy auth
+    #   proxyUrl: 'socks5://username:password@proxy.example.com:1080?timeout=15'
+
   # Embedding settings
   embedding:
     # Embedding provider (openai or ollama)
