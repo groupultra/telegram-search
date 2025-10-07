@@ -1,7 +1,7 @@
 import type { Config } from '../config-schema'
 
 import fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import process from 'node:process'
 
 import { useLogger } from '@unbird/logg'
 import { dirname, resolve } from 'pathe'
@@ -10,7 +10,9 @@ import { DatabaseType } from '../config-schema'
 
 const logger = useLogger()
 
-export const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
+// Use process.cwd() as the root directory, since the server typically starts from the project root
+// This ensures correct behavior in both development and production environments after packaging
+export const ROOT_DIR = resolve(process.cwd(), '..', '..')
 
 export function getRootPath(): string {
   return ROOT_DIR

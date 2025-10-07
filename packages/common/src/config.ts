@@ -3,7 +3,6 @@ import type { RuntimeFlags } from './flags'
 
 import { useLogger } from '@unbird/logg'
 import { isBrowser } from '@unbird/logg/utils'
-import { useLocalStorage } from '@vueuse/core'
 import defu from 'defu'
 import { safeParse } from 'valibot'
 
@@ -137,6 +136,7 @@ function applyRuntimeOverrides(baseConfig: Config, flags?: RuntimeFlags): Config
 
 export async function initConfig(flags?: RuntimeFlags) {
   if (isBrowser()) {
+    const { useLocalStorage } = await import('@vueuse/core')
     const configStorage = useLocalStorage(CONFIG_STORAGE_KEY, generateDefaultConfig())
 
     const savedConfig = configStorage.value
@@ -175,6 +175,7 @@ export async function updateConfig(newConfig: Partial<Config>) {
   useLogger().withFields({ config: validatedConfig }).log('Updating config')
 
   if (isBrowser()) {
+    const { useLocalStorage } = await import('@vueuse/core')
     const configStorage = useLocalStorage(CONFIG_STORAGE_KEY, generateDefaultConfig())
 
     config = validatedConfig

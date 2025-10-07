@@ -4,7 +4,6 @@ import type { CoreContext } from '../context'
 
 import { useLogger } from '@unbird/logg'
 import { Err, Ok } from '@unbird/result'
-import { useLocalStorage } from '@vueuse/core'
 import { StringSession } from 'telegram/sessions'
 
 export interface SessionEventToCore {
@@ -48,6 +47,7 @@ export function createSessionService(ctx: CoreContext) {
       logger.withFields({ sessionKey, phoneNumber }).verbose('Loading session from localStorage')
 
       try {
+        const { useLocalStorage } = await import('@vueuse/core')
         const storage = useLocalStorage<string | null>(sessionKey, null)
         const session = storage.value
 
@@ -67,6 +67,7 @@ export function createSessionService(ctx: CoreContext) {
       const sessionKey = getSessionKey(phoneNumber)
 
       try {
+        const { useLocalStorage } = await import('@vueuse/core')
         const storage = useLocalStorage(sessionKey, session)
         storage.value = session
         logger.withFields({ sessionKey, phoneNumber }).verbose('Saving session to localStorage')
