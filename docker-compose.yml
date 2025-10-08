@@ -21,7 +21,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 3333:3333
+      - 80:80  # Frontend (Nginx)
     depends_on:
       pgvector:
         condition: service_healthy
@@ -33,9 +33,7 @@ services:
       DATABASE_TYPE: postgres
       DATABASE_URL: 'postgresql://postgres:123456@pgvector:5432/postgres'
     healthcheck:
-      test: |
-        curl -f http://localhost:3333 || exit 1;
-        curl -f http://localhost:3333/api/health || exit 1
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
