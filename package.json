@@ -57,9 +57,6 @@
   "pnpm": {
     "overrides": {
       "rollup": "4.52.3"
-    },
-    "patchedDependencies": {
-      "bumpp": "patches/bumpp.patch"
     }
   }
 }

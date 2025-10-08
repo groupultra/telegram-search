@@ -101,7 +101,10 @@
   "i18n-ally.sourceLanguage": "en",
   "i18n-ally.displayLanguage": "zh-CN",
   "i18n-ally.namespace": true,
+
   // eslint
+  "eslint.nodePath": "",
+  "eslint.runtime": "node",
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "[vue]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
