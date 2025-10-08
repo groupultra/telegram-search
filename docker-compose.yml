@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DATABASE: postgres
-      POSTGRES_PASSWORD: '123456'
+      POSTGRES_PASSWORD: "123456"
     volumes:
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgvector_data:/var/lib/postgresql/data
@@ -21,7 +21,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 80:80  # Frontend (Nginx)
+      - 3333:80 # Frontend (Nginx)
     depends_on:
       pgvector:
         condition: service_healthy
@@ -31,9 +31,9 @@ services:
     restart: none
     environment:
       DATABASE_TYPE: postgres
-      DATABASE_URL: 'postgresql://postgres:123456@pgvector:5432/postgres'
+      DATABASE_URL: "postgresql://postgres:123456@pgvector:5432/postgres"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      test: [CMD-SHELL, "curl -f http://localhost/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

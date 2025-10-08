@@ -13,16 +13,13 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy dependency manifests first (for layer caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
+COPY packages/core/package.json ./packages/core/package.json
+COPY packages/common/package.json ./packages/common/package.json
+COPY packages/client/package.json ./packages/client/package.json
+COPY apps/web/package.json ./apps/web/package.json
+COPY apps/server/package.json ./apps/server/package.json
 
-# Copy workspace directories and keep only package.json files
-COPY packages packages
-COPY apps apps
-
-# https://stackoverflow.com/questions/49939960/docker-copy-files-using-glob-pattern
-RUN find packages apps \! -name "package.json" -mindepth 2 -maxdepth 2 -print | xargs rm -rf
-
-# Install dependencies (cached if manifests unchanged)
+# Install dependencies (cached if package.json files unchanged)
 RUN CI=true pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
@@ -59,17 +56,18 @@ RUN apk add --no-cache nginx curl ca-certificates
 # Enable pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package manifests for production install
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
-
-# Copy workspace directories and keep only package.json files
-COPY --from=builder /app/packages packages
-COPY --from=builder /app/apps apps
-RUN find packages apps \! -name "package.json" -mindepth 2 -maxdepth 2 -print | xargs rm -rf
+# Copy package.json files from builder (for workspace structure)
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder /app/packages/core/package.json ./packages/core/package.json
+COPY --from=builder /app/packages/common/package.json ./packages/common/package.json
+COPY --from=builder /app/packages/client/package.json ./packages/client/package.json
+COPY --from=builder /app/apps/server/package.json ./apps/server/package.json
+COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
 
 # Install production dependencies only
-RUN CI=true pnpm install --frozen-lockfile --prod --ignore-scripts
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # Copy built artifacts from builder
 COPY --from=builder /app/packages/core/dist ./packages/core/dist
@@ -85,8 +83,8 @@ COPY --from=web /usr/share/nginx/html /usr/share/nginx/html
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/config/config.example.yaml ./config/config.example.yaml
 
-# Copy root configs needed at runtime
-COPY tsconfig.json drizzle.config.ts ./
+# Copy root configs needed at runtime (including pnpm-workspace.yaml for project root detection)
+COPY pnpm-workspace.yaml tsconfig.json drizzle.config.ts ./
 
 # Environment variables with default values
 ENV DATABASE_TYPE="pglite"
@@ -96,6 +94,9 @@ ENV TELEGRAM_API_HASH="d524b414d21f4d37f08684c1df41ac9c"
 ENV EMBEDDING_API_KEY="sk-proj-1234567890"
 ENV EMBEDDING_BASE_URL="https://api.openai.com/v1"
 ENV PROXY_URL=""
+
+# Declare volumes for data persistence
+VOLUME ["/app/config", "/app/data"]
 
 # Start nginx and server
 CMD ["sh", "-c", "nginx && exec node apps/server/dist/app.mjs"]
