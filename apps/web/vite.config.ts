@@ -111,7 +111,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       // https://github.com/rollup/rollup/issues/6012#issuecomment-3065953828
-      external: ['postgres', 'node:url', 'node:fs', 'node:fs/promises'],
+      external: ['postgres'],
     },
   },
 

@@ -2,7 +2,7 @@
 import { Buffer } from 'buffer'
 import fs from 'node:fs'
 
-import { getDataPath } from '@tg-search/common'
+import { getDataPath } from '@tg-search/common/node/path'
 import { useLogger } from '@unbird/logg'
 import path from 'pathe'
 

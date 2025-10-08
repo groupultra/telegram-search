@@ -9,6 +9,7 @@ export default defineConfig({
   unused: true,
   shims: true,
   fixedExtension: true,
+  sourcemap: true,
   // unbundle: true,
   plugins: [
     DrizzleORMMigrations({
@@ -25,6 +26,7 @@ export default defineConfig({
   noExternal: [
     '@tg-search/core',
     '@tg-search/common',
+    '@tg-search/common/node/path',
     /^telegram\//,
   ],
 })

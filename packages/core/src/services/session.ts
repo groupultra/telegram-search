@@ -4,7 +4,7 @@ import type { CoreContext } from '../context'
 
 import fs from 'node:fs/promises'
 
-import { getSessionPath } from '@tg-search/common'
+import { getSessionPath } from '@tg-search/common/node/path'
 import { useLogger } from '@unbird/logg'
 import { Err, Ok } from '@unbird/result'
 import { dirname, join } from 'pathe'
