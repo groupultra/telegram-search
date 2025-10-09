@@ -64,6 +64,9 @@ watch(currentTaskProgress, (progress) => {
     toast.success(t('sync.syncCompleted'))
     // Complete NProgress
     NProgress.done()
+    if (!increase.value) {
+		  increase.value = true
+		}
   }
   else if (progress < 0 && currentTask.value?.lastError) {
     toast.dismiss(loadingToast.value)

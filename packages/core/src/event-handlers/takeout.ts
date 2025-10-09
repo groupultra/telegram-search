@@ -18,39 +18,142 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
       logger.withFields({ chatIds, increase }).verbose('Running takeout')
       const pagination = usePagination()
 
-      // Increase export
-      const increaseOptions: { chatId: string, firstMessageId: number, latestMessageId: number }[] = await Promise.all(
+      // Get chat message stats for incremental sync
+      const increaseOptions: { chatId: string, firstMessageId: number, latestMessageId: number, messageCount: number }[] = await Promise.all(
         chatIds.map(async (chatId) => {
           const stats = (await getChatMessageStatsByChatId(chatId))?.unwrap()
           return {
             chatId,
-            firstMessageId: stats.first_message_id ?? 0, // Forward increase
-            latestMessageId: stats.latest_message_id ?? 0, // Backward increase
+            firstMessageId: stats?.first_message_id ?? 0, // First synced message ID
+            latestMessageId: stats?.latest_message_id ?? 0, // Latest synced message ID
+            messageCount: stats?.message_count ?? 0, // Number of messages already in DB
           }
         }),
       )
 
-      logger.withFields({ increaseOptions }).verbose('Last message')
+      logger.withFields({ increaseOptions }).verbose('Chat message stats')
 
       let messages: Api.Message[] = []
+      
       for (const chatId of chatIds) {
-        const opts = {
-          pagination: {
-            ...pagination,
-            // Forward increase
-            offset: !increase ? (increaseOptions.find(item => item.chatId === chatId)?.firstMessageId ?? 0) : pagination.offset,
-          },
-          // Backward increase
-          minId: increase ? (increaseOptions.find(item => item.chatId === chatId)?.latestMessageId) : 0,
+        const stats = increaseOptions.find(item => item.chatId === chatId)
+        
+        if (!increase) {
+          // Full sync mode: sync all messages (overwrite)
+          logger.withFields({ chatId, mode: 'full' }).verbose('Starting full sync')
+          const opts = {
+            pagination: {
+              ...pagination,
+              offset: 0,
+            },
+            minId: 0,
+            maxId: 0,
+          }
+
+          for await (const message of takeoutService.takeoutMessages(chatId, opts)) {
+            messages.push(message)
+
+            if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+              emitter.emit('message:process', { messages })
+              messages = []
+            }
+          }
         }
+        else {
+          // Incremental sync mode: bidirectional fill (forward + backward)
+          // Only sync if there are already some messages in the database
+          if (!stats || (stats.firstMessageId === 0 && stats.latestMessageId === 0)) {
+            logger.withFields({ chatId }).warn('No existing messages found, switching to full sync')
+            const opts = {
+              pagination: {
+                ...pagination,
+                offset: 0,
+              },
+              minId: 0,
+              maxId: 0,
+            }
 
-        for await (const message of takeoutService.takeoutMessages(chatId, opts)) {
-          messages.push(message)
-          // logger.withFields(message).debug('Message taken out')
+            for await (const message of takeoutService.takeoutMessages(chatId, opts)) {
+              messages.push(message)
 
-          if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
-            emitter.emit('message:process', { messages })
-            messages = []
+              if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+                emitter.emit('message:process', { messages })
+                messages = []
+              }
+            }
+          }
+          else {
+            // Incremental sync mode: bidirectional fill (backward + forward)
+            // Calculate expected count: total messages - already synced messages
+            
+            // First, get total message count from Telegram
+            const totalMessageCount = (await takeoutService.getTotalMessageCount(chatId)) ?? 0
+            const alreadySyncedCount = stats.messageCount
+            const needToSyncCount = Math.max(0, totalMessageCount - alreadySyncedCount)
+            
+            logger.withFields({ 
+              chatId, 
+              totalMessages: totalMessageCount, 
+              alreadySynced: alreadySyncedCount,
+              needToSync: needToSyncCount,
+            }).verbose('Incremental sync calculation')
+            
+            // Phase 1: Backward fill - sync messages after latest_message_id (newer messages)
+            // For getting newer messages, we need to start from offsetId=0 (newest) and use minId filter
+            logger.withFields({ chatId, mode: 'incremental-backward', minId: stats.latestMessageId }).verbose('Starting backward fill')
+            const backwardOpts = {
+              pagination: {
+                ...pagination,
+                offset: 0, // Start from the newest message
+              },
+              minId: stats.latestMessageId, // Filter: only get messages > latestMessageId
+              maxId: 0,
+              expectedCount: needToSyncCount, // Use the same expected count
+            }
+
+            let backwardMessageCount = 0
+            for await (const message of takeoutService.takeoutMessages(chatId, backwardOpts)) {
+              // Skip the latestMessageId itself (we already have it)
+              if (message.id === stats.latestMessageId) {
+                continue
+              }
+              
+              messages.push(message)
+              backwardMessageCount++
+
+              if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+                emitter.emit('message:process', { messages })
+                messages = []
+              }
+            }
+            
+            logger.withFields({ chatId, count: backwardMessageCount }).verbose('Backward fill completed')
+
+            // Phase 2: Forward fill - sync messages before first_message_id (older messages)
+            // Start from the first synced message and go backwards (towards message ID 1)
+            logger.withFields({ chatId, mode: 'incremental-forward', startFrom: stats.firstMessageId }).verbose('Starting forward fill')
+            const forwardOpts = {
+              pagination: {
+                ...pagination,
+                offset: stats.firstMessageId, // Start from first synced message
+              },
+              minId: 0, // No lower limit
+              maxId: 0, // Will fetch older messages from offsetId
+              expectedCount: needToSyncCount, // Use calculated count for accurate progress
+            }
+
+            let forwardMessageCount = 0
+            for await (const message of takeoutService.takeoutMessages(chatId, forwardOpts)) {
+              messages.push(message)
+              forwardMessageCount++
+
+              if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+                emitter.emit('message:process', { messages })
+                messages = []
+              }
+            }
+            
+            logger.withFields({ chatId, count: forwardMessageCount }).verbose('Forward fill completed')
           }
         }
       }

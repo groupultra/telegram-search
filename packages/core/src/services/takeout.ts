@@ -41,6 +41,9 @@ export interface TakeoutOpts {
   // Incremental export
   minId?: number
   maxId?: number
+  
+  // Expected total count for progress calculation (optional, will fetch from Telegram if not provided)
+  expectedCount?: number
 }
 
 export type TakeoutService = ReturnType<typeof createTakeoutService>
@@ -121,6 +124,17 @@ export function createTakeoutService(ctx: CoreContext) {
     }
   }
 
+  async function getTotalMessageCount(chatId: string): Promise<number> {
+    try {
+      const history = (await getHistoryWithMessagesCount(chatId)).expect('Failed to get history')
+      return history.count ?? 0
+    }
+    catch (error) {
+      logger.withError(error).error('Failed to get total message count')
+      return 0
+    }
+  }
+
   async function* takeoutMessages(
     chatId: string,
     options: Omit<TakeoutOpts, 'chatId'>,
@@ -143,7 +157,10 @@ export function createTakeoutService(ctx: CoreContext) {
 
     emitProgress(taskId, 0, 'Get messages')
 
-    const { count } = (await getHistoryWithMessagesCount(chatId)).expect('Failed to get history')
+    // Use provided expected count, or fetch from Telegram
+    const count = options.expectedCount ?? (await getHistoryWithMessagesCount(chatId)).expect('Failed to get history').count
+
+    logger.withFields({ expectedCount: count, providedCount: options.expectedCount }).verbose('Message count for progress')
 
     try {
       while (hasMore && !abortController.signal.aborted) {
@@ -174,12 +191,18 @@ export function createTakeoutService(ctx: CoreContext) {
         ) as unknown as Api.messages.MessagesSlice
 
         // Type safe check
-        if ('messages' in result && result.messages.length === 0) {
-          emitError(taskId, new Error('Get messages failed or returned empty data'))
+        if (!('messages' in result)) {
+          emitError(taskId, new Error('Invalid response format from Telegram API'))
           break
         }
 
         const messages = result.messages as Api.Message[]
+        
+        // If no messages returned, it means we've reached the boundary (no more messages to fetch)
+        if (messages.length === 0) {
+          logger.verbose('No more messages to fetch, reached boundary')
+          break
+        }
 
         // If we got fewer messages than requested, there are no more
         hasMore = messages.length === limit
@@ -233,6 +256,7 @@ export function createTakeoutService(ctx: CoreContext) {
 
   return {
     takeoutMessages,
+    getTotalMessageCount,
     abortTask,
   }
 }
