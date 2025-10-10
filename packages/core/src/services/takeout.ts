@@ -41,7 +41,7 @@ export interface TakeoutOpts {
   // Incremental export
   minId?: number
   maxId?: number
-  
+
   // Expected total count for progress calculation (optional, will fetch from Telegram if not provided)
   expectedCount?: number
 }
@@ -197,7 +197,7 @@ export function createTakeoutService(ctx: CoreContext) {
         }
 
         const messages = result.messages as Api.Message[]
-        
+
         // If no messages returned, it means we've reached the boundary (no more messages to fetch)
         if (messages.length === 0) {
           logger.verbose('No more messages to fetch, reached boundary')

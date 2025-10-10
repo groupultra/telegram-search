@@ -34,10 +34,10 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
       logger.withFields({ increaseOptions }).verbose('Chat message stats')
 
       let messages: Api.Message[] = []
-      
+
       for (const chatId of chatIds) {
         const stats = increaseOptions.find(item => item.chatId === chatId)
-        
+
         if (!increase) {
           // Full sync mode: sync all messages (overwrite)
           logger.withFields({ chatId, mode: 'full' }).verbose('Starting full sync')
@@ -85,19 +85,19 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
           else {
             // Incremental sync mode: bidirectional fill (backward + forward)
             // Calculate expected count: total messages - already synced messages
-            
+
             // First, get total message count from Telegram
             const totalMessageCount = (await takeoutService.getTotalMessageCount(chatId)) ?? 0
             const alreadySyncedCount = stats.messageCount
             const needToSyncCount = Math.max(0, totalMessageCount - alreadySyncedCount)
-            
-            logger.withFields({ 
-              chatId, 
-              totalMessages: totalMessageCount, 
+
+            logger.withFields({
+              chatId,
+              totalMessages: totalMessageCount,
               alreadySynced: alreadySyncedCount,
               needToSync: needToSyncCount,
             }).verbose('Incremental sync calculation')
-            
+
             // Phase 1: Backward fill - sync messages after latest_message_id (newer messages)
             // For getting newer messages, we need to start from offsetId=0 (newest) and use minId filter
             logger.withFields({ chatId, mode: 'incremental-backward', minId: stats.latestMessageId }).verbose('Starting backward fill')
@@ -117,7 +117,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
               if (message.id === stats.latestMessageId) {
                 continue
               }
-              
+
               messages.push(message)
               backwardMessageCount++
 
@@ -126,7 +126,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                 messages = []
               }
             }
-            
+
             logger.withFields({ chatId, count: backwardMessageCount }).verbose('Backward fill completed')
 
             // Phase 2: Forward fill - sync messages before first_message_id (older messages)
@@ -152,7 +152,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                 messages = []
               }
             }
-            
+
             logger.withFields({ chatId, count: forwardMessageCount }).verbose('Forward fill completed')
           }
         }
