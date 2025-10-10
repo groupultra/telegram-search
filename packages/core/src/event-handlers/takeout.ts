@@ -108,7 +108,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
               },
               minId: stats.latestMessageId, // Filter: only get messages > latestMessageId
               maxId: 0,
-              expectedCount: needToSyncCount, // Use the same expected count
+              expectedCount: needToSyncCount, // This is the calculated number of messages that need to be synced for accurate progress tracking
             }
 
             let backwardMessageCount = 0
