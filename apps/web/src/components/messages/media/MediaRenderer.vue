@@ -36,6 +36,8 @@ export interface ProcessedMedia {
   webpageData?: WebpageData
   mimeType?: string
   tgsAnimationData?: string
+  width?: number
+  height?: number
 }
 
 const processedMedia = computed<ProcessedMedia>(() => {
@@ -59,6 +61,30 @@ const processedMedia = computed<ProcessedMedia>(() => {
               displayUrl: webpage.displayUrl,
               previewImage: mediaItem.blobUrl,
             },
+          } satisfies ProcessedMedia
+        }
+        case 'photo': {
+          // Extract dimensions from Telegram API PhotoSize
+          let width: number | undefined
+          let height: number | undefined
+          
+          const apiMedia = mediaItem.apiMedia as any
+          if (apiMedia?.photo?.sizes) {
+            // Get the largest photo size for dimensions
+            const sizes = apiMedia.photo.sizes
+            const largestSize = sizes[sizes.length - 1]
+            if (largestSize?.w && largestSize?.h) {
+              width = largestSize.w
+              height = largestSize.h
+            }
+          }
+
+          return {
+            src: mediaItem.blobUrl,
+            type: mediaItem.type,
+            mimeType: mediaItem.mimeType,
+            width,
+            height,
           } satisfies ProcessedMedia
         }
         default:
@@ -128,9 +154,14 @@ onUnmounted(() => {
     {{ message.content }}
   </div>
 
-  <!-- Loading state with better placeholder sizing -->
+  <!-- Loading state with dynamic placeholder sizing based on actual image dimensions -->
   <div v-if="isLoading" class="flex items-center justify-center">
-    <div class="h-48 w-full max-w-xs animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+    <div 
+      class="w-full max-w-xs animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700"
+      :style="processedMedia.width && processedMedia.height 
+        ? { aspectRatio: `${processedMedia.width} / ${processedMedia.height}`, height: 'auto' }
+        : { height: '12rem' }"
+    />
   </div>
 
   <!-- Error state -->
@@ -148,7 +179,12 @@ onUnmounted(() => {
 
     <img
       v-else-if="processedMedia.mimeType?.startsWith('image/')"
-      :src="processedMedia.src" class="h-auto max-w-xs rounded-lg" alt="Image"
+      :src="processedMedia.src" 
+      class="h-auto max-w-xs rounded-lg" 
+      :style="processedMedia.width && processedMedia.height 
+        ? { aspectRatio: `${processedMedia.width} / ${processedMedia.height}` }
+        : {}"
+      alt="Image"
       @error="runtimeError = 'Image failed to load'"
     >
 
