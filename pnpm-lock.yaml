@@ -37,10 +37,10 @@ importers:
         version: 1.0.2
       '@types/node':
         specifier: ^24.5.2
-        version: 24.7.1
+        version: 24.7.2
       '@unbird/eslint-config':
         specifier: 'catalog:'
-        version: 1.0.2(@unocss/eslint-plugin@66.5.3(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(@vue/compiler-sfc@3.5.22)(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+        version: 1.0.2(@unocss/eslint-plugin@66.5.3(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(@vue/compiler-sfc@3.5.22)(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       '@unbird/logg':
         specifier: 'catalog:'
         version: 1.1.3
@@ -76,22 +76,22 @@ importers:
         version: 5.9.3
       unocss:
         specifier: ^66.5.2
-        version: 66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+        version: 66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       unocss-preset-animations:
         specifier: ^1.2.1
-        version: 1.2.1(@unocss/preset-wind3@66.5.3)(unocss@66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)))
+        version: 1.2.1(@unocss/preset-wind3@66.5.3)(unocss@66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)))
       unocss-preset-shadcn:
         specifier: ^1.0.1
-        version: 1.0.1(unocss-preset-animations@1.2.1(@unocss/preset-wind3@66.5.3)(unocss@66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))))(unocss@66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)))
+        version: 1.0.1(unocss-preset-animations@1.2.1(@unocss/preset-wind3@66.5.3)(unocss@66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))))(unocss@66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)))
       unplugin-unused:
         specifier: ^0.5.3
         version: 0.5.4
       vite:
         specifier: npm:rolldown-vite@7.1.13
-        version: rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
+        version: rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
       vitest:
         specifier: ^3.2.4
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
 
   apps/server:
     dependencies:
@@ -119,7 +119,7 @@ importers:
     devDependencies:
       '@proj-airi/unplugin-drizzle-orm-migrations':
         specifier: ^0.1.3
-        version: 0.1.3(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+        version: 0.1.3(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
@@ -128,7 +128,7 @@ importers:
         version: 0.15.6(typescript@5.9.3)(unplugin-unused@0.5.4)(vue-tsc@3.1.1(typescript@5.9.3))
       vite-node:
         specifier: ^3.2.4
-        version: 3.2.4(@types/node@24.7.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
+        version: 3.2.4(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
 
   apps/web:
     dependencies:
@@ -189,7 +189,7 @@ importers:
     devDependencies:
       '@proj-airi/unplugin-drizzle-orm-migrations':
         specifier: ^0.1.3
-        version: 0.1.3(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+        version: 0.1.3(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       '@types/nprogress':
         specifier: ^0.2.3
         version: 0.2.3
@@ -204,34 +204,34 @@ importers:
         version: 66.5.3
       '@vitejs/plugin-vue':
         specifier: ^6.0.1
-        version: 6.0.1(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))
+        version: 6.0.1(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))
       '@vue-macros/volar':
         specifier: ^3.1.1
         version: 3.1.1(typescript@5.9.3)(vue-tsc@3.1.1(typescript@5.9.3))(vue@3.5.22(typescript@5.9.3))
       unocss:
         specifier: ^66.5.2
-        version: 66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+        version: 66.5.3(postcss@8.5.6)(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       unplugin-info:
         specifier: ^1.2.4
-        version: 1.2.4(esbuild@0.25.10)(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(rollup@4.52.3)
+        version: 1.2.4(esbuild@0.25.10)(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(rollup@4.52.3)
       unplugin-vue-macros:
         specifier: ^2.14.5
-        version: 2.14.5(@vueuse/core@13.9.0(vue@3.5.22(typescript@5.9.3)))(esbuild@0.25.10)(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(rollup@4.52.3)(typescript@5.9.3)(vue-tsc@3.1.1(typescript@5.9.3))(vue@3.5.22(typescript@5.9.3))
+        version: 2.14.5(@vueuse/core@13.9.0(vue@3.5.22(typescript@5.9.3)))(esbuild@0.25.10)(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(rollup@4.52.3)(typescript@5.9.3)(vue-tsc@3.1.1(typescript@5.9.3))(vue@3.5.22(typescript@5.9.3))
       unplugin-vue-router:
         specifier: ^0.15.0
         version: 0.15.0(@vue/compiler-sfc@3.5.22)(typescript@5.9.3)(vue-router@4.5.1(vue@3.5.22(typescript@5.9.3)))(vue@3.5.22(typescript@5.9.3))
       vite-plugin-inspect:
         specifier: ^11.3.3
-        version: 11.3.3(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+        version: 11.3.3(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       vite-plugin-pwa:
         specifier: ^1.0.3
-        version: 1.0.3(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(workbox-build@7.3.0)(workbox-window@7.3.0)
+        version: 1.0.3(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(workbox-build@7.3.0)(workbox-window@7.3.0)
       vite-plugin-vue-devtools:
         specifier: ^8.0.2
-        version: 8.0.2(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))
+        version: 8.0.2(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))
       vite-plugin-vue-layouts:
         specifier: ^0.11.0
-        version: 0.11.0(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(vue-router@4.5.1(vue@3.5.22(typescript@5.9.3)))(vue@3.5.22(typescript@5.9.3))
+        version: 0.11.0(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(vue-router@4.5.1(vue@3.5.22(typescript@5.9.3)))(vue@3.5.22(typescript@5.9.3))
       vue-tsc:
         specifier: ^3.0.8
         version: 3.1.1(typescript@5.9.3)
@@ -280,7 +280,7 @@ importers:
     devDependencies:
       '@proj-airi/unplugin-drizzle-orm-migrations':
         specifier: ^0.1.3
-        version: 0.1.3(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+        version: 0.1.3(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       '@types/culori':
         specifier: ^4.0.1
         version: 4.0.1
@@ -383,7 +383,7 @@ importers:
     devDependencies:
       '@proj-airi/unplugin-drizzle-orm-migrations':
         specifier: ^0.1.3
-        version: 0.1.3(rolldown-vite@7.1.13(@types/node@24.7.1)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+        version: 0.1.3(rolldown-vite@7.1.13(@types/node@24.7.2)(esbuild@0.25.10)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       '@types/pg':
         specifier: ^8.15.5
         version: 8.15.5
@@ -2155,8 +2155,8 @@ packages:
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
-  '@types/node@24.7.1':
-    resolution: {integrity: sha512-CmyhGZanP88uuC5GpWU9q+fI61j2SkhO3UGMUdfYRE6Bcy0ccyzn1Rqj9YAB/ZY4kOXmNf0ocah5GtphmLMP6Q==}
+  '@types/node@24.7.2':
+    resolution: {integrity: sha512-/NbVmcGTP+lj5oa4yiYxxeBjRivKQ5Ns1eSZeB99ExsEQ6rX5XYU1Zy/gGxY/ilqtD4Etx9mKyrPxZRetiahhA==}
 
   '@types/nprogress@0.2.3':
     resolution: {integrity: sha512-k7kRA033QNtC+gLc4VPlfnue58CM1iQLgn1IMAU8VPHGOj7oIHPp9UlhedEnD/Gl8evoCjwkZjlBORtZ3JByUA==}
@@ -5964,7 +5964,7 @@ packages:
 
 snapshots:
 
-  '@antfu/eslint-config@4.19.0(@unocss/eslint-plugin@66.5.3(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(@vue/compiler-sfc@3.5.22)(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))':
+  '@antfu/eslint-config@4.19.0(@unocss/eslint-plugin@66.5.3(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(@vue/compiler-sfc@3.5.22)(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))':
     dependencies:
       '@antfu/install-pkg': 1.1.0
       '@clack/prompts': 0.11.0
@@ -5973,7 +5973,7 @@ snapshots:
       '@stylistic/eslint-plugin': 5.4.0(eslint@9.37.0(jiti@2.6.1))
       '@typescript-eslint/eslint-plugin': 8.46.0(@typescript-eslint/parser@8.46.0(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)
       '@typescript-eslint/parser': 8.46.0(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)
-      '@vitest/eslint-plugin': 1.3.16(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+      '@vitest/eslint-plugin': 1.3.16(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       ansis: 4.2.0
       cac: 6.7.14
       eslint: 9.37.0(jiti@2.6.1)
