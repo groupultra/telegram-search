@@ -219,6 +219,7 @@ Virtua automatically measures and tracks item heights:
 1. **Install Virtua**: Add `virtua` package to dependencies
    ```bash
    pnpm add virtua
+   # Latest version: ^0.45.1
    ```
 
 2. **Import VList**: Update imports to use virtua's VList component
