@@ -171,6 +171,9 @@ importers:
       telegram:
         specifier: 2.26.21
         version: 2.26.21
+      virtua:
+        specifier: ^0.45.1
+        version: 0.45.1(vue@3.5.22(typescript@5.9.2))
       vue:
         specifier: ^3.5.22
         version: 3.5.22(typescript@5.9.2)
@@ -7749,6 +7752,26 @@ packages:
 
   validate-npm-package-license@3.0.4:
     resolution: {integrity: sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==}
+
+  virtua@0.45.1:
+    resolution: {integrity: sha512-6zVzJXz+YW/mYF3aLrGk+P2ptGIf7ppVuqLcnyysIPdJM9kW9dJrvaWqEhIl0+xvPJjHScZRJPaWDwC3CVrWRg==}
+    peerDependencies:
+      react: '>=16.14.0'
+      react-dom: '>=16.14.0'
+      solid-js: '>=1.0'
+      svelte: '>=5.0'
+      vue: '>=3.2'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+      solid-js:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
 
   vite-dev-rpc@1.1.0:
     resolution: {integrity: sha512-pKXZlgoXGoE8sEKiKJSng4hI1sQ4wi5YT24FCrwrLt6opmkjlqPPVmiPWWJn8M8byMxRGzp1CrFuqQs4M/Z39A==}
@@ -16834,6 +16857,10 @@ snapshots:
     dependencies:
       spdx-correct: 3.2.0
       spdx-expression-parse: 3.0.1
+
+  virtua@0.45.1(vue@3.5.22(typescript@5.9.2)):
+    optionalDependencies:
+      vue: 3.5.22(typescript@5.9.2)
 
   vite-dev-rpc@1.1.0(rolldown-vite@7.1.13(@types/node@24.5.2)(esbuild@0.25.9)(jiti@2.5.1)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1)):
     dependencies:

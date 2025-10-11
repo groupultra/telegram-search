@@ -1,15 +1,11 @@
 <script setup lang="ts">
-// TODO: use vue-virtual-scroller instead
-
 import type { CoreMessage } from '@tg-search/core'
 
-import type { VirtualListItem } from '../composables/useVirtualList'
-
-import { useResizeObserver, useWindowSize } from '@vueuse/core'
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useWindowSize } from '@vueuse/core'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { VList } from 'virtua/vue'
 
-import { useVirtualList } from '../composables/useVirtualList'
 import MessageBubble from './messages/MessageBubble.vue'
 
 interface Props {
@@ -30,124 +26,22 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const { height: windowHeight } = useWindowSize()
-const virtualListContainer = ref<HTMLElement>()
-const containerHeight = ref(0)
+const vListRef = ref<InstanceType<typeof VList>>()
 
-// Convert messages to virtual list items
-const virtualItems = ref<VirtualListItem[]>([])
+// Track scroll state
+const isScrolling = ref(false)
+const scrollTop = ref(0)
+let scrollTimer: ReturnType<typeof setTimeout> | null = null
 
-watch(() => props.messages, (newMessages) => {
-  virtualItems.value = newMessages.map(msg => ({
-    id: msg.uuid,
-    data: msg,
-    // Estimate height based on message content
-    height: estimateMessageHeight(msg),
-  }))
-}, { immediate: true })
-
-// Estimate message height based on content with better calculations
-function estimateMessageHeight(message: any): number {
-  const baseHeight = 60 // Base height for avatar + padding
-  const lineHeight = 24 // Increased for better text spacing
-  const maxLineWidth = 60 // Approximate characters per line accounting for container width
-
-  if (!message.content)
-    return baseHeight
-
-  // More accurate text length estimation
-  const textContent = typeof message.content === 'string' ? message.content : String(message.content)
-  const textLength = textContent.length
-  const estimatedLines = Math.max(1, Math.ceil(textLength / maxLineWidth))
-
-  // Add extra height for media, files, etc. with more realistic values
-  // FIXME: dynamic media height calculation
-  let extraHeight = 0
-  if (message.media?.type === 'photo')
-    extraHeight += 250 // Increased for image display
-  if (message.media?.type === 'video')
-    extraHeight += 250 // Increased for video player
-  if (message.media?.type === 'document')
-    extraHeight += 50 // Slightly increased for document display
-  if (message.replyTo)
-    extraHeight += 40 // Increased for reply preview
-  if (message.forwarded)
-    extraHeight += 20 // Add height for forward indicator
-  if (message.reactions && message.reactions.length > 0)
-    extraHeight += 30 // Add height for reactions
-
-  // Add minimum height for very short messages
-  const calculatedHeight = baseHeight + (estimatedLines * lineHeight) + extraHeight
-  return Math.max(calculatedHeight, 80) // Minimum message height
-}
-
-const {
-  containerRef,
-  state,
-  totalHeight,
-  visibleItems,
-  // visibleRange is available but not currently used
-  handleScroll,
-  measureItem,
-  scrollToItem,
-  scrollToBottom,
-  getScrollOffset,
-  restoreScrollPosition,
-  updateContainerHeight,
-} = useVirtualList(virtualItems, {
-  itemHeight: 80, // Default height
-  containerHeight: containerHeight.value,
-  overscan: 5,
-})
-
-// Update container height when window resizes or container size changes
-useResizeObserver(virtualListContainer, (entries) => {
-  const entry = entries[0]
-  if (entry && entry.contentRect.height > 0) {
-    containerHeight.value = entry.contentRect.height
-    // Update virtual list with new container height
-    updateContainerHeight(containerHeight.value)
-  }
-})
-
-// Handle ResizeObserver for individual message items
-const messageObserver = ref<ResizeObserver>()
-
-onMounted(() => {
-  // Set initial container height with fallback
-  nextTick(() => {
-    if (virtualListContainer.value) {
-      const height = virtualListContainer.value.clientHeight
-      containerHeight.value = height > 0 ? height : Math.max(windowHeight.value - 200, 400)
-    }
-    else {
-      containerHeight.value = Math.max(windowHeight.value - 200, 400)
-    }
-    // Update virtual list with initial height
-    updateContainerHeight(containerHeight.value)
-  })
-
-  // Create ResizeObserver for measuring actual message heights
-  messageObserver.value = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      const element = entry.target as HTMLElement
-      const messageId = element.dataset.messageId
-      if (messageId) {
-        measureItem(messageId, entry.contentRect.height)
-      }
-    }
-  })
-})
-
-onUnmounted(() => {
-  messageObserver.value?.disconnect()
-})
+// Container height calculation
+const containerHeight = computed(() => Math.max(windowHeight.value - 200, 400))
 
 // Auto scroll to bottom when new messages arrive
 const isAtBottom = ref(true)
 let lastMessageCount = 0
 
-watch(virtualItems, async (newItems) => {
-  const newMessageCount = newItems.length
+watch(() => props.messages, async (newMessages) => {
+  const newMessageCount = newMessages.length
   const hasNewMessages = newMessageCount > lastMessageCount
 
   if (hasNewMessages && props.autoScrollToBottom && isAtBottom.value) {
@@ -159,15 +53,30 @@ watch(virtualItems, async (newItems) => {
 }, { flush: 'post' })
 
 // Handle scroll events and emit status
-function onScroll(event: Event) {
-  handleScroll(event)
+function onScroll(offset: number) {
+  scrollTop.value = offset
+  isScrolling.value = true
+
+  // Clear existing timer
+  if (scrollTimer) {
+    clearTimeout(scrollTimer)
+  }
+
+  // Set scrolling to false after scroll stops
+  scrollTimer = setTimeout(() => {
+    isScrolling.value = false
+  }, 150)
+
+  if (!vListRef.value)
+    return
 
   const threshold = 50
-  const scrollTop = state.scrollTop
-  const maxScroll = totalHeight.value - containerHeight.value
+  const scrollSize = vListRef.value.scrollSize
+  const viewportSize = vListRef.value.viewportSize
+  const maxScroll = scrollSize - viewportSize
 
-  isAtBottom.value = scrollTop >= maxScroll - threshold
-  const isAtTopValue = scrollTop <= threshold
+  isAtBottom.value = offset >= maxScroll - threshold
+  const isAtTopValue = offset <= threshold
 
   // Trigger callbacks
   if (isAtTopValue && props.onScrollToTop) {
@@ -179,39 +88,56 @@ function onScroll(event: Event) {
   }
 
   emit('scroll', {
-    scrollTop,
+    scrollTop: offset,
     isAtTop: isAtTopValue,
     isAtBottom: isAtBottom.value,
   })
 }
 
-// Observe message elements for height measurement
-function observeMessage(element: HTMLElement, messageId: string | number) {
-  if (messageObserver.value && element) {
-    element.dataset.messageId = String(messageId)
-    messageObserver.value.observe(element)
+// Scroll to bottom method (exposed to parent)
+async function scrollToBottom() {
+  await nextTick()
+  if (vListRef.value) {
+    vListRef.value.scrollToIndex(props.messages.length - 1, { align: 'end' })
+    isAtBottom.value = true
   }
 }
 
-// Scroll to bottom method (exposed to parent)
-async function scrollToLatest() {
-  await scrollToBottom()
-  isAtBottom.value = true
-}
-
 async function scrollToMessage(messageId: string | number) {
-  const targetIndex = virtualItems.value.findIndex(item => item.id === messageId)
-  if (targetIndex === -1)
+  const targetIndex = props.messages.findIndex(msg => msg.uuid === messageId)
+  if (targetIndex === -1 || !vListRef.value)
     return
 
-  await scrollToItem(targetIndex, 'center')
+  await nextTick()
+  vListRef.value.scrollToIndex(targetIndex, { align: 'center' })
+}
+
+// Get scroll offset for maintaining position
+function getScrollOffset(anchorId: string | number): { anchorIndex: number, offset: number } | null {
+  const anchorIndex = props.messages.findIndex(msg => msg.uuid === anchorId)
+  if (anchorIndex === -1)
+    return null
+
+  return {
+    anchorIndex,
+    offset: scrollTop.value,
+  }
+}
+
+// Restore scroll position using anchor
+async function restoreScrollPosition(anchor: { anchorIndex: number, offset: number }) {
+  await nextTick()
+  if (!vListRef.value)
+    return
+
+  vListRef.value.scrollToIndex(anchor.anchorIndex)
 }
 
 defineExpose({
-  scrollToBottom: scrollToLatest,
+  scrollToBottom,
   scrollToTop: () => {
-    if (containerRef.value) {
-      containerRef.value.scrollTop = 0
+    if (vListRef.value) {
+      vListRef.value.scrollToIndex(0)
     }
   },
   getScrollOffset,
@@ -221,41 +147,24 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    ref="virtualListContainer"
-    class="relative h-full overflow-hidden"
-  >
-    <div
-      ref="containerRef"
-      class="h-full overflow-y-auto"
+  <div class="relative h-full overflow-hidden">
+    <VList
+      ref="vListRef"
+      :data="messages"
+      :style="{ height: `${containerHeight}px` }"
       @scroll="onScroll"
+      @scrollEnd="() => (isScrolling = false)"
     >
-      <!-- Virtual list container with dynamic height -->
-      <div
-        class="relative w-full"
-        :style="{ height: `${totalHeight}px` }"
-      >
-        <!-- Rendered visible items -->
-        <div
-          v-for="{ item, style } in visibleItems"
-          :key="item.id"
-          :style="style"
-          class="w-full"
-        >
-          <!-- Message wrapper with resize observation -->
-          <div
-            :ref="(el) => el && observeMessage(el as HTMLElement, item.id)"
-            class="w-full"
-          >
-            <MessageBubble :message="item.data" />
-          </div>
+      <template #default="{ item: message, index }">
+        <div :key="message.uuid" class="w-full">
+          <MessageBubble :message="message" />
         </div>
-      </div>
-    </div>
+      </template>
+    </VList>
 
     <!-- Loading indicators -->
     <div
-      v-if="state.isScrolling"
+      v-if="isScrolling"
       class="absolute right-2 top-2 rounded bg-black/20 px-2 py-1 text-xs text-white"
     >
       {{ t('virtualMessageList.scrolling') }}
@@ -271,9 +180,9 @@ defineExpose({
       leave-to-class="opacity-0 scale-90"
     >
       <button
-        v-if="!isAtBottom && !state.isScrolling"
+        v-if="!isAtBottom && !isScrolling"
         class="absolute bottom-4 right-4 h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white shadow-lg transition-colors hover:bg-blue-600"
-        @click="scrollToLatest"
+        @click="scrollToBottom"
       >
         <i class="i-lucide-chevron-down" />
       </button>
