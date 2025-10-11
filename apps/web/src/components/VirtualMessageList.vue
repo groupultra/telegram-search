@@ -36,14 +36,24 @@ let scrollTimer: ReturnType<typeof setTimeout> | null = null
 // Container height calculation
 const containerHeight = computed(() => Math.max(windowHeight.value - 200, 400))
 
-// Auto scroll to bottom when new messages arrive
+// Track if we're at top/bottom to prevent repeated callbacks
+const isAtTop = ref(false)
 const isAtBottom = ref(true)
 let lastMessageCount = 0
 
-watch(() => props.messages, async (newMessages) => {
+// Watch for message changes to maintain scroll position
+watch(() => props.messages, async (newMessages, oldMessages) => {
   const newMessageCount = newMessages.length
+  const oldMessageCount = oldMessages?.length ?? 0
   const hasNewMessages = newMessageCount > lastMessageCount
 
+  // If messages were added at the top (loading older messages)
+  if (newMessageCount > oldMessageCount && !isAtBottom.value) {
+    // Reset isAtTop flag so the callback can be triggered again when scrolling to top
+    isAtTop.value = false
+  }
+
+  // Auto scroll to bottom when new messages arrive at the end
   if (hasNewMessages && props.autoScrollToBottom && isAtBottom.value) {
     await nextTick()
     scrollToBottom()
@@ -75,15 +85,19 @@ function onScroll(offset: number) {
   const viewportSize = vListRef.value.viewportSize
   const maxScroll = scrollSize - viewportSize
 
+  const wasAtBottom = isAtBottom.value
+  const wasAtTop = isAtTop.value
+  
   isAtBottom.value = offset >= maxScroll - threshold
   const isAtTopValue = offset <= threshold
+  isAtTop.value = isAtTopValue
 
-  // Trigger callbacks
-  if (isAtTopValue && props.onScrollToTop) {
+  // Trigger callbacks only when transitioning to top/bottom (not continuously)
+  if (isAtTopValue && !wasAtTop && props.onScrollToTop) {
     props.onScrollToTop()
   }
 
-  if (isAtBottom.value && props.onScrollToBottom) {
+  if (isAtBottom.value && !wasAtBottom && props.onScrollToBottom) {
     props.onScrollToBottom()
   }
 
@@ -152,6 +166,7 @@ defineExpose({
       ref="vListRef"
       :data="messages"
       :style="{ height: `${containerHeight}px` }"
+      shift
       @scroll="onScroll"
       @scrollEnd="() => (isScrolling = false)"
     >
