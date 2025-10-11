@@ -2,23 +2,23 @@
 
 ## Overview
 
-The `dev/virtual-list` branch introduces a **Virtual List** system that significantly improves rendering performance when displaying large numbers of messages. This feature replaces the traditional DOM-based message rendering with a windowing technique that only renders visible messages, dramatically reducing memory usage and improving scroll performance.
+The virtual list system uses the **[virtua](https://github.com/inokawa/virtua)** library to provide high-performance rendering when displaying large numbers of messages. This feature replaces the traditional DOM-based message rendering with a windowing technique that only renders visible messages, dramatically reducing memory usage and improving scroll performance.
 
 ## Key Features
 
 ### 🚀 **VirtualMessageList Component**
-- **High-performance Rendering**: Only renders messages currently visible in the viewport
-- **Automatic Height Estimation**: Smart height calculation based on message content, media, and metadata
+- **High-performance Rendering**: Only renders messages currently visible in the viewport using virtua's VList component
+- **Zero-config Virtualization**: Virtua automatically handles height estimation and measurement
 - **Smooth Scrolling**: Optimized scroll experience with proper momentum and positioning
-- **Dynamic Height Measurement**: Uses ResizeObserver to measure actual message heights for precise positioning
+- **Dynamic Height Measurement**: Automatically measures actual message heights for precise positioning
 - **Scroll Restoration**: Maintains scroll position when new messages are added
 
-### 🧪 **useVirtualList Composable**
-- **Binary Search Optimization**: Efficient calculation of visible range using binary search algorithms
-- **Overscan Support**: Renders additional items outside viewport for smoother scrolling
-- **Dynamic Container Height**: Adapts to container size changes automatically
-- **Position Tracking**: Precise item positioning with absolute positioning
-- **Memory Management**: Efficient cleanup and state management
+### 📚 **Virtua Library Benefits**
+- **Small Bundle Size**: ~3kB gzipped, minimal impact on application size
+- **Zero Configuration**: Works out of the box without complex setup
+- **Fast and Efficient**: Optimized for performance with minimal CPU usage and GC
+- **Framework Specific**: Built specifically for Vue 3 with proper TypeScript support
+- **Active Maintenance**: Well-maintained library with regular updates
 
 ### 🎯 **Debug Mode Integration**
 - **Developer Tools**: Added debug mode toggle in settings for development visibility
@@ -96,15 +96,15 @@ Promise.all([...]).catch(() => {
 })
 ```
 
-## New Components and Composables
+## New Components and Libraries
 
 ### VirtualMessageList Component
 
-Located at: `packages/stage-ui/src/components/VirtualMessageList.vue`
+Located at: `apps/web/src/components/VirtualMessageList.vue`
 
 **Key Features:**
-- **Smart Height Estimation**: Calculates message height based on content length, media type, replies, and reactions
-- **ResizeObserver Integration**: Measures actual rendered heights for precise positioning
+- **Virtua Integration**: Uses virtua's VList component for efficient virtual scrolling
+- **Automatic Height Measurement**: Virtua automatically measures and tracks message heights
 - **Scroll Event Handling**: Emits scroll events with position information
 - **Auto-scroll Management**: Automatically scrolls to bottom for new messages when user is at bottom
 - **Loading Indicators**: Shows scrolling state and scroll-to-bottom button
@@ -123,43 +123,43 @@ Located at: `packages/stage-ui/src/components/VirtualMessageList.vue`
 - `scrollToTop()` - Scroll to the first message
 - `getScrollOffset()` - Get current scroll offset for restoration
 - `restoreScrollPosition()` - Restore scroll to specific position
+- `scrollToMessage()` - Scroll to a specific message by ID
 
-### useVirtualList Composable
+### Virtua Library
 
-Located at: `packages/stage-ui/src/composables/useVirtualList.ts`
+External library: [virtua](https://github.com/inokawa/virtua)
 
-**Key Features:**
-- **Viewport Calculation**: Efficiently determines which items should be rendered
-- **Binary Search**: Uses binary search for O(log n) visible range calculation
-- **Height Management**: Tracks measured heights and estimates for unmeasured items
-- **Scroll Optimization**: Debounced scroll state updates and position tracking
+**Why Virtua?**
+- **Zero Configuration**: Works out of the box with sensible defaults
+- **Small Bundle Size**: ~3kB gzipped
+- **High Performance**: Optimized for minimal CPU usage and smooth scrolling
+- **Vue 3 Support**: First-class Vue 3 support with TypeScript
+- **Active Development**: Well-maintained with regular updates
 
-**Interface:**
-```typescript
-interface VirtualListItem {
-  id: string | number
-  height?: number
-  data: any
+**Usage Example:**
+```vue
+<template>
+  <VList
+    :data="messages"
+    :style="{ height: '600px' }"
+    @scroll="onScroll"
+  >
+    <template #default="{ item: message, index }">
+      <MessageBubble :message="message" />
+    </template>
+  </VList>
+</template>
+
+<script setup>
+import { VList } from 'virtua/vue'
+import MessageBubble from './MessageBubble.vue'
+
+const messages = ref([/* ... */])
+const onScroll = (offset) => {
+  console.log('Scrolled to:', offset)
 }
-
-interface VirtualListOptions {
-  itemHeight: number // Default item height estimate
-  containerHeight: number
-  overscan?: number // Items to render outside viewport
-  getItemHeight?: (item: VirtualListItem, index: number) => number
-}
+</script>
 ```
-
-**Returns:**
-- `containerRef` - Reference to scrollable container
-- `state` - Reactive scroll state and measurements
-- `totalHeight` - Computed total height of all items
-- `visibleItems` - Items currently visible with positioning
-- `handleScroll` - Scroll event handler
-- `measureItem` - Method to update measured heights
-- `scrollToItem` - Scroll to specific item
-- `scrollToBottom` - Scroll to bottom
-- `getScrollOffset` / `restoreScrollPosition` - Position restoration
 
 ## Settings Store Enhancement
 
@@ -201,50 +201,47 @@ New debug mode toggle in Settings Dialog:
 
 ### Scroll Performance
 - **Frame Rate**: Maintains 60fps scrolling even with thousands of messages
-- **Calculation Optimization**: Binary search reduces visible range calculation from O(n) to O(log n)
-- **Render Optimization**: Absolute positioning eliminates layout thrashing
+- **Optimized Calculation**: Virtua uses efficient algorithms for visible range calculation
+- **Render Optimization**: Minimal DOM updates and efficient positioning
 
-### Height Estimation Algorithm
+### Automatic Height Measurement
 
-The virtual list uses a sophisticated height estimation system:
-
-```typescript
-function estimateMessageHeight(message: any): number {
-  const baseHeight = 60 // Base height for avatar + padding
-  const lineHeight = 24 // Line height for text content
-  const maxLineWidth = 60 // Characters per line estimate
-  
-  // Calculate text height
-  const textLength = message.content?.length || 0
-  const estimatedLines = Math.max(1, Math.ceil(textLength / maxLineWidth))
-  
-  // Add media heights
-  let extraHeight = 0
-  if (message.media?.type === 'photo') extraHeight += 250
-  if (message.media?.type === 'video') extraHeight += 250
-  if (message.media?.type === 'document') extraHeight += 50
-  if (message.replyTo) extraHeight += 40
-  if (message.forwarded) extraHeight += 20
-  if (message.reactions?.length > 0) extraHeight += 30
-  
-  return Math.max(baseHeight + (estimatedLines * lineHeight) + extraHeight, 80)
-}
-```
+Virtua automatically measures and tracks item heights:
+- **ResizeObserver**: Automatically detects size changes
+- **Estimation**: Smart estimation for unmeasured items
+- **Caching**: Measured heights are cached for performance
+- **No Manual Calculation**: Heights are managed automatically by the library
 
 ## Migration Steps
 
 ### For Developers
 
-1. **Import Changes**: Update imports in chat pages to include `VirtualMessageList`
-2. **Component Replacement**: Replace traditional message lists with virtual list component
-3. **Event Handling**: Update scroll event handlers to work with virtual list events
+1. **Install Virtua**: Add `virtua` package to dependencies
+   ```bash
+   pnpm add virtua
+   ```
+
+2. **Import VList**: Update imports to use virtua's VList component
+   ```typescript
+   import { VList } from 'virtua/vue'
+   ```
+
+3. **Update Component**: Replace custom virtual list with VList
+   ```vue
+   <VList :data="items" :style="{ height: '600px' }">
+     <template #default="{ item, index }">
+       <!-- Your item component -->
+     </template>
+   </VList>
+   ```
+
 4. **Testing**: Verify scroll restoration and loading behavior with large message counts
 
 ### For Users
 
 - **No Action Required**: Changes are transparent to end users
 - **Performance Improvement**: Users will experience faster scrolling in large chats
-- **Debug Mode**: Developers can enable debug mode in settings for development insights
+- **Better Memory Usage**: Reduced memory consumption with large message lists
 
 ## Performance Benchmarks
 
@@ -260,27 +257,28 @@ function estimateMessageHeight(message: any): number {
 
 ## Known Limitations
 
-1. **Height Estimation**: Initial estimates may cause minor scroll jumps until actual heights are measured
-2. **Media Loading**: Large media items may cause temporary positioning shifts
-3. **Dynamic Content**: Very dynamic message content (like live animations) may need additional optimization
+1. **Height Measurement**: Initial renders may show slight jumps until heights are measured
+2. **Media Loading**: Large media items may cause temporary positioning shifts during load
+3. **Dynamic Content**: Very dynamic message content (like live animations) may need additional consideration
 
 ## Future Improvements
 
-1. **Vue Virtual Scroller**: Consider migration to `vue-virtual-scroller` library for more features
-2. **Horizontal Virtualization**: Support for very wide messages or media
-3. **Improved Estimation**: Machine learning-based height estimation for better accuracy
-4. **Accessibility**: Enhanced screen reader support for virtual lists
+1. **Custom Styling**: Enhanced customization options for virtual list appearance
+2. **Horizontal Virtualization**: Support for very wide messages or media grids
+3. **Accessibility**: Enhanced screen reader support for virtual lists
+4. **Advanced Features**: Explore additional virtua features like sticky headers or grouping
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Scroll Position Jumps**: 
-   - Ensure ResizeObserver is properly measuring message heights
-   - Check that height estimation is reasonable for your content
+   - Virtua automatically handles height measurement
+   - Ensure items have stable keys (use message.uuid)
+   - Allow time for initial measurement to complete
 
 2. **Missing Messages**:
-   - Verify overscan setting is appropriate for your scroll speed
+   - Check that the data array is properly reactive
    - Check that visible range calculation includes edge cases
 
 3. **Performance Issues**:
