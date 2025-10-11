@@ -166,6 +166,7 @@ defineExpose({
       ref="vListRef"
       :data="messages"
       :style="{ height: `${containerHeight}px` }"
+      :item-size="120"
       shift
       @scroll="onScroll"
       @scrollEnd="() => (isScrolling = false)"

@@ -128,9 +128,9 @@ onUnmounted(() => {
     {{ message.content }}
   </div>
 
-  <!-- Loading state -->
-  <div v-if="isLoading" class="h-20 w-20 flex items-center justify-center">
-    <div class="h-20 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+  <!-- Loading state with better placeholder sizing -->
+  <div v-if="isLoading" class="flex items-center justify-center">
+    <div class="h-48 w-full max-w-xs animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
   </div>
 
   <!-- Error state -->
