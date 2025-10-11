@@ -35,7 +35,7 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
       try {
         // Fetch specific messages by their IDs from Telegram
         const messages = await messageService.fetchSpecificMessages(chatId, messageIds)
-        
+
         if (messages.length > 0) {
           logger.withFields({ count: messages.length }).verbose('Fetched specific messages, processing for media')
           emitter.emit('message:process', { messages })
