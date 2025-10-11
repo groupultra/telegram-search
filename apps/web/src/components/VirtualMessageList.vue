@@ -2,9 +2,9 @@
 import type { CoreMessage } from '@tg-search/core'
 
 import { useWindowSize } from '@vueuse/core'
+import { VList } from 'virtua/vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { VList } from 'virtua/vue'
 
 import MessageBubble from './messages/MessageBubble.vue'
 
@@ -87,7 +87,7 @@ function onScroll(offset: number) {
 
   const wasAtBottom = isAtBottom.value
   const wasAtTop = isAtTop.value
-  
+
   isAtBottom.value = offset >= maxScroll - threshold
   const isAtTopValue = offset <= threshold
   isAtTop.value = isAtTopValue
@@ -169,9 +169,9 @@ defineExpose({
       :item-size="120"
       shift
       @scroll="onScroll"
-      @scrollEnd="() => (isScrolling = false)"
+      @scroll-end="() => (isScrolling = false)"
     >
-      <template #default="{ item: message, index }">
+      <template #default="{ item: message }">
         <div :key="message.uuid" class="w-full">
           <MessageBubble :message="message" />
         </div>

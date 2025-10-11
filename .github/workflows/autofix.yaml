@@ -25,6 +25,6 @@ jobs:
       - name: AutoCorrect
         uses: huacnlee/autocorrect-action@main
         with:
-          args: "--fix"
+          args: --fix
 
       - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27

@@ -67,7 +67,7 @@ const processedMedia = computed<ProcessedMedia>(() => {
           // Extract dimensions from Telegram API PhotoSize
           let width: number | undefined
           let height: number | undefined
-          
+
           const apiMedia = mediaItem.apiMedia as any
           if (apiMedia?.photo?.sizes) {
             // Get the largest photo size for dimensions
@@ -156,9 +156,9 @@ onUnmounted(() => {
 
   <!-- Loading state with dynamic placeholder sizing based on actual image dimensions -->
   <div v-if="isLoading" class="flex items-center justify-center">
-    <div 
-      class="w-full max-w-xs animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700"
-      :style="processedMedia.width && processedMedia.height 
+    <div
+      class="max-w-xs w-full animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700"
+      :style="processedMedia.width && processedMedia.height
         ? { aspectRatio: `${processedMedia.width} / ${processedMedia.height}`, height: 'auto' }
         : { height: '12rem' }"
     />
@@ -179,9 +179,9 @@ onUnmounted(() => {
 
     <img
       v-else-if="processedMedia.mimeType?.startsWith('image/')"
-      :src="processedMedia.src" 
-      class="h-auto max-w-xs rounded-lg" 
-      :style="processedMedia.width && processedMedia.height 
+      :src="processedMedia.src"
+      class="h-auto max-w-xs rounded-lg"
+      :style="processedMedia.width && processedMedia.height
         ? { aspectRatio: `${processedMedia.width} / ${processedMedia.height}` }
         : {}"
       alt="Image"
