@@ -1,11 +1,19 @@
 import type { CoreContext } from '../context'
 import type { DBRetrievalMessages } from '../models'
 import type { CoreDialog } from '../services'
+import type { CoreMessage } from '../utils/message'
 
 import { useLogger } from '@unbird/logg'
 
 import { convertToCoreRetrievalMessages, fetchChats, fetchMessageContextWithPhotos, fetchMessagesWithPhotos, getChatMessagesStats, recordChats, recordMessagesWithMedia, retrieveMessages } from '../models'
 import { embedContents } from '../utils/embed'
+
+/**
+ * Check if a message has no media attached
+ */
+function hasNoMedia(message: CoreMessage): boolean {
+  return !message.media || message.media.length === 0
+}
 
 export function registerStorageEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
@@ -32,7 +40,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
     // We only fetch messages that have no media in the database, as media is optional
     // The media resolver will check if media already exists before downloading
     const messageIdsToFetch = messages
-      .filter(msg => !msg.media || msg.media.length === 0)
+      .filter(hasNoMedia)
       .map(m => Number.parseInt(m.platformMessageId))
       .filter(id => !Number.isNaN(id))
 
