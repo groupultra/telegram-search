@@ -44,6 +44,9 @@ export interface TakeoutOpts {
 
   // Expected total count for progress calculation (optional, will fetch from Telegram if not provided)
   expectedCount?: number
+
+  // Disable auto progress emission (for manual progress management in handler)
+  disableAutoProgress?: boolean
 }
 
 export type TakeoutService = ReturnType<typeof createTakeoutService>
@@ -155,7 +158,10 @@ export function createTakeoutService(ctx: CoreContext) {
 
     const takeoutSession = (await initTakeout()).expect('Init takeout session failed')
 
-    emitProgress(taskId, 0, 'Get messages')
+    // Only emit initial progress if auto-progress is enabled
+    if (!options.disableAutoProgress) {
+      emitProgress(taskId, 0, 'Get messages')
+    }
 
     // Use provided expected count, or fetch from Telegram
     const count = options.expectedCount ?? (await getHistoryWithMessagesCount(chatId)).expect('Failed to get history').count
@@ -225,14 +231,17 @@ export function createTakeoutService(ctx: CoreContext) {
 
         offsetId = messages[messages.length - 1].id
 
-        emitter.emit(
-          'takeout:task:progress',
-          updateTaskProgress(
-            taskId,
-            Number((processedCount / count).toFixed(2)),
-            `Processed ${processedCount}/${count} messages`,
-          ),
-        )
+        // Only emit progress if auto-progress is enabled
+        if (!options.disableAutoProgress) {
+          emitter.emit(
+            'takeout:task:progress',
+            updateTaskProgress(
+              taskId,
+              Number((processedCount / count).toFixed(2)),
+              `Processed ${processedCount}/${count} messages`,
+            ),
+          )
+        }
       }
 
       await finishTakeout(takeoutSession, true)
@@ -242,7 +251,10 @@ export function createTakeoutService(ctx: CoreContext) {
         return
       }
 
-      emitProgress(taskId, 100)
+      // Only emit final progress if auto-progress is enabled
+      if (!options.disableAutoProgress) {
+        emitProgress(taskId, 100)
+      }
       logger.withFields({ taskId }).verbose('Takeout messages finished')
     }
     catch (error) {

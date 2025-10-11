@@ -109,6 +109,8 @@
     "cancel": "Cancel",
     "incrementalSync": "Incremental Sync",
     "noInProgressTask": "No task in progress",
+    "resync": "Re-sync",
+    "resyncDescription": "Clear data and resync all messages",
     "selectChats": "Select Chats",
     "selectedChats": "{count} chats selected",
     "startSync": "Start Sync",

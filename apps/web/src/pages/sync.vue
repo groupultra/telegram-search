@@ -8,7 +8,7 @@ import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
 import { Button } from '../components/ui/Button'
-import { Switch } from '../components/ui/Switch'
+import { Progress } from '../components/ui/Progress'
 
 const { t } = useI18n()
 
@@ -22,26 +22,39 @@ const chatsStore = useChatStore()
 const { chats } = storeToRefs(chatsStore)
 
 const { currentTask, currentTaskProgress, increase } = storeToRefs(useSyncTaskStore())
-const loadingToast = ref<string | number>()
 
-// 计算属性判断按钮是否应该禁用
+// Default to incremental sync
+if (increase.value === undefined || increase.value === null) {
+  increase.value = true
+}
+
+// Task in progress status
+const isTaskInProgress = computed(() => {
+  return !!currentTask.value && currentTaskProgress.value >= 0 && currentTaskProgress.value < 100
+})
+
+// Disable buttons during sync or when no chats selected
 const isButtonDisabled = computed(() => {
-  // 只有在任务进行中并且进度小于100且不为负数时才禁用按钮
-  const isTaskInProgress = !!currentTask.value && currentTaskProgress.value >= 0 && currentTaskProgress.value < 100
-  return selectedChats.value.length === 0 || !isLoggedIn.value || isTaskInProgress
+  return selectedChats.value.length === 0 || !isLoggedIn.value || isTaskInProgress.value
 })
 
 function handleSync() {
+  increase.value = true
   websocketStore.sendEvent('takeout:run', {
     chatIds: selectedChats.value.map(id => id.toString()),
-    increase: increase.value,
+    increase: true,
   })
 
-  loadingToast.value = toast.loading(t('sync.startSync'), {
-    description: t('sync.startSyncPrompt'),
+  NProgress.start()
+}
+
+function handleResync() {
+  increase.value = false
+  websocketStore.sendEvent('takeout:run', {
+    chatIds: selectedChats.value.map(id => id.toString()),
+    increase: false,
   })
 
-  // Start NProgress
   NProgress.start()
 }
 
@@ -57,34 +70,17 @@ function handleAbort() {
 }
 
 watch(currentTaskProgress, (progress) => {
-  toast.dismiss(loadingToast?.value)
-
   if (progress === 100) {
-    toast.dismiss(loadingToast.value)
     toast.success(t('sync.syncCompleted'))
-    // Complete NProgress
     NProgress.done()
-    if (!increase.value) {
-      increase.value = true
-    }
+    increase.value = true
   }
   else if (progress < 0 && currentTask.value?.lastError) {
-    toast.dismiss(loadingToast.value)
     toast.error(currentTask.value.lastError)
-    // Complete NProgress on error
     NProgress.done()
   }
-  else {
-    loadingToast.value = toast.loading(currentTask.value?.lastMessage ?? t('sync.syncing'), {
-      action: {
-        label: t('sync.cancel'),
-        onClick: handleAbort,
-      },
-    })
-    // Update NProgress with actual progress
-    if (progress >= 0 && progress < 100) {
-      NProgress.set(progress / 100)
-    }
+  else if (progress >= 0 && progress < 100) {
+    NProgress.set(progress / 100)
   }
 })
 </script>
@@ -103,31 +99,51 @@ watch(currentTaskProgress, (progress) => {
       >
         {{ t('sync.sync') }}
       </Button>
+      <Button
+        icon="i-lucide-rotate-ccw"
+        :disabled="isButtonDisabled"
+        @click="handleResync"
+      >
+        {{ t('sync.resync') }}
+      </Button>
     </div>
   </header>
 
-  <div class="p-6">
-    <div class="flex items-center justify-between">
-      <h3 class="text-lg text-gray-900 font-medium dark:text-gray-100">
-        {{ t('sync.syncPrompt') }}
-      </h3>
+  <div class="p-6 space-y-6">
+    <!-- Progress bar -->
+    <div v-if="isTaskInProgress" class="space-y-3">
+      <Progress
+        :progress="currentTaskProgress"
+        :label="t('sync.syncing')"
+        :message="currentTask?.lastMessage"
+      />
+      <div class="flex justify-end">
+        <Button
+          icon="i-lucide-x"
+          size="sm"
+          @click="handleAbort"
+        >
+          {{ t('sync.cancel') }}
+        </Button>
+      </div>
+    </div>
 
-      <div class="flex items-center gap-2">
-        <div>
-          <Switch
-            v-model="increase"
-            :label="t('sync.incrementalSync')"
-          />
-        </div>
+    <!-- Chat selector section -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg text-gray-900 font-medium dark:text-gray-100">
+          {{ t('sync.syncPrompt') }}
+        </h3>
+
         <span class="text-sm text-gray-600 dark:text-gray-400">
           {{ t('sync.selectedChats', { count: selectedChats.length }) }}
         </span>
       </div>
-    </div>
 
-    <ChatSelector
-      v-model:selected-chats="selectedChats"
-      :chats="chats"
-    />
+      <ChatSelector
+        v-model:selected-chats="selectedChats"
+        :chats="chats"
+      />
+    </div>
   </div>
 </template>

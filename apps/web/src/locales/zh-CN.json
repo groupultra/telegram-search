@@ -109,6 +109,8 @@
     "cancel": "取消",
     "incrementalSync": "增量同步",
     "noInProgressTask": "没有进行中的任务",
+    "resync": "重新同步",
+    "resyncDescription": "清空数据并重新同步所有消息",
     "selectChats": "选择聊天",
     "selectedChats": "已选择 {count} 个聊天",
     "startSync": "开始同步",

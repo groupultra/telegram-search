@@ -3,7 +3,7 @@ import { computed } from 'vue'
 
 interface Props {
   /**
-   * 当前页码（从1开始）
+   * 当前页码（从 1 开始）
    */
   modelValue: number
   /**

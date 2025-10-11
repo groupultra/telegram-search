@@ -8,10 +8,12 @@ import { useLogger } from '@unbird/logg'
 
 import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 import { getChatMessageStatsByChatId } from '../models'
+import { useTasks } from '../utils/task'
 
 export function registerTakeoutEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
   const logger = useLogger('core:takeout:event')
+  const { createTask, updateTaskProgress } = useTasks('takeout')
 
   return (takeoutService: TakeoutService) => {
     emitter.on('takeout:run', async ({ chatIds, increase }) => {
@@ -98,6 +100,12 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
               needToSync: needToSyncCount,
             }).verbose('Incremental sync calculation')
 
+            // Create task for manual progress management
+            const { taskId } = createTask({ chatIds: [chatId] })
+            emitter.emit('takeout:task:progress', updateTaskProgress(taskId, 0, 'Starting incremental sync'))
+
+            let totalProcessed = 0
+
             // Phase 1: Backward fill - sync messages after latest_message_id (newer messages)
             // For getting newer messages, we need to start from offsetId=0 (newest) and use minId filter
             logger.withFields({ chatId, mode: 'incremental-backward', minId: stats.latestMessageId }).verbose('Starting backward fill')
@@ -109,6 +117,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
               minId: stats.latestMessageId, // Filter: only get messages > latestMessageId
               maxId: 0,
               expectedCount: needToSyncCount, // This is the calculated number of messages that need to be synced for accurate progress tracking
+              disableAutoProgress: true, // Disable auto progress to prevent reset between phases
             }
 
             let backwardMessageCount = 0
@@ -120,10 +129,19 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
 
               messages.push(message)
               backwardMessageCount++
+              totalProcessed++
 
               if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
                 emitter.emit('message:process', { messages })
                 messages = []
+
+                // Emit progress update after batch processing
+                const progress = needToSyncCount > 0 ? Number((totalProcessed / needToSyncCount).toFixed(2)) : 0
+                emitter.emit('takeout:task:progress', updateTaskProgress(
+                  taskId,
+                  progress,
+                  `Processed ${totalProcessed}/${needToSyncCount} messages`,
+                ))
               }
             }
 
@@ -140,20 +158,33 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
               minId: 0, // No lower limit
               maxId: 0, // Will fetch older messages from offsetId
               expectedCount: needToSyncCount, // Use calculated count for accurate progress
+              disableAutoProgress: true, // Disable auto progress to prevent reset between phases
             }
 
             let forwardMessageCount = 0
             for await (const message of takeoutService.takeoutMessages(chatId, forwardOpts)) {
               messages.push(message)
               forwardMessageCount++
+              totalProcessed++
 
               if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
                 emitter.emit('message:process', { messages })
                 messages = []
+
+                // Emit progress update after batch processing
+                const progress = needToSyncCount > 0 ? Number((totalProcessed / needToSyncCount).toFixed(2)) : 0
+                emitter.emit('takeout:task:progress', updateTaskProgress(
+                  taskId,
+                  progress,
+                  `Processed ${totalProcessed}/${needToSyncCount} messages`,
+                ))
               }
             }
 
             logger.withFields({ chatId, count: forwardMessageCount }).verbose('Forward fill completed')
+
+            // Mark as complete
+            emitter.emit('takeout:task:progress', updateTaskProgress(taskId, 100, 'Incremental sync completed'))
           }
         }
       }
