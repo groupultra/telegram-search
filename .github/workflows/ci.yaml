@@ -106,5 +106,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: AutoCorrect
-        uses: huacnlee/autocorrect-action@main
+  autocorrect:
+    name: Autocorrect
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: huacnlee/autocorrect-action@main
