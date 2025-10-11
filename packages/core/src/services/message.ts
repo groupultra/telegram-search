@@ -10,6 +10,7 @@ import { Api } from 'telegram'
 export interface MessageEventToCore {
   'message:fetch': (data: FetchMessageOpts) => void
   'message:fetch:abort': (data: { taskId: string }) => void
+  'message:fetch:specific': (data: { chatId: string, messageIds: number[] }) => void
   'message:send': (data: { chatId: string, content: string }) => void
 }
 
@@ -102,8 +103,36 @@ export function createMessageService(ctx: CoreContext) {
     return Ok(message)
   }
 
+  async function fetchSpecificMessages(chatId: string, messageIds: number[]): Promise<Api.Message[]> {
+    if (!await getClient().isUserAuthorized()) {
+      logger.error('User not authorized')
+      return []
+    }
+
+    if (messageIds.length === 0) {
+      return []
+    }
+
+    try {
+      logger.withFields({ chatId, messageIds: messageIds.length }).debug('Fetching specific messages from Telegram')
+      
+      // Telegram API getMessages can accept an array of message IDs
+      const messages = await getClient().getMessages(chatId, {
+        ids: messageIds,
+      })
+
+      // Filter out empty messages
+      return messages.filter(message => !(message instanceof Api.MessageEmpty))
+    }
+    catch (error) {
+      logger.withError(withError(error, 'Fetch specific messages failed') as Error).error('Failed to fetch specific messages')
+      return []
+    }
+  }
+
   return {
     fetchMessages,
     sendMessage,
+    fetchSpecificMessages,
   }
 }

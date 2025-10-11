@@ -29,6 +29,23 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
       }
     })
 
+    emitter.on('message:fetch:specific', async ({ chatId, messageIds }) => {
+      logger.withFields({ chatId, messageIds: messageIds.length }).verbose('Fetching specific messages for media')
+
+      try {
+        // Fetch specific messages by their IDs from Telegram
+        const messages = await messageService.fetchSpecificMessages(chatId, messageIds)
+        
+        if (messages.length > 0) {
+          logger.withFields({ count: messages.length }).verbose('Fetched specific messages, processing for media')
+          emitter.emit('message:process', { messages })
+        }
+      }
+      catch (error) {
+        logger.withError(error as Error).warn('Failed to fetch specific messages')
+      }
+    })
+
     emitter.on('message:send', async ({ chatId, content }) => {
       logger.withFields({ chatId, content }).verbose('Sending message')
       const updatedMessage = (await messageService.sendMessage(chatId, content)).unwrap() as Api.Updates

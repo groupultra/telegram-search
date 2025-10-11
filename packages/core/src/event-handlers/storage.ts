@@ -26,6 +26,21 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
     const messages = (await fetchMessageContextWithPhotos({ chatId, messageId, before: safeBefore, after: safeAfter })).unwrap()
 
     emitter.emit('storage:messages:context', { chatId, messageId, messages })
+    
+    // After emitting the initial messages, check if any messages might have missing media
+    // and trigger a fetch from Telegram to download them
+    const messageIds = messages.map(m => Number.parseInt(m.platformMessageId)).filter(id => !Number.isNaN(id))
+    
+    if (messageIds.length > 0) {
+      logger.withFields({ messageIds: messageIds.length }).verbose('Fetching messages from Telegram to ensure media is available')
+      
+      // Fetch these specific messages from Telegram which will download any missing media
+      // This is done asynchronously and will update the messages once media is downloaded
+      emitter.emit('message:fetch:specific', {
+        chatId,
+        messageIds,
+      })
+    }
   })
 
   emitter.on('storage:record:messages', async ({ messages }) => {
