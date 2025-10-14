@@ -18,7 +18,7 @@ const formattedTimestamp = computed(() => {
 </script>
 
 <template>
-  <div class="group mx-3 my-1 flex items-start gap-3 rounded-xl p-3 transition-all duration-200 hover:bg-accent/50 md:mx-4 md:gap-4">
+  <div class="group mx-3 my-1 flex items-start gap-3 rounded-xl p-3 transition-all duration-200 md:mx-4 md:gap-4 hover:bg-accent/50">
     <div class="flex-shrink-0 pt-0.5">
       <Avatar
         :name="message.fromName"
@@ -27,7 +27,7 @@ const formattedTimestamp = computed(() => {
     </div>
     <div class="min-w-0 flex-1">
       <div class="mb-1.5 flex items-baseline gap-2">
-        <span class="truncate text-sm font-semibold text-foreground">{{ message.fromName }}</span>
+        <span class="truncate text-sm text-foreground font-semibold">{{ message.fromName }}</span>
         <span class="flex-shrink-0 text-xs text-muted-foreground">{{ formattedTimestamp }}</span>
       </div>
 
@@ -38,7 +38,7 @@ const formattedTimestamp = computed(() => {
       <!-- Message ID badge (hidden by default, shown on hover) -->
       <div class="mt-1.5 opacity-0 transition-opacity group-hover:opacity-100">
         <span class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-          <span class="i-lucide-hash h-3 w-3 mr-1" />
+          <span class="i-lucide-hash mr-1 h-3 w-3" />
           {{ message.platformMessageId }}
         </span>
       </div>

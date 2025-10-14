@@ -52,12 +52,12 @@ watch(keywordDebounced, (newKeyword) => {
 
     <!-- 搜索栏直接放在页面顶部 -->
     <div class="flex flex-col px-8 pt-8">
-      <div class="mx-auto w-full max-w-4xl flex items-center gap-2">
+      <div class="mx-auto max-w-4xl w-full flex items-center gap-2">
         <div class="relative flex flex-1 items-center">
           <span class="i-lucide-search absolute left-4 h-5 w-5 text-muted-foreground" />
           <input
             v-model="keyword"
-            class="h-12 w-full border rounded-xl bg-background px-4 py-3 pl-12 pr-4 text-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            class="h-12 w-full border rounded-xl bg-background px-4 py-3 pl-12 pr-4 text-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
             :placeholder="t('search.searchMessages')"
           >
         </div>

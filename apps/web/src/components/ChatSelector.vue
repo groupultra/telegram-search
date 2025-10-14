@@ -114,7 +114,7 @@ function toggleSelection(id: number): void {
         :data="filteredChats"
         class="h-full"
       >
-        <template #default="{ item: chat, index }">
+        <template #default="{ item: chat }">
           <label
             :key="chat.id"
             class="group flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-accent"
