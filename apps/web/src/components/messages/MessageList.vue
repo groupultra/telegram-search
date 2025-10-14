@@ -40,7 +40,7 @@ function navigateToMessage(message: CoreMessage) {
 </script>
 
 <template>
-  <ul class="scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent max-h-[540px] flex flex-col animate-fade-in overflow-y-auto">
+  <ul class="scrollbar-thumb-secondary scrollbar-track-transparent max-h-[540px] flex flex-col animate-fade-in overflow-y-auto scrollbar-thin">
     <li
       v-for="item in props.messages"
       :key="item.uuid"

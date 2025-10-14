@@ -228,7 +228,7 @@ function closeMobileDrawer() {
         </div>
 
         <!-- Chat list -->
-        <div class="scrollbar scrollbar-rounded scrollbar-w-6px flex-1 overflow-y-auto py-2">
+        <div class="flex-1 overflow-y-auto py-2 scrollbar scrollbar-rounded scrollbar-w-6px">
           <div
             v-for="chat in chatsFiltered.filter(chat => chat.type === activeChatGroup)"
             :key="chat.id"
