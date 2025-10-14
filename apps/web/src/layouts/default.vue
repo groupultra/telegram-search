@@ -9,9 +9,8 @@ import buildTime from '~build/time'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterView, useRoute } from 'vue-router'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 
-import ChatsCollapse from '../components/layout/ChatsCollapse.vue'
 import SettingsDialog from '../components/layout/SettingsDialog.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
 import Avatar from '../components/ui/Avatar.vue'
@@ -23,6 +22,7 @@ const isDark = useDark()
 
 const websocketStore = useBridgeStore()
 const route = useRoute()
+const router = useRouter()
 
 const { t } = useI18n()
 
@@ -140,7 +140,9 @@ function closeMobileDrawer() {
     >
       <Button
         icon="i-lucide-menu"
-        class="h-10 w-10 flex touch-manipulation items-center justify-center border border-neutral-300 rounded-lg bg-white/90 text-gray-600 shadow-md backdrop-blur-sm transition-all dark:border-gray-600 dark:bg-gray-800/90 hover:bg-white dark:text-gray-400 hover:text-gray-700 hover:shadow-lg dark:hover:bg-gray-700 dark:hover:text-gray-200"
+        size="md"
+        variant="outline"
+        class="h-10 w-10 rounded-lg shadow-md backdrop-blur-sm"
         @click="toggleSidebar"
       />
     </div>
@@ -148,28 +150,28 @@ function closeMobileDrawer() {
     <!-- Sidebar -->
     <div
       :class="sidebarClasses.container"
-      class="flex flex-col border-r border-r-secondary bg-background/95 backdrop-blur-sm h-dvh dark:border-r-gray-700 dark:bg-gray-800/90"
+      class="flex flex-col border-r bg-card h-dvh"
     >
       <!-- Search section -->
       <div
         v-if="!isMobile || mobileDrawerOpen"
-        class="p-4"
+        class="border-b p-3"
       >
         <div class="relative">
           <div
-            class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-gray-500 -translate-y-1/2 dark:text-gray-400"
+            class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-muted-foreground -translate-y-1/2"
           />
           <input
             v-model="searchParams"
             type="text"
-            class="w-full border border-neutral-200 rounded-full bg-neutral-100/80 px-3 py-2 pl-9 ring-offset-background transition-all dark:border-gray-600 dark:bg-gray-700/80 hover:bg-neutral-100 dark:text-gray-100 placeholder:text-gray-500 focus:(outline-none ring-2 ring-primary/50) dark:ring-offset-gray-800 dark:placeholder:text-gray-400"
+            class="h-9 w-full border rounded-md bg-background px-3 py-1 pl-9 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             :placeholder="t('search.search')"
           >
         </div>
       </div>
 
       <!-- Navigation -->
-      <div class="mb-4">
+      <div class="py-2">
         <SidebarSelector
           path="/sync"
           icon="i-lucide-refresh-cw"
@@ -193,78 +195,104 @@ function closeMobileDrawer() {
       <!-- Chat groups -->
       <div
         v-if="!isMobile || mobileDrawerOpen"
-        class="h-full flex flex-1 flex-col justify-start overflow-y-auto border-t border-t-secondary pt-2 dark:border-t-gray-700"
+        class="min-h-0 flex flex-1 flex-col border-t"
       >
-        <ChatsCollapse
-          class="max-h-[85%] flex flex-col"
-          :class="{ 'flex-1': activeChatGroup === 'user' }"
-          :name="t('chatGroups.user')"
-          icon="i-lucide-user"
-          type="user"
-          :chats="chatsFiltered.filter(chat => chat.type === 'user')"
-          :active="activeChatGroup === 'user'"
-          @update:toggle-active="toggleActiveChatGroup('user')"
-        />
+        <!-- Tab selector -->
+        <div class="flex items-center gap-1 border-b p-2">
+          <button
+            :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'user' }"
+            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            @click="toggleActiveChatGroup('user')"
+          >
+            <span class="i-lucide-user h-4 w-4" />
+            <span>{{ t('chatGroups.user') }}</span>
+          </button>
 
-        <ChatsCollapse
-          class="max-h-[85%] flex flex-col"
-          :class="{ 'flex-1': activeChatGroup === 'group' }"
-          :name="t('chatGroups.group')"
-          icon="i-lucide-users"
-          type="group"
-          :chats="chatsFiltered.filter(chat => chat.type === 'group')"
-          :active="activeChatGroup === 'group'"
-          @update:toggle-active="toggleActiveChatGroup('group')"
-        />
+          <button
+            :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'group' }"
+            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            @click="toggleActiveChatGroup('group')"
+          >
+            <span class="i-lucide-users h-4 w-4" />
+            <span>{{ t('chatGroups.group') }}</span>
+          </button>
 
-        <ChatsCollapse
-          class="max-h-[85%] flex flex-col"
-          :class="{ 'flex-1': activeChatGroup === 'channel' }"
-          :name="t('chatGroups.channel')"
-          icon="i-lucide-message-circle"
-          type="channel"
-          :chats="chatsFiltered.filter(chat => chat.type === 'channel')"
-          :active="activeChatGroup === 'channel'"
-          @update:toggle-active="toggleActiveChatGroup('channel')"
-        />
+          <button
+            :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'channel' }"
+            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            @click="toggleActiveChatGroup('channel')"
+          >
+            <span class="i-lucide-message-circle h-4 w-4" />
+            <span>{{ t('chatGroups.channel') }}</span>
+          </button>
+        </div>
+
+        <!-- Chat list -->
+        <div class="scrollbar scrollbar-rounded scrollbar-w-6px flex-1 overflow-y-auto py-2">
+          <div
+            v-for="chat in chatsFiltered.filter(chat => chat.type === activeChatGroup)"
+            :key="chat.id"
+            :class="{ 'bg-accent text-accent-foreground': route.params.chatId === chat.id.toString() }"
+            class="mx-2 my-0.5 flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
+            @click="router.push(`/chat/${chat.id}`)"
+          >
+            <Avatar
+              :name="chat.name"
+              size="sm"
+              class="flex-shrink-0"
+            />
+            <div class="min-w-0 flex flex-1 flex-col">
+              <span class="truncate text-sm font-medium">
+                {{ chat.name }}
+              </span>
+              <span class="truncate text-xs text-muted-foreground">
+                {{ chat.id }}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- User profile section -->
-      <div class="flex flex-col gap-2 border-t border-t-secondary p-4 dark:border-t-gray-700">
-        <div class="flex items-center justify-between">
-          <div class="mr-3 flex items-center gap-3">
-            <div class="h-8 w-8 flex items-center justify-center overflow-hidden rounded-full bg-neutral-100 ring-2 ring-offset-1 ring-primary/10 dark:bg-gray-700">
+      <div class="flex flex-col gap-3 border-t p-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0 flex flex-1 items-center gap-2.5">
+            <div class="h-8 w-8 flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
               <Avatar
                 :name="websocketStore.getActiveSession()?.me?.name"
                 size="sm"
               />
             </div>
-            <div class="flex flex-col">
-              <span class="whitespace-nowrap text-sm text-gray-900 font-medium dark:text-gray-100">{{ websocketStore.getActiveSession()?.me?.name }}</span>
-              <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
+            <div class="min-w-0 flex flex-1 flex-col">
+              <span class="truncate text-sm font-medium">{{ websocketStore.getActiveSession()?.me?.name }}</span>
+              <span class="truncate text-xs text-muted-foreground">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
             </div>
           </div>
 
           <!-- Control buttons -->
-          <div class="flex items-center gap-2">
+          <div class="flex flex-shrink-0 items-center gap-1">
             <Button
               :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
-              class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100/80 dark:text-gray-100 dark:hover:bg-gray-700/70"
+              class="h-8 w-8 rounded-md p-0"
+              variant="ghost"
+              size="sm"
               :title="isDark ? t('settings.switchToLightMode') : t('settings.switchToDarkMode')"
               @click="() => { isDark = !isDark }"
             />
 
             <Button
               icon="i-lucide-settings"
-              class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 transition-colors hover:bg-neutral-100/80 dark:text-gray-100 dark:hover:bg-gray-700/70"
+              class="h-8 w-8 rounded-md p-0"
+              variant="ghost"
+              size="sm"
               :title="t('settings.settings')"
               @click="toggleSettingsDialog"
             />
           </div>
         </div>
 
-        <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-          <span class="truncate">Build: {{ buildVersionLabel }}</span>
+        <div class="flex items-center justify-between text-xs text-muted-foreground">
+          <span class="truncate">{{ buildVersionLabel }}</span>
           <span
             v-if="buildTimeLabel"
             class="truncate"
@@ -275,7 +303,7 @@ function closeMobileDrawer() {
 
     <!-- Main content -->
     <div
-      class="flex flex-1 flex-col overflow-auto bg-background transition-all duration-300 ease-in-out dark:bg-gray-900"
+      class="flex flex-1 flex-col overflow-auto bg-background"
       :class="{ 'ml-0': isMobile }"
     >
       <RouterView :key="$route.fullPath" />
@@ -286,3 +314,19 @@ function closeMobileDrawer() {
     />
   </div>
 </template>
+
+<style>
+/* Hide scrollbar by default, show on hover */
+.scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+
+.scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+}
+
+.scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb);
+}
+</style>

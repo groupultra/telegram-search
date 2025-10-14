@@ -8,6 +8,7 @@ import {
   presetWind3,
 } from 'unocss'
 import presetAnimations from 'unocss-preset-animations'
+import { presetScrollbar } from 'unocss-preset-scrollbar'
 import { presetShadcn } from 'unocss-preset-shadcn'
 
 export function sharedUnoConfig() {
@@ -32,6 +33,12 @@ export function sharedUnoConfig() {
           primary: 0,
           complementary: 180,
         },
+      }),
+      presetScrollbar({
+        scrollbarWidth: '6px',
+        scrollbarHeight: '6px',
+        scrollbarTrackRadius: '4px',
+        scrollbarThumbRadius: '4px',
       }),
     ],
     // Content extraction configuration for shadcn-vue
