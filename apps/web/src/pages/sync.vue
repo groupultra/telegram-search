@@ -4,6 +4,7 @@ import NProgress from 'nprogress'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
@@ -11,6 +12,7 @@ import { Button } from '../components/ui/Button'
 import { Progress } from '../components/ui/Progress'
 
 const { t } = useI18n()
+const router = useRouter()
 
 const selectedChats = ref<number[]>([])
 
@@ -109,7 +111,37 @@ watch(currentTaskProgress, (progress) => {
     </div>
   </header>
 
-  <div class="p-6 space-y-6">
+  <!-- Login prompt banner -->
+  <div
+    v-if="!isLoggedIn"
+    class="flex items-center justify-center px-4 py-6"
+  >
+    <div
+      class="max-w-2xl w-full border border-primary/20 rounded-xl bg-primary/5 p-6 transition-all dark:border-primary/30 dark:bg-primary/10"
+    >
+      <div class="flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
+        <div class="flex items-center gap-4">
+          <div class="h-10 w-10 flex flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20">
+            <div class="i-lucide-lock-keyhole h-5 w-5 text-primary" />
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-sm text-foreground font-medium">{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
+            <span class="text-xs text-muted-foreground">{{ t('loginPromptBanner.subtitle') }}</span>
+          </div>
+        </div>
+        <Button
+          size="md"
+          icon="i-lucide-log-in"
+          class="flex-shrink-0"
+          @click="router.push('/login')"
+        >
+          {{ t('loginPromptBanner.login') }}
+        </Button>
+      </div>
+    </div>
+  </div>
+
+  <div v-else class="p-6 space-y-6">
     <!-- Progress bar -->
     <div v-if="isTaskInProgress" class="space-y-3">
       <Progress

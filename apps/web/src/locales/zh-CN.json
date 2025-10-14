@@ -52,7 +52,8 @@
   },
   "loginPromptBanner": {
     "login": "去登录",
-    "pleaseLoginToUseFullFeatures": "请先登录 Telegram 账号以使用完整功能"
+    "pleaseLoginToUseFullFeatures": "请先登录 Telegram 账号以使用完整功能",
+    "subtitle": "体验完整功能，开始您的 Telegram 搜索之旅"
   },
   "messages": {
     "copied": "已复制",

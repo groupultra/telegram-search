@@ -91,7 +91,7 @@
 
   // i18n-ally
   "i18n-ally.localesPaths": [
-    "app/web/src/locales"
+    "apps/web/src/locales"
   ],
   "i18n-ally.enabledFrameworks": [
     "vue"

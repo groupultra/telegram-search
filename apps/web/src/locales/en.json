@@ -52,7 +52,8 @@
   },
   "loginPromptBanner": {
     "login": "Login",
-    "pleaseLoginToUseFullFeatures": "Please login to your Telegram account to use full features"
+    "pleaseLoginToUseFullFeatures": "Please login to your Telegram account to use full features",
+    "subtitle": "Experience full features and start your Telegram search journey"
   },
   "messages": {
     "copied": "Copied",
