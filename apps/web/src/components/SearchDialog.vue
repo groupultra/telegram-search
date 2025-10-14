@@ -17,8 +17,6 @@ const { t } = useI18n()
 const isOpen = defineModel<boolean>('open', { required: true })
 const isLoading = ref(false)
 
-const showSettings = ref(false)
-
 const keyword = ref<string>('')
 const keywordDebounced = useDebounce(keyword, 1000)
 
@@ -48,85 +46,107 @@ watch(keywordDebounced, (newKeyword) => {
     isLoading.value = false
   })
 })
-
-// TODO: handle click outside to close the dialog
 </script>
 
 <template>
-  <div v-if="isOpen" class="flex items-center justify-center" @keydown.esc="isOpen = false">
-    <div class="w-[45%] rounded-xl bg-card shadow-lg dark:bg-gray-800">
-      <!-- 搜索输入框 -->
-      <div class="flex items-center gap-2 border-b px-4 py-3 dark:border-gray-700">
-        <input
-          v-model="keyword"
-          class="w-full bg-transparent text-gray-900 outline-none dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-          :placeholder="t('searchDialog.searchMessages')"
-        >
-        <button
-          class="h-8 w-8 flex items-center justify-center rounded-md p-1 text-gray-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
-          @click="showSettings = !showSettings"
-        >
-          <span class="i-lucide-chevron-down h-4 w-4 transition-transform" :class="{ 'rotate-180': showSettings }" />
-        </button>
-      </div>
+  <!-- Background overlay -->
+  <Transition
+    enter-active-class="transition-opacity duration-200 ease-out"
+    enter-from-class="opacity-0"
+    enter-to-class="opacity-100"
+    leave-active-class="transition-opacity duration-150 ease-in"
+    leave-from-class="opacity-100"
+    leave-to-class="opacity-0"
+  >
+    <div
+      v-if="isOpen"
+      class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+      @click="isOpen = false"
+    />
+  </Transition>
 
-      <!-- 设置栏 -->
-      <div v-if="showSettings" class="border-b px-4 py-3 dark:border-gray-700">
-        <slot name="settings" />
-      </div>
+  <!-- Dialog content -->
+  <Transition
+    enter-active-class="transition-all duration-300 ease-out"
+    enter-from-class="opacity-0 scale-95 translate-y-4"
+    enter-to-class="opacity-100 scale-100 translate-y-0"
+    leave-active-class="transition-all duration-200 ease-in"
+    leave-from-class="opacity-100 scale-100 translate-y-0"
+    leave-to-class="opacity-0 scale-95 translate-y-4"
+  >
+    <div
+      v-if="isOpen"
+      class="fixed inset-x-0 top-0 z-50 mx-auto h-full w-full md:top-[15%] md:h-auto md:max-w-2xl md:w-[90%] md:px-4"
+      @keydown.esc="isOpen = false"
+    >
+      <div class="h-full w-full flex flex-col overflow-hidden border-0 rounded-none bg-card shadow-2xl backdrop-blur-xl md:h-auto md:border dark:border-gray-700 md:rounded-2xl dark:bg-gray-800/95" @click.stop>
+        <!-- 搜索输入框 -->
+        <div class="border-b from-background/50 to-background bg-gradient-to-b p-4 dark:border-gray-700 md:p-6">
+          <div class="flex items-center gap-3">
+            <button
+              class="flex flex-shrink-0 items-center justify-center rounded-full p-2 transition-colors hover:bg-accent md:hidden"
+              @click="isOpen = false"
+            >
+              <span class="i-lucide-arrow-left h-5 w-5" />
+            </button>
+            <div class="relative flex flex-1 items-center">
+              <div class="absolute left-4 flex items-center justify-center">
+                <span class="i-lucide-search h-5 w-5 text-muted-foreground" />
+              </div>
+              <input
+                v-model="keyword"
+                class="h-12 w-full border-0 rounded-xl bg-muted/50 px-4 pl-12 pr-4 text-base transition-all duration-200 md:h-14 focus:bg-muted/80 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-ring"
+                :placeholder="t('searchDialog.searchMessages')"
+                autofocus
+              >
+            </div>
+          </div>
+        </div>
 
-      <!-- 搜索结果 -->
-      <div
-        v-show="keywordDebounced"
-        class="min-h-[200px] p-4 transition-all duration-300 ease-in-out"
-        :class="{ 'opacity-0': !keywordDebounced, 'opacity-100': keywordDebounced }"
-      >
-        <template v-if="searchResult.length > 0">
-          <MessageList :messages="searchResult" :keyword="keyword" />
-        </template>
-        <template v-else-if="isLoading">
-          <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
-            <span class="i-lucide-loader-circle mb-2 animate-spin text-3xl" />
-            <span>{{ t('searchDialog.searching') }}</span>
-          </div>
-        </template>
-        <template v-else-if="searchResult.length === 0">
-          <div class="flex flex-col items-center justify-center py-12 text-gray-500 opacity-70 dark:text-gray-400">
-            <span class="i-lucide-search mb-2 text-3xl" />
-            <span>{{ t('searchDialog.noRelatedMessages') }}</span>
-          </div>
-        </template>
+        <!-- 搜索结果 -->
+        <div
+          class="flex-1 overflow-y-auto scrollbar-none md:max-h-[60vh] md:flex-initial md:scrollbar md:scrollbar-rounded md:scrollbar-w-6px"
+          :class="keywordDebounced ? 'md:min-h-[300px]' : 'md:min-h-[200px]'"
+        >
+          <Transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition-all duration-200 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-2"
+          >
+            <div v-if="keywordDebounced" class="h-full">
+              <template v-if="searchResult.length > 0">
+                <MessageList :messages="searchResult" :keyword="keyword" />
+              </template>
+              <template v-else-if="isLoading">
+                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <div class="relative mb-4">
+                    <span class="i-lucide-loader-circle animate-spin text-5xl text-primary" />
+                  </div>
+                  <span class="text-base font-medium">{{ t('searchDialog.searching') }}</span>
+                </div>
+              </template>
+              <template v-else-if="searchResult.length === 0">
+                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
+                    <span class="i-lucide-search text-3xl" />
+                  </div>
+                  <span class="text-base font-medium">{{ t('searchDialog.noRelatedMessages') }}</span>
+                </div>
+              </template>
+            </div>
+            <div v-else class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
+                <span class="i-lucide-search text-3xl" />
+              </div>
+              <span class="text-base font-medium">{{ t('searchDialog.searchMessages') }}</span>
+              <span class="mt-2 text-sm opacity-60">{{ t('searchDialog.startTyping') }}</span>
+            </div>
+          </Transition>
+        </div>
       </div>
     </div>
-  </div>
+  </Transition>
 </template>
-
-<style scoped>
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out;
-}
-</style>

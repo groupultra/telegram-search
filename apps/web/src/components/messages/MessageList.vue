@@ -2,11 +2,13 @@
 import type { CoreMessage } from '@tg-search/core/types'
 
 import { useClipboard } from '@vueuse/core'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 
 import Avatar from '../ui/Avatar.vue'
+import ContextMenu from '../ui/ContextMenu.vue'
 
 const props = defineProps<{
   messages: CoreMessage[]
@@ -15,7 +17,33 @@ const props = defineProps<{
 const { t } = useI18n()
 const router = useRouter()
 const hoveredMessage = ref<CoreMessage | null>(null)
-const { copy, copied } = useClipboard()
+const { copy } = useClipboard()
+
+const contextMenuOpen = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const contextMenuMessage = ref<CoreMessage | null>(null)
+
+const contextMenuItems = computed(() => [
+  {
+    label: t('messages.copyMessageLink'),
+    icon: 'i-lucide-link',
+    action: () => {
+      if (contextMenuMessage.value) {
+        copyMessageLink(contextMenuMessage.value)
+        toast.success(t('messages.copied'))
+      }
+    },
+  },
+  {
+    label: t('messages.openInChat'),
+    icon: 'i-lucide-external-link',
+    action: () => {
+      if (contextMenuMessage.value)
+        navigateToMessage(contextMenuMessage.value)
+    },
+  },
+])
 
 function highlightKeyword(text: string, keyword: string) {
   if (!keyword)
@@ -37,38 +65,62 @@ function navigateToMessage(message: CoreMessage) {
     },
   })
 }
+
+function handleContextMenu(event: MouseEvent, message: CoreMessage) {
+  event.preventDefault()
+  contextMenuMessage.value = message
+  contextMenuX.value = event.clientX
+  contextMenuY.value = event.clientY
+  contextMenuOpen.value = true
+}
+
+function handleLongPress(event: TouchEvent, message: CoreMessage) {
+  event.preventDefault()
+  const touch = event.touches[0]
+  contextMenuMessage.value = message
+  contextMenuX.value = touch.clientX
+  contextMenuY.value = touch.clientY
+  contextMenuOpen.value = true
+}
 </script>
 
 <template>
-  <ul class="scrollbar-thumb-secondary scrollbar-track-transparent max-h-[540px] flex flex-col animate-fade-in overflow-y-auto scrollbar-thin">
+  <ul class="md:scrollbar-thumb-secondary md:scrollbar-track-transparent h-full flex flex-col animate-fade-in overflow-y-auto scrollbar-none md:max-h-[540px] md:scrollbar-thin">
     <li
       v-for="item in props.messages"
       :key="item.uuid"
-      class="group animate-slide-in relative flex cursor-pointer items-center gap-2 border-b p-2 transition-all duration-200 ease-in-out last:border-b-0 dark:border-gray-700 hover:bg-neutral-100/50 dark:hover:bg-gray-800/50"
+      class="group animate-slide-in relative flex cursor-pointer items-center gap-3 border-b p-3 transition-all duration-200 ease-in-out last:border-b-0 dark:border-gray-700 active:bg-neutral-200/50 hover:bg-neutral-100/50 dark:active:bg-gray-700/50 dark:hover:bg-gray-800/50"
       tabindex="0"
       @mouseenter="hoveredMessage = item"
       @mouseleave="hoveredMessage = null"
       @keydown.enter="copyMessageLink(item)"
       @click="navigateToMessage(item)"
+      @contextmenu="handleContextMenu($event, item)"
+      @touchstart.passive="handleLongPress($event, item)"
     >
       <Avatar
         :name="item.fromName"
-        size="sm"
+        size="md"
       />
       <div class="min-w-0 flex-1">
         <div class="truncate text-sm text-gray-900 font-semibold dark:text-gray-100">
           {{ item.fromName }}
         </div>
-        <div class="whitespace-pre-wrap break-words text-sm text-gray-500 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
+        <div class="mt-1 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
       </div>
-      <div
-        v-if="hoveredMessage === item"
-        class="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded bg-background/50 px-1 py-0.5 text-[10px] text-gray-500 opacity-50 dark:bg-gray-800/50 dark:text-gray-400"
+      <button
+        class="flex-shrink-0 rounded-lg p-2 opacity-0 transition-all hover:bg-accent group-hover:opacity-100"
+        @click.stop="handleContextMenu($event, item)"
       >
-        <span>{{ copied ? t('messages.copied') : t('messages.copyMessageLink') }}</span>
-        <span v-if="!copied" class="i-lucide-corner-down-left h-2.5 w-2.5" />
-        <span v-else class="i-lucide-check h-2.5 w-2.5" />
-      </div>
+        <span class="i-lucide-more-vertical h-4 w-4" />
+      </button>
     </li>
   </ul>
+
+  <ContextMenu
+    v-model:open="contextMenuOpen"
+    :items="contextMenuItems"
+    :x="contextMenuX"
+    :y="contextMenuY"
+  />
 </template>

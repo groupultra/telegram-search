@@ -264,20 +264,36 @@ watch(
     </div>
 
     <!-- Message Input -->
-    <div class="border-t bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-      <div class="flex gap-2">
-        <input
-          v-model="messageInput"
-          type="text"
-          :placeholder="t('chat.typeAMessage')"
-          class="flex-1 border border-gray-300 rounded-lg bg-white p-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary dark:placeholder:text-gray-400 dark:focus:ring-offset-gray-800"
-          @keyup.enter="sendMessage"
-        >
+    <div class="border-t from-background/95 to-background bg-gradient-to-b p-4 backdrop-blur dark:border-gray-700 supports-[backdrop-filter]:bg-background/60">
+      <div class="mx-auto max-w-4xl flex items-end gap-2">
+        <!-- Input container with modern design -->
+        <div class="relative flex flex-1 items-center">
+          <input
+            v-model="messageInput"
+            type="text"
+            :placeholder="t('chat.typeAMessage')"
+            class="h-12 w-full border rounded-xl bg-background px-4 py-3 pr-12 text-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+            @keyup.enter="sendMessage"
+          >
+          <!-- Emoji/Attachment buttons (optional, can be expanded later) -->
+          <!-- <div class="absolute right-3 flex items-center gap-1">
+            <button
+              class="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              type="button"
+              title="More options"
+            >
+              <span class="i-lucide-paperclip h-4 w-4" />
+            </button>
+          </div> -->
+        </div>
+
+        <!-- Send button with modern design -->
         <button
-          class="rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
+          :disabled="!messageInput.trim()"
+          class="h-12 w-12 flex flex-shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-all duration-200 disabled:cursor-not-allowed hover:bg-primary/90 disabled:opacity-50 hover:shadow-md disabled:hover:bg-primary disabled:hover:shadow-sm"
           @click="sendMessage"
         >
-          {{ t('chat.send') }}
+          <span class="i-lucide-send h-5 w-5" />
         </button>
       </div>
     </div>
@@ -287,7 +303,6 @@ watch(
         ref="searchDialogRef"
         v-model:open="isGlobalSearchOpen"
         :chat-id="id.toString()"
-        class="absolute left-0 top-[20%] w-full"
       >
         <template #settings>
           <div class="flex items-center">

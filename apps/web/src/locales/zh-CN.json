@@ -57,7 +57,8 @@
   },
   "messages": {
     "copied": "已复制",
-    "copyMessageLink": "按下复制消息链接"
+    "copyMessageLink": "复制消息链接",
+    "openInChat": "在聊天中打开"
   },
   "search": {
     "noRelatedMessages": "没有找到相关消息",
@@ -68,7 +69,8 @@
   "searchDialog": {
     "noRelatedMessages": "没有找到相关消息",
     "searchMessages": "搜索消息...",
-    "searching": "搜索中..."
+    "searching": "搜索中...",
+    "startTyping": "开始输入以搜索"
   },
   "settings": {
     "apiBaseUrl": "API 基础 URL",

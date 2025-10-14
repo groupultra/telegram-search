@@ -57,7 +57,8 @@
   },
   "messages": {
     "copied": "Copied",
-    "copyMessageLink": "Press to copy message link"
+    "copyMessageLink": "Copy message link",
+    "openInChat": "Open in chat"
   },
   "search": {
     "noRelatedMessages": "No related messages found",
@@ -68,7 +69,8 @@
   "searchDialog": {
     "noRelatedMessages": "No related messages found",
     "searchMessages": "Search messages...",
-    "searching": "Searching..."
+    "searching": "Searching...",
+    "startTyping": "Start typing to search"
   },
   "settings": {
     "apiBaseUrl": "API Base URL",
