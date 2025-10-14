@@ -181,26 +181,27 @@ defineExpose({
     <!-- Loading indicators -->
     <div
       v-if="isScrolling"
-      class="absolute right-2 top-2 rounded bg-black/20 px-2 py-1 text-xs text-white"
+      class="absolute right-4 top-4 rounded-full border bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-lg backdrop-blur-sm"
     >
+      <span class="i-lucide-loader-2 mr-1.5 inline-block animate-spin" />
       {{ t('virtualMessageList.scrolling') }}
     </div>
 
     <!-- Scroll to bottom button -->
     <Transition
       enter-active-class="transition-all duration-200"
-      enter-from-class="opacity-0 scale-90"
-      enter-to-class="opacity-100 scale-100"
+      enter-from-class="opacity-0 scale-90 translate-y-2"
+      enter-to-class="opacity-100 scale-100 translate-y-0"
       leave-active-class="transition-all duration-150"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-90"
+      leave-from-class="opacity-100 scale-100 translate-y-0"
+      leave-to-class="opacity-0 scale-90 translate-y-2"
     >
       <button
         v-if="!isAtBottom && !isScrolling"
-        class="absolute bottom-4 right-4 h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white shadow-lg transition-colors hover:bg-blue-600"
+        class="absolute bottom-6 right-6 h-12 w-12 flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all hover:scale-110 hover:shadow-2xl"
         @click="scrollToBottom"
       >
-        <i class="i-lucide-chevron-down" />
+        <i class="i-lucide-chevron-down h-5 w-5" />
       </button>
     </Transition>
   </div>

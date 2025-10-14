@@ -18,22 +18,29 @@ const formattedTimestamp = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-start gap-4 rounded-lg p-3 transition-all duration-200 hover:bg-neutral-100 dark:hover:bg-gray-800">
-    <div class="mt-1">
+  <div class="group mx-3 my-1 flex items-start gap-3 rounded-xl p-3 transition-all duration-200 hover:bg-accent/50 md:mx-4 md:gap-4">
+    <div class="flex-shrink-0 pt-0.5">
       <Avatar
         :name="message.fromName"
         size="md"
       />
     </div>
-    <div class="flex-1">
-      <div class="mb-1 flex items-center gap-2">
-        <span class="whitespace-nowrap text-gray-900 text-primary font-medium dark:text-gray-100">{{ message.fromName }}</span>
-        <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ formattedTimestamp }}</span>
-        <span class="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">{{ message.platformMessageId }}</span>
+    <div class="min-w-0 flex-1">
+      <div class="mb-1.5 flex items-baseline gap-2">
+        <span class="truncate text-sm font-semibold text-foreground">{{ message.fromName }}</span>
+        <span class="flex-shrink-0 text-xs text-muted-foreground">{{ formattedTimestamp }}</span>
       </div>
 
-      <div class="text-gray-900 dark:text-gray-100">
+      <div class="prose prose-sm max-w-none text-foreground/90">
         <MediaRenderer :message="message" />
+      </div>
+
+      <!-- Message ID badge (hidden by default, shown on hover) -->
+      <div class="mt-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <span class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+          <span class="i-lucide-hash h-3 w-3 mr-1" />
+          {{ message.platformMessageId }}
+        </span>
       </div>
     </div>
   </div>
