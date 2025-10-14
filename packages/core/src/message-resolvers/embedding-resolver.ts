@@ -1,7 +1,7 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreMessage } from '../utils/message'
 
-import { EmbeddingDimension } from '@tg-search/common'
+import { EmbeddingDimension, useConfig } from '@tg-search/common'
 import { useLogger } from '@unbird/logg'
 import { Err, Ok } from '@unbird/result'
 
@@ -13,6 +13,13 @@ export function createEmbeddingResolver(): MessageResolver {
   return {
     run: async (opts: MessageResolverOpts) => {
       logger.verbose('Executing embedding resolver')
+
+      // Skip embedding if API key is empty
+      const embeddingConfig = useConfig().api.embedding
+      if (!embeddingConfig.apiKey || embeddingConfig.apiKey.trim() === '') {
+        logger.verbose('Skipping embedding: API key is empty')
+        return Ok([])
+      }
 
       if (opts.messages.length === 0)
         return Err('No messages')
