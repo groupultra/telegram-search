@@ -88,109 +88,129 @@ watch(currentTaskProgress, (progress) => {
 </script>
 
 <template>
-  <header class="flex items-center border-b border-b-secondary p-4 px-4 dark:border-b-gray-700">
-    <div class="flex items-center gap-2">
-      <span class="text-lg text-gray-900 font-medium dark:text-gray-100">{{ t('sync.sync') }}</span>
-    </div>
+  <div class="h-full flex flex-col bg-background">
+    <header class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
+      <div class="flex items-center gap-3">
+        <h1 class="text-lg font-semibold">
+          {{ t('sync.sync') }}
+        </h1>
+      </div>
 
-    <div class="ml-auto flex items-center gap-2">
-      <Button
-        icon="i-lucide-refresh-cw"
-        :disabled="isButtonDisabled"
-        @click="handleSync"
-      >
-        {{ t('sync.sync') }}
-      </Button>
-      <Button
-        icon="i-lucide-rotate-ccw"
-        :disabled="isButtonDisabled"
-        @click="handleResync"
-      >
-        {{ t('sync.resync') }}
-      </Button>
-    </div>
-  </header>
-
-  <!-- Login prompt banner -->
-  <div
-    v-if="!isLoggedIn"
-    class="flex items-center justify-center px-4 py-6"
-  >
-    <div
-      class="max-w-2xl w-full border border-primary/20 rounded-xl bg-primary/5 p-6 transition-all dark:border-primary/30 dark:bg-primary/10"
-    >
-      <div class="flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
-        <div class="flex items-center gap-4">
-          <div class="h-10 w-10 flex flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20">
-            <div class="i-lucide-lock-keyhole h-5 w-5 text-primary" />
-          </div>
-          <div class="flex flex-col gap-0.5">
-            <span class="text-sm text-foreground font-medium">{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
-            <span class="text-xs text-muted-foreground">{{ t('loginPromptBanner.subtitle') }}</span>
-          </div>
-        </div>
+      <div class="flex items-center gap-2">
         <Button
-          size="md"
-          icon="i-lucide-log-in"
-          class="flex-shrink-0"
-          @click="router.push('/login')"
+          icon="i-lucide-refresh-cw"
+          variant="ghost"
+          size="sm"
+          :disabled="isButtonDisabled"
+          @click="handleSync"
         >
-          {{ t('loginPromptBanner.login') }}
+          {{ t('sync.incrementalSync') }}
+        </Button>
+        <Button
+          icon="i-lucide-rotate-ccw"
+          variant="outline"
+          size="sm"
+          :disabled="isButtonDisabled"
+          @click="handleResync"
+        >
+          {{ t('sync.resync') }}
         </Button>
       </div>
-    </div>
-  </div>
+    </header>
 
-  <div v-else class="p-6 space-y-6">
-    <!-- Progress bar -->
+    <!-- Login prompt banner -->
     <div
-      v-if="isTaskInProgress"
-      class="border border-primary/20 rounded-xl bg-primary/5 p-6 transition-all dark:border-primary/30 dark:bg-primary/10"
+      v-if="!isLoggedIn"
+      class="flex items-center justify-center px-6 py-8"
     >
-      <div class="space-y-4">
-        <div class="flex items-center gap-3">
-          <div class="h-10 w-10 flex flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20">
-            <div class="i-lucide-loader-2 h-5 w-5 animate-spin text-primary" />
+      <div
+        class="max-w-2xl w-full border border-primary/20 rounded-2xl bg-primary/5 p-6 transition-all"
+      >
+        <div class="flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
+          <div class="flex items-center gap-4">
+            <div class="h-12 w-12 flex flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <div class="i-lucide-lock-keyhole h-6 w-6 text-primary" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <span class="text-sm text-foreground font-semibold">{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
+              <span class="text-xs text-muted-foreground">{{ t('loginPromptBanner.subtitle') }}</span>
+            </div>
           </div>
-          <div class="flex flex-1 flex-col gap-1">
-            <span class="text-sm text-foreground font-medium">{{ t('sync.syncing') }}</span>
-            <span v-if="currentTask?.lastMessage" class="text-xs text-muted-foreground">{{ currentTask.lastMessage }}</span>
-          </div>
-        </div>
-
-        <Progress
-          :progress="currentTaskProgress"
-        />
-
-        <div class="flex justify-end">
           <Button
-            icon="i-lucide-x"
-            size="sm"
-            variant="outline"
-            @click="handleAbort"
+            size="md"
+            icon="i-lucide-log-in"
+            class="flex-shrink-0"
+            @click="router.push('/login')"
           >
-            {{ t('sync.cancel') }}
+            {{ t('loginPromptBanner.login') }}
           </Button>
         </div>
       </div>
     </div>
 
-    <!-- Chat selector section -->
-    <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg text-gray-900 font-medium dark:text-gray-100">
-          {{ t('sync.syncPrompt') }}
-        </h3>
+    <div v-else class="flex flex-1 flex-col overflow-hidden p-6">
+      <div class="mx-auto h-full max-w-6xl w-full flex flex-col space-y-6">
+        <!-- Progress bar -->
+        <div
+          v-if="isTaskInProgress"
+          class="border border-primary/20 rounded-2xl bg-primary/5 p-6 shadow-sm transition-all"
+        >
+          <div class="space-y-4">
+            <div class="flex items-center gap-4">
+              <div class="h-12 w-12 flex flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <div class="i-lucide-loader-2 h-6 w-6 animate-spin text-primary" />
+              </div>
+              <div class="flex flex-1 flex-col gap-1">
+                <span class="text-base text-foreground font-semibold">{{ t('sync.syncing') }}</span>
+                <span v-if="currentTask?.lastMessage" class="text-sm text-muted-foreground">{{ currentTask.lastMessage }}</span>
+              </div>
+            </div>
 
-        <span class="text-sm text-gray-600 dark:text-gray-400">
-          {{ t('sync.selectedChats', { count: selectedChats.length }) }}
-        </span>
+            <Progress
+              :progress="currentTaskProgress"
+            />
+
+            <div class="flex justify-end">
+              <Button
+                icon="i-lucide-x"
+                size="sm"
+                variant="outline"
+                @click="handleAbort"
+              >
+                {{ t('sync.cancel') }}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat selector section -->
+        <div class="min-h-0 flex flex-1 flex-col space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg text-foreground font-semibold">
+                {{ t('sync.selectChats') }}
+              </h3>
+              <p class="mt-1 text-sm text-muted-foreground">
+                {{ t('sync.syncPrompt') }}
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2 rounded-full bg-muted px-4 py-2">
+              <span class="i-lucide-check-circle h-4 w-4 text-primary" />
+              <span class="text-sm text-foreground font-medium">
+                {{ t('sync.selectedChats', { count: selectedChats.length }) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="min-h-0 flex-1 overflow-hidden">
+            <ChatSelector
+              v-model:selected-chats="selectedChats"
+              :chats="chats"
+            />
+          </div>
+        </div>
       </div>
-
-      <ChatSelector
-        v-model:selected-chats="selectedChats"
-        :chats="chats"
-      />
     </div>
   </div>
 </template>

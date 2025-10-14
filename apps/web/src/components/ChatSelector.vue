@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import type { CoreDialog } from '@tg-search/core/types'
 
-import { usePagination } from '@tg-search/client'
-import { computed, ref, watch } from 'vue'
+import { VList } from 'virtua/vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import Pagination from './ui/Pagination.vue'
 import SelectDropdown from './ui/SelectDropdown.vue'
 
 const props = defineProps<{
@@ -25,11 +24,6 @@ const chatTypeOptions = ref([
 ])
 const selectedType = ref<string>('user')
 const searchQuery = ref('')
-
-const { totalPages, paginatedData, currentPage } = usePagination({
-  defaultPage: 1,
-  defaultPageSize: 12,
-})
 
 const filteredChats = computed(() => {
   let filtered = props.chats
@@ -61,14 +55,6 @@ const filteredChats = computed(() => {
   })
 })
 
-const paginatedChats = computed(() => {
-  return paginatedData(filteredChats.value)
-})
-
-const totalPagesCount = computed(() => {
-  return totalPages.value(filteredChats.value)
-})
-
 function isSelected(id: number): boolean {
   return selectedChats.value.includes(id)
 }
@@ -84,76 +70,75 @@ function toggleSelection(id: number): void {
 
   selectedChats.value = newSelection
 }
-
-// Reset page when filters change
-watch([selectedType, searchQuery], () => {
-  currentPage.value = 1
-})
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="h-full flex flex-col space-y-4">
     <!-- Filters -->
-    <div class="flex flex-col items-start gap-4 md:flex-row md:items-end">
+    <div class="flex flex-shrink-0 flex-col items-start gap-3 md:flex-row md:items-center">
       <!-- Type Selection -->
       <div class="w-full md:w-48">
         <SelectDropdown
           v-model="selectedType"
           :options="chatTypeOptions"
-          :label="t('chatSelector.type')"
         />
       </div>
 
       <!-- Search Input -->
-      <div class="flex-1">
+      <div class="relative flex flex-1 items-center">
+        <span class="i-lucide-search absolute left-3 h-4 w-4 text-muted-foreground" />
         <input
           v-model="searchQuery"
           type="text"
-          class="w-full border border-neutral-200 rounded-md bg-neutral-100 px-4 py-2 text-gray-900 dark:border-gray-600 focus:border-primary dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-700"
+          class="h-10 w-full border rounded-lg bg-background px-3 pl-10 text-sm transition-all duration-200 focus:border-primary placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           :placeholder="t('chatSelector.search')"
         >
       </div>
     </div>
 
-    <!-- Grid List -->
-    <div v-auto-animate class="grid gap-4 lg:grid-cols-3 md:grid-cols-2">
-      <button
-        v-for="chat in paginatedChats"
-        :key="chat.id"
-        class="relative w-full flex cursor-pointer items-center border rounded-lg p-4 text-left transition-all duration-300 active:scale-98 space-x-3 hover:shadow-md hover:-translate-y-0.5"
-        :class="{
-          'border-primary border-1 shadow-md scale-102': isSelected(chat.id),
-          'border-neutral-200 dark:border-gray-600 hover:border-primary bg-white dark:bg-gray-800': !isSelected(chat.id),
-        }"
-        @click="toggleSelection(chat.id)"
-      >
-        <div class="min-w-0 flex-1">
-          <div class="focus:outline-none">
-            <p class="flex items-center gap-2 text-sm text-gray-900 font-medium dark:text-gray-100">
-              {{ chat.title }}
-              <span v-if="isSelected(chat.id)" class="text-primary">
-                <div class="i-lucide-circle-check h-4 w-4" />
-              </span>
-            </p>
-            <p class="truncate text-sm text-gray-600 dark:text-gray-400">
-              {{ chat.subtitle }}
-            </p>
-          </div>
+    <!-- Chat List Container -->
+    <div class="min-h-0 flex-1 overflow-hidden border rounded-lg bg-card">
+      <!-- No Results Message -->
+      <div v-if="filteredChats.length === 0" class="h-full flex flex-col items-center justify-center py-16">
+        <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
+          <span class="i-lucide-search-x h-8 w-8 text-muted-foreground" />
         </div>
-      </button>
-    </div>
+        <p class="text-base text-muted-foreground font-medium">
+          {{ t('chatSelector.noChatsFound') }}
+        </p>
+      </div>
 
-    <!-- Pagination -->
-    <Pagination
-      v-if="totalPagesCount > 1"
-      v-model="currentPage"
-      :total="totalPagesCount"
-      theme="blue"
-    />
-
-    <!-- No Results Message -->
-    <div v-if="filteredChats.length === 0" class="py-8 text-center text-gray-600 dark:text-gray-400">
-      {{ t('chatSelector.noChatsFound') }}
+      <!-- Virtual Chat List -->
+      <VList
+        v-else
+        :data="filteredChats"
+        class="h-full"
+      >
+        <template #default="{ item: chat, index }">
+          <label
+            :key="chat.id"
+            class="group flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-accent"
+            :class="{
+              'bg-primary/5': isSelected(chat.id),
+            }"
+          >
+            <input
+              type="checkbox"
+              :checked="isSelected(chat.id)"
+              class="h-4 w-4 cursor-pointer border-2 rounded text-primary transition-all focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+              @change="toggleSelection(chat.id)"
+            >
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm text-foreground font-medium">
+                {{ chat.title }}
+              </p>
+              <p class="truncate text-xs text-muted-foreground">
+                {{ chat.subtitle }}
+              </p>
+            </div>
+          </label>
+        </template>
+      </VList>
     </div>
   </div>
 </template>
