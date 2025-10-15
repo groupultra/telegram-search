@@ -20,12 +20,6 @@
   <a href="https://deepwiki.com/groupultra/telegram-search"><img src="https://deepwiki.com/badge.svg"></a>
 </p>
 
-> [!WARNING]
-> We have not issued any virtual currency, please do not be deceived.
-
-> [!CAUTION]
-> This software can only export your own chat records for search, please do not use it for illegal purposes.
-
 Easily find and export your Telegram messages with powerful semantic search, supporting all languages and unsegmented sentences.
 
 Make message retrieval fast, accurate, and privacy-friendly — self-host or try online.
@@ -274,6 +268,13 @@ You can export messages to CSV/JSON anytime via the UI.
 - **Discord**: [Join our Discord](https://discord.gg/NzYsmJSgCT)
 - **Telegram**: [Join our Telegram group](https://t.me/+Gs3SH2qAPeFhYmU9)
 - **DeepWiki**: [View documentation](https://deepwiki.com/groupultra/telegram-search)
+
+## 🚨 Warnings
+> [!WARNING]
+> We have not issued any virtual currency, please do not be deceived.
+
+> [!CAUTION]
+> This software can only export your own chat records for search, please do not use it for illegal purposes.
 
 ## 🚀 Activity
 
