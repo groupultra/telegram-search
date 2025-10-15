@@ -20,7 +20,7 @@
   <a href="https://deepwiki.com/groupultra/telegram-search"><img src="https://deepwiki.com/badge.svg"></a>
 </p>
 
-Easily find and export your Telegram messages with powerful semantic search, supporting all languages and unsegmented sentences.
+**Easily find and export your Telegram messages with powerful semantic search, supporting all languages and unsegmented sentences.**
 
 Make message retrieval fast, accurate, and privacy-friendly — self-host or try online.
 
@@ -37,28 +37,13 @@ Make message retrieval fast, accurate, and privacy-friendly — self-host or try
 
 ### 🔍 Search Your Chat History
 - [x] Keyword search: multi-language support (Chinese, English, etc.)
-- [x] Natural language search: find messages like asking a question (no tech jargon needed)
-- [x] Smart filters: by contact/group, time range, with attachments, etc.
-
-### 📖 Browse & Read
-- [x] Telegram-like conversation view with highlighted search results
-- [x] Quick preview for images, links, and attachments
-- [x] PWA: install to desktop, offline support, dark mode
+- [x] Natural language search: find messages like asking a question
+- [ ] Smart filters: by contact/group, time range, with attachments, etc.
 
 ### 🔄 Sync & Storage
 - [x] Incremental sync: sync while using
-- [x] Resume from breakpoint: auto-continue after failure
 - [x] Storage options: server (PostgreSQL + pgvector) or browser-only mode (PGlite)
-
-### 🔐 Privacy & Security
-- [x] Runs locally by default, data stays on your machine
-- [x] Optional proxy settings for full control
-
-### 🚀 Deployment & Usage
-- [x] One-command Docker start
-- [x] Online demo available
-- [x] Login & session management as Telegram client
-- [x] Message reading & searching
+- [ ] Resume from breakpoint: auto-continue after failure
 
 ### 🧠 AI Capabilities (Planned)
 - [ ] Ask AI about your chats: query current chat or selected range
