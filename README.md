@@ -26,11 +26,61 @@
 > [!CAUTION]
 > This software can only export your own chat records for search, please do not use it for illegal purposes.
 
-A powerful Telegram chat history search tool that supports vector search and semantic matching. Based on OpenAI's semantic vector technology, it makes your Telegram message retrieval smarter and more precise.
+Easily find and export your Telegram messages with powerful semantic search, supporting all languages and unsegmented sentences.
+
+Make message retrieval fast, accurate, and privacy-friendly — self-host or try online.
 
 ## 💖 Sponsors
 
 ![Sponsors](https://github.com/luoling8192/luoling8192/raw/master/sponsorkit/sponsors.svg)
+
+## ✅ What Can It Do
+
+### 📦 Export & Backup
+- [x] Export to PostgreSQL or in-browser database (PGlite)
+- [x] Universal export format for easy import to any database
+- [ ] One-click export to CSV / JSON
+
+### 🔍 Search Your Chat History
+- [x] Keyword search: multi-language support (Chinese, English, etc.)
+- [x] Natural language search: find messages like asking a question (no tech jargon needed)
+- [x] Smart filters: by contact/group, time range, with attachments, etc.
+
+### 📖 Browse & Read
+- [x] Telegram-like conversation view with highlighted search results
+- [x] Quick preview for images, links, and attachments
+- [x] PWA: install to desktop, offline support, dark mode
+
+### 🔄 Sync & Storage
+- [x] Incremental sync: sync while using
+- [x] Resume from breakpoint: auto-continue after failure
+- [x] Storage options: server (PostgreSQL + pgvector) or browser-only mode (PGlite)
+
+### 🔐 Privacy & Security
+- [x] Runs locally by default, data stays on your machine
+- [x] Optional proxy settings for full control
+
+### 🚀 Deployment & Usage
+- [x] One-command Docker start
+- [x] Online demo available
+- [x] Login & session management as Telegram client
+- [x] Message reading & searching
+
+### 🧠 AI Capabilities (Planned)
+- [ ] Ask AI about your chats: query current chat or selected range
+- [ ] AI message summary: auto-extract key points, todos, conclusions
+- [ ] AI-powered search: natural language queries with pinpointed results
+- [ ] AI chat: converse with AI based on your chat context
+- [ ] AI analysis: trends, sentiment, keywords, insights from links & files
+- [ ] Local model support: local Embedding / inference (no cloud required)
+
+### 🔗 Media & Links (Planned)
+- [ ] Deep indexing for links & images: web summaries, image OCR/descriptions
+- [ ] Attachment content extraction: PDFs, images, audio/video key frames & text
+
+### 🌐 More Platforms (Planned)
+- [ ] Multi-client support: Discord, etc.
+
 ## 🌐 Try it Now
 
 We provide an online version where you can experience all features of Telegram Search without self-deployment.
@@ -42,17 +92,10 @@ Visit: https://search.lingogram.app
 
 ## 🚀 Quick Start
 
-### Runtime environment variables
-
-> [!TIP]
-> All environment variables are optional. The application will work with default settings, but you can customize behavior by setting these variables.
-
-### Start with Docker Image
+### 1-Minute Start with Docker
 
 > [!IMPORTANT]
-> The simplest way to get started is to run the Docker image without any configuration. All features will work with sensible defaults.
-
-1. Run docker image default without any environment variables:
+> The simplest way to get started — no configuration needed. All features work with sensible defaults.
 
 ```bash
 docker run -d --name telegram-search \
@@ -61,43 +104,30 @@ docker run -d --name telegram-search \
   ghcr.io/groupultra/telegram-search:latest
 ```
 
-#### Example with environment variables
+Then open **http://localhost:3333** 🎉
 
-Set the following environment variables before starting the containerized services:
+### Advanced Setup (Optional)
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `TELEGRAM_API_ID` | optional | Telegram app ID from [my.telegram.org](https://my.telegram.org/apps). |
-| `TELEGRAM_API_HASH` | optional | Telegram app hash from the same page. |
-| `DATABASE_TYPE` | optional | Database type (`postgres` or `pglite`). |
-| `DATABASE_URL` | optional | Database connection string used by the server and migrations (Only support when `DATABASE_TYPE` is `postgres`). |
-| `EMBEDDING_API_KEY` | optional | API key for the embedding provider (OpenAI key, Ollama token, etc.). |
-| `EMBEDDING_BASE_URL` | optional | Custom base URL for self-hosted or compatible embedding providers. |
-| `EMBEDDING_PROVIDER` | optional | Override embedding provider (`openai` or `ollama`). |
-| `EMBEDDING_MODEL` | optional | Override embedding model name. |
-| `EMBEDDING_DIMENSION` | optional | Override embedding dimension (e.g. `1536`, `1024`, `768`). |
-| `PROXY_URL` | optional | Proxy configuration URL (e.g., `socks5://user:pass@host:port`). (#366) |
+<details>
+<summary>🔧 Environment Variables</summary>
 
-The following environment variables can only take effect at compile time (not at `docker run` time):
+> [!TIP]
+> All environment variables are optional. Customize only if needed.
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `VITE_PREVIEW_ALLOW_ALL_HOSTS` | optional (`true`) | Allow all hosts to access preview page. (#371) |
-| `VITE_DISABLE_SETTINGS` | optional (`true`) | Disable settings page. |
+| Variable | Description |
+| --- | --- |
+| `TELEGRAM_API_ID` | Telegram app ID from [my.telegram.org](https://my.telegram.org/apps) |
+| `TELEGRAM_API_HASH` | Telegram app hash |
+| `DATABASE_TYPE` | `postgres` or `pglite` (default: `pglite`) |
+| `DATABASE_URL` | PostgreSQL connection string (only when `DATABASE_TYPE=postgres`) |
+| `EMBEDDING_API_KEY` | API key for OpenAI/Ollama |
+| `EMBEDDING_BASE_URL` | Custom embedding API base URL |
+| `EMBEDDING_PROVIDER` | `openai` or `ollama` |
+| `EMBEDDING_MODEL` | Model name |
+| `EMBEDDING_DIMENSION` | Embedding dimension (e.g. `1536`, `1024`, `768`) |
+| `PROXY_URL` | Proxy URL (e.g. `socks5://user:pass@host:port`) |
 
-### Proxy URL Format
-
-The `PROXY_URL` environment variable supports these formats:
-
-- **SOCKS4**: `socks4://username:password@host:port?timeout=15`
-- **SOCKS5**: `socks5://username:password@host:port?timeout=15`
-- **HTTP**: `http://username:password@host:port?timeout=15`
-- **MTProxy**: `mtproxy://secret@host:port?timeout=15`
-
-Examples:
-- `PROXY_URL=socks5://myuser:mypass@proxy.example.com:1080`
-- `PROXY_URL=mtproxy://secret123@mtproxy.example.com:443`
-- `PROXY_URL=socks5://proxy.example.com:1080?timeout=30` (no auth)
+**Example with PostgreSQL & embeddings:**
 
 ```bash
 docker run -d --name telegram-search \
@@ -112,9 +142,15 @@ docker run -d --name telegram-search \
   ghcr.io/groupultra/telegram-search:latest
 ```
 
-Replace `<postgres-host>` with the hostname or IP address of the PostgreSQL instance you want to use.
+**Proxy formats:**
+- SOCKS5: `socks5://user:pass@host:port`
+- SOCKS4: `socks4://user:pass@host:port`
+- HTTP: `http://user:pass@host:port`
+- MTProxy: `mtproxy://secret@host:port`
 
-2. Access `http://localhost:3333` to open the search interface.
+📖 **Full environment variable reference:** [docs/ENVIRONMENT.md](./docs/ENVIRONMENT.md)
+
+</details>
 
 ### Start with Docker Compose
 
@@ -131,354 +167,113 @@ docker compose up -d
 ## 💻 Development Guide
 
 > [!CAUTION]
-> Development mode requires Node.js >= 22.18 and pnpm. Make sure you have the correct versions installed before proceeding.
+> Development requires **Node.js >= 22.18** and **pnpm**. Make sure you have them installed.
 
-### Browser Only
-
-1. Clone repository
-
-2. Install dependencies
+### Browser-Only Mode
 
 ```bash
+git clone https://github.com/groupultra/telegram-search.git
+cd telegram-search
 pnpm install
-```
-
-3. Copy environment variables
-
-```bash
 cp .env.example .env
-```
-
-4. Start development server:
-
-```bash
 pnpm run dev
 ```
 
-### With Backend
-
-1. Clone repository
-
-2. Install dependencies
+### Server Mode (with Backend)
 
 ```bash
+git clone https://github.com/groupultra/telegram-search.git
+cd telegram-search
 pnpm install
-```
-
-3. Configure environment
-
-```bash
 cp config/config.example.yaml config/config.yaml
-```
 
-4. Start database container:
-
-```bash
-# Docker is only used for database container in local development.
+# Start database (Docker)
 docker compose up -d pgvector
+
+# Start backend & frontend
+pnpm run server:dev  # Terminal 1
+pnpm run web:dev     # Terminal 2
 ```
 
-5. Start services:
-
-```bash
-# Start backend
-pnpm run server:dev
-
-# Start frontend
-pnpm run web:dev
-```
+📖 **More development details:** [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## 🏗️ Architecture
 
-### Package Structure
+This project is a **monorepo** with event-driven architecture:
 
-The project is organized as a monorepo with the following packages:
+- **`apps/web`**: Vue 3 frontend
+- **`apps/server`**: WebSocket server
+- **`packages/client`**: Client adapters & stores (Pinia)
+- **`packages/core`**: Event bus (EventEmitter3), services, database models (Drizzle ORM)
+- **`packages/common`**: Logger & utilities
 
-- **`apps/web`**: Frontend application built with Vue 3, Pinia, and Vue Router
-- **`apps/server`**: Backend WebSocket server for real-time communication
-- **`packages/client`**: Client-side adapters, event handlers, and stores
-- **`packages/core`**: Core event system, services, database models, and business logic
-- **`packages/common`**: Shared utilities and logger configuration
+**Key Technologies:**
+- Event-driven with `CoreContext` (EventEmitter3)
+- Real-time communication via WebSocket
+- PostgreSQL + pgvector OR PGlite (in-browser)
+- Message processing pipeline: Embedding, Jieba, Link, Media, User resolvers
 
-```mermaid
-graph TB
-    subgraph "🖥️ Frontend Layer (apps/web)"
-        Frontend["Web Application<br/>(Vue 3 + Pinia + Vue Router)"]
-    end
+📖 **Full architecture details, event flow, and diagrams:** [CONTRIBUTING.md](./CONTRIBUTING.md)
 
-    subgraph "📦 Client Package (packages/client)"
-        subgraph "Client Adapters"
-            WsAdapter["WebSocket Adapter"]
-            CoreBridge["Core Bridge Adapter"]
-        end
-        
-        subgraph "Client Event Handlers"
-            ClientAuth["Auth Handler"]
-            ClientMessage["Message Handler"] 
-            ClientStorage["Storage Handler"]
-            ClientEntity["Entity Handler"]
-            ClientDialog["Dialog Handler"]
-            ClientConfig["Config Handler"]
-            ClientServer["Server Handler"]
-        end
-        
-        subgraph "Client Stores"
-            AuthStore["Auth Store"]
-            ChatStore["Chat Store"]
-            MessageStore["Message Store"]
-            SettingsStore["Settings Store"]
-            SyncTaskStore["Sync Task Store"]
-        end
-    end
+## ❓ FAQ
 
-    subgraph "🌐 Communication Layer"
-        WS["WebSocket Server<br/>(apps/server)<br/>Real-time Bidirectional<br/>• Event Registration<br/>• Event Forwarding<br/>• Session Management"]
-    end
+<details>
+<summary><b>Do you collect any user data?</b></summary>
 
-    subgraph "🎯 Core Package (packages/core)"
-        Context["CoreContext<br/>🔥 Central Event Bus<br/>(EventEmitter3)<br/>• ToCoreEvent<br/>• FromCoreEvent<br/>• Event Wrappers<br/>• Error Handling"]
-        
-        subgraph "Core Event Handlers"
-            AuthHandler["🔐 Auth Handler"]
-            MessageHandler["📝 Message Handler"]
-            DialogHandler["💬 Dialog Handler"]
-            StorageHandler["📦 Storage Handler"]
-            ConfigHandler["⚙️ Config Handler"]
-            EntityHandler["👤 Entity Handler"]
-            SessionHandler["🔑 Session Handler"]
-            GramEventsHandler["📡 Gram Events Handler"]
-            MessageResolverHandler["🔄 Message Resolver Handler"]
-            TakeoutHandler["📤 Takeout Handler"]
-        end
-        
-        subgraph "Core Services"
-            AuthService["Authentication Service"]
-            MessageService["Message Service"]
-            DialogService["Dialog Service"]
-            StorageService["Storage Service"]
-            ConfigService["Config Service"]
-            EntityService["Entity Service"]
-            SessionService["Session Service"]
-            ConnectionService["Connection Service"]
-            TakeoutService["Takeout Service"]
-        end
-        
-        subgraph "Message Processing Pipeline"
-            MsgResolverService["Message Resolver Service"]
-            
-            subgraph "Message Resolvers"
-                EmbeddingResolver["🤖 Embedding Resolver<br/>(OpenAI/Ollama)"]
-                JiebaResolver["📚 Jieba Resolver<br/>(Chinese Segmentation)"]
-                LinkResolver["🔗 Link Resolver"]
-                MediaResolver["📸 Media Resolver"]
-                UserResolver["👤 User Resolver"]
-            end
-        end
-        
-        subgraph "Database Layer"
-            Models["Database Models"]
-            Schemas["Drizzle Schemas"]
-        end
-    end
+No. All data stays on your machine or server. We never collect or upload user data.
 
-    subgraph "🗄️ Data Storage"
-        DB["Database<br/>(PostgreSQL + pgvector)<br/>or (PGlite)"]
-    end
+</details>
 
-    subgraph "📡 External APIs"
-        TelegramAPI["Telegram API<br/>(gram.js)"]
-        EmbeddingAPI["Embedding API<br/>(OpenAI/Ollama)"]
-    end
+<details>
+<summary><b>Do I need API keys to use this?</b></summary>
 
-    subgraph "🛠️ Common Package (packages/common)"
-        Logger["Logger (@unbird/logg)"]
-        Utils["Shared Utilities"]
-    end
+No. The application works with default settings. API keys are optional:
+- Telegram API keys: Default keys work but have rate limits. Get your own for better performance.
+- Embedding API keys: Only needed for semantic/natural language search.
 
-    %% Frontend to Client Package
-    Frontend --> WsAdapter
-    Frontend --> CoreBridge
-    Frontend --> AuthStore
-    Frontend --> ChatStore
-    Frontend --> MessageStore
-    Frontend --> SettingsStore
-    Frontend --> SyncTaskStore
+</details>
 
-    %% Client Package Internal
-    WsAdapter --> ClientAuth
-    WsAdapter --> ClientMessage
-    WsAdapter --> ClientStorage
-    WsAdapter --> ClientEntity
-    WsAdapter --> ClientDialog
-    WsAdapter --> ClientConfig
-    WsAdapter --> ClientServer
-    
-    ClientAuth --> AuthStore
-    ClientMessage --> MessageStore
-    ClientStorage --> SyncTaskStore
-    ClientEntity --> ChatStore
-    ClientDialog --> ChatStore
+<details>
+<summary><b>What's the difference between browser mode and server mode?</b></summary>
 
-    %% WebSocket Event Flow
-    WsAdapter -.->|"WsEventToServer<br/>• auth:login<br/>• message:query<br/>• dialog:fetch<br/>• storage:sync"| WS
-    WS -.->|"WsEventToClient<br/>• message:data<br/>• auth:status<br/>• storage:progress<br/>• dialog:list"| WsAdapter
+- **Browser mode (PGlite)**: Runs entirely in your browser, no server needed. Good for personal use.
+- **Server mode (PostgreSQL)**: Full-featured with better performance, suitable for production deployment.
 
-    %% Server to Core
-    WS <--> Context
+</details>
 
-    %% Core Event System
-    Context <==> AuthHandler
-    Context <==> MessageHandler
-    Context <==> DialogHandler
-    Context <==> StorageHandler
-    Context <==> ConfigHandler
-    Context <==> EntityHandler
-    Context <==> SessionHandler
-    Context <==> GramEventsHandler
-    Context <==> MessageResolverHandler
-    Context <==> TakeoutHandler
+<details>
+<summary><b>Can I use my own embedding model?</b></summary>
 
-    %% Event Handlers to Services
-    AuthHandler --> AuthService
-    MessageHandler --> MessageService
-    DialogHandler --> DialogService
-    StorageHandler --> StorageService
-    ConfigHandler --> ConfigService
-    EntityHandler --> EntityService
-    SessionHandler --> SessionService
-    GramEventsHandler --> ConnectionService
-    MessageResolverHandler --> MsgResolverService
-    TakeoutHandler --> TakeoutService
+Yes! Set `EMBEDDING_PROVIDER` to `ollama` and point `EMBEDDING_BASE_URL` to your local Ollama instance. See [docs/ENVIRONMENT.md](./docs/ENVIRONMENT.md) for details.
 
-    %% Message Processing Pipeline
-    MessageService --> MsgResolverService
-    MsgResolverService --> EmbeddingResolver
-    MsgResolverService --> JiebaResolver
-    MsgResolverService --> LinkResolver
-    MsgResolverService --> MediaResolver
-    MsgResolverService --> UserResolver
+</details>
 
-    %% Data Layer
-    StorageService --> Models
-    Models --> Schemas
-    Schemas --> DB
+<details>
+<summary><b>How do I backup my data?</b></summary>
 
-    %% External APIs
-    AuthService --> TelegramAPI
-    MessageService --> TelegramAPI
-    DialogService --> TelegramAPI
-    EntityService --> TelegramAPI
-    ConnectionService --> TelegramAPI
-    SessionService --> TelegramAPI
-    EmbeddingResolver --> EmbeddingAPI
+Your data is stored in:
+- **Docker volume**: `telegram-search-data` (mounted to `/app/data`)
+- **Browser mode**: Browser's IndexedDB
 
-    %% Common Package Usage
-    Context --> Logger
-    AuthService --> Logger
-    MessageService --> Logger
-    StorageService --> Logger
+You can export messages to CSV/JSON anytime via the UI.
 
-    %% Styling
-    classDef frontend fill:#4CAF50,stroke:#2E7D32,color:#fff,stroke-width:2px
-    classDef client fill:#8BC34A,stroke:#558B2F,color:#fff,stroke-width:2px
-    classDef websocket fill:#FF9800,stroke:#E65100,color:#fff,stroke-width:3px
-    classDef context fill:#E91E63,stroke:#AD1457,color:#fff,stroke-width:4px
-    classDef handler fill:#9C27B0,stroke:#6A1B9A,color:#fff,stroke-width:2px
-    classDef service fill:#607D8B,stroke:#37474F,color:#fff,stroke-width:2px
-    classDef resolver fill:#795548,stroke:#3E2723,color:#fff,stroke-width:2px
-    classDef data fill:#3F51B5,stroke:#1A237E,color:#fff,stroke-width:2px
-    classDef external fill:#F44336,stroke:#C62828,color:#fff,stroke-width:2px
-    classDef common fill:#00BCD4,stroke:#006064,color:#fff,stroke-width:2px
+</details>
 
-    class Frontend frontend
-    class WsAdapter,CoreBridge,ClientAuth,ClientMessage,ClientStorage,ClientEntity,ClientDialog,ClientConfig,ClientServer,AuthStore,ChatStore,MessageStore,SettingsStore,SyncTaskStore client
-    class WS websocket
-    class Context context
-    class AuthHandler,MessageHandler,DialogHandler,StorageHandler,ConfigHandler,EntityHandler,SessionHandler,GramEventsHandler,MessageResolverHandler,TakeoutHandler handler
-    class AuthService,MessageService,DialogService,StorageService,ConfigService,EntityService,SessionService,ConnectionService,TakeoutService,MsgResolverService service
-    class EmbeddingResolver,JiebaResolver,LinkResolver,MediaResolver,UserResolver resolver
-    class DB,Models,Schemas data
-    class TelegramAPI,EmbeddingAPI external
-    class Logger,Utils common
-```
+## 📚 Documentation
 
-### Event-Driven Architecture Overview
+- **English**: [README.md](./README.md) (you're here!)
+- **简体中文**: [README_CN.md](./docs/README_CN.md)
+- **日本語**: [README_JA.md](./docs/README_JA.md)
+- **Technical Architecture**: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- **Environment Variables**: [docs/ENVIRONMENT.md](./docs/ENVIRONMENT.md)
+- **Code of Conduct**: [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- **Security**: [SECURITY.md](./SECURITY.md)
 
-#### 📦 Package Responsibilities
+## 🤝 Community
 
-- **`packages/core`**: The heart of the application containing:
-  - **CoreContext**: Central event bus using EventEmitter3
-  - **Event Handlers**: Listen to and process events from the event bus
-  - **Services**: Business logic implementations (Auth, Message, Storage, etc.)
-  - **Message Resolvers**: Process messages through various resolvers (Embedding, Jieba, Link, Media, User)
-  - **Database Models & Schemas**: Drizzle ORM models and PostgreSQL schemas
-
-- **`packages/client`**: Client-side integration layer containing:
-  - **Adapters**: WebSocket and Core Bridge adapters for different runtime environments
-  - **Event Handlers**: Client-side event handlers that communicate with the backend
-  - **Stores**: Pinia stores for state management (Auth, Chat, Message, Settings, Sync)
-  - **Composables**: Reusable Vue composition functions
-
-- **`packages/common`**: Shared utilities:
-  - **Logger**: Centralized logging using @unbird/logg
-  - **Utilities**: Common helper functions
-
-- **`apps/server`**: WebSocket server:
-  - Manages WebSocket connections
-  - Routes events between clients and CoreContext instances
-  - Handles session management
-
-- **`apps/web`**: Vue 3 frontend application:
-  - User interface built with Vue 3, Pinia, and Vue Router
-  - Integrates with packages/client for backend communication
-  - Supports both browser-only mode (with PGlite) and server mode (with PostgreSQL)
-
-#### 🎯 Core Event System
-
-- **CoreContext - Central Event Bus**: The heart of the system using EventEmitter3 for managing all events
-  - **ToCoreEvent**: Events sent to the core system (auth:login, message:query, etc.)
-  - **FromCoreEvent**: Events emitted from core system (message:data, auth:status, etc.)
-  - **Event Wrapping**: Automatic error handling and logging for all events
-  - **Session Management**: Each client session gets its own CoreContext instance
-
-#### 🌐 Communication Layer
-
-- **WebSocket Server**: Real-time bidirectional communication
-  - **Event Registration**: Clients register for specific events they want to receive
-  - **Event Forwarding**: Seamlessly forwards events between frontend and CoreContext
-  - **Session Persistence**: Maintains client state and event listeners across connections
-
-- **Client Adapters**: Support multiple runtime environments
-  - **WebSocket Adapter**: For server mode with real-time backend connection
-  - **Core Bridge Adapter**: For browser-only mode with in-browser database (PGlite)
-
-#### 🔄 Message Processing Pipeline
-
-Stream-based message processing through multiple resolvers:
-- **Embedding Resolver**: Generates vector embeddings using OpenAI/Ollama for semantic search
-- **Jieba Resolver**: Chinese word segmentation for better search capabilities
-- **Link Resolver**: Extracts and processes links from messages
-- **Media Resolver**: Handles media attachments (photos, videos, documents)
-- **User Resolver**: Processes user mentions and references
-
-#### 📡 Event Flow
-
-1. **Frontend** → User interaction triggers an action in Vue component
-2. **Client Store** → Store dispatches an event via WebSocket Adapter
-3. **WebSocket** → Event is sent to backend server
-4. **CoreContext** → Event bus routes to appropriate event handler
-5. **Event Handler** → Processes event and calls corresponding service
-6. **Service** → Executes business logic (may call Telegram API or database)
-7. **Service** → Emits result event back through CoreContext
-8. **WebSocket** → Forwards event to frontend client
-9. **Client Event Handler** → Updates client store with new data
-10. **Frontend** → Vue components reactively update UI
-
-#### 🗄️ Database Support
-
-The application supports two database modes:
-- **PostgreSQL + pgvector**: For production deployments with full vector search capabilities
-- **PGlite**: In-browser PostgreSQL for browser-only mode (experimental)
+- **Discord**: [Join our Discord](https://discord.gg/NzYsmJSgCT)
+- **Telegram**: [Join our Telegram group](https://t.me/+Gs3SH2qAPeFhYmU9)
+- **DeepWiki**: [View documentation](https://deepwiki.com/groupultra/telegram-search)
 
 ## 🚀 Activity
 

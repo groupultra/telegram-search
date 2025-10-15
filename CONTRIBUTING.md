@@ -210,25 +210,78 @@ graph TB
 
 ### Event-Driven Architecture Overview
 
-- **🎯 CoreContext - Central Event Bus**: The heart of the system using EventEmitter3 for managing all events
+#### 📦 Package Responsibilities
+
+- **`packages/core`**: The heart of the application containing:
+  - **CoreContext**: Central event bus using EventEmitter3
+  - **Event Handlers**: Listen to and process events from the event bus
+  - **Services**: Business logic implementations (Auth, Message, Storage, etc.)
+  - **Message Resolvers**: Process messages through various resolvers (Embedding, Jieba, Link, Media, User)
+  - **Database Models & Schemas**: Drizzle ORM models and PostgreSQL schemas
+
+- **`packages/client`**: Client-side integration layer containing:
+  - **Adapters**: WebSocket and Core Bridge adapters for different runtime environments
+  - **Event Handlers**: Client-side event handlers that communicate with the backend
+  - **Stores**: Pinia stores for state management (Auth, Chat, Message, Settings, Sync)
+  - **Composables**: Reusable Vue composition functions
+
+- **`packages/common`**: Shared utilities:
+  - **Logger**: Centralized logging using @unbird/logg
+  - **Utilities**: Common helper functions
+
+- **`apps/server`**: WebSocket server:
+  - Manages WebSocket connections
+  - Routes events between clients and CoreContext instances
+  - Handles session management
+
+- **`apps/web`**: Vue 3 frontend application:
+  - User interface built with Vue 3, Pinia, and Vue Router
+  - Integrates with packages/client for backend communication
+  - Supports both browser-only mode (with PGlite) and server mode (with PostgreSQL)
+
+#### 🎯 Core Event System
+
+- **CoreContext - Central Event Bus**: The heart of the system using EventEmitter3 for managing all events
   - **ToCoreEvent**: Events sent to the core system (auth:login, message:query, etc.)
   - **FromCoreEvent**: Events emitted from core system (message:data, auth:status, etc.)
   - **Event Wrapping**: Automatic error handling and logging for all events
   - **Session Management**: Each client session gets its own CoreContext instance
 
-- **🌐 WebSocket Event Bridge**: Real-time bidirectional communication layer
+#### 🌐 Communication Layer
+
+- **WebSocket Server**: Real-time bidirectional communication
   - **Event Registration**: Clients register for specific events they want to receive
   - **Event Forwarding**: Seamlessly forwards events between frontend and CoreContext
   - **Session Persistence**: Maintains client state and event listeners across connections
 
-- **🔄 Message Processing Pipeline**: Stream-based message processing through multiple resolvers
-  - **Embedding Resolver**: Generates vector embeddings using OpenAI for semantic search
-  - **Jieba Resolver**: Chinese word segmentation for better search capabilities
-  - **Link/Media/User Resolvers**: Extract and process various message content types
+- **Client Adapters**: Support multiple runtime environments
+  - **WebSocket Adapter**: For server mode with real-time backend connection
+  - **Core Bridge Adapter**: For browser-only mode with in-browser database (PGlite)
 
-- **📡 Event Flow**:
-  1. Frontend emits events via WebSocket (e.g., `auth:login`, `message:query`)
-  2. Server forwards events to appropriate CoreContext instance
-  3. Event handlers process events and call corresponding services
-  4. Services emit result events back through CoreContext
-  5. WebSocket forwards events to frontend for real-time updates
+#### 🔄 Message Processing Pipeline
+
+Stream-based message processing through multiple resolvers:
+- **Embedding Resolver**: Generates vector embeddings using OpenAI/Ollama for semantic search
+- **Jieba Resolver**: Chinese word segmentation for better search capabilities
+- **Link Resolver**: Extracts and processes links from messages
+- **Media Resolver**: Handles media attachments (photos, videos, documents)
+- **User Resolver**: Processes user mentions and references
+
+#### 📡 Event Flow
+
+1. **Frontend** → User interaction triggers an action in Vue component
+2. **Client Store** → Store dispatches an event via WebSocket Adapter
+3. **WebSocket** → Event is sent to backend server
+4. **CoreContext** → Event bus routes to appropriate event handler
+5. **Event Handler** → Processes event and calls corresponding service
+6. **Service** → Executes business logic (may call Telegram API or database)
+7. **Service** → Emits result event back through CoreContext
+8. **WebSocket** → Forwards event to frontend client
+9. **Client Event Handler** → Updates client store with new data
+10. **Frontend** → Vue components reactively update UI
+
+#### 🗄️ Database Support
+
+The application supports two database modes:
+- **PostgreSQL + pgvector**: For production deployments with full vector search capabilities
+- **PGlite**: In-browser PostgreSQL for browser-only mode (experimental)
