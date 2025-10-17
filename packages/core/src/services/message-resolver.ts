@@ -9,7 +9,7 @@ import { useLogger } from '@unbird/logg'
 import { convertToCoreMessage } from '../utils/message'
 
 export interface MessageResolverEventToCore {
-  'message:process': (data: { messages: Api.Message[] }) => void
+  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean }) => void
 }
 
 export interface MessageResolverEventFromCore {}
@@ -25,7 +25,7 @@ export function createMessageResolverService(ctx: CoreContext) {
     const { emitter } = ctx
 
     // TODO: worker_threads?
-    async function processMessages(messages: Api.Message[]) {
+    async function processMessages(messages: Api.Message[], options: { takeout?: boolean } = {}) {
       logger.withFields({ count: messages.length }).verbose('Process messages')
 
       const coreMessages = messages
@@ -37,7 +37,9 @@ export function createMessageResolverService(ctx: CoreContext) {
       // TODO: Query user database to get user info
 
       // Return the messages first
-      emitter.emit('message:data', { messages: coreMessages })
+      if (!options.takeout) {
+        emitter.emit('message:data', { messages: coreMessages })
+      }
 
       // Storage the messages first
       emitter.emit('storage:record:messages', { messages: coreMessages })
@@ -60,7 +62,10 @@ export function createMessageResolverService(ctx: CoreContext) {
             }
             else if (resolver.stream) {
               for await (const message of resolver.stream({ messages: coreMessages })) {
-                emitter.emit('message:data', { messages: [message] })
+                if (!options.takeout) {
+                  emitter.emit('message:data', { messages: [message] })
+                }
+
                 emitter.emit('storage:record:messages', { messages: [message] })
               }
             }

@@ -14,10 +14,10 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext) {
     const limit = pLimit(MESSAGE_PROCESS_LIMIT)
 
     // TODO: debounce, background tasks
-    emitter.on('message:process', ({ messages }) => {
+    emitter.on('message:process', ({ messages, isTakeout = false }) => {
       void limit(async () => {
         try {
-          await messageResolverService.processMessages(messages)
+          await messageResolverService.processMessages(messages, { takeout: isTakeout })
         }
         catch (error) {
           logger.withError(error).warn('Failed to process messages')

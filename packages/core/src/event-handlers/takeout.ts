@@ -76,7 +76,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                 break
               }
 
-              emitter.emit('message:process', { messages })
+              emitter.emit('message:process', { messages, isTakeout: true })
               messages = []
             }
           }
@@ -126,7 +126,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                   break
                 }
 
-                emitter.emit('message:process', { messages })
+                emitter.emit('message:process', { messages, isTakeout: true })
                 messages = []
               }
             }
@@ -202,7 +202,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                   break
                 }
 
-                emitter.emit('message:process', { messages })
+                emitter.emit('message:process', { messages, isTakeout: true })
                 messages = []
 
                 // Emit progress update after batch processing
@@ -254,7 +254,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                   break
                 }
 
-                emitter.emit('message:process', { messages })
+                emitter.emit('message:process', { messages, isTakeout: true })
                 messages = []
 
                 // Emit progress update after batch processing
@@ -280,7 +280,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
       }
 
       if (messages.length > 0) {
-        emitter.emit('message:process', { messages })
+        emitter.emit('message:process', { messages, isTakeout: true })
       }
     })
 
