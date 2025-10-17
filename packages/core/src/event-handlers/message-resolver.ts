@@ -15,7 +15,7 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext) {
 
     // TODO: debounce, background tasks
     emitter.on('message:process', ({ messages }) => {
-      limit(async () => {
+      void limit(async () => {
         try {
           await messageResolverService.processMessages(messages)
         }
