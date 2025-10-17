@@ -14,8 +14,6 @@ import type { TakeoutEventFromCore, TakeoutEventToCore } from './services/takeou
 
 import { useLogger } from '@unbird/logg'
 import { EventEmitter } from 'eventemitter3'
-import { Api } from 'telegram'
-import { FloodWaitError } from 'telegram/errors'
 
 export type FromCoreEvent = ClientInstanceEventFromCore
   & MessageEventFromCore
@@ -55,23 +53,24 @@ function createErrorHandler(emitter: CoreEmitter) {
   const logger = useLogger()
 
   return (error: unknown, description?: string): Error => {
-    if (error instanceof FloodWaitError) {
-      logger.withFields({ seconds: error.seconds }).warn('Flood wait')
-
-      return error
+    // Unwrap nested errors
+    if (error instanceof Error && 'cause' in error) {
+      return createErrorHandler(emitter)(error.cause, description)
     }
-    else if (error instanceof Api.RpcError) {
-      emitter.emit('core:error', { error })
-      logger.withFields({ error: error.errorMessage }).error('RPC error')
 
-      return new Error(error.errorMessage)
+    // Emit raw error for frontend to handle (i18n, UI, etc.)
+    emitter.emit('core:error', { error })
+
+    // Log error details
+    if (error instanceof Error) {
+      logger.withError(error).error(description || error.message)
     }
     else {
-      emitter.emit('core:error', { error })
-      logger.withError(error).error(description || 'Error occurred')
-
-      return new Error(description || 'Error occurred')
+      logger.withError(error).error(description || 'Unknown error')
     }
+
+    // Return error as-is for further handling
+    return error instanceof Error ? error : new Error(description || 'Error occurred')
   }
 }
 

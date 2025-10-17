@@ -17,6 +17,7 @@ export interface CoreTask<T extends CoreTaskType> {
   progress: number
   lastMessage?: string
   lastError?: string
+  rawError?: unknown // Store raw error for frontend i18n processing
   metadata: CoreTasks[T]
   createdAt: Date
   updatedAt: Date
@@ -59,10 +60,11 @@ export function useTasks<T extends CoreTaskType>(type: T) {
     })
   }
 
-  function updateTaskError(taskId: string, error: Error) {
+  function updateTaskError(taskId: string, error: Error | unknown) {
     return updateTask(taskId, {
       progress: -1,
-      lastError: error.message,
+      lastError: error instanceof Error ? error.message : String(error),
+      rawError: error, // Store raw error for frontend processing
     })
   }
 

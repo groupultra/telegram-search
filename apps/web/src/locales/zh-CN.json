@@ -110,6 +110,7 @@
   },
   "sync": {
     "cancel": "取消",
+    "dismiss": "关闭",
     "incrementalSync": "增量同步",
     "noInProgressTask": "没有进行中的任务",
     "resync": "重新同步",
@@ -120,11 +121,19 @@
     "startSyncPrompt": "首次同步需要在 Telegram 客户端中授权 Data Export 数据导出，并且刷新页面之后再尝试一次。",
     "sync": "同步",
     "syncCompleted": "同步完成",
+    "syncFailed": "同步失败",
     "syncPrompt": "同步对话之后才能搜索全部的聊天记录",
     "syncing": "同步中..."
   },
   "virtualMessageList": {
     "scrolling": "滚动中..."
+  },
+  "errors": {
+    "floodWait": "请求过于频繁，请等待 {seconds} 秒后再试。",
+    "takeoutRequired": "需要数据导出授权。请在 Telegram 客户端中授权 Data Export 数据导出。",
+    "takeoutInitDelay": "Takeout 会话初始化延迟。请等待 {seconds} 秒。",
+    "rpcError": "{message} (错误代码: {code})",
+    "unknownError": "发生未知错误"
   },
   "base": {
     "toaster": {

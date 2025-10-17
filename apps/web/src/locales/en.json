@@ -110,6 +110,7 @@
   },
   "sync": {
     "cancel": "Cancel",
+    "dismiss": "Dismiss",
     "incrementalSync": "Incremental Sync",
     "noInProgressTask": "No task in progress",
     "resync": "Re-sync",
@@ -120,11 +121,19 @@
     "startSyncPrompt": "The first synchronization requires authorization of Data Export in the Telegram client, and then refresh the page and try again.",
     "sync": "Sync",
     "syncCompleted": "Sync completed",
+    "syncFailed": "Sync failed",
     "syncPrompt": "After a synchronized conversation, you can search all chat records.",
     "syncing": "Syncing..."
   },
   "virtualMessageList": {
     "scrolling": "Scrolling..."
+  },
+  "errors": {
+    "floodWait": "Rate limited. Please wait {seconds} seconds.",
+    "takeoutRequired": "Data export authorization required. Please request takeout access from Telegram.",
+    "takeoutInitDelay": "Takeout session initialization delayed. Please wait {seconds} seconds.",
+    "rpcError": "{message} (Code: {code})",
+    "unknownError": "An unknown error occurred"
   },
   "base": {
     "toaster": {

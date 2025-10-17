@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
+import { getErrorMessage, useAuthStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
 import NProgress from 'nprogress'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
@@ -23,7 +23,8 @@ const websocketStore = useBridgeStore()
 const chatsStore = useChatStore()
 const { chats } = storeToRefs(chatsStore)
 
-const { currentTask, currentTaskProgress, increase } = storeToRefs(useSyncTaskStore())
+const syncTaskStore = useSyncTaskStore()
+const { currentTask, currentTaskProgress, increase } = storeToRefs(syncTaskStore)
 
 // Default to incremental sync
 if (increase.value === undefined || increase.value === null) {
@@ -33,6 +34,19 @@ if (increase.value === undefined || increase.value === null) {
 // Task in progress status
 const isTaskInProgress = computed(() => {
   return !!currentTask.value && currentTaskProgress.value >= 0 && currentTaskProgress.value < 100
+})
+
+// Show task status area (includes in-progress and error states)
+const shouldShowTaskStatus = computed(() => {
+  return !!currentTask.value && (isTaskInProgress.value || currentTask.value.lastError)
+})
+
+// Get i18n error message from raw error
+const errorMessage = computed(() => {
+  const task = currentTask.value as any
+  if (!task?.rawError)
+    return task?.lastError
+  return getErrorMessage(task.rawError, (key, params) => t(key, params || {}))
 })
 
 // Disable buttons during sync or when no chats selected
@@ -78,7 +92,8 @@ watch(currentTaskProgress, (progress) => {
     increase.value = true
   }
   else if (progress < 0 && currentTask.value?.lastError) {
-    toast.error(currentTask.value.lastError)
+    // Error is already displayed in the progress bar UI
+    // Only show toast for additional notification
     NProgress.done()
   }
   else if (progress >= 0 && progress < 100) {
@@ -150,28 +165,47 @@ watch(currentTaskProgress, (progress) => {
 
     <div v-else class="flex flex-1 flex-col overflow-hidden p-6">
       <div class="mx-auto h-full max-w-6xl w-full flex flex-col space-y-6">
-        <!-- Progress bar -->
+        <!-- Progress bar / Error display -->
         <div
-          v-if="isTaskInProgress"
-          class="border border-primary/20 rounded-2xl bg-primary/5 p-6 shadow-sm transition-all"
+          v-if="shouldShowTaskStatus"
+          class="border rounded-2xl p-6 shadow-sm transition-all"
+          :class="currentTask?.lastError ? 'border-destructive/20 bg-destructive/5' : 'border-primary/20 bg-primary/5'"
         >
           <div class="space-y-4">
             <div class="flex items-center gap-4">
-              <div class="h-12 w-12 flex flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <div class="i-lucide-loader-2 h-6 w-6 animate-spin text-primary" />
+              <div
+                class="h-12 w-12 flex flex-shrink-0 items-center justify-center rounded-full"
+                :class="currentTask?.lastError ? 'bg-destructive/10' : 'bg-primary/10'"
+              >
+                <div v-if="currentTask?.lastError" class="i-lucide-alert-circle h-6 w-6 text-destructive" />
+                <div v-else class="i-lucide-loader-2 h-6 w-6 animate-spin text-primary" />
               </div>
               <div class="flex flex-1 flex-col gap-1">
-                <span class="text-base text-foreground font-semibold">{{ t('sync.syncing') }}</span>
-                <span v-if="currentTask?.lastMessage" class="text-sm text-muted-foreground">{{ currentTask.lastMessage }}</span>
+                <span class="text-base text-foreground font-semibold">
+                  {{ currentTask?.lastError ? t('sync.syncFailed') : t('sync.syncing') }}
+                </span>
+                <span v-if="currentTask?.lastError" class="text-sm text-destructive">{{ errorMessage }}</span>
+                <span v-else-if="currentTask?.lastMessage" class="text-sm text-muted-foreground">{{ currentTask.lastMessage }}</span>
               </div>
             </div>
 
             <Progress
+              v-if="!currentTask?.lastError"
               :progress="currentTaskProgress"
             />
 
-            <div class="flex justify-end">
+            <div class="flex justify-end gap-2">
               <Button
+                v-if="currentTask?.lastError"
+                icon="i-lucide-x"
+                size="sm"
+                variant="outline"
+                @click="syncTaskStore.currentTask = undefined"
+              >
+                {{ t('sync.dismiss') }}
+              </Button>
+              <Button
+                v-else
                 icon="i-lucide-x"
                 size="sm"
                 variant="outline"
