@@ -36,14 +36,20 @@ const isTaskInProgress = computed(() => {
   return !!currentTask.value && currentTaskProgress.value >= 0 && currentTaskProgress.value < 100
 })
 
-// Show task status area (includes in-progress and error states)
+// Check if task was cancelled (not an error)
+const isTaskCancelled = computed(() => {
+  const task = currentTask.value
+  return task?.lastError === 'Task aborted'
+})
+
+// Show task status area (includes in-progress and error states, but not cancelled)
 const shouldShowTaskStatus = computed(() => {
-  return !!currentTask.value && (isTaskInProgress.value || currentTask.value.lastError)
+  return !!currentTask.value && (isTaskInProgress.value || (currentTask.value.lastError && !isTaskCancelled.value))
 })
 
 // Get i18n error message from raw error
 const errorMessage = computed(() => {
-  const task = currentTask.value as any
+  const task = currentTask.value
   if (!task?.rawError)
     return task?.lastError
   return getErrorMessage(task.rawError, (key, params) => t(key, params || {}))
@@ -92,9 +98,16 @@ watch(currentTaskProgress, (progress) => {
     increase.value = true
   }
   else if (progress < 0 && currentTask.value?.lastError) {
-    // Error is already displayed in the progress bar UI
-    // Only show toast for additional notification
-    NProgress.done()
+    // Check if task was cancelled
+    if (isTaskCancelled.value) {
+      // Task was cancelled, just clear the task and stop progress
+      NProgress.done()
+      currentTask.value = undefined
+    }
+    else {
+      // Real error - progress bar UI will show it
+      NProgress.done()
+    }
   }
   else if (progress >= 0 && progress < 100) {
     NProgress.set(progress / 100)

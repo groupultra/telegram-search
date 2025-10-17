@@ -41,6 +41,10 @@ export function getErrorMessage(error: unknown, t: (key: string, params?: Record
 
   // Handle generic errors
   if (error instanceof Error) {
+    // Check for task aborted error
+    if (error.message === 'Task aborted') {
+      return t('errors.taskAborted')
+    }
     return error.message
   }
 

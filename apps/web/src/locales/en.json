@@ -133,7 +133,8 @@
     "takeoutRequired": "Data export authorization required. Please request takeout access from Telegram.",
     "takeoutInitDelay": "Takeout session initialization delayed. Please wait {seconds} seconds.",
     "rpcError": "{message} (Code: {code})",
-    "unknownError": "An unknown error occurred"
+    "unknownError": "An unknown error occurred",
+    "taskAborted": "Task was cancelled"
   },
   "base": {
     "toaster": {

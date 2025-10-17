@@ -133,7 +133,8 @@
     "takeoutRequired": "需要数据导出授权。请在 Telegram 客户端中授权 Data Export 数据导出。",
     "takeoutInitDelay": "Takeout 会话初始化延迟。请等待 {seconds} 秒。",
     "rpcError": "{message} (错误代码: {code})",
-    "unknownError": "发生未知错误"
+    "unknownError": "发生未知错误",
+    "taskAborted": "任务已取消"
   },
   "base": {
     "toaster": {
