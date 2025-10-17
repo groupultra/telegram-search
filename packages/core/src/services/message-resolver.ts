@@ -31,7 +31,7 @@ export function createMessageResolverService(ctx: CoreContext) {
 
     // TODO: worker_threads?
     async function processMessages(messages: Api.Message[], options: { takeout?: boolean } = {}) {
-      logger.withFields({ count: messages.length, ...options }).verbose('Process messages')
+      logger.withFields({ count: messages.length }).verbose('Process messages')
 
       const coreMessages = messages
         .map(message => convertToCoreMessage(message).orUndefined())
