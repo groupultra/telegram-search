@@ -1,2 +1,2 @@
 export const MESSAGE_PROCESS_BATCH_SIZE = 100
-export const MESSAGE_PROCESS_LIMIT = 10
+export const MESSAGE_PROCESS_LIMIT = 2
