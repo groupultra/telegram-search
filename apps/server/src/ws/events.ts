@@ -59,7 +59,11 @@ export function createWsMessage<T extends keyof WsEventToClient>(
 ): Extract<WsMessageToClient, { type: T }> {
   try {
     // ensure args[0] can be stringified
-    JSON.stringify(data)
+    const stringifiedData = JSON.stringify(data)
+    if (stringifiedData.length > 1024 * 1024) {
+      useLogger().withFields({ type, length: stringifiedData.length }).warn('Dropped event data')
+      return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
+    }
 
     return { type, data } as Extract<WsMessageToClient, { type: T }>
   }

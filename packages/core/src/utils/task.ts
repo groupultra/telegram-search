@@ -30,7 +30,7 @@ export interface CoreTask<T extends CoreTaskType> extends CoreTaskData<T> {
   markStarted: () => CoreTask<T>
   markCompleted: () => CoreTask<T>
   abort: () => CoreTask<T>
-  toJSON: () => CoreTaskData<T>
+  toJSON: () => Omit<CoreTaskData<T>, 'abortController'>
 }
 
 /**
@@ -111,7 +111,6 @@ export function createTask<T extends CoreTaskType>(
         metadata: state.metadata,
         createdAt: state.createdAt,
         updatedAt: state.updatedAt,
-        abortController: state.abortController,
       }
     },
   }
