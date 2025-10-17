@@ -136,7 +136,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                 messages = []
 
                 // Emit progress update after batch processing
-                const progress = needToSyncCount > 0 ? Number((totalProcessed / needToSyncCount).toFixed(2)) : 0
+                const progress = needToSyncCount > 0 ? Number(((totalProcessed / needToSyncCount) * 100).toFixed(2)) : 0
                 emitter.emit('takeout:task:progress', updateTaskProgress(
                   taskId,
                   progress,
@@ -172,7 +172,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                 messages = []
 
                 // Emit progress update after batch processing
-                const progress = needToSyncCount > 0 ? Number((totalProcessed / needToSyncCount).toFixed(2)) : 0
+                const progress = needToSyncCount > 0 ? Number(((totalProcessed / needToSyncCount) * 100).toFixed(2)) : 0
                 emitter.emit('takeout:task:progress', updateTaskProgress(
                   taskId,
                   progress,

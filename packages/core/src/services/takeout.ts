@@ -231,7 +231,7 @@ export function createTakeoutService(ctx: CoreContext) {
             'takeout:task:progress',
             updateTaskProgress(
               taskId,
-              Number((processedCount / count).toFixed(2)),
+              Number(((processedCount / count) * 100).toFixed(2)),
               `Processed ${processedCount}/${count} messages`,
             ),
           )
