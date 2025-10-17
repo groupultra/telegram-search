@@ -79,23 +79,23 @@ watch(keywordDebounced, (newKeyword) => {
       class="fixed inset-x-0 top-0 z-50 mx-auto h-full w-full md:top-[15%] md:h-auto md:max-w-2xl md:w-[90%] md:px-4"
       @keydown.esc="isOpen = false"
     >
-      <div class="h-full w-full flex flex-col overflow-hidden border-0 rounded-none bg-card shadow-2xl backdrop-blur-xl md:h-auto md:border dark:border-gray-700 md:rounded-2xl dark:bg-gray-800/95" @click.stop>
+      <div class="bg-card h-full w-full flex flex-col overflow-hidden border-0 rounded-none shadow-2xl backdrop-blur-xl md:h-auto md:border dark:border-gray-700 md:rounded-2xl dark:bg-gray-800/95" @click.stop>
         <!-- 搜索输入框 -->
-        <div class="border-b from-background/50 to-background bg-gradient-to-b p-4 dark:border-gray-700 md:p-6">
+        <div class="from-background/50 to-background border-b bg-gradient-to-b p-4 dark:border-gray-700 md:p-6">
           <div class="flex items-center gap-3">
             <button
-              class="flex flex-shrink-0 items-center justify-center rounded-full p-2 transition-colors hover:bg-accent md:hidden"
+              class="hover:bg-accent flex flex-shrink-0 items-center justify-center rounded-full p-2 transition-colors md:hidden"
               @click="isOpen = false"
             >
               <span class="i-lucide-arrow-left h-5 w-5" />
             </button>
             <div class="relative flex flex-1 items-center">
               <div class="absolute left-4 flex items-center justify-center">
-                <span class="i-lucide-search h-5 w-5 text-muted-foreground" />
+                <span class="i-lucide-search text-muted-foreground h-5 w-5" />
               </div>
               <input
                 v-model="keyword"
-                class="h-12 w-full border-0 rounded-xl bg-muted/50 px-4 pl-12 pr-4 text-base transition-all duration-200 md:h-14 focus:bg-muted/80 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-ring"
+                class="bg-muted/50 focus:bg-muted/80 placeholder:text-muted-foreground focus:ring-ring h-12 w-full border-0 rounded-xl px-4 pl-12 pr-4 text-base transition-all duration-200 md:h-14 focus:outline-none focus:ring-2 focus:ring-offset-0"
                 :placeholder="t('searchDialog.searchMessages')"
                 autofocus
               >
@@ -121,7 +121,7 @@ watch(keywordDebounced, (newKeyword) => {
                 <MessageList :messages="searchResult" :keyword="keyword" />
               </template>
               <template v-else-if="isLoading">
-                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <div class="text-muted-foreground h-full flex flex-col items-center justify-center py-16">
                   <div class="relative mb-4">
                     <span class="i-lucide-loader-circle animate-spin text-5xl text-primary" />
                   </div>
@@ -129,16 +129,16 @@ watch(keywordDebounced, (newKeyword) => {
                 </div>
               </template>
               <template v-else-if="searchResult.length === 0">
-                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
+                <div class="text-muted-foreground h-full flex flex-col items-center justify-center py-16">
+                  <div class="bg-muted mb-4 h-16 w-16 flex items-center justify-center rounded-full">
                     <span class="i-lucide-search text-3xl" />
                   </div>
                   <span class="text-base font-medium">{{ t('searchDialog.noRelatedMessages') }}</span>
                 </div>
               </template>
             </div>
-            <div v-else class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
+            <div v-else class="text-muted-foreground h-full flex flex-col items-center justify-center py-16">
+              <div class="bg-muted mb-4 h-16 w-16 flex items-center justify-center rounded-full">
                 <span class="i-lucide-search text-3xl" />
               </div>
               <span class="text-base font-medium">{{ t('searchDialog.searchMessages') }}</span>

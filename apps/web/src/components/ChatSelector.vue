@@ -86,24 +86,24 @@ function toggleSelection(id: number): void {
 
       <!-- Search Input -->
       <div class="relative flex flex-1 items-center">
-        <span class="i-lucide-search absolute left-3 h-4 w-4 text-muted-foreground" />
+        <span class="i-lucide-search text-muted-foreground absolute left-3 h-4 w-4" />
         <input
           v-model="searchQuery"
           type="text"
-          class="h-10 w-full border rounded-lg bg-background px-3 pl-10 text-sm transition-all duration-200 focus:border-primary placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          class="bg-background placeholder:text-muted-foreground focus:ring-ring h-10 w-full border rounded-lg px-3 pl-10 text-sm transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2"
           :placeholder="t('chatSelector.search')"
         >
       </div>
     </div>
 
     <!-- Chat List Container -->
-    <div class="min-h-0 flex-1 overflow-hidden border rounded-lg bg-card">
+    <div class="bg-card min-h-0 flex-1 overflow-hidden border rounded-lg">
       <!-- No Results Message -->
       <div v-if="filteredChats.length === 0" class="h-full flex flex-col items-center justify-center py-16">
-        <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
-          <span class="i-lucide-search-x h-8 w-8 text-muted-foreground" />
+        <div class="bg-muted mb-4 h-16 w-16 flex items-center justify-center rounded-full">
+          <span class="i-lucide-search-x text-muted-foreground h-8 w-8" />
         </div>
-        <p class="text-base text-muted-foreground font-medium">
+        <p class="text-muted-foreground text-base font-medium">
           {{ t('chatSelector.noChatsFound') }}
         </p>
       </div>
@@ -117,7 +117,7 @@ function toggleSelection(id: number): void {
         <template #default="{ item: chat }">
           <label
             :key="chat.id"
-            class="group flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-accent"
+            class="group hover:bg-accent flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0"
             :class="{
               'bg-primary/5': isSelected(chat.id),
             }"
@@ -125,14 +125,14 @@ function toggleSelection(id: number): void {
             <input
               type="checkbox"
               :checked="isSelected(chat.id)"
-              class="h-4 w-4 cursor-pointer border-2 rounded text-primary transition-all focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+              class="focus:ring-ring h-4 w-4 cursor-pointer border-2 rounded text-primary transition-all focus:ring-2 focus:ring-offset-2"
               @change="toggleSelection(chat.id)"
             >
             <div class="min-w-0 flex-1">
-              <p class="truncate text-sm text-foreground font-medium">
+              <p class="text-foreground truncate text-sm font-medium">
                 {{ chat.title }}
               </p>
-              <p class="truncate text-xs text-muted-foreground">
+              <p class="text-muted-foreground truncate text-xs">
                 {{ chat.subtitle }}
               </p>
             </div>

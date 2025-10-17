@@ -88,8 +88,8 @@ watch(currentTaskProgress, (progress) => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-background">
-    <header class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
+  <div class="bg-background h-full flex flex-col">
+    <header class="bg-card/50 flex items-center justify-between border-b px-6 py-4 backdrop-blur-sm">
       <div class="flex items-center gap-3">
         <h1 class="text-lg font-semibold">
           {{ t('sync.sync') }}
@@ -132,8 +132,8 @@ watch(currentTaskProgress, (progress) => {
               <div class="i-lucide-lock-keyhole h-6 w-6 text-primary" />
             </div>
             <div class="flex flex-col gap-1">
-              <span class="text-sm text-foreground font-semibold">{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
-              <span class="text-xs text-muted-foreground">{{ t('loginPromptBanner.subtitle') }}</span>
+              <span class="text-foreground text-sm font-semibold">{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
+              <span class="text-muted-foreground text-xs">{{ t('loginPromptBanner.subtitle') }}</span>
             </div>
           </div>
           <Button
@@ -161,8 +161,8 @@ watch(currentTaskProgress, (progress) => {
                 <div class="i-lucide-loader-2 h-6 w-6 animate-spin text-primary" />
               </div>
               <div class="flex flex-1 flex-col gap-1">
-                <span class="text-base text-foreground font-semibold">{{ t('sync.syncing') }}</span>
-                <span v-if="currentTask?.lastMessage" class="text-sm text-muted-foreground">{{ currentTask.lastMessage }}</span>
+                <span class="text-foreground text-base font-semibold">{{ t('sync.syncing') }}</span>
+                <span v-if="currentTask?.lastMessage" class="text-muted-foreground text-sm">{{ currentTask.lastMessage }}</span>
               </div>
             </div>
 
@@ -187,17 +187,17 @@ watch(currentTaskProgress, (progress) => {
         <div class="min-h-0 flex flex-1 flex-col space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="text-lg text-foreground font-semibold">
+              <h3 class="text-foreground text-lg font-semibold">
                 {{ t('sync.selectChats') }}
               </h3>
-              <p class="mt-1 text-sm text-muted-foreground">
+              <p class="text-muted-foreground mt-1 text-sm">
                 {{ t('sync.syncPrompt') }}
               </p>
             </div>
 
-            <div class="flex items-center gap-2 rounded-full bg-muted px-4 py-2">
+            <div class="bg-muted flex items-center gap-2 rounded-full px-4 py-2">
               <span class="i-lucide-check-circle h-4 w-4 text-primary" />
-              <span class="text-sm text-foreground font-medium">
+              <span class="text-foreground text-sm font-medium">
                 {{ t('sync.selectedChats', { count: selectedChats.length }) }}
               </span>
             </div>

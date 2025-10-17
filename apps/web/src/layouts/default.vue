@@ -131,7 +131,7 @@ function handleAvatarClick() {
 
 <template>
   <div
-    class="h-screen w-full flex overflow-hidden bg-background text-sm font-medium dark:bg-gray-900"
+    class="bg-background h-screen w-full flex overflow-hidden text-sm font-medium dark:bg-gray-900"
   >
     <!-- Mobile backdrop -->
     <div
@@ -157,7 +157,7 @@ function handleAvatarClick() {
     <!-- Sidebar -->
     <div
       :class="sidebarClasses.container"
-      class="flex flex-col border-r bg-card h-dvh"
+      class="bg-card flex flex-col border-r h-dvh"
     >
       <!-- Search section -->
       <div
@@ -166,12 +166,12 @@ function handleAvatarClick() {
       >
         <div class="relative">
           <div
-            class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-muted-foreground -translate-y-1/2"
+            class="i-lucide-search text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
           />
           <input
             v-model="searchParams"
             type="text"
-            class="h-9 w-full border rounded-md bg-background px-3 py-1 pl-9 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            class="bg-background placeholder:text-muted-foreground focus-visible:ring-ring h-9 w-full border rounded-md px-3 py-1 pl-9 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1"
             :placeholder="t('search.search')"
           >
         </div>
@@ -208,7 +208,7 @@ function handleAvatarClick() {
         <div class="flex items-center gap-1 border-b p-2">
           <button
             :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'user' }"
-            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            class="hover:bg-accent hover:text-accent-foreground flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
             @click="toggleActiveChatGroup('user')"
           >
             <span class="i-lucide-user h-4 w-4" />
@@ -217,7 +217,7 @@ function handleAvatarClick() {
 
           <button
             :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'group' }"
-            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            class="hover:bg-accent hover:text-accent-foreground flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
             @click="toggleActiveChatGroup('group')"
           >
             <span class="i-lucide-users h-4 w-4" />
@@ -226,7 +226,7 @@ function handleAvatarClick() {
 
           <button
             :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'channel' }"
-            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            class="hover:bg-accent hover:text-accent-foreground flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
             @click="toggleActiveChatGroup('channel')"
           >
             <span class="i-lucide-message-circle h-4 w-4" />
@@ -244,7 +244,7 @@ function handleAvatarClick() {
               <div
                 :key="chat.id"
                 :class="{ 'bg-accent text-accent-foreground': route.params.chatId === chat.id.toString() }"
-                class="mx-2 my-0.5 flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
+                class="hover:bg-accent hover:text-accent-foreground mx-2 my-0.5 flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 transition-colors"
                 @click="router.push(`/chat/${chat.id}`)"
               >
                 <Avatar
@@ -256,7 +256,7 @@ function handleAvatarClick() {
                   <span class="truncate text-sm font-medium">
                     {{ chat.name }}
                   </span>
-                  <span class="truncate text-xs text-muted-foreground">
+                  <span class="text-muted-foreground truncate text-xs">
                     {{ chat.id }}
                   </span>
                 </div>
@@ -274,7 +274,7 @@ function handleAvatarClick() {
             :class="{ 'cursor-pointer': !websocketStore.getActiveSession()?.isConnected }"
             @click="handleAvatarClick"
           >
-            <div class="h-8 w-8 flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+            <div class="bg-muted h-8 w-8 flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
               <Avatar
                 :name="websocketStore.getActiveSession()?.me?.name"
                 size="sm"
@@ -282,7 +282,7 @@ function handleAvatarClick() {
             </div>
             <div class="min-w-0 flex flex-1 flex-col">
               <span class="truncate text-sm font-medium">{{ websocketStore.getActiveSession()?.me?.name }}</span>
-              <span class="truncate text-xs text-muted-foreground">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
+              <span class="text-muted-foreground truncate text-xs">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
             </div>
           </div>
 
@@ -305,13 +305,13 @@ function handleAvatarClick() {
 
     <!-- Main content -->
     <div
-      class="relative flex flex-1 flex-col overflow-auto bg-background"
+      class="bg-background relative flex flex-1 flex-col overflow-auto"
       :class="{ 'ml-0': isMobile }"
     >
       <RouterView :key="$route.fullPath" />
 
       <!-- Version info -->
-      <div class="pointer-events-none fixed bottom-3 right-3 z-10 flex items-center gap-2 text-xs text-muted-foreground opacity-50">
+      <div class="text-muted-foreground pointer-events-none fixed bottom-3 right-3 z-10 flex items-center gap-2 text-xs opacity-50">
         <span class="truncate">{{ buildVersionLabel }}</span>
         <span
           v-if="buildTimeLabel"

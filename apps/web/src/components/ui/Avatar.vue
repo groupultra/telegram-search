@@ -73,7 +73,7 @@ const backgroundColor = computed(() => {
     </div>
     <div
       v-if="isOnline"
-      class="absolute bottom-0 right-0 h-3 w-3 border-2 border-background rounded-full bg-green-500"
+      class="border-background absolute bottom-0 right-0 h-3 w-3 border-2 rounded-full bg-green-500"
     />
   </div>
 </template>

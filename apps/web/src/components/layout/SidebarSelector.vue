@@ -17,7 +17,7 @@ const isCurrentPage = computed(() => route.path === props.path)
 <template>
   <div
     :class="{ 'bg-accent text-accent-foreground': isCurrentPage }"
-    class="relative mx-2 my-0.5 select-none rounded-md transition-colors hover:bg-accent hover:text-accent-foreground"
+    class="hover:bg-accent hover:text-accent-foreground relative mx-2 my-0.5 select-none rounded-md transition-colors"
     :aria-current="isCurrentPage ? 'page' : undefined"
     role="link"
     @click="router.push(props.path)"

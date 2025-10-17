@@ -83,7 +83,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <header class="flex items-center border-b border-b-secondary p-4 px-4 dark:border-b-gray-700">
+  <header class="border-b-secondary flex items-center border-b p-4 px-4 dark:border-b-gray-700">
     <div class="flex items-center gap-2">
       <span class="text-lg text-gray-900 font-medium dark:text-gray-100">{{ t('settings.settings') }}</span>
     </div>
@@ -99,7 +99,7 @@ onMounted(() => {
     <!-- Settings form -->
     <div class="space-y-6">
       <!-- Database settings (hidden when VITE_WITH_CORE is enabled) -->
-      <div v-if="!isWithCore" class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
+      <div v-if="!isWithCore" class="bg-card border border-neutral-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-800">
         <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
           {{ t('settings.databaseSettings') }}
         </h2>
@@ -194,7 +194,7 @@ onMounted(() => {
       </div>
 
       <!-- API settings -->
-      <div class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
+      <div class="bg-card border border-neutral-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-800">
         <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
           {{ t('settings.apiSettings') }}
         </h2>
@@ -273,7 +273,7 @@ onMounted(() => {
       </div>
 
       <!-- Resolvers settings -->
-      <div class="border border-neutral-200 rounded-lg bg-card p-4 dark:border-gray-600 dark:bg-gray-800">
+      <div class="bg-card border border-neutral-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-800">
         <h2 class="mb-4 text-xl text-gray-900 font-semibold dark:text-gray-100">
           {{ t('settings.resolversSettings') }}
         </h2>

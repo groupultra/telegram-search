@@ -109,7 +109,7 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
         <div class="mt-1 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
       </div>
       <button
-        class="flex-shrink-0 rounded-lg p-2 opacity-0 transition-all hover:bg-accent group-hover:opacity-100"
+        class="hover:bg-accent flex-shrink-0 rounded-lg p-2 opacity-0 transition-all group-hover:opacity-100"
         @click.stop="handleContextMenu($event, item)"
       >
         <span class="i-lucide-more-vertical h-4 w-4" />

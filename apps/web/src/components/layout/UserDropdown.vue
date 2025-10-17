@@ -36,7 +36,7 @@ const userId = computed(() => activeSessionComputed.value?.me?.id)
   <div
     v-if="isOpen"
     ref="dropdownRef"
-    class="absolute left-0 top-full z-10 mt-2 min-w-[200px] border border-border rounded-md bg-popover p-2 shadow-lg dark:border-gray-600 dark:bg-gray-800"
+    class="border-border bg-popover absolute left-0 top-full z-10 mt-2 min-w-[200px] border rounded-md p-2 shadow-lg dark:border-gray-600 dark:bg-gray-800"
   >
     <div class="flex items-center gap-3 border-b p-3 dark:border-gray-600">
       <Avatar

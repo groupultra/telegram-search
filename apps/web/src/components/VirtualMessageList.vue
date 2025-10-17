@@ -181,7 +181,7 @@ defineExpose({
     <!-- Loading indicators -->
     <div
       v-if="isScrolling"
-      class="absolute right-4 top-4 border rounded-full bg-card/90 px-3 py-1.5 text-xs text-muted-foreground font-medium shadow-lg backdrop-blur-sm"
+      class="bg-card/90 text-muted-foreground absolute right-4 top-4 border rounded-full px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur-sm"
     >
       <span class="i-lucide-loader-2 mr-1.5 inline-block animate-spin" />
       {{ t('virtualMessageList.scrolling') }}
@@ -198,7 +198,7 @@ defineExpose({
     >
       <button
         v-if="!isAtBottom && !isScrolling"
-        class="absolute bottom-6 right-6 h-12 w-12 flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all hover:scale-110 hover:shadow-2xl"
+        class="text-primary-foreground absolute bottom-6 right-6 h-12 w-12 flex items-center justify-center rounded-full bg-primary shadow-xl transition-all hover:scale-110 hover:shadow-2xl"
         @click="scrollToBottom"
       >
         <i class="i-lucide-chevron-down h-5 w-5" />

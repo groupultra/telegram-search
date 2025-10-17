@@ -85,14 +85,14 @@ function handleItemClick(item: MenuItem) {
       <div
         v-if="isOpen"
         ref="menuRef"
-        class="fixed z-[100] min-w-[160px] overflow-hidden border rounded-lg bg-popover shadow-lg"
+        class="bg-popover fixed z-[100] min-w-[160px] overflow-hidden border rounded-lg shadow-lg"
         :style="menuStyle"
       >
         <div class="p-1">
           <button
             v-for="(item, index) in items"
             :key="index"
-            class="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+            class="hover:bg-accent hover:text-accent-foreground w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="item.disabled"
             @click="handleItemClick(item)"
           >

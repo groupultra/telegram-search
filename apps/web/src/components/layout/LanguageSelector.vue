@@ -55,12 +55,12 @@ onClickOutside(dropdownRef, () => {
     >
       <div
         v-if="isOpen"
-        class="absolute bottom-full right-0 z-50 mb-2 min-w-[120px] overflow-hidden border rounded-md bg-popover shadow-md"
+        class="bg-popover absolute bottom-full right-0 z-50 mb-2 min-w-[120px] overflow-hidden border rounded-md shadow-md"
       >
         <button
           v-for="option in languageOptions"
           :key="option.value"
-          class="w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+          class="hover:bg-accent hover:text-accent-foreground w-full px-3 py-2 text-left text-sm transition-colors"
           :class="{ 'bg-accent text-accent-foreground': language === option.value }"
           @click="selectLanguage(option.value)"
         >

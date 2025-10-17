@@ -90,8 +90,8 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-background dark:bg-gray-900">
-    <div class="max-w-md w-full rounded-2xl bg-card p-10 shadow-2xl dark:bg-gray-800">
+  <div class="bg-background min-h-screen flex items-center justify-center dark:bg-gray-900">
+    <div class="bg-card max-w-md w-full rounded-2xl p-10 shadow-2xl dark:bg-gray-800">
       <h1 class="mb-6 text-center text-3xl text-gray-900 font-bold tracking-tight dark:text-gray-100">
         {{ t('login.telegramLogin') }}
       </h1>

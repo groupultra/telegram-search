@@ -204,9 +204,9 @@ watch(
 </script>
 
 <template>
-  <div class="relative h-full flex flex-col bg-background">
+  <div class="bg-background relative h-full flex flex-col">
     <!-- Debug Panel -->
-    <div v-if="debugMode" class="absolute right-4 top-24 z-10 w-1/4 flex flex-col justify-left gap-2 border rounded-lg bg-card p-2 text-sm text-muted-foreground font-mono shadow-lg">
+    <div v-if="debugMode" class="bg-card text-muted-foreground absolute right-4 top-24 z-10 w-1/4 flex flex-col justify-left gap-2 border rounded-lg p-2 text-sm font-mono shadow-lg">
       <span>
         Height: {{ windowHeight }} / Messages: {{ sortedMessageArray.length }}
       </span>
@@ -239,7 +239,7 @@ watch(
     </div>
 
     <!-- Chat Header -->
-    <div class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
+    <div class="bg-card/50 flex items-center justify-between border-b px-6 py-4 backdrop-blur-sm">
       <div class="flex items-center gap-3">
         <Avatar
           class="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10"
@@ -250,7 +250,7 @@ watch(
           <h2 class="text-lg font-semibold">
             {{ currentChat?.name }}
           </h2>
-          <p v-if="currentChat?.id" class="text-xs text-muted-foreground">
+          <p v-if="currentChat?.id" class="text-muted-foreground text-xs">
             ID: {{ currentChat?.id }}
           </p>
         </div>
@@ -285,7 +285,7 @@ watch(
         <div class="relative flex flex-1 items-center">
           <div class="absolute left-4 flex items-center gap-2">
             <button
-              class="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              class="text-muted-foreground hover:bg-accent hover:text-accent-foreground h-8 w-8 flex items-center justify-center rounded-lg transition-colors"
               type="button"
               title="Emoji"
             >
@@ -296,12 +296,12 @@ watch(
             v-model="messageInput"
             type="text"
             :placeholder="t('chat.typeAMessage')"
-            class="h-14 w-full border-0 rounded-2xl bg-muted/50 px-4 py-4 pl-14 pr-14 text-base shadow-sm transition-all duration-200 focus:bg-muted placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            class="bg-muted/50 focus:bg-muted placeholder:text-muted-foreground focus:ring-ring h-14 w-full border-0 rounded-2xl px-4 py-4 pl-14 pr-14 text-base shadow-sm transition-all duration-200 focus:outline-none focus:ring-2"
             @keyup.enter="sendMessage"
           >
           <div class="absolute right-4 flex items-center gap-1">
             <button
-              class="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              class="text-muted-foreground hover:bg-accent hover:text-accent-foreground h-8 w-8 flex items-center justify-center rounded-lg transition-colors"
               type="button"
               title="Attachment"
             >
@@ -313,7 +313,7 @@ watch(
         <!-- Send button with modern design -->
         <button
           :disabled="!messageInput.trim()"
-          class="h-14 w-14 flex flex-shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed hover:bg-primary/90 disabled:opacity-50 hover:shadow-xl disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:shadow-lg"
+          class="text-primary-foreground h-14 w-14 flex flex-shrink-0 items-center justify-center rounded-2xl bg-primary shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed hover:bg-primary/90 disabled:opacity-50 hover:shadow-xl disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:shadow-lg"
           @click="sendMessage"
         >
           <span class="i-lucide-send h-5 w-5" />
@@ -329,7 +329,7 @@ watch(
       >
         <template #settings>
           <div class="flex items-center">
-            <input id="searchContent" type="checkbox" class="mr-1 border-border rounded">
+            <input id="searchContent" type="checkbox" class="border-border mr-1 rounded">
             <label for="searchContent" class="text-sm text-gray-900 dark:text-gray-100">{{ t('chat.searchContent') }}</label>
           </div>
         </template>
