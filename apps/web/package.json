@@ -16,7 +16,7 @@
     "@tanstack/vue-query": "^5.90.3",
     "@tg-search/client": "workspace:^",
     "@tg-search/core": "workspace:^",
-    "@vueuse/core": "^13.9.0",
+    "@vueuse/core": "^14.0.0",
     "defu": "^6.1.4",
     "lottie-web": "^5.13.0",
     "nanoid": "^5.1.6",
