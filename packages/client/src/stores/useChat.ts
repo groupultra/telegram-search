@@ -11,12 +11,13 @@ export const useChatStore = defineStore('chat', () => {
   const websocketStore = useBridgeStore()
 
   const getChat = (id: string) => {
-    // First try to find in all chats (from Telegram)
+    // First try to find in all chats (from Telegram) for most up-to-date info
     const chat = chats.value.find(chat => chat.id === Number(id))
     if (chat) {
       return chat
     }
     // If not found, try synced chats (from database)
+    // This handles cases where a chat was synced but no longer in active dialogs
     return syncedChats.value.find(chat => chat.id === Number(id))
   }
 
