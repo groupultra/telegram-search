@@ -1,7 +1,5 @@
 import type { CoreEntity } from '../services/entity'
 
-import { useLogger } from '@guiiai/logg'
-import { Ok } from '@unbird/result'
 import { and, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
@@ -9,8 +7,6 @@ import { usersTable } from '../schemas/users'
 
 export type DBInsertUser = typeof usersTable.$inferInsert
 export type DBSelectUser = typeof usersTable.$inferSelect
-
-const logger = useLogger('models:users')
 
 /**
  * Record or update a user in the database

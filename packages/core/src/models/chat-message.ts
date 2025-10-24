@@ -36,7 +36,7 @@ export async function recordMessages(messages: CoreMessage[]) {
 
         // User UUID: update if not null
         from_user_uuid: sql`COALESCE(excluded.from_user_uuid, ${chatMessagesTable.from_user_uuid})`,
-        
+
         // From name: always update (for backward compatibility)
         from_name: sql`excluded.from_name`,
 

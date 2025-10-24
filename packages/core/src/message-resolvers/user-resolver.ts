@@ -15,7 +15,7 @@ export function createUserResolver(ctx: CoreContext): MessageResolver {
 
   // In-memory cache for entities fetched from Telegram API during this session
   const entities = new Map<string, Entity>()
-  
+
   // In-memory cache for user database records to avoid repeated DB queries
   const userCache = new Map<string, DBSelectUser>()
 
@@ -27,21 +27,21 @@ export function createUserResolver(ctx: CoreContext): MessageResolver {
 
       for (const message of messages) {
         const cacheKey = `telegram:${message.fromId}`
-        
+
         // Check in-memory cache first
         let dbUser = userCache.get(cacheKey)
-        
+
         if (!dbUser) {
           // Check database
           const dbUserOrNull = (await findUserByPlatformId('telegram', message.fromId)).orUndefined()
-          
+
           if (dbUserOrNull) {
             dbUser = dbUserOrNull
             userCache.set(cacheKey, dbUser)
             logger.withFields({ userId: dbUser.id, fromId: message.fromId }).debug('User found in database')
           }
         }
-        
+
         // If user not found in cache or database, fetch from Telegram API
         if (!dbUser) {
           if (!entities.has(message.fromId)) {
@@ -52,7 +52,7 @@ export function createUserResolver(ctx: CoreContext): MessageResolver {
 
           const entity = entities.get(message.fromId)!
           const coreEntity = resolveEntity(entity).orUndefined()
-          
+
           if (!coreEntity) {
             continue
           }
