@@ -11,7 +11,13 @@ export const useChatStore = defineStore('chat', () => {
   const websocketStore = useBridgeStore()
 
   const getChat = (id: string) => {
-    return chats.value.find(chat => chat.id === Number(id))
+    // First try to find in all chats (from Telegram)
+    const chat = chats.value.find(chat => chat.id === Number(id))
+    if (chat) {
+      return chat
+    }
+    // If not found, try synced chats (from database)
+    return syncedChats.value.find(chat => chat.id === Number(id))
   }
 
   const init = () => {
