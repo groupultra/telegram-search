@@ -11,6 +11,7 @@
   "chatGroups": {
     "channel": "Channels",
     "group": "Groups",
+    "synced": "Synced",
     "user": "Users"
   },
   "chatSelector": {

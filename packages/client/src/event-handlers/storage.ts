@@ -7,7 +7,7 @@ export function registerStorageEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
   registerEventHandler('storage:dialogs', (data) => {
-    useChatStore().chats = data.dialogs
+    useChatStore().syncedChats = data.dialogs
   })
 
   registerEventHandler('storage:messages', ({ messages }) => {

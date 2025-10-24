@@ -11,6 +11,7 @@
   "chatGroups": {
     "channel": "频道",
     "group": "群组",
+    "synced": "已同步",
     "user": "用户"
   },
   "chatSelector": {

@@ -7,6 +7,7 @@ import { useBridgeStore } from '../composables/useBridge'
 
 export const useChatStore = defineStore('chat', () => {
   const chats = ref<CoreDialog[]>([])
+  const syncedChats = ref<CoreDialog[]>([])
   const websocketStore = useBridgeStore()
 
   const getChat = (id: string) => {
@@ -17,8 +18,14 @@ export const useChatStore = defineStore('chat', () => {
     // eslint-disable-next-line no-console
     console.log('[ChatStore] Init dialogs')
 
-    if (chats.value.length === 0) {
+    // Fetch synced chats from database
+    if (syncedChats.value.length === 0) {
       websocketStore.sendEvent('storage:fetch:dialogs')
+    }
+
+    // Fetch all dialogs from Telegram
+    if (chats.value.length === 0) {
+      websocketStore.sendEvent('dialog:fetch')
     }
   }
 
@@ -26,6 +33,7 @@ export const useChatStore = defineStore('chat', () => {
     init,
     getChat,
     chats,
+    syncedChats,
   }
 })
 

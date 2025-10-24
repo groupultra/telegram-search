@@ -15,12 +15,12 @@ export const DEFAULT_THEME_COLORS_HUE = 220.44
 const convert = converter('oklch')
 const getHueFrom = (color?: string) => color ? convert(color)?.h : DEFAULT_THEME_COLORS_HUE
 
-export type ChatGroup = DialogType | ''
+export type ChatGroup = DialogType | 'synced' | ''
 
 export const useSettingsStore = defineStore('settings', () => {
   const disableSettings = ref(import.meta.env.VITE_DISABLE_SETTINGS === 'true')
   const debugMode = useLocalStorage<boolean>('settings/debug', false)
-  const selectedGroup = useLocalStorage<ChatGroup>('settings/group-selected', 'user')
+  const selectedGroup = useLocalStorage<ChatGroup>('settings/group-selected', 'synced')
   const useCachedMessage = useLocalStorage<boolean>('settings/use-cached-message-v2', true)
 
   const theme = useLocalStorage<string>('settings/theme', 'default')
