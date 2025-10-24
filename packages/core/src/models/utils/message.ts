@@ -20,6 +20,7 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
 
     fromId: message.from_id,
     fromName: message.from_name,
+    fromUserUuid: message.from_user_uuid ?? undefined,
 
     content: message.content,
 
@@ -55,6 +56,7 @@ export function convertToDBInsertMessage(message: CoreMessage): DBInsertMessage 
     from_id: message.fromId,
     platform_message_id: message.platformMessageId,
     from_name: message.fromName,
+    from_user_uuid: message.fromUserUuid,
     in_chat_id: message.chatId,
     content: message.content,
     is_reply: message.reply.isReply,
