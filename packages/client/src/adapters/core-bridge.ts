@@ -113,17 +113,16 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     }
   }
 
-  function init() {
+  async function init() {
     if (isInitialized.value) {
       logger.debug('Core bridge already initialized, skipping')
       return
     }
 
-    initConfig().then(() => {
-      registerAllEventHandlers(registerEventHandler)
-      sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
-      isInitialized.value = true
-    })
+    await initConfig()
+    registerAllEventHandlers(registerEventHandler)
+    sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
+    isInitialized.value = true
   }
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {

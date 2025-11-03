@@ -12,12 +12,13 @@ import { usePWAStore } from './stores/pwa'
 
 const settings = storeToRefs(useSettingsStore())
 
-onMounted(() => {
-  hideSplashScreen()
-  useBridgeStore().init()
+onMounted(async () => {
+  await useBridgeStore().init()
   useSettingsStore().init()
   useAuthStore().init()
   usePWAStore().init()
+
+  hideSplashScreen()
 })
 
 // const isDark = useDark()
@@ -30,7 +31,7 @@ onMounted(() => {
 
 // const secondaryColor = computed(() => {
 //   return isDark.value
-//     ? `color-mix(in srgb, oklch(95% var(--chromatic-chroma-900) calc(var(--chromatic-hue) + ${180})) 70%, oklch(50% 0 360))`
+//     ? `color-mix(in srgb, oklch(95% var(--chromatic-chroma-900) calc(var(--chromatic-hue) + ${180})) 70%, oklch(50% 0 360))`reload
 //     : `color-mix(in srgb, oklch(95% var(--chromatic-chroma-900) calc(var(--chromatic-hue) + ${180})) 90%, oklch(90% 0 360))`
 // })
 
