@@ -202,7 +202,7 @@ watch(currentTaskProgress, (progress) => {
             size="md"
             icon="i-lucide-log-in"
             class="flex-shrink-0"
-            @click="router.push('/login')"
+            @click="router.push({ path: '/login', query: { redirect: '/sync' } })"
           >
             {{ t('loginPromptBanner.login') }}
           </Button>

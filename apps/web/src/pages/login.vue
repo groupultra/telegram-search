@@ -3,7 +3,7 @@ import { useAuthStore, useBridgeStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import Stepper from '../components/ui/Stepper.vue'
@@ -12,6 +12,7 @@ const { t } = useI18n()
 type LoginStep = 'phone' | 'code' | 'password' | 'complete'
 
 const router = useRouter()
+const route = useRoute()
 
 const authStore = useAuthStore()
 const websocketStore = useBridgeStore()
@@ -63,7 +64,9 @@ const steps = computed(() => [
 ])
 
 function redirectRoot() {
-  router.push('/')
+  // Redirect to the previous page if specified in query params, otherwise go to sync page
+  const redirect = route.query.redirect as string | undefined
+  router.push(redirect || '/sync')
 }
 
 async function handleLogin() {

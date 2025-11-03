@@ -124,7 +124,10 @@ function closeMobileDrawer() {
 
 function handleAvatarClick() {
   if (!websocketStore.getActiveSession()?.isConnected) {
-    router.push('/login')
+    router.push({
+      path: '/login',
+      query: { redirect: route.fullPath },
+    })
   }
 }
 </script>

@@ -4,11 +4,12 @@ import { onClickOutside } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import Avatar from '../ui/Avatar.vue'
 
 const { t } = useI18n()
+const route = useRoute()
 
 const authStore = useAuthStore()
 const { isLoggedIn, activeSessionComputed } = storeToRefs(authStore)
@@ -22,10 +23,15 @@ onClickOutside(dropdownRef, () => {
 })
 
 function handleLoginLogout() {
-  if (isLoggedIn.value)
+  if (isLoggedIn.value) {
     authStore.handleAuth().logout()
-  else
-    useRouter().push('/login')
+  }
+  else {
+    useRouter().push({
+      path: '/login',
+      query: { redirect: route.fullPath },
+    })
+  }
 }
 
 const username = computed(() => activeSessionComputed.value?.me?.username)

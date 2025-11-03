@@ -34,7 +34,6 @@ export const useAuthStore = defineStore('session', () => {
   watch(() => activeSessionComputed.value?.isConnected, (isConnected) => {
     if (isConnected) {
       websocketStore.sendEvent('entity:me:fetch', undefined)
-      useChatStore().init()
     }
   }, { immediate: true })
 
@@ -74,6 +73,9 @@ export const useAuthStore = defineStore('session', () => {
   function init() {
     // Auto login
     // useConfig().api.telegram.autoReconnect && attemptLogin()
+
+    // Initialize chat store to load dialogs from database regardless of authentication status
+    useChatStore().init()
   }
 
   return {
