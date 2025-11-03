@@ -19,6 +19,12 @@ const router = useRouter()
 const hoveredMessage = ref<CoreMessage | null>(null)
 const { copy } = useClipboard()
 
+function formatTimestamp(timestamp: number) {
+  if (!timestamp)
+    return ''
+  return new Date(timestamp * 1000).toLocaleString()
+}
+
 const contextMenuOpen = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
@@ -103,10 +109,19 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
         size="md"
       />
       <div class="min-w-0 flex-1">
-        <div class="truncate text-sm text-gray-900 font-semibold dark:text-gray-100">
-          {{ item.fromName }}
+        <div class="flex items-baseline gap-2">
+          <span class="truncate text-sm text-gray-900 font-semibold dark:text-gray-100">
+            {{ item.fromName }}
+          </span>
+          <span class="flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">
+            {{ formatTimestamp(item.platformTimestamp) }}
+          </span>
         </div>
         <div class="mt-1 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
+        <div class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+          <span class="i-lucide-hash h-3 w-3" />
+          <span>{{ item.platformMessageId }}</span>
+        </div>
       </div>
       <button
         class="flex-shrink-0 rounded-lg p-2 opacity-0 transition-all hover:bg-accent group-hover:opacity-100"
