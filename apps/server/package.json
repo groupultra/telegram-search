@@ -1,7 +1,7 @@
 {
   "name": "@tg-search/server",
   "type": "module",
-  "version": "1.1.23-beta.3",
+  "version": "1.1.23-beta.4",
   "exports": {
     "./types": "./src/types.ts"
   },

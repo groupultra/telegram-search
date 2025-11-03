@@ -56,7 +56,7 @@ watch(settings.themeColorsHueDynamic, () => {
 <template>
   <div class="min-h-screen bg-white transition-all duration-300 ease-in-out dark:bg-gray-900">
     <Toaster position="top-right" :expand="true" :rich-colors="true" />
-    
+
     <RouterView v-slot="{ Component }">
       <Transition>
         <KeepAlive>
