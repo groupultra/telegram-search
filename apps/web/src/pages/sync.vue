@@ -74,8 +74,14 @@ const isSelectAllDisabled = computed(() => {
  * Uses Set for O(1) lookup instead of O(N^2) with array.includes() for each chat.
  * Returns true when selectedChats covers all chat IDs.
  */
+/**
+ * Performance optimized computed property for all chat IDs.
+ * Follows DRY (Don't Repeat Yourself) principle by centralizing the mapping logic.
+ */
+const allChatIds = computed(() => chats.value.map(c => c.id))
+
 const isAllSelected = computed(() => {
-  const allIds = chats.value.map(c => c.id)
+  const allIds = allChatIds.value
   if (allIds.length === 0 || selectedChats.value.length !== allIds.length) {
     return false
   }
@@ -108,7 +114,7 @@ const isSelectAllWarning = ref<boolean>(false)
  * may take a long time.
  */
 function handleSelectAll() {
-  const allIds = chats.value.map(c => c.id)
+  const allIds = allChatIds.value
   const allSelected = isAllSelected.value
 
   selectedChats.value = allSelected ? [] : allIds
@@ -121,6 +127,8 @@ function handleSelectAll() {
     isSelectAllDialogOpen.value = true
   }
 }
+
+/**
  * Localize takeout task progress message.
  * Converts backend English `lastMessage` to i18n-friendly text.
  * Parses "Processed X/Y messages" and maps known status strings.
@@ -391,7 +399,7 @@ watch(currentTaskProgress, (progress) => {
 
       <div class="flex justify-end gap-2">
         <Button
-          icon="i-lucide-check"
+          icon="i-lucide-x"
           size="sm"
           variant="outline"
           @click="isSelectAllDialogOpen = false"
