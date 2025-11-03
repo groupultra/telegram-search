@@ -8,7 +8,7 @@ import type { MessageWindow } from '../composables/useMessageWindow'
  * @returns Formatted date/time string or empty string if timestamp is invalid
  */
 export function formatMessageTimestamp(timestamp: number): string {
-  if (!timestamp)
+  if (!Number.isFinite(timestamp) || timestamp < 0)
     return ''
   return new Date(timestamp * 1000).toLocaleString()
 }
