@@ -1,3 +1,4 @@
+import type { PGlite } from '@electric-sql/pglite'
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
 
@@ -10,6 +11,7 @@ import { Err, Ok } from '@unbird/result'
 export type CoreDB = PostgresDB | PgliteDB
 
 let dbInstance: CoreDB
+let pgliteInstance: PGlite | undefined
 
 // TODO: options? here should contain dbPath, config.
 export async function initDrizzle(
@@ -37,21 +39,26 @@ export async function initDrizzle(
       dbInstance = await initPgDrizzle(logger, config, {
         isDatabaseDebugMode: options?.isDatabaseDebugMode,
       })
+      pgliteInstance = undefined
       break
     }
 
     case DatabaseType.PGLITE: {
       if (isBrowser()) {
         const { initPgliteDrizzleInBrowser } = await import('./pglite.browser')
-        dbInstance = await initPgliteDrizzleInBrowser(logger, {
+        const result = await initPgliteDrizzleInBrowser(logger, {
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
         })
+        dbInstance = result.db
+        pgliteInstance = result.pglite
       }
       else {
         const { initPgliteDrizzleInNode } = await import('./pglite')
-        dbInstance = await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
+        const result = await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
         })
+        dbInstance = result.db
+        pgliteInstance = result.pglite
       }
       break
     }
@@ -67,6 +74,10 @@ function useDrizzle() {
   }
 
   return dbInstance
+}
+
+export function usePGlite(): PGlite | undefined {
+  return pgliteInstance
 }
 
 export async function withDb<T>(

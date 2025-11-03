@@ -1,5 +1,7 @@
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
+import { usePGlite } from '@tg-search/core'
+import { setupPGliteDevtools } from '@unbird/pglite-inspector'
 import NProgress from 'nprogress'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
@@ -52,4 +54,18 @@ app.use(router)
 app.use(VueQueryPlugin)
 app.use(pinia)
 app.use(autoAnimatePlugin)
+
+// Setup PGlite DevTools (only in development mode)
+if (import.meta.env.DEV) {
+  router.isReady().then(() => {
+    // Wait a bit for database initialization to complete
+    setTimeout(() => {
+      const pglite = usePGlite()
+      if (pglite) {
+        setupPGliteDevtools({ app, db: pglite })
+      }
+    }, 1000)
+  })
+}
+
 app.mount('#app')

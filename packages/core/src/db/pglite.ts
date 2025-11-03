@@ -64,7 +64,7 @@ export async function initPgliteDrizzleInNode(
       throw error
     }
 
-    return db
+    return { db, pglite }
   }
   catch (error) {
     logger.withError(error).error('Failed to initialize PGlite database')

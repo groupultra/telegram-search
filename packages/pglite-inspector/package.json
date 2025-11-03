@@ -1,0 +1,44 @@
+{
+  "name": "@unbird/pglite-inspector",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Vue DevTools plugin for PGlite database inspection and query monitoring",
+  "author": "",
+  "license": "MIT",
+  "keywords": [
+    "vue",
+    "devtools",
+    "pglite",
+    "postgres",
+    "database",
+    "inspector"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc",
+    "dev": "vite build --watch"
+  },
+  "peerDependencies": {
+    "@electric-sql/pglite": ">=0.3.0",
+    "@vue/devtools-api": "^8.0.0",
+    "vue": "^3.0.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.10",
+    "@vue/devtools-api": "^8.0.3",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.2",
+    "vue": "^3.4.38"
+  }
+}

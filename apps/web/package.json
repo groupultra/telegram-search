@@ -10,12 +10,14 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@electric-sql/pglite-repl": "^0.2.29",
     "@formkit/auto-animate": "^0.9.0",
     "@iconify-json/lucide": "^1.2.69",
     "@node-rs/jieba-wasm32-wasi": "^2.0.1",
     "@tanstack/vue-query": "^5.90.3",
     "@tg-search/client": "workspace:^",
     "@tg-search/core": "workspace:^",
+    "@unbird/pglite-inspector": "workspace:^",
     "@vueuse/core": "^14.0.0",
     "defu": "^6.1.4",
     "lottie-web": "^5.13.0",

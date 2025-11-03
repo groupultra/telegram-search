@@ -15,6 +15,8 @@ import { splashScreen } from 'vite-plugin-splash-screen'
 import Devtools from 'vite-plugin-vue-devtools'
 import Layouts from 'vite-plugin-vue-layouts'
 
+import { pgliteInspectorPrompt } from './src/plugins/pglite-inspector-prompt'
+
 export default defineConfig({
   plugins: [
     Info({
@@ -45,6 +47,11 @@ export default defineConfig({
           script: {
             propsDestructure: true,
             defineModel: true,
+          },
+          template: {
+            compilerOptions: {
+              isCustomElement: tag => tag.startsWith('pglite-'),
+            },
           },
         }),
       },
@@ -96,6 +103,8 @@ export default defineConfig({
     splashScreen({
       logoSrc: 'favicon.svg',
     }),
+
+    pgliteInspectorPrompt(),
   ],
 
   resolve: {
