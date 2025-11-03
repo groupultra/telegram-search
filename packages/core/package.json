@@ -27,21 +27,21 @@
     }
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.3.10",
+    "@electric-sql/pglite": "^0.3.11",
     "@guiiai/logg": "catalog:",
     "@henrygd/queue": "^1.1.1",
-    "@moeru/std": "0.1.0-beta.10",
+    "@moeru/std": "0.1.0-beta.13",
     "@node-rs/jieba": "^2.0.1",
     "@proj-airi/drizzle-orm-browser-migrator": "^0.1.3",
     "@tg-search/common": "workspace:*",
-    "@unbird/eventa": "^0.2.0",
+    "@unbird/eventa": "^0.2.3",
     "@unbird/result": "catalog:",
     "@xsai-ext/providers-local": "catalog:",
     "@xsai/embed": "catalog:",
     "big-integer": "^1.6.52",
     "buffer": "^6.0.3",
     "defu": "^6.1.4",
-    "drizzle-orm": "^0.44.6",
+    "drizzle-orm": "^0.44.7",
     "eventemitter3": "^5.0.1",
     "file-type": "^21.0.0",
     "pathe": "^2.0.3",
@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3",
-    "@types/pg": "^8.15.5",
-    "tsdown": "^0.15.7"
+    "@types/pg": "^8.15.6",
+    "tsdown": "^0.15.12"
   }
 }

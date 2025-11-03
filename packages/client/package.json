@@ -2,7 +2,7 @@
   "name": "@tg-search/client",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.18.2",
+  "packageManager": "pnpm@10.20.0",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -16,7 +16,7 @@
     "@vueuse/core": "^14.0.0",
     "culori": "^4.0.2",
     "defu": "^6.1.4",
-    "ofetch": "^1.4.1",
+    "ofetch": "^1.5.1",
     "pako": "^2.1.0",
     "pinia": "^3.0.3",
     "uuid": "^13.0.0",
