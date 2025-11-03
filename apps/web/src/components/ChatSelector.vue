@@ -37,6 +37,12 @@ const chatTypeOptions = computed(() => {
 const selectedType = ref<string>('user')
 const searchQuery = ref('')
 
+/**
+ * Performance optimization: Use Set for O(1) lookup instead of O(N) array.includes()
+ * This significantly improves performance when dealing with large numbers of chats
+ */
+const selectedChatsSet = computed(() => new Set(selectedChats.value))
+
 const filteredChats = computed(() => {
   let filtered = props.chats
 
@@ -57,8 +63,9 @@ const filteredChats = computed(() => {
     subtitle: t('chatSelector.id', { id: chat.id }),
     type: chat.type,
   })).sort((a, b) => {
-    const aSelected = selectedChats.value.includes(a.id)
-    const bSelected = selectedChats.value.includes(b.id)
+    // Use optimized Set lookup for better performance
+    const aSelected = selectedChatsSet.value.has(a.id)
+    const bSelected = selectedChatsSet.value.has(b.id)
     if (aSelected && !bSelected)
       return -1
     if (!aSelected && bSelected)
@@ -67,8 +74,12 @@ const filteredChats = computed(() => {
   })
 })
 
+/**
+ * Check if a chat is selected using optimized Set lookup
+ * Time complexity: O(1) instead of O(N) with array.includes()
+ */
 function isSelected(id: number): boolean {
-  return selectedChats.value.includes(id)
+  return selectedChatsSet.value.has(id)
 }
 
 function toggleSelection(id: number): void {
