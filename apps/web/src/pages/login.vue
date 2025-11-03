@@ -63,7 +63,6 @@ const steps = computed(() => [
 ])
 
 function redirectRoot() {
-  toast.success(t('login.loginSuccess'))
   router.push('/')
 }
 
