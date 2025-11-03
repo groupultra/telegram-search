@@ -124,10 +124,15 @@
     "syncCompleted": "同步完成",
     "syncFailed": "同步失败",
     "syncPrompt": "同步对话之后才能搜索全部的聊天记录",
-    "syncing": "同步中..."
+    "syncing": "同步中...",
+    "initTakeoutSession": "初始化数据导出会话",
+    "getMessages": "获取消息",
+    "startingIncrementalSync": "开始增量同步",
+    "incrementalSyncCompleted": "增量同步完成",
+    "processedMessages": "已处理 {processed}/{total} 条消息"
   },
   "virtualMessageList": {
-    "scrolling": "滚动中..."
+    "scrolling": "加载中"
   },
   "errors": {
     "floodWait": "请求过于频繁，请等待 {seconds} 秒后再试。",

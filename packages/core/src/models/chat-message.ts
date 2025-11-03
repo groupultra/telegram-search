@@ -34,6 +34,12 @@ export async function recordMessages(messages: CoreMessage[]) {
         // Content: always update with new content
         content: sql`excluded.content`,
 
+        // User UUID: update if not null
+        from_user_uuid: sql`COALESCE(excluded.from_user_uuid, ${chatMessagesTable.from_user_uuid})`,
+
+        // From name: always update (for backward compatibility)
+        from_name: sql`excluded.from_name`,
+
         // Vectors: update only if not null (vectors can be null in schema)
         content_vector_1024: sql`COALESCE(excluded.content_vector_1024, ${chatMessagesTable.content_vector_1024})`,
         content_vector_1536: sql`COALESCE(excluded.content_vector_1536, ${chatMessagesTable.content_vector_1536})`,

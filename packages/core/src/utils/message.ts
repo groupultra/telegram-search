@@ -18,6 +18,7 @@ export interface CoreMessage {
 
   fromId: string
   fromName: string
+  fromUserUuid?: string
 
   content: string
   media?: CoreMessageMediaFromServer[]

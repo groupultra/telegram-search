@@ -121,6 +121,38 @@ function handleSelectAll() {
     isSelectAllDialogOpen.value = true
   }
 }
+ * Localize takeout task progress message.
+ * Converts backend English `lastMessage` to i18n-friendly text.
+ * Parses "Processed X/Y messages" and maps known status strings.
+ */
+const localizedTaskMessage = computed(() => {
+  const msg = currentTask.value?.lastMessage || ''
+  if (!msg)
+    return ''
+
+  // Parse progress message: "Processed 123/456 messages"
+  const processedMatch = msg.match(/^Processed\s+(\d+)\/(\d+)\s+messages$/i)
+  if (processedMatch) {
+    const processed = Number(processedMatch[1])
+    const total = Number(processedMatch[2])
+    return t('sync.processedMessages', { processed, total })
+  }
+
+  // Map known status messages
+  switch (msg) {
+    case 'Init takeout session':
+      return t('sync.initTakeoutSession')
+    case 'Get messages':
+      return t('sync.getMessages')
+    case 'Starting incremental sync':
+      return t('sync.startingIncrementalSync')
+    case 'Incremental sync completed':
+      return t('sync.incrementalSyncCompleted')
+    default:
+      // Return original text for unknown messages to avoid information loss
+      return msg
+  }
+})
 
 function handleSync() {
   increase.value = true
@@ -260,7 +292,7 @@ watch(currentTaskProgress, (progress) => {
                   {{ currentTask?.lastError ? t('sync.syncFailed') : t('sync.syncing') }}
                 </span>
                 <span v-if="currentTask?.lastError" class="text-sm text-destructive">{{ errorMessage }}</span>
-                <span v-else-if="currentTask?.lastMessage" class="text-sm text-muted-foreground">{{ currentTask.lastMessage }}</span>
+                <span v-else-if="localizedTaskMessage" class="text-sm text-muted-foreground">{{ localizedTaskMessage }}</span>
               </div>
             </div>
 

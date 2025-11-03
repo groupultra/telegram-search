@@ -2,12 +2,15 @@
 
 import { bigint, boolean, index, jsonb, pgTable, text, uniqueIndex, uuid, vector } from 'drizzle-orm/pg-core'
 
+import { usersTable } from './users'
+
 export const chatMessagesTable = pgTable('chat_messages', {
   id: uuid().primaryKey().defaultRandom(),
   platform: text().notNull().default(''),
   platform_message_id: text().notNull().default(''),
   from_id: text().notNull().default(''),
   from_name: text().notNull().default(''),
+  from_user_uuid: uuid().references(() => usersTable.id, { onDelete: 'set null' }),
   in_chat_id: text().notNull().default(''),
   content: text().notNull().default(''),
   is_reply: boolean().notNull().default(false),
@@ -27,4 +30,5 @@ export const chatMessagesTable = pgTable('chat_messages', {
   index('chat_messages_content_vector_1024_index').using('hnsw', table.content_vector_1024.op('vector_cosine_ops')),
   index('chat_messages_content_vector_768_index').using('hnsw', table.content_vector_768.op('vector_cosine_ops')),
   index('jieba_tokens_index').using('gin', table.jieba_tokens.op('jsonb_path_ops')),
+  index('chat_messages_from_user_uuid_index').on(table.from_user_uuid),
 ])

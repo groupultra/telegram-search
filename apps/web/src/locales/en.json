@@ -124,7 +124,12 @@
     "syncCompleted": "Sync completed",
     "syncFailed": "Sync failed",
     "syncPrompt": "After a synchronized conversation, you can search all chat records.",
-    "syncing": "Syncing..."
+    "syncing": "Syncing...",
+    "initTakeoutSession": "Init takeout session",
+    "getMessages": "Get messages",
+    "startingIncrementalSync": "Starting incremental sync",
+    "incrementalSyncCompleted": "Incremental sync completed",
+    "processedMessages": "Processed {processed}/{total} messages"
   },
   "virtualMessageList": {
     "scrolling": "Scrolling..."
