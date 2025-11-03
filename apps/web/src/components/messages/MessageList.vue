@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CoreMessage } from '@tg-search/core/types'
 
+import { formatMessageTimestamp } from '@tg-search/client'
 import { useClipboard } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -18,12 +19,6 @@ const { t } = useI18n()
 const router = useRouter()
 const hoveredMessage = ref<CoreMessage | null>(null)
 const { copy } = useClipboard()
-
-function formatTimestamp(timestamp: number) {
-  if (!timestamp)
-    return ''
-  return new Date(timestamp * 1000).toLocaleString()
-}
 
 const contextMenuOpen = ref(false)
 const contextMenuX = ref(0)
@@ -114,7 +109,7 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
             {{ item.fromName }}
           </span>
           <span class="flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">
-            {{ formatTimestamp(item.platformTimestamp) }}
+            {{ formatMessageTimestamp(item.platformTimestamp) }}
           </span>
         </div>
         <div class="mt-1 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
