@@ -12,7 +12,7 @@ export async function fetchChats() {
     .select()
     .from(joinedChatsTable)
     .where(eq(joinedChatsTable.platform, 'telegram'))
-    .orderBy(desc(joinedChatsTable.updated_at)), // TODO: sort by telegram client date
+    .orderBy(desc(joinedChatsTable.dialog_date)),
   )
 }
 
@@ -25,6 +25,7 @@ export async function recordChats(chats: CoreDialog[]) {
       chat_id: chat.id.toString(),
       chat_name: chat.name,
       chat_type: chat.type,
+      dialog_date: chat.lastMessageDate ? chat.lastMessageDate.getTime() : 0,
       // created_at: chat.lastMessageDate,
       // updated_at: Date.now(),
     })))
@@ -33,6 +34,7 @@ export async function recordChats(chats: CoreDialog[]) {
       set: {
         chat_name: sql`excluded.chat_name`,
         chat_type: sql`excluded.chat_type`,
+        dialog_date: sql`excluded.dialog_date`,
         updated_at: Date.now(), // TODO: is it correct?
       },
     })

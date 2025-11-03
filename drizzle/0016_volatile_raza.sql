@@ -1,0 +1,1 @@
+ALTER TABLE "joined_chats" ADD COLUMN "dialog_date" bigint DEFAULT 0 NOT NULL;
