@@ -1,7 +1,9 @@
 import type { PGlite } from '@electric-sql/pglite'
 import type { App } from 'vue'
 
-import { setupDevtoolsPlugin } from '@vue/devtools-api'
+import { addCustomTab, setupDevToolsPlugin } from '@vue/devtools-kit'
+
+import { replHTML } from './repl-template'
 
 export interface PGliteDevtoolsOptions {
   app: App
@@ -12,7 +14,57 @@ const INSPECTOR_ID = 'pglite-inspector'
 const TIMELINE_LAYER_ID = 'pglite-queries'
 
 export function setupPGliteDevtools({ app, db }: PGliteDevtoolsOptions) {
-  setupDevtoolsPlugin(
+  // Add REPL custom tab
+  const replBlob = new Blob([replHTML], { type: 'text/html' })
+  const replUrl = URL.createObjectURL(replBlob)
+
+  addCustomTab({
+    name: 'pglite-repl',
+    title: 'SQL REPL',
+    icon: 'terminal',
+    view: {
+      type: 'iframe',
+      src: replUrl,
+      persistent: true,
+    },
+    category: 'app',
+  })
+
+  // Store reference to REPL iframe for validation
+  let replIframeSource: MessageEventSource | null = null
+
+  // Handle REPL query execution via window messaging
+  window.addEventListener('message', async (event) => {
+    // Register the REPL iframe source on first ready message
+    if (event.data.type === 'pglite-repl-ready' && !replIframeSource) {
+      replIframeSource = event.source
+      return
+    }
+
+    // Validate that the message is from our REPL iframe
+    if (event.data.type === 'pglite-execute-query' && event.source === replIframeSource) {
+      try {
+        const result = await db.query(event.data.query)
+        // Send response back to the iframe that sent the request
+        ;(event.source as Window)?.postMessage({
+          type: 'pglite-query-result',
+          result: {
+            rows: result.rows,
+            affectedRows: result.affectedRows,
+          },
+        }, '*')
+      }
+      catch (error) {
+        // Send error response back
+        ;(event.source as Window)?.postMessage({
+          type: 'pglite-query-result',
+          error: error instanceof Error ? error.message : String(error),
+        }, '*')
+      }
+    }
+  })
+
+  setupDevToolsPlugin(
     {
       id: 'dev.pglite',
       label: 'PGlite',
@@ -22,30 +74,21 @@ export function setupPGliteDevtools({ app, db }: PGliteDevtoolsOptions) {
       app,
       enableEarlyProxy: true,
     },
-    (api) => {
+    (api: any) => {
       api.addInspector({
         id: INSPECTOR_ID,
         label: 'PGlite Database',
         icon: 'storage',
         treeFilterPlaceholder: 'Search tables...',
-        actions: [
-          {
-            icon: 'terminal',
-            tooltip: 'Open REPL Inspector',
-            action: () => {
-              window.open('/__pglite_inspector', '_blank')
-            },
-          },
-        ],
       })
 
       api.addTimelineLayer({
         id: TIMELINE_LAYER_ID,
         label: 'PGlite Queries',
-        color: 0x4FC08D,
+        color: 0x42B883,
       })
 
-      api.on.getInspectorTree(async (payload) => {
+      api.on.getInspectorTree(async (payload: any) => {
         if (payload.inspectorId === INSPECTOR_ID) {
           try {
             const tables = await db.query<{ tablename: string }>(
@@ -63,7 +106,7 @@ export function setupPGliteDevtools({ app, db }: PGliteDevtoolsOptions) {
                     {
                       label: 'table',
                       textColor: 0x000000,
-                      backgroundColor: 0x4FC08D,
+                      backgroundColor: 0x42B883,
                     },
                   ],
                 })),
@@ -76,7 +119,7 @@ export function setupPGliteDevtools({ app, db }: PGliteDevtoolsOptions) {
         }
       })
 
-      api.on.getInspectorState(async (payload) => {
+      api.on.getInspectorState(async (payload: any) => {
         if (payload.inspectorId === INSPECTOR_ID && payload.nodeId.startsWith('table:')) {
           const tableName = payload.nodeId.replace('table:', '')
 
@@ -117,7 +160,7 @@ export function setupPGliteDevtools({ app, db }: PGliteDevtoolsOptions) {
           }
           catch (error) {
             payload.state = {
-              Error: [
+              'Error': [
                 {
                   key: 'message',
                   value: error instanceof Error ? error.message : String(error),
