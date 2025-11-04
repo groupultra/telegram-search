@@ -404,8 +404,8 @@ importers:
         specifier: '*'
         version: 0.3.11
       '@vue/devtools-kit':
-        specifier: ^7.7.1
-        version: 7.7.7
+        specifier: ^8.0.3
+        version: 8.0.3
       vue:
         specifier: ^3.5.0
         version: 3.5.22(typescript@5.9.3)

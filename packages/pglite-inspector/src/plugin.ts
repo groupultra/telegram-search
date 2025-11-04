@@ -1,9 +1,7 @@
 import type { PGlite } from '@electric-sql/pglite'
 import type { App } from 'vue'
 
-import { addCustomTab, setupDevToolsPlugin } from '@vue/devtools-kit'
-
-import replHTML from './repl-template.html?raw'
+import { setupDevToolsPlugin } from '@vue/devtools-kit'
 
 export interface PGliteDevtoolsOptions {
   app: App
@@ -14,56 +12,6 @@ const INSPECTOR_ID = 'pglite-inspector'
 const TIMELINE_LAYER_ID = 'pglite-queries'
 
 export function setupPGliteDevtools({ app, db }: PGliteDevtoolsOptions) {
-  // Add REPL custom tab
-  const replBlob = new Blob([replHTML], { type: 'text/html' })
-  const replUrl = URL.createObjectURL(replBlob)
-
-  addCustomTab({
-    name: 'pglite-repl',
-    title: 'SQL REPL',
-    icon: 'terminal',
-    view: {
-      type: 'iframe',
-      src: replUrl,
-      persistent: true,
-    },
-    category: 'app',
-  })
-
-  // Store reference to REPL iframe for validation
-  let replIframeSource: MessageEventSource | null = null
-
-  // Handle REPL query execution via window messaging
-  window.addEventListener('message', async (event) => {
-    // Register the REPL iframe source on first ready message
-    if (event.data.type === 'pglite-repl-ready' && !replIframeSource) {
-      replIframeSource = event.source
-      return
-    }
-
-    // Validate that the message is from our REPL iframe
-    if (event.data.type === 'pglite-execute-query' && event.source === replIframeSource) {
-      try {
-        const result = await db.query(event.data.query)
-        // Send response back to the iframe that sent the request
-        ;(event.source as Window)?.postMessage({
-          type: 'pglite-query-result',
-          result: {
-            rows: result.rows,
-            affectedRows: result.affectedRows,
-          },
-        }, '*')
-      }
-      catch (error) {
-        // Send error response back
-        ;(event.source as Window)?.postMessage({
-          type: 'pglite-query-result',
-          error: error instanceof Error ? error.message : String(error),
-        }, '*')
-      }
-    }
-  })
-
   setupDevToolsPlugin(
     {
       id: 'dev.pglite',
