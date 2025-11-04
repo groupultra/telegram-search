@@ -3,7 +3,7 @@ import type { App } from 'vue'
 
 import { addCustomTab, setupDevToolsPlugin } from '@vue/devtools-kit'
 
-import { replHTML } from './repl-template'
+import replHTML from './repl-template.html?raw'
 
 export interface PGliteDevtoolsOptions {
   app: App

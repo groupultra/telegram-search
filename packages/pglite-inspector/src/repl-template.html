@@ -1,4 +1,4 @@
-export const replHTML = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -389,11 +389,11 @@ export const replHTML = `<!DOCTYPE html>
 
     function showError(message) {
       const resultsDiv = document.getElementById('results');
-      const errorHTML = \`
+      const errorHTML = `
         <div class="query-result">
-          <div class="error-message">\${escapeHtml(message)}</div>
+          <div class="error-message">${escapeHtml(message)}</div>
         </div>
-      \`;
+      `;
 
       if (resultsDiv.querySelector('.empty-state')) {
         resultsDiv.innerHTML = errorHTML;
@@ -416,10 +416,10 @@ export const replHTML = `<!DOCTYPE html>
       if (!result.rows || result.rows.length === 0) {
         // Non-SELECT query or empty result
         const affectedCount = result.affectedRows !== undefined ? Number(result.affectedRows) : null
-        resultHTML = \`
+        resultHTML = `
           <div class="query-result">
             <div class="query-info">
-              <div class="query-sql">\${escapeHtml(query)}</div>
+              <div class="query-sql">${escapeHtml(query)}</div>
               <div class="query-meta">
                 <div class="meta-item">
                   <span class="meta-label">Time:</span>
@@ -428,26 +428,26 @@ export const replHTML = `<!DOCTYPE html>
               </div>
             </div>
             <div class="success-message">
-              Query executed successfully\${affectedCount !== null ? \` (\${affectedCount} rows affected)\` : ''}
+              Query executed successfully${affectedCount !== null ? ` (${affectedCount} rows affected)` : ''}
             </div>
           </div>
-        \`;
+        `;
       } else {
         // SELECT query with results
         const columns = Object.keys(result.rows[0]);
 
-        resultHTML = \`
+        resultHTML = `
           <div class="query-result">
             <div class="query-info">
-              <div class="query-sql">\${escapeHtml(query)}</div>
+              <div class="query-sql">${escapeHtml(query)}</div>
               <div class="query-meta">
                 <div class="meta-item">
                   <span class="meta-label">Rows:</span>
-                  <span>\${result.rows.length}</span>
+                  <span>${result.rows.length}</span>
                 </div>
                 <div class="meta-item">
                   <span class="meta-label">Time:</span>
-                  <span>\${duration.toFixed(2)}ms</span>
+                  <span>${duration.toFixed(2)}ms</span>
                 </div>
               </div>
             </div>
@@ -455,26 +455,26 @@ export const replHTML = `<!DOCTYPE html>
               <table>
                 <thead>
                   <tr>
-                    \${columns.map(col => \`<th>\${escapeHtml(col)}</th>\`).join('')}
+                    ${columns.map(col => `<th>${escapeHtml(col)}</th>`).join('')}
                   </tr>
                 </thead>
                 <tbody>
-                  \${result.rows.map(row => \`
+                  ${result.rows.map(row => `
                     <tr>
-                      \${columns.map(col => {
+                      ${columns.map(col => {
                         const value = row[col];
                         if (value === null || value === undefined) {
                           return '<td><span class="null-value">NULL</span></td>';
                         }
-                        return \`<td>\${escapeHtml(String(value))}</td>\`;
+                        return `<td>${escapeHtml(String(value))}</td>`;
                       }).join('')}
                     </tr>
-                  \`).join('')}
+                  `).join('')}
                 </tbody>
               </table>
             </div>
           </div>
-        \`;
+        `;
       }
 
       resultsDiv.insertAdjacentHTML('afterbegin', resultHTML);
@@ -495,4 +495,3 @@ export const replHTML = `<!DOCTYPE html>
   </script>
 </body>
 </html>
-`
