@@ -1,5 +1,6 @@
-import type { CoreMessage, CoreRetrievalMessages } from '../../index'
 import type { chatMessagesTable } from '../../schemas/chat_messages'
+import type { CoreRetrievalMessages } from '../../types'
+import type { CoreMessage } from '../../types/message'
 
 export type DBInsertMessage = typeof chatMessagesTable.$inferInsert
 export type DBSelectMessage = typeof chatMessagesTable.$inferSelect

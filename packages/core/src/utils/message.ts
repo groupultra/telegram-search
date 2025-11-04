@@ -1,6 +1,7 @@
 import type { Result } from '@unbird/result'
 
-import type { CoreMessageMediaFromServer } from './media'
+import type { CoreMessageMediaFromServer } from '../types/media'
+import type { CoreMessage, CoreMessageForward, CoreMessageReply } from '../types/message'
 
 import { Err, Ok } from '@unbird/result'
 import bigInt from 'big-integer'
@@ -8,50 +9,6 @@ import { Api } from 'telegram'
 import { v4 as uuidv4 } from 'uuid'
 
 import { parseMediaId, parseMediaType } from './media'
-
-export interface CoreMessage {
-  uuid: string
-
-  platform: 'telegram'
-  platformMessageId: string
-  chatId: string
-
-  fromId: string
-  fromName: string
-  fromUserUuid?: string
-
-  content: string
-  media?: CoreMessageMediaFromServer[]
-
-  reply: CoreMessageReply
-  forward: CoreMessageForward
-  vectors: CoreMessageVector
-  jiebaTokens: string[]
-
-  platformTimestamp: number
-  createdAt?: number
-  updatedAt?: number
-  deletedAt?: number
-}
-
-export interface CoreMessageReply {
-  isReply: boolean
-  replyToId?: string
-  replyToName?: string
-}
-
-export interface CoreMessageForward {
-  isForward: boolean
-  forwardFromChatId?: string
-  forwardFromChatName?: string
-  forwardFromMessageId?: string
-}
-
-export interface CoreMessageVector {
-  vector1536?: number[]
-  vector1024?: number[]
-  vector768?: number[]
-}
 
 export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> {
   const messageUUID = uuidv4()

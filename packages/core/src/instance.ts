@@ -5,16 +5,6 @@ import type { CoreContext } from './context'
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, basicEventHandler, useEventHandler } from './event-handler'
 
-export interface ClientInstanceEventToCore {
-  'core:cleanup': () => void
-}
-
-export interface ClientInstanceEventFromCore {
-  'core:error': (data: { error?: string | Error | unknown }) => void
-}
-
-export type ClientInstanceEvent = ClientInstanceEventFromCore & ClientInstanceEventToCore
-
 export function createCoreInstance(config: Config): CoreContext {
   const ctx = createCoreContext()
 

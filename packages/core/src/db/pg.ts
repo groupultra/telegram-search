@@ -35,7 +35,7 @@ export async function initPgDrizzle(
   logger.log(`Connecting to PostgreSQL database: ${connectionString}`)
 
   const client = postgres(connectionString, {
-    max: 1,
+    max: 10,
     onnotice: (notice) => {
       logger.withFields({ notice }).verbose('Database connection notice')
     },

@@ -1,5 +1,5 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
-import type { CoreMessage } from '../utils/message'
+import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
 import { EmbeddingDimension, useConfig } from '@tg-search/common'

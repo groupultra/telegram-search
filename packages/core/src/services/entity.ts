@@ -1,40 +1,11 @@
 import type { Result } from '@unbird/result'
 
 import type { CoreContext } from '../context'
+import type { CoreUserEntity } from '../types/events'
 
 import { Ok } from '@unbird/result'
 
 import { resolveEntity } from '../utils/entity'
-
-export interface CoreBaseEntity {
-  id: string
-  name: string
-}
-
-export interface CoreUserEntity extends CoreBaseEntity {
-  type: 'user'
-  username: string
-}
-
-export interface CoreChatEntity extends CoreBaseEntity {
-  type: 'chat'
-}
-
-export interface CoreChannelEntity extends CoreBaseEntity {
-  type: 'channel'
-}
-
-export type CoreEntity = CoreUserEntity | CoreChatEntity | CoreChannelEntity
-
-export interface EntityEventToCore {
-  'entity:me:fetch': () => void
-}
-
-export interface EntityEventFromCore {
-  'entity:me:data': (data: CoreUserEntity) => void
-}
-
-export type EntityEvent = EntityEventFromCore & EntityEventToCore
 
 export type EntityService = ReturnType<typeof createEntityService>
 

@@ -2,7 +2,9 @@
 
 import type { CorePagination } from '@tg-search/common'
 
-import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker, StorageMessageContextParams } from '../index'
+import type { StorageMessageContextParams } from '../types/events'
+import type { CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../types/media'
+import type { CoreMessage } from '../types/message'
 import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@guiiai/logg'

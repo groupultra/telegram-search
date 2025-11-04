@@ -2,32 +2,11 @@ import type { Result } from '@unbird/result'
 import type { Dialog } from 'telegram/tl/custom/dialog'
 
 import type { CoreContext } from '../context'
+import type { CoreDialog, DialogType } from '../types/dialog'
 
 import { useLogger } from '@guiiai/logg'
 import { circularObject } from '@tg-search/common'
 import { Err, Ok } from '@unbird/result'
-
-export type DialogType = 'user' | 'group' | 'channel'
-
-export interface CoreDialog {
-  id: number
-  name: string
-  type: DialogType
-  unreadCount?: number
-  messageCount?: number
-  lastMessage?: string
-  lastMessageDate?: Date
-}
-
-export interface DialogEventToCore {
-  'dialog:fetch': () => void
-}
-
-export interface DialogEventFromCore {
-  'dialog:data': (data: { dialogs: CoreDialog[] }) => void
-}
-
-export type DialogEvent = DialogEventFromCore & DialogEventToCore
 
 export type DialogService = ReturnType<typeof createDialogService>
 

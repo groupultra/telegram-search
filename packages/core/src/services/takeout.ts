@@ -1,54 +1,13 @@
-import type { CorePagination } from '@tg-search/common'
 import type { Result } from '@unbird/result'
 import type { EntityLike } from 'telegram/define'
 
 import type { CoreContext } from '../context'
-import type { CoreTask } from '../utils/task'
+import type { TakeoutOpts } from '../types/events'
 
 import { useLogger } from '@guiiai/logg'
 import { Err, Ok } from '@unbird/result'
 import bigInt from 'big-integer'
 import { Api } from 'telegram'
-
-export interface TakeoutTaskMetadata {
-  chatIds: string[]
-}
-
-export interface TakeoutEventToCore {
-  'takeout:run': (data: { chatIds: string[], increase?: boolean }) => void
-  'takeout:task:abort': (data: { taskId: string }) => void
-}
-
-export interface TakeoutEventFromCore {
-  'takeout:task:progress': (data: CoreTask<'takeout'>) => void
-}
-
-export type TakeoutEvent = TakeoutEventFromCore & TakeoutEventToCore
-
-export interface TakeoutOpts {
-  chatId: string
-  pagination: CorePagination
-
-  startTime?: Date
-  endTime?: Date
-
-  // Filter
-  skipMedia?: boolean
-  messageTypes?: string[]
-
-  // Incremental export
-  minId?: number
-  maxId?: number
-
-  // Expected total count for progress calculation (optional, will fetch from Telegram if not provided)
-  expectedCount?: number
-
-  // Disable auto progress emission (for manual progress management in handler)
-  disableAutoProgress?: boolean
-
-  // Task object (required, should be created by handler and passed in)
-  task: CoreTask<'takeout'>
-}
 
 export type TakeoutService = ReturnType<typeof createTakeoutService>
 

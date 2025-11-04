@@ -1,7 +1,7 @@
 import type { Result } from '@unbird/result'
 import type { Entity } from 'telegram/define'
 
-import type { CoreEntity } from '../services/entity'
+import type { CoreEntity } from '../types/events'
 
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'

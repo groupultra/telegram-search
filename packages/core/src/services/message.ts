@@ -1,41 +1,9 @@
-import type { CorePagination } from '@tg-search/common'
-
 import type { CoreContext } from '../context'
-import type { CoreMessage } from '../utils/message'
+import type { FetchMessageOpts } from '../types/events'
 
 import { useLogger } from '@guiiai/logg'
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
-
-export interface MessageEventToCore {
-  'message:fetch': (data: FetchMessageOpts) => void
-  'message:fetch:abort': (data: { taskId: string }) => void
-  'message:fetch:specific': (data: { chatId: string, messageIds: number[] }) => void
-  'message:send': (data: { chatId: string, content: string }) => void
-}
-
-export interface MessageEventFromCore {
-  'message:fetch:progress': (data: { taskId: string, progress: number }) => void
-  'message:data': (data: { messages: CoreMessage[] }) => void
-}
-
-export type MessageEvent = MessageEventFromCore & MessageEventToCore
-
-export interface FetchMessageOpts {
-  chatId: string
-  pagination: CorePagination
-
-  startTime?: Date
-  endTime?: Date
-
-  // Filter
-  skipMedia?: boolean
-  messageTypes?: string[]
-
-  // Incremental export
-  minId?: number
-  maxId?: number
-}
 
 export type MessageService = ReturnType<typeof createMessageService>
 

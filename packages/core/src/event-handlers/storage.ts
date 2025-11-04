@@ -1,7 +1,7 @@
 import type { CoreContext } from '../context'
 import type { DBRetrievalMessages } from '../models'
-import type { CoreDialog } from '../services'
-import type { CoreMessage } from '../utils/message'
+import type { CoreDialog } from '../types/dialog'
+import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
 
