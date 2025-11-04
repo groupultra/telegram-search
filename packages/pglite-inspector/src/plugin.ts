@@ -160,7 +160,7 @@ export function setupPGliteDevtools({ app, db }: PGliteDevtoolsOptions) {
           }
           catch (error) {
             payload.state = {
-              'Error': [
+              Error: [
                 {
                   key: 'message',
                   value: error instanceof Error ? error.message : String(error),

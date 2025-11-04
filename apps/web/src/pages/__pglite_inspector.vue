@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { usePGlite } from '@tg-search/core'
 import { onMounted, ref } from 'vue'
+
 import '@electric-sql/pglite-repl/webcomponent'
 
 // Disable layout for this page
@@ -49,10 +50,10 @@ onMounted(() => {
 <template>
   <div class="h-screen w-screen flex flex-col bg-gray-50 dark:bg-gray-900">
     <!-- Header -->
-    <header class="flex items-center justify-between border-b bg-white dark:bg-gray-800 px-6 py-4 shadow-sm">
+    <header class="flex items-center justify-between border-b bg-white px-6 py-4 shadow-sm dark:bg-gray-800">
       <div class="flex items-center gap-3">
         <div class="i-lucide-database h-6 w-6 text-primary" />
-        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 class="text-xl text-gray-900 font-bold dark:text-gray-100">
           PGlite Inspector
         </h1>
       </div>
@@ -79,10 +80,10 @@ onMounted(() => {
     <!-- Content -->
     <div class="flex-1 overflow-hidden">
       <!-- Error State -->
-      <div v-if="errorMessage" class="flex h-full items-center justify-center">
+      <div v-if="errorMessage" class="h-full flex items-center justify-center">
         <div class="max-w-md text-center">
           <div class="i-lucide-alert-circle mb-4 h-12 w-12 text-red-500" />
-          <h2 class="mb-2 text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <h2 class="mb-2 text-xl text-gray-900 font-semibold dark:text-gray-100">
             Database Not Available
           </h2>
           <p class="mb-4 text-gray-600 dark:text-gray-400">
@@ -99,7 +100,7 @@ onMounted(() => {
       </div>
 
       <!-- Loading State -->
-      <div v-else-if="!replReady" class="flex h-full items-center justify-center">
+      <div v-else-if="!replReady" class="h-full flex items-center justify-center">
         <div class="text-center">
           <div class="i-lucide-loader-2 mb-4 h-8 w-8 animate-spin text-primary" />
           <p class="text-gray-600 dark:text-gray-400">
