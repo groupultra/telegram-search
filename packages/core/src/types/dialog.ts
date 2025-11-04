@@ -1,4 +1,3 @@
-
 export type DialogType = 'user' | 'group' | 'channel'
 
 export interface CoreDialog {

@@ -1,6 +1,8 @@
-import type { TakeoutTaskMetadata } from "./events"
-
 export type CoreTaskType = 'takeout' | 'getMessage' | 'embed'
+
+export interface TakeoutTaskMetadata {
+  chatIds: string[]
+}
 
 export interface CoreTasks {
   takeout: TakeoutTaskMetadata

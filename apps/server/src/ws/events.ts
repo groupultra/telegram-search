@@ -1,6 +1,6 @@
 import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 
-import type { Peer } from './routes'
+import type { Peer } from './types'
 
 import { useLogger } from '@guiiai/logg'
 

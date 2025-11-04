@@ -83,7 +83,7 @@ export function afterConnectedEventHandler(
 ): EventHandler {
   const { emitter } = ctx
 
-  emitter.once('auth:connected', () => {
+  emitter.on('auth:connected', () => {
     const messageService = useService(ctx, createMessageService)
     const dialogService = useService(ctx, createDialogService)
     const takeoutService = useService(ctx, createTakeoutService)

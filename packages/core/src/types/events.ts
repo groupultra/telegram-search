@@ -196,10 +196,6 @@ export interface TakeoutEventFromCore {
   'takeout:task:progress': (data: CoreTask<'takeout'>) => void
 }
 
-export interface TakeoutTaskMetadata {
-  chatIds: string[]
-}
-
 export interface TakeoutOpts {
   chatId: string
   pagination: CorePagination
