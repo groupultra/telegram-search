@@ -1,6 +1,7 @@
 import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
-import { generateText, streamText } from 'xsai'
+import * as v from 'valibot'
+import { generateObject, streamText } from 'xsai'
 
 interface LLMConfig {
   provider: string
@@ -30,30 +31,35 @@ interface Message {
 export function useAIChatLogic() {
   /**
    * Use LLM to determine if RAG is needed and extract filters
+   * Uses xsai's generateObject with valibot schema for structured output
    */
   async function determineRAGNeeds(message: string, llmConfig: LLMConfig): Promise<RAGDecision> {
-    const systemPrompt = `You are a query analyzer. Determine if the user's question needs context from their Telegram message history to answer.
-If it needs context, extract:
-1. Key search terms/query
-2. User/person filter (if mentioned by name or identifier)
-3. Time range (if mentioned - convert to Unix timestamp in seconds, current time is ${Math.floor(Date.now() / 1000)})
+    const currentTime = Math.floor(Date.now() / 1000)
 
-Respond in JSON format: {
-  "needsRAG": boolean,
-  "searchQuery": "extracted query or empty string",
-  "fromUserId": "user ID if mentioned, otherwise null",
-  "timeRange": {"start": timestamp or null, "end": timestamp or null}
-}
+    // Define schema using valibot (Standard Schema compatible)
+    const schema = v.object({
+      needsRAG: v.boolean('Whether the query needs context from Telegram message history'),
+      searchQuery: v.string('Key search terms/query to retrieve relevant messages'),
+      fromUserId: v.optional(v.nullable(v.string('User ID filter if a specific person is mentioned'))),
+      timeRange: v.optional(v.nullable(v.object({
+        start: v.optional(v.nullable(v.number('Unix timestamp in seconds for the start of the time range'))),
+        end: v.optional(v.nullable(v.number('Unix timestamp in seconds for the end of the time range'))),
+      }, 'Time range filter for messages'))),
+    })
+
+    const systemPrompt = `You are a query analyzer. Determine if the user's question needs context from their Telegram message history to answer.
+
+Current time: ${currentTime} (Unix timestamp in seconds)
 
 Examples:
-- "What did John say about the meeting?" -> {"needsRAG": true, "searchQuery": "John meeting", "fromUserId": null, "timeRange": null}
-- "What's the capital of France?" -> {"needsRAG": false, "searchQuery": "", "fromUserId": null, "timeRange": null}
-- "Show messages from Alice last week" -> {"needsRAG": true, "searchQuery": "Alice", "fromUserId": null, "timeRange": {"start": ${Math.floor(Date.now() / 1000) - 7 * 86400}, "end": ${Math.floor(Date.now() / 1000)}}}
-- "What did we discuss yesterday?" -> {"needsRAG": true, "searchQuery": "discuss", "fromUserId": null, "timeRange": {"start": ${Math.floor(Date.now() / 1000) - 86400}, "end": ${Math.floor(Date.now() / 1000)}}}
-- "Tell me a joke" -> {"needsRAG": false, "searchQuery": "", "fromUserId": null, "timeRange": null}`
+- "What did John say about the meeting?" -> needsRAG: true, searchQuery: "John meeting", fromUserId: null, timeRange: null
+- "What's the capital of France?" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null
+- "Show messages from Alice last week" -> needsRAG: true, searchQuery: "Alice", fromUserId: null, timeRange: {start: ${currentTime - 7 * 86400}, end: ${currentTime}}
+- "What did we discuss yesterday?" -> needsRAG: true, searchQuery: "discuss", fromUserId: null, timeRange: {start: ${currentTime - 86400}, end: ${currentTime}}
+- "Tell me a joke" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null`
 
     try {
-      const result = await generateText({
+      const result = await generateObject({
         baseURL: llmConfig.apiBase,
         model: llmConfig.model,
         apiKey: llmConfig.apiKey,
@@ -61,30 +67,28 @@ Examples:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message },
         ],
+        schema,
+        schemaName: 'RAGDecision',
+        schemaDescription: 'Analysis of whether RAG is needed and what filters to apply',
         temperature: 0.1,
+        output: 'object',
       })
 
-      const content = result.text || '{}'
-
-      // Try to parse JSON response
-      try {
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0])
-          return {
-            needsRAG: parsed.needsRAG || false,
-            searchQuery: parsed.searchQuery || '',
-            fromUserId: parsed.fromUserId || undefined,
-            timeRange: parsed.timeRange || undefined,
+      // Convert null to undefined to match interface expectations
+      const timeRange = result.object.timeRange
+      const processedTimeRange = timeRange
+        ? {
+            start: timeRange.start ?? undefined,
+            end: timeRange.end ?? undefined,
           }
-        }
-      }
-      catch {
-        // If parsing fails, default to using RAG
-        return { needsRAG: true, searchQuery: message }
-      }
+        : undefined
 
-      return { needsRAG: true, searchQuery: message }
+      return {
+        needsRAG: result.object.needsRAG || false,
+        searchQuery: result.object.searchQuery || '',
+        fromUserId: result.object.fromUserId ?? undefined,
+        timeRange: processedTimeRange,
+      }
     }
     catch {
       // On error, default to using RAG

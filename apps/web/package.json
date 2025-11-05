@@ -23,12 +23,14 @@
     "nprogress": "^0.2.0",
     "pinia": "^3.0.3",
     "telegram": "2.26.21",
+    "valibot": "^1.1.0",
     "virtua": "^0.46.5",
     "vue": "^3.5.22",
     "vue-i18n": "^11.1.12",
     "vue-router": "^4.6.3",
     "vue-sonner": "catalog:",
-    "xsai": "0.4.0-beta.8"
+    "xsai": "0.4.0-beta.8",
+    "xsschema": "0.4.0-beta.8"
   },
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3",
