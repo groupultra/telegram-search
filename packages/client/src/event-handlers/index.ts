@@ -2,7 +2,6 @@ import type { WsEventToClient, WsEventToClientData } from '@tg-search/server/typ
 
 import type { ClientSendEventFn } from '../composables/useBridge'
 
-import { registerAIChatEventHandlers } from './ai-chat'
 import { registerBasicEventHandlers } from './auth'
 import { registerConfigEventHandlers } from './config'
 import { registerDialogEventHandlers } from './dialog'
@@ -43,5 +42,4 @@ export function registerAllEventHandlers(
   registerDialogEventHandlers(registerEventHandler)
   registerStorageEventHandlers(registerEventHandler)
   registerMessageEventHandlers(registerEventHandler)
-  registerAIChatEventHandlers(registerEventHandler)
 }

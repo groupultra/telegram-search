@@ -27,10 +27,7 @@ export const useAIChatStore = defineStore('aiChat', () => {
     return id
   }
 
-  function handleAIResponse(response: string, retrievedMessages: CoreRetrievalMessages[]) {
-    isLoading.value = false
-    error.value = null
-
+  function addAssistantMessage(response: string, retrievedMessages: CoreRetrievalMessages[]) {
     messages.value.push({
       id: `assistant-${Date.now()}`,
       role: 'assistant',
@@ -40,8 +37,7 @@ export const useAIChatStore = defineStore('aiChat', () => {
     })
   }
 
-  function handleError(errorMessage: string) {
-    isLoading.value = false
+  function setError(errorMessage: string) {
     error.value = errorMessage
   }
 
@@ -64,8 +60,8 @@ export const useAIChatStore = defineStore('aiChat', () => {
     isLoading,
     error,
     addUserMessage,
-    handleAIResponse,
-    handleError,
+    addAssistantMessage,
+    setError,
     setLoading,
     clearChat,
     clearError,

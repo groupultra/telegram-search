@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { CoreRetrievalMessages } from '@tg-search/core/types'
+
 import { useAIChatStore, useBridgeStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -54,19 +56,120 @@ async function sendMessage() {
   // Add user message to chat
   aiChatStore.addUserMessage(message)
   aiChatStore.setLoading(true)
+  aiChatStore.clearError()
 
-  // Build conversation history
-  const conversationHistory = messages.value.map(msg => ({
-    role: msg.role,
-    content: msg.content,
-    timestamp: msg.timestamp,
-  }))
+  try {
+    // Step 1: Perform RAG - retrieve relevant messages using vector search
+    const retrievedMessages: CoreRetrievalMessages[] = await new Promise((resolve) => {
+      bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+        resolve(messages)
+      })
 
-  // Send to backend
-  bridgeStore.sendEvent('ai-chat:send', {
-    message,
-    conversationHistory,
-  })
+      bridgeStore.sendEvent('storage:search:messages', {
+        content: message,
+        useVector: true,
+        pagination: {
+          limit: 5,
+          offset: 0,
+        },
+      })
+    })
+
+    // Step 2: Build context from retrieved messages
+    const contextMessages = retrievedMessages.map((msg) => {
+      const date = new Date(msg.platformTimestamp).toLocaleString()
+      // Sanitize message content to remove control characters
+      // eslint-disable-next-line no-control-regex
+      const sanitizedContent = (msg.content || '[Media]').replace(/[\x00-\x1F\x7F]/g, '')
+      return `[${date}] ${sanitizedContent}`
+    }).join('\n\n')
+
+    // Step 3: Build the prompt with conversation history
+    const systemPrompt = `You are a helpful AI assistant that helps users understand their Telegram message history. 
+
+Below is relevant context retrieved from the user's messages that may help answer their question:
+
+${contextMessages || 'No relevant messages found.'}
+
+Use this context to provide helpful, accurate responses. If the context doesn't contain relevant information, you can still answer based on your general knowledge, but make it clear when you're doing so.`
+
+    const conversationHistory = messages.value
+      .filter(msg => msg.role !== 'user' || msg.content !== message) // Exclude the current message
+      .map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }))
+
+    const llmMessages = [
+      { role: 'system' as const, content: systemPrompt },
+      ...conversationHistory,
+      { role: 'user' as const, content: message },
+    ]
+
+    // Step 4: Call LLM API from frontend
+    const llmConfig = config.value!.api!.llm!
+    const response = await callLLMAPI(llmConfig, llmMessages)
+
+    // Step 5: Add assistant response to chat
+    aiChatStore.addAssistantMessage(response, retrievedMessages)
+  }
+  catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+    aiChatStore.setError(errorMessage)
+    toast.error(errorMessage)
+  }
+  finally {
+    aiChatStore.setLoading(false)
+  }
+}
+
+async function callLLMAPI(llmConfig: any, llmMessages: any[]): Promise<string> {
+  const apiUrl = `${llmConfig.apiBase}/chat/completions`
+
+  const requestBody = {
+    model: llmConfig.model,
+    messages: llmMessages,
+    temperature: llmConfig.temperature ?? 0.7,
+    max_tokens: llmConfig.maxTokens ?? 2000,
+  }
+
+  // Create an AbortController with 30 second timeout
+  const abortController = new AbortController()
+  const timeoutId = setTimeout(() => abortController.abort(), 30000)
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${llmConfig.apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+      signal: abortController.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`LLM API request failed: ${response.status} ${errorText}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response from LLM API')
+    }
+
+    return data.choices[0].message.content
+  }
+  catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('LLM API request timed out after 30 seconds')
+    }
+    throw error
+  }
 }
 
 function handleKeyPress(event: KeyboardEvent) {

@@ -7,7 +7,6 @@ import { useLogger } from '@guiiai/logg'
 import { isBrowser } from '@tg-search/common'
 
 import { useService } from './context'
-import { registerAIChatEventHandlers } from './event-handlers/ai-chat'
 import { registerBasicEventHandlers } from './event-handlers/auth'
 import { registerConfigEventHandlers } from './event-handlers/config'
 import { registerDialogEventHandlers } from './event-handlers/dialog'
@@ -58,7 +57,6 @@ export function basicEventHandler(
   registerStorageEventHandlers(ctx)
   registerConfigEventHandlers(ctx)(configService)
   registerMessageResolverEventHandlers(ctx)(messageResolverService)
-  registerAIChatEventHandlers(ctx)
 
   ;(async () => {
     let sessionService: SessionService

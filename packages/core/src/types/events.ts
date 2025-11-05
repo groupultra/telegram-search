@@ -184,25 +184,6 @@ export interface StorageMessageContextParams {
 }
 
 // ============================================================================
-// AI Chat Events
-// ============================================================================
-
-export interface AIChatEventToCore {
-  'ai-chat:send': (data: { message: string, conversationHistory?: AIChatMessage[] }) => void
-}
-
-export interface AIChatEventFromCore {
-  'ai-chat:response': (data: { response: string, retrievedMessages: CoreRetrievalMessages[] }) => void
-  'ai-chat:error': (data: { error: string }) => void
-}
-
-export interface AIChatMessage {
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp?: number
-}
-
-// ============================================================================
 // Takeout Events
 // ============================================================================
 
@@ -280,7 +261,6 @@ export type FromCoreEvent = ClientInstanceEventFromCore
   & ConfigEventFromCore
   & GramEventsEventFromCore
   & MessageResolverEventFromCore
-  & AIChatEventFromCore
 
 export type ToCoreEvent = ClientInstanceEventToCore
   & MessageEventToCore
@@ -293,7 +273,6 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & ConfigEventToCore
   & GramEventsEventToCore
   & MessageResolverEventToCore
-  & AIChatEventToCore
 
 export type CoreEvent = FromCoreEvent & ToCoreEvent
 
