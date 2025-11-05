@@ -28,7 +28,6 @@
     "searchQuery": "Search Query",
     "timeFilter": "Time Filter",
     "userFilter": "User Filter",
-    "simpleGreeting": "Simple Greeting (Skip RAG)",
     "deepSearch": "Deep Search",
     "initialResults": "Initial Results",
     "contextRetrievals": "Context Retrievals",

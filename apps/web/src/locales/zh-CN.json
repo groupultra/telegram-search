@@ -28,7 +28,6 @@
     "searchQuery": "搜索查询",
     "timeFilter": "时间过滤",
     "userFilter": "用户过滤",
-    "simpleGreeting": "简单问候（跳过 RAG）",
     "deepSearch": "深度搜索",
     "initialResults": "初始结果",
     "contextRetrievals": "上下文检索",

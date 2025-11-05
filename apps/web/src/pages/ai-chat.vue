@@ -77,13 +77,12 @@ async function sendMessage() {
     const debugInfo: any = {
       needsRAG: ragDecision.needsRAG,
       searchQuery: ragDecision.searchQuery,
-      isSimpleGreeting: ragDecision.isSimpleGreeting,
       fromUserId: ragDecision.fromUserId,
       timeRange: ragDecision.timeRange,
     }
 
     // Step 2: If RAG is needed, perform search
-    if (ragDecision.needsRAG && ragDecision.searchQuery && !ragDecision.isSimpleGreeting) {
+    if (ragDecision.needsRAG && ragDecision.searchQuery) {
       // Initial retrieval
       const initialResults = await new Promise<CoreRetrievalMessages[]>((resolve) => {
         bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
@@ -343,35 +342,30 @@ onMounted(() => {
                 <span>{{ t('aiChat.debugInfo') }}</span>
               </summary>
               <div class="mt-2 pl-5 text-[11px] opacity-70 space-y-1.5">
-                <div v-if="message.debugInfo.isSimpleGreeting" class="flex gap-2">
-                  <span class="font-medium">{{ t('aiChat.simpleGreeting') }}</span>
+                <div class="flex gap-2">
+                  <span class="font-medium">{{ t('aiChat.searchQuery') }}:</span>
+                  <span class="font-mono">{{ message.debugInfo.searchQuery || 'N/A' }}</span>
                 </div>
-                <div v-else>
-                  <div class="flex gap-2">
-                    <span class="font-medium">{{ t('aiChat.searchQuery') }}:</span>
-                    <span class="font-mono">{{ message.debugInfo.searchQuery || 'N/A' }}</span>
+                <div v-if="message.debugInfo.fromUserId" class="flex gap-2">
+                  <span class="font-medium">{{ t('aiChat.userFilter') }}:</span>
+                  <span class="font-mono">{{ message.debugInfo.fromUserId }}</span>
+                </div>
+                <div v-if="message.debugInfo.timeRange" class="flex gap-2">
+                  <span class="font-medium">{{ t('aiChat.timeFilter') }}:</span>
+                  <span class="font-mono">
+                    {{ message.debugInfo.timeRange.start ? new Date(message.debugInfo.timeRange.start * 1000).toLocaleDateString() : '?' }}
+                    -
+                    {{ message.debugInfo.timeRange.end ? new Date(message.debugInfo.timeRange.end * 1000).toLocaleDateString() : '?' }}
+                  </span>
+                </div>
+                <div v-if="message.debugInfo.deepSearch" class="mt-1.5 border-t border-border/50 pt-1.5">
+                  <div class="mb-1 font-medium">
+                    {{ t('aiChat.deepSearch') }}:
                   </div>
-                  <div v-if="message.debugInfo.fromUserId" class="flex gap-2">
-                    <span class="font-medium">{{ t('aiChat.userFilter') }}:</span>
-                    <span class="font-mono">{{ message.debugInfo.fromUserId }}</span>
-                  </div>
-                  <div v-if="message.debugInfo.timeRange" class="flex gap-2">
-                    <span class="font-medium">{{ t('aiChat.timeFilter') }}:</span>
-                    <span class="font-mono">
-                      {{ message.debugInfo.timeRange.start ? new Date(message.debugInfo.timeRange.start * 1000).toLocaleDateString() : '?' }}
-                      -
-                      {{ message.debugInfo.timeRange.end ? new Date(message.debugInfo.timeRange.end * 1000).toLocaleDateString() : '?' }}
-                    </span>
-                  </div>
-                  <div v-if="message.debugInfo.deepSearch" class="mt-1.5 border-t border-border/50 pt-1.5">
-                    <div class="mb-1 font-medium">
-                      {{ t('aiChat.deepSearch') }}:
-                    </div>
-                    <div class="pl-2 space-y-0.5">
-                      <div>{{ t('aiChat.initialResults') }}: {{ message.debugInfo.deepSearch.initialResults }}</div>
-                      <div>{{ t('aiChat.contextRetrievals') }}: {{ message.debugInfo.deepSearch.contextRetrievals }}</div>
-                      <div>{{ t('aiChat.totalMessages') }}: {{ message.debugInfo.deepSearch.totalMessages }}</div>
-                    </div>
+                  <div class="pl-2 space-y-0.5">
+                    <div>{{ t('aiChat.initialResults') }}: {{ message.debugInfo.deepSearch.initialResults }}</div>
+                    <div>{{ t('aiChat.contextRetrievals') }}: {{ message.debugInfo.deepSearch.contextRetrievals }}</div>
+                    <div>{{ t('aiChat.totalMessages') }}: {{ message.debugInfo.deepSearch.totalMessages }}</div>
                   </div>
                 </div>
               </div>

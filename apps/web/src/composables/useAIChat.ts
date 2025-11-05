@@ -17,7 +17,6 @@ interface RAGDecision {
   searchQuery: string
   fromUserId?: string
   timeRange?: { start?: number, end?: number }
-  isSimpleGreeting?: boolean
 }
 
 interface DeepSearchDecision {
@@ -37,52 +36,11 @@ interface Message {
  */
 export function useAIChatLogic() {
   /**
-   * Check if message is a simple greeting that doesn't need RAG
-   */
-  function isSimpleGreeting(message: string): boolean {
-    const greetings = [
-      // Chinese greetings
-      '你好',
-      '您好',
-      '嗨',
-      '哈喽',
-      '早',
-      '早上好',
-      '下午好',
-      '晚上好',
-      '晚安',
-      '再见',
-      '拜拜',
-      // English greetings
-      'hi',
-      'hello',
-      'hey',
-      'good morning',
-      'good afternoon',
-      'good evening',
-      'good night',
-      'goodbye',
-      'bye',
-    ]
-
-    const normalized = message.toLowerCase().trim()
-    return greetings.some(greeting => normalized === greeting || normalized === `${greeting}!` || normalized === `${greeting}?`)
-  }
-
-  /**
    * Use LLM to determine if RAG is needed and extract filters
    * Uses xsai's generateObject with valibot schema for structured output
+   * The LLM will naturally handle greetings by returning needsRAG: false
    */
   async function determineRAGNeeds(message: string, llmConfig: LLMConfig): Promise<RAGDecision> {
-    // Skip RAG for simple greetings
-    if (isSimpleGreeting(message)) {
-      return {
-        needsRAG: false,
-        searchQuery: '',
-        isSimpleGreeting: true,
-      }
-    }
-
     const currentTime = Math.floor(Date.now() / 1000)
 
     // Define schema using valibot (Standard Schema compatible)
@@ -103,10 +61,14 @@ Current time: ${currentTime} (Unix timestamp in seconds)
 Examples:
 - "What did John say about the meeting?" -> needsRAG: true, searchQuery: "John meeting", fromUserId: null, timeRange: null
 - "What's the capital of France?" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null
+- "你好" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null
+- "Hello" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null
 - "Show messages from Alice last week" -> needsRAG: true, searchQuery: "Alice", fromUserId: null, timeRange: {start: ${currentTime - 7 * 86400}, end: ${currentTime}}
 - "What did we discuss yesterday?" -> needsRAG: true, searchQuery: "discuss", fromUserId: null, timeRange: {start: ${currentTime - 86400}, end: ${currentTime}}
 - "Tell me a joke" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null
-- "我喜欢吃什么" -> needsRAG: true, searchQuery: "喜欢 吃", fromUserId: null, timeRange: null`
+- "我喜欢吃什么" -> needsRAG: true, searchQuery: "喜欢 吃", fromUserId: null, timeRange: null
+
+For simple greetings, general knowledge questions, and requests that don't require message history, set needsRAG to false.`
 
     try {
       const result = await generateObject({
