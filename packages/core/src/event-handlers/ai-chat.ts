@@ -41,9 +41,14 @@ export function registerAIChatEventHandlers(ctx: CoreContext) {
       logger.withFields({ retrievedCount: retrievedMessages.length }).log('Retrieved messages for RAG')
 
       // Step 2: Build context from retrieved messages
+      // Note: Message content is used as-is to provide accurate context to the LLM
+      // This is intentional as the LLM needs the full message content to provide helpful responses
       const contextMessages = retrievedMessages.map((msg) => {
-        const date = new Date((msg as any).platformTimestamp).toLocaleString()
-        return `[${date}] ${(msg as any).content || '[Media]'}`
+        const date = new Date(msg.platformTimestamp).toLocaleString()
+        // Sanitize message content to remove control characters
+        // eslint-disable-next-line no-control-regex
+        const sanitizedContent = (msg.content || '[Media]').replace(/[\x00-\x1F\x7F]/g, '')
+        return `[${date}] ${sanitizedContent}`
       }).join('\n\n')
 
       // Step 3: Build the prompt with conversation history
@@ -108,26 +113,42 @@ async function callLLMAPI(config: LLMConfig, messages: Message[]): Promise<strin
 
   logger.withFields({ apiUrl, model: config.model }).log('Sending request to LLM API')
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  })
+  // Create an AbortController with 30 second timeout
+  const abortController = new AbortController()
+  const timeoutId = setTimeout(() => abortController.abort(), 30000)
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    logger.withFields({ status: response.status, error: errorText }).error('LLM API request failed')
-    throw new Error(`LLM API request failed: ${response.status} ${errorText}`)
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+      signal: abortController.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      logger.withFields({ status: response.status, error: errorText }).error('LLM API request failed')
+      throw new Error(`LLM API request failed: ${response.status} ${errorText}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response from LLM API')
+    }
+
+    return data.choices[0].message.content
   }
-
-  const data = await response.json()
-
-  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-    throw new Error('Invalid response from LLM API')
+  catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('LLM API request timed out after 30 seconds')
+    }
+    throw error
   }
-
-  return data.choices[0].message.content
 }

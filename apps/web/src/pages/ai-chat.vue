@@ -81,7 +81,13 @@ function clearChat() {
   toast.success(t('aiChat.clearChat'))
 }
 
-function viewMessageInChat(chatId: string, messageId: number) {
+function viewMessageInChat(chatId: string, platformMessageId: string) {
+  // Convert platformMessageId string to number for the route parameter
+  const messageId = Number.parseInt(platformMessageId, 10)
+  if (Number.isNaN(messageId)) {
+    toast.error('Invalid message ID')
+    return
+  }
   router.push(`/chat/${chatId}?messageId=${messageId}`)
 }
 
@@ -168,7 +174,7 @@ onMounted(() => {
                 v-for="(retrieved, idx) in message.retrievedMessages"
                 :key="`${message.id}-retrieved-${idx}`"
                 class="cursor-pointer border rounded bg-muted/50 p-2 text-xs transition-colors hover:bg-accent/50"
-                @click="viewMessageInChat(retrieved.chatId, Number(retrieved.platformMessageId))"
+                @click="viewMessageInChat(retrieved.chatId, retrieved.platformMessageId)"
               >
                 <div class="mb-1 flex items-center justify-between">
                   <span class="font-medium opacity-80">
