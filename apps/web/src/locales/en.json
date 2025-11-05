@@ -18,10 +18,21 @@
     "viewInChat": "View in Chat",
     "aiThinking": "AI is thinking...",
     "searchingContext": "Searching for relevant context...",
+    "deepSearching": "Deep searching for context...",
     "errorSendingMessage": "Failed to send message",
     "configureApi": "Please configure AI API in settings first",
     "clearChat": "Clear Chat",
-    "copiedToClipboard": "Copied to clipboard"
+    "copiedToClipboard": "Copied to clipboard",
+    "debugInfo": "Debug Info",
+    "ragParameters": "RAG Parameters",
+    "searchQuery": "Search Query",
+    "timeFilter": "Time Filter",
+    "userFilter": "User Filter",
+    "simpleGreeting": "Simple Greeting (Skip RAG)",
+    "deepSearch": "Deep Search",
+    "initialResults": "Initial Results",
+    "contextRetrievals": "Context Retrievals",
+    "totalMessages": "Total Messages"
   },
   "chatGroups": {
     "channel": "Channels",

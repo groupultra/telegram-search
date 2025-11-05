@@ -18,10 +18,21 @@
     "viewInChat": "在聊天中查看",
     "aiThinking": "AI 思考中...",
     "searchingContext": "搜索相关上下文...",
+    "deepSearching": "深度搜索上下文...",
     "errorSendingMessage": "发送消息失败",
     "configureApi": "请先在设置中配置 AI API",
     "clearChat": "清空对话",
-    "copiedToClipboard": "已复制到剪贴板"
+    "copiedToClipboard": "已复制到剪贴板",
+    "debugInfo": "调试信息",
+    "ragParameters": "RAG 参数",
+    "searchQuery": "搜索查询",
+    "timeFilter": "时间过滤",
+    "userFilter": "用户过滤",
+    "simpleGreeting": "简单问候（跳过 RAG）",
+    "deepSearch": "深度搜索",
+    "initialResults": "初始结果",
+    "contextRetrievals": "上下文检索",
+    "totalMessages": "总消息数"
   },
   "chatGroups": {
     "channel": "频道",

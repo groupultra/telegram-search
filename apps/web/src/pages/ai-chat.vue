@@ -70,10 +70,22 @@ async function sendMessage() {
     const ragDecision = await aiChatLogic.determineRAGNeeds(message, llmConfig)
 
     let retrievedMessages: CoreRetrievalMessages[] = []
+    let deepSearchCount = 0
+    let initialResultsCount = 0
+
+    // Build debug info
+    const debugInfo: any = {
+      needsRAG: ragDecision.needsRAG,
+      searchQuery: ragDecision.searchQuery,
+      isSimpleGreeting: ragDecision.isSimpleGreeting,
+      fromUserId: ragDecision.fromUserId,
+      timeRange: ragDecision.timeRange,
+    }
 
     // Step 2: If RAG is needed, perform search
-    if (ragDecision.needsRAG && ragDecision.searchQuery) {
-      retrievedMessages = await new Promise((resolve) => {
+    if (ragDecision.needsRAG && ragDecision.searchQuery && !ragDecision.isSimpleGreeting) {
+      // Initial retrieval
+      const initialResults = await new Promise<CoreRetrievalMessages[]>((resolve) => {
         bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
           resolve(messages)
         })
@@ -89,11 +101,59 @@ async function sendMessage() {
           timeRange: ragDecision.timeRange,
         })
       })
+
+      initialResultsCount = initialResults.length
+      retrievedMessages = [...initialResults]
+
+      // Step 3: Deep search - check if we need context around any message
+      if (initialResults.length > 0) {
+        aiChatStore.setSearching(true) // Keep searching indicator
+        const deepSearchDecision = await aiChatLogic.determineDeepSearchNeeds(message, initialResults, llmConfig)
+
+        if (deepSearchDecision.needsContext && deepSearchDecision.messageIndex !== undefined) {
+          const targetMessage = initialResults[deepSearchDecision.messageIndex]
+          if (targetMessage) {
+            // Retrieve 5 messages before the target message
+            const contextMessages = await new Promise<CoreRetrievalMessages[]>((resolve) => {
+              bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+                resolve(messages)
+              })
+
+              // Search for messages in the same chat, before this message
+              bridgeStore.sendEvent('storage:search:messages', {
+                chatId: targetMessage.chatId,
+                content: '', // Empty query to get all messages
+                useVector: false, // Don't use vector search for context
+                pagination: {
+                  limit: 5,
+                  offset: 0,
+                },
+                timeRange: {
+                  end: targetMessage.platformTimestamp - 1, // Before the target message
+                },
+              })
+            })
+
+            // Add context messages to the beginning (they're chronologically earlier)
+            retrievedMessages = [...contextMessages, ...retrievedMessages]
+            deepSearchCount = contextMessages.length
+          }
+        }
+      }
     }
 
     aiChatStore.setSearching(false)
 
-    // Step 3: Build prompt with context
+    // Update debug info with deep search results
+    if (deepSearchCount > 0 || initialResultsCount > 0) {
+      debugInfo.deepSearch = {
+        initialResults: initialResultsCount,
+        contextRetrievals: deepSearchCount,
+        totalMessages: retrievedMessages.length,
+      }
+    }
+
+    // Step 4: Build prompt with context
     const contextMessages = aiChatLogic.buildContextFromRetrievedMessages(retrievedMessages)
     const systemPrompt = aiChatLogic.buildSystemPrompt(contextMessages)
 
@@ -111,7 +171,7 @@ async function sendMessage() {
       { role: 'user' as const, content: message },
     ]
 
-    // Step 4: Call LLM with streaming using xsai
+    // Step 5: Call LLM with streaming using xsai
     const assistantId = aiChatStore.addAssistantMessage()
     let accumulatedContent = ''
 
@@ -121,7 +181,7 @@ async function sendMessage() {
       // onTextDelta
       (delta) => {
         accumulatedContent += delta
-        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, retrievedMessages)
+        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, retrievedMessages, debugInfo)
         // Auto-scroll as content updates
         nextTick().then(scrollToBottom)
       },
@@ -270,6 +330,52 @@ onMounted(() => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Debug Info (collapsible) - only for assistant messages with debug info -->
+          <div
+            v-if="message.role === 'assistant' && message.debugInfo"
+            class="mt-3 border-t border-border pt-3"
+          >
+            <details class="text-xs">
+              <summary class="flex cursor-pointer items-center gap-2 font-medium opacity-60 hover:opacity-100">
+                <span class="i-lucide-bug h-3 w-3" />
+                <span>{{ t('aiChat.debugInfo') }}</span>
+              </summary>
+              <div class="mt-2 pl-5 text-[11px] opacity-70 space-y-1.5">
+                <div v-if="message.debugInfo.isSimpleGreeting" class="flex gap-2">
+                  <span class="font-medium">{{ t('aiChat.simpleGreeting') }}</span>
+                </div>
+                <div v-else>
+                  <div class="flex gap-2">
+                    <span class="font-medium">{{ t('aiChat.searchQuery') }}:</span>
+                    <span class="font-mono">{{ message.debugInfo.searchQuery || 'N/A' }}</span>
+                  </div>
+                  <div v-if="message.debugInfo.fromUserId" class="flex gap-2">
+                    <span class="font-medium">{{ t('aiChat.userFilter') }}:</span>
+                    <span class="font-mono">{{ message.debugInfo.fromUserId }}</span>
+                  </div>
+                  <div v-if="message.debugInfo.timeRange" class="flex gap-2">
+                    <span class="font-medium">{{ t('aiChat.timeFilter') }}:</span>
+                    <span class="font-mono">
+                      {{ message.debugInfo.timeRange.start ? new Date(message.debugInfo.timeRange.start * 1000).toLocaleDateString() : '?' }}
+                      -
+                      {{ message.debugInfo.timeRange.end ? new Date(message.debugInfo.timeRange.end * 1000).toLocaleDateString() : '?' }}
+                    </span>
+                  </div>
+                  <div v-if="message.debugInfo.deepSearch" class="mt-1.5 border-t border-border/50 pt-1.5">
+                    <div class="mb-1 font-medium">
+                      {{ t('aiChat.deepSearch') }}:
+                    </div>
+                    <div class="pl-2 space-y-0.5">
+                      <div>{{ t('aiChat.initialResults') }}: {{ message.debugInfo.deepSearch.initialResults }}</div>
+                      <div>{{ t('aiChat.contextRetrievals') }}: {{ message.debugInfo.deepSearch.contextRetrievals }}</div>
+                      <div>{{ t('aiChat.totalMessages') }}: {{ message.debugInfo.deepSearch.totalMessages }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </details>
           </div>
 
           <!-- Copy button -->

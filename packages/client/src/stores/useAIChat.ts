@@ -3,6 +3,19 @@ import type { CoreRetrievalMessages } from '@tg-search/core/types'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+export interface RAGDebugInfo {
+  needsRAG: boolean
+  searchQuery: string
+  fromUserId?: string
+  timeRange?: { start?: number, end?: number }
+  isSimpleGreeting?: boolean
+  deepSearch?: {
+    initialResults: number
+    contextRetrievals: number
+    totalMessages: number
+  }
+}
+
 export interface AIChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -10,6 +23,7 @@ export interface AIChatMessage {
   timestamp: number
   retrievedMessages?: CoreRetrievalMessages[]
   isStreaming?: boolean
+  debugInfo?: RAGDebugInfo
 }
 
 export const useAIChatStore = defineStore('aiChat', () => {
@@ -41,12 +55,15 @@ export const useAIChatStore = defineStore('aiChat', () => {
     return id
   }
 
-  function updateAssistantMessage(id: string, content: string, retrievedMessages?: CoreRetrievalMessages[]) {
+  function updateAssistantMessage(id: string, content: string, retrievedMessages?: CoreRetrievalMessages[], debugInfo?: RAGDebugInfo) {
     const message = messages.value.find(msg => msg.id === id)
     if (message) {
       message.content = content
       if (retrievedMessages) {
         message.retrievedMessages = retrievedMessages
+      }
+      if (debugInfo) {
+        message.debugInfo = debugInfo
       }
     }
   }
