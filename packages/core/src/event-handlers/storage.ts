@@ -111,6 +111,12 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       return
     }
 
+    // Prepare filters from params
+    const filters = {
+      fromUserId: params.fromUserId,
+      timeRange: params.timeRange,
+    }
+
     let dbMessages: DBRetrievalMessages[] = []
     if (params.useVector) {
       let embedding: number[] = []
@@ -118,10 +124,10 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       if (embeddingResult)
         embedding = embeddingResult.embeddings[0]
 
-      dbMessages = (await retrieveMessages(params.chatId, { embedding, text: params.content }, params.pagination)).expect('Failed to retrieve messages')
+      dbMessages = (await retrieveMessages(params.chatId, { embedding, text: params.content }, params.pagination, filters)).expect('Failed to retrieve messages')
     }
     else {
-      dbMessages = (await retrieveMessages(params.chatId, { text: params.content }, params.pagination)).expect('Failed to retrieve messages')
+      dbMessages = (await retrieveMessages(params.chatId, { text: params.content }, params.pagination, filters)).expect('Failed to retrieve messages')
     }
 
     logger.withFields({ messages: dbMessages.length }).verbose('Retrieved messages')

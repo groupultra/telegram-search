@@ -81,6 +81,8 @@ async function sendMessage() {
             limit: 5,
             offset: 0,
           },
+          fromUserId: ragDecision.fromUserId,
+          timeRange: ragDecision.timeRange,
         })
       })
     }
@@ -89,7 +91,7 @@ async function sendMessage() {
 
     // Step 3: Build context from retrieved messages
     const contextMessages = retrievedMessages.map((msg) => {
-      const date = new Date(msg.platformTimestamp).toLocaleString()
+      const date = new Date(msg.platformTimestamp * 1000).toLocaleString()
       // eslint-disable-next-line no-control-regex
       const sanitizedContent = (msg.content || '[Media]').replace(/[\x00-\x1F\x7F]/g, '')
       return `[${date}] ${sanitizedContent}`
@@ -135,19 +137,34 @@ Use this context to provide helpful, accurate responses.`
   }
 }
 
-// Use a small model to determine if RAG is needed
-async function determineRAGNeeds(message: string, llmConfig: any): Promise<{ needsRAG: boolean, searchQuery: string }> {
+// Use a small model to determine if RAG is needed and extract filters
+async function determineRAGNeeds(message: string, llmConfig: any): Promise<{
+  needsRAG: boolean
+  searchQuery: string
+  fromUserId?: string
+  timeRange?: { start?: number, end?: number }
+}> {
   const apiUrl = `${llmConfig.apiBase}/chat/completions`
 
   const systemPrompt = `You are a query analyzer. Determine if the user's question needs context from their Telegram message history to answer.
-If it needs context, extract the key search terms/query.
-Respond in JSON format: {"needsRAG": boolean, "searchQuery": "extracted query or empty string"}
+If it needs context, extract:
+1. Key search terms/query
+2. User/person filter (if mentioned by name or identifier)
+3. Time range (if mentioned - convert to Unix timestamp in seconds, current time is ${Math.floor(Date.now() / 1000)})
+
+Respond in JSON format: {
+  "needsRAG": boolean,
+  "searchQuery": "extracted query or empty string",
+  "fromUserId": "user ID if mentioned, otherwise null",
+  "timeRange": {"start": timestamp or null, "end": timestamp or null}
+}
 
 Examples:
-- "What did John say about the meeting?" -> {"needsRAG": true, "searchQuery": "John meeting"}
-- "What's the capital of France?" -> {"needsRAG": false, "searchQuery": ""}
-- "Summarize our discussion about the project" -> {"needsRAG": true, "searchQuery": "discussion project"}
-- "Tell me a joke" -> {"needsRAG": false, "searchQuery": ""}`
+- "What did John say about the meeting?" -> {"needsRAG": true, "searchQuery": "John meeting", "fromUserId": null, "timeRange": null}
+- "What's the capital of France?" -> {"needsRAG": false, "searchQuery": "", "fromUserId": null, "timeRange": null}
+- "Show messages from Alice last week" -> {"needsRAG": true, "searchQuery": "Alice", "fromUserId": null, "timeRange": {"start": ${Math.floor(Date.now() / 1000) - 7 * 86400}, "end": ${Math.floor(Date.now() / 1000)}}}
+- "What did we discuss yesterday?" -> {"needsRAG": true, "searchQuery": "discuss", "fromUserId": null, "timeRange": {"start": ${Math.floor(Date.now() / 1000) - 86400}, "end": ${Math.floor(Date.now() / 1000)}}}
+- "Tell me a joke" -> {"needsRAG": false, "searchQuery": "", "fromUserId": null, "timeRange": null}`
 
   const requestBody = {
     model: llmConfig.model,
@@ -156,7 +173,7 @@ Examples:
       { role: 'user', content: message },
     ],
     temperature: 0.1,
-    max_tokens: 100,
+    max_tokens: 200,
   }
 
   try {
@@ -185,6 +202,8 @@ Examples:
         return {
           needsRAG: result.needsRAG || false,
           searchQuery: result.searchQuery || '',
+          fromUserId: result.fromUserId || undefined,
+          timeRange: result.timeRange || undefined,
         }
       }
     }
@@ -405,7 +424,7 @@ onMounted(() => {
               >
                 <div class="mb-1 flex items-center justify-between">
                   <span class="font-medium opacity-80">
-                    {{ new Date(retrieved.platformTimestamp).toLocaleString() }}
+                    {{ new Date(retrieved.platformTimestamp * 1000).toLocaleString() }}
                   </span>
                   <span
                     v-if="retrieved.similarity"

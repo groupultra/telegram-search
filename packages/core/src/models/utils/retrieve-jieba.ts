@@ -9,7 +9,15 @@ import { withDb } from '../../db'
 import { chatMessagesTable } from '../../schemas/chat_messages'
 import { ensureJieba } from '../../utils/jieba'
 
-export async function retrieveJieba(chatId: string | undefined, content: string, pagination?: CorePagination): Promise<DBRetrievalMessages[]> {
+export async function retrieveJieba(
+  chatId: string | undefined,
+  content: string,
+  pagination?: CorePagination,
+  filters?: {
+    fromUserId?: string
+    timeRange?: { start?: number, end?: number }
+  },
+): Promise<DBRetrievalMessages[]> {
   const logger = useLogger('models:retrieve-jieba')
 
   const jieba = await ensureJieba()
@@ -23,6 +31,16 @@ export async function retrieveJieba(chatId: string | undefined, content: string,
     content,
     jiebaTokens,
   }).debug('Retrieving jieba tokens')
+
+  // Build where conditions
+  const whereConditions = [
+    eq(chatMessagesTable.platform, 'telegram'),
+    chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined,
+    sql`${chatMessagesTable.jieba_tokens} @> ${JSON.stringify(jiebaTokens)}::jsonb`,
+    filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
+    filters?.timeRange?.start ? sql`${chatMessagesTable.platform_timestamp} >= ${filters.timeRange.start}` : undefined,
+    filters?.timeRange?.end ? sql`${chatMessagesTable.platform_timestamp} <= ${filters.timeRange.end}` : undefined,
+  ].filter(Boolean)
 
   return (await withDb(db => db
     .select({
@@ -44,11 +62,7 @@ export async function retrieveJieba(chatId: string | undefined, content: string,
       jieba_tokens: chatMessagesTable.jieba_tokens,
     })
     .from(chatMessagesTable)
-    .where(and(
-      eq(chatMessagesTable.platform, 'telegram'),
-      chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined,
-      sql`${chatMessagesTable.jieba_tokens} @> ${JSON.stringify(jiebaTokens)}::jsonb`,
-    ))
+    .where(and(...whereConditions))
     .limit(pagination?.limit || 20),
   )).expect('Failed to fetch text relevant messages')
 }

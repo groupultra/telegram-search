@@ -9,7 +9,15 @@ import { withDb } from '../../db'
 import { chatMessagesTable } from '../../schemas/chat_messages'
 import { getSimilaritySql } from './similarity'
 
-export async function retrieveVector(chatId: string | undefined, embedding: number[], pagination?: CorePagination): Promise<DBRetrievalMessages[]> {
+export async function retrieveVector(
+  chatId: string | undefined,
+  embedding: number[],
+  pagination?: CorePagination,
+  filters?: {
+    fromUserId?: string
+    timeRange?: { start?: number, end?: number }
+  },
+): Promise<DBRetrievalMessages[]> {
   const similarity = getSimilaritySql(
     useConfig().api.embedding.dimension || EmbeddingDimension.DIMENSION_1536,
     embedding,
@@ -17,6 +25,16 @@ export async function retrieveVector(chatId: string | undefined, embedding: numb
 
   const timeRelevance = sql<number>`(1 - (CEIL(EXTRACT(EPOCH FROM NOW()) * 1000)::bigint - ${chatMessagesTable.created_at}) / 86400 / 30)`
   const combinedScore = sql<number>`((1.2 * ${similarity}) + (0.2 * ${timeRelevance}))`
+
+  // Build where conditions
+  const whereConditions = [
+    eq(chatMessagesTable.platform, 'telegram'),
+    chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined,
+    gt(similarity, 0.5),
+    filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
+    filters?.timeRange?.start ? sql`${chatMessagesTable.platform_timestamp} >= ${filters.timeRange.start}` : undefined,
+    filters?.timeRange?.end ? sql`${chatMessagesTable.platform_timestamp} <= ${filters.timeRange.end}` : undefined,
+  ].filter(Boolean)
 
   // Get top messages with similarity above threshold
   return (await withDb(db => db
@@ -42,12 +60,7 @@ export async function retrieveVector(chatId: string | undefined, embedding: numb
       combined_score: sql<number>`${combinedScore} AS "combined_score"`,
     })
     .from(chatMessagesTable)
-    .where(and(
-      eq(chatMessagesTable.platform, 'telegram'),
-      chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined,
-      gt(similarity, 0.5),
-      // notInArray(chatMessagesTable.platform_message_id, excludeMessageIds),
-    ))
+    .where(and(...whereConditions))
     .orderBy(desc(sql`combined_score`))
     .limit(pagination?.limit || 20),
   )).expect('Failed to fetch relevant messages')
