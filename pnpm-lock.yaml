@@ -145,9 +145,15 @@ importers:
       '@tg-search/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@valibot/to-json-schema':
+        specifier: ^1.3.0
+        version: 1.3.0(valibot@1.1.0(typescript@5.9.3))
       '@vueuse/core':
         specifier: ^14.0.0
         version: 14.0.0(vue@3.5.22(typescript@5.9.3))
+      '@xsai/tool':
+        specifier: 0.4.0-beta.8
+        version: 0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))
       defu:
         specifier: ^6.1.4
         version: 6.1.4
@@ -186,10 +192,10 @@ importers:
         version: 2.0.9
       xsai:
         specifier: 0.4.0-beta.8
-        version: 0.4.0-beta.8
+        version: 0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))
       xsschema:
         specifier: 0.4.0-beta.8
-        version: 0.4.0-beta.8
+        version: 0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))
     devDependencies:
       '@proj-airi/unplugin-drizzle-orm-migrations':
         specifier: ^0.1.3
@@ -2282,6 +2288,11 @@ packages:
     resolution: {integrity: sha512-dmSJ3h7/kMbFOIrAyycg2W1VVN+59WCnH5s0dJTGRla2kUTAFB0iWJWdIa/W6IsvFlicMtsoLYJmTnQ/kBQm7A==}
     peerDependencies:
       vite: ^2.9.0 || ^3.0.0-0 || ^4.0.0 || ^5.0.0-0 || ^6.0.0-0 || ^7.0.0-0
+
+  '@valibot/to-json-schema@1.3.0':
+    resolution: {integrity: sha512-82Vv6x7sOYhv5YmTRgSppSqj1nn2pMCk5BqCMGWYp0V/fq+qirrbGncqZAtZ09/lrO40ne/7z8ejwE728aVreg==}
+    peerDependencies:
+      valibot: ^1.1.0
 
   '@vitejs/plugin-vue@6.0.1':
     resolution: {integrity: sha512-+MaE752hU0wfPFJEUAIxqw18+20euHHdxVtMvbFcOEpjEyfqXH/5DCoTHiVJ0J29EhTJdoTkjEv5YBKU9dnoTw==}
@@ -7816,6 +7827,10 @@ snapshots:
       unplugin-utils: 0.3.1
       vite: rolldown-vite@7.1.20(@types/node@24.10.0)(esbuild@0.25.12)(jiti@2.6.1)(terser@5.44.1)(tsx@4.20.6)(yaml@2.8.1)
 
+  '@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3))':
+    dependencies:
+      valibot: 1.1.0(typescript@5.9.3)
+
   '@vitejs/plugin-vue@6.0.1(rolldown-vite@7.1.20(@types/node@24.10.0)(esbuild@0.25.12)(jiti@2.6.1)(terser@5.44.1)(tsx@4.20.6)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.29
@@ -8376,10 +8391,10 @@ snapshots:
     dependencies:
       '@xsai/shared': 0.4.0-beta.8
 
-  '@xsai/generate-object@0.4.0-beta.8':
+  '@xsai/generate-object@0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))':
     dependencies:
       '@xsai/generate-text': 0.4.0-beta.8
-      xsschema: 0.4.0-beta.8
+      xsschema: 0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))
     transitivePeerDependencies:
       - '@valibot/to-json-schema'
       - arktype
@@ -8411,10 +8426,10 @@ snapshots:
 
   '@xsai/shared@0.4.0-beta.8': {}
 
-  '@xsai/stream-object@0.4.0-beta.8':
+  '@xsai/stream-object@0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))':
     dependencies:
       '@xsai/stream-text': 0.4.0-beta.8
-      xsschema: 0.4.0-beta.8
+      xsschema: 0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))
     transitivePeerDependencies:
       - '@valibot/to-json-schema'
       - arktype
@@ -8428,11 +8443,11 @@ snapshots:
       '@xsai/shared': 0.4.0-beta.8
       '@xsai/shared-chat': 0.4.0-beta.8
 
-  '@xsai/tool@0.4.0-beta.8':
+  '@xsai/tool@0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))':
     dependencies:
       '@xsai/shared': 0.4.0-beta.8
       '@xsai/shared-chat': 0.4.0-beta.8
-      xsschema: 0.4.0-beta.8
+      xsschema: 0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))
     transitivePeerDependencies:
       - '@valibot/to-json-schema'
       - arktype
@@ -12008,20 +12023,20 @@ snapshots:
 
   xml-name-validator@4.0.0: {}
 
-  xsai@0.4.0-beta.8:
+  xsai@0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3))):
     dependencies:
       '@xsai/embed': 0.4.0-beta.8
       '@xsai/generate-image': 0.4.0-beta.8
-      '@xsai/generate-object': 0.4.0-beta.8
+      '@xsai/generate-object': 0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))
       '@xsai/generate-speech': 0.4.0-beta.8
       '@xsai/generate-text': 0.4.0-beta.8
       '@xsai/generate-transcription': 0.4.0-beta.8
       '@xsai/model': 0.4.0-beta.8
       '@xsai/shared': 0.4.0-beta.8
       '@xsai/shared-chat': 0.4.0-beta.8
-      '@xsai/stream-object': 0.4.0-beta.8
+      '@xsai/stream-object': 0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))
       '@xsai/stream-text': 0.4.0-beta.8
-      '@xsai/tool': 0.4.0-beta.8
+      '@xsai/tool': 0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3)))
       '@xsai/utils-chat': 0.4.0-beta.8
       '@xsai/utils-reasoning': 0.4.0-beta.8
       '@xsai/utils-stream': 0.4.0-beta.8
@@ -12033,7 +12048,9 @@ snapshots:
       - zod
       - zod-to-json-schema
 
-  xsschema@0.4.0-beta.8: {}
+  xsschema@0.4.0-beta.8(@valibot/to-json-schema@1.3.0(valibot@1.1.0(typescript@5.9.3))):
+    optionalDependencies:
+      '@valibot/to-json-schema': 1.3.0(valibot@1.1.0(typescript@5.9.3))
 
   xtend@4.0.2: {}
 

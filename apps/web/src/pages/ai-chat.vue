@@ -15,7 +15,7 @@ const { t } = useI18n()
 const router = useRouter()
 
 const aiChatStore = useAIChatStore()
-const { messages, isLoading, isSearching, error } = storeToRefs(aiChatStore)
+const { messages, isLoading, isSearching, searchStage, error } = storeToRefs(aiChatStore)
 
 const bridgeStore = useBridgeStore()
 const settingsStore = useSettingsStore()
@@ -65,97 +65,61 @@ async function sendMessage() {
   try {
     const llmConfig = config.value!.api!.llm!
 
-    // Step 1: Determine if RAG is needed
-    aiChatStore.setSearching(true)
-    const ragDecision = await aiChatLogic.determineRAGNeeds(message, llmConfig)
+    // Track all retrieved messages and tool calls
+    const allRetrievedMessages: CoreRetrievalMessages[] = []
+    const toolCalls: any[] = []
 
-    let retrievedMessages: CoreRetrievalMessages[] = []
-    let deepSearchCount = 0
-    let initialResultsCount = 0
-
-    // Build debug info
-    const debugInfo: any = {
-      needsRAG: ragDecision.needsRAG,
-      searchQuery: ragDecision.searchQuery,
-      fromUserId: ragDecision.fromUserId,
-      timeRange: ragDecision.timeRange,
-    }
-
-    // Step 2: If RAG is needed, perform search
-    if (ragDecision.needsRAG && ragDecision.searchQuery) {
-      // Initial retrieval
-      const initialResults = await new Promise<CoreRetrievalMessages[]>((resolve) => {
+    // Create tool executors that interact with the bridge
+    const searchMessagesExecutor = async (params: any) => {
+      return new Promise<CoreRetrievalMessages[]>((resolve) => {
         bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+          allRetrievedMessages.push(...messages)
           resolve(messages)
         })
 
         bridgeStore.sendEvent('storage:search:messages', {
-          content: ragDecision.searchQuery,
-          useVector: true,
+          content: params.query,
+          useVector: params.useVector,
           pagination: {
-            limit: 5,
+            limit: params.limit,
             offset: 0,
           },
-          fromUserId: ragDecision.fromUserId,
-          timeRange: ragDecision.timeRange,
+          fromUserId: params.fromUserId,
+          timeRange: params.timeRange,
         })
       })
-
-      initialResultsCount = initialResults.length
-      retrievedMessages = [...initialResults]
-
-      // Step 3: Deep search - check if we need context around any message
-      if (initialResults.length > 0) {
-        aiChatStore.setSearching(true) // Keep searching indicator
-        const deepSearchDecision = await aiChatLogic.determineDeepSearchNeeds(message, initialResults, llmConfig)
-
-        if (deepSearchDecision.needsContext && deepSearchDecision.messageIndex !== undefined) {
-          const targetMessage = initialResults[deepSearchDecision.messageIndex]
-          if (targetMessage) {
-            // Retrieve 5 messages before the target message
-            const contextMessages = await new Promise<CoreRetrievalMessages[]>((resolve) => {
-              bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
-                resolve(messages)
-              })
-
-              // Search for messages in the same chat, before this message
-              bridgeStore.sendEvent('storage:search:messages', {
-                chatId: targetMessage.chatId,
-                content: '', // Empty query to get all messages
-                useVector: false, // Don't use vector search for context
-                pagination: {
-                  limit: 5,
-                  offset: 0,
-                },
-                timeRange: {
-                  end: targetMessage.platformTimestamp - 1, // Before the target message
-                },
-              })
-            })
-
-            // Add context messages to the beginning (they're chronologically earlier)
-            retrievedMessages = [...contextMessages, ...retrievedMessages]
-            deepSearchCount = contextMessages.length
-          }
-        }
-      }
     }
 
-    aiChatStore.setSearching(false)
+    const retrieveContextExecutor = async (params: any) => {
+      return new Promise<CoreRetrievalMessages[]>((resolve) => {
+        bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+          allRetrievedMessages.push(...messages)
+          resolve(messages)
+        })
 
-    // Update debug info with deep search results
-    if (deepSearchCount > 0 || initialResultsCount > 0) {
-      debugInfo.deepSearch = {
-        initialResults: initialResultsCount,
-        contextRetrievals: deepSearchCount,
-        totalMessages: retrievedMessages.length,
-      }
+        bridgeStore.sendEvent('storage:search:messages', {
+          chatId: params.chatId,
+          content: '',
+          useVector: false,
+          pagination: {
+            limit: params.limit,
+            offset: 0,
+          },
+          timeRange: {
+            end: params.targetTimestamp - 1,
+          },
+        })
+      })
     }
 
-    // Step 4: Build prompt with context
-    const contextMessages = aiChatLogic.buildContextFromRetrievedMessages(retrievedMessages)
-    const systemPrompt = aiChatLogic.buildSystemPrompt(contextMessages)
+    // Create tools
+    const searchMessagesTool = await aiChatLogic.createSearchMessagesTool(searchMessagesExecutor)
+    const retrieveContextTool = await aiChatLogic.createRetrieveContextTool(retrieveContextExecutor)
 
+    // Build system prompt
+    const systemPrompt = aiChatLogic.buildSystemPrompt()
+
+    // Get conversation history
     const conversationHistory = messages.value
       .filter(msg => msg.role !== 'user' || msg.content !== message)
       .slice(-10) // Keep last 10 messages for context
@@ -170,27 +134,65 @@ async function sendMessage() {
       { role: 'user' as const, content: message },
     ]
 
-    // Step 5: Call LLM with streaming using xsai
+    // Call LLM with tools
     const assistantId = aiChatStore.addAssistantMessage()
     let accumulatedContent = ''
 
-    await aiChatLogic.callLLMWithStreaming(
+    await aiChatLogic.callLLMWithTools(
       llmConfig,
       llmMessages,
+      [searchMessagesTool, retrieveContextTool],
+      // onToolCall
+      (toolCall) => {
+        toolCalls.push(toolCall)
+        // Update UI to show tool is being called
+        if (toolCall.name === 'searchMessages') {
+          aiChatStore.setSearching(true, `Searching messages...`)
+        }
+        else if (toolCall.name === 'retrieveContext') {
+          aiChatStore.setSearching(true, `Retrieving context...`)
+        }
+      },
+      // onToolResult
+      (toolName, result, duration) => {
+        // Find the tool call and update it with result and duration
+        const toolCall = toolCalls.find(tc => tc.name === toolName && !tc.duration)
+        if (toolCall) {
+          toolCall.duration = duration
+          toolCall.output = JSON.parse(result)
+        }
+      },
       // onTextDelta
       (delta) => {
+        aiChatStore.setSearching(false)
         accumulatedContent += delta
-        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, retrievedMessages, debugInfo)
+        const debugInfo = {
+          needsRAG: toolCalls.length > 0,
+          searchQuery: '',
+          toolCalls,
+        }
+        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, allRetrievedMessages, debugInfo)
         // Auto-scroll as content updates
         nextTick().then(scrollToBottom)
       },
       // onComplete
-      () => {
+      (totalUsage) => {
+        aiChatStore.setSearching(false)
+        const debugInfo = {
+          needsRAG: toolCalls.length > 0,
+          searchQuery: '',
+          toolCalls: [
+            ...toolCalls,
+            {
+              name: 'generateResponse',
+              description: 'Generate final response',
+              timestamp: Date.now(),
+              usage: totalUsage,
+            },
+          ],
+        }
+        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, allRetrievedMessages, debugInfo)
         aiChatStore.completeAssistantMessage(assistantId)
-      },
-      // onError
-      (error) => {
-        throw error
       },
     )
   }
@@ -314,9 +316,14 @@ onMounted(() => {
                 @click="viewMessageInChat(retrieved.chatId, retrieved.platformMessageId)"
               >
                 <div class="mb-1 flex items-center justify-between">
-                  <span class="font-medium opacity-80">
-                    {{ new Date(retrieved.platformTimestamp * 1000).toLocaleString() }}
-                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <span v-if="retrieved.chatName" class="font-semibold text-primary">
+                      {{ retrieved.chatName }}
+                    </span>
+                    <span class="font-medium opacity-60">
+                      {{ new Date(retrieved.platformTimestamp * 1000).toLocaleString() }}
+                    </span>
+                  </div>
                   <span
                     v-if="retrieved.similarity"
                     class="rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium"
@@ -368,6 +375,59 @@ onMounted(() => {
                     <div>{{ t('aiChat.totalMessages') }}: {{ message.debugInfo.deepSearch.totalMessages }}</div>
                   </div>
                 </div>
+                <div v-if="message.debugInfo.toolCalls && message.debugInfo.toolCalls.length > 0" class="mt-1.5 border-t border-border/50 pt-1.5">
+                  <div class="mb-1 flex items-center justify-between">
+                    <span class="font-medium">Tool Calls:</span>
+                    <div class="flex items-center gap-2 text-[9px] opacity-60">
+                      <span>Total: {{ message.debugInfo.toolCalls.reduce((sum, t) => sum + (t.duration || 0), 0) }}ms</span>
+                      <span v-if="message.debugInfo.toolCalls.some(t => t.usage)">
+                        | {{ message.debugInfo.toolCalls.reduce((sum, t) => sum + (t.usage?.totalTokens || 0), 0) }} tokens
+                      </span>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <details
+                      v-for="(tool, idx) in message.debugInfo.toolCalls"
+                      :key="`tool-${idx}`"
+                      class="border border-border/30 rounded bg-muted/20 p-1.5"
+                    >
+                      <summary class="flex cursor-pointer items-center justify-between gap-2 text-[10px] font-medium opacity-80 hover:opacity-100">
+                        <div class="flex items-center gap-1.5">
+                          <span class="i-lucide-zap h-2.5 w-2.5" />
+                          <span class="font-mono">{{ tool.name }}</span>
+                          <span v-if="tool.duration" class="rounded bg-accent/30 px-1 py-0.5 text-[9px] opacity-70">
+                            {{ tool.duration }}ms
+                          </span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                          <span v-if="tool.usage?.totalTokens" class="rounded bg-primary/20 px-1 py-0.5 text-[9px] opacity-70">
+                            {{ tool.usage.totalTokens }} tokens
+                          </span>
+                          <span class="opacity-60">{{ new Date(tool.timestamp).toLocaleTimeString() }}</span>
+                        </div>
+                      </summary>
+                      <div class="mt-1.5 space-y-1 pl-4 text-[10px]">
+                        <div class="opacity-60">
+                          {{ tool.description }}
+                        </div>
+                        <div v-if="tool.usage" class="flex items-center gap-2 rounded bg-primary/10 p-1 text-[9px]">
+                          <span class="font-medium opacity-70">Token Usage:</span>
+                          <span class="opacity-60">Prompt: {{ tool.usage.promptTokens || 0 }}</span>
+                          <span class="opacity-60">Completion: {{ tool.usage.completionTokens || 0 }}</span>
+                          <span class="font-medium opacity-70">Total: {{ tool.usage.totalTokens || 0 }}</span>
+                        </div>
+                        <div v-if="tool.input" class="rounded bg-muted/50 p-1">
+                          <div class="mb-0.5 font-medium opacity-70">Input:</div>
+                          <pre class="whitespace-pre-wrap break-all font-mono opacity-60">{{ JSON.stringify(tool.input, null, 2) }}</pre>
+                        </div>
+                        <div v-if="tool.output" class="rounded bg-muted/50 p-1">
+                          <div class="mb-0.5 font-medium opacity-70">Output:</div>
+                          <pre class="whitespace-pre-wrap break-all font-mono opacity-60">{{ JSON.stringify(tool.output, null, 2) }}</pre>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                </div>
               </div>
             </details>
           </div>
@@ -389,16 +449,40 @@ onMounted(() => {
         v-if="isSearching || isLoading"
         class="flex justify-start"
       >
-        <div class="max-w-[80%] border rounded-lg bg-card px-4 py-3 space-y-2">
-          <!-- Search animation -->
-          <div v-if="isSearching" class="flex items-center gap-2 text-sm text-muted-foreground">
-            <span class="i-lucide-search h-4 w-4 animate-pulse" />
-            <span>{{ t('aiChat.searchingContext') }}</span>
+        <div class="max-w-[80%] border rounded-lg bg-card px-4 py-3 space-y-3">
+          <!-- Search animation with stage info -->
+          <div v-if="isSearching" class="space-y-2">
+            <div class="flex items-center gap-2 text-sm text-muted-foreground">
+              <span class="i-lucide-search h-4 w-4 animate-pulse" />
+              <span class="font-medium">{{ searchStage || t('aiChat.searchingContext') }}</span>
+            </div>
+
+            <!-- Skeleton loading animation -->
+            <div class="space-y-2">
+              <div class="h-3 w-full animate-pulse rounded bg-muted/50" />
+              <div class="h-3 w-4/5 animate-pulse rounded bg-muted/50" style="animation-delay: 0.1s" />
+              <div class="h-3 w-3/4 animate-pulse rounded bg-muted/50" style="animation-delay: 0.2s" />
+            </div>
+
+            <div class="flex items-center gap-1 text-xs opacity-60">
+              <span class="i-lucide-sparkles h-3 w-3 animate-pulse" />
+              <span>Processing your query with AI...</span>
+            </div>
           </div>
+
           <!-- Thinking animation -->
-          <div v-else-if="isLoading" class="flex items-center gap-2 text-sm text-muted-foreground">
-            <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
-            <span>{{ t('aiChat.aiThinking') }}</span>
+          <div v-else-if="isLoading" class="space-y-2">
+            <div class="flex items-center gap-2 text-sm text-muted-foreground">
+              <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
+              <span class="font-medium">{{ t('aiChat.aiThinking') }}</span>
+            </div>
+
+            <!-- Skeleton loading animation for thinking -->
+            <div class="space-y-2">
+              <div class="h-3 w-full animate-pulse rounded bg-muted/50" />
+              <div class="h-3 w-5/6 animate-pulse rounded bg-muted/50" style="animation-delay: 0.15s" />
+              <div class="h-3 w-2/3 animate-pulse rounded bg-muted/50" style="animation-delay: 0.3s" />
+            </div>
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ import { and, desc, eq, gt, sql } from 'drizzle-orm'
 
 import { withDb } from '../../db'
 import { chatMessagesTable } from '../../schemas/chat_messages'
+import { joinedChatsTable } from '../../schemas/joined_chats'
 import { getSimilaritySql } from './similarity'
 
 export async function retrieveVector(
@@ -58,8 +59,10 @@ export async function retrieveVector(
       similarity: sql<number>`${similarity} AS "similarity"`,
       time_relevance: sql<number>`${timeRelevance} AS "time_relevance"`,
       combined_score: sql<number>`${combinedScore} AS "combined_score"`,
+      chat_name: joinedChatsTable.chat_name,
     })
     .from(chatMessagesTable)
+    .leftJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
     .where(and(...whereConditions))
     .orderBy(desc(sql`combined_score`))
     .limit(pagination?.limit || 20),

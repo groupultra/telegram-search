@@ -3,6 +3,20 @@ import type { CoreRetrievalMessages } from '@tg-search/core/types'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+export interface ToolCall {
+  name: string
+  description: string
+  input?: any
+  output?: any
+  timestamp: number
+  duration?: number // Execution time in milliseconds
+  usage?: {
+    promptTokens?: number
+    completionTokens?: number
+    totalTokens?: number
+  }
+}
+
 export interface RAGDebugInfo {
   needsRAG: boolean
   searchQuery: string
@@ -14,6 +28,7 @@ export interface RAGDebugInfo {
     contextRetrievals: number
     totalMessages: number
   }
+  toolCalls?: ToolCall[]
 }
 
 export interface AIChatMessage {
@@ -30,6 +45,7 @@ export const useAIChatStore = defineStore('aiChat', () => {
   const messages = ref<AIChatMessage[]>([])
   const isLoading = ref(false)
   const isSearching = ref(false)
+  const searchStage = ref<string>('')
   const error = ref<string | null>(null)
 
   function addUserMessage(content: string): string {
@@ -83,8 +99,9 @@ export const useAIChatStore = defineStore('aiChat', () => {
     isLoading.value = loading
   }
 
-  function setSearching(searching: boolean) {
+  function setSearching(searching: boolean, stage = '') {
     isSearching.value = searching
+    searchStage.value = stage
   }
 
   function clearChat() {
@@ -102,6 +119,7 @@ export const useAIChatStore = defineStore('aiChat', () => {
     messages,
     isLoading,
     isSearching,
+    searchStage,
     error,
     addUserMessage,
     addAssistantMessage,

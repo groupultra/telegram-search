@@ -7,6 +7,7 @@ import { and, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../../db'
 import { chatMessagesTable } from '../../schemas/chat_messages'
+import { joinedChatsTable } from '../../schemas/joined_chats'
 import { ensureJieba } from '../../utils/jieba'
 
 export async function retrieveJieba(
@@ -60,8 +61,10 @@ export async function retrieveJieba(
       deleted_at: chatMessagesTable.deleted_at,
       platform_timestamp: chatMessagesTable.platform_timestamp,
       jieba_tokens: chatMessagesTable.jieba_tokens,
+      chat_name: joinedChatsTable.chat_name,
     })
     .from(chatMessagesTable)
+    .leftJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
     .where(and(...whereConditions))
     .limit(pagination?.limit || 20),
   )).expect('Failed to fetch text relevant messages')

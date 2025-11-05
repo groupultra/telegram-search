@@ -181,6 +181,7 @@ export type CoreRetrievalMessages = CoreMessage & {
   similarity?: number
   timeRelevance?: number
   combinedScore?: number
+  chatName?: string
 }
 
 export interface StorageMessageContextParams {

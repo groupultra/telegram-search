@@ -1,7 +1,12 @@
 import type { CoreRetrievalMessages } from '@tg-search/core/types'
+import type { InferInput } from 'valibot'
 
+import { useLogger } from '@guiiai/logg'
+import { tool } from '@xsai/tool'
 import * as v from 'valibot'
-import { generateObject, streamText } from 'xsai'
+import { generateText } from 'xsai'
+
+const logger = useLogger('composables:ai-chat')
 
 interface LLMConfig {
   provider: string
@@ -12,241 +17,318 @@ interface LLMConfig {
   maxTokens?: number
 }
 
-interface RAGDecision {
-  needsRAG: boolean
-  searchQuery: string
-  fromUserId?: string
-  timeRange?: { start?: number, end?: number }
-}
-
-interface DeepSearchDecision {
-  needsContext: boolean
-  messageIndex?: number
-  reason?: string
-}
-
 interface Message {
   role: 'system' | 'user' | 'assistant'
   content: string
 }
 
+export interface ToolCallRecord {
+  name: string
+  description: string
+  input?: any
+  output?: any
+  timestamp: number
+  duration?: number
+  usage?: {
+    promptTokens?: number
+    completionTokens?: number
+    totalTokens?: number
+  }
+}
+
+interface SearchMessagesParams {
+  query: string
+  useVector: boolean
+  limit: number
+  fromUserId?: string | null
+  timeRange?: { start?: number | null, end?: number | null } | null
+}
+
+interface RetrieveContextParams {
+  chatId: string
+  targetTimestamp: number
+  limit: number
+}
+
 /**
- * Composable for AI chat functionality
- * Extracts business logic from the view component
+ * Composable for AI chat functionality with real tool calling
  */
 export function useAIChatLogic() {
   /**
-   * Use LLM to determine if RAG is needed and extract filters
-   * Uses xsai's generateObject with valibot schema for structured output
-   * The LLM will naturally handle greetings by returning needsRAG: false
+   * Create search messages tool
    */
-  async function determineRAGNeeds(message: string, llmConfig: LLMConfig): Promise<RAGDecision> {
-    const currentTime = Math.floor(Date.now() / 1000)
+  async function createSearchMessagesTool(
+    executor: (params: SearchMessagesParams) => Promise<CoreRetrievalMessages[]>,
+  ) {
+    logger.log('Creating searchMessages tool')
 
-    // Define schema using valibot (Standard Schema compatible)
-    const schema = v.object({
-      needsRAG: v.boolean('Whether the query needs context from Telegram message history'),
-      searchQuery: v.string('Key search terms/query to retrieve relevant messages'),
-      fromUserId: v.optional(v.nullable(v.string('User ID filter if a specific person is mentioned'))),
-      timeRange: v.optional(v.nullable(v.object({
-        start: v.optional(v.nullable(v.number('Unix timestamp in seconds for the start of the time range'))),
-        end: v.optional(v.nullable(v.number('Unix timestamp in seconds for the end of the time range'))),
-      }, 'Time range filter for messages'))),
+    const searchMessagesSchema = v.strictObject({
+      query: v.pipe(
+        v.string(),
+        v.description('Search query - keywords or phrases to find in messages'),
+      ),
+      useVector: v.pipe(
+        v.boolean(),
+        v.description('Whether to use vector similarity search (true) or text search (false)'),
+      ),
+      limit: v.pipe(
+        v.number(),
+        v.description('Maximum number of messages to retrieve (recommended: 5-10)'),
+      ),
     })
 
-    const systemPrompt = `You are a query analyzer. Determine if the user's question needs context from their Telegram message history to answer.
+    return await tool({
+      name: 'searchMessages',
+      description: `Search through Telegram message history using vector similarity or text search.
+Use this when the user asks about past conversations, messages, or specific topics discussed.
+Parameters:
+- query: Search keywords (use Chinese for Chinese queries)
+- useVector: true for semantic search (recommended), false for exact text matching
+- limit: Number of results (5-10 recommended)`,
+      parameters: searchMessagesSchema,
+      execute: async (params: InferInput<typeof searchMessagesSchema>) => {
+        const startTime = Date.now()
+        logger.withFields({ params }).log('searchMessages tool called')
 
-Current time: ${currentTime} (Unix timestamp in seconds)
+        // Call executor with required params only (filters removed)
+        const results = await executor({
+          ...params,
+          fromUserId: undefined,
+          timeRange: undefined,
+        })
+        const duration = Date.now() - startTime
 
-Examples:
-- "What did John say about the meeting?" -> needsRAG: true, searchQuery: "John meeting", fromUserId: null, timeRange: null
-- "What's the capital of France?" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null
-- "你好" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null
-- "Hello" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null
-- "Show messages from Alice last week" -> needsRAG: true, searchQuery: "Alice", fromUserId: null, timeRange: {start: ${currentTime - 7 * 86400}, end: ${currentTime}}
-- "What did we discuss yesterday?" -> needsRAG: true, searchQuery: "discuss", fromUserId: null, timeRange: {start: ${currentTime - 86400}, end: ${currentTime}}
-- "Tell me a joke" -> needsRAG: false, searchQuery: "", fromUserId: null, timeRange: null
-- "我喜欢吃什么" -> needsRAG: true, searchQuery: "喜欢 吃", fromUserId: null, timeRange: null
+        logger.withFields({
+          duration,
+          resultsCount: results.length,
+        }).log('searchMessages completed')
 
-For simple greetings, general knowledge questions, and requests that don't require message history, set needsRAG to false.`
-
-    try {
-      const result = await generateObject({
-        baseURL: llmConfig.apiBase,
-        model: llmConfig.model,
-        apiKey: llmConfig.apiKey,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message },
-        ],
-        schema,
-        schemaName: 'RAGDecision',
-        schemaDescription: 'Analysis of whether RAG is needed and what filters to apply',
-        temperature: 0.1,
-        output: 'object',
-      })
-
-      // Convert null to undefined to match interface expectations
-      const timeRange = result.object.timeRange
-      const processedTimeRange = timeRange
-        ? {
-            start: timeRange.start ?? undefined,
-            end: timeRange.end ?? undefined,
-          }
-        : undefined
-
-      return {
-        needsRAG: result.object.needsRAG || false,
-        searchQuery: result.object.searchQuery || '',
-        fromUserId: result.object.fromUserId ?? undefined,
-        timeRange: processedTimeRange,
-      }
-    }
-    catch {
-      // On error, default to using RAG
-      return { needsRAG: true, searchQuery: message }
-    }
+        return JSON.stringify({
+          success: true,
+          resultsCount: results.length,
+          messages: results.map(msg => ({
+            chatId: msg.chatId,
+            chatName: msg.chatName,
+            platformMessageId: msg.platformMessageId,
+            fromName: msg.fromName,
+            content: msg.content?.substring(0, 200), // Truncate for token efficiency
+            platformTimestamp: msg.platformTimestamp,
+            similarity: msg.similarity,
+          })),
+        })
+      },
+    })
   }
 
   /**
-   * Deep search: Determine if we need context around a specific retrieved message
+   * Create retrieve context tool
    */
-  async function determineDeepSearchNeeds(
-    userQuery: string,
-    retrievedMessages: CoreRetrievalMessages[],
-    llmConfig: LLMConfig,
-  ): Promise<DeepSearchDecision> {
-    if (retrievedMessages.length === 0) {
-      return { needsContext: false }
-    }
+  async function createRetrieveContextTool(
+    executor: (params: RetrieveContextParams) => Promise<CoreRetrievalMessages[]>,
+  ) {
+    logger.log('Creating retrieveContext tool')
 
-    const schema = v.object({
-      needsContext: v.boolean('Whether we need surrounding context of any retrieved message'),
-      messageIndex: v.optional(v.nullable(v.number('Index of the message that needs context (0-based)'))),
-      reason: v.optional(v.nullable(v.string('Reason why context is needed'))),
+    const retrieveContextSchema = v.strictObject({
+      chatId: v.pipe(
+        v.string(),
+        v.description('Chat ID where the target message is located'),
+      ),
+      targetTimestamp: v.pipe(
+        v.number(),
+        v.description('Unix timestamp (seconds) of the target message'),
+      ),
+      limit: v.pipe(
+        v.number(),
+        v.description('Number of messages to retrieve before the target (recommended: 3-5)'),
+      ),
     })
 
-    const messagesPreview = retrievedMessages.slice(0, 5).map((msg, idx) => {
-      const date = new Date(msg.platformTimestamp * 1000).toLocaleString()
-      const content = (msg.content || '[Media]').substring(0, 100)
-      return `[${idx}] ${date}: ${content}`
-    }).join('\n')
+    return await tool({
+      name: 'retrieveContext',
+      description: 'Retrieve surrounding messages before a specific message for context. Use this when a search result needs more context to understand (e.g., "this", "that" references).',
+      parameters: retrieveContextSchema,
+      execute: async (params: InferInput<typeof retrieveContextSchema>) => {
+        const startTime = Date.now()
+        logger.withFields({ params }).log('retrieveContext tool called')
 
-    const systemPrompt = `You are analyzing search results to determine if we need more context.
+        const results = await executor(params)
+        const duration = Date.now() - startTime
 
-User Query: "${userQuery}"
+        logger.withFields({
+          duration,
+          contextCount: results.length,
+        }).log('retrieveContext completed')
 
-Retrieved Messages:
-${messagesPreview}
-
-Determine if any message would benefit from having its surrounding context (5 messages before it) to better answer the user's query.
-For example, if a message says "我想吃这个" (I want to eat this), we'd need the context to know what "this" refers to.
-
-If context is needed, specify which message index (0-based) and why.`
-
-    try {
-      const result = await generateObject({
-        baseURL: llmConfig.apiBase,
-        model: llmConfig.model,
-        apiKey: llmConfig.apiKey,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Analyze if context is needed' },
-        ],
-        schema,
-        schemaName: 'DeepSearchDecision',
-        schemaDescription: 'Decision on whether surrounding context is needed',
-        temperature: 0.1,
-        output: 'object',
-      })
-
-      return {
-        needsContext: result.object.needsContext || false,
-        messageIndex: result.object.messageIndex ?? undefined,
-        reason: result.object.reason ?? undefined,
-      }
-    }
-    catch {
-      return { needsContext: false }
-    }
+        return JSON.stringify({
+          success: true,
+          contextCount: results.length,
+          messages: results.map(msg => ({
+            platformMessageId: msg.platformMessageId,
+            fromName: msg.fromName,
+            content: msg.content?.substring(0, 200),
+            platformTimestamp: msg.platformTimestamp,
+          })),
+        })
+      },
+    })
   }
 
   /**
-   * Build context message from retrieved messages
+   * Call LLM with tool calling support
    */
-  function buildContextFromRetrievedMessages(retrievedMessages: CoreRetrievalMessages[]): string {
-    return retrievedMessages.map((msg) => {
-      const date = new Date(msg.platformTimestamp * 1000).toLocaleString()
-      // Sanitize message content to remove control characters
-      // eslint-disable-next-line no-control-regex
-      const sanitizedContent = (msg.content || '[Media]').replace(/[\x00-\x1F\x7F]/g, '')
-      return `[${date}] ${sanitizedContent}`
-    }).join('\n\n')
-  }
-
-  /**
-   * Build system prompt with or without context
-   */
-  function buildSystemPrompt(contextMessages: string): string {
-    if (contextMessages) {
-      return `You are a helpful AI assistant that helps users understand their Telegram message history. 
-
-Below is relevant context retrieved from the user's messages:
-
-${contextMessages}
-
-Use this context to provide helpful, accurate responses.`
-    }
-    return 'You are a helpful AI assistant. Answer the user\'s question directly and concisely.'
-  }
-
-  /**
-   * Call LLM API with streaming support using xsai
-   */
-  async function callLLMWithStreaming(
+  async function callLLMWithTools(
     llmConfig: LLMConfig,
     messages: Message[],
+    tools: any[],
+    onToolCall: (toolCall: ToolCallRecord) => void,
+    onToolResult: (toolName: string, result: string, duration: number) => void,
     onTextDelta: (delta: string) => void,
-    onComplete: () => void,
-    onError: (error: Error) => void,
+    onComplete: (totalUsage: { promptTokens: number, completionTokens: number, totalTokens: number }) => void,
   ): Promise<void> {
+    logger.log('Starting LLM call with tools')
+    logger.withFields({
+      messagesCount: messages.length,
+      toolsCount: tools.length,
+      availableTools: tools.map(t => t.function.name),
+    }).log('LLM configuration')
+
     const abortController = new AbortController()
-    const timeoutId = setTimeout(() => abortController.abort(), 60000) // 60s timeout
+    const timeoutId = setTimeout(() => {
+      logger.error('Request timed out after 60s')
+      abortController.abort()
+    }, 60000)
 
-    try {
-      await streamText({
-        baseURL: llmConfig.apiBase,
-        model: llmConfig.model,
-        apiKey: llmConfig.apiKey,
-        messages,
-        temperature: llmConfig.temperature ?? 0.7,
-        abortSignal: abortController.signal,
-        onEvent: (event) => {
-          if (event.type === 'text-delta') {
-            onTextDelta(event.text)
+    // Track tool call start times
+    const toolCallStartTimes = new Map<string, number>()
+
+    const result = await generateText({
+      baseURL: llmConfig.apiBase,
+      model: llmConfig.model,
+      apiKey: llmConfig.apiKey,
+      messages,
+      tools,
+      temperature: llmConfig.temperature ?? 0.7,
+      maxSteps: 5, // Allow up to 5 tool calling steps
+      abortSignal: abortController.signal,
+      onEvent: (event: any) => {
+        // Log all events for debugging
+        if (event.type === 'tool-call') {
+          const startTime = Date.now()
+          toolCallStartTimes.set(event.toolCall.id, startTime)
+
+          logger.withFields({
+            toolName: event.toolCall.name,
+            arguments: event.toolCall.arguments,
+          }).log('Tool call initiated')
+
+          onToolCall({
+            name: event.toolCall.name,
+            description: tools.find(t => t.function.name === event.toolCall.name)?.function.description || '',
+            input: event.toolCall.arguments,
+            output: null,
+            timestamp: startTime,
+          })
+        }
+        else if (event.type === 'tool-result') {
+          const startTime = toolCallStartTimes.get(event.toolResult.id) || Date.now()
+          const duration = Date.now() - startTime
+
+          logger.withFields({
+            toolName: event.toolResult.name,
+            duration,
+            resultPreview: event.toolResult.result?.substring(0, 200),
+          }).log('Tool result received')
+
+          onToolResult(event.toolResult.name, event.toolResult.result, duration)
+        }
+        else if (event.type === 'text-delta') {
+          onTextDelta(event.text)
+        }
+        else if (event.type === 'step-start') {
+          logger.withFields({ step: event.step }).log('Step started')
+        }
+        else if (event.type === 'step-finish') {
+          if (event.usage) {
+            logger.withFields({
+              step: event.step,
+              promptTokens: event.usage.prompt_tokens,
+              completionTokens: event.usage.completion_tokens,
+              totalTokens: event.usage.total_tokens,
+            }).log('Step finished')
           }
-        },
-      })
+          else {
+            logger.withFields({ step: event.step }).log('Step finished')
+          }
+        }
+      },
+    })
 
-      clearTimeout(timeoutId)
-      onComplete()
+    clearTimeout(timeoutId)
+
+    logger.withFields({
+      textLength: result.text?.length ?? 0,
+      stepsCount: result.steps.length,
+    }).log('Generation completed')
+
+    // If there's final text and no text-delta events were fired, send the complete text
+    if (result.text) {
+      onTextDelta(result.text)
     }
-    catch (error) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error && error.name === 'AbortError') {
-        onError(new Error('LLM API request timed out'))
-      }
-      else {
-        onError(error instanceof Error ? error : new Error('Unknown error'))
-      }
+
+    if (result.usage) {
+      logger.withFields({
+        promptTokens: result.usage.prompt_tokens,
+        completionTokens: result.usage.completion_tokens,
+        totalTokens: result.usage.total_tokens,
+      }).log('Total usage')
+
+      onComplete({
+        promptTokens: result.usage.prompt_tokens || 0,
+        completionTokens: result.usage.completion_tokens || 0,
+        totalTokens: result.usage.total_tokens || 0,
+      })
     }
+    else {
+      logger.warn('No usage data available')
+      onComplete({
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+      })
+    }
+  }
+
+  /**
+   * Build system prompt
+   */
+  function buildSystemPrompt(): string {
+    return `You are a helpful AI assistant with access to the user's Telegram message history.
+
+IMPORTANT INSTRUCTIONS:
+1. When the user asks about past messages, conversations, or specific topics, you MUST use the searchMessages tool
+2. Simple greetings and general knowledge questions do NOT require searching - respond directly
+3. When using searchMessages:
+   - For Chinese queries, use Chinese keywords in the query
+   - Set useVector=true for semantic search (recommended for most cases)
+   - Set useVector=false for exact text matching
+   - Set limit to 5-10 for most queries
+4. If a search result contains ambiguous references (like "this", "that", "it"), use retrieveContext to get surrounding messages
+5. Always cite specific messages when answering (mention date, sender, chat name if available)
+6. Be concise and direct in your responses
+
+EXAMPLES:
+- "你好" -> Respond directly with a greeting, NO tool calling
+- "How are you?" -> Respond directly, NO tool calling
+- "What did we discuss?" -> Use searchMessages with query="discuss", useVector=true, limit=5
+- "我喜欢吃什么" -> Use searchMessages with query="喜欢 吃", useVector=true, limit=5
+
+Remember: Only use tools when necessary. For greetings or general questions, respond directly without calling any tools.`
   }
 
   return {
-    determineRAGNeeds,
-    determineDeepSearchNeeds,
-    buildContextFromRetrievedMessages,
+    createSearchMessagesTool,
+    createRetrieveContextTool,
+    callLLMWithTools,
     buildSystemPrompt,
-    callLLMWithStreaming,
   }
 }

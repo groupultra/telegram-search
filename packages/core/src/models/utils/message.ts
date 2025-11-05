@@ -9,6 +9,7 @@ export interface DBRetrievalMessages extends Omit<DBSelectMessage, 'content_vect
   similarity?: number
   time_relevance?: number
   combined_score?: number
+  chat_name?: string | null
 }
 
 export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessage {
@@ -91,5 +92,6 @@ export function convertToCoreRetrievalMessages(messages: DBRetrievalMessages[]):
     similarity: message?.similarity,
     timeRelevance: message?.time_relevance,
     combinedScore: message?.combined_score,
+    chatName: message?.chat_name ?? undefined,
   })) satisfies CoreRetrievalMessages[]
 }
