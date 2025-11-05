@@ -9,6 +9,7 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import { Button } from '../components/ui/Button'
+import { useAIChatLogic } from '../composables/useAIChat'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -22,6 +23,9 @@ const { config } = storeToRefs(settingsStore)
 
 const messageInput = ref('')
 const messagesContainer = ref<HTMLElement>()
+
+// Use the AI chat logic composable
+const aiChatLogic = useAIChatLogic()
 
 // Check if API is configured
 const isApiConfigured = computed(() => {
@@ -61,13 +65,13 @@ async function sendMessage() {
   try {
     const llmConfig = config.value!.api!.llm!
 
-    // Step 1: Use a small/fast model to determine if RAG is needed and what to search
+    // Step 1: Determine if RAG is needed
     aiChatStore.setSearching(true)
-    const ragDecision = await determineRAGNeeds(message, llmConfig)
+    const ragDecision = await aiChatLogic.determineRAGNeeds(message, llmConfig)
 
     let retrievedMessages: CoreRetrievalMessages[] = []
 
-    // Step 2: If RAG is needed, perform search with animation showing
+    // Step 2: If RAG is needed, perform search
     if (ragDecision.needsRAG && ragDecision.searchQuery) {
       retrievedMessages = await new Promise((resolve) => {
         bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
@@ -89,24 +93,9 @@ async function sendMessage() {
 
     aiChatStore.setSearching(false)
 
-    // Step 3: Build context from retrieved messages
-    const contextMessages = retrievedMessages.map((msg) => {
-      const date = new Date(msg.platformTimestamp * 1000).toLocaleString()
-      // eslint-disable-next-line no-control-regex
-      const sanitizedContent = (msg.content || '[Media]').replace(/[\x00-\x1F\x7F]/g, '')
-      return `[${date}] ${sanitizedContent}`
-    }).join('\n\n')
-
-    // Step 4: Build the prompt with conversation history
-    const systemPrompt = contextMessages
-      ? `You are a helpful AI assistant that helps users understand their Telegram message history. 
-
-Below is relevant context retrieved from the user's messages:
-
-${contextMessages}
-
-Use this context to provide helpful, accurate responses.`
-      : 'You are a helpful AI assistant. Answer the user\'s question directly and concisely.'
+    // Step 3: Build prompt with context
+    const contextMessages = aiChatLogic.buildContextFromRetrievedMessages(retrievedMessages)
+    const systemPrompt = aiChatLogic.buildSystemPrompt(contextMessages)
 
     const conversationHistory = messages.value
       .filter(msg => msg.role !== 'user' || msg.content !== message)
@@ -122,9 +111,29 @@ Use this context to provide helpful, accurate responses.`
       { role: 'user' as const, content: message },
     ]
 
-    // Step 5: Call LLM API with streaming from frontend
+    // Step 4: Call LLM with streaming using xsai
     const assistantId = aiChatStore.addAssistantMessage()
-    await callLLMAPIStreaming(llmConfig, llmMessages, assistantId, retrievedMessages)
+    let accumulatedContent = ''
+
+    await aiChatLogic.callLLMWithStreaming(
+      llmConfig,
+      llmMessages,
+      // onTextDelta
+      (delta) => {
+        accumulatedContent += delta
+        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, retrievedMessages)
+        // Auto-scroll as content updates
+        nextTick().then(scrollToBottom)
+      },
+      // onComplete
+      () => {
+        aiChatStore.completeAssistantMessage(assistantId)
+      },
+      // onError
+      (error) => {
+        throw error
+      },
+    )
   }
   catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
@@ -134,183 +143,6 @@ Use this context to provide helpful, accurate responses.`
   finally {
     aiChatStore.setLoading(false)
     aiChatStore.setSearching(false)
-  }
-}
-
-// Use a small model to determine if RAG is needed and extract filters
-async function determineRAGNeeds(message: string, llmConfig: any): Promise<{
-  needsRAG: boolean
-  searchQuery: string
-  fromUserId?: string
-  timeRange?: { start?: number, end?: number }
-}> {
-  const apiUrl = `${llmConfig.apiBase}/chat/completions`
-
-  const systemPrompt = `You are a query analyzer. Determine if the user's question needs context from their Telegram message history to answer.
-If it needs context, extract:
-1. Key search terms/query
-2. User/person filter (if mentioned by name or identifier)
-3. Time range (if mentioned - convert to Unix timestamp in seconds, current time is ${Math.floor(Date.now() / 1000)})
-
-Respond in JSON format: {
-  "needsRAG": boolean,
-  "searchQuery": "extracted query or empty string",
-  "fromUserId": "user ID if mentioned, otherwise null",
-  "timeRange": {"start": timestamp or null, "end": timestamp or null}
-}
-
-Examples:
-- "What did John say about the meeting?" -> {"needsRAG": true, "searchQuery": "John meeting", "fromUserId": null, "timeRange": null}
-- "What's the capital of France?" -> {"needsRAG": false, "searchQuery": "", "fromUserId": null, "timeRange": null}
-- "Show messages from Alice last week" -> {"needsRAG": true, "searchQuery": "Alice", "fromUserId": null, "timeRange": {"start": ${Math.floor(Date.now() / 1000) - 7 * 86400}, "end": ${Math.floor(Date.now() / 1000)}}}
-- "What did we discuss yesterday?" -> {"needsRAG": true, "searchQuery": "discuss", "fromUserId": null, "timeRange": {"start": ${Math.floor(Date.now() / 1000) - 86400}, "end": ${Math.floor(Date.now() / 1000)}}}
-- "Tell me a joke" -> {"needsRAG": false, "searchQuery": "", "fromUserId": null, "timeRange": null}`
-
-  const requestBody = {
-    model: llmConfig.model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: message },
-    ],
-    temperature: 0.1,
-    max_tokens: 200,
-  }
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${llmConfig.apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-    })
-
-    if (!response.ok) {
-      // If the decision API fails, default to always using RAG
-      return { needsRAG: true, searchQuery: message }
-    }
-
-    const data = await response.json()
-    const content = data.choices?.[0]?.message?.content || '{}'
-
-    // Try to parse JSON response
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        const result = JSON.parse(jsonMatch[0])
-        return {
-          needsRAG: result.needsRAG || false,
-          searchQuery: result.searchQuery || '',
-          fromUserId: result.fromUserId || undefined,
-          timeRange: result.timeRange || undefined,
-        }
-      }
-    }
-    catch {
-      // If parsing fails, default to using RAG
-      return { needsRAG: true, searchQuery: message }
-    }
-
-    return { needsRAG: true, searchQuery: message }
-  }
-  catch {
-    // On error, default to using RAG
-    return { needsRAG: true, searchQuery: message }
-  }
-}
-
-// Call LLM API with streaming support
-async function callLLMAPIStreaming(
-  llmConfig: any,
-  llmMessages: any[],
-  assistantId: string,
-  retrievedMessages: CoreRetrievalMessages[],
-): Promise<void> {
-  const apiUrl = `${llmConfig.apiBase}/chat/completions`
-
-  const requestBody = {
-    model: llmConfig.model,
-    messages: llmMessages,
-    temperature: llmConfig.temperature ?? 0.7,
-    max_tokens: llmConfig.maxTokens ?? 2000,
-    stream: true, // Enable streaming
-  }
-
-  const abortController = new AbortController()
-  const timeoutId = setTimeout(() => abortController.abort(), 60000) // 60s for streaming
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${llmConfig.apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-      signal: abortController.signal,
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`LLM API request failed: ${response.status} ${errorText}`)
-    }
-
-    if (!response.body) {
-      throw new Error('Response body is null')
-    }
-
-    // Process the streaming response
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let accumulatedContent = ''
-
-    while (true) {
-      const { done, value } = await reader.read()
-
-      if (done)
-        break
-
-      const chunk = decoder.decode(value, { stream: true })
-      const lines = chunk.split('\n')
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6)
-
-          if (data === '[DONE]')
-            continue
-
-          try {
-            const parsed = JSON.parse(data)
-            const delta = parsed.choices?.[0]?.delta?.content
-
-            if (delta) {
-              accumulatedContent += delta
-              aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, retrievedMessages)
-              // Auto-scroll as content updates
-              await nextTick()
-              scrollToBottom()
-            }
-          }
-          catch {
-            // Ignore parsing errors for partial chunks
-          }
-        }
-      }
-    }
-
-    // Mark streaming as complete
-    aiChatStore.completeAssistantMessage(assistantId)
-  }
-  catch (error) {
-    clearTimeout(timeoutId)
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('LLM API request timed out')
-    }
-    throw error
   }
 }
 
