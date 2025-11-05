@@ -17,6 +17,7 @@ import { registerMessageResolverEventHandlers } from './event-handlers/message-r
 import { registerSessionEventHandlers } from './event-handlers/session'
 import { registerStorageEventHandlers } from './event-handlers/storage'
 import { registerTakeoutEventHandlers } from './event-handlers/takeout'
+import { registerAIChatEventHandlers } from './event-handlers/ai-chat'
 import { useMessageResolverRegistry } from './message-resolvers'
 import { createEmbeddingResolver } from './message-resolvers/embedding-resolver'
 import { createJiebaResolver } from './message-resolvers/jieba-resolver'
@@ -57,6 +58,7 @@ export function basicEventHandler(
   registerStorageEventHandlers(ctx)
   registerConfigEventHandlers(ctx)(configService)
   registerMessageResolverEventHandlers(ctx)(messageResolverService)
+  registerAIChatEventHandlers(ctx)
 
   ;(async () => {
     let sessionService: SessionService

@@ -62,9 +62,19 @@ export const embeddingConfigSchema = object({
   apiBase: optional(string(), ''),
 })
 
+export const llmConfigSchema = object({
+  provider: optional(string(), 'openai'),
+  model: optional(string(), 'gpt-4o-mini'),
+  apiKey: optional(string(), ''),
+  apiBase: optional(string(), 'https://api.openai.com/v1'),
+  temperature: optional(number(), 0.7),
+  maxTokens: optional(number(), 2000),
+})
+
 export const apiConfigSchema = object({
   telegram: optional(telegramConfigSchema, {}),
   embedding: optional(embeddingConfigSchema, {}),
+  llm: optional(llmConfigSchema, {}),
 })
 
 export const resolversConfigSchema = object({

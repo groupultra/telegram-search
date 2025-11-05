@@ -10,6 +10,7 @@ import { registerMessageEventHandlers } from './message'
 import { registerServerEventHandlers } from './server'
 import { registerStorageEventHandlers } from './storage'
 import { registerTakeoutEventHandlers } from './takeout'
+import { registerAIChatEventHandlers } from './ai-chat'
 
 export type ClientEventHandler<T extends keyof WsEventToClient> = (data: WsEventToClientData<T>) => void
 export type ClientRegisterEventHandler = <T extends keyof WsEventToClient>(event: T, handler: ClientEventHandler<T>) => void
@@ -42,4 +43,5 @@ export function registerAllEventHandlers(
   registerDialogEventHandlers(registerEventHandler)
   registerStorageEventHandlers(registerEventHandler)
   registerMessageEventHandlers(registerEventHandler)
+  registerAIChatEventHandlers(registerEventHandler)
 }

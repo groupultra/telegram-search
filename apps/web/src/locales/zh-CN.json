@@ -8,6 +8,20 @@
     "send": "发送",
     "typeAMessage": "输入消息..."
   },
+  "aiChat": {
+    "aiChat": "AI 对话",
+    "typeYourMessage": "输入您的消息...",
+    "send": "发送",
+    "retrievedInfo": "检索到的相关信息",
+    "noRetrievedInfo": "暂无相关信息",
+    "relatedMessages": "相关消息",
+    "viewInChat": "在聊天中查看",
+    "aiThinking": "AI 思考中...",
+    "errorSendingMessage": "发送消息失败",
+    "configureApi": "请先在设置中配置 AI API",
+    "clearChat": "清空对话",
+    "copiedToClipboard": "已复制到剪贴板"
+  },
   "chatGroups": {
     "channel": "频道",
     "group": "群组",
@@ -89,6 +103,11 @@
     "jiebaResolver": "中文分词解析器",
     "language": "语言",
     "linkResolver": "链接解析器",
+    "llm": "大语言模型",
+    "llmProvider": "LLM 提供商",
+    "llmModel": "LLM 模型",
+    "temperature": "温度",
+    "maxTokens": "最大令牌数",
     "login": "登录",
     "logout": "退出登录",
     "mediaResolver": "媒体解析器",

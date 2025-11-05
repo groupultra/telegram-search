@@ -8,6 +8,20 @@
     "send": "Send",
     "typeAMessage": "Type a message..."
   },
+  "aiChat": {
+    "aiChat": "AI Chat",
+    "typeYourMessage": "Type your message...",
+    "send": "Send",
+    "retrievedInfo": "Retrieved Information",
+    "noRetrievedInfo": "No relevant information found",
+    "relatedMessages": "Related Messages",
+    "viewInChat": "View in Chat",
+    "aiThinking": "AI is thinking...",
+    "errorSendingMessage": "Failed to send message",
+    "configureApi": "Please configure AI API in settings first",
+    "clearChat": "Clear Chat",
+    "copiedToClipboard": "Copied to clipboard"
+  },
   "chatGroups": {
     "channel": "Channels",
     "group": "Groups",
@@ -89,6 +103,11 @@
     "jiebaResolver": "Jieba Resolver",
     "language": "Language",
     "linkResolver": "Link Resolver",
+    "llm": "Large Language Model",
+    "llmProvider": "LLM Provider",
+    "llmModel": "LLM Model",
+    "temperature": "Temperature",
+    "maxTokens": "Max Tokens",
     "login": "Login",
     "logout": "Logout",
     "mediaResolver": "Media Resolver",
