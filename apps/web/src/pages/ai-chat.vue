@@ -317,7 +317,7 @@ onMounted(() => {
               >
                 <div class="mb-1 flex items-center justify-between">
                   <div class="flex items-center gap-1.5">
-                    <span v-if="retrieved.chatName" class="font-semibold text-primary">
+                    <span v-if="retrieved.chatName" class="text-primary font-semibold">
                       {{ retrieved.chatName }}
                     </span>
                     <span class="font-medium opacity-60">
@@ -406,7 +406,7 @@ onMounted(() => {
                           <span class="opacity-60">{{ new Date(tool.timestamp).toLocaleTimeString() }}</span>
                         </div>
                       </summary>
-                      <div class="mt-1.5 space-y-1 pl-4 text-[10px]">
+                      <div class="mt-1.5 pl-4 text-[10px] space-y-1">
                         <div class="opacity-60">
                           {{ tool.description }}
                         </div>
@@ -417,11 +417,15 @@ onMounted(() => {
                           <span class="font-medium opacity-70">Total: {{ tool.usage.totalTokens || 0 }}</span>
                         </div>
                         <div v-if="tool.input" class="rounded bg-muted/50 p-1">
-                          <div class="mb-0.5 font-medium opacity-70">Input:</div>
+                          <div class="mb-0.5 font-medium opacity-70">
+                            Input:
+                          </div>
                           <pre class="whitespace-pre-wrap break-all font-mono opacity-60">{{ JSON.stringify(tool.input, null, 2) }}</pre>
                         </div>
                         <div v-if="tool.output" class="rounded bg-muted/50 p-1">
-                          <div class="mb-0.5 font-medium opacity-70">Output:</div>
+                          <div class="mb-0.5 font-medium opacity-70">
+                            Output:
+                          </div>
                           <pre class="whitespace-pre-wrap break-all font-mono opacity-60">{{ JSON.stringify(tool.output, null, 2) }}</pre>
                         </div>
                       </div>
