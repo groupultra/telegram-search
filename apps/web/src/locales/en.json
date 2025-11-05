@@ -17,6 +17,7 @@
     "relatedMessages": "Related Messages",
     "viewInChat": "View in Chat",
     "aiThinking": "AI is thinking...",
+    "searchingContext": "Searching for relevant context...",
     "errorSendingMessage": "Failed to send message",
     "configureApi": "Please configure AI API in settings first",
     "clearChat": "Clear Chat",

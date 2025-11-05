@@ -17,6 +17,7 @@
     "relatedMessages": "相关消息",
     "viewInChat": "在聊天中查看",
     "aiThinking": "AI 思考中...",
+    "searchingContext": "搜索相关上下文...",
     "errorSendingMessage": "发送消息失败",
     "configureApi": "请先在设置中配置 AI API",
     "clearChat": "清空对话",
