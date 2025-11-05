@@ -1,6 +1,5 @@
 import type { CoreContext } from '../context'
-import type { CoreRetrievalMessages } from '../types/events'
-import type { AIChatEventToCore } from '../types/events'
+import type { AIChatEventToCore, CoreRetrievalMessages } from '../types/events'
 
 import { useLogger } from '@guiiai/logg'
 

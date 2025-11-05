@@ -2,6 +2,7 @@ import type { WsEventToClient, WsEventToClientData } from '@tg-search/server/typ
 
 import type { ClientSendEventFn } from '../composables/useBridge'
 
+import { registerAIChatEventHandlers } from './ai-chat'
 import { registerBasicEventHandlers } from './auth'
 import { registerConfigEventHandlers } from './config'
 import { registerDialogEventHandlers } from './dialog'
@@ -10,7 +11,6 @@ import { registerMessageEventHandlers } from './message'
 import { registerServerEventHandlers } from './server'
 import { registerStorageEventHandlers } from './storage'
 import { registerTakeoutEventHandlers } from './takeout'
-import { registerAIChatEventHandlers } from './ai-chat'
 
 export type ClientEventHandler<T extends keyof WsEventToClient> = (data: WsEventToClientData<T>) => void
 export type ClientRegisterEventHandler = <T extends keyof WsEventToClient>(event: T, handler: ClientEventHandler<T>) => void

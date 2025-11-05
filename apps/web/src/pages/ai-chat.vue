@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { CoreRetrievalMessages } from '@tg-search/core/types'
-
 import { useAIChatStore, useBridgeStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -123,12 +121,12 @@ onMounted(() => {
     <!-- Messages Area -->
     <div
       ref="messagesContainer"
-      class="flex-1 space-y-4 overflow-y-auto p-6"
+      class="flex-1 overflow-y-auto p-6 space-y-4"
     >
       <!-- Empty state -->
       <div
         v-if="messages.length === 0"
-        class="flex h-full flex-col items-center justify-center text-muted-foreground"
+        class="h-full flex flex-col items-center justify-center text-muted-foreground"
       >
         <span class="i-lucide-message-square-text mb-4 text-6xl opacity-20" />
         <p class="text-center text-sm">
@@ -144,7 +142,7 @@ onMounted(() => {
         :class="message.role === 'user' ? 'justify-end' : 'justify-start'"
       >
         <div
-          class="max-w-[80%] space-y-2 rounded-lg px-4 py-3"
+          class="max-w-[80%] rounded-lg px-4 py-3 space-y-2"
           :class="message.role === 'user'
             ? 'bg-primary text-primary-foreground'
             : 'border bg-card'
@@ -158,7 +156,7 @@ onMounted(() => {
           <!-- Retrieved messages (only for assistant messages) -->
           <div
             v-if="message.role === 'assistant' && message.retrievedMessages && message.retrievedMessages.length > 0"
-            class="mt-3 space-y-2 border-t border-border pt-3"
+            class="mt-3 border-t border-border pt-3 space-y-2"
           >
             <div class="flex items-center gap-2 text-xs font-medium opacity-70">
               <span class="i-lucide-info h-3 w-3" />
@@ -169,7 +167,7 @@ onMounted(() => {
               <div
                 v-for="(retrieved, idx) in message.retrievedMessages"
                 :key="`${message.id}-retrieved-${idx}`"
-                class="cursor-pointer rounded border bg-muted/50 p-2 text-xs transition-colors hover:bg-accent/50"
+                class="cursor-pointer border rounded bg-muted/50 p-2 text-xs transition-colors hover:bg-accent/50"
                 @click="viewMessageInChat(retrieved.chatId, Number(retrieved.platformMessageId))"
               >
                 <div class="mb-1 flex items-center justify-between">
@@ -207,7 +205,7 @@ onMounted(() => {
         v-if="isLoading"
         class="flex justify-start"
       >
-        <div class="max-w-[80%] space-y-2 rounded-lg border bg-card px-4 py-3">
+        <div class="max-w-[80%] border rounded-lg bg-card px-4 py-3 space-y-2">
           <div class="flex items-center gap-2 text-sm text-muted-foreground">
             <span class="i-lucide-loader-circle animate-spin" />
             <span>{{ t('aiChat.aiThinking') }}</span>
@@ -220,7 +218,7 @@ onMounted(() => {
         v-if="error"
         class="flex justify-center"
       >
-        <div class="max-w-[80%] rounded-lg border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div class="max-w-[80%] border border-destructive rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <div class="flex items-center gap-2">
             <span class="i-lucide-alert-circle h-4 w-4" />
             <span>{{ error }}</span>
@@ -236,7 +234,7 @@ onMounted(() => {
           <textarea
             v-model="messageInput"
             :placeholder="t('aiChat.typeYourMessage')"
-            class="max-h-32 min-h-12 flex-1 resize-none rounded-lg border bg-background px-4 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="max-h-32 min-h-12 flex-1 resize-none border rounded-lg bg-background px-4 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             rows="1"
             @keydown="handleKeyPress"
           />
