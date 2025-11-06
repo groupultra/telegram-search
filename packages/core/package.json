@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.3.11",
+    "@electric-sql/pglite": "^0.3.13",
     "@guiiai/logg": "catalog:",
     "@henrygd/queue": "^1.1.1",
     "@moeru/std": "0.1.0-beta.13",
@@ -52,6 +52,6 @@
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3",
     "@types/pg": "^8.15.6",
-    "tsdown": "^0.15.12"
+    "tsdown": "^0.16.0"
   }
 }

@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.3.11",
+    "@electric-sql/pglite": "^0.3.13",
     "@guiiai/logg": "catalog:",
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
@@ -23,7 +23,7 @@
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3",
     "pathe": "^2.0.3",
-    "tsdown": "^0.15.12",
+    "tsdown": "^0.16.0",
     "vite-node": "^5.0.0"
   }
 }
