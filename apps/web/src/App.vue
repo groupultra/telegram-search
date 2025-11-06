@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // https://github.com/moeru-ai/airi/blob/bd497051fe7090dc021888f127ae7b0d78095210/apps/stage-web/src/App.vue
 
-import { useAuthStore, useBridgeStore, useSettingsStore } from '@tg-search/client'
+import { evictExpiredOrOversized, useAuthStore, useAvatarStore, useBridgeStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
-import { onMounted, watch } from 'vue'
+import { onBeforeUnmount, onMounted, watch } from 'vue'
 import { RouterView } from 'vue-router'
 import { Toaster } from 'vue-sonner'
 
@@ -19,6 +19,41 @@ onMounted(async () => {
   usePWAStore().init()
 
   hideSplashScreen()
+})
+
+const avatarStore = useAvatarStore()
+let avatarCleanupTimer: number | undefined
+
+/**
+ * Setup periodic avatar cache cleanup to revoke expired blob URLs.
+ * - Runs every 15 minutes to keep memory footprint small.
+ * - Clears timer on unmount to avoid dangling intervals.
+ */
+function setupAvatarCleanupScheduler() {
+  // Initial cleanup on app start
+  avatarStore.cleanupExpired()
+  // Also evict expired or oversized records from IndexedDB (50MB budget)
+  evictExpiredOrOversized().catch((error) => {
+    // Warn-only logging to comply with lint rules
+    console.warn('[Avatar] Failed to evict records on init', error)
+  })
+  // 15 minutes interval
+  avatarCleanupTimer = window.setInterval(() => {
+    avatarStore.cleanupExpired()
+    evictExpiredOrOversized().catch((error) => {
+      // Warn-only logging to comply with lint rules
+      console.warn('[Avatar] Failed to evict records in interval', error)
+    })
+  }, 15 * 60 * 1000)
+}
+
+onMounted(() => {
+  setupAvatarCleanupScheduler()
+})
+
+onBeforeUnmount(() => {
+  if (avatarCleanupTimer)
+    window.clearInterval(avatarCleanupTimer)
 })
 
 // const isDark = useDark()

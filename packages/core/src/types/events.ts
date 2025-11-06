@@ -98,10 +98,20 @@ export interface FetchMessageOpts {
 
 export interface DialogEventToCore {
   'dialog:fetch': () => void
+  /**
+   * Request fetching a single dialog's avatar immediately.
+   * Used by frontend to prioritize avatars within viewport.
+   */
+  'dialog:avatar:fetch': (data: { chatId: number | string }) => void
 }
 
 export interface DialogEventFromCore {
   'dialog:data': (data: { dialogs: CoreDialog[] }) => void
+  /**
+   * Emit avatar bytes for a single dialog. Frontend should convert bytes to blobUrl
+   * and attach it to the corresponding chat. This event is incremental and small-sized.
+   */
+  'dialog:avatar:data': (data: { chatId: number, byte: Uint8Array | { data: number[] }, mimeType: string, fileId?: string }) => void
 }
 
 // ============================================================================
@@ -110,10 +120,18 @@ export interface DialogEventFromCore {
 
 export interface EntityEventToCore {
   'entity:me:fetch': () => void
+  /**
+   * Lazy fetch of a user's avatar by userId. Core should respond with 'entity:avatar:data'.
+   */
+  'entity:avatar:fetch': (data: { userId: string }) => void
 }
 
 export interface EntityEventFromCore {
   'entity:me:data': (data: CoreUserEntity) => void
+  /**
+   * Emit avatar bytes for a single user. Frontend converts to blobUrl and caches.
+   */
+  'entity:avatar:data': (data: { userId: string, byte: Uint8Array | { data: number[] }, mimeType: string, fileId?: string }) => void
 }
 
 export interface CoreBaseEntity {

@@ -8,4 +8,8 @@ export interface CoreDialog {
   messageCount?: number
   lastMessage?: string
   lastMessageDate?: Date
+  // Optional avatar metadata and client blob url
+  avatarFileId?: string
+  avatarUpdatedAt?: Date
+  avatarBlobUrl?: string
 }

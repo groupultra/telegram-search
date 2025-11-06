@@ -64,5 +64,6 @@ words:
   - vitest
   - vueuse
   - xsai
+  - xsschema
 ignoreWords: []
 import: []

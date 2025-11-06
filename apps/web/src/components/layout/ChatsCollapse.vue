@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CoreDialog, DialogType } from '@tg-search/core/types'
 
+import { useAvatarStore } from '@tg-search/client'
 import { useRoute, useRouter } from 'vue-router'
 
 import Avatar from '../ui/Avatar.vue'
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const route = useRoute()
+const avatarStore = useAvatarStore()
 
 function isActiveChat(chatId: string) {
   return route.params.chatId === chatId
@@ -27,6 +29,14 @@ function isActiveChat(chatId: string) {
 
 function toggleActive() {
   emit('update:toggle-active')
+}
+
+/**
+ * Compute chat avatar URL via centralized avatar store.
+ * Keeps TTL and in-memory cache consistent across components.
+ */
+function getChatAvatarUrl(chatId: string | number) {
+  return avatarStore.getChatAvatarUrl(chatId)
 }
 </script>
 
@@ -62,6 +72,7 @@ function toggleActive() {
         @click="router.push(`/chat/${chat.id}`)"
       >
         <Avatar
+          :src="getChatAvatarUrl(chat.id)"
           :name="chat.name"
           size="sm"
           class="flex-shrink-0"

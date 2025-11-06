@@ -18,9 +18,9 @@
     "defu": "^6.1.4",
     "ofetch": "^1.5.1",
     "pako": "^2.1.0",
-    "pinia": "^3.0.3",
+    "pinia": "^3.0.4",
     "uuid": "^13.0.0",
-    "vue": "^3.5.22",
+    "vue": "^3.5.23",
     "vue-sonner": "catalog:"
   },
   "devDependencies": {

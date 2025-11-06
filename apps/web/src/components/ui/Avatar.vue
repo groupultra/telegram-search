@@ -67,6 +67,8 @@ const backgroundColor = computed(() => {
         v-if="src"
         :src="src"
         :alt="name"
+        loading="lazy"
+        decoding="async"
         class="h-full w-full object-cover"
       >
       <span v-else class="text-sm">{{ initials }}</span>

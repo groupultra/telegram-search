@@ -18,6 +18,7 @@ import { registerSessionEventHandlers } from './event-handlers/session'
 import { registerStorageEventHandlers } from './event-handlers/storage'
 import { registerTakeoutEventHandlers } from './event-handlers/takeout'
 import { useMessageResolverRegistry } from './message-resolvers'
+import { createAvatarResolver } from './message-resolvers/avatar-resolver'
 import { createEmbeddingResolver } from './message-resolvers/embedding-resolver'
 import { createJiebaResolver } from './message-resolvers/jieba-resolver'
 import { createLinkResolver } from './message-resolvers/link-resolver'
@@ -50,6 +51,8 @@ export function basicEventHandler(
 
   registry.register('media', createMediaResolver(ctx))
   registry.register('user', createUserResolver(ctx))
+  // Centralized avatar fetching for users (via messages)
+  registry.register('avatar', createAvatarResolver(ctx))
   registry.register('link', createLinkResolver())
   registry.register('embedding', createEmbeddingResolver())
   registry.register('jieba', createJiebaResolver())

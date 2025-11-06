@@ -15,5 +15,11 @@ export function registerDialogEventHandlers(ctx: CoreContext) {
 
       emitter.emit('storage:record:dialogs', { dialogs })
     })
+
+    // Prioritized single-avatar fetch for viewport-visible items
+    emitter.on('dialog:avatar:fetch', async ({ chatId }) => {
+      logger.withFields({ chatId }).verbose('Fetching single dialog avatar')
+      await dialogService.fetchSingleDialogAvatar(String(chatId))
+    })
   }
 }
