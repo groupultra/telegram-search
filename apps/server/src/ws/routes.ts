@@ -1,7 +1,7 @@
 import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { App } from 'h3'
 
-import type { WsEventToClientData, WsMessageToServer } from './events'
+import type { WsMessageToServer } from './events'
 import type { Peer } from './types'
 
 import { useLogger } from '@guiiai/logg'
@@ -11,61 +11,60 @@ import { defineWebSocketHandler } from 'h3'
 
 import { sendWsEvent } from './events'
 
-export interface ClientState {
-  ctx?: CoreContext
-
-  isConnected: boolean
+/**
+ * Account state - one per Telegram account
+ * Persists across WebSocket reconnections
+ */
+export interface AccountState {
+  ctx: CoreContext
   phoneNumber?: string
+  isConnected: boolean
+  // Core event listeners (registered once, shared by all WebSocket connections)
+  coreEventListeners: Map<keyof FromCoreEvent, (data: any) => void>
+  // Active WebSocket peers for this account
+  activePeers: Set<string>
+  createdAt: number
+  lastActive: number
 }
-
-type EventListener = <T extends keyof FromCoreEvent>(data: WsEventToClientData<T>) => void
 
 export function setupWsRoutes(app: App) {
   const logger = useLogger('server:ws')
-  const clientStatesBySession = new Map<string, ClientState>()
-  const eventListenersByPeer = new Map<string, Map<keyof FromCoreEvent, EventListener>>()
 
-  function useSessionId(peer: Peer) {
-    const url = new URL(peer.request.url)
-    const urlSessionId = url.searchParams.get('sessionId')
-    return urlSessionId || crypto.randomUUID()
-  }
+  // One AccountState per account (by accountId/sessionId)
+  // This NEVER gets cleaned up (unless explicitly requested)
+  const accountStates = new Map<string, AccountState>()
 
-  function updatePeerSessionState(peer: Peer) {
-    const sessionId = useSessionId(peer)
-    let state: ClientState
+  // Transient per-peer data (cleaned up when WebSocket closes)
+  const peerToAccountId = new Map<string, string>()
 
-    if (!clientStatesBySession.has(sessionId)) {
-      logger.withFields({ sessionId }).log('Session created')
+  /**
+   * Get or create account state
+   * Key principle: Account state is created once and reused
+   */
+  function getOrCreateAccount(accountId: string): AccountState {
+    if (!accountStates.has(accountId)) {
+      logger.withFields({ accountId }).log('Creating new account state')
 
       const ctx = createCoreInstance(useConfig())
-      state = {
+      const account: AccountState = {
         ctx,
         isConnected: false,
+        coreEventListeners: new Map(),
+        activePeers: new Set(),
+        createdAt: Date.now(),
+        lastActive: Date.now(),
       }
 
-      clientStatesBySession.set(sessionId, state)
-    }
-    else {
-      logger.withFields({ sessionId }).log('Session restored')
-
-      state = clientStatesBySession.get(sessionId)!
+      accountStates.set(accountId, account)
     }
 
-    return {
-      sessionId,
-      state,
-    }
+    const account = accountStates.get(accountId)!
+    account.lastActive = Date.now()
+    return account
   }
 
-  function usePeerSessionState(peer: Peer) {
-    const sessionId = useSessionId(peer)
-
-    return {
-      sessionId,
-      state: clientStatesBySession.get(sessionId)!,
-    }
-  }
+  // We need to track peer objects for broadcasting
+  const peerObjects = new Map<string, Peer>()
 
   app.use('/ws', defineWebSocketHandler({
     async upgrade(req) {
@@ -78,19 +77,36 @@ export function setupWsRoutes(app: App) {
     },
 
     async open(peer) {
-      const { state, sessionId } = updatePeerSessionState(peer)
+      const url = new URL(peer.request.url)
+      const accountId = url.searchParams.get('sessionId') || crypto.randomUUID()
 
-      logger.withFields({ peerId: peer.id }).log('Websocket connection opened')
+      logger.withFields({ peerId: peer.id, accountId }).log('WebSocket connection opened')
 
-      sendWsEvent(peer, 'server:connected', { sessionId, connected: state.isConnected })
+      // Get or create account state (reuses existing if available)
+      const account = getOrCreateAccount(accountId)
 
-      if (!eventListenersByPeer.has(peer.id)) {
-        eventListenersByPeer.set(peer.id, new Map())
-      }
+      // Track this peer
+      peerToAccountId.set(peer.id, accountId)
+      account.activePeers.add(peer.id)
+      peerObjects.set(peer.id, peer)
+
+      logger.withFields({ accountId, activePeers: account.activePeers.size }).log('Peer added to account')
+
+      sendWsEvent(peer, 'server:connected', { sessionId: accountId, connected: account.isConnected })
     },
 
     async message(peer, message) {
-      const { state } = usePeerSessionState(peer)
+      const accountId = peerToAccountId.get(peer.id)
+      if (!accountId) {
+        logger.withFields({ peerId: peer.id }).warn('Peer not associated with account')
+        return
+      }
+
+      const account = accountStates.get(accountId)
+      if (!account) {
+        logger.withFields({ accountId }).warn('Account not found')
+        return
+      }
 
       const event = message.json<WsMessageToServer>()
 
@@ -99,30 +115,43 @@ export function setupWsRoutes(app: App) {
           if (!event.data.event.startsWith('server:')) {
             const eventName = event.data.event as keyof FromCoreEvent
 
-            const fn = (data: WsEventToClientData<keyof FromCoreEvent>) => {
-              logger.withFields({ eventName }).debug('Sending event to client')
-              sendWsEvent(peer, eventName, data)
-            }
+            // Register core event listener (shared, only once per account)
+            if (!account.coreEventListeners.has(eventName)) {
+              const listener = (...args: any[]) => {
+                const data = args[0] // Extract data from event emitter args
+                // Broadcast to ALL active peers of this account
+                account.activePeers.forEach((peerId) => {
+                  const targetPeer = peerObjects.get(peerId)
+                  if (targetPeer) {
+                    sendWsEvent(targetPeer, eventName, data)
+                  }
+                })
+              }
 
-            state.ctx?.emitter.on(eventName, fn as any)
-            eventListenersByPeer.get(peer.id)?.set(eventName, fn)
+              account.ctx.emitter.on(eventName, listener as any)
+              account.coreEventListeners.set(eventName, listener as any)
+
+              logger.withFields({ eventName, accountId }).debug('Registered shared core event listener')
+            }
           }
         }
         else {
-          logger.withFields({ type: event.type }).log('Message received')
+          logger.withFields({ type: event.type, accountId }).log('Message received')
 
-          state.ctx?.emitter.emit(event.type, event.data as CoreEventData<keyof ToCoreEvent>)
+          // Emit to core context
+          account.ctx.emitter.emit(event.type, event.data as CoreEventData<keyof ToCoreEvent>)
         }
 
+        // Update account state based on events
         switch (event.type) {
           case 'auth:login':
-            state.phoneNumber = event.data.phoneNumber
-            state.ctx?.emitter.once('auth:connected', () => {
-              state.isConnected = true
+            account.phoneNumber = event.data.phoneNumber
+            account.ctx.emitter.once('auth:connected', () => {
+              account.isConnected = true
             })
             break
           case 'auth:logout':
-            state.isConnected = false
+            account.isConnected = false
             break
         }
       }
@@ -131,13 +160,37 @@ export function setupWsRoutes(app: App) {
       }
     },
 
-    close(peer) {
-      logger.withFields({ peerId: peer.id }).log('Websocket connection closed')
+    async close(peer) {
+      logger.withFields({ peerId: peer.id }).log('WebSocket connection closed')
 
-      const { state } = usePeerSessionState(peer)
-      eventListenersByPeer.get(peer.id)?.forEach((fn, eventName) => {
-        state.ctx?.emitter.removeListener(eventName, fn as any)
-      })
+      const accountId = peerToAccountId.get(peer.id)
+      if (!accountId) {
+        return
+      }
+
+      const account = accountStates.get(accountId)
+      if (!account) {
+        return
+      }
+
+      // Remove this peer from the account
+      account.activePeers.delete(peer.id)
+      peerToAccountId.delete(peer.id)
+      peerObjects.delete(peer.id)
+
+      logger.withFields({ accountId, remainingPeers: account.activePeers.size }).log('Peer removed from account')
+
+      // DON'T clean up the account or CoreContext!
+      // The account state persists even when all WebSocket connections are closed
+      // This allows:
+      // 1. Multiple tabs to share the same Telegram connection
+      // 2. Background tasks to continue running
+      // 3. Fast reconnection without re-authentication
+
+      // Optional: Log when account has no active connections
+      if (account.activePeers.size === 0) {
+        logger.withFields({ accountId }).log('Account has no active connections, but keeping state alive')
+      }
     },
   }))
 }

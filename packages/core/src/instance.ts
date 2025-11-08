@@ -16,7 +16,23 @@ export function createCoreInstance(config: Config): CoreContext {
 }
 
 export async function destroyCoreInstance(ctx: CoreContext) {
-  // ctx.emitter.emit('auth:logout')
+  // Emit cleanup event to notify all services
   ctx.emitter.emit('core:cleanup')
-  ctx.emitter.removeAllListeners()
+
+  // Give services time to cleanup
+  await new Promise(resolve => setTimeout(resolve, 100))
+
+  // Disconnect Telegram client if connected
+  try {
+    const client = ctx.getClient()
+    if (client && client.connected) {
+      await client.disconnect()
+    }
+  }
+  catch {
+    // Client may not be set or already disconnected, ignore
+  }
+
+  // Use the cleanup method from CoreContext
+  ctx.cleanup()
 }
