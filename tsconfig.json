@@ -1,16 +1,25 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
     "declaration": true,
+    "declarationMap": true,
     "sourceMap": true,
     "esModuleInterop": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
+  "references": [
+    { "path": "apps/server" },
+    { "path": "packages/client" },
+    { "path": "packages/core" },
+    { "path": "packages/common" }
+  ],
+  "files": [],
   "include": [
     "scripts/**/*"
   ],

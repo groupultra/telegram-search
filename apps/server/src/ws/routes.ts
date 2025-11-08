@@ -6,7 +6,7 @@ import type { Peer } from './types'
 
 import { useLogger } from '@guiiai/logg'
 import { useConfig } from '@tg-search/common'
-import { createCoreInstance } from '@tg-search/core'
+import { createCoreInstance, destroyCoreInstance } from '@tg-search/core'
 import { defineWebSocketHandler } from 'h3'
 
 import { sendWsEvent } from './events'
@@ -152,6 +152,14 @@ export function setupWsRoutes(app: App) {
             break
           case 'auth:logout':
             account.isConnected = false
+            // When user explicitly logs out, destroy the account
+            logger.withFields({ accountId }).log('User logged out, destroying account')
+            await destroyCoreInstance(account.ctx)
+            accountStates.delete(accountId)
+            // Disconnect all peers
+            account.activePeers.forEach((peerId) => {
+              peerObjects.get(peerId)?.close()
+            })
             break
         }
       }
