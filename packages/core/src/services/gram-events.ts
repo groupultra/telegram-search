@@ -15,6 +15,12 @@ export function createGramEventsService(ctx: CoreContext) {
   let eventType: NewMessage | undefined
 
   function registerGramEvents() {
+    // Prevent duplicate registration
+    if (eventHandler) {
+      logger.debug('Telegram event handler already registered')
+      return
+    }
+
     eventHandler = (event) => {
       if (event.message && useConfig().api.telegram.receiveMessage) {
         emitter.emit('gram:message:received', { message: event.message })

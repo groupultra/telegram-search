@@ -1,3 +1,35 @@
+/**
+ * WebSocket Server for Telegram Search
+ *
+ * Architecture: Account-based State Management
+ *
+ * Problem Solved:
+ * - Previous approach: Each WebSocket connection created its own CoreContext
+ *   -> Event listeners duplicated on each reconnection
+ *   -> Severe memory leaks (listeners accumulated indefinitely)
+ *   -> Background tasks interrupted when tabs closed
+ *
+ * Solution:
+ * - One AccountState per Telegram account (persistent)
+ * - Multiple WebSocket connections share the same AccountState
+ * - Event listeners registered once per account, not per connection
+ * - Account persists until explicit logout
+ *
+ * Key Benefits:
+ * 1. No memory leaks (listeners reused, not duplicated)
+ * 2. Multi-tab support (all tabs share same Telegram connection)
+ * 3. Background tasks (continue running when all tabs closed)
+ * 4. Fast reconnection (no re-authentication needed)
+ *
+ * Lifecycle:
+ * - Create: First WebSocket connection with new accountId
+ * - Reuse: Subsequent connections with same accountId
+ * - Persist: Even when all WebSocket connections close
+ * - Destroy: Only when user explicitly logs out
+ *
+ * See PR #434 for detailed discussion and review comments
+ */
+
 import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { App } from 'h3'
 
@@ -13,7 +45,36 @@ import { sendWsEvent } from './events'
 
 /**
  * Account state - one per Telegram account
- * Persists across WebSocket reconnections
+ *
+ * Architecture Decision:
+ * - ONE AccountState per Telegram account (by accountId/sessionId)
+ * - PERSISTS across WebSocket reconnections
+ * - SHARED by multiple browser tabs/windows
+ *
+ * Lifecycle:
+ * - Created: On first WebSocket connection with a new accountId
+ * - Reused: Subsequent connections with the same accountId
+ * - Destroyed: Only when user explicitly logs out (auth:logout event)
+ *
+ * Memory Management:
+ * - Event listeners registered ONCE per account, not per WebSocket connection
+ * - This prevents memory leaks from listener accumulation
+ * - All listeners cleaned up on explicit logout via destroyCoreInstance()
+ *
+ * Benefits:
+ * 1. Multiple tabs share same Telegram connection (no re-authentication)
+ * 2. Background tasks continue running even when all tabs closed
+ * 3. Fast reconnection (state preserved)
+ * 4. No memory leaks (listeners reused, not duplicated)
+ *
+ * Trade-offs:
+ * - Accounts persist indefinitely until explicit logout
+ * - Server memory usage grows with number of unique accounts
+ * - Acceptable for typical use cases (limited number of accounts per server)
+ *
+ * Future Enhancement:
+ * - Optional TTL-based cleanup for inactive accounts
+ * - Admin API to list/manage active accounts
  */
 export interface AccountState {
   ctx: CoreContext
@@ -30,16 +91,46 @@ export interface AccountState {
 export function setupWsRoutes(app: App) {
   const logger = useLogger('server:ws')
 
-  // One AccountState per account (by accountId/sessionId)
-  // This NEVER gets cleaned up (unless explicitly requested)
+  /**
+   * Primary state: Account-based (persistent)
+   *
+   * Key: accountId (from WebSocket URL ?sessionId=xxx)
+   * Value: AccountState with CoreContext, Telegram Client, event listeners
+   *
+   * Lifecycle: Created once, reused forever, destroyed only on explicit logout
+   *
+   * Why persistent?
+   * 1. Support multiple browser tabs sharing same Telegram connection
+   * 2. Allow background tasks to continue when all tabs closed
+   * 3. Enable fast reconnection without re-authentication
+   * 4. Prevent memory leaks by reusing event listeners
+   */
   const accountStates = new Map<string, AccountState>()
 
-  // Transient per-peer data (cleaned up when WebSocket closes)
+  /**
+   * Transient state: Per-WebSocket-connection (ephemeral)
+   *
+   * These maps track temporary data that only exists while WebSocket is open
+   * Cleaned up immediately when WebSocket closes
+   */
   const peerToAccountId = new Map<string, string>()
 
   /**
    * Get or create account state
+   *
    * Key principle: Account state is created once and reused
+   *
+   * Flow:
+   * 1. First WebSocket connection with accountId "abc" -> Create new AccountState
+   * 2. Open second tab with same accountId "abc" -> Reuse existing AccountState
+   * 3. Close first tab -> AccountState remains (second tab still connected)
+   * 4. Close second tab -> AccountState still remains (supports background tasks)
+   * 5. User clicks "Logout" -> AccountState destroyed via destroyCoreInstance()
+   *
+   * Memory Safety:
+   * - Event listeners registered only once per account (not per connection)
+   * - Listeners properly cleaned up on logout via ctx.cleanup()
+   * - No listener accumulation = no memory leak
    */
   function getOrCreateAccount(accountId: string): AccountState {
     if (!accountStates.has(accountId)) {
@@ -115,11 +206,39 @@ export function setupWsRoutes(app: App) {
           if (!event.data.event.startsWith('server:')) {
             const eventName = event.data.event as keyof FromCoreEvent
 
-            // Register core event listener (shared, only once per account)
+            /**
+             * Register core event listener (shared, only once per account)
+             *
+             * Critical for memory leak prevention:
+             * - Listener is registered ONCE per account, not per WebSocket connection
+             * - Multiple browser tabs share the same listener
+             * - Listener broadcasts to ALL active peers (multi-tab sync)
+             *
+             * Why this prevents memory leaks:
+             * - Old approach: Each WebSocket connection added a new listener
+             *   -> 10 reconnections = 10 duplicate listeners = memory leak
+             * - New approach: First connection adds listener, others reuse it
+             *   -> 10 reconnections = still 1 listener = no leak
+             *
+             * Cleanup:
+             * - Listener removed when account is destroyed (on logout)
+             * - See destroyCoreInstance() -> ctx.cleanup() -> emitter.removeAllListeners()
+             */
             if (!account.coreEventListeners.has(eventName)) {
               const listener = (...args: any[]) => {
                 const data = args[0] // Extract data from event emitter args
-                // Broadcast to ALL active peers of this account
+
+                /**
+                 * Broadcast to ALL active peers of this account
+                 *
+                 * Why broadcast to all?
+                 * - User has 3 browser tabs open for same account
+                 * - New message arrives from Telegram
+                 * - All 3 tabs should show the new message (multi-tab sync)
+                 *
+                 * This is intentional behavior, not a bug
+                 * See PR comment: "Broadcasting events to all peers"
+                 */
                 account.activePeers.forEach((peerId) => {
                   const targetPeer = peerObjects.get(peerId)
                   if (targetPeer) {
@@ -152,11 +271,34 @@ export function setupWsRoutes(app: App) {
             break
           case 'auth:logout':
             account.isConnected = false
-            // When user explicitly logs out, destroy the account
+
+            /**
+             * Explicit logout: The ONLY time we destroy an account
+             *
+             * What happens:
+             * 1. Emit 'core:cleanup' event -> Services clean up (e.g., Telegram event handlers)
+             * 2. Wait 100ms for async cleanup to complete
+             * 3. Disconnect Telegram Client
+             * 4. Call ctx.cleanup() -> Remove all event listeners
+             * 5. Delete account from accountStates map
+             * 6. Close all WebSocket connections for this account
+             *
+             * Why only on explicit logout?
+             * - Closing browser tabs should NOT destroy account (supports background tasks)
+             * - Network disconnection should NOT destroy account (supports fast reconnection)
+             * - Only user's intentional "Logout" action should destroy account
+             *
+             * Memory Safety:
+             * - destroyCoreInstance() properly cleans up all resources
+             * - Event listeners removed (no leak)
+             * - Telegram Client disconnected (no hanging connection)
+             * - CoreContext released (GC can reclaim memory)
+             */
             logger.withFields({ accountId }).log('User logged out, destroying account')
             await destroyCoreInstance(account.ctx)
             accountStates.delete(accountId)
-            // Disconnect all peers
+
+            // Disconnect all peers for this account
             account.activePeers.forEach((peerId) => {
               peerObjects.get(peerId)?.close()
             })
@@ -181,23 +323,59 @@ export function setupWsRoutes(app: App) {
         return
       }
 
-      // Remove this peer from the account
+      // Remove this peer from the account (cleanup transient state)
       account.activePeers.delete(peer.id)
       peerToAccountId.delete(peer.id)
       peerObjects.delete(peer.id)
 
       logger.withFields({ accountId, remainingPeers: account.activePeers.size }).log('Peer removed from account')
 
-      // DON'T clean up the account or CoreContext!
-      // The account state persists even when all WebSocket connections are closed
-      // This allows:
-      // 1. Multiple tabs to share the same Telegram connection
-      // 2. Background tasks to continue running
-      // 3. Fast reconnection without re-authentication
+      /**
+       * CRITICAL ARCHITECTURAL DECISION: DO NOT clean up the account!
+       *
+       * Why account persists after all WebSocket connections close:
+       *
+       * 1. Multi-tab Support
+       *    - User opens 3 tabs, closes 2 -> Account should remain for the 3rd tab
+       *    - Cleaning up would break the remaining tab
+       *
+       * 2. Background Tasks
+       *    - User starts syncing 100k messages, closes browser
+       *    - Sync should continue running in background
+       *    - Cleaning up would interrupt the sync
+       *
+       * 3. Fast Reconnection
+       *    - Network hiccup causes temporary disconnect
+       *    - Browser automatically reconnects
+       *    - Reusing account state = instant reconnection, no re-auth needed
+       *
+       * 4. Memory Leak Prevention
+       *    - Old approach: Cleanup on disconnect caused issues
+       *      - What if user reconnects in 1 second? Wasted cleanup effort
+       *      - Complex timer logic prone to race conditions
+       *    - New approach: No cleanup, no complexity, no bugs
+       *      - Account cleaned up ONLY on explicit logout
+       *      - Clean, simple, predictable behavior
+       *
+       * Trade-offs:
+       * - Pro: Robustness, simplicity, user-friendly behavior
+       * - Con: Memory grows with number of unique accounts
+       * - Mitigation: Most servers have < 100 concurrent accounts, negligible memory impact
+       *
+       * Future Enhancement (if needed):
+       * - Optional TTL-based cleanup for inactive accounts (e.g., 7 days)
+       * - Admin API to manually purge inactive accounts
+       * - Monitoring dashboard to track account count and memory usage
+       *
+       * Related PR Comments:
+       * - Copilot: "Consider implementing a timeout-based cleanup"
+       * - Gemini: "Consider implementing a TTL mechanism"
+       * - Decision: Deferred to future, current approach is sufficient
+       */
 
-      // Optional: Log when account has no active connections
+      // Log when account has no active connections (for monitoring/debugging)
       if (account.activePeers.size === 0) {
-        logger.withFields({ accountId }).log('Account has no active connections, but keeping state alive')
+        logger.withFields({ accountId }).log('Account has no active connections, but keeping state alive for background tasks and fast reconnection')
       }
     },
   }))

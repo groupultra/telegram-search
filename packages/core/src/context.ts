@@ -107,8 +107,14 @@ export function createCoreContext() {
     return telegramClient
   }
 
+  // Setup memory leak detection and get cleanup function
+  const cleanupMemoryLeakDetector = detectMemoryLeak(emitter)
+
   function cleanup() {
     useLogger().debug('Cleaning up CoreContext')
+
+    // Clean up memory leak detector first
+    cleanupMemoryLeakDetector()
 
     // Remove all event listeners
     emitter.removeAllListeners()
@@ -131,8 +137,6 @@ export function createCoreContext() {
   wrapEmitterEmit(emitter, (event) => {
     useLogger('core:event').withFields({ event }).debug('Core event emitted')
   })
-
-  detectMemoryLeak(emitter)
 
   return {
     emitter,

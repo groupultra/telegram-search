@@ -2,13 +2,19 @@ import type { CoreEmitter } from '../context'
 
 import { useLogger } from '@guiiai/logg'
 
-export function detectMemoryLeak(emitter: CoreEmitter) {
+/**
+ * Detect memory leaks in development mode
+ * Returns a cleanup function to clear the interval
+ */
+export function detectMemoryLeak(emitter: CoreEmitter): () => void {
   // Memory leak detection in development mode
   // eslint-disable-next-line node/prefer-global/process
   const isDevelopment = typeof process !== 'undefined' && process.env?.NODE_ENV === 'development'
 
+  let checkInterval: NodeJS.Timeout | undefined
+
   if (isDevelopment) {
-    const checkInterval = setInterval(() => {
+    checkInterval = setInterval(() => {
       const eventNames = emitter.eventNames()
       const listenerCounts: Record<string, number> = {}
 
@@ -34,10 +40,13 @@ export function detectMemoryLeak(emitter: CoreEmitter) {
         }).debug('Event listener count check')
       }
     }, 60000) // Check every minute
+  }
 
-    // Clean up interval on cleanup
-    emitter.once('core:cleanup', () => {
+  // Return cleanup function
+  return () => {
+    if (checkInterval) {
       clearInterval(checkInterval)
-    })
+      checkInterval = undefined
+    }
   }
 }

@@ -42,6 +42,7 @@ words:
   - pglite
   - pgvector
   - pinia
+  - reconnections
   - reka
   - Retriable
   - rolldown
