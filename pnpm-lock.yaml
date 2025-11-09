@@ -21,6 +21,9 @@ catalogs:
     '@xsai/tool':
       specifier: ^0.4.0-beta.8
       version: 0.4.0-beta.8
+    tsdown:
+      specifier: ^0.16.0
+      version: 0.16.0
     vue-sonner:
       specifier: ^2.0.9
       version: 2.0.9
@@ -125,7 +128,7 @@ importers:
         specifier: ^2.0.3
         version: 2.0.3
       tsdown:
-        specifier: ^0.16.0
+        specifier: 'catalog:'
         version: 0.16.0(typescript@5.9.3)(unplugin-unused@0.5.5)(vue-tsc@3.1.3(typescript@5.9.3))
       vite-node:
         specifier: ^5.0.0
@@ -413,7 +416,7 @@ importers:
         specifier: ^8.15.6
         version: 8.15.6
       tsdown:
-        specifier: ^0.16.0
+        specifier: 'catalog:'
         version: 0.16.0(typescript@5.9.3)(unplugin-unused@0.5.5)(vue-tsc@3.1.3(typescript@5.9.3))
 
   packages/pglite-inspector:
@@ -424,6 +427,9 @@ importers:
       '@vue/devtools-kit':
         specifier: ^8.0.3
         version: 8.0.3
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.16.0(typescript@5.9.3)(unplugin-unused@0.5.5)(vue-tsc@3.1.3(typescript@5.9.3))
       vue:
         specifier: ^3.5.0
         version: 3.5.23(typescript@5.9.3)

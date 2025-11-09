@@ -10,6 +10,7 @@ catalog:
   '@xsai-ext/providers-local': ^0.4.0-beta.8
   '@xsai/embed': ^0.4.0-beta.8
   '@xsai/tool': ^0.4.0-beta.8
+  tsdown: ^0.16.0
   vue-sonner: ^2.0.9
   xsai: ^0.4.0-beta.8
   xsschema: ^0.4.0-beta.8

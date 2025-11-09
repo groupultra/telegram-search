@@ -22,7 +22,7 @@ onMounted(() => {
       replReady.value = true
     }
     else {
-      // 如果数据库还没初始化，等待一下
+      // Wait for the database to be initialized
       let attempts = 0
       const maxAttempts = 50 // 5 seconds total
 
@@ -121,7 +121,7 @@ onMounted(() => {
 </template>
 
 <style>
-/* 确保 REPL 组件占满容器 */
+/* Ensure the REPL component fills the container */
 pglite-repl {
   display: block;
   height: 100%;

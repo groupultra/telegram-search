@@ -7,13 +7,15 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsdown"
   },
   "peerDependencies": {
     "@electric-sql/pglite": "*",
     "vue": "^3.5.0"
   },
   "dependencies": {
-    "@vue/devtools-kit": "^8.0.3"
+    "@vue/devtools-kit": "^8.0.3",
+    "tsdown": "catalog:"
   }
 }

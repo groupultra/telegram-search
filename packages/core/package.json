@@ -52,6 +52,6 @@
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3",
     "@types/pg": "^8.15.6",
-    "tsdown": "^0.16.0"
+    "tsdown": "catalog:"
   }
 }
