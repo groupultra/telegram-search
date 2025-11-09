@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.3.13",
+    "@electric-sql/pglite": "^0.3.14",
     "@guiiai/logg": "catalog:",
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
