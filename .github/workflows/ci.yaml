@@ -17,7 +17,6 @@ on:
 
 jobs:
   lint:
-    if: ${{ github.event_name == 'push' }}
     name: Lint
     runs-on: ubuntu-latest
     steps:
