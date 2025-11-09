@@ -75,3 +75,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: ${{ steps.image_tag.outputs.tags }}
+          env:
+            TELEGRAM_API_ID=${{secrets.TELEGRAM_API_ID}}
+            TELEGRAM_API_HASH=${{secrets.TELEGRAM_API_HASH}}

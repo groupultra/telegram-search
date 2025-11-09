@@ -181,7 +181,7 @@ defineExpose({
     <!-- Loading indicators -->
     <div
       v-if="isScrolling"
-      class="absolute left-1/2 top-4 z-20 flex items-center gap-1.5 border rounded-full bg-card/90 px-3 py-1.5 text-xs text-muted-foreground font-medium leading-none shadow-lg backdrop-blur-sm -translate-x-1/2"
+      class="absolute right-2 top-4 z-20 flex items-center gap-1.5 border rounded-full bg-card/90 px-3 py-1.5 text-xs text-muted-foreground font-medium leading-none shadow-lg backdrop-blur-sm -translate-x-1/2"
     >
       <span class="i-lucide-loader-2 inline-block h-3 w-3 animate-spin" />
       {{ t('virtualMessageList.scrolling') }}

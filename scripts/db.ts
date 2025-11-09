@@ -1,5 +1,6 @@
-import { spawn } from 'node:child_process'
 import process from 'node:process'
+
+import { spawn } from 'node:child_process'
 
 import { useLogger } from '@guiiai/logg'
 
@@ -24,6 +25,7 @@ import { getDatabaseDSN, initConfig, parseEnvFlags, useConfig } from '../package
     })
 
     child.stdout.on('data', (data) => {
+      // eslint-disable-next-line no-console
       console.log(data.toString())
     })
 

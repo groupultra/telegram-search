@@ -2,12 +2,13 @@ import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
 import type { drizzle as drizzlePg } from 'drizzle-orm/postgres-js'
 
+import postgres from 'postgres'
+import migrations from 'virtual:drizzle-migrations.sql'
+
 import { migrate as migratePg } from '@proj-airi/drizzle-orm-browser-migrator/pg'
 import { getDatabaseDSN } from '@tg-search/common'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import migrations from 'virtual:drizzle-migrations.sql'
 
 export type PostgresDB = ReturnType<typeof drizzlePg>
 

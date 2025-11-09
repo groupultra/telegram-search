@@ -1,4 +1,4 @@
-import type { CoreEntity } from '../services/entity'
+import type { CoreEntity } from '../types/events'
 
 import { and, eq, sql } from 'drizzle-orm'
 

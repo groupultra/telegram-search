@@ -1,31 +1,58 @@
-import type { Api } from 'telegram'
-
 import type { CoreContext } from '../context'
 
+import { useLogger } from '@guiiai/logg'
 import { useConfig } from '@tg-search/common'
 import { NewMessage } from 'telegram/events'
 
-export interface GramEventsEventToCore {}
-
-export interface GramEventsEventFromCore {
-  'gram:message:received': (data: { message: Api.Message }) => void
-}
-
-export type GramEventsEvent = GramEventsEventFromCore & GramEventsEventToCore
 export type GramEventsService = ReturnType<typeof createGramEventsService>
 
 export function createGramEventsService(ctx: CoreContext) {
   const { emitter, getClient } = ctx
+  const logger = useLogger('core:gram-events')
+
+  // Store event handler reference and event type for cleanup
+  let eventHandler: ((event: any) => void) | undefined
+  let eventType: NewMessage | undefined
 
   function registerGramEvents() {
-    getClient().addEventHandler((event) => {
+    // Prevent duplicate registration
+    if (eventHandler) {
+      logger.debug('Telegram event handler already registered')
+      return
+    }
+
+    eventHandler = (event) => {
       if (event.message && useConfig().api.telegram.receiveMessage) {
         emitter.emit('gram:message:received', { message: event.message })
       }
-    }, new NewMessage({}))
+    }
+    eventType = new NewMessage({})
+    getClient().addEventHandler(eventHandler, eventType)
+    logger.debug('Registered Telegram event handler')
   }
+
+  function cleanup() {
+    if (eventHandler && eventType) {
+      try {
+        const client = getClient()
+        if (client) {
+          client.removeEventHandler(eventHandler, eventType)
+          logger.debug('Removed Telegram event handler')
+        }
+      }
+      catch (error) {
+        logger.withError(error).warn('Failed to remove Telegram event handler')
+      }
+      eventHandler = undefined
+      eventType = undefined
+    }
+  }
+
+  // Listen for cleanup event
+  emitter.once('core:cleanup', cleanup)
 
   return {
     registerGramEvents,
+    cleanup,
   }
 }

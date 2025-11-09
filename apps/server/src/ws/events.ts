@@ -1,6 +1,6 @@
 import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 
-import type { Peer } from './routes'
+import type { Peer } from './types'
 
 import { useLogger } from '@guiiai/logg'
 
@@ -15,7 +15,6 @@ export interface WsEventFromClient {
 
 export type WsEventToServer = ToCoreEvent & WsEventFromClient
 export type WsEventToClient = FromCoreEvent & WsEventFromServer
-// export type WsEvent = WsEventToServer & WsEventToClient
 
 export type WsEventToServerData<T extends keyof WsEventToServer> = Parameters<WsEventToServer[T]>[0]
 export type WsEventToClientData<T extends keyof WsEventToClient> = Parameters<WsEventToClient[T]>[0]
@@ -33,8 +32,6 @@ export type WsMessageToServer = {
     data: WsEventToServerData<T>
   }
 }[keyof WsEventToServer]
-
-// export type WsMessage = WsMessageToClient | WsMessageToServer
 
 export function sendWsEvent<T extends keyof WsEventToClient>(
   peer: Peer,
@@ -73,17 +70,3 @@ export function createWsMessage<T extends keyof WsEventToClient>(
     return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
   }
 }
-
-// export function isMessageType<K extends keyof WsEvent>(
-//   message: WsMessageToClient | WsMessageToServer,
-//   type: K,
-// ): message is WsMessageToClient {
-//   return message.type === type
-// }
-
-// export function toWsMessage(message: Message): WsMessageToClient | WsMessageToServer | null {
-//   if ('type' in message && typeof message.type === 'string') {
-//     return message as WsMessageToClient | WsMessageToServer
-//   }
-//   return null
-// }

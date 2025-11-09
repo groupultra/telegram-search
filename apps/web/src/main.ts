@@ -1,8 +1,9 @@
+import NProgress from 'nprogress'
+
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { usePGlite } from '@tg-search/core'
 import { setupPGliteDevtools } from '@unbird/pglite-inspector'
-import NProgress from 'nprogress'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
 import { createApp } from 'vue'
@@ -10,6 +11,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { routes as generatedRoutes } from 'vue-router/auto-routes'
 
 import App from './App.vue'
+
+import { ensureChatAvatarDirective } from './directives/ensure-chat-avatar'
 import { i18n } from './modules/i18n'
 
 import '@unocss/reset/tailwind.css'
@@ -68,4 +71,5 @@ if (import.meta.env.DEV) {
   })
 }
 
+app.directive('ensure-chat-avatar', ensureChatAvatarDirective)
 app.mount('#app')

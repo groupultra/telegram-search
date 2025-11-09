@@ -1,4 +1,40 @@
 {
+  "aiChat": {
+    "aiChat": "AI 对话",
+    "aiThinking": "AI 思考中...",
+    "clearChat": "清空对话",
+    "configureApi": "请先在设置中配置 AI API",
+    "contextRetrievals": "上下文检索",
+    "copiedToClipboard": "已复制到剪贴板",
+    "debugInfo": "调试信息",
+    "deepSearch": "深度搜索",
+    "deepSearching": "深度搜索上下文...",
+    "errorSendingMessage": "发送消息失败",
+    "initialResults": "初始结果",
+    "noRetrievedInfo": "暂无相关信息",
+    "ragParameters": "RAG 参数",
+    "relatedMessages": "相关消息",
+    "retrievedInfo": "检索到的相关信息",
+    "searchQuery": "搜索查询",
+    "searchingContext": "搜索相关上下文...",
+    "send": "发送",
+    "timeFilter": "时间过滤",
+    "totalMessages": "总消息数",
+    "typeYourMessage": "输入您的消息...",
+    "userFilter": "用户过滤",
+    "viewInChat": "在聊天中查看"
+  },
+  "base": {
+    "toaster": {
+      "pwaUpdateReady": {
+        "action": {
+          "notNow": "不更新",
+          "ok": "更新"
+        },
+        "message": "有新的版本可用。请更新到最新版本。"
+      }
+    }
+  },
   "chat": {
     "forceLoadNewer": "强制加载更新的消息",
     "forceLoadOlder": "强制加载更早的消息",
@@ -22,6 +58,14 @@
     "search": "搜索",
     "type": "类型",
     "user": "用户"
+  },
+  "errors": {
+    "floodWait": "请求过于频繁，请等待 {seconds} 秒后再试。",
+    "rpcError": "{message} (错误代码: {code})",
+    "takeoutInitDelay": "Takeout 会话初始化延迟。请等待 {seconds} 秒。",
+    "takeoutRequired": "需要数据导出授权。请在 Telegram 客户端中授权 Data Export 数据导出。",
+    "taskAborted": "任务已取消",
+    "unknownError": "发生未知错误"
   },
   "home": {
     "home": "主页"
@@ -89,8 +133,12 @@
     "jiebaResolver": "中文分词解析器",
     "language": "语言",
     "linkResolver": "链接解析器",
+    "llm": "大语言模型",
+    "llmModel": "LLM 模型",
+    "llmProvider": "LLM 提供商",
     "login": "登录",
     "logout": "退出登录",
+    "maxTokens": "最大令牌数",
     "mediaResolver": "媒体解析器",
     "model": "模型",
     "open": "开启",
@@ -102,55 +150,37 @@
     "switchToDarkMode": "切换到暗色模式",
     "switchToLightMode": "切换到亮色模式",
     "telegramApi": "Telegram API",
+    "temperature": "温度",
     "useCachedMessage": "使用数据库缓存的聊天记录",
     "userResolver": "用户解析器"
   },
   "sync": {
     "cancel": "取消",
+    "deselectAll": "取消全选",
     "dismiss": "关闭",
+    "getMessages": "获取消息",
     "incrementalSync": "增量同步",
+    "incrementalSyncCompleted": "增量同步完成",
+    "initTakeoutSession": "初始化数据导出会话",
     "noInProgressTask": "没有进行中的任务",
+    "processedMessages": "已处理 {processed}/{total} 条消息",
     "resync": "重新同步",
     "resyncDescription": "清空数据并重新同步所有消息",
-    "selectChats": "选择聊天",
     "selectAll": "全选",
-    "deselectAll": "取消全选",
     "selectAllInfo": "已选择 {count} 个聊天，可开始同步。",
     "selectAllWarning": "已选择 {count} 个聊天，同步可能耗时较长。",
+    "selectChats": "选择聊天",
     "selectedChats": "已选择 {count} 个聊天",
     "startSync": "开始同步",
     "startSyncPrompt": "首次同步需要在 Telegram 客户端中授权 Data Export 数据导出，并且刷新页面之后再尝试一次。",
+    "startingIncrementalSync": "开始增量同步",
     "sync": "同步",
     "syncCompleted": "同步完成",
     "syncFailed": "同步失败",
     "syncPrompt": "同步对话之后才能搜索全部的聊天记录",
-    "syncing": "同步中...",
-    "initTakeoutSession": "初始化数据导出会话",
-    "getMessages": "获取消息",
-    "startingIncrementalSync": "开始增量同步",
-    "incrementalSyncCompleted": "增量同步完成",
-    "processedMessages": "已处理 {processed}/{total} 条消息"
+    "syncing": "同步中..."
   },
   "virtualMessageList": {
     "scrolling": "加载中"
-  },
-  "errors": {
-    "floodWait": "请求过于频繁，请等待 {seconds} 秒后再试。",
-    "takeoutRequired": "需要数据导出授权。请在 Telegram 客户端中授权 Data Export 数据导出。",
-    "takeoutInitDelay": "Takeout 会话初始化延迟。请等待 {seconds} 秒。",
-    "rpcError": "{message} (错误代码: {code})",
-    "unknownError": "发生未知错误",
-    "taskAborted": "任务已取消"
-  },
-  "base": {
-    "toaster": {
-      "pwaUpdateReady": {
-        "message": "有新的版本可用。请更新到最新版本。",
-        "action": {
-          "notNow": "不更新",
-          "ok": "更新"
-        }
-      }
-    }
   }
 }

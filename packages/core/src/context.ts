@@ -1,53 +1,22 @@
 import type { TelegramClient } from 'telegram'
 
-import type { ClientInstanceEventFromCore, ClientInstanceEventToCore } from './instance'
-import type { SessionEventFromCore, SessionEventToCore } from './services'
-import type { ConfigEventFromCore, ConfigEventToCore } from './services/config'
-import type { ConnectionEventFromCore, ConnectionEventToCore } from './services/connection'
-import type { DialogEventFromCore, DialogEventToCore } from './services/dialog'
-import type { EntityEventFromCore, EntityEventToCore } from './services/entity'
-import type { GramEventsEventFromCore, GramEventsEventToCore } from './services/gram-events'
-import type { MessageEventFromCore, MessageEventToCore } from './services/message'
-import type { MessageResolverEventFromCore, MessageResolverEventToCore } from './services/message-resolver'
-import type { StorageEventFromCore, StorageEventToCore } from './services/storage'
-import type { TakeoutEventFromCore, TakeoutEventToCore } from './services/takeout'
+import type {
+  CoreEmitter,
+  CoreEvent,
+  FromCoreEvent,
+  ToCoreEvent,
+} from './types/events'
 
 import { useLogger } from '@guiiai/logg'
 import { EventEmitter } from 'eventemitter3'
 
-export type FromCoreEvent = ClientInstanceEventFromCore
-  & MessageEventFromCore
-  & DialogEventFromCore
-  & ConnectionEventFromCore
-  & TakeoutEventFromCore
-  & SessionEventFromCore
-  & EntityEventFromCore
-  & StorageEventFromCore
-  & ConfigEventFromCore
-  & GramEventsEventFromCore
-  & MessageResolverEventFromCore
+import { detectMemoryLeak } from './utils/memory-leak-detector'
 
-export type ToCoreEvent = ClientInstanceEventToCore
-  & MessageEventToCore
-  & DialogEventToCore
-  & ConnectionEventToCore
-  & TakeoutEventToCore
-  & SessionEventToCore
-  & EntityEventToCore
-  & StorageEventToCore
-  & ConfigEventToCore
-  & GramEventsEventToCore
-  & MessageResolverEventToCore
-
-export type CoreEvent = FromCoreEvent & ToCoreEvent
-
-export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
-
-export type CoreEmitter = EventEmitter<CoreEvent>
-
-export type Service<T> = (ctx: CoreContext) => T
+export type { CoreEmitter, CoreEvent, CoreEventData, FromCoreEvent, ToCoreEvent } from './types/events'
 
 export type CoreContext = ReturnType<typeof createCoreContext>
+
+export type Service<T> = (ctx: CoreContext) => T
 
 function createErrorHandler(emitter: CoreEmitter) {
   const logger = useLogger()
@@ -138,6 +107,29 @@ export function createCoreContext() {
     return telegramClient
   }
 
+  // Setup memory leak detection and get cleanup function
+  const cleanupMemoryLeakDetector = detectMemoryLeak(emitter)
+
+  function cleanup() {
+    useLogger().debug('Cleaning up CoreContext')
+
+    // Clean up memory leak detector first
+    cleanupMemoryLeakDetector()
+
+    // Remove all event listeners
+    emitter.removeAllListeners()
+
+    // Clear event sets
+    toCoreEvents.clear()
+    fromCoreEvents.clear()
+
+    // Clear client reference
+    // @ts-expect-error - Allow setting to undefined for cleanup
+    telegramClient = undefined
+
+    useLogger().debug('CoreContext cleaned up')
+  }
+
   wrapEmitterOn(emitter, (event) => {
     useLogger('core:event').withFields({ event }).debug('Core event received')
   })
@@ -155,6 +147,7 @@ export function createCoreContext() {
     setClient,
     getClient: ensureClient,
     withError,
+    cleanup,
   }
 }
 

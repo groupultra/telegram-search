@@ -1,5 +1,6 @@
 export * from './composables'
 export * from './event-handlers'
 export * from './stores'
+export * from './utils/avatar-cache'
 export * from './utils/error'
 export * from './utils/message'

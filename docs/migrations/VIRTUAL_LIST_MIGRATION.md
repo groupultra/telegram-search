@@ -57,7 +57,7 @@ The virtual list system uses the **[virtua](https://github.com/inokawa/virtua)**
 
 **Before:**
 ```typescript
-sortedMessageArray: computed(() => 
+sortedMessageArray: computed(() =>
   messageWindow.value?.getSortedIds()
     .map(id => messageWindow.value?.get(id))
     .filter(Boolean) ?? []
@@ -68,7 +68,7 @@ messageWindow,
 **After:**
 ```typescript
 // FIXME: too heavy to compute every time
-sortedMessageArray: computed(() => 
+sortedMessageArray: computed(() =>
   messageWindow.value?.getSortedIds()
     .map(id => messageWindow.value!.get(id)!) ?? []
 ),
@@ -112,7 +112,7 @@ Located at: `apps/web/src/components/VirtualMessageList.vue`
 **Props:**
 - `messages: CoreMessage[]` - Array of messages to display
 - `onScrollToTop?: () => void` - Callback when scrolled to top
-- `onScrollToBottom?: () => void` - Callback when scrolled to bottom  
+- `onScrollToBottom?: () => void` - Callback when scrolled to bottom
 - `autoScrollToBottom?: boolean` - Whether to auto-scroll on new messages
 
 **Events:**
@@ -138,6 +138,17 @@ External library: [virtua](https://github.com/inokawa/virtua)
 
 **Usage Example:**
 ```vue
+<script setup>
+import { VList } from 'virtua/vue'
+
+import MessageBubble from './MessageBubble.vue'
+
+const messages = ref([/* ... */])
+function onScroll(offset) {
+  console.log('Scrolled to:', offset)
+}
+</script>
+
 <template>
   <VList
     :data="messages"
@@ -149,16 +160,6 @@ External library: [virtua](https://github.com/inokawa/virtua)
     </template>
   </VList>
 </template>
-
-<script setup>
-import { VList } from 'virtua/vue'
-import MessageBubble from './MessageBubble.vue'
-
-const messages = ref([/* ... */])
-const onScroll = (offset) => {
-  console.log('Scrolled to:', offset)
-}
-</script>
 ```
 
 ## Settings Store Enhancement
@@ -186,6 +187,7 @@ New debug mode toggle in Settings Dialog:
     <div class="i-lucide-database h-5 w-5" />
     <span>调试模式</span>
   </div>
+
   <Switch v-model="debugMode">
     {{ debugMode ? '开启' : '关闭' }}
   </Switch>
@@ -273,7 +275,7 @@ Virtua automatically measures and tracks item heights:
 
 ### Common Issues
 
-1. **Scroll Position Jumps**: 
+1. **Scroll Position Jumps**:
    - Virtua automatically handles height measurement
    - Ensure items have stable keys (use message.uuid)
    - Allow time for initial measurement to complete
@@ -296,4 +298,4 @@ Enable debug mode in settings to access:
 
 ---
 
-This migration brings significant performance improvements to the Telegram Search application, enabling smooth handling of large chat histories while maintaining responsive user experience. 
+This migration brings significant performance improvements to the Telegram Search application, enabling smooth handling of large chat histories while maintaining responsive user experience.

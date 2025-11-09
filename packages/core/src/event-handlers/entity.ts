@@ -12,5 +12,10 @@ export function registerEntityEventHandlers(ctx: CoreContext) {
       logger.verbose('Getting me info')
       await entityService.getMeInfo()
     })
+
+    emitter.on('entity:avatar:fetch', async ({ userId }) => {
+      logger.withFields({ userId }).verbose('Fetching user avatar')
+      await entityService.fetchUserAvatar(userId)
+    })
   }
 }

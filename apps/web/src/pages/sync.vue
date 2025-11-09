@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { getErrorMessage, useAuthStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
 import NProgress from 'nprogress'
+
+import { getErrorMessage, useAuthStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -8,8 +9,9 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
-import { Button } from '../components/ui/Button'
 import Dialog from '../components/ui/Dialog.vue'
+
+import { Button } from '../components/ui/Button'
 import { Progress } from '../components/ui/Progress'
 
 const { t } = useI18n()

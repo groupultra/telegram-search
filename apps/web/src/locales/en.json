@@ -1,4 +1,40 @@
 {
+  "aiChat": {
+    "aiChat": "AI Chat",
+    "aiThinking": "AI is thinking...",
+    "clearChat": "Clear Chat",
+    "configureApi": "Please configure AI API in settings first",
+    "contextRetrievals": "Context Retrievals",
+    "copiedToClipboard": "Copied to clipboard",
+    "debugInfo": "Debug Info",
+    "deepSearch": "Deep Search",
+    "deepSearching": "Deep searching for context...",
+    "errorSendingMessage": "Failed to send message",
+    "initialResults": "Initial Results",
+    "noRetrievedInfo": "No relevant information found",
+    "ragParameters": "RAG Parameters",
+    "relatedMessages": "Related Messages",
+    "retrievedInfo": "Retrieved Information",
+    "searchQuery": "Search Query",
+    "searchingContext": "Searching for relevant context...",
+    "send": "Send",
+    "timeFilter": "Time Filter",
+    "totalMessages": "Total Messages",
+    "typeYourMessage": "Type your message...",
+    "userFilter": "User Filter",
+    "viewInChat": "View in Chat"
+  },
+  "base": {
+    "toaster": {
+      "pwaUpdateReady": {
+        "action": {
+          "notNow": "Not now",
+          "ok": "Update"
+        },
+        "message": "A new version of the app is available. Please update to the latest version."
+      }
+    }
+  },
   "chat": {
     "forceLoadNewer": "Force load newer messages",
     "forceLoadOlder": "Force load older messages",
@@ -22,6 +58,14 @@
     "search": "Search",
     "type": "Type",
     "user": "User"
+  },
+  "errors": {
+    "floodWait": "Rate limited. Please wait {seconds} seconds.",
+    "rpcError": "{message} (Code: {code})",
+    "takeoutInitDelay": "Takeout session initialization delayed. Please wait {seconds} seconds.",
+    "takeoutRequired": "Data export authorization required. Please request takeout access from Telegram.",
+    "taskAborted": "Task was cancelled",
+    "unknownError": "An unknown error occurred"
   },
   "home": {
     "home": "Home"
@@ -89,8 +133,12 @@
     "jiebaResolver": "Jieba Resolver",
     "language": "Language",
     "linkResolver": "Link Resolver",
+    "llm": "Large Language Model",
+    "llmModel": "LLM Model",
+    "llmProvider": "LLM Provider",
     "login": "Login",
     "logout": "Logout",
+    "maxTokens": "Max Tokens",
     "mediaResolver": "Media Resolver",
     "model": "Model",
     "open": "Open",
@@ -102,55 +150,37 @@
     "switchToDarkMode": "Switch to dark mode",
     "switchToLightMode": "Switch to light mode",
     "telegramApi": "Telegram API",
+    "temperature": "Temperature",
     "useCachedMessage": "Use cached messages from database",
     "userResolver": "User Resolver"
   },
   "sync": {
     "cancel": "Cancel",
+    "deselectAll": "Deselect All",
     "dismiss": "Dismiss",
+    "getMessages": "Get messages",
     "incrementalSync": "Incremental Sync",
+    "incrementalSyncCompleted": "Incremental sync completed",
+    "initTakeoutSession": "Init takeout session",
     "noInProgressTask": "No task in progress",
+    "processedMessages": "Processed {processed}/{total} messages",
     "resync": "Re-sync",
     "resyncDescription": "Clear data and resync all messages",
-    "selectChats": "Select Chats",
     "selectAll": "Select All",
-    "deselectAll": "Deselect All",
     "selectAllInfo": "Selected {count} chats. You can start syncing now.",
     "selectAllWarning": "You selected {count} chats. Sync may take a long time.",
+    "selectChats": "Select Chats",
     "selectedChats": "{count} chats selected",
     "startSync": "Start Sync",
     "startSyncPrompt": "The first synchronization requires authorization of Data Export in the Telegram client, and then refresh the page and try again.",
+    "startingIncrementalSync": "Starting incremental sync",
     "sync": "Sync",
     "syncCompleted": "Sync completed",
     "syncFailed": "Sync failed",
     "syncPrompt": "After a synchronized conversation, you can search all chat records.",
-    "syncing": "Syncing...",
-    "initTakeoutSession": "Init takeout session",
-    "getMessages": "Get messages",
-    "startingIncrementalSync": "Starting incremental sync",
-    "incrementalSyncCompleted": "Incremental sync completed",
-    "processedMessages": "Processed {processed}/{total} messages"
+    "syncing": "Syncing..."
   },
   "virtualMessageList": {
-    "scrolling": "Scrolling..."
-  },
-  "errors": {
-    "floodWait": "Rate limited. Please wait {seconds} seconds.",
-    "takeoutRequired": "Data export authorization required. Please request takeout access from Telegram.",
-    "takeoutInitDelay": "Takeout session initialization delayed. Please wait {seconds} seconds.",
-    "rpcError": "{message} (Code: {code})",
-    "unknownError": "An unknown error occurred",
-    "taskAborted": "Task was cancelled"
-  },
-  "base": {
-    "toaster": {
-      "pwaUpdateReady": {
-        "message": "A new version of the app is available. Please update to the latest version.",
-        "action": {
-          "notNow": "Not now",
-          "ok": "Update"
-        }
-      }
-    }
+    "scrolling": "Loading..."
   }
 }

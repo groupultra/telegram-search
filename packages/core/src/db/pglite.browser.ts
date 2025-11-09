@@ -2,6 +2,8 @@ import type { Results } from '@electric-sql/pglite'
 import type { Logger } from '@guiiai/logg'
 import type { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 
+import migrations from 'virtual:drizzle-migrations.sql'
+
 import { IdbFs, PGlite } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
 import { migrate } from '@proj-airi/drizzle-orm-browser-migrator/pglite'
@@ -9,7 +11,6 @@ import { defineInvokeEventa, defineInvokeHandler } from '@unbird/eventa'
 import { createContext } from '@unbird/eventa/adapters/websocket/native'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/pglite'
-import migrations from 'virtual:drizzle-migrations.sql'
 
 import { Conn } from '../ws'
 

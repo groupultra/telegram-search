@@ -1,3 +1,6 @@
+import presetAnimations from 'unocss-preset-animations'
+import presetShadcn from 'unocss-preset-shadcn'
+
 import { presetChromatic } from '@proj-airi/unocss-preset-chromatic'
 import {
   defineConfig,
@@ -7,9 +10,7 @@ import {
   presetWebFonts,
   presetWind3,
 } from 'unocss'
-import presetAnimations from 'unocss-preset-animations'
 import { presetScrollbar } from 'unocss-preset-scrollbar'
-import presetShadcn from 'unocss-preset-shadcn'
 
 export function sharedUnoConfig() {
   return defineConfig({

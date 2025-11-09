@@ -1,20 +1,37 @@
 <script setup lang="ts">
 import type { CoreMessage } from '@tg-search/core/types'
 
-import { formatMessageTimestamp } from '@tg-search/client'
+import { formatMessageTimestamp, useAvatarStore } from '@tg-search/client'
+import { computed } from 'vue'
 
 import Avatar from '../ui/Avatar.vue'
 import MediaRenderer from './media/MediaRenderer.vue'
 
-defineProps<{
+const props = defineProps<{
   message: CoreMessage
 }>()
+
+const avatarStore = useAvatarStore()
+
+/**
+ * Setup message avatar state.
+ * - Computes current avatar URL from centralized avatar store.
+ * - Network fetching is orchestrated at the chat page level to avoid duplicates.
+ */
+function useMessageAvatar() {
+  const avatarSrc = computed(() => avatarStore.getUserAvatarUrl(props.message.fromId))
+
+  return { avatarSrc }
+}
+
+const { avatarSrc } = useMessageAvatar()
 </script>
 
 <template>
   <div class="group mx-3 my-1 flex items-start gap-3 rounded-xl p-3 transition-all duration-200 md:mx-4 md:gap-4 hover:bg-accent/50">
     <div class="flex-shrink-0 pt-0.5">
       <Avatar
+        :src="avatarSrc"
         :name="message.fromName"
         size="md"
       />

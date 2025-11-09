@@ -18,7 +18,7 @@ function openLink(url: string) {
     @click="processedMedia.webpageData?.url && openLink(processedMedia.webpageData.url)"
   >
     <!-- 预览图 -->
-    <div v-if="processedMedia.webpageData?.previewImage" class="aspect-video bg-gray-100 dark:bg-gray-800">
+    <div v-if="processedMedia.webpageData?.previewImage && !runtimeError" class="aspect-video bg-gray-100 dark:bg-gray-800">
       <img
         :src="processedMedia.webpageData.previewImage"
         class="h-full w-full object-cover"

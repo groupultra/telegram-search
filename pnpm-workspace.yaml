@@ -5,12 +5,14 @@ packages:
 
 catalog:
   '@guiiai/logg': ^1.2.5
-  '@unbird/eslint-config': ^1.0.2
   '@unbird/result': ^1.1.1
-  '@xsai-ext/providers-cloud': ^0.4.0-beta.5
-  '@xsai-ext/providers-local': ^0.4.0-beta.5
-  '@xsai/embed': ^0.4.0-beta.5
+  '@xsai-ext/providers-cloud': ^0.4.0-beta.8
+  '@xsai-ext/providers-local': ^0.4.0-beta.8
+  '@xsai/embed': ^0.4.0-beta.8
+  '@xsai/tool': ^0.4.0-beta.8
   vue-sonner: ^2.0.9
+  xsai: ^0.4.0-beta.8
+  xsschema: ^0.4.0-beta.8
 
 onlyBuiltDependencies:
   - '@parcel/watcher'

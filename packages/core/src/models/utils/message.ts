@@ -1,5 +1,6 @@
-import type { CoreMessage, CoreRetrievalMessages } from '../../index'
 import type { chatMessagesTable } from '../../schemas/chat_messages'
+import type { CoreRetrievalMessages } from '../../types/events'
+import type { CoreMessage } from '../../types/message'
 
 export type DBInsertMessage = typeof chatMessagesTable.$inferInsert
 export type DBSelectMessage = typeof chatMessagesTable.$inferSelect
@@ -8,6 +9,7 @@ export interface DBRetrievalMessages extends Omit<DBSelectMessage, 'content_vect
   similarity?: number
   time_relevance?: number
   combined_score?: number
+  chat_name?: string | null
 }
 
 export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessage {
@@ -90,5 +92,6 @@ export function convertToCoreRetrievalMessages(messages: DBRetrievalMessages[]):
     similarity: message?.similarity,
     timeRelevance: message?.time_relevance,
     combinedScore: message?.combined_score,
+    chatName: message?.chat_name ?? undefined,
   })) satisfies CoreRetrievalMessages[]
 }

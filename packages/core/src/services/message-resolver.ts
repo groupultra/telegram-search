@@ -8,19 +8,6 @@ import { useConfig } from '@tg-search/common'
 
 import { convertToCoreMessage } from '../utils/message'
 
-export interface MessageResolverEventToCore {
-  /**
-   * Processes messages. If `isTakeout` is true, suppresses 'message:data' emissions (browser-facing)
-   * while still recording messages to storage. Consumers should be aware that setting `isTakeout`
-   * changes event side effects.
-   */
-  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean }) => void
-}
-
-export interface MessageResolverEventFromCore {}
-
-export type MessageResolverEvent = MessageResolverEventFromCore & MessageResolverEventToCore
-
 export type MessageResolverService = ReturnType<ReturnType<typeof createMessageResolverService>>
 
 export function createMessageResolverService(ctx: CoreContext) {

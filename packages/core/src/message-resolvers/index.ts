@@ -1,6 +1,6 @@
 import type { Result } from '@unbird/result'
 
-import type { CoreMessage } from '../utils/message'
+import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
 

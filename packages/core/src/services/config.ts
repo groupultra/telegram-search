@@ -5,17 +5,6 @@ import type { CoreContext } from '../context'
 import { configSchema, updateConfig as updateConfigCommon, useConfig } from '@tg-search/common'
 import { safeParse } from 'valibot'
 
-export interface ConfigEventToCore {
-  'config:fetch': () => void
-  'config:update': (data: { config: Config }) => void
-}
-
-export interface ConfigEventFromCore {
-  'config:data': (data: { config: Config }) => void
-}
-
-export type ConfigEvent = ConfigEventFromCore & ConfigEventToCore
-
 export type ConfigService = ReturnType<typeof createConfigService>
 
 export function createConfigService(ctx: CoreContext) {

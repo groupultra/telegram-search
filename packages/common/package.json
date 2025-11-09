@@ -1,7 +1,7 @@
 {
   "name": "@tg-search/common",
   "type": "module",
-  "version": "1.1.23-beta.5",
+  "version": "1.1.24-beta.1",
   "private": true,
   "exports": {
     ".": "./src/index.ts",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@guiiai/logg": "catalog:",
-    "@vue/reactivity": "^3.5.22",
+    "@vue/reactivity": "^3.5.23",
     "defu": "^6.1.4",
     "pathe": "^2.0.3",
     "valibot": "^1.1.0",

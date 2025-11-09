@@ -2,7 +2,9 @@
 
 import type { CorePagination } from '@tg-search/common'
 
-import type { CoreMessage, CoreMessageMediaPhoto, CoreMessageMediaSticker, StorageMessageContextParams } from '../index'
+import type { StorageMessageContextParams } from '../types/events'
+import type { CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../types/media'
+import type { CoreMessage } from '../types/message'
 import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@guiiai/logg'
@@ -214,19 +216,23 @@ export async function retrieveMessages(
     embedding?: number[]
   },
   pagination?: CorePagination,
+  filters?: {
+    fromUserId?: string
+    timeRange?: { start?: number, end?: number }
+  },
 ) {
   const logger = useLogger('models:chat-message:retrieveMessages')
 
   const retrievalMessages: DBRetrievalMessages[] = []
 
   if (content.text) {
-    const relevantMessages = await retrieveJieba(chatId, content.text, pagination)
+    const relevantMessages = await retrieveJieba(chatId, content.text, pagination, filters)
     logger.withFields({ relevantMessages: relevantMessages.length }).verbose('Retrieved jieba messages')
     retrievalMessages.push(...relevantMessages)
   }
 
   if (content.embedding && content.embedding.length !== 0) {
-    const relevantMessages = await retrieveVector(chatId, content.embedding, pagination)
+    const relevantMessages = await retrieveVector(chatId, content.embedding, pagination, filters)
     logger.withFields({ relevantMessages: relevantMessages.length }).verbose('Retrieved vector messages')
     retrievalMessages.push(...relevantMessages)
   }

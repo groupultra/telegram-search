@@ -124,7 +124,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
         try {
           fnQueue.forEach((inQueueFn) => {
             inQueueFn(message.data)
-            fnQueue.pop()
+            fnQueue.shift()
           })
         }
         catch (error) {

@@ -6,15 +6,6 @@ import { useLogger } from '@guiiai/logg'
 import { Err, Ok } from '@unbird/result'
 import { StringSession } from 'telegram/sessions'
 
-export interface SessionEventToCore {
-  'session:update': (data: { phoneNumber: string, session: string }) => void
-  'session:clean': (data: { phoneNumber: string }) => void
-}
-
-export interface SessionEventFromCore {}
-
-export type SessionEvent = SessionEventFromCore & SessionEventToCore
-
 export type SessionService = ReturnType<typeof createSessionService>
 
 // TODO: use Api.SessionManager

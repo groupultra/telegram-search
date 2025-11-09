@@ -1,20 +1,22 @@
 <script lang="ts" setup>
 import type { ChatGroup } from '@tg-search/client'
 
-import { useBridgeStore, useChatStore, useSettingsStore } from '@tg-search/client'
+import buildTime from '~build/time'
+
+import { prefillChatAvatarIntoStore, prefillUserAvatarIntoStore, useAvatarStore, useBridgeStore, useChatStore, useSettingsStore } from '@tg-search/client'
 import { breakpointsTailwind, useBreakpoints, useDark } from '@vueuse/core'
 import { abbreviatedSha as gitShortSha } from '~build/git'
 import { version as pkgVersion } from '~build/package'
-import buildTime from '~build/time'
 import { storeToRefs } from 'pinia'
 import { VList } from 'virtua/vue'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import LanguageSelector from '../components/layout/LanguageSelector.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
 import Avatar from '../components/ui/Avatar.vue'
+
 import { Button } from '../components/ui/Button'
 
 const settingsStore = useSettingsStore()
@@ -24,6 +26,7 @@ const isDark = useDark()
 const websocketStore = useBridgeStore()
 const route = useRoute()
 const router = useRouter()
+const avatarStore = useAvatarStore()
 
 const { t } = useI18n()
 
@@ -130,6 +133,72 @@ function handleAvatarClick() {
     })
   }
 }
+
+/**
+ * Setup current user's avatar state and lazy fetch.
+ * - Computes avatar URL via `useAvatarStore` for active session user.
+ * - Ensures avatar is fetched when layout mounts and when connection status changes.
+ */
+function useCurrentUserAvatar() {
+  const meId = computed(() => websocketStore.getActiveSession()?.me?.id)
+  const userAvatarSrc = computed(() => avatarStore.getUserAvatarUrl(meId.value))
+
+  onMounted(() => {
+    if (meId.value) {
+      // Prefill from disk cache to speed up first paint
+      prefillUserAvatarIntoStore(meId.value).finally(() => avatarStore.ensureUserAvatar(meId.value))
+    }
+  })
+
+  watch(() => websocketStore.getActiveSession()?.isConnected, (connected) => {
+    if (connected && meId.value)
+      avatarStore.ensureUserAvatar(meId.value)
+  })
+
+  return { userAvatarSrc }
+}
+
+const { userAvatarSrc } = useCurrentUserAvatar()
+
+/**
+ * Prefill chat avatars from persistent cache in parallel.
+ * - Avoids sequential IndexedDB waits when chat list is large.
+ * - Only warms cache; network fetch continues to be driven by server events.
+ */
+async function prefillChatAvatarsParallel(list: any[]) {
+  const tasks = list.map(chat => prefillChatAvatarIntoStore(chat.id))
+  try {
+    await Promise.all(tasks)
+  }
+  catch (error) {
+    console.warn('Failed to prefill chat avatars', error)
+  }
+}
+
+// Prefill chat avatars when chat list changes (parallelized)
+watch(chats, (list) => {
+  void prefillChatAvatarsParallel(list)
+}, { immediate: true })
+
+/**
+ * Prioritize fetching avatars for currently visible chats.
+ * - Prefills small set from disk cache
+ * - Triggers prioritized network fetch for missing avatars
+ */
+async function prioritizeVisibleAvatars(list: any[], count = 50) {
+  const top = list.slice(0, count)
+  await prefillChatAvatarsParallel(top)
+  for (const chat of top) {
+    avatarStore.ensureChatAvatar(chat.id, chat.avatarFileId)
+  }
+}
+
+// Prioritize visible avatars on group change and initial render
+watch(activeGroupChats, (list) => {
+  if (!list?.length)
+    return
+  void prioritizeVisibleAvatars(list)
+}, { immediate: true })
 </script>
 
 <template>
@@ -195,6 +264,12 @@ function handleAvatarClick() {
         />
 
         <SidebarSelector
+          path="/ai-chat"
+          icon="i-lucide-message-square-text"
+          :name="t('aiChat.aiChat')"
+        />
+
+        <SidebarSelector
           v-if="!disableSettings"
           path="/settings"
           icon="i-lucide-settings"
@@ -246,11 +321,13 @@ function handleAvatarClick() {
             <template #default="{ item: chat }">
               <div
                 :key="chat.id"
+                v-ensure-chat-avatar="{ chatId: chat.id, fileId: chat.avatarFileId }"
                 :class="{ 'bg-accent text-accent-foreground': route.params.chatId === chat.id.toString() }"
                 class="mx-2 my-0.5 flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
                 @click="router.push(`/chat/${chat.id}`)"
               >
                 <Avatar
+                  :src="avatarStore.getChatAvatarUrl(chat.id)"
                   :name="chat.name"
                   size="sm"
                   class="flex-shrink-0"
@@ -279,6 +356,7 @@ function handleAvatarClick() {
           >
             <div class="h-8 w-8 flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
               <Avatar
+                :src="userAvatarSrc"
                 :name="websocketStore.getActiveSession()?.me?.name"
                 size="sm"
               />

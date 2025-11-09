@@ -1,8 +1,9 @@
 import type { Config, ProxyConfig } from './config-schema'
 import type { RuntimeFlags } from './flags'
 
-import { useLogger } from '@guiiai/logg'
 import defu from 'defu'
+
+import { useLogger } from '@guiiai/logg'
 import { safeParse } from 'valibot'
 
 import { configSchema, generateDefaultConfig } from './config-schema'
