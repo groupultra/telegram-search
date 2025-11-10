@@ -2,7 +2,7 @@
   "name": "@tg-search/web",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.20.0",
+  "packageManager": "pnpm@10.21.0",
   "scripts": {
     "dev": "vite --port 3333",
     "build": "vite build",
