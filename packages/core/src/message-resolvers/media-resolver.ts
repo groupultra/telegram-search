@@ -9,12 +9,18 @@ import type { CoreMessage } from '../types/message'
 import { Buffer } from 'buffer'
 
 import { useLogger } from '@guiiai/logg'
+import { newQueue } from '@henrygd/queue'
 import { fileTypeFromBuffer } from 'file-type'
 
 import { findPhotoByFileId, findStickerByFileId } from '../models'
 
+// 限制并发下载数量，避免同时下载过多文件导致内存爆炸
+const MEDIA_DOWNLOAD_CONCURRENCY = 3
+
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
+  // 创建并发限制队列
+  const downloadQueue = newQueue(MEDIA_DOWNLOAD_CONCURRENCY)
 
   return {
     async* stream(opts: MessageResolverOpts) {
@@ -25,8 +31,9 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           continue
         }
 
-        const fetchedMedia = await Promise.all(
-          message.media.map(async (media) => {
+        // 使用并发限制队列，避免同时下载过多文件
+        const mediaPromises = message.media.map(media =>
+          downloadQueue.add(async () => {
             logger.withFields({ media }).debug('Media')
 
             // FIXME: move it to storage
@@ -35,12 +42,14 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
               // 只有当数据库中有 sticker_bytes 时才直接返回
               if (sticker && sticker.sticker_bytes) {
+                // 直接使用数据库返回的 Buffer，避免重复创建
+                const stickerBytes = sticker.sticker_bytes as Buffer
                 return {
                   messageUUID: message.uuid,
-                  byte: Buffer.from(sticker.sticker_bytes),
+                  byte: stickerBytes,
                   type: media.type,
                   platformId: media.platformId,
-                  mimeType: (await fileTypeFromBuffer(sticker.sticker_bytes))?.mime,
+                  mimeType: (await fileTypeFromBuffer(stickerBytes))?.mime,
                 } satisfies CoreMessageMediaFromCache
               }
             }
@@ -49,12 +58,14 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             if (media.type === 'photo') {
               const photo = (await findPhotoByFileId(media.platformId)).unwrap()
               if (photo && photo.image_bytes) {
+                // 直接使用数据库返回的 Buffer，避免重复创建
+                const imageBytes = photo.image_bytes as Buffer
                 return {
                   messageUUID: message.uuid,
-                  byte: Buffer.from(photo.image_bytes),
+                  byte: imageBytes,
                   type: media.type,
                   platformId: media.platformId,
-                  mimeType: (await fileTypeFromBuffer(photo.image_bytes))?.mime,
+                  mimeType: (await fileTypeFromBuffer(imageBytes))?.mime,
                 } satisfies CoreMessageMediaFromServer
               }
             }
@@ -77,10 +88,24 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           }),
         )
 
+        const fetchedMedia = await Promise.all(mediaPromises)
+
         yield {
           ...message,
           media: fetchedMedia,
         } satisfies CoreMessage
+
+        // 处理完一条消息后，尝试清理媒体数据的引用
+        // 让 GC 能够更及时地回收内存
+        for (const media of fetchedMedia) {
+          if (media.byte) {
+            // 清除 apiMedia 引用，减少内存占用
+            if ('apiMedia' in media) {
+              // eslint-disable-next-line ts/no-explicit-any
+              delete (media as Record<string, any>).apiMedia
+            }
+          }
+        }
       }
     },
   }

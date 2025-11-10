@@ -1,14 +1,34 @@
-import type { Api } from 'telegram'
-
 import type { CoreContext } from '../context'
 import type { TakeoutService } from '../services'
 
 import { useLogger } from '@guiiai/logg'
 import { usePagination } from '@tg-search/common'
+import { Api } from 'telegram'
 
-import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
+import { MEDIA_PROCESS_BATCH_SIZE, MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 import { getChatMessageStatsByChatId } from '../models'
 import { createTask } from '../utils/task'
+
+/**
+ * 检查消息是否包含媒体
+ */
+function hasMedia(message: Api.Message): boolean {
+  return !!(message.media && (
+    message.media instanceof Api.MessageMediaPhoto
+    || message.media instanceof Api.MessageMediaDocument
+  ))
+}
+
+/**
+ * 根据消息内容动态决定批次大小
+ */
+function getDynamicBatchSize(messages: Api.Message[]): number {
+  const mediaCount = messages.filter(hasMedia).length
+  const mediaRatio = messages.length > 0 ? mediaCount / messages.length : 0
+
+  // 如果超过 50% 的消息包含媒体，使用较小的批次
+  return mediaRatio > 0.5 ? MEDIA_PROCESS_BATCH_SIZE : MESSAGE_PROCESS_BATCH_SIZE
+}
 
 export function registerTakeoutEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
@@ -69,12 +89,20 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
 
             messages.push(message)
 
-            if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+            const batchSize = getDynamicBatchSize(messages)
+            if (messages.length >= batchSize) {
               // Check abort signal before emitting
               if (task.abortController.signal.aborted) {
                 logger.verbose('Full sync aborted during batch processing')
                 break
               }
+
+              const mediaCount = messages.filter(hasMedia).length
+              logger.withFields({
+                total: messages.length,
+                withMedia: mediaCount,
+                batchSize,
+              }).debug('Processing takeout batch')
 
               emitter.emit('message:process', { messages, isTakeout: true })
               messages = []
@@ -119,12 +147,20 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
 
               messages.push(message)
 
-              if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+              const batchSize = getDynamicBatchSize(messages)
+              if (messages.length >= batchSize) {
                 // Check abort signal before emitting
                 if (task.abortController.signal.aborted) {
                   logger.verbose('Fallback full sync aborted during batch processing')
                   break
                 }
+
+                const mediaCount = messages.filter(hasMedia).length
+                logger.withFields({
+                  total: messages.length,
+                  withMedia: mediaCount,
+                  batchSize,
+                }).debug('Processing fallback sync batch')
 
                 emitter.emit('message:process', { messages, isTakeout: true })
                 messages = []
@@ -195,12 +231,20 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
               backwardMessageCount++
               totalProcessed++
 
-              if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+              const batchSize = getDynamicBatchSize(messages)
+              if (messages.length >= batchSize) {
                 // Check abort signal before emitting
                 if (task.abortController.signal.aborted) {
                   logger.verbose('Backward fill aborted during batch processing')
                   break
                 }
+
+                const mediaCount = messages.filter(hasMedia).length
+                logger.withFields({
+                  total: messages.length,
+                  withMedia: mediaCount,
+                  batchSize,
+                }).debug('Processing backward fill batch')
 
                 emitter.emit('message:process', { messages, isTakeout: true })
                 messages = []
@@ -247,12 +291,20 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
               forwardMessageCount++
               totalProcessed++
 
-              if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+              const batchSize = getDynamicBatchSize(messages)
+              if (messages.length >= batchSize) {
                 // Check abort signal before emitting
                 if (task.abortController.signal.aborted) {
                   logger.verbose('Forward fill aborted during batch processing')
                   break
                 }
+
+                const mediaCount = messages.filter(hasMedia).length
+                logger.withFields({
+                  total: messages.length,
+                  withMedia: mediaCount,
+                  batchSize,
+                }).debug('Processing forward fill batch')
 
                 emitter.emit('message:process', { messages, isTakeout: true })
                 messages = []

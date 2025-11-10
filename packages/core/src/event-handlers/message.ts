@@ -4,7 +4,29 @@ import type { MessageService } from '../services'
 import { useLogger } from '@guiiai/logg'
 import { Api } from 'telegram/tl'
 
-import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
+import { MEDIA_PROCESS_BATCH_SIZE, MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
+
+/**
+ * 检查消息是否包含媒体
+ */
+function hasMedia(message: Api.Message): boolean {
+  return !!(message.media && (
+    message.media instanceof Api.MessageMediaPhoto
+    || message.media instanceof Api.MessageMediaDocument
+  ))
+}
+
+/**
+ * 根据消息内容动态决定批次大小
+ * 包含大量媒体的消息使用更小的批次，以避免内存占用过高
+ */
+function getDynamicBatchSize(messages: Api.Message[]): number {
+  const mediaCount = messages.filter(hasMedia).length
+  const mediaRatio = messages.length > 0 ? mediaCount / messages.length : 0
+
+  // 如果超过 50% 的消息包含媒体，使用较小的批次
+  return mediaRatio > 0.5 ? MEDIA_PROCESS_BATCH_SIZE : MESSAGE_PROCESS_BATCH_SIZE
+}
 
 export function registerMessageEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
@@ -18,7 +40,15 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
       for await (const message of messageService.fetchMessages(opts.chatId, opts)) {
         messages.push(message)
 
-        if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+        const batchSize = getDynamicBatchSize(messages)
+        if (messages.length >= batchSize) {
+          const mediaCount = messages.filter(hasMedia).length
+          logger.withFields({
+            total: messages.length,
+            withMedia: mediaCount,
+            batchSize,
+          }).debug('Processing message batch')
+
           emitter.emit('message:process', { messages })
           messages = []
         }
