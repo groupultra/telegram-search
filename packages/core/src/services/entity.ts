@@ -3,7 +3,6 @@ import type { Result } from '@unbird/result'
 import type { CoreContext } from '../context'
 import type { CoreUserEntity } from '../types/events'
 
-import { useLogger } from '@guiiai/logg'
 import { Ok } from '@unbird/result'
 
 import { useAvatarHelper } from '../message-resolvers/avatar-resolver'
@@ -13,7 +12,6 @@ export type EntityService = ReturnType<typeof createEntityService>
 
 export function createEntityService(ctx: CoreContext) {
   const { getClient, emitter } = ctx
-  const _logger = useLogger('core:entity')
 
   /**
    * Delegate avatar fetching to centralized AvatarHelper to avoid duplication.
