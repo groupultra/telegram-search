@@ -7,13 +7,13 @@ import type { CoreContext } from '../context'
 
 import { Buffer } from 'buffer'
 
-// @ts-expect-error - tiny-lru 没有类型定义文件
-import lru from 'tiny-lru'
-
 import { useLogger } from '@guiiai/logg'
 import { newQueue } from '@henrygd/queue'
 import { Ok } from '@unbird/result'
 import { Api } from 'telegram'
+import { lru } from 'tiny-lru'
+
+import { AVATAR_CACHE_TTL, AVATAR_DOWNLOAD_CONCURRENCY, MAX_AVATAR_CACHE_SIZE } from '../constants'
 
 /**
  * Shared avatar cache entry.
@@ -24,12 +24,6 @@ interface AvatarCacheEntry {
   mimeType?: string
   byte?: Buffer
 }
-
-// LRU 缓存配置
-const MAX_AVATAR_CACHE_SIZE = 200 // 最多缓存 200 个头像
-const AVATAR_CACHE_TTL = 30 * 60 * 1000 // 30 分钟过期（毫秒）
-const AVATAR_DOWNLOAD_CONCURRENCY = 4 // 头像下载并发限制
-
 /**
  * Per-context singleton store for avatar helper to avoid duplicated instances.
  */

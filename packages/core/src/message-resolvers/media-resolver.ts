@@ -12,10 +12,8 @@ import { useLogger } from '@guiiai/logg'
 import { newQueue } from '@henrygd/queue'
 import { fileTypeFromBuffer } from 'file-type'
 
+import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
 import { findPhotoByFileId, findStickerByFileId } from '../models'
-
-// 限制并发下载数量，避免同时下载过多文件导致内存爆炸
-const MEDIA_DOWNLOAD_CONCURRENCY = 3
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
