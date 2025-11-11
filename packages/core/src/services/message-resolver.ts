@@ -69,10 +69,10 @@ export function createMessageResolverService(ctx: CoreContext) {
 
       await Promise.allSettled(promises)
 
-      // 显式清理消息引用，帮助 GC 回收内存
-      // 特别是对于包含大量媒体的消息，及时释放内存很重要
-      coreMessages.length = 0
-      messages.length = 0
+      
+      
+      
+      
     }
 
     return {

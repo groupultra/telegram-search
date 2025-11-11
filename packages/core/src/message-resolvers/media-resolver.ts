@@ -40,8 +40,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
               // 只有当数据库中有 sticker_bytes 时才直接返回
               if (sticker && sticker.sticker_bytes) {
-                // 直接使用数据库返回的 Buffer，避免重复创建
-                const stickerBytes = sticker.sticker_bytes as Buffer
+                const stickerBytes = sticker.sticker_bytes
                 return {
                   messageUUID: message.uuid,
                   byte: stickerBytes,
@@ -56,8 +55,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             if (media.type === 'photo') {
               const photo = (await findPhotoByFileId(media.platformId)).unwrap()
               if (photo && photo.image_bytes) {
-                // 直接使用数据库返回的 Buffer，避免重复创建
-                const imageBytes = photo.image_bytes as Buffer
+                const imageBytes = photo.image_bytes
                 return {
                   messageUUID: message.uuid,
                   byte: imageBytes,
@@ -93,17 +91,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           media: fetchedMedia,
         } satisfies CoreMessage
 
-        // 处理完一条消息后，尝试清理媒体数据的引用
-        // 让 GC 能够更及时地回收内存
-        for (const media of fetchedMedia) {
-          if (media.byte) {
-            // 清除 apiMedia 引用，减少内存占用
-            if ('apiMedia' in media) {
-              // eslint-disable-next-line ts/no-explicit-any
-              delete (media as Record<string, any>).apiMedia
-            }
-          }
-        }
+        // 处理完一条消息后，无需手动删除 apiMedia 引用，现代 JS 引擎会自动进行垃圾回收
       }
     },
   }
