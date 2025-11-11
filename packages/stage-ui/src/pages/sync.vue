@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
@@ -19,6 +19,10 @@ const websocketStore = useBridgeStore()
 
 const chatsStore = useChatStore()
 const { chats } = storeToRefs(chatsStore)
+
+onMounted(() => {
+  chatsStore.init()
+})
 
 const { currentTask, currentTaskProgress, increase } = storeToRefs(useSyncTaskStore())
 const loadingToast = ref<string | number>()

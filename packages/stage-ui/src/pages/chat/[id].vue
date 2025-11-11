@@ -50,6 +50,8 @@ const targetMessageParams = computed(() => ({
 
 // Initial load when component mounts
 onMounted(async () => {
+  chatStore.init()
+
   const initialMessageId = targetMessageParams.value.messageId
 
   if (typeof initialMessageId === 'string' && initialMessageId.length > 0) {
