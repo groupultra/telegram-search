@@ -6,8 +6,8 @@ import type { TakeoutService } from '../services'
 import { useLogger } from '@guiiai/logg'
 import { usePagination } from '@tg-search/common'
 
+import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 import { getChatMessageStatsByChatId } from '../models'
-import { getDynamicBatchSize, hasMedia } from '../utils/batch'
 import { createTask } from '../utils/task'
 
 export function registerTakeoutEventHandlers(ctx: CoreContext) {
@@ -69,7 +69,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
 
             messages.push(message)
 
-            const batchSize = getDynamicBatchSize(messages)
+            const batchSize = MESSAGE_PROCESS_BATCH_SIZE
             if (messages.length >= batchSize) {
               // Check abort signal before emitting
               if (task.abortController.signal.aborted) {
@@ -77,10 +77,8 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                 break
               }
 
-              const mediaCount = messages.filter(hasMedia).length
               logger.withFields({
                 total: messages.length,
-                withMedia: mediaCount,
                 batchSize,
               }).debug('Processing takeout batch')
 
@@ -127,7 +125,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
 
               messages.push(message)
 
-              const batchSize = getDynamicBatchSize(messages)
+              const batchSize = MESSAGE_PROCESS_BATCH_SIZE
               if (messages.length >= batchSize) {
                 // Check abort signal before emitting
                 if (task.abortController.signal.aborted) {
@@ -135,10 +133,8 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                   break
                 }
 
-                const mediaCount = messages.filter(hasMedia).length
                 logger.withFields({
                   total: messages.length,
-                  withMedia: mediaCount,
                   batchSize,
                 }).debug('Processing fallback sync batch')
 
@@ -211,7 +207,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
               backwardMessageCount++
               totalProcessed++
 
-              const batchSize = getDynamicBatchSize(messages)
+              const batchSize = MESSAGE_PROCESS_BATCH_SIZE
               if (messages.length >= batchSize) {
                 // Check abort signal before emitting
                 if (task.abortController.signal.aborted) {
@@ -219,10 +215,8 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                   break
                 }
 
-                const mediaCount = messages.filter(hasMedia).length
                 logger.withFields({
                   total: messages.length,
-                  withMedia: mediaCount,
                   batchSize,
                 }).debug('Processing backward fill batch')
 
@@ -271,7 +265,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
               forwardMessageCount++
               totalProcessed++
 
-              const batchSize = getDynamicBatchSize(messages)
+              const batchSize = MESSAGE_PROCESS_BATCH_SIZE
               if (messages.length >= batchSize) {
                 // Check abort signal before emitting
                 if (task.abortController.signal.aborted) {
@@ -279,10 +273,8 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
                   break
                 }
 
-                const mediaCount = messages.filter(hasMedia).length
                 logger.withFields({
                   total: messages.length,
-                  withMedia: mediaCount,
                   batchSize,
                 }).debug('Processing forward fill batch')
 

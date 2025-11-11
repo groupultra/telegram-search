@@ -24,12 +24,6 @@ export function createDialogService(ctx: CoreContext) {
    */
   const avatarHelper = useAvatarHelper(ctx)
 
-  /**
-   * In-memory map of dialog entities keyed by `chatId`.
-   * Helps resolve a single dialog entity quickly for prioritized avatar fetching.
-   */
-  const dialogEntities = new Map<number, Api.User | Api.Chat | Api.Channel>()
-
   // Single-fetch deduplication is handled in the centralized helper
 
   /**
@@ -112,14 +106,6 @@ export function createDialogService(ctx: CoreContext) {
         continue
       }
 
-      // Cache entity for prioritized single fetch later
-      try {
-        const id = dialog.entity.id?.toJSNumber?.()
-        if (id)
-          dialogEntities.set(id, dialog.entity as Api.User | Api.Chat | Api.Channel)
-      }
-      catch {}
-
       const result = resolveDialog(dialog).orUndefined()
       if (!result) {
         continue
@@ -160,7 +146,8 @@ export function createDialogService(ctx: CoreContext) {
   }
 
   async function fetchSingleDialogAvatar(chatId: string | number) {
-    await avatarHelper.fetchDialogAvatar(chatId, { entityOverride: dialogEntities.get(typeof chatId === 'string' ? Number(chatId) : chatId) })
+    // Do not pass long-lived entity overrides; rely on helper's LRU/TTL or fresh resolution
+    await avatarHelper.fetchDialogAvatar(chatId)
   }
 
   return {

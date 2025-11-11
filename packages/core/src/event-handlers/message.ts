@@ -4,7 +4,7 @@ import type { MessageService } from '../services'
 import { useLogger } from '@guiiai/logg'
 import { Api } from 'telegram/tl'
 
-import { getDynamicBatchSize, hasMedia } from '../utils/batch'
+import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 
 export function registerMessageEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
@@ -18,12 +18,10 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
       for await (const message of messageService.fetchMessages(opts.chatId, opts)) {
         messages.push(message)
 
-        const batchSize = getDynamicBatchSize(messages)
+        const batchSize = MESSAGE_PROCESS_BATCH_SIZE
         if (messages.length >= batchSize) {
-          const mediaCount = messages.filter(hasMedia).length
           logger.withFields({
             total: messages.length,
-            withMedia: mediaCount,
             batchSize,
           }).debug('Processing message batch')
 

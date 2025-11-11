@@ -75,7 +75,6 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
             return {
               messageUUID: message.uuid,
-              apiMedia: media.apiMedia,
               byte,
               type: media.type,
               platformId: media.platformId,

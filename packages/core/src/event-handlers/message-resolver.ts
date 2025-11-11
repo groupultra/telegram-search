@@ -4,14 +4,14 @@ import type { MessageResolverService } from '../services/message-resolver'
 import { useLogger } from '@guiiai/logg'
 import { newQueue } from '@henrygd/queue'
 
-import { MESSAGE_PROCESS_LIMIT } from '../constants'
+import { MESSAGE_RESOLVER_QUEUE_SIZE } from '../constants'
 
 export function registerMessageResolverEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
   const logger = useLogger('core:message-resolver:event')
 
   return (messageResolverService: MessageResolverService) => {
-    const queue = newQueue(MESSAGE_PROCESS_LIMIT)
+    const queue = newQueue(MESSAGE_RESOLVER_QUEUE_SIZE)
 
     // TODO: debounce, background tasks
     emitter.on('message:process', ({ messages, isTakeout = false }) => {
