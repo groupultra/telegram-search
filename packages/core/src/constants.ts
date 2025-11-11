@@ -10,7 +10,7 @@ export const MEDIA_PROCESS_BATCH_SIZE = 5
 // LRU 缓存配置
 export const MAX_AVATAR_CACHE_SIZE = 200 // 最多缓存 200 个头像
 export const AVATAR_CACHE_TTL = 30 * 60 * 1000 // 30 分钟过期（毫秒）
-export const AVATAR_DOWNLOAD_CONCURRENCY = 4 // 头像下载并发限制
+export const AVATAR_DOWNLOAD_CONCURRENCY = 10 // 头像下载并发限制
 
 // 限制并发下载数量，避免同时下载过多文件导致内存爆炸
-export const MEDIA_DOWNLOAD_CONCURRENCY = 3
+export const MEDIA_DOWNLOAD_CONCURRENCY = 10

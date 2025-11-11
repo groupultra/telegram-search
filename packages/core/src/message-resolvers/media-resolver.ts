@@ -90,8 +90,6 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           ...message,
           media: fetchedMedia,
         } satisfies CoreMessage
-
-        // 处理完一条消息后，无需手动删除 apiMedia 引用，现代 JS 引擎会自动进行垃圾回收
       }
     },
   }
