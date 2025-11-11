@@ -102,7 +102,7 @@ async function handleLogin() {
         {{ steps.find(s => s.value === state.currentStep)?.description }}
       </p>
 
-      <!-- 手机号码表单 -->
+      <!-- Phone number form -->
       <form v-if="state.currentStep === 'phone'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
           <label for="phoneNumber" class="mb-2 block text-base font-semibold">{{ t('login.phoneNumber') }}</label>
@@ -126,7 +126,7 @@ async function handleLogin() {
         </button>
       </form>
 
-      <!-- 验证码表单 -->
+      <!-- Verification code form -->
       <form v-if="state.currentStep === 'code'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
           <label for="verificationCode" class="mb-2 block text-base font-semibold">{{ t('login.verificationCode') }}</label>
@@ -149,7 +149,7 @@ async function handleLogin() {
         </button>
       </form>
 
-      <!-- 两步验证密码表单 -->
+      <!-- Two-factor authentication password form -->
       <form v-if="state.currentStep === 'password'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
           <label for="twoFactorPassword" class="mb-2 block text-base font-semibold">{{ t('login.twoFactorPassword') }}</label>
@@ -172,7 +172,7 @@ async function handleLogin() {
         </button>
       </form>
 
-      <!-- 登录完成 -->
+      <!-- Login complete -->
       <div v-if="state.currentStep === 'complete'" class="text-center">
         <div class="mb-4 text-3xl">
           🎉

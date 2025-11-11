@@ -35,7 +35,7 @@ export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
     return
   }
 
-  // 对贴纸数组进行去重，以 file_id 为唯一标识
+  // Deduplicate the sticker array, using file_id as the unique identifier
   const uniqueStickers = stickers.filter((sticker, index, self) =>
     index === self.findIndex(s => s.platformId === sticker.platformId),
   )

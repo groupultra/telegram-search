@@ -37,7 +37,7 @@ function createAvatarHelper(ctx: CoreContext) {
   const logger = useLogger('core:resolver:avatar')
   const { getClient, emitter } = ctx
 
-  // 使用 tiny-lru 实现 LRU 缓存，自动过期和淘汰
+  // Use tiny-lru to implement LRU cache with automatic expiration and eviction
   const userAvatarCache = lru<AvatarCacheEntry>(MAX_AVATAR_CACHE_SIZE, AVATAR_CACHE_TTL)
   const chatAvatarCache = lru<AvatarCacheEntry>(MAX_AVATAR_CACHE_SIZE, AVATAR_CACHE_TTL)
   const dialogEntityCache = lru<Api.User | Api.Chat | Api.Channel>(MAX_AVATAR_CACHE_SIZE, AVATAR_CACHE_TTL)
@@ -46,7 +46,7 @@ function createAvatarHelper(ctx: CoreContext) {
   const inflightUsers = new Set<string>()
   const inflightChats = new Set<number>()
 
-  // 并发控制队列
+  // Concurrency control queue
   const downloadQueue = newQueue(AVATAR_DOWNLOAD_CONCURRENCY)
 
   /**
@@ -72,7 +72,7 @@ function createAvatarHelper(ctx: CoreContext) {
   /**
    * Download small profile photo for the given entity.
    * Falls back to `downloadMedia` when `downloadProfilePhoto` fails.
-   * 使用队列控制并发
+   * Use queue to control concurrency
    */
   async function downloadSmallAvatar(entity: Api.User | Api.Chat | Api.Channel): Promise<Buffer | undefined> {
     return downloadQueue.add(async () => {
@@ -259,7 +259,7 @@ function createAvatarHelper(ctx: CoreContext) {
     fetchDialogAvatar,
     fetchDialogAvatars,
     dialogEntityCache,
-    // 导出清理方法供外部调用
+    // Export cleanup method for external invocation
     clearCache: () => {
       userAvatarCache.clear()
       chatAvatarCache.clear()
@@ -307,11 +307,11 @@ export function createAvatarResolver(ctx: CoreContext): MessageResolver {
       // Deduplicate by sender id to avoid repeated downloads within the same batch
       const uniqueUserIds = Array.from(new Set(opts.messages.map(m => String(m.fromId)).filter(Boolean)))
 
-      // 使用并发控制，避免同时下载过多头像
-      // fetchUserAvatar 内部已经通过 downloadQueue 控制了并发
+      // Use concurrency control to avoid downloading too many avatars simultaneously
+      // fetchUserAvatar internally controls concurrency through downloadQueue
       await Promise.all(uniqueUserIds.map(id => helper.fetchUserAvatar(id)))
 
-      // 记录缓存状态（调试用）
+      // Log cache stats (for debugging)
       const stats = helper.getCacheStats()
       logger.debug('Avatar cache stats', stats)
 

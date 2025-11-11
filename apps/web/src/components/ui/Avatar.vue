@@ -36,7 +36,7 @@ const initials = computed(() => {
 const backgroundColor = computed(() => {
   if (!props.name)
     return 'bg-neutral-100 dark:bg-gray-700'
-  // 根据名字生成固定的背景色
+  // Generate a fixed background color based on the name
   const colors = [
     'bg-red-500',
     'bg-pink-500',
