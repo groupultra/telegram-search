@@ -1,34 +1,14 @@
+import type { Api } from 'telegram'
+
 import type { CoreContext } from '../context'
 import type { TakeoutService } from '../services'
 
 import { useLogger } from '@guiiai/logg'
 import { usePagination } from '@tg-search/common'
-import { Api } from 'telegram'
 
-import { MEDIA_PROCESS_BATCH_SIZE, MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 import { getChatMessageStatsByChatId } from '../models'
+import { getDynamicBatchSize, hasMedia } from '../utils/batch'
 import { createTask } from '../utils/task'
-
-/**
- * 检查消息是否包含媒体
- */
-function hasMedia(message: Api.Message): boolean {
-  return !!(message.media && (
-    message.media instanceof Api.MessageMediaPhoto
-    || message.media instanceof Api.MessageMediaDocument
-  ))
-}
-
-/**
- * 根据消息内容动态决定批次大小
- */
-function getDynamicBatchSize(messages: Api.Message[]): number {
-  const mediaCount = messages.filter(hasMedia).length
-  const mediaRatio = messages.length > 0 ? mediaCount / messages.length : 0
-
-  // 如果超过 50% 的消息包含媒体，使用较小的批次
-  return mediaRatio > 0.5 ? MEDIA_PROCESS_BATCH_SIZE : MESSAGE_PROCESS_BATCH_SIZE
-}
 
 export function registerTakeoutEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
