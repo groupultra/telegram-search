@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import type { ChatSyncStats } from '@tg-search/core'
-import type { ChartData, ChartOptions } from 'chart.js'
+import type { BarSeriesOption } from 'echarts/charts'
+import type { EChartsOption } from 'echarts/types/dist/shared'
 
-import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Title, Tooltip } from 'chart.js'
+import VChart from 'vue-echarts'
+
+import { BarChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
 import { computed } from 'vue'
-import { Bar } from 'vue-chartjs'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<Props>()
 
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
+use([CanvasRenderer, BarChart, GridComponent, TooltipComponent, LegendComponent])
 
 const { t } = useI18n()
 
@@ -17,86 +22,68 @@ interface Props {
   stats?: ChatSyncStats
 }
 
-const chartData = computed<ChartData<'bar'>>(() => {
-  if (!props.stats) {
-    return {
-      labels: [t('sync.syncProgress')],
-      datasets: [
-        {
-          label: t('sync.syncedMessages'),
-          data: [0],
-          backgroundColor: 'rgba(59, 130, 246, 0.6)',
-          borderColor: 'rgba(59, 130, 246, 1)',
-          borderWidth: 1,
-        },
-        {
-          label: t('sync.unsyncedMessages'),
-          data: [0],
-          backgroundColor: 'rgba(229, 231, 235, 0.6)',
-          borderColor: 'rgba(229, 231, 235, 1)',
-          borderWidth: 1,
-        },
-      ],
-    }
-  }
-
-  const syncedCount = props.stats.syncedMessages
-  const unsyncedCount = Math.max(0, props.stats.totalMessages - props.stats.syncedMessages)
+const chartOption = computed<EChartsOption>(() => {
+  const syncedCount = props.stats?.syncedMessages ?? 0
+  const unsyncedCount = props.stats ? Math.max(0, props.stats.totalMessages - props.stats.syncedMessages) : 0
 
   return {
-    labels: [t('sync.syncProgress')],
-    datasets: [
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow',
+      },
+    },
+    legend: {
+      bottom: 0,
+      data: [t('sync.syncedMessages'), t('sync.unsyncedMessages')],
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '15%',
+      top: '3%',
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'value',
+      name: t('sync.totalMessages'),
+    },
+    yAxis: {
+      type: 'category',
+      data: [t('sync.syncProgress')],
+    },
+    series: [
       {
-        label: t('sync.syncedMessages'),
+        name: t('sync.syncedMessages'),
+        type: 'bar',
+        stack: 'total',
         data: [syncedCount],
-        backgroundColor: 'rgba(34, 197, 94, 0.6)',
-        borderColor: 'rgba(34, 197, 94, 1)',
-        borderWidth: 1,
-      },
+        itemStyle: {
+          color: 'rgba(34, 197, 94, 0.8)',
+        },
+        emphasis: {
+          itemStyle: {
+            color: 'rgba(34, 197, 94, 1)',
+          },
+        },
+      } as BarSeriesOption,
       {
-        label: t('sync.unsyncedMessages'),
+        name: t('sync.unsyncedMessages'),
+        type: 'bar',
+        stack: 'total',
         data: [unsyncedCount],
-        backgroundColor: 'rgba(229, 231, 235, 0.6)',
-        borderColor: 'rgba(229, 231, 235, 1)',
-        borderWidth: 1,
-      },
+        itemStyle: {
+          color: 'rgba(229, 231, 235, 0.8)',
+        },
+        emphasis: {
+          itemStyle: {
+            color: 'rgba(229, 231, 235, 1)',
+          },
+        },
+      } as BarSeriesOption,
     ],
   }
 })
-
-const chartOptions = computed<ChartOptions<'bar'>>(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  indexAxis: 'y' as const,
-  scales: {
-    x: {
-      stacked: true,
-      beginAtZero: true,
-      title: {
-        display: true,
-        text: t('sync.totalMessages'),
-      },
-    },
-    y: {
-      stacked: true,
-    },
-  },
-  plugins: {
-    legend: {
-      display: true,
-      position: 'bottom' as const,
-    },
-    tooltip: {
-      callbacks: {
-        label(context) {
-          const label = context.dataset.label || ''
-          const value = context.parsed.x || 0
-          return `${label}: ${value}`
-        },
-      },
-    },
-  },
-}))
 
 const syncPercentage = computed(() => {
   if (!props.stats || props.stats.totalMessages === 0)
@@ -172,7 +159,7 @@ const syncPercentage = computed(() => {
 
       <!-- Chart -->
       <div class="h-32">
-        <Bar :data="chartData" :options="chartOptions" />
+        <VChart :option="chartOption" autoresize />
       </div>
     </div>
 
