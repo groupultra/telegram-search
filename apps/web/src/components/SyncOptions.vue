@@ -1,52 +1,45 @@
 <script setup lang="ts">
 import type { SyncOptions } from '@tg-search/core'
 
+import { format, parse } from 'date-fns'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { Button } from './ui/Button'
 
-const props = defineProps<Props>()
-
-const emit = defineEmits<{
-  'update:modelValue': [value: SyncOptions]
-}>()
+const syncOptions = defineModel<SyncOptions>({ default: () => ({ syncMedia: true, maxMediaSize: 0 }) })
 
 const { t } = useI18n()
 
-interface Props {
-  modelValue?: SyncOptions
-}
-
 // Local state
-const syncMedia = ref(props.modelValue?.syncMedia ?? true)
-const maxMediaSize = ref(props.modelValue?.maxMediaSize ?? 0)
-const startTime = ref(props.modelValue?.startTime ? formatDateTime(props.modelValue.startTime) : '')
-const endTime = ref(props.modelValue?.endTime ? formatDateTime(props.modelValue.endTime) : '')
-const minMessageId = ref(props.modelValue?.minMessageId ?? undefined)
-const maxMessageId = ref(props.modelValue?.maxMessageId ?? undefined)
+const syncMedia = ref(syncOptions.value.syncMedia ?? true)
+const maxMediaSize = ref(syncOptions.value.maxMediaSize ?? 0)
+const startTime = ref(syncOptions.value.startTime ? formatDateTime(syncOptions.value.startTime) : '')
+const endTime = ref(syncOptions.value.endTime ? formatDateTime(syncOptions.value.endTime) : '')
+const minMessageId = ref(syncOptions.value.minMessageId ?? undefined)
+const maxMessageId = ref(syncOptions.value.maxMessageId ?? undefined)
 
 const showAdvanced = ref(false)
 
 function formatDateTime(date: Date): string {
   // Format as YYYY-MM-DDTHH:mm for datetime-local input
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  return `${year}-${month}-${day}T${hours}:${minutes}`
+  return format(date, 'yyyy-MM-dd\'T\'HH:mm')
 }
 
 function parseDateTime(str: string): Date | undefined {
   if (!str)
     return undefined
-  return new Date(str)
+  try {
+    return parse(str, 'yyyy-MM-dd\'T\'HH:mm', new Date())
+  }
+  catch {
+    return undefined
+  }
 }
 
-// Emit changes
+// Update model when local state changes
 watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId], () => {
-  const options: SyncOptions = {
+  syncOptions.value = {
     syncMedia: syncMedia.value,
     maxMediaSize: maxMediaSize.value,
     startTime: parseDateTime(startTime.value),
@@ -54,7 +47,6 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
     minMessageId: minMessageId.value,
     maxMessageId: maxMessageId.value,
   }
-  emit('update:modelValue', options)
 })
 </script>
 
