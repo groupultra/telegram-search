@@ -338,18 +338,18 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
 
     emitter.on('takeout:stats:fetch', async ({ chatId }) => {
       logger.withFields({ chatId }).verbose('Fetching chat sync stats')
-      
+
       try {
         // Get chat message stats from DB
         const stats = (await getChatMessageStatsByChatId(chatId))?.unwrap()
-        
+
         // Get total message count from Telegram
         const totalMessageCount = (await takeoutService.getTotalMessageCount(chatId)) ?? 0
-        
+
         const syncedMessages = stats?.message_count ?? 0
         const firstMessageId = stats?.first_message_id ?? 0
         const latestMessageId = stats?.latest_message_id ?? 0
-        
+
         // Calculate synced ranges
         const syncedRanges: Array<{ start: number, end: number }> = []
         if (firstMessageId > 0 && latestMessageId > 0) {
@@ -357,7 +357,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
           // In the future, we could query the DB for gaps
           syncedRanges.push({ start: firstMessageId, end: latestMessageId })
         }
-        
+
         const chatSyncStats = {
           chatId,
           totalMessages: totalMessageCount,
@@ -368,7 +368,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
           newestMessageDate: stats?.latest_message_at ? new Date(stats.latest_message_at * 1000) : undefined,
           syncedRanges,
         }
-        
+
         emitter.emit('takeout:stats:data', chatSyncStats)
       }
       catch (error) {

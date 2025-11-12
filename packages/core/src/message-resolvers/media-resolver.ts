@@ -23,7 +23,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
   return {
     async* stream(opts: MessageResolverOpts) {
       logger.verbose('Executing media resolver')
-      
+
       // Get media size limit from sync options (in MB, 0 = unlimited)
       const maxMediaSizeMB = opts.syncOptions?.maxMediaSize ?? 0
       const maxMediaSizeBytes = maxMediaSizeMB > 0 ? maxMediaSizeMB * 1024 * 1024 : Number.POSITIVE_INFINITY
@@ -79,8 +79,8 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
             // Check media size against limit
             if (byte && byte.length > maxMediaSizeBytes) {
-              logger.withFields({ 
-                size: byte.length, 
+              logger.withFields({
+                size: byte.length,
                 maxSize: maxMediaSizeBytes,
                 platformId: media.platformId,
               }).verbose('Media exceeds size limit, skipping')

@@ -6,17 +6,17 @@ import { useI18n } from 'vue-i18n'
 
 import { Button } from './ui/Button'
 
-const { t } = useI18n()
-
-interface Props {
-  modelValue?: SyncOptions
-}
-
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: SyncOptions]
 }>()
+
+const { t } = useI18n()
+
+interface Props {
+  modelValue?: SyncOptions
+}
 
 // Local state
 const syncMedia = ref(props.modelValue?.syncMedia ?? true)
@@ -59,7 +59,7 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
 </script>
 
 <template>
-  <div class="space-y-4 rounded-xl border bg-card p-6">
+  <div class="border rounded-xl bg-card p-6 space-y-4">
     <div class="flex items-center justify-between">
       <h3 class="text-base text-foreground font-semibold">
         {{ t('sync.syncOptions') }}
@@ -81,7 +81,7 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
           id="sync-media"
           v-model="syncMedia"
           type="checkbox"
-          class="mt-1 h-4 w-4 cursor-pointer rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary"
+          class="mt-1 h-4 w-4 cursor-pointer border-gray-300 rounded text-primary focus:ring-2 focus:ring-primary"
         >
         <label for="sync-media" class="flex-1 cursor-pointer">
           <div class="text-sm text-foreground font-medium">
@@ -103,7 +103,7 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
             type="number"
             min="0"
             step="1"
-            class="block w-32 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            class="block w-32 border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
             placeholder="0"
           >
           <span class="text-sm text-muted-foreground">MB ({{ t('sync.noLimit') }})</span>
@@ -115,7 +115,7 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
     </div>
 
     <!-- Advanced Options -->
-    <div v-if="showAdvanced" class="space-y-4 border-t pt-4">
+    <div v-if="showAdvanced" class="border-t pt-4 space-y-4">
       <div>
         <h4 class="mb-3 text-sm text-foreground font-medium">
           {{ t('sync.syncRange') }}
@@ -138,7 +138,7 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
                 id="start-time"
                 v-model="startTime"
                 type="datetime-local"
-                class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                class="block w-full border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
               >
             </div>
             <div>
@@ -149,7 +149,7 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
                 id="end-time"
                 v-model="endTime"
                 type="datetime-local"
-                class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                class="block w-full border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
               >
             </div>
           </div>
@@ -170,7 +170,7 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
                 v-model.number="minMessageId"
                 type="number"
                 min="0"
-                class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                class="block w-full border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
                 placeholder="0"
               >
             </div>
@@ -183,7 +183,7 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
                 v-model.number="maxMessageId"
                 type="number"
                 min="0"
-                class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                class="block w-full border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
                 placeholder="0"
               >
             </div>

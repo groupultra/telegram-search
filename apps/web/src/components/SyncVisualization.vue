@@ -7,6 +7,8 @@ import { computed } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { useI18n } from 'vue-i18n'
 
+const props = defineProps<Props>()
+
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const { t } = useI18n()
@@ -14,8 +16,6 @@ const { t } = useI18n()
 interface Props {
   stats?: ChatSyncStats
 }
-
-const props = defineProps<Props>()
 
 const chartData = computed<ChartData<'bar'>>(() => {
   if (!props.stats) {
@@ -106,7 +106,7 @@ const syncPercentage = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-4 rounded-xl border bg-card p-6">
+  <div class="border rounded-xl bg-card p-6 space-y-4">
     <h3 class="text-base text-foreground font-semibold">
       {{ t('sync.syncVisualization') }}
     </h3>
@@ -148,14 +148,14 @@ const syncPercentage = computed(() => {
         </div>
         <div class="h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <div
-            class="h-full rounded-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+            class="h-full rounded-full from-green-500 to-green-600 bg-gradient-to-r transition-all duration-500"
             :style="{ width: `${syncPercentage}%` }"
           />
         </div>
       </div>
 
       <!-- Message ID Range -->
-      <div v-if="stats.firstMessageId > 0 && stats.latestMessageId > 0" class="space-y-2 rounded-lg bg-muted p-4">
+      <div v-if="stats.firstMessageId > 0 && stats.latestMessageId > 0" class="rounded-lg bg-muted p-4 space-y-2">
         <div class="text-sm text-muted-foreground">
           Synced Range
         </div>
