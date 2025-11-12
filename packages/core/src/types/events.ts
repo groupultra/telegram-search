@@ -213,13 +213,39 @@ export interface StorageMessageContextParams {
 // Takeout Events
 // ============================================================================
 
+export interface SyncOptions {
+  // Whether to sync media files
+  syncMedia?: boolean
+  // Maximum size for media files in MB (0 = unlimited)
+  maxMediaSize?: number
+  // Time range for sync
+  startTime?: Date
+  endTime?: Date
+  // Message ID range for sync
+  minMessageId?: number
+  maxMessageId?: number
+}
+
 export interface TakeoutEventToCore {
-  'takeout:run': (data: { chatIds: string[], increase?: boolean }) => void
+  'takeout:run': (data: { chatIds: string[], increase?: boolean, syncOptions?: SyncOptions }) => void
   'takeout:task:abort': (data: { taskId: string }) => void
+  'takeout:stats:fetch': (data: { chatId: string }) => void
+}
+
+export interface ChatSyncStats {
+  chatId: string
+  totalMessages: number
+  syncedMessages: number
+  firstMessageId: number
+  latestMessageId: number
+  oldestMessageDate?: Date
+  newestMessageDate?: Date
+  syncedRanges: Array<{ start: number, end: number }>
 }
 
 export interface TakeoutEventFromCore {
   'takeout:task:progress': (data: CoreTask<'takeout'>) => void
+  'takeout:stats:data': (data: ChatSyncStats) => void
 }
 
 export interface TakeoutOpts {
@@ -245,6 +271,9 @@ export interface TakeoutOpts {
 
   // Task object (required, should be created by handler and passed in)
   task: CoreTask<'takeout'>
+
+  // Sync options (media size limit, etc.)
+  syncOptions?: SyncOptions
 }
 
 // ============================================================================
@@ -267,7 +296,7 @@ export interface MessageResolverEventToCore {
    * while still recording messages to storage. Consumers should be aware that setting `isTakeout`
    * changes event side effects.
    */
-  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean }) => void
+  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean, syncOptions?: SyncOptions }) => void
 }
 
 export interface MessageResolverEventFromCore {}

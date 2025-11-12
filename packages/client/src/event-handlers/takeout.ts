@@ -8,4 +8,8 @@ export function registerTakeoutEventHandlers(
   registerEventHandler('takeout:task:progress', (data) => {
     useSyncTaskStore().currentTask = data
   })
+
+  registerEventHandler('takeout:stats:data', (data) => {
+    useSyncTaskStore().chatStats = data
+  })
 }

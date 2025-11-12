@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { SyncOptions } from '@tg-search/core'
+
 import NProgress from 'nprogress'
 
 import { getErrorMessage, useAuthStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
@@ -9,6 +11,8 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
+import SyncOptions from '../components/SyncOptions.vue'
+import SyncVisualization from '../components/SyncVisualization.vue'
 import Dialog from '../components/ui/Dialog.vue'
 
 import { Button } from '../components/ui/Button'
@@ -18,6 +22,10 @@ const { t } = useI18n()
 const router = useRouter()
 
 const selectedChats = ref<number[]>([])
+const syncOptions = ref<SyncOptions>({
+  syncMedia: true,
+  maxMediaSize: 0,
+})
 
 const sessionStore = useAuthStore()
 const { isLoggedIn } = storeToRefs(sessionStore)
@@ -27,7 +35,7 @@ const chatsStore = useChatStore()
 const { chats } = storeToRefs(chatsStore)
 
 const syncTaskStore = useSyncTaskStore()
-const { currentTask, currentTaskProgress, increase } = storeToRefs(syncTaskStore)
+const { currentTask, currentTaskProgress, increase, chatStats } = storeToRefs(syncTaskStore)
 
 // Default to incremental sync
 if (increase.value === undefined || increase.value === null) {
@@ -169,6 +177,7 @@ function handleSync() {
   websocketStore.sendEvent('takeout:run', {
     chatIds: selectedChats.value.map(id => id.toString()),
     increase: true,
+    syncOptions: syncOptions.value,
   })
 
   NProgress.start()
@@ -179,6 +188,7 @@ function handleResync() {
   websocketStore.sendEvent('takeout:run', {
     chatIds: selectedChats.value.map(id => id.toString()),
     increase: false,
+    syncOptions: syncOptions.value,
   })
 
   NProgress.start()
@@ -215,6 +225,19 @@ watch(currentTaskProgress, (progress) => {
   }
   else if (progress >= 0 && progress < 100) {
     NProgress.set(progress / 100)
+  }
+})
+
+// Fetch stats when first chat is selected
+watch(selectedChats, (newChats) => {
+  if (newChats.length === 1) {
+    websocketStore.sendEvent('takeout:stats:fetch', {
+      chatId: newChats[0].toString(),
+    })
+  }
+  else {
+    // Clear stats when no chat or multiple chats selected
+    chatStats.value = undefined
   }
 })
 </script>
@@ -333,6 +356,15 @@ watch(currentTaskProgress, (progress) => {
             </div>
           </div>
         </div>
+
+        <!-- Sync Options -->
+        <SyncOptions v-model="syncOptions" />
+
+        <!-- Sync Visualization -->
+        <SyncVisualization
+          v-if="selectedChats.length === 1"
+          :stats="chatStats"
+        />
 
         <!-- Chat selector section -->
         <div class="min-h-0 flex flex-1 flex-col space-y-4">

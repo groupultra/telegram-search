@@ -1,11 +1,13 @@
 import type { Result } from '@unbird/result'
 
+import type { SyncOptions } from '../types/events'
 import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
 
 export interface MessageResolverOpts {
   messages: CoreMessage[]
+  syncOptions?: SyncOptions
 }
 
 export interface MessageResolver {

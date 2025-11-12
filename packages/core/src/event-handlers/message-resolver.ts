@@ -14,10 +14,10 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext) {
     const queue = newQueue(MESSAGE_RESOLVER_QUEUE_SIZE)
 
     // TODO: debounce, background tasks
-    emitter.on('message:process', ({ messages, isTakeout = false }) => {
+    emitter.on('message:process', ({ messages, isTakeout = false, syncOptions }) => {
       void queue.add(async () => {
         try {
-          await messageResolverService.processMessages(messages, { takeout: isTakeout })
+          await messageResolverService.processMessages(messages, { takeout: isTakeout, syncOptions })
         }
         catch (error) {
           logger.withError(error).warn('Failed to process messages')
