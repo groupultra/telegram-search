@@ -1,0 +1,57 @@
+name: Release Manually
+
+permissions:
+  contents: write
+  actions: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Release bump target
+        required: true
+        default: patch
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v3
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install
+
+      - name: Set Git User
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - run: pnpm run bump --release ${{ inputs.target }} --quiet --yes
+
+      - name: Push Bump Commit
+        run: |
+          git push origin main --follow-tags
+
+      - name: Invoke Release Workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Release
+
+      - name: Invoke Release Docker / OCI Workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Release Docker / OCI

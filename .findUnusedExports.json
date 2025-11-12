@@ -1,0 +1,4 @@
+{
+  "include": ["./apps/**/*", "./packages/**/*"],
+  "exclude": ["**/node_modules/**", "**/dist/**", "**/*.config.ts", "**/typed-router.d.ts"]
+}
