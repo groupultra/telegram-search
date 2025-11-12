@@ -11,7 +11,7 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
-import SyncOptions from '../components/SyncOptions.vue'
+import SyncOptionsComponent from '../components/SyncOptions.vue'
 import SyncVisualization from '../components/SyncVisualization.vue'
 import Dialog from '../components/ui/Dialog.vue'
 
@@ -358,7 +358,7 @@ watch(selectedChats, (newChats) => {
         </div>
 
         <!-- Sync Options -->
-        <SyncOptions v-model="syncOptions" />
+        <SyncOptionsComponent v-model="syncOptions" />
 
         <!-- Sync Visualization -->
         <SyncVisualization

@@ -83,7 +83,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                 size: byte.length, 
                 maxSize: maxMediaSizeBytes,
                 platformId: media.platformId,
-              }).info('Media exceeds size limit, skipping')
+              }).verbose('Media exceeds size limit, skipping')
               return {
                 messageUUID: message.uuid,
                 byte: undefined, // Skip media that exceeds size limit
