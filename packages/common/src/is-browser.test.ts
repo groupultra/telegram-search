@@ -11,17 +11,17 @@ describe('is-browser', () => {
 
     it('should return true when window is defined', () => {
       // Simulate browser environment by defining window
-      const originalWindow = (global as any).window
-      ;(global as any).window = {}
+      const originalWindow = (globalThis as any).window
+      ;(globalThis as any).window = {}
 
       expect(isBrowser()).toBe(true)
 
       // Restore original state
       if (originalWindow === undefined) {
-        delete (global as any).window
+        delete (globalThis as any).window
       }
       else {
-        (global as any).window = originalWindow
+        (globalThis as any).window = originalWindow
       }
     })
   })

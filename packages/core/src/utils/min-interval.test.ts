@@ -126,7 +126,6 @@ describe('min-interval', () => {
       const wait = createMinIntervalWaiter(intervalMs)
       const signal = new AbortController().signal
 
-      const start = Date.now()
       await wait(signal)
       await vi.advanceTimersByTimeAsync(0)
 

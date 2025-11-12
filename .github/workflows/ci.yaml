@@ -70,6 +70,23 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+  unittest:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v3
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install
+
+      - name: Run tests
+        run: pnpm test --run
+
   check-provenance:
     name: Check Provenance
     runs-on: ubuntu-latest

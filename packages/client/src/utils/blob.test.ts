@@ -1,6 +1,9 @@
 import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
+import { Buffer } from 'node:buffer'
+
 import pako from 'pako'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { cleanupMediaBlob, cleanupMediaBlobs, createMediaBlob } from './blob'
@@ -8,7 +11,7 @@ import { cleanupMediaBlob, cleanupMediaBlobs, createMediaBlob } from './blob'
 // Mock pako
 vi.mock('pako', () => ({
   default: {
-    inflate: vi.fn((data, opts) => 'inflated-animation-data'),
+    inflate: vi.fn(() => 'inflated-animation-data'),
   },
 }))
 
@@ -24,8 +27,9 @@ describe('blob', () => {
     it('should create blob URL for regular media with byte data', () => {
       const media: CoreMessageMediaFromBlob = {
         type: 'photo',
+        platformId: 'test-id',
         mimeType: 'image/jpeg',
-        byte: new Uint8Array([1, 2, 3, 4]),
+        byte: Buffer.from([1, 2, 3, 4]),
       }
 
       const result = createMediaBlob(media)
@@ -38,6 +42,7 @@ describe('blob', () => {
     it('should handle byte data with .data property', () => {
       const media: CoreMessageMediaFromBlob = {
         type: 'photo',
+        platformId: 'test-id',
         mimeType: 'image/jpeg',
         byte: { data: [5, 6, 7, 8] } as any,
       }
@@ -51,14 +56,15 @@ describe('blob', () => {
     it('should inflate gzip sticker data', () => {
       const media: CoreMessageMediaFromBlob = {
         type: 'sticker',
+        platformId: 'test-id',
         mimeType: 'application/gzip',
-        byte: new Uint8Array([10, 20, 30]),
+        byte: Buffer.from([10, 20, 30]),
       }
 
       const result = createMediaBlob(media)
 
       expect(pako.inflate).toHaveBeenCalledWith(expect.any(Uint8Array), { to: 'string' })
-      expect(result.tgsAnimationData).toBe('inflated-animation-data')
+      expect((result as any).tgsAnimationData).toBe('inflated-animation-data')
       expect(result.blobUrl).toBeUndefined()
       expect(result.byte).toBeUndefined()
     })
@@ -66,7 +72,9 @@ describe('blob', () => {
     it('should handle media without byte data', () => {
       const media: CoreMessageMediaFromBlob = {
         type: 'photo',
+        platformId: 'test-id',
         mimeType: 'image/jpeg',
+        byte: undefined,
       }
 
       const result = createMediaBlob(media)
@@ -79,8 +87,9 @@ describe('blob', () => {
     it('should handle media with empty buffer', () => {
       const media: CoreMessageMediaFromBlob = {
         type: 'webpage',
+        platformId: 'test-id',
         mimeType: 'image/jpeg',
-        byte: new Uint8Array([]),
+        byte: Buffer.from([]),
       }
 
       const result = createMediaBlob(media)
@@ -91,14 +100,14 @@ describe('blob', () => {
 
     it('should create blob with correct mime type', () => {
       const media: CoreMessageMediaFromBlob = {
-        type: 'video',
+        type: 'document',
+        platformId: 'test-id',
         mimeType: 'video/mp4',
-        byte: new Uint8Array([1, 2, 3]),
+        byte: Buffer.from([1, 2, 3]),
       }
 
       createMediaBlob(media)
 
-      const blobConstructorCall = (Blob as any).mock?.calls?.[0]
       // Since we can't easily mock Blob constructor, just verify createObjectURL was called
       expect(URL.createObjectURL).toHaveBeenCalled()
     })
@@ -108,6 +117,8 @@ describe('blob', () => {
     it('should revoke blob URL if it exists', () => {
       const media: CoreMessageMediaFromBlob = {
         type: 'photo',
+        platformId: 'test-id',
+        byte: undefined,
         mimeType: 'image/jpeg',
         blobUrl: 'blob:existing-url',
       }
@@ -121,6 +132,8 @@ describe('blob', () => {
     it('should not revoke if blob URL does not exist', () => {
       const media: CoreMessageMediaFromBlob = {
         type: 'photo',
+        platformId: 'test-id',
+        byte: undefined,
         mimeType: 'image/jpeg',
       }
 
@@ -132,6 +145,8 @@ describe('blob', () => {
     it('should handle media with undefined blobUrl', () => {
       const media: CoreMessageMediaFromBlob = {
         type: 'photo',
+        platformId: 'test-id',
+        byte: undefined,
         mimeType: 'image/jpeg',
         blobUrl: undefined,
       }
@@ -147,16 +162,22 @@ describe('blob', () => {
       const mediaArray: CoreMessageMediaFromBlob[] = [
         {
           type: 'photo',
+          platformId: 'test-id-1',
+          byte: undefined,
           mimeType: 'image/jpeg',
           blobUrl: 'blob:url-1',
         },
         {
-          type: 'video',
+          type: 'document',
+          platformId: 'test-id-2',
+          byte: undefined,
           mimeType: 'video/mp4',
           blobUrl: 'blob:url-2',
         },
         {
           type: 'photo',
+          platformId: 'test-id-3',
+          byte: undefined,
           mimeType: 'image/png',
           blobUrl: 'blob:url-3',
         },
@@ -180,15 +201,21 @@ describe('blob', () => {
       const mediaArray: CoreMessageMediaFromBlob[] = [
         {
           type: 'photo',
+          platformId: 'test-id-1',
+          byte: undefined,
           mimeType: 'image/jpeg',
           blobUrl: 'blob:url-1',
         },
         {
-          type: 'video',
+          type: 'document',
+          platformId: 'test-id-2',
+          byte: undefined,
           mimeType: 'video/mp4',
         },
         {
           type: 'photo',
+          platformId: 'test-id-3',
+          byte: undefined,
           mimeType: 'image/png',
           blobUrl: 'blob:url-2',
         },

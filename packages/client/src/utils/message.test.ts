@@ -3,7 +3,6 @@ import type { CoreMessage } from '@tg-search/core'
 import { describe, expect, it } from 'vitest'
 
 import { MessageWindow } from '../composables/useMessageWindow'
-
 import { determineMessageDirection, formatMessageTimestamp } from './message'
 
 describe('message', () => {
