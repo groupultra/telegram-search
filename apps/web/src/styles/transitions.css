@@ -18,3 +18,26 @@
   transform: translateY(10px);
   opacity: 0;
 }
+
+/* Simple vertical collapse/expand for sync visualization panel */
+.collapse-vertical-enter-active,
+.collapse-vertical-leave-active {
+  transition:
+    max-height 0.2s ease-out,
+    opacity 0.2s ease-out,
+    transform 0.2s ease-out;
+}
+
+.collapse-vertical-enter-from,
+.collapse-vertical-leave-to {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.collapse-vertical-enter-to,
+.collapse-vertical-leave-from {
+  max-height: 500px; /* just needs to be larger than content height */
+  opacity: 1;
+  transform: translateY(0);
+}

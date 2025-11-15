@@ -199,7 +199,11 @@
     "unsyncedMessages": "未同步消息",
     "syncProgress": "同步进度",
     "showAdvanced": "显示高级选项",
-    "hideAdvanced": "隐藏高级选项"
+    "hideAdvanced": "隐藏高级选项",
+    "chatTaskCancelled": "当前对话的同步任务已取消",
+    "chatSyncingWithProgress": "当前对话正在同步中… {progress}%",
+    "chatSyncCompleted": "当前对话的同步已完成",
+    "chatWaitingInQueue": "当前对话正在同步队列中等待"
   },
   "virtualMessageList": {
     "scrolling": "加载中"

@@ -9,7 +9,7 @@ import { BarChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<Props>()
@@ -22,6 +22,12 @@ interface Props {
   stats?: ChatSyncStats
   loading?: boolean
   chatLabel?: string
+}
+
+const isOpen = ref(true)
+
+function toggleOpen() {
+  isOpen.value = !isOpen.value
 }
 
 const chartOption = computed<EChartsOption>(() => {
@@ -95,99 +101,90 @@ const syncPercentage = computed(() => {
 </script>
 
 <template>
-  <div class="border rounded-xl bg-card p-6 space-y-4">
-    <div class="space-y-1">
-      <h3 class="text-base text-foreground font-semibold">
-        {{ t('sync.syncVisualization') }}
-      </h3>
-      <p v-if="props.chatLabel" class="text-xs text-muted-foreground">
-        {{ props.chatLabel }}
-      </p>
-    </div>
-
-    <!-- Skeleton while loading chat stats -->
-    <div v-if="loading && !stats" class="space-y-4">
-      <div class="grid grid-cols-3 gap-4">
-        <div class="h-16 animate-pulse rounded-lg bg-muted" />
-        <div class="h-16 animate-pulse rounded-lg bg-muted" />
-        <div class="h-16 animate-pulse rounded-lg bg-muted" />
+  <div class="space-y-3">
+    <button
+      type="button"
+      class="w-full flex items-center justify-between text-left"
+      @click="toggleOpen"
+    >
+      <div class="space-y-1">
+        <h3 class="text-base text-foreground font-semibold">
+          {{ t('sync.syncVisualization') }}
+        </h3>
+        <p v-if="props.chatLabel" class="text-xs text-muted-foreground">
+          {{ props.chatLabel }}
+        </p>
       </div>
 
-      <div class="space-y-2">
-        <div class="h-4 w-24 animate-pulse rounded bg-muted" />
-        <div class="h-3 w-full animate-pulse rounded-full bg-muted" />
-      </div>
-
-      <div class="h-32 animate-pulse rounded-lg bg-muted" />
-    </div>
-
-    <div v-else-if="stats" class="space-y-4">
-      <!-- Stats Summary -->
-      <div class="grid grid-cols-3 gap-4">
-        <div class="rounded-lg bg-muted p-4 text-center">
-          <div class="text-2xl text-foreground font-bold">
-            {{ stats.totalMessages }}
-          </div>
-          <div class="text-xs text-muted-foreground">
-            {{ t('sync.totalMessages') }}
-          </div>
-        </div>
-        <div class="rounded-lg bg-green-100 p-4 text-center dark:bg-green-900/20">
-          <div class="text-2xl text-green-700 font-bold dark:text-green-400">
-            {{ stats.syncedMessages }}
-          </div>
-          <div class="text-xs text-green-600 dark:text-green-500">
-            {{ t('sync.syncedMessages') }}
-          </div>
-        </div>
-        <div class="rounded-lg bg-gray-100 p-4 text-center dark:bg-gray-800">
-          <div class="text-2xl text-gray-700 font-bold dark:text-gray-300">
-            {{ Math.max(0, stats.totalMessages - stats.syncedMessages) }}
-          </div>
-          <div class="text-xs text-gray-600 dark:text-gray-400">
-            {{ t('sync.unsyncedMessages') }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Progress Bar -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-muted-foreground">{{ t('sync.syncProgress') }}</span>
+      <div class="flex items-center gap-3">
+        <span v-if="stats" class="text-xs text-muted-foreground">
+          {{ t('sync.syncProgress') }}:
           <span class="text-foreground font-medium">{{ syncPercentage }}%</span>
+        </span>
+        <span
+          :class="isOpen ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
+          class="h-4 w-4 text-muted-foreground transition-transform duration-200"
+        />
+      </div>
+    </button>
+
+    <Transition name="collapse-vertical">
+      <div v-show="isOpen" class="space-y-4">
+        <!-- Skeleton while loading chat stats -->
+        <div v-if="loading && !stats" class="space-y-4">
+          <div class="grid grid-cols-3 gap-4">
+            <div class="h-16 animate-pulse rounded-lg bg-muted" />
+            <div class="h-16 animate-pulse rounded-lg bg-muted" />
+            <div class="h-16 animate-pulse rounded-lg bg-muted" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="h-4 w-24 animate-pulse rounded bg-muted" />
+            <div class="h-3 w-full animate-pulse rounded-full bg-muted" />
+          </div>
+
+          <div class="h-32 animate-pulse rounded-lg bg-muted" />
         </div>
-        <div class="h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-          <div
-            class="bg-linear-to-r h-full rounded-full from-green-500 to-green-600 transition-all duration-500"
-            :style="{ width: `${syncPercentage}%` }"
-          />
+
+        <div v-else-if="stats" class="space-y-4">
+          <!-- Stats Summary -->
+          <div class="grid grid-cols-3 gap-4">
+            <div class="rounded-lg bg-muted p-4 text-center">
+              <div class="text-2xl text-foreground font-bold">
+                {{ stats.totalMessages }}
+              </div>
+              <div class="text-xs text-muted-foreground">
+                {{ t('sync.totalMessages') }}
+              </div>
+            </div>
+            <div class="rounded-lg bg-green-100 p-4 text-center dark:bg-green-900/20">
+              <div class="text-2xl text-green-700 font-bold dark:text-green-400">
+                {{ stats.syncedMessages }}
+              </div>
+              <div class="text-xs text-green-600 dark:text-green-500">
+                {{ t('sync.syncedMessages') }}
+              </div>
+            </div>
+            <div class="rounded-lg bg-gray-100 p-4 text-center dark:bg-gray-800">
+              <div class="text-2xl text-gray-700 font-bold dark:text-gray-300">
+                {{ Math.max(0, stats.totalMessages - stats.syncedMessages) }}
+              </div>
+              <div class="text-xs text-gray-600 dark:text-gray-400">
+                {{ t('sync.unsyncedMessages') }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart -->
+          <div class="h-32">
+            <VChart :option="chartOption" autoresize />
+          </div>
+        </div>
+
+        <div v-else class="py-8 text-center text-sm text-muted-foreground">
+          {{ t('sync.selectChats') }}
         </div>
       </div>
-
-      <!-- Message ID Range -->
-      <div v-if="stats.firstMessageId > 0 && stats.latestMessageId > 0" class="rounded-lg bg-muted p-4 space-y-2">
-        <div class="text-sm text-muted-foreground">
-          Synced Range
-        </div>
-        <div class="flex items-center gap-2 text-sm">
-          <span class="rounded bg-background px-2 py-1 text-foreground font-mono">
-            #{{ stats.firstMessageId }}
-          </span>
-          <span class="text-muted-foreground">→</span>
-          <span class="rounded bg-background px-2 py-1 text-foreground font-mono">
-            #{{ stats.latestMessageId }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Chart -->
-      <div class="h-32">
-        <VChart :option="chartOption" autoresize />
-      </div>
-    </div>
-
-    <div v-else class="py-8 text-center text-sm text-muted-foreground">
-      {{ t('sync.selectChats') }}
-    </div>
+    </Transition>
   </div>
 </template>

@@ -199,7 +199,11 @@
     "unsyncedMessages": "Unsynced Messages",
     "syncProgress": "Sync Progress",
     "showAdvanced": "Show Advanced",
-    "hideAdvanced": "Hide Advanced"
+    "hideAdvanced": "Hide Advanced",
+    "chatTaskCancelled": "Sync for this chat was cancelled",
+    "chatSyncingWithProgress": "Syncing this chat... {progress}%",
+    "chatSyncCompleted": "Sync for this chat is completed",
+    "chatWaitingInQueue": "This chat is waiting in sync queue"
   },
   "virtualMessageList": {
     "scrolling": "Loading..."
