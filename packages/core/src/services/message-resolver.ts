@@ -37,7 +37,16 @@ export function createMessageResolverService(ctx: CoreContext) {
       // Storage the messages first
       emitter.emit('storage:record:messages', { messages: coreMessages })
 
-      const disabledResolvers = useConfig().resolvers.disabledResolvers || []
+      // Avatar resolver prefetch is disabled by default.
+      // Rationale: avatar loading is now on-demand and driven by frontend requests
+      // (entity:avatar:fetch / dialog:avatar:fetch). This avoids redundant downloads
+      // when the client already has cached or persisted avatars.
+      // We keep the resolver registered but filtered by disabled list so it can be
+      // re-enabled later if a prefetch strategy is desired.
+      let disabledResolvers = useConfig().resolvers.disabledResolvers || []
+      const set = new Set(disabledResolvers)
+      set.add('avatar')
+      disabledResolvers = Array.from(set)
 
       // Embedding or resolve messages
       const promises = Array.from(resolvers.registry.entries())

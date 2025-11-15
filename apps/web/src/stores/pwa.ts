@@ -1,5 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/76233f883a25fc7875438b6ff34811839219e489/apps/stage-web/src/stores/pwa.ts
 
+import { useLogger } from '@guiiai/logg'
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 import { nanoid } from 'nanoid'
 import { acceptHMRUpdate, defineStore } from 'pinia'
@@ -20,8 +21,7 @@ export const usePWAStore = defineStore('pwa', () => {
     }
 
     if (isInitialized.value) {
-      // eslint-disable-next-line no-console
-      console.log('[PWA] Already initialized, skipping')
+      useLogger('PWA').log('Already initialized, skipping')
       return
     }
 

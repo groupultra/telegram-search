@@ -13,9 +13,19 @@ export function registerEntityEventHandlers(ctx: CoreContext) {
       await entityService.getMeInfo()
     })
 
-    emitter.on('entity:avatar:fetch', async ({ userId }) => {
-      logger.withFields({ userId }).verbose('Fetching user avatar')
-      await entityService.fetchUserAvatar(userId)
+    emitter.on('entity:avatar:fetch', async ({ userId, fileId }) => {
+      logger.withFields({ userId, fileId }).verbose('Fetching user avatar')
+      await entityService.fetchUserAvatar(userId, fileId)
+    })
+
+    emitter.on('entity:avatar:prime-cache', async ({ userId, fileId }) => {
+      logger.withFields({ userId, fileId }).verbose('Priming avatar cache')
+      await entityService.primeUserAvatarCache(userId, fileId)
+    })
+
+    emitter.on('entity:chat-avatar:prime-cache', async ({ chatId, fileId }) => {
+      logger.withFields({ chatId, fileId }).verbose('Priming chat avatar cache')
+      await entityService.primeChatAvatarCache(chatId, fileId)
     })
   }
 }

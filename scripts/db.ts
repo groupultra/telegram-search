@@ -25,12 +25,11 @@ import { getDatabaseDSN, initConfig, parseEnvFlags, useConfig } from '../package
     })
 
     child.stdout.on('data', (data) => {
-      // eslint-disable-next-line no-console
-      console.log(data.toString())
+      useLogger('script:drizzle').log(data)
     })
 
     child.stderr.on('data', (data) => {
-      console.error(data.toString())
+      useLogger('script:drizzle').error(data)
     })
 
     await new Promise<void>((resolve, reject) => {

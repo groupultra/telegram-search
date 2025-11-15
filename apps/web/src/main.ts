@@ -1,6 +1,7 @@
 import NProgress from 'nprogress'
 
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
+import { initLogger, LoggerFormat, LoggerLevel } from '@guiiai/logg'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
@@ -10,7 +11,6 @@ import { routes as generatedRoutes } from 'vue-router/auto-routes'
 
 import App from './App.vue'
 
-import { ensureChatAvatarDirective } from './directives/ensure-chat-avatar'
 import { i18n } from './modules/i18n'
 
 import '@unocss/reset/tailwind.css'
@@ -18,6 +18,8 @@ import 'uno.css'
 import 'nprogress/nprogress.css'
 import 'vue-sonner/style.css'
 import './styles/main.css'
+
+initLogger(LoggerLevel.Verbose, LoggerFormat.Pretty)
 
 const app = createApp(App)
 
@@ -55,5 +57,4 @@ app.use(router)
 app.use(VueQueryPlugin)
 app.use(pinia)
 app.use(autoAnimatePlugin)
-app.directive('ensure-chat-avatar', ensureChatAvatarDirective)
 app.mount('#app')

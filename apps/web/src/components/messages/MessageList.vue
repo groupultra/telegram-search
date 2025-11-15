@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
-import Avatar from '../ui/Avatar.vue'
+import EntityAvatar from '../avatar/EntityAvatar.vue'
 import ContextMenu from '../ui/ContextMenu.vue'
 
 const props = defineProps<{
@@ -90,7 +90,7 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
     <li
       v-for="item in props.messages"
       :key="item.uuid"
-      class="group animate-slide-in relative flex cursor-pointer items-center gap-3 border-b p-3 transition-all duration-200 ease-in-out last:border-b-0 dark:border-gray-700 active:bg-neutral-200/50 hover:bg-neutral-100/50 dark:active:bg-gray-700/50 dark:hover:bg-gray-800/50"
+      class="group animate-slide-in relative flex cursor-pointer items-start gap-3 border-b p-3 transition-all duration-200 ease-in-out last:border-b-0 dark:border-gray-700 active:bg-neutral-200/50 hover:bg-neutral-100/50 dark:active:bg-gray-700/50 dark:hover:bg-gray-800/50"
       tabindex="0"
       @mouseenter="hoveredMessage = item"
       @mouseleave="hoveredMessage = null"
@@ -99,10 +99,15 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
       @contextmenu="handleContextMenu($event, item)"
       @touchstart.passive="handleLongPress($event, item)"
     >
-      <Avatar
-        :name="item.fromName"
-        size="md"
-      />
+      <div class="flex-shrink-0 pt-0.5">
+        <EntityAvatar
+          :id="item.fromId"
+          entity="other"
+          entity-type="user"
+          :name="item.fromName"
+          size="md"
+        />
+      </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-baseline gap-2">
           <span class="truncate text-sm text-gray-900 font-semibold dark:text-gray-100">

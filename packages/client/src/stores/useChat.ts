@@ -1,5 +1,6 @@
 import type { CoreDialog } from '@tg-search/core'
 
+import { useLogger } from '@guiiai/logg'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
@@ -14,8 +15,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const init = () => {
-    // eslint-disable-next-line no-console
-    console.log('[ChatStore] Init dialogs')
+    useLogger('ChatStore').log('Init dialogs')
 
     if (chats.value.length === 0) {
       websocketStore.sendEvent('storage:fetch:dialogs')

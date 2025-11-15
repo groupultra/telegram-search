@@ -122,8 +122,19 @@ export interface EntityEventToCore {
   'entity:me:fetch': () => void
   /**
    * Lazy fetch of a user's avatar by userId. Core should respond with 'entity:avatar:data'.
+   * Optional fileId allows core to check cache before fetching.
    */
-  'entity:avatar:fetch': (data: { userId: string }) => void
+  'entity:avatar:fetch': (data: { userId: string, fileId?: string }) => void
+  /**
+   * Prime the core LRU cache with fileId information from frontend IndexedDB.
+   * This allows fileId-based cache validation without requiring entity fetch.
+   */
+  'entity:avatar:prime-cache': (data: { userId: string, fileId: string }) => void
+  /**
+   * Prime the core LRU cache with chat avatar fileId information from frontend IndexedDB.
+   * This allows fileId-based cache validation without requiring entity fetch.
+   */
+  'entity:chat-avatar:prime-cache': (data: { chatId: string, fileId: string }) => void
 }
 
 export interface EntityEventFromCore {
@@ -333,4 +344,4 @@ export type CoreEvent = FromCoreEvent & ToCoreEvent
 
 export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
 
-export type CoreEmitter = EventEmitter<CoreEvent, any>
+export type CoreEmitter = EventEmitter<CoreEvent>

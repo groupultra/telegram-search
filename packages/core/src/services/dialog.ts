@@ -154,7 +154,7 @@ export function createDialogService(ctx: CoreContext) {
     fetchDialogs,
     // Delegated to AvatarHelper
     fetchDialogAvatars: async (dialogs: Dialog[]) => {
-      await avatarHelper.fetchDialogAvatars(dialogs, 8)
+      await avatarHelper.fetchDialogAvatars(dialogs)
     },
     fetchSingleDialogAvatar,
   }

@@ -152,6 +152,7 @@ export function parseEnvFlags(env: Record<string, string | undefined>): RuntimeF
   assignIfPresent(result, 'embeddingApiKey', readEnvValue('EMBEDDING_API_KEY', env))
   assignIfPresent(result, 'embeddingApiBase', readEnvValue('EMBEDDING_BASE_URL', env))
 
+  // Since the logger is not initialized yet, we use console.log
   // eslint-disable-next-line no-console
   console.log('Flags parsed', result)
 

@@ -6,7 +6,7 @@ export const MESSAGE_RESOLVER_QUEUE_SIZE = 4
 // LRU cache configuration
 export const MAX_AVATAR_CACHE_SIZE = 150
 export const AVATAR_CACHE_TTL = 15 * 60 * 1000
-export const AVATAR_DOWNLOAD_CONCURRENCY = 1
+export const AVATAR_DOWNLOAD_CONCURRENCY = 4
 
 // Limit concurrent download count to avoid memory explosion from downloading too many files simultaneously
 export const MEDIA_DOWNLOAD_CONCURRENCY = 32

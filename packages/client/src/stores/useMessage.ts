@@ -1,6 +1,7 @@
 import type { CorePagination } from '@tg-search/common'
 import type { CoreMessage } from '@tg-search/core'
 
+import { useLogger } from '@guiiai/logg'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
@@ -20,6 +21,8 @@ export const useMessageStore = defineStore('message', () => {
   const messageWindow = ref<MessageWindow>()
 
   const websocketStore = useBridgeStore()
+
+  const logger = useLogger('MessageStore')
 
   function replaceMessages(messages: CoreMessage[], options?: { chatId?: string, limit?: number }) {
     const previousChatId = currentChatId.value
@@ -74,15 +77,14 @@ export const useMessageStore = defineStore('message', () => {
 
     const direction = determineMessageDirection(filteredMessages, messageWindow.value)
 
-    // eslint-disable-next-line no-console
-    console.log(`[MessageStore] Push ${filteredMessages.length} messages (${direction})`, filteredMessages)
+    logger.log(`Push ${filteredMessages.length} messages (${direction})`, filteredMessages)
 
     if (messages.length === 0) {
       return
     }
 
     if (!messageWindow.value) {
-      console.warn('[MessageStore] Message window not initialized')
+      logger.warn('Message window not initialized')
       return
     }
 
@@ -113,8 +115,7 @@ export const useMessageStore = defineStore('message', () => {
     ) {
       isLoading.value = true
 
-      // eslint-disable-next-line no-console
-      console.log(`[MessageStore] Fetching messages for chat ${chatId}`, pagination.offset)
+      logger.log(`Fetching messages for chat ${chatId}`, pagination.offset)
 
       // Then, fetch the messages from server & update the cache
       switch (direction) {
@@ -138,7 +139,7 @@ export const useMessageStore = defineStore('message', () => {
         websocketStore.waitForEvent('storage:messages'),
         createContextWithTimeout(10000),
       ]).catch(() => {
-        console.warn('[MessageStore] Message fetch timed out or failed')
+        logger.warn('Message fetch timed out or failed')
       }).finally(() => {
         isLoading.value = false
       })

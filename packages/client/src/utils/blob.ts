@@ -2,6 +2,8 @@ import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
 import pako from 'pako'
 
+import { useLogger } from '@guiiai/logg'
+
 export function createMediaBlob(media: CoreMessageMediaFromBlob) {
   // when media.type is 'webpage'
   // media.byte (preview image) might be an empty buffer
@@ -22,8 +24,7 @@ export function createMediaBlob(media: CoreMessageMediaFromBlob) {
       const url = URL.createObjectURL(blob)
       media.blobUrl = url
 
-      // eslint-disable-next-line no-console
-      console.log('[Blob] Blob URL created:', {
+      useLogger('Blob').log('Blob URL created:', {
         url,
         blobSize: blob.size,
       })
@@ -38,8 +39,7 @@ export function cleanupMediaBlob(media: CoreMessageMediaFromBlob): void {
   if (media.blobUrl) {
     URL.revokeObjectURL(media.blobUrl)
 
-    // eslint-disable-next-line no-console
-    console.log('[Blob] Blob URL revoked:', { url: media.blobUrl })
+    useLogger('Blob').log('Blob URL revoked:', { url: media.blobUrl })
 
     media.blobUrl = undefined
   }

@@ -3,6 +3,7 @@ import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToSe
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 import type { SessionContext } from '../stores/useAuth'
 
+import { useLogger } from '@guiiai/logg'
 import { useLocalStorage, useWebSocket } from '@vueuse/core'
 import { defu } from 'defu'
 import { acceptHMRUpdate, defineStore } from 'pinia'
@@ -18,6 +19,7 @@ export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T
 export const useWebsocketStore = defineStore('websocket', () => {
   const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
   const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
+  const logger = useLogger('WebSocket')
 
   const getActiveSession = () => {
     return storageSessions.value.get(storageActiveSessionId.value)
@@ -43,8 +45,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
 
   const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed, {
     onDisconnected: () => {
-      // eslint-disable-next-line no-console
-      console.log('[WebSocket] Disconnected')
+      logger.log('Disconnected')
     },
   }))
 
@@ -55,8 +56,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
   // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L29-L37
   const sendEvent: ClientSendEventFn = (event, data) => {
     if (event !== 'server:event:register')
-      // eslint-disable-next-line no-console
-      console.log('[WebSocket] Sending event', event, data)
+      logger.log('Sending event', event, data)
 
     wsSocket.value!.send(JSON.stringify(createWsMessage(event, data)))
   }
@@ -68,8 +68,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
 
   function init() {
     if (isInitialized.value) {
-      // eslint-disable-next-line no-console
-      console.log('[WebSocket] Already initialized, skipping')
+      logger.log('Already initialized, skipping')
       return
     }
 
@@ -78,14 +77,12 @@ export const useWebsocketStore = defineStore('websocket', () => {
   }
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {
-    // eslint-disable-next-line no-console
-    console.log('[WebSocket] Waiting for event', event)
+    logger.log('Waiting for event', event)
 
     return new Promise((resolve) => {
       const handlers = eventHandlersQueue.get(event) ?? []
       handlers.push((data) => {
-        // eslint-disable-next-line no-console
-        console.log('[WebSocket] Resolving event', event, data)
+        logger.log('Resolving event', event, data)
 
         resolve(data)
       })
@@ -102,8 +99,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
       const message = JSON.parse(rawMessage) as WsMessageToClient
 
       if (eventHandlers.has(message.type)) {
-      // eslint-disable-next-line no-console
-        console.log('[WebSocket] Message received', message)
+        logger.log('Message received', message)
       }
 
       if (eventHandlers.has(message.type)) {
@@ -114,7 +110,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
             fn(message.data)
         }
         catch (error) {
-          console.error('[WebSocket] Error handling event', message, error)
+          logger.withError(error).withFields({ message: message || 'unknown' }).error('Error handling event')
         }
       }
 
@@ -128,12 +124,12 @@ export const useWebsocketStore = defineStore('websocket', () => {
           })
         }
         catch (error) {
-          console.error('[WebSocket] Error handling queued event', message, error)
+          logger.withError(error).withFields({ message: message || 'unknown' }).error('Error handling queued event')
         }
       }
     }
     catch (error) {
-      console.error('[WebSocket] Invalid message', rawMessage, error)
+      logger.error('Invalid message', rawMessage, error)
     }
   })
 

@@ -101,7 +101,13 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       channels: dialogs.filter(d => d.type === 'channel').length,
     }).verbose('Recording dialogs')
 
-    await recordChats(dialogs)
+    if (dialogs.length === 0) {
+      logger.warn('No dialogs to record, skipping database write')
+      return
+    }
+
+    const result = (await recordChats(dialogs))?.expect('Failed to record dialogs')
+    logger.withFields({ recorded: result.length }).verbose('Successfully recorded dialogs')
   })
 
   emitter.on('storage:search:messages', async (params) => {

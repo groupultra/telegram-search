@@ -6,6 +6,7 @@ import { desc, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
 import { joinedChatsTable } from '../schemas/joined_chats'
+import { parseDate } from './utils/time'
 
 export async function fetchChats() {
   return withDb(db => db
@@ -25,7 +26,7 @@ export async function recordChats(chats: CoreDialog[]) {
       chat_id: chat.id.toString(),
       chat_name: chat.name,
       chat_type: chat.type,
-      dialog_date: chat.lastMessageDate ? chat.lastMessageDate.getTime() : 0,
+      dialog_date: parseDate(chat.lastMessageDate),
       // created_at: chat.lastMessageDate,
       // updated_at: Date.now(),
     })))

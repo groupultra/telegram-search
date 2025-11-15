@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
 
-import { prefillUserAvatarIntoStore, useAvatarStore, useBridgeStore, useChatStore, useMessageStore, useSettingsStore } from '@tg-search/client'
+import { useBridgeStore, useChatStore, useMessageStore, useSettingsStore } from '@tg-search/client'
 import { useWindowSize } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -9,8 +9,8 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
+import EntityAvatar from '../../components/avatar/EntityAvatar.vue'
 import SearchDialog from '../../components/SearchDialog.vue'
-import Avatar from '../../components/ui/Avatar.vue'
 import VirtualMessageList from '../../components/VirtualMessageList.vue'
 
 import { Button } from '../../components/ui/Button'
@@ -50,60 +50,15 @@ const targetMessageParams = computed(() => ({
   messageUuid: route.query.messageUuid as string | undefined,
 }))
 
-const avatarStore = useAvatarStore()
+// Avatar store access is not needed; ChatAvatar handles ensure and rendering
 
 /**
  * Compute chat header avatar src via centralized avatar store.
  * Avoids typing issues by not reading transient fields on CoreDialog.
  */
-function useChatHeaderAvatar() {
-  const chatAvatarSrc = computed(() => avatarStore.getChatAvatarUrl(currentChat.value?.id))
-  return { chatAvatarSrc }
-}
+// Header avatar is rendered via ChatAvatar wrapper
 
-const { chatAvatarSrc } = useChatHeaderAvatar()
-
-/**
- * Prime user avatars for messages in view with deduplication.
- * - Prefills from persistent cache for new user IDs.
- * - Ensures a network fetch only once per unique user ID per session.
- * - Centralized at page level to avoid per-bubble repeated work.
- * - Executes prefill/ensure concurrently to avoid sequential waits when many users appear.
- */
-function useMessageAvatarsPrime() {
-  const seenUserIds = new Set<string>()
-
-  watch(sortedMessageArray, async (messages) => {
-    // Collect unique user IDs from current message window
-    const uniqueIds = new Set<string>()
-    for (const m of messages) {
-      if (m.fromId)
-        uniqueIds.add(m.fromId)
-    }
-
-    // Only prime avatars we haven't processed in this session
-    const toPrime: string[] = []
-    for (const id of uniqueIds) {
-      if (!seenUserIds.has(id))
-        toPrime.push(id)
-    }
-
-    // Prefill from IndexedDB cache, then ensure network fetch (parallel)
-    const primeTasks = toPrime.map(async (userId) => {
-      try {
-        await prefillUserAvatarIntoStore(userId)
-      }
-      finally {
-        avatarStore.ensureUserAvatar(userId)
-        seenUserIds.add(userId)
-      }
-    })
-    await Promise.all(primeTasks)
-  }, { immediate: true })
-}
-
-// Initialize deduplicated avatar priming for the current chat
-useMessageAvatarsPrime()
+// Use ChatAvatar wrapper to handle ensure and rendering
 
 // Initial load when component mounts
 onMounted(async () => {
@@ -296,9 +251,12 @@ watch(
     <!-- Chat Header -->
     <div class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
       <div class="flex items-center gap-3">
-        <Avatar
-          class="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10"
-          :src="chatAvatarSrc"
+        <EntityAvatar
+          v-if="currentChat && currentChat.id != null"
+          :id="currentChat.id"
+          entity="other"
+          entity-type="chat"
+          :file-id="currentChat?.avatarFileId"
           :name="currentChat?.name"
           size="md"
         />

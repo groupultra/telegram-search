@@ -34,14 +34,33 @@ export function createEntityService(ctx: CoreContext) {
   /**
    * Fetch a user's avatar via centralized AvatarHelper.
    * Ensures consistent caching and deduplication across services.
+   * Optional expectedFileId allows cache validation before fetching.
    */
-  async function fetchUserAvatar(userId: string) {
-    await avatarHelper.fetchUserAvatar(userId)
+  async function fetchUserAvatar(userId: string, expectedFileId?: string) {
+    await avatarHelper.fetchUserAvatar(userId, expectedFileId)
+  }
+
+  /**
+   * Prime the avatar LRU cache with fileId information from frontend IndexedDB.
+   * This allows subsequent fetchUserAvatar calls to hit cache without entity fetch.
+   */
+  async function primeUserAvatarCache(userId: string, fileId: string) {
+    avatarHelper.primeUserAvatarCache(userId, fileId)
+  }
+
+  /**
+   * Prime the chat avatar LRU cache with fileId information from frontend IndexedDB.
+   * This allows subsequent fetchDialogAvatar calls to hit cache without entity fetch.
+   */
+  async function primeChatAvatarCache(chatId: string, fileId: string) {
+    avatarHelper.primeChatAvatarCache(chatId, fileId)
   }
 
   return {
     getEntity,
     getMeInfo,
     fetchUserAvatar,
+    primeUserAvatarCache,
+    primeChatAvatarCache,
   }
 }
