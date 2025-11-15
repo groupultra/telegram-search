@@ -91,7 +91,7 @@ onUnmounted(() => {
     <div
       v-show="isVisible"
       ref="dialogRef"
-      class="fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden p-4"
+      class="fixed inset-0 z-50 w-dvw overflow-hidden p-4 h-dvh"
       :class="{ 'cursor-pointer': !persistent }"
       @click="handleOutsideClick"
     >

@@ -20,6 +20,8 @@ const { t } = useI18n()
 
 interface Props {
   stats?: ChatSyncStats
+  loading?: boolean
+  chatLabel?: string
 }
 
 const chartOption = computed<EChartsOption>(() => {
@@ -94,11 +96,32 @@ const syncPercentage = computed(() => {
 
 <template>
   <div class="border rounded-xl bg-card p-6 space-y-4">
-    <h3 class="text-base text-foreground font-semibold">
-      {{ t('sync.syncVisualization') }}
-    </h3>
+    <div class="space-y-1">
+      <h3 class="text-base text-foreground font-semibold">
+        {{ t('sync.syncVisualization') }}
+      </h3>
+      <p v-if="props.chatLabel" class="text-xs text-muted-foreground">
+        {{ props.chatLabel }}
+      </p>
+    </div>
 
-    <div v-if="stats" class="space-y-4">
+    <!-- Skeleton while loading chat stats -->
+    <div v-if="loading && !stats" class="space-y-4">
+      <div class="grid grid-cols-3 gap-4">
+        <div class="h-16 animate-pulse rounded-lg bg-muted" />
+        <div class="h-16 animate-pulse rounded-lg bg-muted" />
+        <div class="h-16 animate-pulse rounded-lg bg-muted" />
+      </div>
+
+      <div class="space-y-2">
+        <div class="h-4 w-24 animate-pulse rounded bg-muted" />
+        <div class="h-3 w-full animate-pulse rounded-full bg-muted" />
+      </div>
+
+      <div class="h-32 animate-pulse rounded-lg bg-muted" />
+    </div>
+
+    <div v-else-if="stats" class="space-y-4">
       <!-- Stats Summary -->
       <div class="grid grid-cols-3 gap-4">
         <div class="rounded-lg bg-muted p-4 text-center">
@@ -135,7 +158,7 @@ const syncPercentage = computed(() => {
         </div>
         <div class="h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <div
-            class="h-full rounded-full from-green-500 to-green-600 bg-gradient-to-r transition-all duration-500"
+            class="bg-linear-to-r h-full rounded-full from-green-500 to-green-600 transition-all duration-500"
             :style="{ width: `${syncPercentage}%` }"
           />
         </div>

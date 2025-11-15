@@ -7,6 +7,7 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
   const increase = ref(false)
   const currentTask = ref<CoreTask<'takeout'>>()
   const chatStats = ref<ChatSyncStats>()
+  const chatStatsLoading = ref(false)
 
   const currentTaskProgress = computed(() => {
     if (!currentTask.value)
@@ -20,6 +21,7 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
     currentTaskProgress,
     increase,
     chatStats,
+    chatStatsLoading,
   }
 })
 

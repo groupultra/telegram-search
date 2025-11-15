@@ -35,7 +35,19 @@ const chatsStore = useChatStore()
 const { chats } = storeToRefs(chatsStore)
 
 const syncTaskStore = useSyncTaskStore()
-const { currentTask, currentTaskProgress, increase, chatStats } = storeToRefs(syncTaskStore)
+const { currentTask, currentTaskProgress, increase, chatStats, chatStatsLoading } = storeToRefs(syncTaskStore)
+
+// Currently focused chat id for status panel; independent from multi-selection
+const activeChatId = ref<number | null>(null)
+
+// Sync options dialog state
+const isSyncOptionsDialogOpen = ref(false)
+
+const activeChat = computed(() => {
+  if (!activeChatId.value)
+    return undefined
+  return chats.value.find(chat => chat.id === activeChatId.value)
+})
 
 // Default to incremental sync
 if (increase.value === undefined || increase.value === null) {
@@ -228,17 +240,18 @@ watch(currentTaskProgress, (progress) => {
   }
 })
 
-// Fetch stats when first chat is selected
-watch(selectedChats, (newChats) => {
-  if (newChats.length === 1) {
-    websocketStore.sendEvent('takeout:stats:fetch', {
-      chatId: newChats[0].toString(),
-    })
-  }
-  else {
-    // Clear stats when no chat or multiple chats selected
+// Fetch stats when active chat changes
+watch(activeChatId, (chatId) => {
+  if (!chatId) {
     chatStats.value = undefined
+    chatStatsLoading.value = false
+    return
   }
+
+  chatStatsLoading.value = true
+  websocketStore.sendEvent('takeout:stats:fetch', {
+    chatId: chatId.toString(),
+  })
 })
 </script>
 
@@ -270,6 +283,14 @@ watch(selectedChats, (newChats) => {
         >
           {{ t('sync.resync') }}
         </Button>
+        <Button
+          icon="i-lucide-sliders-horizontal"
+          variant="outline"
+          size="sm"
+          @click="isSyncOptionsDialogOpen = true"
+        >
+          {{ t('sync.syncOptions') }}
+        </Button>
       </div>
     </header>
 
@@ -283,7 +304,7 @@ watch(selectedChats, (newChats) => {
       >
         <div class="flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
           <div class="flex items-center gap-4">
-            <div class="h-12 w-12 flex flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
+            <div class="h-12 w-12 flex shrink-0 items-center justify-center rounded-full bg-primary/10">
               <div class="i-lucide-lock-keyhole h-6 w-6 text-primary" />
             </div>
             <div class="flex flex-col gap-1">
@@ -294,7 +315,7 @@ watch(selectedChats, (newChats) => {
           <Button
             size="md"
             icon="i-lucide-log-in"
-            class="flex-shrink-0"
+            class="shrink-0"
             @click="router.push({ path: '/login', query: { redirect: '/sync' } })"
           >
             {{ t('loginPromptBanner.login') }}
@@ -314,7 +335,7 @@ watch(selectedChats, (newChats) => {
           <div class="space-y-4">
             <div class="flex items-center gap-4">
               <div
-                class="h-12 w-12 flex flex-shrink-0 items-center justify-center rounded-full"
+                class="h-12 w-12 flex shrink-0 items-center justify-center rounded-full"
                 :class="currentTask?.lastError ? 'bg-destructive/10' : 'bg-primary/10'"
               >
                 <div v-if="currentTask?.lastError" class="i-lucide-alert-circle h-6 w-6 text-destructive" />
@@ -357,16 +378,7 @@ watch(selectedChats, (newChats) => {
           </div>
         </div>
 
-        <!-- Sync Options -->
-        <SyncOptionsComponent v-model="syncOptions" />
-
-        <!-- Sync Visualization -->
-        <SyncVisualization
-          v-if="selectedChats.length === 1"
-          :stats="chatStats"
-        />
-
-        <!-- Chat selector section -->
+        <!-- Main content: chat list + status stacked -->
         <div class="min-h-0 flex flex-1 flex-col space-y-4">
           <div class="flex items-center justify-between">
             <div>
@@ -400,13 +412,42 @@ watch(selectedChats, (newChats) => {
           <div class="min-h-0 flex-1 overflow-hidden">
             <ChatSelector
               v-model:selected-chats="selectedChats"
+              v-model:active-chat-id="activeChatId"
               :chats="chats"
             />
           </div>
+
+          <!-- Status panel under the list -->
+          <SyncVisualization
+            :stats="chatStats"
+            :loading="chatStatsLoading"
+            :chat-label="activeChat ? (activeChat.name || t('chatSelector.chat', { id: activeChat.id })) : ''"
+          />
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Sync Options Dialog -->
+  <Dialog v-model="isSyncOptionsDialogOpen" max-width="40rem">
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base text-foreground font-semibold">
+          {{ t('sync.syncOptions') }}
+        </h3>
+        <Button
+          icon="i-lucide-x"
+          size="sm"
+          variant="outline"
+          @click="isSyncOptionsDialogOpen = false"
+        >
+          {{ t('sync.dismiss') }}
+        </Button>
+      </div>
+
+      <SyncOptionsComponent v-model="syncOptions" />
+    </div>
+  </Dialog>
 
   <!-- Select All Reminder Dialog -->
   <Dialog v-model="isSelectAllDialogOpen" max-width="32rem" persistent>

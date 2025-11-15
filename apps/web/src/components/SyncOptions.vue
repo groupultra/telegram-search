@@ -5,8 +5,6 @@ import { format, parse } from 'date-fns'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { Button } from './ui/Button'
-
 const syncOptions = defineModel<SyncOptions>({ default: () => ({ syncMedia: true, maxMediaSize: 0 }) })
 
 const { t } = useI18n()
@@ -18,8 +16,6 @@ const startTime = ref(syncOptions.value.startTime ? formatDateTime(syncOptions.v
 const endTime = ref(syncOptions.value.endTime ? formatDateTime(syncOptions.value.endTime) : '')
 const minMessageId = ref(syncOptions.value.minMessageId ?? undefined)
 const maxMessageId = ref(syncOptions.value.maxMessageId ?? undefined)
-
-const showAdvanced = ref(false)
 
 function formatDateTime(date: Date): string {
   // Format as YYYY-MM-DDTHH:mm for datetime-local input
@@ -51,19 +47,11 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
 </script>
 
 <template>
-  <div class="border rounded-xl bg-card p-6 space-y-4">
+  <div class="space-y-4">
     <div class="flex items-center justify-between">
       <h3 class="text-base text-foreground font-semibold">
         {{ t('sync.syncOptions') }}
       </h3>
-      <Button
-        variant="ghost"
-        size="sm"
-        :icon="showAdvanced ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-        @click="showAdvanced = !showAdvanced"
-      >
-        {{ showAdvanced ? t('sync.hideAdvanced') : t('sync.showAdvanced') }}
-      </Button>
     </div>
 
     <!-- Media Options -->
@@ -107,7 +95,7 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
     </div>
 
     <!-- Advanced Options -->
-    <div v-if="showAdvanced" class="border-t pt-4 space-y-4">
+    <div class="border-t pt-4 space-y-4">
       <div>
         <h4 class="mb-3 text-sm text-foreground font-medium">
           {{ t('sync.syncRange') }}
