@@ -129,15 +129,6 @@ function closeMobileDrawer() {
   }
 }
 
-function handleAvatarClick() {
-  if (!websocketStore.getActiveSession()?.isConnected) {
-    router.push({
-      path: '/login',
-      query: { redirect: route.fullPath },
-    })
-  }
-}
-
 /**
  * Prefill chat avatars from persistent cache in parallel.
  * - Avoids sequential IndexedDB waits when chat list is large.

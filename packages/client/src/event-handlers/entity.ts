@@ -22,7 +22,6 @@ export function registerEntityEventHandlers(
       // from phone-based key to userId-based key
       if (data.id && activeSession.phoneNumber) {
         const userId = data.id.toString()
-        const phoneNumber = activeSession.phoneNumber
 
         // Emit session update with userId as identifier
         bridgeStore.sendEvent('session:update', {

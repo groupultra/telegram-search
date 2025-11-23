@@ -17,24 +17,86 @@ export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
 
 export const useWebsocketStore = defineStore('websocket', () => {
-  const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
-  const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
+  const storageSessions = useLocalStorage<Record<string, SessionContext>>('websocket/sessions', {})
+  const storageActiveSessionId = useLocalStorage<string>('websocket/active-session-id', '')
   const logger = useLogger('WebSocket')
 
   const getActiveSession = () => {
-    return storageSessions.value.get(storageActiveSessionId.value)
+    if (!storageActiveSessionId.value) {
+      return undefined
+    }
+    return storageSessions.value[storageActiveSessionId.value]
   }
 
   const updateActiveSession = (sessionId: string, partialSession: Partial<SessionContext>) => {
-    const mergedSession = defu({}, partialSession, storageSessions.value.get(sessionId))
+    const existingSession = storageSessions.value[sessionId] || {}
+    const mergedSession = defu({}, partialSession, existingSession)
 
-    storageSessions.value.set(sessionId, mergedSession)
+    storageSessions.value = {
+      ...storageSessions.value,
+      [sessionId]: mergedSession,
+    }
     storageActiveSessionId.value = sessionId
   }
 
+  const switchAccount = (sessionId: string) => {
+    if (storageSessions.value[sessionId]) {
+      storageActiveSessionId.value = sessionId
+      logger.withFields({ sessionId }).log('Switched to account')
+      // WebSocket will reconnect with the new sessionId in URL
+      wsSocket.value.close()
+    }
+  }
+
+  const addNewAccount = () => {
+    const newSessionId = uuidv4()
+    storageActiveSessionId.value = newSessionId
+    storageSessions.value = {
+      ...storageSessions.value,
+      [newSessionId]: {},
+    }
+    // WebSocket will reconnect with the new sessionId in URL
+    wsSocket.value.close()
+    return newSessionId
+  }
+
+  const logoutCurrentAccount = async () => {
+    const currentSessionId = storageActiveSessionId.value
+    if (!currentSessionId) {
+      return
+    }
+
+    const session = storageSessions.value[currentSessionId]
+    if (session) {
+      // Remove session from storage
+      const newSessions = { ...storageSessions.value }
+      delete newSessions[currentSessionId]
+      storageSessions.value = newSessions
+
+      // Switch to another account or create new empty session
+      const remainingSessions = Object.keys(newSessions)
+      if (remainingSessions.length > 0) {
+        storageActiveSessionId.value = remainingSessions[0]
+      }
+      else {
+        storageActiveSessionId.value = ''
+      }
+
+      // Emit logout event
+      sendEvent('auth:logout', undefined)
+    }
+  }
+
   const cleanup = () => {
-    storageSessions.value.clear()
-    storageActiveSessionId.value = uuidv4()
+    storageSessions.value = {}
+    storageActiveSessionId.value = ''
+  }
+
+  const getAllSessions = () => {
+    return Object.entries(storageSessions.value).map(([id, session]) => ({
+      id,
+      ...session,
+    }))
   }
 
   const wsUrlComputed = computed(() => {
@@ -70,6 +132,15 @@ export const useWebsocketStore = defineStore('websocket', () => {
     if (isInitialized.value) {
       logger.log('Already initialized, skipping')
       return
+    }
+
+    // Ensure there's at least one session
+    if (!storageActiveSessionId.value || Object.keys(storageSessions.value).length === 0) {
+      const newSessionId = uuidv4()
+      storageActiveSessionId.value = newSessionId
+      storageSessions.value = {
+        [newSessionId]: {},
+      }
     }
 
     registerAllEventHandlers(registerEventHandler)
@@ -140,6 +211,10 @@ export const useWebsocketStore = defineStore('websocket', () => {
     activeSessionId: storageActiveSessionId,
     getActiveSession,
     updateActiveSession,
+    switchAccount,
+    addNewAccount,
+    logoutCurrentAccount,
+    getAllSessions,
     cleanup,
 
     sendEvent,
