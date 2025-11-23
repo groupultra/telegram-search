@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { setDbInstanceForTests } from '../db'
-import { mockDB } from '../db/mock'
-import { accountsTable } from '../schemas/accounts'
-import { findAccountByPlatformId, findAccountByUUID, recordAccount } from './accounts'
+import { setDbInstanceForTests } from '../../db'
+import { mockDB } from '../../db/mock'
+import { accountsTable } from '../../schemas/accounts'
+import { findAccountByPlatformId, findAccountByUUID, recordAccount } from '../accounts'
 
 describe('accounts model', () => {
   beforeEach(async () => {
