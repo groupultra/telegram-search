@@ -40,7 +40,7 @@ describe('chats model with accounts', () => {
       select,
     }
 
-    setDbInstanceForTests(fakeDb as any)
+    setDbInstanceForTests(fakeDb)
 
     const result = await fetchChatsByAccountId('account-1')
 
@@ -110,7 +110,7 @@ describe('chats model with accounts', () => {
     })
 
     const transaction = vi.fn(async (fn: (tx: any) => Promise<unknown>) => {
-      // tx only needs to provide insert
+      // Simulate drizzle transaction: pass tx with insert method
       return fn({ insert: chatsInsert })
     })
 
@@ -147,6 +147,76 @@ describe('chats model with accounts', () => {
       },
     ])
     expect(onConflictDoNothingLinks).toHaveBeenCalled()
+
+    expect(result.unwrap()).toEqual(insertedRows)
+  })
+
+  it('recordChats should not link chats when accountId is falsy', async () => {
+    const dialogs: CoreDialog[] = [
+      {
+        id: 1002,
+        name: 'Chat 2',
+        type: 'user',
+        messageCount: 0,
+      },
+    ]
+
+    const insertedRows = [
+      { id: 'joined-chat-2' },
+    ]
+
+    const onConflictDoNothingLinks = vi.fn(() => undefined)
+    const linkValues = vi.fn(() => ({
+      onConflictDoNothing: onConflictDoNothingLinks,
+    }))
+
+    const returning = vi.fn(async () => insertedRows)
+    const onConflictDoUpdate = vi.fn(() => ({
+      returning,
+    }))
+    const chatsValues = vi.fn(() => ({
+      onConflictDoUpdate,
+      returning,
+    }))
+
+    const chatsInsert = vi.fn((table: unknown) => {
+      if (table === joinedChatsTable) {
+        return {
+          values: chatsValues,
+          onConflictDoUpdate,
+          returning,
+        }
+      }
+      if (table === accountJoinedChatsTable) {
+        return {
+          values: linkValues,
+          onConflictDoNothing: onConflictDoNothingLinks,
+        }
+      }
+      throw new Error('Unexpected table')
+    })
+
+    const transaction = vi.fn(async (fn: (tx: any) => Promise<unknown>) => {
+      return fn({ insert: chatsInsert })
+    })
+
+    const fakeDb = {
+      transaction,
+    }
+
+    setDbInstanceForTests(fakeDb)
+
+    const result = await recordChats(dialogs, '') // falsy accountId
+
+    expect(transaction).toHaveBeenCalledTimes(1)
+
+    // joined_chats still inserted
+    expect(chatsInsert).toHaveBeenCalledWith(joinedChatsTable)
+    expect(chatsValues).toHaveBeenCalled()
+
+    // account_joined_chats should NOT be inserted
+    expect(chatsInsert).not.toHaveBeenCalledWith(accountJoinedChatsTable)
+    expect(onConflictDoNothingLinks).not.toHaveBeenCalled()
 
     expect(result.unwrap()).toEqual(insertedRows)
   })
