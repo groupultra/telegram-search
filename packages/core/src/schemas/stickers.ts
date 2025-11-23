@@ -2,7 +2,7 @@
 
 import { bigint, index, pgTable, text, uniqueIndex, uuid, vector } from 'drizzle-orm/pg-core'
 
-import { bytea } from './type'
+import { bytea } from './utils/type'
 
 export const stickersTable = pgTable('stickers', {
   id: uuid().primaryKey().defaultRandom(),

@@ -111,7 +111,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
     const accountId = data?.accountId || ctx.getCurrentAccountId()
 
     const dbChats = (await fetchChatsByAccountId(accountId))?.unwrap()
-    const chatsMessageStats = (await getChatMessagesStats())?.unwrap()
+    const chatsMessageStats = (await getChatMessagesStats(accountId))?.unwrap()
 
     logger.withFields({ accountId, dbChatsSize: dbChats.length, chatsMessageStatsSize: chatsMessageStats.length }).verbose('Fetched dialogs for account')
 

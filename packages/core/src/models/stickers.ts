@@ -3,10 +3,9 @@
 import type { CoreMessageMediaSticker } from '../types/media'
 
 import { Ok } from '@unbird/result'
-import { desc, eq, sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
-import { recentSentStickersTable } from '../schemas/recent-sent-stickers'
 import { stickersTable } from '../schemas/stickers'
 import { must0 } from './utils/must'
 
@@ -64,13 +63,5 @@ export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
       },
     })
     .returning(),
-  )
-}
-
-export async function listRecentSentStickers() {
-  return withDb(db => db
-    .select()
-    .from(recentSentStickersTable)
-    .orderBy(desc(recentSentStickersTable.created_at)),
   )
 }

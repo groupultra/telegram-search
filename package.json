@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "concurrently \"pnpm run server:dev\" \"pnpm run web:preview --host 0.0.0.0\"",
-    "server:dev": "pnpm -F @tg-search/server dev",
+    "server:dev": "pnpm run packages:build && pnpm -F @tg-search/server dev",
     "server:build": "pnpm -F @tg-search/server build",
     "server:run": "pnpm -F @tg-search/server start",
     "web:dev": "pnpm -F @tg-search/web dev",

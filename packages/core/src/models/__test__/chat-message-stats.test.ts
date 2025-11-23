@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { setDbInstanceForTests } from '../../db'
 import { mockDB } from '../../db/mock'
 import { accountsTable } from '../../schemas/accounts'
-import { chatMessageStatsView } from '../../schemas/chat-message-stats'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { usersTable } from '../../schemas/users'
@@ -20,7 +19,6 @@ describe('chat-message-stats model', () => {
       joinedChatsTable,
       chatMessagesTable,
       usersTable,
-      chatMessageStatsView,
     })
     setDbInstanceForTests(db)
   })
@@ -70,7 +68,7 @@ describe('chat-message-stats model', () => {
       },
     ])
 
-    const result = await getChatMessagesStats()
+    const result = await getChatMessagesStats('00000000-0000-0000-0000-000000000000')
     const rows = result.unwrap()
 
     const simplified = rows
@@ -116,7 +114,7 @@ describe('chat-message-stats model', () => {
       },
     ])
 
-    const resultOk = await getChatMessageStatsByChatId('1001')
+    const resultOk = await getChatMessageStatsByChatId('00000000-0000-0000-0000-000000000000', '1001')
     const row = resultOk.unwrap()
 
     expect(row.chat_id).toBe('1001')

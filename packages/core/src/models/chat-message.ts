@@ -9,7 +9,7 @@ import type { DBRetrievalMessages } from './utils/message'
 
 import { useLogger } from '@guiiai/logg'
 import { Ok } from '@unbird/result'
-import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
 import { chatMessagesTable } from '../schemas/chat-messages'
@@ -41,7 +41,7 @@ async function upsertMessagesForAccount(
       chat_type: joinedChatsTable.chat_type,
     })
     .from(joinedChatsTable)
-    .where(sql`${joinedChatsTable.chat_id} = ANY(${chatIds})`)
+    .where(inArray(joinedChatsTable.chat_id, chatIds))
 
   const chatTypeById = new Map<string, 'user' | 'group' | 'channel'>()
   for (const row of chatRows)
