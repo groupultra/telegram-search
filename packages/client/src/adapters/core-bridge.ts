@@ -17,8 +17,9 @@ import { ref } from 'vue'
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
-  const storageSessions = useLocalStorage('core-bridge/sessions', new Map<string, SessionContext>())
-  const storageActiveSessionId = useLocalStorage('core-bridge/active-session-id', uuidv4())
+  // Store sessions as a record with userId as key
+  const storageSessions = useLocalStorage<Record<string, SessionContext>>('core-bridge/sessions', {})
+  const storageActiveSessionId = useLocalStorage<string>('core-bridge/active-session-id', '')
 
   const logger = useLogger('CoreBridge')
   let ctx: CoreContext
@@ -68,19 +69,90 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   }
 
   const getActiveSession = () => {
-    return storageSessions.value.get(storageActiveSessionId.value)
+    if (!storageActiveSessionId.value) {
+      return undefined
+    }
+    return storageSessions.value[storageActiveSessionId.value]
   }
 
   const updateActiveSession = (sessionId: string, partialSession: Partial<SessionContext>) => {
-    const mergedSession = defu({}, partialSession, storageSessions.value.get(sessionId))
+    const existingSession = storageSessions.value[sessionId] || {}
+    const mergedSession = defu({}, partialSession, existingSession)
 
-    storageSessions.value.set(sessionId, mergedSession)
+    storageSessions.value = {
+      ...storageSessions.value,
+      [sessionId]: mergedSession,
+    }
     storageActiveSessionId.value = sessionId
   }
 
+  const switchAccount = (sessionId: string) => {
+    if (storageSessions.value[sessionId]) {
+      storageActiveSessionId.value = sessionId
+      logger.withFields({ sessionId }).verbose('Switched to account')
+
+      // Reconnect with the new session
+      const session = storageSessions.value[sessionId]
+      if (session.phoneNumber) {
+        // Try to reconnect with existing session
+        sendEvent('auth:login', { phoneNumber: session.phoneNumber })
+      }
+    }
+  }
+
+  const addNewAccount = () => {
+    const newSessionId = uuidv4()
+    storageActiveSessionId.value = newSessionId
+    storageSessions.value = {
+      ...storageSessions.value,
+      [newSessionId]: {},
+    }
+    return newSessionId
+  }
+
+  const logoutCurrentAccount = async () => {
+    const currentSessionId = storageActiveSessionId.value
+    if (!currentSessionId) {
+      return
+    }
+
+    const session = storageSessions.value[currentSessionId]
+    if (session) {
+      // Clean the session from storage
+      const identifier = session.me?.id?.toString() || session.phoneNumber
+      if (identifier) {
+        sendEvent('session:clean', { phoneNumber: identifier })
+      }
+
+      // Remove session from storage
+      const newSessions = { ...storageSessions.value }
+      delete newSessions[currentSessionId]
+      storageSessions.value = newSessions
+
+      // Switch to another account or create new empty session
+      const remainingSessions = Object.keys(newSessions)
+      if (remainingSessions.length > 0) {
+        storageActiveSessionId.value = remainingSessions[0]
+      }
+      else {
+        storageActiveSessionId.value = ''
+      }
+
+      // Emit logout event
+      sendEvent('auth:logout', undefined)
+    }
+  }
+
   const cleanup = () => {
-    storageSessions.value.clear()
-    storageActiveSessionId.value = uuidv4()
+    storageSessions.value = {}
+    storageActiveSessionId.value = ''
+  }
+
+  const getAllSessions = () => {
+    return Object.entries(storageSessions.value).map(([id, session]) => ({
+      id,
+      ...session,
+    }))
   }
 
   /**
@@ -122,6 +194,16 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     await initConfig()
     registerAllEventHandlers(registerEventHandler)
+
+    // Ensure there's at least one session
+    if (!storageActiveSessionId.value || Object.keys(storageSessions.value).length === 0) {
+      const newSessionId = uuidv4()
+      storageActiveSessionId.value = newSessionId
+      storageSessions.value = {
+        [newSessionId]: {},
+      }
+    }
+
     sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
     isInitialized.value = true
   }
@@ -178,6 +260,10 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     activeSessionId: storageActiveSessionId,
     getActiveSession,
     updateActiveSession,
+    switchAccount,
+    addNewAccount,
+    logoutCurrentAccount,
+    getAllSessions,
     cleanup,
 
     sendEvent,

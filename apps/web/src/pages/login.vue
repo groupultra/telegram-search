@@ -19,10 +19,12 @@ const websocketStore = useBridgeStore()
 const avatarStore = useAvatarStore()
 const { isLoggedIn } = storeToRefs(authStore)
 
+const activeSession = websocketStore.getActiveSession()
+
 const state = ref({
   currentStep: 'phone' as LoginStep,
   showAdvancedSettings: false,
-  phoneNumber: websocketStore.getActiveSession()?.phoneNumber ?? '',
+  phoneNumber: activeSession?.phoneNumber ?? '',
   verificationCode: '',
   twoFactorPassword: '',
 })

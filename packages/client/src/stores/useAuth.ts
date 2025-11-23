@@ -39,10 +39,16 @@ export const useAuthStore = defineStore('session', () => {
 
   function handleAuth() {
     function login(phoneNumber: string) {
-      const session = websocketStore.sessions.get(websocketStore.activeSessionId)
+      const activeSessionId = websocketStore.activeSessionId
+      const session = websocketStore.getActiveSession()
 
-      if (session)
-        session!.phoneNumber = phoneNumber
+      if (session) {
+        session.phoneNumber = phoneNumber
+      }
+      else {
+        // Create a new session if none exists
+        websocketStore.updateActiveSession(activeSessionId, { phoneNumber })
+      }
 
       websocketStore.sendEvent('auth:login', {
         phoneNumber,
@@ -62,12 +68,22 @@ export const useAuthStore = defineStore('session', () => {
     }
 
     function logout() {
-      websocketStore.getActiveSession()!.isConnected = false
-      websocketStore.sendEvent('auth:logout', undefined)
-      websocketStore.cleanup()
+      websocketStore.logoutCurrentAccount()
     }
 
-    return { login, submitCode, submitPassword, logout }
+    function switchAccount(sessionId: string) {
+      websocketStore.switchAccount(sessionId)
+    }
+
+    function addNewAccount() {
+      return websocketStore.addNewAccount()
+    }
+
+    function getAllAccounts() {
+      return websocketStore.getAllSessions()
+    }
+
+    return { login, submitCode, submitPassword, logout, switchAccount, addNewAccount, getAllAccounts }
   }
 
   function init() {

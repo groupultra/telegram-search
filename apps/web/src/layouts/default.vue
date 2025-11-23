@@ -17,6 +17,7 @@ import { RouterView, useRoute, useRouter } from 'vue-router'
 import EntityAvatar from '../components/avatar/EntityAvatar.vue'
 import LanguageSelector from '../components/layout/LanguageSelector.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
+import UserDropdown from '../components/layout/UserDropdown.vue'
 
 import { Button } from '../components/ui/Button'
 
@@ -57,6 +58,9 @@ const isMobile = breakpoints.smaller('md') // < 768px
 
 // Mobile drawer state
 const mobileDrawerOpen = ref(false)
+
+// User dropdown state
+const userDropdownOpen = ref(false)
 
 const chatStore = useChatStore()
 const chats = computed(() => chatStore.chats)
@@ -314,12 +318,11 @@ watch(activeGroupChats, (list) => {
       </div>
 
       <!-- User profile section -->
-      <div class="border-t p-3">
+      <div class="relative border-t p-3">
         <div class="flex items-center justify-between gap-2">
           <div
-            class="min-w-0 flex flex-1 cursor-pointer items-center gap-2.5 transition-opacity hover:opacity-80"
-            :class="{ 'cursor-pointer': !websocketStore.getActiveSession()?.isConnected }"
-            @click="handleAvatarClick"
+            class="min-w-0 flex flex-1 cursor-pointer items-center gap-2.5 rounded-md p-1 transition-colors hover:bg-accent"
+            @click="userDropdownOpen = !userDropdownOpen"
           >
             <div class="h-8 w-8 flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
               <EntityAvatar
@@ -335,6 +338,7 @@ watch(activeGroupChats, (list) => {
               <span class="truncate text-sm font-medium">{{ websocketStore.getActiveSession()?.me?.name }}</span>
               <span class="truncate text-xs text-muted-foreground">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
             </div>
+            <div class="i-lucide-chevron-up h-4 w-4 flex-shrink-0 text-muted-foreground" />
           </div>
 
           <!-- Control buttons -->
@@ -351,6 +355,9 @@ watch(activeGroupChats, (list) => {
             <LanguageSelector />
           </div>
         </div>
+
+        <!-- User dropdown menu -->
+        <UserDropdown v-model:open="userDropdownOpen" />
       </div>
     </div>
 

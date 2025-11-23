@@ -14,16 +14,17 @@ export function createSessionService(ctx: CoreContext) {
 
   const logger = useLogger()
 
-  function getSessionKey(phoneNumber: string) {
-    return `tg-session-${phoneNumber.replace('+', '')}`
+  function getSessionKey(identifier: string) {
+    // Support both phoneNumber and userId as identifier
+    return `tg-session-${identifier.replace('+', '')}`
   }
 
-  async function cleanSession(phoneNumber: string) {
-    const sessionKey = getSessionKey(phoneNumber)
+  async function cleanSession(identifier: string) {
+    const sessionKey = getSessionKey(identifier)
 
     try {
       localStorage.removeItem(sessionKey)
-      logger.withFields({ sessionKey, phoneNumber }).verbose('Deleted session from localStorage')
+      logger.withFields({ sessionKey, identifier }).verbose('Deleted session from localStorage')
       return Ok(null)
     }
     catch (error) {
@@ -32,10 +33,10 @@ export function createSessionService(ctx: CoreContext) {
   }
 
   return {
-    loadSession: async (phoneNumber: string): Promise<Result<StringSession>> => {
-      const sessionKey = getSessionKey(phoneNumber)
+    loadSession: async (identifier: string): Promise<Result<StringSession>> => {
+      const sessionKey = getSessionKey(identifier)
 
-      logger.withFields({ sessionKey, phoneNumber }).verbose('Loading session from localStorage')
+      logger.withFields({ sessionKey, identifier }).verbose('Loading session from localStorage')
 
       try {
         const { useLocalStorage } = await import('@vueuse/core')
@@ -54,14 +55,14 @@ export function createSessionService(ctx: CoreContext) {
       }
     },
 
-    saveSession: async (phoneNumber: string, session: string) => {
-      const sessionKey = getSessionKey(phoneNumber)
+    saveSession: async (identifier: string, session: string) => {
+      const sessionKey = getSessionKey(identifier)
 
       try {
         const { useLocalStorage } = await import('@vueuse/core')
         const storage = useLocalStorage(sessionKey, session)
         storage.value = session
-        logger.withFields({ sessionKey, phoneNumber }).verbose('Saving session to localStorage')
+        logger.withFields({ sessionKey, identifier }).verbose('Saving session to localStorage')
         return Ok(null)
       }
       catch (error) {
