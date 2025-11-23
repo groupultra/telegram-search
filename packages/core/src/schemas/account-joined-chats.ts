@@ -2,7 +2,7 @@ import { relations } from 'drizzle-orm'
 import { bigint, pgTable, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
 import { accountsTable } from './accounts'
-import { joinedChatsTable } from './joined_chats'
+import { joinedChatsTable } from './joined-chats'
 
 export const accountJoinedChatsTable = pgTable('account_joined_chats', {
   id: uuid().primaryKey().defaultRandom(),

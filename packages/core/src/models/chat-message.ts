@@ -12,7 +12,7 @@ import { Ok } from '@unbird/result'
 import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
-import { chatMessagesTable } from '../schemas/chat_messages'
+import { chatMessagesTable } from '../schemas/chat-messages'
 import { findPhotosByMessageIds, recordPhotos } from './photos'
 import { recordStickers } from './stickers'
 import { convertToCoreMessageFromDB, convertToDBInsertMessage } from './utils/message'

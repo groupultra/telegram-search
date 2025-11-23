@@ -6,9 +6,9 @@ import { EmbeddingDimension, useConfig } from '@tg-search/common'
 import { and, desc, eq, gt, sql } from 'drizzle-orm'
 
 import { withDb } from '../../db'
-import { accountJoinedChatsTable } from '../../schemas/account_joined_chats'
-import { chatMessagesTable } from '../../schemas/chat_messages'
-import { joinedChatsTable } from '../../schemas/joined_chats'
+import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
+import { chatMessagesTable } from '../../schemas/chat-messages'
+import { joinedChatsTable } from '../../schemas/joined-chats'
 import { getSimilaritySql } from './similarity'
 
 export async function retrieveVector(

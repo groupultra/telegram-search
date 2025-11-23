@@ -6,7 +6,7 @@ import { Ok } from '@unbird/result'
 import { desc, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
-import { recentSentStickersTable } from '../schemas/recent_sent_stickers'
+import { recentSentStickersTable } from '../schemas/recent-sent-stickers'
 import { stickersTable } from '../schemas/stickers'
 import { must0 } from './utils/must'
 

@@ -6,9 +6,9 @@ import { useLogger } from '@guiiai/logg'
 import { and, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../../db'
-import { accountJoinedChatsTable } from '../../schemas/account_joined_chats'
-import { chatMessagesTable } from '../../schemas/chat_messages'
-import { joinedChatsTable } from '../../schemas/joined_chats'
+import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
+import { chatMessagesTable } from '../../schemas/chat-messages'
+import { joinedChatsTable } from '../../schemas/joined-chats'
 import { ensureJieba } from '../../utils/jieba'
 
 export async function retrieveJieba(

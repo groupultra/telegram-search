@@ -4,9 +4,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { setDbInstanceForTests } from '../../db'
 import { mockDB } from '../../db/mock'
-import { chatMessageStatsView } from '../../schemas/chat_message_stats'
-import { chatMessagesTable } from '../../schemas/chat_messages'
-import { joinedChatsTable } from '../../schemas/joined_chats'
+import { chatMessageStatsView } from '../../schemas/chat-message-stats'
+import { chatMessagesTable } from '../../schemas/chat-messages'
+import { joinedChatsTable } from '../../schemas/joined-chats'
 import { usersTable } from '../../schemas/users'
 import { getChatMessagesStats, getChatMessageStatsByChatId } from '../chat-message-stats'
 

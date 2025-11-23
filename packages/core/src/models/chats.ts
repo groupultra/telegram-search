@@ -5,8 +5,8 @@ import type { CoreDialog } from '../types/dialog'
 import { and, desc, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
-import { accountJoinedChatsTable } from '../schemas/account_joined_chats'
-import { joinedChatsTable } from '../schemas/joined_chats'
+import { accountJoinedChatsTable } from '../schemas/account-joined-chats'
+import { joinedChatsTable } from '../schemas/joined-chats'
 import { parseDate } from './utils/time'
 
 export async function fetchChats() {

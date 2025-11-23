@@ -1,4 +1,4 @@
-import type { chatMessagesTable } from '../../schemas/chat_messages'
+import type { chatMessagesTable } from '../../schemas/chat-messages'
 import type { CoreRetrievalMessages } from '../../types/events'
 import type { CoreMessage } from '../../types/message'
 

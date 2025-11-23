@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { setDbInstanceForTests } from '../../db'
-import { accountJoinedChatsTable } from '../../schemas/account_joined_chats'
+import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import {
   findAccountIdsByJoinedChatId,
   findJoinedChatIdsByAccountId,

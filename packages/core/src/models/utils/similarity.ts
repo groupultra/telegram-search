@@ -3,7 +3,7 @@ import type { SQL } from 'drizzle-orm'
 import { EmbeddingDimension } from '@tg-search/common'
 import { cosineDistance, sql } from 'drizzle-orm'
 
-import { chatMessagesTable } from '../../schemas/chat_messages'
+import { chatMessagesTable } from '../../schemas/chat-messages'
 
 export function getSimilaritySql(dimension: EmbeddingDimension, embedding: number[]) {
   let similarity: SQL<number>
