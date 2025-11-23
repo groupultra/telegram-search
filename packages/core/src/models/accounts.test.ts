@@ -1,61 +1,50 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { setDbInstanceForTests } from '../db'
-import { createInsertMock, createSelectOneMock } from '../db/fakedb'
+import { mockDB } from '../db/mock'
 import { accountsTable } from '../schemas/accounts'
-import { findAccountByPlatformId, findAccountByUUID } from './accounts'
+import { findAccountByPlatformId, findAccountByUUID, recordAccount } from './accounts'
 
 describe('accounts model', () => {
+  beforeEach(async () => {
+    const db = await mockDB({ accountsTable })
+    setDbInstanceForTests(db)
+  })
+
   it('recordAccount should insert account with correct values', async () => {
-    const { insert, values, onConflictDoUpdate, returning } = createInsertMock()
+    const result = await recordAccount('telegram', 'user-123')
+    const rows = result.unwrap()
 
-    const fakeDb = { insert }
-    setDbInstanceForTests(fakeDb)
-
-    await findAccountByPlatformId // keep TS happy that function is referenced in file
-
-    expect(insert).toHaveBeenCalledWith(accountsTable)
-    expect(values).toHaveBeenCalledWith({
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
       platform: 'telegram',
       platform_user_id: 'user-123',
     })
-    expect(onConflictDoUpdate).toHaveBeenCalled()
-    expect(returning).toHaveBeenCalled()
   })
 
   it('findAccountByPlatformId should query by platform and platform_user_id and return first result or null', async () => {
-    const rows = [{ id: 'account-xyz' }]
-
-    const { select, from, where, limit } = createSelectOneMock(rows)
-
-    const fakeDb = { select }
-    setDbInstanceForTests(fakeDb)
+    const inserted = await recordAccount('telegram', 'user-xyz')
+    const [account] = inserted.unwrap()
 
     const result = await findAccountByPlatformId('telegram', 'user-xyz')
-    const unwrapped = result.unwrap()
+    const found = result.unwrap()
 
-    expect(select).toHaveBeenCalled()
-    expect(from).toHaveBeenCalled()
-    expect(where).toHaveBeenCalled()
-    expect(limit).toHaveBeenCalledWith(1)
-    expect(unwrapped).toEqual(rows[0])
+    expect(found).not.toBeNull()
+    expect(found?.id).toBe(account.id)
+    expect(found?.platform).toBe('telegram')
+    expect(found?.platform_user_id).toBe('user-xyz')
   })
 
   it('findAccountByUUID should query by id and return first result or null', async () => {
-    const rows = [{ id: 'account-abc' }]
+    const inserted = await recordAccount('telegram', 'user-abc')
+    const [account] = inserted.unwrap()
 
-    const { select, from, where, limit } = createSelectOneMock(rows)
+    const result = await findAccountByUUID(account.id)
+    const found = result.unwrap()
 
-    const fakeDb = { select }
-    setDbInstanceForTests(fakeDb)
-
-    const result = await findAccountByUUID('account-abc')
-    const unwrapped = result.unwrap()
-
-    expect(select).toHaveBeenCalled()
-    expect(from).toHaveBeenCalled()
-    expect(where).toHaveBeenCalled()
-    expect(limit).toHaveBeenCalledWith(1)
-    expect(unwrapped).toEqual(rows[0])
+    expect(found).not.toBeNull()
+    expect(found?.id).toBe(account.id)
+    expect(found?.platform).toBe('telegram')
+    expect(found?.platform_user_id).toBe('user-abc')
   })
 })
