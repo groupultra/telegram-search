@@ -1,5 +1,6 @@
 import type { CoreDialog } from '../types/dialog'
 
+import { Ok } from '@unbird/result'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createCoreContext } from '../context'
@@ -13,18 +14,8 @@ import {
 } from '../models'
 import { registerStorageEventHandlers } from './storage'
 
-// Minimal Result-like helper used in mocks
-function ok<T>(value: T) {
-  return {
-    unwrap(): T {
-      return value
-    },
-  }
-}
-
 vi.mock('../models', () => {
-  // In tests we only care about dialogs- and message-related functions,
-  // other exports can be no-ops
+  // Dialog-related mocks
   const fetchChatsByAccountId = vi.fn(async (_accountId: string) => {
     const rows = [
       {
@@ -38,7 +29,7 @@ vi.mock('../models', () => {
         updated_at: Date.now(),
       },
     ]
-    return ok(rows)
+    return Ok(rows)
   })
 
   const getChatMessagesStats = vi.fn(async () => {
@@ -48,7 +39,7 @@ vi.mock('../models', () => {
         message_count: 42,
       },
     ]
-    return ok(stats)
+    return Ok(stats)
   })
 
   const recordChats = vi.fn(async () => {
@@ -61,26 +52,25 @@ vi.mock('../models', () => {
     }
   })
 
-  const isChatAccessibleByAccount = vi.fn(async () => ok(true))
+  // Message-related mocks
+  const isChatAccessibleByAccount = vi.fn(async () => Ok(true))
   const fetchMessageContextWithPhotos = vi.fn()
-  const fetchMessagesWithPhotos = vi.fn(async () => ok([]))
+  const fetchMessagesWithPhotos = vi.fn(async () => Ok([] as unknown[]))
   const recordMessagesWithMedia = vi.fn()
-  const retrieveMessages = vi.fn(async () => ok([]))
+  const retrieveMessages = vi.fn(async () => Ok([] as unknown[]))
 
   return {
-    // Dialog-related exports
     fetchChatsByAccountId,
     getChatMessagesStats,
     recordChats,
 
-    // Message-related exports used in storage handlers
     isChatAccessibleByAccount,
     fetchMessageContextWithPhotos,
     fetchMessagesWithPhotos,
     recordMessagesWithMedia,
     retrieveMessages,
 
-    // Other exports referenced by storage.ts but unused in these tests
+    // Unused here but required by storage.ts
     convertToCoreRetrievalMessages: vi.fn(),
   }
 })
@@ -149,7 +139,7 @@ describe('storage event handlers - message access control', () => {
     ctx.setCurrentAccountId(ACCOUNT_ID)
 
     // For this test, deny access
-    ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(ok(false))
+    ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<Error>((resolve) => {
       ctx.emitter.on('core:error', ({ error }) => {
@@ -179,7 +169,7 @@ describe('storage event handlers - message access control', () => {
     ctx.setCurrentAccountId(ACCOUNT_ID)
 
     // For this test, deny access for this chat
-    ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(ok(false))
+    ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<Error>((resolve) => {
       ctx.emitter.on('core:error', ({ error }) => {

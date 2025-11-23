@@ -5,7 +5,17 @@ import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
 
-import { convertToCoreRetrievalMessages, fetchChatsByAccountId, fetchMessageContextWithPhotos, fetchMessagesWithPhotos, getChatMessagesStats, isChatAccessibleByAccount, recordChats, recordMessagesWithMedia, retrieveMessages } from '../models'
+import {
+  convertToCoreRetrievalMessages,
+  fetchChatsByAccountId,
+  fetchMessageContextWithPhotos,
+  fetchMessagesWithPhotos,
+  getChatMessagesStats,
+  isChatAccessibleByAccount,
+  recordChats,
+  recordMessagesWithMedia,
+  retrieveMessages,
+} from '../models'
 import { embedContents } from '../utils/embed'
 
 /**
