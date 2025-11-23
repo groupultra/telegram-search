@@ -9,6 +9,9 @@ import { Err, Ok } from '@unbird/result'
 
 export type CoreDB = PostgresDB | PgliteDB
 
+// Reference: https://github.com/drizzle-team/drizzle-orm/issues/2851#issuecomment-2517850853Add a comment on  lines R12 to R13Add diff commentMarkdown input:  edit mode selected.WritePreviewAdd a suggestionHeadingBoldItalicQuoteCodeLinkUnordered listNumbered listTask listMentionReferenceSaved repliesAdd FilesPaste, drop, or click to add filesCancelCommentStart a reviewReturn to code
+export type CoreTransaction = Parameters<Parameters<CoreDB['transaction']>[0]>[0]
+
 let dbInstance: CoreDB
 
 /**

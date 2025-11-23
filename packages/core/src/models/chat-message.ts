@@ -2,6 +2,7 @@
 
 import type { CorePagination } from '@tg-search/common'
 
+import type { CoreDB, CoreTransaction } from '../db'
 import type { StorageMessageContextParams } from '../types/events'
 import type { CoreMessageMediaPhoto, CoreMessageMediaSticker } from '../types/media'
 import type { CoreMessage } from '../types/message'
@@ -22,7 +23,7 @@ import { retrieveJieba } from './utils/retrieve-jieba'
 import { retrieveVector } from './utils/retrieve-vector'
 
 async function upsertMessagesForAccount(
-  db: unknown,
+  tx: CoreTransaction | CoreDB,
   accountId: string,
   messages: CoreMessage[],
 ) {
@@ -34,8 +35,7 @@ async function upsertMessagesForAccount(
   // to an owning account (private dialogs) or keep them shared (groups/channels).
   const chatIds = Array.from(new Set(messages.map(message => message.chatId)))
 
-  // @ts-expect-error - db is a drizzle instance or transaction with select/insert methods.
-  const chatRows = await db
+  const chatRows = await tx
     .select({
       chat_id: joinedChatsTable.chat_id,
       chat_type: joinedChatsTable.chat_type,
@@ -57,8 +57,7 @@ async function upsertMessagesForAccount(
   if (dbMessages.length === 0)
     return
 
-  // @ts-expect-error - db is a drizzle instance or transaction with insert method.
-  return db
+  return tx
     .insert(chatMessagesTable)
     .values(dbMessages)
     .onConflictDoUpdate({
