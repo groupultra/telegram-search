@@ -72,38 +72,41 @@ export async function isChatAccessibleByAccount(accountId: string, chatId: strin
 
 export async function recordChats(chats: CoreDialog[], accountId: string) {
   return withDb(async (db) => {
-    // Insert or update joined_chats
-    const insertedChats = await db
-      .insert(joinedChatsTable)
-      .values(chats.map(chat => ({
-        platform: 'telegram',
-        chat_id: chat.id.toString(),
-        chat_name: chat.name,
-        chat_type: chat.type,
-        dialog_date: parseDate(chat.lastMessageDate),
-      })))
-      .onConflictDoUpdate({
-        target: joinedChatsTable.chat_id,
-        set: {
-          chat_name: sql`excluded.chat_name`,
-          chat_type: sql`excluded.chat_type`,
-          dialog_date: sql`excluded.dialog_date`,
-          updated_at: Date.now(),
-        },
-      })
-      .returning()
-
-    // If accountId is provided, automatically link to account_joined_chats
-    if (accountId && insertedChats.length > 0) {
-      await db
-        .insert(accountJoinedChatsTable)
-        .values(insertedChats.map(chat => ({
-          account_id: accountId,
-          joined_chat_id: chat.id,
+    // Use a single transaction so joined_chats and account_joined_chats are consistent
+    return db.transaction(async (tx) => {
+      // Insert or update joined_chats
+      const insertedChats = await tx
+        .insert(joinedChatsTable)
+        .values(chats.map(chat => ({
+          platform: 'telegram',
+          chat_id: chat.id.toString(),
+          chat_name: chat.name,
+          chat_type: chat.type,
+          dialog_date: parseDate(chat.lastMessageDate),
         })))
-        .onConflictDoNothing()
-    }
+        .onConflictDoUpdate({
+          target: joinedChatsTable.chat_id,
+          set: {
+            chat_name: sql`excluded.chat_name`,
+            chat_type: sql`excluded.chat_type`,
+            dialog_date: sql`excluded.dialog_date`,
+            updated_at: Date.now(),
+          },
+        })
+        .returning()
 
-    return insertedChats
+      // If accountId is provided, automatically link to account_joined_chats
+      if (accountId && insertedChats.length > 0) {
+        await tx
+          .insert(accountJoinedChatsTable)
+          .values(insertedChats.map(chat => ({
+            account_id: accountId,
+            joined_chat_id: chat.id,
+          })))
+          .onConflictDoNothing()
+      }
+
+      return insertedChats
+    })
   })
 }

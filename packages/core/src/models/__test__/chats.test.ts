@@ -109,13 +109,20 @@ describe('chats model with accounts', () => {
       throw new Error('Unexpected table')
     })
 
+    const transaction = vi.fn(async (fn: (tx: any) => Promise<unknown>) => {
+      // tx only needs to provide insert
+      return fn({ insert: chatsInsert })
+    })
+
     const fakeDb = {
-      insert: chatsInsert,
+      transaction,
     }
 
-    setDbInstanceForTests(fakeDb as any)
+    setDbInstanceForTests(fakeDb)
 
     const result = await recordChats(dialogs, 'account-1')
+
+    expect(transaction).toHaveBeenCalledTimes(1)
 
     // First insert into joined_chats
     expect(chatsInsert).toHaveBeenCalledWith(joinedChatsTable)
