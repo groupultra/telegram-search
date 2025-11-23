@@ -81,7 +81,7 @@ async function bootstrap() {
     await initDrizzle(logger, config, {
       isDatabaseDebugMode: flags.isDatabaseDebugMode,
       disableMigrations: flags.disableMigrations,
-     })
+    })
     logger.log('Database initialized successfully')
   }
   catch (error) {

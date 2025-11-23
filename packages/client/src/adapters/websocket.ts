@@ -39,6 +39,42 @@ export const useWebsocketStore = defineStore('websocket', () => {
     storageActiveSessionId.value = sessionId
   }
 
+  const cleanup = () => {
+    storageSessions.value = {}
+    storageActiveSessionId.value = ''
+  }
+
+  const getAllSessions = () => {
+    return Object.entries(storageSessions.value).map(([id, session]) => ({
+      id,
+      ...session,
+    }))
+  }
+
+  const wsUrlComputed = computed(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.host
+    return `${protocol}//${host}${WS_API_BASE}?sessionId=${storageActiveSessionId.value}`
+  })
+
+  const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed, {
+    onDisconnected: () => {
+      logger.log('Disconnected')
+    },
+  }))
+
+  const createWsMessage: ClientCreateWsMessageFn = (type, data) => {
+    return { type, data } as WsMessageToServer
+  }
+
+  // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L29-L37
+  const sendEvent: ClientSendEventFn = (event, data) => {
+    if (event !== 'server:event:register')
+      logger.log('Sending event', event, data)
+
+    wsSocket.value!.send(JSON.stringify(createWsMessage(event, data)))
+  }
+
   const switchAccount = (sessionId: string) => {
     if (storageSessions.value[sessionId]) {
       storageActiveSessionId.value = sessionId
@@ -85,42 +121,6 @@ export const useWebsocketStore = defineStore('websocket', () => {
       // Emit logout event
       sendEvent('auth:logout', undefined)
     }
-  }
-
-  const cleanup = () => {
-    storageSessions.value = {}
-    storageActiveSessionId.value = ''
-  }
-
-  const getAllSessions = () => {
-    return Object.entries(storageSessions.value).map(([id, session]) => ({
-      id,
-      ...session,
-    }))
-  }
-
-  const wsUrlComputed = computed(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host = window.location.host
-    return `${protocol}//${host}${WS_API_BASE}?sessionId=${storageActiveSessionId.value}`
-  })
-
-  const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed, {
-    onDisconnected: () => {
-      logger.log('Disconnected')
-    },
-  }))
-
-  const createWsMessage: ClientCreateWsMessageFn = (type, data) => {
-    return { type, data } as WsMessageToServer
-  }
-
-  // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L29-L37
-  const sendEvent: ClientSendEventFn = (event, data) => {
-    if (event !== 'server:event:register')
-      logger.log('Sending event', event, data)
-
-    wsSocket.value!.send(JSON.stringify(createWsMessage(event, data)))
   }
 
   const eventHandlers: ClientEventHandlerMap = new Map()
