@@ -1,11 +1,11 @@
-import type { CoreDialog } from '../types/dialog'
+import type { CoreDialog } from '../../types/dialog'
 
 import { describe, expect, it, vi } from 'vitest'
 
-import { setDbInstanceForTests } from '../db'
-import { accountJoinedChatsTable } from '../schemas/account_joined_chats'
-import { joinedChatsTable } from '../schemas/joined_chats'
-import { fetchChatsByAccountId, recordChats } from './chats'
+import { setDbInstanceForTests } from '../../db'
+import { accountJoinedChatsTable } from '../../schemas/account_joined_chats'
+import { joinedChatsTable } from '../../schemas/joined_chats'
+import { fetchChatsByAccountId, recordChats } from '../chats'
 
 describe('chats model with accounts', () => {
   it('fetchChatsByAccountId should join account_joined_chats and joined_chats and return rows', async () => {

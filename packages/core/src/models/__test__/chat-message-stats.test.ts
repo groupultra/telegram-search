@@ -1,14 +1,14 @@
-import type { CoreDB } from '../db'
+import type { CoreDB } from '../../db'
 
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { setDbInstanceForTests } from '../db'
-import { mockDB } from '../db/mock'
-import { chatMessageStatsView } from '../schemas/chat_message_stats'
-import { chatMessagesTable } from '../schemas/chat_messages'
-import { joinedChatsTable } from '../schemas/joined_chats'
-import { usersTable } from '../schemas/users'
-import { getChatMessagesStats, getChatMessageStatsByChatId } from './chat-message-stats'
+import { setDbInstanceForTests } from '../../db'
+import { mockDB } from '../../db/mock'
+import { chatMessageStatsView } from '../../schemas/chat_message_stats'
+import { chatMessagesTable } from '../../schemas/chat_messages'
+import { joinedChatsTable } from '../../schemas/joined_chats'
+import { usersTable } from '../../schemas/users'
+import { getChatMessagesStats, getChatMessageStatsByChatId } from '../chat-message-stats'
 
 describe('chat-message-stats model', () => {
   let db: CoreDB

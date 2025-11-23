@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { setDbInstanceForTests } from '../db'
-import { accountJoinedChatsTable } from '../schemas/account_joined_chats'
+import { setDbInstanceForTests } from '../../db'
+import { accountJoinedChatsTable } from '../../schemas/account_joined_chats'
 import {
   findAccountIdsByJoinedChatId,
   findJoinedChatIdsByAccountId,
   linkAccountToJoinedChat,
-} from './account-joined-chats'
+} from '../account-joined-chats'
 
 describe('account-joined-chats model', () => {
   it('linkAccountToJoinedChat should insert link with correct values', async () => {
