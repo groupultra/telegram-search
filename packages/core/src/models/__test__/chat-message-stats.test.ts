@@ -10,6 +10,8 @@ import { joinedChatsTable } from '../../schemas/joined-chats'
 import { usersTable } from '../../schemas/users'
 import { getChatMessagesStats, getChatMessageStatsByChatId } from '../chat-message-stats'
 
+export const UUID_NULL = '00000000-0000-0000-0000-000000000000'
+
 describe('chat-message-stats model', () => {
   let db: CoreDB
 
@@ -68,7 +70,7 @@ describe('chat-message-stats model', () => {
       },
     ])
 
-    const result = await getChatMessagesStats('00000000-0000-0000-0000-000000000000')
+    const result = await getChatMessagesStats(UUID_NULL)
     const rows = result.unwrap()
 
     const simplified = rows
@@ -114,7 +116,7 @@ describe('chat-message-stats model', () => {
       },
     ])
 
-    const resultOk = await getChatMessageStatsByChatId('00000000-0000-0000-0000-000000000000', '1001')
+    const resultOk = await getChatMessageStatsByChatId(UUID_NULL, '1001')
     const row = resultOk.unwrap()
 
     expect(row.chat_id).toBe('1001')
