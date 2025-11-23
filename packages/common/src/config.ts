@@ -20,6 +20,24 @@ export function getDatabaseDSN(config: Config): string {
 
 function validateAndMergeConfig(newConfig: Partial<Config>, baseConfig?: Config): Config {
   const mergedConfig = defu({}, newConfig, baseConfig || generateDefaultConfig())
+
+  // TODO: Normalize resolvers.disabledResolvers
+  // Normalize resolvers.disabledResolvers:
+  // - Treat as override (not deep-merge) when provided in newConfig
+  // - Always dedupe to avoid growth from repeated merges/saves
+  const incomingDisabledResolvers = newConfig.resolvers?.disabledResolvers
+  if (incomingDisabledResolvers) {
+    mergedConfig.resolvers = mergedConfig.resolvers || {}
+    mergedConfig.resolvers.disabledResolvers = Array.from(
+      new Set(incomingDisabledResolvers),
+    )
+  }
+  else if (mergedConfig.resolvers?.disabledResolvers) {
+    mergedConfig.resolvers.disabledResolvers = Array.from(
+      new Set(mergedConfig.resolvers.disabledResolvers),
+    )
+  }
+
   const validatedConfig = safeParse(configSchema, mergedConfig)
 
   if (!validatedConfig.success) {

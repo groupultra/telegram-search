@@ -1,5 +1,5 @@
 {
-  "id": "5566a6ba-e556-478f-b120-e396157ae775",
+  "id": "3c4fd67a-dd3f-4c5c-9566-581772d30ba2",
   "prevId": "6c904ea0-dbdc-481b-9df3-668ba156f803",
   "version": "7",
   "dialect": "postgresql",
@@ -708,60 +708,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.recent_sent_stickers": {
-      "name": "recent_sent_stickers",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "sticker_id": {
-          "name": "sticker_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "recent_sent_stickers_sticker_id_stickers_id_fk": {
-          "name": "recent_sent_stickers_sticker_id_stickers_id_fk",
-          "tableFrom": "recent_sent_stickers",
-          "tableTo": "stickers",
-          "columnsFrom": [
-            "sticker_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.sticker_packs": {
       "name": "sticker_packs",
       "schema": "",
@@ -1134,65 +1080,7 @@
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {
-    "public.chat_message_stats": {
-      "columns": {
-        "platform": {
-          "name": "platform",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "chat_id": {
-          "name": "chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "chat_name": {
-          "name": "chat_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "message_count": {
-          "name": "message_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "first_message_id": {
-          "name": "first_message_id",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "first_message_at": {
-          "name": "first_message_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "latest_message_id": {
-          "name": "latest_message_id",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "latest_message_at": {
-          "name": "latest_message_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "definition": "\n    SELECT \n      jc.platform, \n      jc.chat_id, \n      jc.chat_name, \n      COUNT(cm.id)::int AS message_count,\n      MIN(cm.platform_message_id) AS first_message_id,\n      MIN(cm.created_at) AS first_message_at,\n      MAX(cm.platform_message_id) AS latest_message_id,\n      MAX(cm.created_at) AS latest_message_at\n    FROM joined_chats jc\n    LEFT JOIN chat_messages cm ON jc.chat_id = cm.in_chat_id\n    GROUP BY jc.platform, jc.chat_id, jc.chat_name\n  ",
-      "name": "chat_message_stats",
-      "schema": "public",
-      "isExisting": false,
-      "materialized": false
-    }
-  },
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
