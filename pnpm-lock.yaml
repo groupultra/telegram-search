@@ -349,8 +349,8 @@ importers:
         specifier: 'catalog:'
         version: 1.2.5
       '@henrygd/queue':
-        specifier: ^1.1.1
-        version: 1.1.1
+        specifier: ^1.2.0
+        version: 1.2.0
       '@moeru/std':
         specifier: 0.1.0-beta.13
         version: 0.1.0-beta.13
@@ -1438,8 +1438,8 @@ packages:
   '@guiiai/logg@1.2.5':
     resolution: {integrity: sha512-pRj8kFQp/0G1m6ASYeTCaGF0jxwzHeZPemJHq8FWnAsAb/5yILhErIXYwStaTgd9yUqkJzIyi5jIMX+YIAlv5Q==}
 
-  '@henrygd/queue@1.1.1':
-    resolution: {integrity: sha512-U6qjF4kIK7K72e74tmHyi2TWjSbwzKmnOlu9HOz1l6JFCeM9Sqe3znSoyK/kst+rie7Q8FvTqVxcBjG+Q7vJYQ==}
+  '@henrygd/queue@1.2.0':
+    resolution: {integrity: sha512-jW/BLSTpcvExDhqJGxtIPgGr2O0IFF8XUNDwEbfCfhrXT8a4xztQ9Lv6U/vbYzYC0xVWn+3zv6YnLUh3bEFUKA==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2333,6 +2333,7 @@ packages:
 
   '@unbird/eventa@0.2.3':
     resolution: {integrity: sha512-RCw4sKk5NihX84lIm7q/TYKPRw9jGUsZln1DgNqmuGl6sGATFH0sJ+jRjl9v49cECVrBadg6vvnQEiw5Z2jpsg==}
+    deprecated: Please migrate to use @moeru/eventa, the API maintains the same without extra changes
     peerDependencies:
       electron: '>=30'
       h3: 2.0.0-beta.1
@@ -6980,7 +6981,7 @@ snapshots:
   '@es-joy/jsdoccomment@0.50.2':
     dependencies:
       '@types/estree': 1.0.8
-      '@typescript-eslint/types': 8.46.3
+      '@typescript-eslint/types': 8.46.4
       comment-parser: 1.4.1
       esquery: 1.6.0
       jsdoc-type-pratt-parser: 4.1.0
@@ -6988,7 +6989,7 @@ snapshots:
   '@es-joy/jsdoccomment@0.52.0':
     dependencies:
       '@types/estree': 1.0.8
-      '@typescript-eslint/types': 8.46.3
+      '@typescript-eslint/types': 8.46.4
       comment-parser: 1.4.1
       esquery: 1.6.0
       jsdoc-type-pratt-parser: 4.1.0
@@ -7237,7 +7238,7 @@ snapshots:
       error-stack-parser: 2.1.4
       pathe: 2.0.3
 
-  '@henrygd/queue@1.1.1': {}
+  '@henrygd/queue@1.2.0': {}
 
   '@humanfs/core@0.19.1': {}
 
@@ -7765,7 +7766,7 @@ snapshots:
   '@stylistic/eslint-plugin@5.5.0(eslint@9.39.1(jiti@2.6.1))':
     dependencies:
       '@eslint-community/eslint-utils': 4.9.0(eslint@9.39.1(jiti@2.6.1))
-      '@typescript-eslint/types': 8.46.3
+      '@typescript-eslint/types': 8.46.4
       eslint: 9.39.1(jiti@2.6.1)
       eslint-visitor-keys: 4.2.1
       espree: 10.4.0
@@ -8209,8 +8210,8 @@ snapshots:
 
   '@vitest/eslint-plugin@1.4.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.20.6)(yaml@2.8.1))':
     dependencies:
-      '@typescript-eslint/scope-manager': 8.46.3
-      '@typescript-eslint/utils': 8.46.3(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
+      '@typescript-eslint/scope-manager': 8.46.4
+      '@typescript-eslint/utils': 8.46.4(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
       eslint: 9.39.1(jiti@2.6.1)
     optionalDependencies:
       typescript: 5.9.3
@@ -9580,7 +9581,7 @@ snapshots:
   eslint-plugin-import-lite@0.3.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3):
     dependencies:
       '@eslint-community/eslint-utils': 4.9.0(eslint@9.39.1(jiti@2.6.1))
-      '@typescript-eslint/types': 8.46.3
+      '@typescript-eslint/types': 8.46.4
       eslint: 9.39.1(jiti@2.6.1)
     optionalDependencies:
       typescript: 5.9.3
