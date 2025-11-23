@@ -52,7 +52,10 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
   } satisfies CoreMessage
 }
 
-export function convertToDBInsertMessage(message: CoreMessage): DBInsertMessage {
+export function convertToDBInsertMessage(
+  ownerAccountId: string | null | undefined,
+  message: CoreMessage,
+): DBInsertMessage {
   const msg: DBInsertMessage = {
     platform: message.platform,
     from_id: message.fromId,
@@ -65,6 +68,10 @@ export function convertToDBInsertMessage(message: CoreMessage): DBInsertMessage 
     reply_to_name: message.reply.replyToName,
     reply_to_id: message.reply.replyToId,
     platform_timestamp: message.platformTimestamp,
+  }
+
+  if (ownerAccountId) {
+    msg.owner_account_id = ownerAccountId
   }
 
   if (message.vectors.vector1536?.length) {

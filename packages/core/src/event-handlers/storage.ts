@@ -40,7 +40,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       return
     }
 
-    const messages = (await fetchMessagesWithPhotos(chatId, pagination)).unwrap()
+    const messages = (await fetchMessagesWithPhotos(accountId, chatId, pagination)).unwrap()
     emitter.emit('storage:messages', { messages })
   })
 
@@ -58,7 +58,10 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       return
     }
 
-    const messages = (await fetchMessageContextWithPhotos({ chatId, messageId, before: safeBefore, after: safeAfter })).unwrap()
+    const messages = (await fetchMessageContextWithPhotos(
+      accountId,
+      { chatId, messageId, before: safeBefore, after: safeAfter },
+    )).unwrap()
 
     emitter.emit('storage:messages:context', { chatId, messageId, messages })
 
@@ -84,7 +87,9 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
   })
 
   emitter.on('storage:record:messages', async ({ messages }) => {
-    logger.withFields({ messages: messages.length }).verbose('Recording messages')
+    const accountId = ctx.getCurrentAccountId()
+
+    logger.withFields({ messages: messages.length, accountId }).verbose('Recording messages')
     logger.withFields(
       messages
         .map(m => ({
@@ -96,7 +101,8 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
           },
         })),
     ).debug('Recording messages')
-    await recordMessagesWithMedia(messages)
+
+    await recordMessagesWithMedia(accountId, messages)
   })
 
   emitter.on('storage:fetch:dialogs', async (data) => {

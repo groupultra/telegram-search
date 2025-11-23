@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { setDbInstanceForTests } from '../../db'
 import { mockDB } from '../../db/mock'
+import { accountsTable } from '../../schemas/accounts'
 import { chatMessageStatsView } from '../../schemas/chat-message-stats'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
@@ -15,6 +16,7 @@ describe('chat-message-stats model', () => {
 
   beforeEach(async () => {
     db = await mockDB({
+      accountsTable,
       joinedChatsTable,
       chatMessagesTable,
       usersTable,

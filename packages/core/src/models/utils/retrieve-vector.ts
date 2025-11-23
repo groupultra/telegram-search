@@ -37,6 +37,12 @@ export async function retrieveVector(
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
     filters?.timeRange?.start ? sql`${chatMessagesTable.platform_timestamp} >= ${filters.timeRange.start}` : undefined,
     filters?.timeRange?.end ? sql`${chatMessagesTable.platform_timestamp} <= ${filters.timeRange.end}` : undefined,
+    // ACL: for private dialogs, only return messages owned by this account (or legacy NULL owner).
+    sql`(
+      ${joinedChatsTable.chat_type} != 'user'
+      OR ${chatMessagesTable.owner_account_id} = ${accountId}
+      OR ${chatMessagesTable.owner_account_id} IS NULL
+    )`,
   ].filter(Boolean)
 
   // Get top messages with similarity above threshold
@@ -62,6 +68,7 @@ export async function retrieveVector(
       time_relevance: sql<number>`${timeRelevance} AS "time_relevance"`,
       combined_score: sql<number>`${combinedScore} AS "combined_score"`,
       chat_name: joinedChatsTable.chat_name,
+      owner_account_id: chatMessagesTable.owner_account_id,
     })
     .from(chatMessagesTable)
     .innerJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
