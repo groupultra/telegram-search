@@ -8,7 +8,7 @@ export const accountJoinedChatsTable = pgTable('account_joined_chats', {
   id: uuid().primaryKey().defaultRandom(),
   account_id: uuid().notNull().references(() => accountsTable.id, { onDelete: 'cascade' }),
   joined_chat_id: uuid().notNull().references(() => joinedChatsTable.id, { onDelete: 'cascade' }),
-  created_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
+  created_at: bigint({ mode: 'number' }).notNull().$defaultFn(() => Date.now()),
 }, table => [
   uniqueIndex('account_joined_chats_account_joined_chat_unique_index').on(table.account_id, table.joined_chat_id),
 ])
