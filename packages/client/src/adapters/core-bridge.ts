@@ -54,11 +54,22 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     return session?.uuid ?? ''
   })
 
+  function serializeError(err: unknown) {
+    if (err instanceof Error) {
+      return err.message
+    }
+    return String(err ?? 'Unknown error')
+  }
+
   function deepClone<T>(data?: T): T | undefined {
     if (!data)
       return data
 
     try {
+      if (data && typeof data === 'object' && 'error' in data) {
+        data.error = serializeError(data.error)
+      }
+
       return JSON.parse(JSON.stringify(data)) as T
     }
     catch (error) {

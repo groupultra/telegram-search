@@ -41,13 +41,11 @@ export function sendWsEvent<T extends keyof WsEventToClient>(
   peer.send(createWsMessage(event, data))
 }
 
-export function sendWsError(
-  peer: Peer,
-  error?: string | Error | unknown,
-) {
-  sendWsEvent(peer, 'server:error', {
-    error: error ? error instanceof Error ? error.message : String(error) : 'Unknown error',
-  })
+function serializeError(err: unknown) {
+  if (err instanceof Error) {
+    return err.message
+  }
+  return String(err ?? 'Unknown error')
 }
 
 export function createWsMessage<T extends keyof WsEventToClient>(
@@ -60,6 +58,10 @@ export function createWsMessage<T extends keyof WsEventToClient>(
     if (stringifiedData.length > 1024 * 1024) {
       useLogger().withFields({ type, length: stringifiedData.length }).warn('Dropped event data')
       return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
+    }
+
+    if (data && 'error' in data) {
+      data.error = serializeError(data.error)
     }
 
     return { type, data } as Extract<WsMessageToClient, { type: T }>
