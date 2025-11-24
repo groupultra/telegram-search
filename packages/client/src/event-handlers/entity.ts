@@ -2,6 +2,7 @@ import type { ClientRegisterEventHandler } from '.'
 
 import { useBridgeStore } from '../composables/useBridge'
 import { useAvatarStore } from '../stores/useAvatar'
+import { useChatStore } from '../stores/useChat'
 import { persistUserAvatar } from '../utils/avatar-cache'
 import { bytesToBlob, canDecodeAvatar } from '../utils/image'
 
@@ -14,9 +15,15 @@ export function registerEntityEventHandlers(
 ) {
   registerEventHandler('entity:me:data', (data) => {
     const bridgeStore = useBridgeStore()
+    const chatStore = useChatStore()
+
     const activeSession = bridgeStore.getActiveSession()
     if (activeSession)
       activeSession.me = data
+
+    // Now that core has recorded the account and set currentAccountId,
+    // it is safe to fetch dialogs for this account.
+    chatStore.init()
   })
 
   // User avatar bytes -> blob url

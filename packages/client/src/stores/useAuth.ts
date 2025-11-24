@@ -2,7 +2,6 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
 import { useBridgeStore } from '../composables/useBridge'
-import { useChatStore } from './useChat'
 
 export const useAuthStore = defineStore('session', () => {
   const websocketStore = useBridgeStore()
@@ -16,9 +15,26 @@ export const useAuthStore = defineStore('session', () => {
   const activeSessionComputed = computed(() => websocketStore.getActiveSession())
   const isLoggedInComputed = computed(() => activeSessionComputed.value?.isConnected)
 
-  // NOTE: auto-login is intentionally opt-in and currently disabled to avoid
-  // surprising behavior across multi-account setups. See init() for details.
-  const attemptLogin = async () => {}
+  /**
+   * Best-effort auto-login using stored Telegram session string.
+   *
+   * Rules:
+   * - Only runs when there is NO active connection.
+   * - Uses the active slot's stored session (if any).
+   * - Sends empty phoneNumber because Telegram will skip sign-in flow when
+   *   the session is still valid. If the session is invalid, core will emit
+   *   auth:error and frontend should fall back to manual login.
+   */
+  const attemptLogin = async () => {
+    const activeSession = websocketStore.getActiveSession()
+
+    if (!activeSession?.isConnected && activeSession?.session) {
+      websocketStore.sendEvent('auth:login', {
+        phoneNumber: '',
+        session: activeSession.session,
+      })
+    }
+  }
 
   watch(() => activeSessionComputed.value?.isConnected, (isConnected) => {
     if (isConnected) {
@@ -68,11 +84,10 @@ export const useAuthStore = defineStore('session', () => {
   }
 
   function init() {
-    // Auto login
-    // useConfig().api.telegram.autoReconnect && attemptLogin()
-
-    // Initialize chat store to load dialogs from database regardless of authentication status
-    useChatStore().init()
+    // Try to restore connection using stored session for the active slot.
+    // If the session is invalid, core will emit auth:error and the user will
+    // be guided through manual login as usual.
+    void attemptLogin()
   }
 
   return {
