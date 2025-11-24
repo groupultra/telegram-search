@@ -348,7 +348,7 @@ function createAvatarHelper(ctx: CoreContext) {
     }
     const existing = cache.get(key)
     if (!existing || !existing.byte) {
-      logger.withFields({ [idLabel]: key, fileId }).verbose(`Priming ${kind} avatar cache with fileId`)
+      logger.withFields({ [idLabel]: key, fileId }).debug(`Priming ${kind} avatar cache with fileId`)
       cache.set(key, { fileId, mimeType: '', byte: undefined })
     }
   }

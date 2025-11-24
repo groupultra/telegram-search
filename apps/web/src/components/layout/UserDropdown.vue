@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useAuthStore } from '@tg-search/client'
+import { useAuthStore, useBridgeStore } from '@tg-search/client'
 import { onClickOutside } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, useTemplateRef } from 'vue'
@@ -14,6 +14,7 @@ const router = useRouter()
 
 const authStore = useAuthStore()
 const { isLoggedIn, activeSessionComputed } = storeToRefs(authStore)
+const { activeSessionId } = storeToRefs(useBridgeStore())
 
 const isOpen = defineModel<boolean>('open')
 
@@ -58,7 +59,7 @@ const username = computed(() => activeSessionComputed.value?.me?.username)
 const userId = computed(() => activeSessionComputed.value?.me?.id)
 const allAccounts = computed(() => authStore.handleAuth().getAllAccounts())
 const otherAccounts = computed(() => {
-  return allAccounts.value.filter(account => account.me?.id !== userId.value)
+  return allAccounts.value.filter(account => account.id !== activeSessionId.value)
 })
 </script>
 
@@ -134,7 +135,6 @@ const otherAccounts = computed(() => {
       </button>
 
       <button
-        v-if="isLoggedIn"
         class="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
         @click="handleLogoutCurrentAccount"
       >
@@ -144,7 +144,7 @@ const otherAccounts = computed(() => {
 
       <!-- First-time / no accounts: only show Login -->
       <button
-        v-if="allAccounts.length === 0 && !isLoggedIn"
+        v-if="allAccounts.length === 0"
         class="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
         @click="handleLoginLogout"
       >

@@ -1,3 +1,4 @@
+import { useLogger } from '@guiiai/logg'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
@@ -26,6 +27,7 @@ export const useAuthStore = defineStore('session', () => {
    *   auth:error and frontend should fall back to manual login.
    */
   const attemptLogin = async () => {
+    useLogger('AuthStore').log('Attempting login')
     const activeSession = websocketStore.getActiveSession()
 
     if (!activeSession?.isConnected && activeSession?.session) {
@@ -87,7 +89,8 @@ export const useAuthStore = defineStore('session', () => {
     // Try to restore connection using stored session for the active slot.
     // If the session is invalid, core will emit auth:error and the user will
     // be guided through manual login as usual.
-    void attemptLogin()
+    // FIXME
+    setTimeout(() => void attemptLogin(), 200)
   }
 
   return {

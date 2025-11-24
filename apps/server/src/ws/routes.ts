@@ -254,7 +254,7 @@ export function setupWsRoutes(app: App) {
           }
         }
         else {
-          logger.withFields({ type: event.type, accountId }).log('Message received')
+          logger.withFields({ type: event.type, accountId }).verbose('Message received')
 
           // Emit to core context
           account.ctx.emitter.emit(event.type, event.data as CoreEventData<keyof ToCoreEvent>)
