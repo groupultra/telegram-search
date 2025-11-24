@@ -1,6 +1,5 @@
 import type { ClientRegisterEventHandler } from '.'
 
-import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
 
 import { useBridgeStore } from '../composables/useBridge'
