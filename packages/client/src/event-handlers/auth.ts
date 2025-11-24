@@ -21,11 +21,11 @@ export function registerBasicEventHandlers(
     useBridgeStore().getActiveSession()!.isConnected = true
   })
 
-  // Core forwards updated StringSession to the client; store it on the active session.
+  // Core forwards updated StringSession to the client; let bridge store decide
+  // whether to update current account or create a new slot (add-account flow).
   registerEventHandler('session:update', ({ session }) => {
     const bridgeStore = useBridgeStore()
-    const { activeSessionId } = storeToRefs(bridgeStore)
-    bridgeStore.updateActiveSession(activeSessionId.value, { session })
+    bridgeStore.applySessionUpdate(session)
   })
 
   registerEventHandler('auth:error', ({ error }) => {

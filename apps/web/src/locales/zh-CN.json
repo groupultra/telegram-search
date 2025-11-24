@@ -152,6 +152,7 @@
     "settings": "设置",
     "settingsSavedSuccessfully": "设置保存成功",
     "switchAccount": "切换账号",
+    "notLoggedIn": "未登录",
     "switchToDarkMode": "切换到暗色模式",
     "switchToLightMode": "切换到亮色模式",
     "telegramApi": "Telegram API",

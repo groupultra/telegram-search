@@ -152,6 +152,7 @@
     "settings": "Settings",
     "settingsSavedSuccessfully": "Settings saved successfully",
     "switchAccount": "Switch Account",
+    "notLoggedIn": "Not logged in",
     "switchToDarkMode": "Switch to dark mode",
     "switchToLightMode": "Switch to light mode",
     "telegramApi": "Telegram API",

@@ -36,8 +36,8 @@ function handleLoginLogout() {
 }
 
 function handleAddAccount() {
-  authStore.handleAuth().addNewAccount()
   isOpen.value = false
+  authStore.handleAuth().addNewAccount()
   router.push({
     path: '/login',
     query: { redirect: route.fullPath },
@@ -90,7 +90,7 @@ const otherAccounts = computed(() => {
     </div>
 
     <!-- Switch Account Section -->
-    <div v-if="isLoggedIn && otherAccounts.length > 0" class="border-b py-2 dark:border-gray-600">
+    <div v-if="otherAccounts.length > 0" class="border-b py-2 dark:border-gray-600">
       <div class="px-2 py-1 text-xs text-muted-foreground font-semibold">
         {{ t('settings.switchAccount') }}
       </div>
@@ -111,7 +111,7 @@ const otherAccounts = computed(() => {
           />
           <div class="flex flex-1 flex-col overflow-hidden">
             <span class="truncate text-sm text-gray-900 font-medium dark:text-gray-100">
-              {{ account.me?.username || account.me?.id }}
+              {{ account.me?.username || (account.me?.id ? `ID: ${account.me.id}` : t('settings.notLoggedIn')) }}
             </span>
             <span v-if="account.me?.id" class="truncate text-xs text-gray-600 dark:text-gray-400">
               ID: {{ account.me.id }}
@@ -123,7 +123,9 @@ const otherAccounts = computed(() => {
 
     <!-- Actions Section -->
     <div class="mt-2 space-y-1">
+      <!-- Only show Add Account when there is at least one existing account -->
       <button
+        v-if="allAccounts.length > 0"
         class="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
         @click="handleAddAccount"
       >
@@ -140,8 +142,9 @@ const otherAccounts = computed(() => {
         {{ t('settings.logoutCurrentAccount') }}
       </button>
 
+      <!-- First-time / no accounts: only show Login -->
       <button
-        v-if="!isLoggedIn"
+        v-if="allAccounts.length === 0 && !isLoggedIn"
         class="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-gray-700"
         @click="handleLoginLogout"
       >

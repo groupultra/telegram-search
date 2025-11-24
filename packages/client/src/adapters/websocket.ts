@@ -21,6 +21,12 @@ export const useWebsocketStore = defineStore('websocket', () => {
   // active-session-slot: index into storageSessions array
   const storageActiveSessionSlot = useLocalStorage<number>('websocket/active-session-slot', 0)
   const logger = useLogger('WebSocket')
+  /**
+   * When adding a new account, we first navigate to the login page and only
+   * create/activate a new slot after successful login (session:update).
+   * This ref temporarily holds the uuid for the "pending" account.
+   */
+  const pendingSessionId = ref<string | null>(null)
 
   const ensureSessionInvariants = () => {
     if (!Array.isArray(storageSessions.value))
@@ -124,15 +130,23 @@ export const useWebsocketStore = defineStore('websocket', () => {
   }
 
   const addNewAccount = () => {
-    const newSession: StoredSession = {
-      uuid: uuidv4(),
-      metadata: {},
+    // Mark that the next successful login should create a brand new slot.
+    pendingSessionId.value = uuidv4()
+    return pendingSessionId.value
+  }
+
+  /**
+   * Apply session:update to either the current active account or, when adding
+   * a new account, to a freshly created slot identified by pendingSessionId.
+   */
+  const applySessionUpdate = (session: string) => {
+    if (pendingSessionId.value) {
+      updateActiveSession(pendingSessionId.value, { session })
+      pendingSessionId.value = null
     }
-    storageSessions.value = [...storageSessions.value, newSession]
-    storageActiveSessionSlot.value = storageSessions.value.length - 1
-    // WebSocket will reconnect with the new sessionId in URL
-    wsSocket.value.close()
-    return newSession.uuid
+    else {
+      updateActiveSession(activeSessionId.value, { session })
+    }
   }
 
   const logoutCurrentAccount = async () => {
@@ -242,6 +256,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
     updateActiveSession,
     switchAccount,
     addNewAccount,
+    applySessionUpdate,
     logoutCurrentAccount,
     getAllSessions,
     cleanup,
