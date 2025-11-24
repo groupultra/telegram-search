@@ -23,7 +23,7 @@ export interface ClientInstanceEventFromCore {
 // ============================================================================
 
 export interface ConnectionEventToCore {
-  'auth:login': (data: { phoneNumber: string, session?: string }) => void
+  'auth:login': (data: { phoneNumber?: string, session?: string }) => void
   'auth:logout': () => void
   'auth:code': (data: { code: string }) => void
   'auth:password': (data: { password: string }) => void

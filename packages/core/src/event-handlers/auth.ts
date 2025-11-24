@@ -12,12 +12,15 @@ export function registerBasicEventHandlers(ctx: CoreContext) {
     configuredConnectionService: ConnectionService,
   ) => {
     emitter.on('auth:login', async ({ phoneNumber, session }) => {
-      const stringSession = new StringSession(session ?? '')
-
       logger.withFields({ hasSession: !!session }).verbose('Using client-provided session')
 
-      await configuredConnectionService.login({ phoneNumber, session: stringSession })
-      logger.verbose('Logged in to Telegram')
+      if (session) {
+        return configuredConnectionService.loginWithSession(new StringSession(session))
+      }
+
+      if (phoneNumber) {
+        return configuredConnectionService.loginWithPhone(phoneNumber)
+      }
     })
 
     emitter.on('auth:logout', async () => {
