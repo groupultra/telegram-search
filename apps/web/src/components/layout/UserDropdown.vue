@@ -66,7 +66,7 @@ const otherAccounts = computed(() => {
   <div
     v-if="isOpen"
     ref="dropdownRef"
-    class="absolute left-0 top-full z-10 mt-2 min-w-[240px] border border-border rounded-md bg-popover p-2 shadow-lg dark:border-gray-600 dark:bg-gray-800"
+    class="fixed bottom-16 left-2 z-1000 min-w-[240px] border border-border rounded-md bg-popover p-2 shadow-lg dark:border-gray-600 dark:bg-gray-800"
   >
     <!-- Current Account Section -->
     <div v-if="isLoggedIn" class="border-b pb-2 dark:border-gray-600">
@@ -111,7 +111,7 @@ const otherAccounts = computed(() => {
           />
           <div class="flex flex-1 flex-col overflow-hidden">
             <span class="truncate text-sm text-gray-900 font-medium dark:text-gray-100">
-              {{ account.me?.username || account.phoneNumber }}
+              {{ account.me?.username || account.me?.id }}
             </span>
             <span v-if="account.me?.id" class="truncate text-xs text-gray-600 dark:text-gray-400">
               ID: {{ account.me.id }}

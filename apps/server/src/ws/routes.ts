@@ -78,7 +78,6 @@ import { sendWsEvent } from './events'
  */
 export interface AccountState {
   ctx: CoreContext
-  phoneNumber?: string
   isConnected: boolean
   // Core event listeners (registered once, shared by all WebSocket connections)
   coreEventListeners: Map<keyof FromCoreEvent, (data: any) => void>
@@ -264,7 +263,6 @@ export function setupWsRoutes(app: App) {
         // Update account state based on events
         switch (event.type) {
           case 'auth:login':
-            account.phoneNumber = event.data.phoneNumber
             account.ctx.emitter.once('auth:connected', () => {
               account.isConnected = true
             })

@@ -1,7 +1,8 @@
 import type { CoreContext } from '../context'
-import type { ConnectionService, SessionService } from '../services'
+import type { ConnectionService } from '../services'
 
 import { useLogger } from '@guiiai/logg'
+import { StringSession } from 'telegram/sessions'
 
 export function registerBasicEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
@@ -9,14 +10,13 @@ export function registerBasicEventHandlers(ctx: CoreContext) {
 
   return (
     configuredConnectionService: ConnectionService,
-    sessionService: SessionService,
   ) => {
-    emitter.on('auth:login', async ({ phoneNumber }) => {
-      const session = (await sessionService.loadSession(phoneNumber)).expect('Failed to load session')
+    emitter.on('auth:login', async ({ phoneNumber, session }) => {
+      const stringSession = new StringSession(session ?? '')
 
-      logger.withFields({ session }).verbose('Loaded session')
+      logger.withFields({ hasSession: !!session }).verbose('Using client-provided session')
 
-      await configuredConnectionService.login({ phoneNumber, session })
+      await configuredConnectionService.login({ phoneNumber, session: stringSession })
       logger.verbose('Logged in to Telegram')
     })
 

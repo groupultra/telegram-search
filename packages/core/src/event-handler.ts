@@ -1,10 +1,8 @@
 import type { Config } from '@tg-search/common'
 
 import type { CoreContext } from './context'
-import type { SessionService } from './services/session'
 
 import { useLogger } from '@guiiai/logg'
-import { isBrowser } from '@tg-search/common'
 
 import { useService } from './context'
 import { registerBasicEventHandlers } from './event-handlers/auth'
@@ -14,7 +12,6 @@ import { registerEntityEventHandlers } from './event-handlers/entity'
 import { registerGramEventsEventHandlers } from './event-handlers/gram-events'
 import { registerMessageEventHandlers } from './event-handlers/message'
 import { registerMessageResolverEventHandlers } from './event-handlers/message-resolver'
-import { registerSessionEventHandlers } from './event-handlers/session'
 import { registerStorageEventHandlers } from './event-handlers/storage'
 import { registerTakeoutEventHandlers } from './event-handlers/takeout'
 import { useMessageResolverRegistry } from './message-resolvers'
@@ -66,19 +63,7 @@ export function basicEventHandler(
   registerMessageResolverEventHandlers(ctx)(messageResolverService)
 
   ;(async () => {
-    let sessionService: SessionService
-
-    if (isBrowser()) {
-      const { createSessionService } = await import('./services/session.browser')
-      sessionService = useService(ctx, createSessionService)
-    }
-    else {
-      const { createSessionService } = await import('./services/session')
-      sessionService = useService(ctx, createSessionService)
-    }
-
-    registerBasicEventHandlers(ctx)(connectionService, sessionService)
-    registerSessionEventHandlers(ctx)(sessionService)
+    registerBasicEventHandlers(ctx)(connectionService)
   })()
 
   return () => {}

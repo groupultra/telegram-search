@@ -1,7 +1,7 @@
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient, WsMessageToServer } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { SessionContext } from '../stores/useAuth'
+import type { SessionContext, StoredSession } from '../types/session'
 
 import { useLogger } from '@guiiai/logg'
 import { useLocalStorage, useWebSocket } from '@vueuse/core'
@@ -17,44 +17,82 @@ export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
 
 export const useWebsocketStore = defineStore('websocket', () => {
-  const storageSessions = useLocalStorage<Record<string, SessionContext>>('websocket/sessions', {})
-  const storageActiveSessionId = useLocalStorage<string>('websocket/active-session-id', '')
+  const storageSessions = useLocalStorage<StoredSession[]>('websocket/sessions', [])
+  // active-session-slot: index into storageSessions array
+  const storageActiveSessionSlot = useLocalStorage<number>('websocket/active-session-slot', 0)
   const logger = useLogger('WebSocket')
 
-  const getActiveSession = () => {
-    if (!storageActiveSessionId.value) {
-      return undefined
+  const ensureSessionInvariants = () => {
+    if (!Array.isArray(storageSessions.value))
+      storageSessions.value = []
+
+    if (storageSessions.value.length === 0) {
+      storageSessions.value = [{
+        uuid: uuidv4(),
+        metadata: {},
+      }]
+      storageActiveSessionSlot.value = 0
+      return
     }
-    return storageSessions.value[storageActiveSessionId.value]
+
+    if (storageActiveSessionSlot.value < 0 || storageActiveSessionSlot.value >= storageSessions.value.length)
+      storageActiveSessionSlot.value = 0
+  }
+
+  ensureSessionInvariants()
+
+  const activeSessionId = computed(() => {
+    const slot = storageActiveSessionSlot.value
+    const session = storageSessions.value[slot]
+    return session?.uuid ?? ''
+  })
+
+  const getActiveSession = () => {
+    const slot = storageActiveSessionSlot.value
+    return storageSessions.value[slot]?.metadata
   }
 
   const updateActiveSession = (sessionId: string, partialSession: Partial<SessionContext>) => {
-    const existingSession = storageSessions.value[sessionId] || {}
-    const mergedSession = defu({}, partialSession, existingSession)
-
-    storageSessions.value = {
-      ...storageSessions.value,
-      [sessionId]: mergedSession,
+    if (!sessionId) {
+      // create a fresh uuid when caller does not care about specific id
+      sessionId = uuidv4()
     }
-    storageActiveSessionId.value = sessionId
+
+    const currentIndex = storageSessions.value.findIndex(session => session.uuid === sessionId)
+    const sessionIndex = currentIndex === -1 ? storageSessions.value.length : currentIndex
+    const existing = storageSessions.value[sessionIndex]
+    const existingMetadata = existing?.metadata ?? {}
+    const mergedMetadata = defu({}, partialSession, existingMetadata) as SessionContext
+
+    const updatedSession: StoredSession = {
+      uuid: existing?.uuid ?? sessionId,
+      sessionString: existing?.sessionString,
+      metadata: mergedMetadata,
+    }
+
+    const sessionsCopy = [...storageSessions.value]
+    sessionsCopy[sessionIndex] = updatedSession
+    storageSessions.value = sessionsCopy
+    storageActiveSessionSlot.value = sessionIndex
   }
 
   const cleanup = () => {
-    storageSessions.value = {}
-    storageActiveSessionId.value = ''
+    storageSessions.value = []
+    storageActiveSessionSlot.value = 0
   }
 
   const getAllSessions = () => {
-    return Object.entries(storageSessions.value).map(([id, session]) => ({
-      id,
-      ...session,
+    return storageSessions.value.map(session => ({
+      id: session.uuid,
+      ...session.metadata,
     }))
   }
 
   const wsUrlComputed = computed(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const host = window.location.host
-    return `${protocol}//${host}${WS_API_BASE}?sessionId=${storageActiveSessionId.value}`
+    const sessionId = activeSessionId.value
+    return `${protocol}//${host}${WS_API_BASE}?sessionId=${sessionId}`
   })
 
   const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed, {
@@ -76,8 +114,9 @@ export const useWebsocketStore = defineStore('websocket', () => {
   }
 
   const switchAccount = (sessionId: string) => {
-    if (storageSessions.value[sessionId]) {
-      storageActiveSessionId.value = sessionId
+    const index = storageSessions.value.findIndex(session => session.uuid === sessionId)
+    if (index !== -1) {
+      storageActiveSessionSlot.value = index
       logger.withFields({ sessionId }).log('Switched to account')
       // WebSocket will reconnect with the new sessionId in URL
       wsSocket.value.close()
@@ -85,42 +124,39 @@ export const useWebsocketStore = defineStore('websocket', () => {
   }
 
   const addNewAccount = () => {
-    const newSessionId = uuidv4()
-    storageActiveSessionId.value = newSessionId
-    storageSessions.value = {
-      ...storageSessions.value,
-      [newSessionId]: {},
+    const newSession: StoredSession = {
+      uuid: uuidv4(),
+      metadata: {},
     }
+    storageSessions.value = [...storageSessions.value, newSession]
+    storageActiveSessionSlot.value = storageSessions.value.length - 1
     // WebSocket will reconnect with the new sessionId in URL
     wsSocket.value.close()
-    return newSessionId
+    return newSession.uuid
   }
 
   const logoutCurrentAccount = async () => {
-    const currentSessionId = storageActiveSessionId.value
-    if (!currentSessionId) {
+    const index = storageActiveSessionSlot.value
+    const sessions = storageSessions.value
+
+    if (index < 0 || index >= sessions.length)
       return
+
+    const newSessions = [...sessions.slice(0, index), ...sessions.slice(index + 1)]
+    storageSessions.value = newSessions
+
+    if (newSessions.length === 0) {
+      storageActiveSessionSlot.value = 0
+    }
+    else if (index >= newSessions.length) {
+      storageActiveSessionSlot.value = newSessions.length - 1
+    }
+    else {
+      storageActiveSessionSlot.value = index
     }
 
-    const session = storageSessions.value[currentSessionId]
-    if (session) {
-      // Remove session from storage
-      const newSessions = { ...storageSessions.value }
-      delete newSessions[currentSessionId]
-      storageSessions.value = newSessions
-
-      // Switch to another account or create new empty session
-      const remainingSessions = Object.keys(newSessions)
-      if (remainingSessions.length > 0) {
-        storageActiveSessionId.value = remainingSessions[0]
-      }
-      else {
-        storageActiveSessionId.value = ''
-      }
-
-      // Emit logout event
-      sendEvent('auth:logout', undefined)
-    }
+    // Emit logout event for current account
+    sendEvent('auth:logout', undefined)
   }
 
   const eventHandlers: ClientEventHandlerMap = new Map()
@@ -134,14 +170,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
       return
     }
 
-    // Ensure there's at least one session
-    if (!storageActiveSessionId.value || Object.keys(storageSessions.value).length === 0) {
-      const newSessionId = uuidv4()
-      storageActiveSessionId.value = newSessionId
-      storageSessions.value = {
-        [newSessionId]: {},
-      }
-    }
+    ensureSessionInvariants()
 
     registerAllEventHandlers(registerEventHandler)
     isInitialized.value = true
@@ -208,7 +237,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
     init,
 
     sessions: storageSessions,
-    activeSessionId: storageActiveSessionId,
+    activeSessionId,
     getActiveSession,
     updateActiveSession,
     switchAccount,

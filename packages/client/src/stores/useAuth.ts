@@ -1,16 +1,8 @@
-import type { CoreUserEntity } from '@tg-search/core'
-
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
 import { useBridgeStore } from '../composables/useBridge'
 import { useChatStore } from './useChat'
-
-export interface SessionContext {
-  phoneNumber?: string
-  isConnected?: boolean
-  me?: CoreUserEntity
-}
 
 export const useAuthStore = defineStore('session', () => {
   const websocketStore = useBridgeStore()
@@ -24,12 +16,9 @@ export const useAuthStore = defineStore('session', () => {
   const activeSessionComputed = computed(() => websocketStore.getActiveSession())
   const isLoggedInComputed = computed(() => activeSessionComputed.value?.isConnected)
 
-  const attemptLogin = async () => {
-    const activeSession = websocketStore.getActiveSession()
-    if (!activeSession?.isConnected && activeSession?.phoneNumber) {
-      handleAuth().login(activeSession.phoneNumber)
-    }
-  }
+  // NOTE: auto-login is intentionally opt-in and currently disabled to avoid
+  // surprising behavior across multi-account setups. See init() for details.
+  const attemptLogin = async () => {}
 
   watch(() => activeSessionComputed.value?.isConnected, (isConnected) => {
     if (isConnected) {
@@ -39,19 +28,11 @@ export const useAuthStore = defineStore('session', () => {
 
   function handleAuth() {
     function login(phoneNumber: string) {
-      const activeSessionId = websocketStore.activeSessionId
       const session = websocketStore.getActiveSession()
-
-      if (session) {
-        session.phoneNumber = phoneNumber
-      }
-      else {
-        // Create a new session if none exists
-        websocketStore.updateActiveSession(activeSessionId, { phoneNumber })
-      }
 
       websocketStore.sendEvent('auth:login', {
         phoneNumber,
+        session: session?.session,
       })
     }
 

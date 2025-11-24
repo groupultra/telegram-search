@@ -15,21 +15,8 @@ export function registerEntityEventHandlers(
   registerEventHandler('entity:me:data', (data) => {
     const bridgeStore = useBridgeStore()
     const activeSession = bridgeStore.getActiveSession()
-    if (activeSession) {
+    if (activeSession)
       activeSession.me = data
-
-      // Now that we have the userId, we should migrate the session storage
-      // from phone-based key to userId-based key
-      if (data.id && activeSession.phoneNumber) {
-        const userId = data.id.toString()
-
-        // Emit session update with userId as identifier
-        bridgeStore.sendEvent('session:update', {
-          phoneNumber: userId,
-          session: '', // Will be updated by connection service
-        })
-      }
-    }
   })
 
   // User avatar bytes -> blob url

@@ -1,5 +1,6 @@
 import type { ClientRegisterEventHandler } from '.'
 
+import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
 
 import { useBridgeStore } from '../composables/useBridge'
@@ -18,6 +19,13 @@ export function registerBasicEventHandlers(
 
   registerEventHandler('auth:connected', () => {
     useBridgeStore().getActiveSession()!.isConnected = true
+  })
+
+  // Core forwards updated StringSession to the client; store it on the active session.
+  registerEventHandler('session:update', ({ session }) => {
+    const bridgeStore = useBridgeStore()
+    const { activeSessionId } = storeToRefs(bridgeStore)
+    bridgeStore.updateActiveSession(activeSessionId.value, { session })
   })
 
   registerEventHandler('auth:error', ({ error }) => {

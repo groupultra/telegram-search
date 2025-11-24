@@ -23,7 +23,7 @@ export interface ClientInstanceEventFromCore {
 // ============================================================================
 
 export interface ConnectionEventToCore {
-  'auth:login': (data: { phoneNumber: string }) => void
+  'auth:login': (data: { phoneNumber: string, session?: string }) => void
   'auth:logout': () => void
   'auth:code': (data: { code: string }) => void
   'auth:password': (data: { password: string }) => void
@@ -40,12 +40,11 @@ export interface ConnectionEventFromCore {
 // Session Events
 // ============================================================================
 
-export interface SessionEventToCore {
-  'session:update': (data: { phoneNumber: string, session: string }) => void
-  'session:clean': (data: { phoneNumber: string }) => void
-}
+export interface SessionEventToCore {}
 
-export interface SessionEventFromCore {}
+export interface SessionEventFromCore {
+  'session:update': (data: { session: string }) => void
+}
 
 // ============================================================================
 // Config Events
@@ -333,7 +332,6 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & DialogEventToCore
   & ConnectionEventToCore
   & TakeoutEventToCore
-  & SessionEventToCore
   & EntityEventToCore
   & StorageEventToCore
   & ConfigEventToCore

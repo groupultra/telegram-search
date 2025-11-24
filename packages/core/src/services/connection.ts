@@ -138,11 +138,11 @@ export function createConnectionService(ctx: CoreContext) {
         useConfig().api.telegram.autoReconnect = true
         updateConfig(useConfig())
 
-        // NOTE: The client will return string session, so convert it directly
+        // NOTE: The client will return string session, so forward it to frontend
         const sessionString = await client.session.save() as unknown as string
-        logger.withFields({ sessionString }).verbose('Saving session')
+        logger.withFields({ hasSession: !!sessionString }).verbose('Forwarding session to client')
 
-        emitter.emit('session:update', { phoneNumber, session: sessionString })
+        emitter.emit('session:update', { session: sessionString })
 
         ctx.setClient(client)
 

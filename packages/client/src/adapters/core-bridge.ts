@@ -2,7 +2,7 @@ import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { SessionContext } from '../stores/useAuth'
+import type { SessionContext, StoredSession } from '../types/session'
 
 import defu from 'defu'
 
@@ -12,14 +12,14 @@ import { createCoreInstance, initDrizzle } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
-  // Store sessions as a record with userId as key
-  const storageSessions = useLocalStorage<Record<string, SessionContext>>('core-bridge/sessions', {})
-  const storageActiveSessionId = useLocalStorage<string>('core-bridge/active-session-id', '')
+  const storageSessions = useLocalStorage<StoredSession[]>('core-bridge/sessions', [])
+  // active-session-slot: index into storageSessions array
+  const storageActiveSessionSlot = useLocalStorage<number>('core-bridge/active-session-slot', 0)
 
   const logger = useLogger('CoreBridge')
   let ctx: CoreContext
@@ -28,6 +28,31 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
   const isInitialized = ref(false)
+
+  const ensureSessionInvariants = () => {
+    if (!Array.isArray(storageSessions.value))
+      storageSessions.value = []
+
+    if (storageSessions.value.length === 0) {
+      storageSessions.value = [{
+        uuid: uuidv4(),
+        metadata: {},
+      }]
+      storageActiveSessionSlot.value = 0
+      return
+    }
+
+    if (storageActiveSessionSlot.value < 0 || storageActiveSessionSlot.value >= storageSessions.value.length)
+      storageActiveSessionSlot.value = 0
+  }
+
+  ensureSessionInvariants()
+
+  const activeSessionId = computed(() => {
+    const slot = storageActiveSessionSlot.value
+    const session = storageSessions.value[slot]
+    return session?.uuid ?? ''
+  })
 
   function deepClone<T>(data?: T): T | undefined {
     if (!data)
@@ -69,89 +94,83 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   }
 
   const getActiveSession = () => {
-    if (!storageActiveSessionId.value) {
-      return undefined
-    }
-    return storageSessions.value[storageActiveSessionId.value]
+    const slot = storageActiveSessionSlot.value
+    return storageSessions.value[slot]?.metadata
   }
 
   const updateActiveSession = (sessionId: string, partialSession: Partial<SessionContext>) => {
-    const existingSession = storageSessions.value[sessionId] || {}
-    const mergedSession = defu({}, partialSession, existingSession)
+    if (!sessionId)
+      sessionId = uuidv4()
 
-    storageSessions.value = {
-      ...storageSessions.value,
-      [sessionId]: mergedSession,
+    const currentIndex = storageSessions.value.findIndex(session => session.uuid === sessionId)
+    const sessionIndex = currentIndex === -1 ? storageSessions.value.length : currentIndex
+    const existing = storageSessions.value[sessionIndex]
+    const existingMetadata = existing?.metadata ?? {}
+    const mergedMetadata = defu({}, partialSession, existingMetadata) as SessionContext
+
+    const updatedSession: StoredSession = {
+      uuid: existing?.uuid ?? sessionId,
+      sessionString: existing?.sessionString,
+      metadata: mergedMetadata,
     }
-    storageActiveSessionId.value = sessionId
+
+    const sessionsCopy = [...storageSessions.value]
+    sessionsCopy[sessionIndex] = updatedSession
+    storageSessions.value = sessionsCopy
+    storageActiveSessionSlot.value = sessionIndex
   }
 
   const switchAccount = (sessionId: string) => {
-    if (storageSessions.value[sessionId]) {
-      storageActiveSessionId.value = sessionId
+    const index = storageSessions.value.findIndex(session => session.uuid === sessionId)
+    if (index !== -1) {
+      storageActiveSessionSlot.value = index
       logger.withFields({ sessionId }).verbose('Switched to account')
-
-      // Reconnect with the new session
-      const session = storageSessions.value[sessionId]
-      if (session.phoneNumber) {
-        // Try to reconnect with existing session
-        sendEvent('auth:login', { phoneNumber: session.phoneNumber })
-      }
     }
   }
 
   const addNewAccount = () => {
-    const newSessionId = uuidv4()
-    storageActiveSessionId.value = newSessionId
-    storageSessions.value = {
-      ...storageSessions.value,
-      [newSessionId]: {},
+    const newSession: StoredSession = {
+      uuid: uuidv4(),
+      metadata: {},
     }
-    return newSessionId
+    storageSessions.value = [...storageSessions.value, newSession]
+    storageActiveSessionSlot.value = storageSessions.value.length - 1
+    return newSession.uuid
   }
 
   const logoutCurrentAccount = async () => {
-    const currentSessionId = storageActiveSessionId.value
-    if (!currentSessionId) {
+    const index = storageActiveSessionSlot.value
+    const sessions = storageSessions.value
+
+    if (index < 0 || index >= sessions.length)
       return
+
+    const newSessions = [...sessions.slice(0, index), ...sessions.slice(index + 1)]
+    storageSessions.value = newSessions
+
+    if (newSessions.length === 0) {
+      storageActiveSessionSlot.value = 0
+    }
+    else if (index >= newSessions.length) {
+      storageActiveSessionSlot.value = newSessions.length - 1
+    }
+    else {
+      storageActiveSessionSlot.value = index
     }
 
-    const session = storageSessions.value[currentSessionId]
-    if (session) {
-      // Clean the session from storage
-      const identifier = session.me?.id?.toString() || session.phoneNumber
-      if (identifier) {
-        sendEvent('session:clean', { phoneNumber: identifier })
-      }
-
-      // Remove session from storage
-      const newSessions = { ...storageSessions.value }
-      delete newSessions[currentSessionId]
-      storageSessions.value = newSessions
-
-      // Switch to another account or create new empty session
-      const remainingSessions = Object.keys(newSessions)
-      if (remainingSessions.length > 0) {
-        storageActiveSessionId.value = remainingSessions[0]
-      }
-      else {
-        storageActiveSessionId.value = ''
-      }
-
-      // Emit logout event
-      sendEvent('auth:logout', undefined)
-    }
+    // Emit logout event
+    sendEvent('auth:logout', undefined)
   }
 
   const cleanup = () => {
-    storageSessions.value = {}
-    storageActiveSessionId.value = ''
+    storageSessions.value = []
+    storageActiveSessionSlot.value = 0
   }
 
   const getAllSessions = () => {
-    return Object.entries(storageSessions.value).map(([id, session]) => ({
-      id,
-      ...session,
+    return storageSessions.value.map(session => ({
+      id: session.uuid,
+      ...session.metadata,
     }))
   }
 
@@ -195,16 +214,9 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     await initConfig()
     registerAllEventHandlers(registerEventHandler)
 
-    // Ensure there's at least one session
-    if (!storageActiveSessionId.value || Object.keys(storageSessions.value).length === 0) {
-      const newSessionId = uuidv4()
-      storageActiveSessionId.value = newSessionId
-      storageSessions.value = {
-        [newSessionId]: {},
-      }
-    }
+    ensureSessionInvariants()
 
-    sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
+    sendWsEvent({ type: 'server:connected', data: { sessionId: activeSessionId.value, connected: false } })
     isInitialized.value = true
   }
 
@@ -257,7 +269,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     init,
 
     sessions: storageSessions,
-    activeSessionId: storageActiveSessionId,
+    activeSessionId,
     getActiveSession,
     updateActiveSession,
     switchAccount,
