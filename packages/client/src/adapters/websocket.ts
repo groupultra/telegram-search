@@ -5,7 +5,6 @@ import type { SessionContext, StoredSession } from '../types/session'
 
 import { useLogger } from '@guiiai/logg'
 import { useLocalStorage, useWebSocket } from '@vueuse/core'
-import { defu } from 'defu'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref, watch } from 'vue'
@@ -13,6 +12,7 @@ import { computed, ref, watch } from 'vue'
 import { WS_API_BASE } from '../../constants'
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
+import { createSessionStore } from '../utils/session-store'
 
 export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
@@ -22,22 +22,15 @@ export const useWebsocketStore = defineStore('websocket', () => {
   // active-session-slot: index into storageSessions array
   const storageActiveSessionSlot = useLocalStorage<number>('websocket/active-session-slot', 0)
   const logger = useLogger('WebSocket')
-  const ensureSessionInvariants = () => {
-    if (!Array.isArray(storageSessions.value))
-      storageSessions.value = []
-
-    if (storageSessions.value.length === 0) {
-      storageSessions.value = [{
-        uuid: uuidv4(),
-        metadata: {},
-      }]
-      storageActiveSessionSlot.value = 0
-      return
-    }
-
-    if (storageActiveSessionSlot.value < 0 || storageActiveSessionSlot.value >= storageSessions.value.length)
-      storageActiveSessionSlot.value = 0
-  }
+  const {
+    ensureSessionInvariants,
+    getActiveSession,
+    updateActiveSessionMetadata,
+    updateSessionMetadataById,
+    addNewAccount,
+    removeCurrentAccount,
+    cleanup: resetSessions,
+  } = createSessionStore(storageSessions, storageActiveSessionSlot, { generateId: () => uuidv4() })
 
   ensureSessionInvariants()
 
@@ -47,62 +40,12 @@ export const useWebsocketStore = defineStore('websocket', () => {
     return session?.uuid ?? ''
   })
 
-  const getActiveSession = () => {
-    const slot = storageActiveSessionSlot.value
-    return storageSessions.value[slot]?.metadata
-  }
-
   /**
    * Update metadata for the active session slot by shallow-merging the patch.
    * We intentionally keep this focused on the active slot to avoid the
    * previous "upsert by id" behavior, which made the control flow hard to
    * reason about.
    */
-  const updateActiveSessionMetadata = (patch: Partial<SessionContext>) => {
-    const index = storageActiveSessionSlot.value
-    const existing = storageSessions.value[index]
-    if (!existing)
-      return
-
-    const mergedMetadata = defu({}, patch, existing.metadata ?? {}) as SessionContext
-
-    const sessionsCopy = [...storageSessions.value]
-    sessionsCopy[index] = {
-      ...existing,
-      metadata: mergedMetadata,
-    }
-    storageSessions.value = sessionsCopy
-  }
-
-  /**
-   * Update metadata for a specific session identified by its uuid.
-   * Unlike the old implementation, this will NOT create new slots; if the
-   * session is not found, it simply does nothing.
-   */
-  const updateSessionMetadataById = (sessionId: string, patch: Partial<SessionContext>) => {
-    if (!sessionId)
-      return
-
-    const index = storageSessions.value.findIndex(session => session.uuid === sessionId)
-    if (index === -1)
-      return
-
-    const existing = storageSessions.value[index]
-    const mergedMetadata = defu({}, patch, existing.metadata ?? {}) as SessionContext
-
-    const sessionsCopy = [...storageSessions.value]
-    sessionsCopy[index] = {
-      ...existing,
-      metadata: mergedMetadata,
-    }
-    storageSessions.value = sessionsCopy
-  }
-
-  const cleanup = () => {
-    storageSessions.value = []
-    storageActiveSessionSlot.value = 0
-  }
-
   const wsUrlComputed = computed(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const host = window.location.host
@@ -162,17 +105,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
   }
 
   const addNewAccount = () => {
-    // Create a brand new slot immediately and switch to it.
-    const newId = uuidv4()
-    const sessionsCopy = [...storageSessions.value, {
-      uuid: newId,
-      metadata: {},
-    } satisfies StoredSession]
-
-    storageSessions.value = sessionsCopy
-    storageActiveSessionSlot.value = sessionsCopy.length - 1
-
-    return newId
+    return addNewAccount()
   }
 
   /**
@@ -186,24 +119,9 @@ export const useWebsocketStore = defineStore('websocket', () => {
   }
 
   const logoutCurrentAccount = async () => {
-    const index = storageActiveSessionSlot.value
-    const sessions = storageSessions.value
-
-    if (index < 0 || index >= sessions.length)
+    const removed = removeCurrentAccount()
+    if (!removed)
       return
-
-    const newSessions = [...sessions.slice(0, index), ...sessions.slice(index + 1)]
-    storageSessions.value = newSessions
-
-    if (newSessions.length === 0) {
-      storageActiveSessionSlot.value = 0
-    }
-    else if (index >= newSessions.length) {
-      storageActiveSessionSlot.value = newSessions.length - 1
-    }
-    else {
-      storageActiveSessionSlot.value = index
-    }
 
     // Emit logout event for current account
     sendEvent('auth:logout', undefined)

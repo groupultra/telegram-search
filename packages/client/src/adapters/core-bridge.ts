@@ -3,11 +3,9 @@ import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { SessionContext, StoredSession } from '../types/session'
+import type { StoredSession } from '../types/session'
 
-import defu from 'defu'
-
-import { initLogger, LoggerFormat, LoggerLevel, useLogger } from '@guiiai/logg'
+import { useLogger } from '@guiiai/logg'
 import { generateDefaultConfig, initConfig } from '@tg-search/common'
 import { createCoreInstance, destroyCoreInstance, initDrizzle } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
@@ -17,6 +15,7 @@ import { computed, ref, watch } from 'vue'
 
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
+import { createSessionStore } from '../utils/session-store'
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const storageSessions = useLocalStorage<StoredSession[]>('core-bridge/sessions', [])
@@ -25,6 +24,16 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const logger = useLogger('CoreBridge')
   let ctx: CoreContext | undefined
   const config = useLocalStorage<Config>('core-bridge/config', generateDefaultConfig())
+
+  const {
+    ensureSessionInvariants,
+    getActiveSession,
+    updateActiveSessionMetadata,
+    updateSessionMetadataById,
+    addNewAccount,
+    removeCurrentAccount,
+    cleanup: resetSessions,
+  } = createSessionStore(storageSessions, storageActiveSessionSlot, { generateId: () => uuidv4() })
 
   const activeSessionId = computed(() => {
     const slot = storageActiveSessionSlot.value
@@ -51,23 +60,6 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
   const isInitialized = ref(false)
-
-  const ensureSessionInvariants = () => {
-    if (!Array.isArray(storageSessions.value))
-      storageSessions.value = []
-
-    if (storageSessions.value.length === 0) {
-      storageSessions.value = [{
-        uuid: uuidv4(),
-        metadata: {},
-      }]
-      storageActiveSessionSlot.value = 0
-      return
-    }
-
-    if (storageActiveSessionSlot.value < 0 || storageActiveSessionSlot.value >= storageSessions.value.length)
-      storageActiveSessionSlot.value = 0
-  }
 
   ensureSessionInvariants()
 
@@ -113,74 +105,12 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     return ctx
   }
 
-  const getActiveSession = () => {
-    const slot = storageActiveSessionSlot.value
-    return storageSessions.value[slot]?.metadata
-  }
-
-  /**
-   * Update metadata for the active session slot by shallow-merging the patch.
-   * Browser-core mode reuses the same session layout as websocket mode.
-   */
-  const updateActiveSessionMetadata = (patch: Partial<SessionContext>) => {
-    const index = storageActiveSessionSlot.value
-    const existing = storageSessions.value[index]
-    if (!existing)
-      return
-
-    const mergedMetadata = defu({}, patch, existing.metadata ?? {}) as SessionContext
-
-    const sessionsCopy = [...storageSessions.value]
-    sessionsCopy[index] = {
-      ...existing,
-      metadata: mergedMetadata,
-    }
-    storageSessions.value = sessionsCopy
-  }
-
-  /**
-   * Update metadata for a specific session identified by its uuid.
-   * Does nothing if the session does not exist.
-   */
-  const updateSessionMetadataById = (sessionId: string, patch: Partial<SessionContext>) => {
-    if (!sessionId)
-      return
-
-    const index = storageSessions.value.findIndex(session => session.uuid === sessionId)
-    if (index === -1)
-      return
-
-    const existing = storageSessions.value[index]
-    const mergedMetadata = defu({}, patch, existing.metadata ?? {}) as SessionContext
-
-    const sessionsCopy = [...storageSessions.value]
-    sessionsCopy[index] = {
-      ...existing,
-      metadata: mergedMetadata,
-    }
-    storageSessions.value = sessionsCopy
-  }
-
   const switchAccount = (sessionId: string) => {
     const index = storageSessions.value.findIndex(session => session.uuid === sessionId)
     if (index !== -1) {
       storageActiveSessionSlot.value = index
       logger.withFields({ sessionId }).verbose('Switched to account')
     }
-  }
-
-  const addNewAccount = () => {
-    // Create a brand new slot immediately and switch to it.
-    const newId = uuidv4()
-    const sessionsCopy = [...storageSessions.value, {
-      uuid: newId,
-      metadata: {},
-    } satisfies StoredSession]
-
-    storageSessions.value = sessionsCopy
-    storageActiveSessionSlot.value = sessionsCopy.length - 1
-
-    return newId
   }
 
   /**
@@ -194,32 +124,12 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   }
 
   const logoutCurrentAccount = async () => {
-    const index = storageActiveSessionSlot.value
-    const sessions = storageSessions.value
-
-    if (index < 0 || index >= sessions.length)
+    const removed = removeCurrentAccount()
+    if (!removed)
       return
-
-    const newSessions = [...sessions.slice(0, index), ...sessions.slice(index + 1)]
-    storageSessions.value = newSessions
-
-    if (newSessions.length === 0) {
-      storageActiveSessionSlot.value = 0
-    }
-    else if (index >= newSessions.length) {
-      storageActiveSessionSlot.value = newSessions.length - 1
-    }
-    else {
-      storageActiveSessionSlot.value = index
-    }
 
     // Emit logout event
     sendEvent('auth:logout', undefined)
-  }
-
-  const cleanup = () => {
-    storageSessions.value = []
-    storageActiveSessionSlot.value = 0
   }
 
   /**
@@ -336,7 +246,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     addNewAccount,
     applySessionUpdate,
     logoutCurrentAccount,
-    cleanup,
+    cleanup: resetSessions,
 
     sendEvent,
     waitForEvent,
