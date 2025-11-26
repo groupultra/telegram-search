@@ -173,7 +173,7 @@ export interface StorageEventToCore {
   'storage:fetch:messages': (data: { chatId: string, pagination: CorePagination }) => void
   'storage:record:messages': (data: { messages: CoreMessage[] }) => void
 
-  'storage:fetch:dialogs': (data?: { accountId?: string }) => void
+  'storage:fetch:dialogs': (data: { accountId: string }) => void
   'storage:record:dialogs': (data: { dialogs: CoreDialog[], accountId: string }) => void
 
   'storage:search:messages': (data: CoreMessageSearchParams) => void

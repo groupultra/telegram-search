@@ -2,8 +2,6 @@ import type { Ref } from 'vue'
 
 import type { SessionContext, StoredSession } from '../types/session'
 
-import { defu } from 'defu'
-
 interface SessionStoreOptions {
   generateId: () => string
 }
@@ -50,7 +48,10 @@ export function createSessionStore(
     if (!existing)
       return
 
-    const mergedMetadata = defu({}, patch, existing.metadata ?? {}) as SessionContext
+    const mergedMetadata: SessionContext = {
+      ...(existing.metadata ?? {}),
+      ...patch,
+    }
 
     const sessionsCopy = [...sessions.value]
     sessionsCopy[index] = {
@@ -73,7 +74,10 @@ export function createSessionStore(
       return
 
     const existing = sessions.value[index]
-    const mergedMetadata = defu({}, patch, existing.metadata ?? {}) as SessionContext
+    const mergedMetadata: SessionContext = {
+      ...(existing.metadata ?? {}),
+      ...patch,
+    }
 
     const sessionsCopy = [...sessions.value]
     sessionsCopy[index] = {

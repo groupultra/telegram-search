@@ -1,7 +1,14 @@
-import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient, WsMessageToServer } from '@tg-search/server/types'
+import type {
+  WsEventToClient,
+  WsEventToClientData,
+  WsEventToServer,
+  WsEventToServerData,
+  WsMessageToClient,
+  WsMessageToServer,
+} from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { SessionContext, StoredSession } from '../types/session'
+import type { StoredSession } from '../types/session'
 
 import { useLogger } from '@guiiai/logg'
 import { useLocalStorage, useWebSocket } from '@vueuse/core'
@@ -10,7 +17,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { computed, ref, watch } from 'vue'
 
 import { WS_API_BASE } from '../../constants'
-import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
+import { getRegisterEventHandler } from '../event-handlers'
+import { registerAllEventHandlers } from '../event-handlers/register'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { createSessionStore } from '../utils/session-store'
 
@@ -29,7 +37,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
     updateSessionMetadataById,
     addNewAccount,
     removeCurrentAccount,
-    cleanup: resetSessions,
+    cleanup,
   } = createSessionStore(storageSessions, storageActiveSessionSlot, { generateId: () => uuidv4() })
 
   ensureSessionInvariants()
@@ -102,10 +110,6 @@ export const useWebsocketStore = defineStore('websocket', () => {
       // WebSocket will reconnect with the new sessionId in URL
       wsSocket.close()
     }
-  }
-
-  const addNewAccount = () => {
-    return addNewAccount()
   }
 
   /**

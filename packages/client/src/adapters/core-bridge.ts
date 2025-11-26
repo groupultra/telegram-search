@@ -13,7 +13,8 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref, watch } from 'vue'
 
-import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
+import { getRegisterEventHandler } from '../event-handlers'
+import { registerAllEventHandlers } from '../event-handlers/register'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { createSessionStore } from '../utils/session-store'
 
@@ -100,6 +101,9 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
         throw new Error('Core bridge is not initialized')
 
       ctx = createCoreInstance(config.value)
+      // New CoreContext instance: re-register all client-side event handlers
+      // so that server:event:register flows are wired to this context.
+      registerAllEventHandlers(registerEventHandler)
     }
 
     return ctx
