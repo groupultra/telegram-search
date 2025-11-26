@@ -1,5 +1,5 @@
 import type { Config } from '@tg-search/common'
-import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
@@ -7,7 +7,7 @@ import type { StoredSession } from '../types/session'
 
 import { useLogger } from '@guiiai/logg'
 import { generateDefaultConfig, initConfig } from '@tg-search/common'
-import { createCoreInstance, destroyCoreInstance, initDrizzle } from '@tg-search/core'
+import { initDrizzle } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
@@ -17,14 +17,13 @@ import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { createSessionStore } from '../utils/session-store'
+import { createCoreRuntime } from './core-runtime'
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const storageSessions = useLocalStorage<StoredSession[]>('core-bridge/sessions', [])
   // active-session-slot: index into storageSessions array
   const storageActiveSessionSlot = useLocalStorage<number>('core-bridge/active-session-slot', 0)
   const logger = useLogger('CoreBridge')
-  let ctx: CoreContext | undefined
-  const config = useLocalStorage<Config>('core-bridge/config', generateDefaultConfig())
 
   const {
     ensureSessionInvariants,
@@ -42,27 +41,31 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     return session?.uuid ?? ''
   })
 
+  const eventHandlers: ClientEventHandlerMap = new Map()
+  const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
+  const isInitialized = ref(false)
+  const config = useLocalStorage<Config>('core-bridge/config', generateDefaultConfig())
+  const coreRuntime = createCoreRuntime(config, logger)
+
+  const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
+
+  ensureSessionInvariants()
+
   // When switching accounts, destroy the existing CoreContext so that the
   // next interaction will create a fresh instance for the new account.
   watch(activeSessionId, (newId, oldId) => {
     if (!oldId || newId === oldId)
       return
-    if (!ctx)
-      return
-
     logger.withFields({ oldId, newId }).debug('Active session changed, destroying CoreContext')
-    destroyCoreInstance(ctx).catch((error) => {
+    coreRuntime.destroy().then(() => {
+      // After tearing down the old CoreContext, re-register client-side
+      // event handlers. These will emit server:event:register events and
+      // lazily create a fresh CoreContext via ensureCtx / coreRuntime.
+      registerAllEventHandlers(registerEventHandler)
+    }).catch((error) => {
       logger.withError(error).error('Failed to destroy CoreContext on account switch')
     })
-    ctx = undefined
   })
-
-  const eventHandlers: ClientEventHandlerMap = new Map()
-  const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
-  const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
-  const isInitialized = ref(false)
-
-  ensureSessionInvariants()
 
   function serializeError(err: unknown) {
     if (err instanceof Error) {
@@ -96,17 +99,10 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   }
 
   function ensureCtx() {
-    if (!ctx) {
-      if (!config.value)
-        throw new Error('Core bridge is not initialized')
-
-      ctx = createCoreInstance(config.value)
-      // New CoreContext instance: re-register all client-side event handlers
-      // so that server:event:register flows are wired to this context.
-      registerAllEventHandlers(registerEventHandler)
-    }
-
-    return ctx
+    // Lazily create a CoreContext via runtime helper. This function is kept
+    // minimal on purpose; event wiring is handled explicitly in init() and
+    // in the account-switch watcher above.
+    return coreRuntime.getCtx()
   }
 
   const switchAccount = (sessionId: string) => {
@@ -178,9 +174,13 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       return
     }
 
+    logger.verbose('Initializing core bridge')
+
     config.value = await initConfig()
     config.value.api.telegram.apiId ||= import.meta.env.VITE_TELEGRAM_APP_ID
     config.value.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_APP_HASH
+
+    logger.withFields({ config: config.value }).verbose('Initialized config')
 
     await initDrizzle(logger, config.value, {
       debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL as string,

@@ -32,7 +32,7 @@ export const useBootstrapStore = defineStore('bootstrap', () => {
    * - Initialize bridge (creates websocket/core-bridge runtime)
    * - Trigger AuthStore auto-login for the active slot
    */
-  function start() {
+  async function start() {
     if (phase.value !== 'idle') {
       logger.debug('Bootstrap already started, skipping')
       return
@@ -42,7 +42,7 @@ export const useBootstrapStore = defineStore('bootstrap', () => {
 
     // Ensure transport layer (websocket or core-bridge) is initialized.
     if (typeof bridgeStore.init === 'function')
-      bridgeStore.init()
+      await bridgeStore.init()
 
     phase.value = 'authing'
 

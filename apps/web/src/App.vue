@@ -12,8 +12,8 @@ import { usePWAStore } from './stores/pwa'
 
 const settings = storeToRefs(useSettingsStore())
 
-onMounted(() => {
-  useBootstrapStore().start()
+onMounted(async () => {
+  await useBootstrapStore().start()
 
   useSettingsStore().init()
   usePWAStore().init()
