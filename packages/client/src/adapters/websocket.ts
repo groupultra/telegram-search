@@ -105,6 +105,13 @@ export const useWebsocketStore = defineStore('websocket', () => {
   const switchAccount = (sessionId: string) => {
     const index = storageSessions.value.findIndex(session => session.uuid === sessionId)
     if (index !== -1) {
+      // When switching to an existing account, pessimistically mark its
+      // connection state as disconnected. AuthStore's auto-login watcher
+      // will see { hasSession, !isConnected } for the new active slot and
+      // can drive reconnection logic uniformly across websocket and
+      // core-bridge modes.
+      updateSessionMetadataById(sessionId, { isConnected: false })
+
       storageActiveSessionSlot.value = index
       logger.withFields({ sessionId }).log('Switched to account')
       // WebSocket will reconnect with the new sessionId in URL
