@@ -12,14 +12,13 @@ export function registerBasicEventHandlers(ctx: CoreContext) {
     configuredConnectionService: ConnectionService,
   ) => {
     emitter.on('auth:login', async ({ phoneNumber, session }) => {
-      logger.withFields({ hasSession: !!session }).verbose('Using client-provided session')
-
-      if (session) {
-        return configuredConnectionService.loginWithSession(new StringSession(session))
-      }
-
       if (phoneNumber) {
         return configuredConnectionService.loginWithPhone(phoneNumber)
+      }
+
+      if (session) {
+        logger.verbose('Using client-provided session')
+        return configuredConnectionService.loginWithSession(new StringSession(session))
       }
     })
 

@@ -105,6 +105,7 @@ export function createConnectionService(ctx: CoreContext) {
           // Surface this as an auth-specific error so the frontend can fall
           // back to manual login and optionally clear the stored session.
           emitter.emit('auth:error', { error })
+          emitter.emit('auth:disconnected')
           return Err(error)
         }
 
@@ -131,7 +132,6 @@ export function createConnectionService(ctx: CoreContext) {
       }
       catch (error) {
         emitter.emit('auth:error', { error })
-        emitter.emit('auth:disconnected')
         return Err(withError(error, 'Failed to connect to Telegram'))
       }
     }
@@ -148,7 +148,7 @@ export function createConnectionService(ctx: CoreContext) {
           new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout connecting to Telegram')), 5000)),
         ])
         if (!isConnected) {
-          return Err(withError('Failed to connect to Telegram', 'Failed to connect to Telegram'))
+          return Err(withError('Failed to connect to Telegram'))
         }
 
         const isAuthorized = await client.isUserAuthorized()
@@ -178,7 +178,6 @@ export function createConnectionService(ctx: CoreContext) {
       }
       catch (error) {
         emitter.emit('auth:error', { error })
-        emitter.emit('auth:disconnected')
         return Err(withError(error, 'Failed to connect to Telegram'))
       }
     }
