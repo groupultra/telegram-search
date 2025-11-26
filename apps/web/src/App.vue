@@ -12,13 +12,13 @@ import { usePWAStore } from './stores/pwa'
 
 const settings = storeToRefs(useSettingsStore())
 
-onMounted(async () => {
-  await useBootstrapStore().start()
-
+onMounted(() => {
   useSettingsStore().init()
   usePWAStore().init()
 
   hideSplashScreen()
+
+  useBootstrapStore().start()
 })
 
 const avatarStore = useAvatarStore()
