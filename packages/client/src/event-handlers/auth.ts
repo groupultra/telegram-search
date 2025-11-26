@@ -22,11 +22,8 @@ export function registerBasicEventHandlers(
   })
 
   registerEventHandler('auth:disconnected', () => {
-    useBridgeStore().getActiveSession()!.isConnected = false
-
-    // Cleanup session metadata
     useLogger('Auth').log('Auth disconnected, cleaning up session metadata')
-    useBridgeStore().updateActiveSessionMetadata({ session: undefined })
+    useBridgeStore().updateActiveSessionMetadata({ isConnected: false, session: undefined })
   })
 
   // Core forwards updated StringSession to the client; let bridge store decide
