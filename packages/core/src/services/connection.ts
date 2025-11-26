@@ -128,6 +128,8 @@ export function createConnectionService(ctx: CoreContext) {
         //    account ID and bootstrap dialogs/storage.
         emitter.emit('auth:connected')
 
+        logger.log('Login with session successful')
+
         return Ok(client)
       }
       catch (error) {
@@ -173,6 +175,8 @@ export function createConnectionService(ctx: CoreContext) {
         // 3) Notify connected; afterConnectedEventHandler will establish
         //    current account ID and bootstrap dialogs/storage.
         emitter.emit('auth:connected')
+
+        logger.log('Login with phone successful')
 
         return Ok(client)
       }

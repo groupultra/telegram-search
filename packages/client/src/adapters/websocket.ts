@@ -149,11 +149,11 @@ export const useWebsocketStore = defineStore('websocket', () => {
   }
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {
-    logger.log('Waiting for event', event)
+    logger.withFields({ event }).debug('Waiting for event')
 
     return new Promise<WsEventToClientData<T>>((resolve) => {
       enqueueEventHandler(eventHandlersQueue, event, (data: WsEventToClientData<T>) => {
-        logger.log('Resolving event', event, data)
+        logger.withFields({ event, data }).debug('Resolving event')
         resolve(data)
       })
     })
