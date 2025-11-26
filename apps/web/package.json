@@ -27,7 +27,7 @@
     "nprogress": "^0.2.0",
     "pinia": "^3.0.4",
     "telegram": "2.26.21",
-    "valibot": "^1.1.0",
+    "valibot": "^1.2.0",
     "virtua": "^0.46.7",
     "vue": "^3.5.24",
     "vue-echarts": "^8.0.1",
