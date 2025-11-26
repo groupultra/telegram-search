@@ -19,7 +19,8 @@ import 'nprogress/nprogress.css'
 import 'vue-sonner/style.css'
 import './styles/main.css'
 
-initLogger(LoggerLevel.Verbose, LoggerFormat.Pretty)
+
+initLogger(import.meta.env.DEV ? LoggerLevel.Debug : LoggerLevel.Verbose, LoggerFormat.Pretty)
 
 const app = createApp(App)
 

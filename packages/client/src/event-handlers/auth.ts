@@ -1,5 +1,6 @@
 import type { ClientRegisterEventHandler } from '.'
 
+import { useLogger } from '@guiiai/logg'
 import { toast } from 'vue-sonner'
 
 import { useBridgeStore } from '../composables/useBridge'
@@ -22,6 +23,10 @@ export function registerBasicEventHandlers(
 
   registerEventHandler('auth:disconnected', () => {
     useBridgeStore().getActiveSession()!.isConnected = false
+
+    // Cleanup session metadata
+    useLogger('Auth').log('Auth disconnected, cleaning up session metadata')
+    useBridgeStore().updateActiveSessionMetadata({ session: undefined })
   })
 
   // Core forwards updated StringSession to the client; let bridge store decide
@@ -30,8 +35,7 @@ export function registerBasicEventHandlers(
     // session:update always applies to the currently active slot. The
     // auth flow is responsible for selecting the correct active account
     // before initiating login.
-    const bridgeStore = useBridgeStore()
-    bridgeStore.updateActiveSessionMetadata({ session })
+    useBridgeStore().updateActiveSessionMetadata({ session })
   })
 
   registerEventHandler('auth:error', ({ error }) => {
