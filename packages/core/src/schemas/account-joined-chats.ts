@@ -28,7 +28,6 @@ export const accountsRelations = relations(accountsTable, ({ many }) => ({
   accountJoinedChats: many(accountJoinedChatsTable),
 }))
 
-
 export const joinedChatsRelations = relations(joinedChatsTable, ({ many }) => ({
   accountJoinedChats: many(accountJoinedChatsTable),
 }))

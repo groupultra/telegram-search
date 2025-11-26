@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // https://github.com/moeru-ai/airi/blob/bd497051fe7090dc021888f127ae7b0d78095210/apps/stage-web/src/App.vue
 
-import { evictExpiredOrOversized, useAuthStore, useAvatarStore, useBridgeStore, useSettingsStore } from '@tg-search/client'
+import { evictExpiredOrOversized, useAvatarStore, useBootstrapStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
 import { onBeforeUnmount, onMounted, watch } from 'vue'
@@ -12,10 +12,10 @@ import { usePWAStore } from './stores/pwa'
 
 const settings = storeToRefs(useSettingsStore())
 
-onMounted(async () => {
-  await useBridgeStore().init()
+onMounted(() => {
+  useBootstrapStore().start()
+
   useSettingsStore().init()
-  useAuthStore().init()
   usePWAStore().init()
 
   hideSplashScreen()

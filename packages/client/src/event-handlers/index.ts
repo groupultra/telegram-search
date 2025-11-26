@@ -2,7 +2,6 @@ import type { WsEventToClient, WsEventToClientData } from '@tg-search/server/typ
 
 import type { ClientSendEventFn } from '../composables/useBridge'
 
-
 export type ClientEventHandler<T extends keyof WsEventToClient> = (data: WsEventToClientData<T>) => void
 export type ClientRegisterEventHandler = <T extends keyof WsEventToClient>(event: T, handler: ClientEventHandler<T>) => void
 export type ClientEventHandlerMap = Map<keyof WsEventToClient, ClientEventHandler<keyof WsEventToClient>>
