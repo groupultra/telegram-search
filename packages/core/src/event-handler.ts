@@ -93,8 +93,9 @@ export function afterConnectedEventHandler(
     registerTakeoutEventHandlers(ctx)(takeoutService)
     registerGramEventsEventHandlers(ctx)(gramEventsService)
 
-    // Init all entities now that account context is ready.
-    emitter.emit('dialog:fetch')
+    // Dialog bootstrap is now triggered from entity:me:fetch handler once
+    // currentAccountId has been established, to avoid races where dialog or
+    // storage handlers read account context too early.
     gramEventsService.registerGramEvents()
   })
 

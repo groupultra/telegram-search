@@ -36,11 +36,6 @@ export const useAuthStore = defineStore('session', () => {
     useLogger('AuthStore').log('Attempting login')
     const activeSession = websocketStore.getActiveSession()
 
-    if (activeSession?.isConnected) {
-      websocketStore.sendEvent('entity:me:fetch', undefined)
-      return
-    }
-
     if (!activeSession?.isConnected && activeSession?.session) {
       websocketStore.sendEvent('auth:login', {
         phoneNumber: '',
@@ -60,7 +55,6 @@ export const useAuthStore = defineStore('session', () => {
           window.clearTimeout(reconnectTimer)
           reconnectTimer = undefined
         }
-        websocketStore.sendEvent('entity:me:fetch', undefined)
         attemptCounter.value = 0
         return
       }
@@ -89,27 +83,10 @@ export const useAuthStore = defineStore('session', () => {
     },
   )
 
-  // When switching the active account (slot) and the new slot has a stored
-  // Telegram session but is not yet connected, automatically attempt login
-  // using that session. This keeps multi-account switching symmetric between
-  // websocket and core-bridge modes.
-  watch(
-    () => ({
-      session: activeSessionComputed.value?.session,
-      isConnected: activeSessionComputed.value?.isConnected,
-    }),
-    ({ session, isConnected }, { session: prevSession }) => {
-      if (!session || isConnected)
-        return
-
-      // Only trigger when session value actually changes (i.e. switched to
-      // another account or session was updated).
-      if (session === prevSession)
-        return
-
-      void attemptLogin()
-    },
-  )
+  // When switching the active account (slot) or recovering from unexpected
+  // disconnects, reconnection is handled by the isConnected watcher above
+  // combined with explicit login flows. We intentionally avoid a second
+  // watcher on {session,isConnected} to prevent duplicate login attempts.
 
   function handleAuth() {
     function login(phoneNumber: string) {

@@ -10,6 +10,8 @@ export function registerEntityEventHandlers(ctx: CoreContext) {
   const logger = useLogger('core:entity:event')
 
   return (entityService: EntityService) => {
+    let hasBootstrappedDialogs = false
+
     emitter.on('entity:me:fetch', async () => {
       logger.verbose('Getting me info')
       const meInfo = (await entityService.getMeInfo()).expect('Failed to get me info')
@@ -21,6 +23,14 @@ export function registerEntityEventHandlers(ctx: CoreContext) {
       ctx.setCurrentAccountId(account.id)
 
       logger.withFields({ accountId: account.id }).verbose('Set current account ID')
+
+      // Bootstrap dialogs once the account context is established. This
+      // ensures that any dialog/storage handlers relying on currentAccountId
+      // see a consistent state.
+      if (!hasBootstrappedDialogs) {
+        hasBootstrappedDialogs = true
+        emitter.emit('dialog:fetch')
+      }
     })
 
     emitter.on('entity:avatar:fetch', async ({ userId, fileId }) => {
