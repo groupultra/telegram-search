@@ -12,6 +12,7 @@ import { computed, ref, watch } from 'vue'
 
 import { WS_API_BASE } from '../../constants'
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
+import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 
 export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
@@ -221,15 +222,12 @@ export const useWebsocketStore = defineStore('websocket', () => {
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {
     logger.log('Waiting for event', event)
 
-    return new Promise((resolve) => {
-      const handlers = eventHandlersQueue.get(event) ?? []
-      handlers.push((data) => {
+    return new Promise<WsEventToClientData<T>>((resolve) => {
+      enqueueEventHandler(eventHandlersQueue, event, (data: WsEventToClientData<T>) => {
         logger.log('Resolving event', event, data)
-
         resolve(data)
       })
-      eventHandlersQueue.set(event, handlers)
-    }) satisfies Promise<WsEventToClientData<T>>
+    })
   }
 
   // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L95-L123
@@ -257,17 +255,14 @@ export const useWebsocketStore = defineStore('websocket', () => {
       }
 
       if (eventHandlersQueue.has(message.type)) {
-        const fnQueue = eventHandlersQueue.get(message.type) ?? []
-
-        try {
-          fnQueue.forEach((inQueueFn) => {
-            inQueueFn(message.data)
-            fnQueue.shift()
-          })
-        }
-        catch (error) {
-          logger.withError(error).withFields({ message: message || 'unknown' }).error('Error handling queued event')
-        }
+        drainEventQueue(
+          eventHandlersQueue,
+          message.type,
+          message.data,
+          (error) => {
+            logger.withError(error).withFields({ message: message || 'unknown' }).error('Error handling queued event')
+          },
+        )
       }
     }
     catch (error) {

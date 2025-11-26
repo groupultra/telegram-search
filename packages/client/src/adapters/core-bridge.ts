@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { computed, ref, watch } from 'vue'
 
 import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
+import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const storageSessions = useLocalStorage<StoredSession[]>('core-bridge/sessions', [])
@@ -82,11 +83,18 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       return data
 
     try {
+      let toSerialize: unknown = data
+
+      // Normalise error field without mutating original object
       if (data && typeof data === 'object' && 'error' in data) {
-        data.error = serializeError(data.error)
+        const withError = data as { error: unknown }
+        toSerialize = {
+          ...(data as object),
+          error: serializeError(withError.error),
+        }
       }
 
-      return JSON.parse(JSON.stringify(data)) as T
+      return JSON.parse(JSON.stringify(toSerialize)) as T
     }
     catch (error) {
       logger.withError(error).error('Failed to deep clone data')
@@ -227,12 +235,17 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
         const eventName = data.event as keyof FromCoreEvent
 
         if (!eventName.startsWith('server:')) {
-          const fn = (data: WsEventToClientData<keyof FromCoreEvent>) => {
+          const fn = (payload: WsEventToClientData<keyof FromCoreEvent>) => {
             logger.withFields({ eventName }).debug('Sending event to client')
-            sendWsEvent({ type: eventName as any, data })
+            // FromCoreEvent keys are a superset of WsEventToClient keys; we assert compatibility here.
+            const message = {
+              type: eventName as unknown as WsMessageToClient['type'],
+              data: payload,
+            } as WsMessageToClient
+            sendWsEvent(message)
           }
 
-          ctx.emitter.on(eventName, fn as any)
+          ctx.emitter.on(eventName, fn as (...args: unknown[]) => void)
         }
       }
       else {
@@ -251,10 +264,6 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       return
     }
 
-    // TODO: use flags
-    const isDebug = !!import.meta.env.VITE_DEBUG
-    initLogger(isDebug ? LoggerLevel.Debug : LoggerLevel.Verbose, LoggerFormat.Pretty)
-
     config.value = await initConfig()
     config.value.api.telegram.apiId ||= import.meta.env.VITE_TELEGRAM_APP_ID
     config.value.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_APP_HASH
@@ -271,7 +280,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     registerAllEventHandlers(registerEventHandler)
 
     // Emit an initial server:connected event so the UI knows core-bridge
-    // mode is available, mirroring websocket adapter behaviour.
+    // mode is available, mirroring websocket adapter behavior.
     sendWsEvent({ type: 'server:connected', data: { sessionId: activeSessionId.value, connected: false } })
 
     isInitialized.value = true
@@ -281,13 +290,9 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     logger.withFields({ event }).debug('Waiting for event from core')
 
     return new Promise<WsEventToClientData<T>>((resolve) => {
-      const handlers = eventHandlersQueue.get(event) ?? []
-
-      handlers.push((data) => {
+      enqueueEventHandler(eventHandlersQueue, event, (data: WsEventToClientData<T>) => {
         resolve(deepClone(data) as WsEventToClientData<T>)
       })
-
-      eventHandlersQueue.set(event, handlers)
     })
   }
 
@@ -308,17 +313,14 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     }
 
     if (eventHandlersQueue.has(event.type)) {
-      const fnQueue = eventHandlersQueue.get(event.type) ?? []
-
-      try {
-        fnQueue.forEach((inQueueFn) => {
-          inQueueFn(deepClone(event.data) as WsEventToClientData<keyof WsEventToClient>)
-          fnQueue.shift()
-        })
-      }
-      catch (error) {
-        logger.withError(error).error('Failed to handle event')
-      }
+      drainEventQueue(
+        eventHandlersQueue,
+        event.type as keyof WsEventToClient,
+        deepClone(event.data) as WsEventToClientData<keyof WsEventToClient>,
+        (error) => {
+          logger.withError(error).error('Failed to handle queued event')
+        },
+      )
     }
   }
 
