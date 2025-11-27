@@ -11,13 +11,28 @@
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/NzYsmJSgCT"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2FNzYsmJSgCT%3Fwith_counts%3Dtrue&query=%24.approximate_member_count&suffix=%20members&logo=discord&logoColor=white&label=%20&color=7389D8&labelColor=6A7EC2"></a>
-  <a href="https://t.me/+Gs3SH2qAPeFhYmU9"><img src="https://img.shields.io/badge/Telegram-%235AA9E6?logo=telegram&labelColor=FFFFFF"></a>
+  <a href="https://discord.gg/NzYsmJSgCT">
+    <img alt="Discord" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2FNzYsmJSgCT%3Fwith_counts%3Dtrue&query=%24.approximate_member_count&suffix=%20members&logo=discord&logoColor=white&label=%20&color=7389D8&labelColor=6A7EC2" />
+  </a>
+  <a href="https://t.me/+Gs3SH2qAPeFhYmU9">
+    <img alt="Telegram" src="https://img.shields.io/badge/Telegram-%235AA9E6?logo=telegram&labelColor=FFFFFF" />
+  </a>
+  <a href="https://deepwiki.com/groupultra/telegram-search">
+    <img alt="DeepWiki" src="https://deepwiki.com/badge.svg" />
+  </a>
   <br>
-  <a href="https://github.com/groupultra/telegram-search/releases"><img src="https://img.shields.io/github/package-json/v/groupultra/telegram-search?style=flat&colorA=080f12&colorB=1fa669"></a>
-  <a href="https://github.com/groupultra/telegram-search/actions"><img src="https://img.shields.io/github/actions/workflow/status/groupultra/telegram-search/ci.yaml?style=flat&colorA=080f12&colorB=1fa669"></a>
-  <a href="https://app.netlify.com/projects/tgsearch/deploys"><img src="https://api.netlify.com/api/v1/badges/89bfbfd2-0f73-41b0-8db4-4ab6b6512f6e/deploy-status"></a>
-  <a href="https://deepwiki.com/groupultra/telegram-search"><img src="https://deepwiki.com/badge.svg"></a>
+  <a href="https://github.com/groupultra/telegram-search/releases">
+    <img alt="GitHub Package Version" src="https://img.shields.io/github/package-json/v/groupultra/telegram-search?style=flat&colorA=080f12&colorB=1fa669" />
+  </a>
+  <a href="https://github.com/groupultra/telegram-search/actions/workflows/release-docker.yaml">
+    <img alt="Release Docker / OCI" src="https://github.com/groupultra/telegram-search/actions/workflows/release-docker.yaml/badge.svg" />
+  </a>
+  <a href="https://github.com/groupultra/telegram-search/actions/workflows/ci.yaml">
+    <img alt="CI" src="https://github.com/groupultra/telegram-search/actions/workflows/ci.yaml/badge.svg" />
+  </a>
+  <a href="https://app.netlify.com/sites/tgsearch/deploys">
+    <img alt="Netlify Status" src="https://api.netlify.com/api/v1/badges/89bfbfd2-0f73-41b0-8db4-4ab6b6512f6e/deploy-status" />
+  </a>
 </p>
 
 **Easily find and export your Telegram messages with powerful semantic search, supporting all languages and unsegmented sentences.**
@@ -38,18 +53,18 @@ Make message retrieval fast, accurate, and privacy-friendly — self-host or try
 ### 🔍 Search Your Chat History
 - [x] Keyword search: multi-language support (Chinese, English, etc.)
 - [x] Natural language search: find messages like asking a question
-- [ ] Smart filters: by contact/group, time range, with attachments, etc.
+- [x] Smart filters: by contact/group, time range, with attachments, etc.
 
 ### 🔄 Sync & Storage
 - [x] Incremental sync: sync while using
 - [x] Storage options: server (PostgreSQL + pgvector) or browser-only mode (PGlite)
 - [ ] Resume from breakpoint: auto-continue after failure
 
-### 🧠 AI Capabilities (Planned)
-- [ ] Ask AI about your chats: query current chat or selected range
+### 🧠 AI Capabilities
+- [x] Ask AI about your chats: query current chat or selected range
 - [ ] AI message summary: auto-extract key points, todos, conclusions
-- [ ] AI-powered search: natural language queries with pinpointed results
-- [ ] AI chat: converse with AI based on your chat context
+- [x] AI-powered search: natural language queries with pinpointed results
+- [x] AI chat: converse with AI based on your chat context
 - [ ] AI analysis: trends, sentiment, keywords, insights from links & files
 - [ ] Local model support: local Embedding / inference (no cloud required)
 

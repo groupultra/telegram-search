@@ -2,6 +2,17 @@ import type { CoreMessage } from '@tg-search/core'
 
 import type { MessageWindow } from '../composables/useMessageWindow'
 
+/**
+ * Format Unix timestamp to localized date/time string
+ * @param timestamp - Unix timestamp in seconds
+ * @returns Formatted date/time string or empty string if timestamp is invalid
+ */
+export function formatMessageTimestamp(timestamp: number): string {
+  if (!Number.isFinite(timestamp) || timestamp < 0)
+    return ''
+  return new Date(timestamp * 1000).toLocaleString()
+}
+
 export function determineMessageDirection(
   messages: CoreMessage[],
   messageWindow: MessageWindow | undefined,

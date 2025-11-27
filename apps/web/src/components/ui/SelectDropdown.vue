@@ -29,7 +29,7 @@ const emit = defineEmits<{
     <div class="relative">
       <select
         :value="modelValue"
-        class="w-full appearance-none border border-neutral-200 rounded-md bg-neutral-100 px-4 py-2.5 pr-10 text-gray-900 transition-colors dark:border-gray-600 focus:border-primary dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800"
+        class="w-full appearance-none border border-neutral-200 rounded-md bg-neutral-100 px-4 py-2.5 pr-10 text-gray-900 transition-colors dark:border-gray-600 focus:border-primary dark:bg-gray-800 dark:text-gray-100 focus:outline-none"
         :disabled="disabled"
         @change="($event: Event) => {
           const target = $event.target as HTMLSelectElement

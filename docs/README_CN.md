@@ -11,13 +11,28 @@
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/NzYsmJSgCT"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2FNzYsmJSgCT%3Fwith_counts%3Dtrue&query=%24.approximate_member_count&suffix=%20members&logo=discord&logoColor=white&label=%20&color=7389D8&labelColor=6A7EC2"></a>
-  <a href="https://t.me/+Gs3SH2qAPeFhYmU9"><img src="https://img.shields.io/badge/Telegram-%235AA9E6?logo=telegram&labelColor=FFFFFF"></a>
+  <a href="https://discord.gg/NzYsmJSgCT">
+    <img alt="Discord" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2FNzYsmJSgCT%3Fwith_counts%3Dtrue&query=%24.approximate_member_count&suffix=%20members&logo=discord&logoColor=white&label=%20&color=7389D8&labelColor=6A7EC2" />
+  </a>
+  <a href="https://t.me/+Gs3SH2qAPeFhYmU9">
+    <img alt="Telegram" src="https://img.shields.io/badge/Telegram-%235AA9E6?logo=telegram&labelColor=FFFFFF" />
+  </a>
+  <a href="https://deepwiki.com/groupultra/telegram-search">
+    <img alt="DeepWiki" src="https://deepwiki.com/badge.svg" />
+  </a>
   <br>
-  <a href="https://github.com/groupultra/telegram-search/releases"><img src="https://img.shields.io/github/package-json/v/groupultra/telegram-search?style=flat&colorA=080f12&colorB=1fa669"></a>
-  <a href="https://github.com/groupultra/telegram-search/actions"><img src="https://img.shields.io/github/actions/workflow/status/groupultra/telegram-search/ci.yaml?style=flat&colorA=080f12&colorB=1fa669"></a>
-  <a href="https://app.netlify.com/projects/tgsearch/deploys"><img src="https://api.netlify.com/api/v1/badges/89bfbfd2-0f73-41b0-8db4-4ab6b6512f6e/deploy-status"></a>
-  <a href="https://deepwiki.com/groupultra/telegram-search"><img src="https://deepwiki.com/badge.svg"></a>
+  <a href="https://github.com/groupultra/telegram-search/releases">
+    <img alt="GitHub Package Version" src="https://img.shields.io/github/package-json/v/groupultra/telegram-search?style=flat&colorA=080f12&colorB=1fa669" />
+  </a>
+  <a href="https://github.com/groupultra/telegram-search/actions/workflows/release-docker.yaml">
+    <img alt="Release Docker / OCI" src="https://github.com/groupultra/telegram-search/actions/workflows/release-docker.yaml/badge.svg" />
+  </a>
+  <a href="https://github.com/groupultra/telegram-search/actions/workflows/ci.yaml">
+    <img alt="CI" src="https://github.com/groupultra/telegram-search/actions/workflows/ci.yaml/badge.svg" />
+  </a>
+  <a href="https://app.netlify.com/sites/tgsearch/deploys">
+    <img alt="Netlify Status" src="https://api.netlify.com/api/v1/badges/89bfbfd2-0f73-41b0-8db4-4ab6b6512f6e/deploy-status" />
+  </a>
 </p>
 
 **轻松查找和导出您的 Telegram 消息，强大的语义搜索支持所有语言和无分词句子。**
@@ -38,18 +53,18 @@
 ### 🔍 搜索聊天历史
 - [x] 关键词搜索：多语言支持（中文、英文等）
 - [x] 自然语言搜索：像提问一样查找消息
-- [ ] 智能过滤：按联系人/群组、时间范围、包含附件等
+- [x] 智能过滤：按联系人/群组、时间范围、包含附件等
 
 ### 🔄 同步与存储
 - [x] 增量同步：边使用边同步
 - [x] 存储选项：服务器模式（PostgreSQL + pgvector）或纯浏览器模式（PGlite）
 - [ ] 断点续传：失败后自动继续
 
-### 🧠 AI 能力（规划中）
-- [ ] 向 AI 询问聊天内容：查询当前聊天或选定范围
+### 🧠 AI 能力
+- [x] 向 AI 询问聊天内容：查询当前聊天或选定范围
 - [ ] AI 消息摘要：自动提取关键点、待办事项、结论
-- [ ] AI 驱动搜索：自然语言查询并精确定位结果
-- [ ] AI 聊天：基于聊天上下文与 AI 对话
+- [x] AI 驱动搜索：自然语言查询并精确定位结果
+- [x] AI 聊天：基于聊天上下文与 AI 对话
 - [ ] AI 分析：趋势、情感、关键词、链接和文件洞察
 - [ ] 本地模型支持：本地 Embedding / 推理（无需云服务）
 

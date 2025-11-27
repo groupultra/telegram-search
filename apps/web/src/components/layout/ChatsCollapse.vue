@@ -3,7 +3,7 @@ import type { CoreDialog, DialogType } from '@tg-search/core/types'
 
 import { useRoute, useRouter } from 'vue-router'
 
-import Avatar from '../ui/Avatar.vue'
+import EntityAvatar from '../avatar/EntityAvatar.vue'
 
 defineProps<{
   type: DialogType
@@ -61,10 +61,12 @@ function toggleActive() {
         class="group mx-2 my-0.5 flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
         @click="router.push(`/chat/${chat.id}`)"
       >
-        <Avatar
+        <EntityAvatar
+          :id="chat.id"
+          entity="other"
+          entity-type="chat"
           :name="chat.name"
           size="sm"
-          class="flex-shrink-0"
         />
         <div class="min-w-0 flex flex-1 flex-col">
           <span class="truncate text-sm font-medium">

@@ -80,7 +80,7 @@ watch(keywordDebounced, (newKeyword) => {
       @keydown.esc="isOpen = false"
     >
       <div class="h-full w-full flex flex-col overflow-hidden border-0 rounded-none bg-card shadow-2xl backdrop-blur-xl md:h-auto md:border dark:border-gray-700 md:rounded-2xl dark:bg-gray-800/95" @click.stop>
-        <!-- 搜索输入框 -->
+        <!-- Search input box -->
         <div class="border-b from-background/50 to-background bg-gradient-to-b p-4 dark:border-gray-700 md:p-6">
           <div class="flex items-center gap-3">
             <button
@@ -95,7 +95,7 @@ watch(keywordDebounced, (newKeyword) => {
               </div>
               <input
                 v-model="keyword"
-                class="h-12 w-full border-0 rounded-xl bg-muted/50 px-4 pl-12 pr-4 text-base transition-all duration-200 md:h-14 focus:bg-muted/80 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-ring"
+                class="h-12 w-full border-0 rounded-xl bg-muted/50 px-4 pl-12 pr-4 text-base transition-all duration-200 md:h-14 focus:bg-muted/80 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 :placeholder="t('searchDialog.searchMessages')"
                 autofocus
               >
@@ -103,7 +103,7 @@ watch(keywordDebounced, (newKeyword) => {
           </div>
         </div>
 
-        <!-- 搜索结果 -->
+        <!-- Search results -->
         <div
           class="flex-1 overflow-y-auto md:max-h-[60vh] md:flex-initial"
           :class="keywordDebounced ? 'md:min-h-[300px]' : 'md:min-h-[200px]'"

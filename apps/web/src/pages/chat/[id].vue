@@ -9,10 +9,11 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
+import EntityAvatar from '../../components/avatar/EntityAvatar.vue'
 import SearchDialog from '../../components/SearchDialog.vue'
-import Avatar from '../../components/ui/Avatar.vue'
-import { Button } from '../../components/ui/Button'
 import VirtualMessageList from '../../components/VirtualMessageList.vue'
+
+import { Button } from '../../components/ui/Button'
 
 const { t } = useI18n()
 
@@ -23,6 +24,7 @@ const chatStore = useChatStore()
 const messageStore = useMessageStore()
 const websocketStore = useBridgeStore()
 const { debugMode } = storeToRefs(useSettingsStore())
+const { activeSessionId } = storeToRefs(websocketStore)
 
 const { sortedMessageIds, messageWindow, sortedMessageArray } = storeToRefs(messageStore)
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
@@ -49,6 +51,16 @@ const targetMessageParams = computed(() => ({
   messageUuid: route.query.messageUuid as string | undefined,
 }))
 
+// Avatar store access is not needed; ChatAvatar handles ensure and rendering
+
+/**
+ * Compute chat header avatar src via centralized avatar store.
+ * Avoids typing issues by not reading transient fields on CoreDialog.
+ */
+// Header avatar is rendered via ChatAvatar wrapper
+
+// Use ChatAvatar wrapper to handle ensure and rendering
+
 // Initial load when component mounts
 onMounted(async () => {
   const initialMessageId = targetMessageParams.value.messageId
@@ -62,6 +74,23 @@ onMounted(async () => {
     await loadOlderMessages()
   }
 })
+
+// When switching accounts while staying on the same chat route, reset the
+// message window and load the dialog history for the new account.
+watch(
+  () => activeSessionId.value,
+  async () => {
+    // If we don't have a chat id (should not happen here) or component
+    // is still mounting, just bail out.
+    if (!id)
+      return
+
+    isContextMode.value = false
+    resetPagination()
+    messageStore.replaceMessages([], { chatId: id.toString(), limit: messageLimit.value })
+    await loadOlderMessages()
+  },
+)
 
 // Load older messages when scrolling to top
 async function loadOlderMessages() {
@@ -94,8 +123,7 @@ async function loadNewerMessages() {
   // Get the current max message ID to fetch messages after it
   const currentMaxId = messageWindow.value?.maxId
   if (!currentMaxId || currentMaxId === -Infinity) {
-    // eslint-disable-next-line no-console
-    console.log('No messages loaded yet, cannot fetch newer messages')
+    console.warn('No messages loaded yet, cannot fetch newer messages')
     return
   }
 
@@ -241,8 +269,12 @@ watch(
     <!-- Chat Header -->
     <div class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
       <div class="flex items-center gap-3">
-        <Avatar
-          class="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10"
+        <EntityAvatar
+          v-if="currentChat && currentChat.id != null"
+          :id="currentChat.id"
+          entity="other"
+          entity-type="chat"
+          :file-id="currentChat?.avatarFileId"
           :name="currentChat?.name"
           size="md"
         />

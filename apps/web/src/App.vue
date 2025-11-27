@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // https://github.com/moeru-ai/airi/blob/bd497051fe7090dc021888f127ae7b0d78095210/apps/stage-web/src/App.vue
 
-import { useAuthStore, useBridgeStore, useSettingsStore } from '@tg-search/client'
+import { evictExpiredOrOversized, useAvatarStore, useBootstrapStore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
-import { onMounted, watch } from 'vue'
+import { onBeforeUnmount, onMounted, watch } from 'vue'
 import { RouterView } from 'vue-router'
 import { Toaster } from 'vue-sonner'
 
@@ -13,11 +13,47 @@ import { usePWAStore } from './stores/pwa'
 const settings = storeToRefs(useSettingsStore())
 
 onMounted(() => {
-  hideSplashScreen()
-  useBridgeStore().init()
   useSettingsStore().init()
-  useAuthStore().init()
   usePWAStore().init()
+
+  hideSplashScreen()
+
+  useBootstrapStore().start()
+})
+
+const avatarStore = useAvatarStore()
+let avatarCleanupTimer: number | undefined
+
+/**
+ * Setup periodic avatar cache cleanup to revoke expired blob URLs.
+ * - Runs every 15 minutes to keep memory footprint small.
+ * - Clears timer on unmount to avoid dangling intervals.
+ */
+function setupAvatarCleanupScheduler() {
+  // Initial cleanup on app start
+  avatarStore.cleanupExpired()
+  // Also evict expired or oversized records from IndexedDB (50MB budget)
+  evictExpiredOrOversized().catch((error) => {
+    // Warn-only logging to comply with lint rules
+    console.warn('[Avatar] Failed to evict records on init', error)
+  })
+  // 15 minutes interval
+  avatarCleanupTimer = window.setInterval(() => {
+    avatarStore.cleanupExpired()
+    evictExpiredOrOversized().catch((error) => {
+      // Warn-only logging to comply with lint rules
+      console.warn('[Avatar] Failed to evict records in interval', error)
+    })
+  }, 15 * 60 * 1000)
+}
+
+onMounted(() => {
+  setupAvatarCleanupScheduler()
+})
+
+onBeforeUnmount(() => {
+  if (avatarCleanupTimer)
+    window.clearInterval(avatarCleanupTimer)
 })
 
 // const isDark = useDark()
@@ -30,7 +66,7 @@ onMounted(() => {
 
 // const secondaryColor = computed(() => {
 //   return isDark.value
-//     ? `color-mix(in srgb, oklch(95% var(--chromatic-chroma-900) calc(var(--chromatic-hue) + ${180})) 70%, oklch(50% 0 360))`
+//     ? `color-mix(in srgb, oklch(95% var(--chromatic-chroma-900) calc(var(--chromatic-hue) + ${180})) 70%, oklch(50% 0 360))`reload
 //     : `color-mix(in srgb, oklch(95% var(--chromatic-chroma-900) calc(var(--chromatic-hue) + ${180})) 90%, oklch(90% 0 360))`
 // })
 
@@ -57,8 +93,7 @@ watch(settings.themeColorsHueDynamic, () => {
   <div class="min-h-screen bg-white transition-all duration-300 ease-in-out dark:bg-gray-900">
     <Toaster position="top-right" :expand="true" :rich-colors="true" />
 
-    <!-- TODO: are there another way to fix this? -->
-    <RouterView v-slot="{ Component }" :key="$route.fullPath">
+    <RouterView v-slot="{ Component }">
       <Transition>
         <KeepAlive>
           <component :is="Component" />

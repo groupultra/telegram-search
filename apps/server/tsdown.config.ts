@@ -1,4 +1,5 @@
 import DrizzleORMMigrations from '@proj-airi/unplugin-drizzle-orm-migrations/rolldown'
+
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
@@ -18,7 +19,6 @@ export default defineConfig({
   ],
   external: [
     'vue',
-    '@vueuse/core',
     '@node-rs/jieba',
     '@node-rs/jieba-darwin-arm64',
     '@electric-sql/pglite',

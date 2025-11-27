@@ -9,7 +9,20 @@ import { Err, Ok } from '@unbird/result'
 
 export type CoreDB = PostgresDB | PgliteDB
 
+// Reference: https://github.com/drizzle-team/drizzle-orm/issues/2851#issuecomment-2517850853
+export type CoreTransaction = Parameters<Parameters<CoreDB['transaction']>[0]>[0]
+
 let dbInstance: CoreDB
+
+/**
+ * Set the global database instance.
+ *
+ * In production this is called indirectly via initDrizzle.
+ * In tests you can inject a mock implementation (for example, drizzle.mock()).
+ */
+export function setDbInstanceForTests(db: unknown) {
+  dbInstance = db as CoreDB
+}
 
 // TODO: options? here should contain dbPath, config.
 export async function initDrizzle(
@@ -19,6 +32,7 @@ export async function initDrizzle(
     dbPath?: string
     debuggerWebSocketUrl?: string
     isDatabaseDebugMode?: boolean
+    disableMigrations?: boolean
   },
 ) {
   logger.log('Initializing database...')
@@ -36,6 +50,7 @@ export async function initDrizzle(
       const { initPgDrizzle } = await import('./pg')
       dbInstance = await initPgDrizzle(logger, config, {
         isDatabaseDebugMode: options?.isDatabaseDebugMode,
+        disableMigrations: options?.disableMigrations,
       })
       break
     }
@@ -45,12 +60,14 @@ export async function initDrizzle(
         const { initPgliteDrizzleInBrowser } = await import('./pglite.browser')
         dbInstance = await initPgliteDrizzleInBrowser(logger, {
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
+          disableMigrations: options?.disableMigrations,
         })
       }
       else {
         const { initPgliteDrizzleInNode } = await import('./pglite')
         dbInstance = await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
+          disableMigrations: options?.disableMigrations,
         })
       }
       break

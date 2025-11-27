@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useAuthStore, useBridgeStore } from '@tg-search/client'
+import { useAuthStore, useAvatarStore, useBridgeStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import Stepper from '../components/ui/Stepper.vue'
@@ -12,15 +12,17 @@ const { t } = useI18n()
 type LoginStep = 'phone' | 'code' | 'password' | 'complete'
 
 const router = useRouter()
+const route = useRoute()
 
 const authStore = useAuthStore()
 const websocketStore = useBridgeStore()
+const avatarStore = useAvatarStore()
 const { isLoggedIn } = storeToRefs(authStore)
 
 const state = ref({
   currentStep: 'phone' as LoginStep,
   showAdvancedSettings: false,
-  phoneNumber: websocketStore.getActiveSession()?.phoneNumber ?? '',
+  phoneNumber: '',
   verificationCode: '',
   twoFactorPassword: '',
 })
@@ -52,19 +54,27 @@ watch(isLoggedIn, (value) => {
   if (value) {
     authStore.auth.isLoading = false
     state.value.currentStep = 'complete'
+
+    // High-priority fetch for self avatar to avoid being queued behind chat list
+    const me = websocketStore.getActiveSession()?.me
+    if (me?.id) {
+      // Force refresh to always get the latest avatar on login
+      avatarStore.ensureUserAvatar(me.id, undefined, true)
+    }
   }
 })
 
-const steps = [
+const steps = computed(() => [
   { step: 1, value: 'phone', title: t('login.phone'), description: t('login.phoneDescription') },
   { step: 2, value: 'code', title: t('login.code'), description: t('login.codeDescription') },
   { step: 3, value: 'password', title: t('login.password'), description: t('login.passwordDescription') },
   { step: 4, value: 'complete', title: t('login.complete'), description: t('login.completeDescription') },
-]
+])
 
 function redirectRoot() {
-  toast.success(t('login.loginSuccess'))
-  router.push('/')
+  // Redirect to the previous page if specified in query params, otherwise go to sync page
+  const redirect = route.query.redirect as string | undefined
+  router.push(redirect || '/sync')
 }
 
 async function handleLogin() {
@@ -100,7 +110,7 @@ async function handleLogin() {
         {{ steps.find(s => s.value === state.currentStep)?.description }}
       </p>
 
-      <!-- 手机号码表单 -->
+      <!-- Phone number form -->
       <form v-if="state.currentStep === 'phone'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
           <label for="phoneNumber" class="mb-2 block text-base font-semibold">{{ t('login.phoneNumber') }}</label>
@@ -124,7 +134,7 @@ async function handleLogin() {
         </button>
       </form>
 
-      <!-- 验证码表单 -->
+      <!-- Verification code form -->
       <form v-if="state.currentStep === 'code'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
           <label for="verificationCode" class="mb-2 block text-base font-semibold">{{ t('login.verificationCode') }}</label>
@@ -132,14 +142,10 @@ async function handleLogin() {
             id="verificationCode"
             v-model="state.verificationCode"
             type="text"
-            :placeholder="t('login.verificationCodePlaceholder')"
             class="w-full border rounded-xl bg-background px-5 py-4 text-xl transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring"
             required
             :disabled="authStore.auth.isLoading"
           >
-          <p class="mt-2 text-sm text-muted-foreground">
-            {{ t('login.verificationCodeDescription') }}
-          </p>
         </div>
         <button
           type="submit"
@@ -151,7 +157,7 @@ async function handleLogin() {
         </button>
       </form>
 
-      <!-- 两步验证密码表单 -->
+      <!-- Two-factor authentication password form -->
       <form v-if="state.currentStep === 'password'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
           <label for="twoFactorPassword" class="mb-2 block text-base font-semibold">{{ t('login.twoFactorPassword') }}</label>
@@ -159,7 +165,6 @@ async function handleLogin() {
             id="twoFactorPassword"
             v-model="state.twoFactorPassword"
             type="password"
-            :placeholder="t('login.twoFactorPasswordPlaceholder')"
             class="w-full border rounded-xl bg-background px-5 py-4 text-xl transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring"
             required
             :disabled="authStore.auth.isLoading"
@@ -175,7 +180,7 @@ async function handleLogin() {
         </button>
       </form>
 
-      <!-- 登录完成 -->
+      <!-- Login complete -->
       <div v-if="state.currentStep === 'complete'" class="text-center">
         <div class="mb-4 text-3xl">
           🎉

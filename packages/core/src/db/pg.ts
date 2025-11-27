@@ -2,12 +2,13 @@ import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
 import type { drizzle as drizzlePg } from 'drizzle-orm/postgres-js'
 
+import postgres from 'postgres'
+import migrations from 'virtual:drizzle-migrations.sql'
+
 import { migrate as migratePg } from '@proj-airi/drizzle-orm-browser-migrator/pg'
 import { getDatabaseDSN } from '@tg-search/common'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import migrations from 'virtual:drizzle-migrations.sql'
 
 export type PostgresDB = ReturnType<typeof drizzlePg>
 
@@ -26,6 +27,7 @@ export async function initPgDrizzle(
   config: Config,
   options: {
     isDatabaseDebugMode?: boolean
+    disableMigrations?: boolean
   } = {},
 ) {
   logger.log('Initializing postgres drizzle...')
@@ -49,7 +51,9 @@ export async function initPgDrizzle(
     logger.log('Database connection established successfully')
 
     // Migrate database
-    await applyMigrations(logger, db)
+    if (!options.disableMigrations) {
+      await applyMigrations(logger, db)
+    }
   }
   catch (error) {
     logger.withError(error).error('Failed to connect to database')

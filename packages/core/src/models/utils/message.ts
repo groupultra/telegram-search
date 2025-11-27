@@ -1,5 +1,7 @@
-import type { CoreMessage, CoreRetrievalMessages } from '../../index'
-import type { chatMessagesTable } from '../../schemas/chat_messages'
+import type { chatMessagesTable } from '../../schemas/chat-messages'
+import type { JoinedChatType } from '../../schemas/joined-chats'
+import type { CoreRetrievalMessages } from '../../types/events'
+import type { CoreMessage } from '../../types/message'
 
 export type DBInsertMessage = typeof chatMessagesTable.$inferInsert
 export type DBSelectMessage = typeof chatMessagesTable.$inferSelect
@@ -8,6 +10,7 @@ export interface DBRetrievalMessages extends Omit<DBSelectMessage, 'content_vect
   similarity?: number
   time_relevance?: number
   combined_score?: number
+  chat_name?: string | null
 }
 
 export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessage {
@@ -20,6 +23,7 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
 
     fromId: message.from_id,
     fromName: message.from_name,
+    fromUserUuid: message.from_user_uuid ?? undefined,
 
     content: message.content,
 
@@ -49,18 +53,28 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
   } satisfies CoreMessage
 }
 
-export function convertToDBInsertMessage(message: CoreMessage): DBInsertMessage {
+export function convertToDBInsertMessage(
+  ownerAccountId: string | null | undefined,
+  type: JoinedChatType,
+  message: CoreMessage,
+): DBInsertMessage {
   const msg: DBInsertMessage = {
     platform: message.platform,
     from_id: message.fromId,
     platform_message_id: message.platformMessageId,
     from_name: message.fromName,
+    from_user_uuid: message.fromUserUuid,
     in_chat_id: message.chatId,
+    in_chat_type: type,
     content: message.content,
     is_reply: message.reply.isReply,
     reply_to_name: message.reply.replyToName,
     reply_to_id: message.reply.replyToId,
     platform_timestamp: message.platformTimestamp,
+  }
+
+  if (ownerAccountId) {
+    msg.owner_account_id = ownerAccountId
   }
 
   if (message.vectors.vector1536?.length) {
@@ -88,5 +102,6 @@ export function convertToCoreRetrievalMessages(messages: DBRetrievalMessages[]):
     similarity: message?.similarity,
     timeRelevance: message?.time_relevance,
     combinedScore: message?.combined_score,
+    chatName: message?.chat_name ?? undefined,
   })) satisfies CoreRetrievalMessages[]
 }

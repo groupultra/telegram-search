@@ -1,100 +1,166 @@
-import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient, WsMessageToServer } from '@tg-search/server/types'
+import type {
+  WsEventToClient,
+  WsEventToClientData,
+  WsEventToServer,
+  WsEventToServerData,
+  WsMessageToClient,
+  WsMessageToServer,
+} from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { SessionContext } from '../stores/useAuth'
+import type { StoredSession } from '../types/session'
 
+import { useLogger } from '@guiiai/logg'
 import { useLocalStorage, useWebSocket } from '@vueuse/core'
-import { defu } from 'defu'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref, watch } from 'vue'
 
 import { WS_API_BASE } from '../../constants'
-import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
+import { getRegisterEventHandler } from '../event-handlers'
+import { registerAllEventHandlers } from '../event-handlers/register'
+import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
+import { createSessionStore } from '../utils/session-store'
 
 export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
 
 export const useWebsocketStore = defineStore('websocket', () => {
-  const storageSessions = useLocalStorage('websocket/sessions', new Map<string, SessionContext>())
-  const storageActiveSessionId = useLocalStorage('websocket/active-session-id', uuidv4())
+  const storageSessions = useLocalStorage<StoredSession[]>('websocket/sessions', [])
+  // active-session-slot: index into storageSessions array
+  const storageActiveSessionSlot = useLocalStorage<number>('websocket/active-session-slot', 0)
+  const logger = useLogger('WebSocket')
+  const {
+    ensureSessionInvariants,
+    getActiveSession,
+    updateActiveSessionMetadata,
+    updateSessionMetadataById,
+    addNewAccount,
+    removeCurrentAccount,
+    cleanup,
+  } = createSessionStore(storageSessions, storageActiveSessionSlot, { generateId: () => uuidv4() })
 
-  const getActiveSession = () => {
-    return storageSessions.value.get(storageActiveSessionId.value)
-  }
+  ensureSessionInvariants()
 
-  const updateActiveSession = (sessionId: string, partialSession: Partial<SessionContext>) => {
-    const mergedSession = defu({}, partialSession, storageSessions.value.get(sessionId))
+  const activeSessionId = computed(() => {
+    const slot = storageActiveSessionSlot.value
+    const session = storageSessions.value[slot]
+    return session?.uuid ?? ''
+  })
 
-    storageSessions.value.set(sessionId, mergedSession)
-    storageActiveSessionId.value = sessionId
-  }
-
-  const cleanup = () => {
-    storageSessions.value.clear()
-    storageActiveSessionId.value = uuidv4()
-  }
-
+  /**
+   * Update metadata for the active session slot by shallow-merging the patch.
+   * We intentionally keep this focused on the active slot to avoid the
+   * previous "upsert by id" behavior, which made the control flow hard to
+   * reason about.
+   */
   const wsUrlComputed = computed(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const host = window.location.host
-    return `${protocol}//${host}${WS_API_BASE}?sessionId=${storageActiveSessionId.value}`
+    const sessionId = activeSessionId.value
+    return `${protocol}//${host}${WS_API_BASE}?sessionId=${sessionId}`
   })
 
-  const wsSocket = ref(useWebSocket<keyof WsMessageToClient>(wsUrlComputed, {
-    onDisconnected: () => {
-      // eslint-disable-next-line no-console
-      console.log('[WebSocket] Disconnected')
-    },
-  }))
+  const eventHandlers: ClientEventHandlerMap = new Map()
+  const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
+  const isInitialized = ref(false)
+
+  let wsSocket: ReturnType<typeof useWebSocket<keyof WsMessageToClient>>
 
   const createWsMessage: ClientCreateWsMessageFn = (type, data) => {
     return { type, data } as WsMessageToServer
   }
 
   // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L29-L37
-  const sendEvent: ClientSendEventFn = (event, data) => {
+  function sendEvent<T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) {
     if (event !== 'server:event:register')
-      // eslint-disable-next-line no-console
-      console.log('[WebSocket] Sending event', event, data)
+      logger.debug('Sending event', event, data)
 
-    wsSocket.value!.send(JSON.stringify(createWsMessage(event, data)))
+    if (!wsSocket)
+      return
+
+    wsSocket.send(JSON.stringify(createWsMessage(event, data)))
   }
 
-  const eventHandlers: ClientEventHandlerMap = new Map()
-  const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
-  const isInitialized = ref(false)
+
+  function handleWsConnected() {
+    logger.log('Connected')
+    /**
+     * Each WebSocket connection (and reconnection) needs to inform the
+     * server which events it is interested in. We simply re-register all
+     * handlers here; the server-side implementation deduplicates listeners
+     * per account, so this does not leak.
+     */
+    registerAllEventHandlers(registerEventHandler)
+  }
+
+  wsSocket = useWebSocket<keyof WsMessageToClient>(wsUrlComputed, {
+    onConnected: handleWsConnected,
+    onDisconnected: () => {
+      logger.log('Disconnected')
+    },
+  })
+
+  const switchAccount = (sessionId: string) => {
+    const index = storageSessions.value.findIndex(session => session.uuid === sessionId)
+    if (index !== -1) {
+      // When switching to an existing account, pessimistically mark its
+      // connection state as disconnected. AuthStore's auto-login watcher
+      // will see { hasSession, !isConnected } for the new active slot and
+      // can drive reconnection logic uniformly across websocket and
+      // core-bridge modes.
+      updateSessionMetadataById(sessionId, { isConnected: false })
+
+      storageActiveSessionSlot.value = index
+      logger.withFields({ sessionId }).log('Switched to account')
+      // WebSocket will reconnect with the new sessionId in URL
+      wsSocket.close()
+    }
+  }
+
+  /**
+   * Apply session:update to the current active account.
+   *
+   * We deliberately keep this simple: whoever initiated the login flow is
+   * responsible for selecting the correct active slot beforehand.
+   */
+  const applySessionUpdate = (session: string) => {
+    updateActiveSessionMetadata({ session })
+  }
+
+  const logoutCurrentAccount = async () => {
+    const removed = removeCurrentAccount()
+    if (!removed)
+      return
+
+    // Emit logout event for current account
+    sendEvent('auth:logout', undefined)
+  }
 
   function init() {
     if (isInitialized.value) {
-      // eslint-disable-next-line no-console
-      console.log('[WebSocket] Already initialized, skipping')
+      logger.log('Already initialized, skipping')
       return
     }
 
-    registerAllEventHandlers(registerEventHandler)
+    ensureSessionInvariants()
     isInitialized.value = true
   }
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {
-    // eslint-disable-next-line no-console
-    console.log('[WebSocket] Waiting for event', event)
+    logger.withFields({ event }).debug('Waiting for event')
 
-    return new Promise((resolve) => {
-      const handlers = eventHandlersQueue.get(event) ?? []
-      handlers.push((data) => {
-        // eslint-disable-next-line no-console
-        console.log('[WebSocket] Resolving event', event, data)
-
+    return new Promise<WsEventToClientData<T>>((resolve) => {
+      enqueueEventHandler(eventHandlersQueue, event, (data: WsEventToClientData<T>) => {
+        logger.withFields({ event, data }).debug('Resolving event')
         resolve(data)
       })
-      eventHandlersQueue.set(event, handlers)
-    }) satisfies Promise<WsEventToClientData<T>>
+    })
   }
 
   // https://github.com/moeru-ai/airi/blob/b55a76407d6eb725d74c5cd4bcb17ef7d995f305/apps/realtime-audio/src/pages/index.vue#L95-L123
-  watch(() => wsSocket.value.data, (rawMessage) => {
+  watch(wsSocket.data, (rawMessage) => {
     if (!rawMessage)
       return
 
@@ -102,8 +168,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
       const message = JSON.parse(rawMessage) as WsMessageToClient
 
       if (eventHandlers.has(message.type)) {
-      // eslint-disable-next-line no-console
-        console.log('[WebSocket] Message received', message)
+        logger.debug('Message received', message)
       }
 
       if (eventHandlers.has(message.type)) {
@@ -114,26 +179,23 @@ export const useWebsocketStore = defineStore('websocket', () => {
             fn(message.data)
         }
         catch (error) {
-          console.error('[WebSocket] Error handling event', message, error)
+          logger.withError(error).withFields({ message: message || 'unknown' }).error('Error handling event')
         }
       }
 
       if (eventHandlersQueue.has(message.type)) {
-        const fnQueue = eventHandlersQueue.get(message.type) ?? []
-
-        try {
-          fnQueue.forEach((inQueueFn) => {
-            inQueueFn(message.data)
-            fnQueue.pop()
-          })
-        }
-        catch (error) {
-          console.error('[WebSocket] Error handling queued event', message, error)
-        }
+        drainEventQueue(
+          eventHandlersQueue,
+          message.type,
+          message.data,
+          (error) => {
+            logger.withError(error).withFields({ message: message || 'unknown' }).error('Error handling queued event')
+          },
+        )
       }
     }
     catch (error) {
-      console.error('[WebSocket] Invalid message', rawMessage, error)
+      logger.error('Invalid message', rawMessage, error)
     }
   })
 
@@ -141,9 +203,14 @@ export const useWebsocketStore = defineStore('websocket', () => {
     init,
 
     sessions: storageSessions,
-    activeSessionId: storageActiveSessionId,
+    activeSessionId,
     getActiveSession,
-    updateActiveSession,
+    updateActiveSessionMetadata,
+    updateSessionMetadataById,
+    switchAccount,
+    addNewAccount,
+    applySessionUpdate,
+    logoutCurrentAccount,
     cleanup,
 
     sendEvent,

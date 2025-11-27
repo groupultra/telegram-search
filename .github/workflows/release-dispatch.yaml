@@ -35,14 +35,14 @@ jobs:
       - name: Install
         run: pnpm install
 
-      - name: Set git user
+      - name: Set Git User
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
       - run: pnpm run bump --release ${{ inputs.target }} --quiet --yes
 
-      - name: Push bump commit
+      - name: Push Bump Commit
         run: |
           git push origin main --follow-tags
 

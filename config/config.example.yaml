@@ -46,3 +46,18 @@ api:
     dimension: 1536
     # Optional, for custom API providers
     apiBase: 'https://api.openai.com/v1'
+
+  # LLM settings for AI chat
+  llm:
+    # LLM provider (openai, anthropic, ollama, etc.)
+    provider: openai
+    # LLM model
+    model: gpt-4o-mini
+    # API key for provider
+    apiKey: ''
+    # API base URL for custom providers
+    apiBase: 'https://api.openai.com/v1'
+    # Temperature for response generation (0.0-2.0)
+    temperature: 0.7
+    # Maximum tokens in response
+    maxTokens: 2000

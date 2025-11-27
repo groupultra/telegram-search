@@ -1,7 +1,7 @@
 # ---------------------------------
 # --------- Builder Stage ---------
 # ---------------------------------
-FROM node:24.10.0-alpine AS builder
+FROM node:24.11.0-alpine AS builder
 
 WORKDIR /app
 
@@ -46,7 +46,7 @@ EXPOSE 3333
 # ---------------------------------
 # --------- Runtime Stage ---------
 # ---------------------------------
-FROM node:24.10.0-alpine
+FROM node:24.11.0-alpine
 
 WORKDIR /app
 

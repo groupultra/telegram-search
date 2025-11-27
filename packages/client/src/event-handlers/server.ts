@@ -8,11 +8,14 @@ export function registerServerEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
   registerEventHandler('server:connected', (data) => {
-    useBridgeStore().updateActiveSession(data.sessionId, { isConnected: data.connected })
+    // server:connected carries the authoritative connection state for a
+    // specific sessionId. We update that slot directly without creating
+    // any new accounts.
+    useBridgeStore().updateSessionMetadataById(data.sessionId, { isConnected: data.connected })
   })
 
-  registerEventHandler('server:error', ({ error }) => {
+  registerEventHandler('core:error', ({ error, description }) => {
     // TODO: move it to view layer
-    toast.error(String(error))
+    toast.error(error, { description })
   })
 }

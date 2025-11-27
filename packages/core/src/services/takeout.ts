@@ -1,54 +1,17 @@
-import type { CorePagination } from '@tg-search/common'
 import type { Result } from '@unbird/result'
 import type { EntityLike } from 'telegram/define'
 
 import type { CoreContext } from '../context'
-import type { CoreTask } from '../utils/task'
+import type { TakeoutOpts } from '../types/events'
+
+import bigInt from 'big-integer'
 
 import { useLogger } from '@guiiai/logg'
 import { Err, Ok } from '@unbird/result'
-import bigInt from 'big-integer'
 import { Api } from 'telegram'
 
-export interface TakeoutTaskMetadata {
-  chatIds: string[]
-}
-
-export interface TakeoutEventToCore {
-  'takeout:run': (data: { chatIds: string[], increase?: boolean }) => void
-  'takeout:task:abort': (data: { taskId: string }) => void
-}
-
-export interface TakeoutEventFromCore {
-  'takeout:task:progress': (data: CoreTask<'takeout'>) => void
-}
-
-export type TakeoutEvent = TakeoutEventFromCore & TakeoutEventToCore
-
-export interface TakeoutOpts {
-  chatId: string
-  pagination: CorePagination
-
-  startTime?: Date
-  endTime?: Date
-
-  // Filter
-  skipMedia?: boolean
-  messageTypes?: string[]
-
-  // Incremental export
-  minId?: number
-  maxId?: number
-
-  // Expected total count for progress calculation (optional, will fetch from Telegram if not provided)
-  expectedCount?: number
-
-  // Disable auto progress emission (for manual progress management in handler)
-  disableAutoProgress?: boolean
-
-  // Task object (required, should be created by handler and passed in)
-  task: CoreTask<'takeout'>
-}
+import { TELEGRAM_HISTORY_INTERVAL_MS } from '../constants'
+import { createMinIntervalWaiter } from '../utils/min-interval'
 
 export type TakeoutService = ReturnType<typeof createTakeoutService>
 
@@ -57,6 +20,9 @@ export function createTakeoutService(ctx: CoreContext) {
   const { withError, getClient } = ctx
 
   const logger = useLogger()
+
+  // Abortable min-interval waiter shared within this service
+  const waitHistoryInterval = createMinIntervalWaiter(TELEGRAM_HISTORY_INTERVAL_MS)
 
   async function initTakeout() {
     const fileMaxSize = bigInt(1024 * 1024 * 1024) // 1GB
@@ -171,6 +137,14 @@ export function createTakeoutService(ctx: CoreContext) {
 
         logger.withFields(historyQuery).verbose('Historical messages query')
 
+        // Pace requests before invoking Telegram API; allow abort while waiting
+        try {
+          await waitHistoryInterval(task.abortController.signal)
+        }
+        catch {
+          logger.verbose('Aborted during rate-limit wait')
+          break
+        }
         const result = await getClient().invoke(
           new Api.InvokeWithTakeout({
             takeoutId: takeoutSession.id,
@@ -220,6 +194,8 @@ export function createTakeoutService(ctx: CoreContext) {
             `Processed ${processedCount}/${count} messages`,
           )
         }
+
+        logger.withFields({ processedCount, count }).verbose('Processed messages')
       }
 
       await finishTakeout(takeoutSession, true)

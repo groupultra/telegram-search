@@ -1,10 +1,12 @@
+import fs from 'node:fs'
+
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
-import fs from 'node:fs'
+
+import path from 'pathe'
 
 import { useLogger } from '@guiiai/logg'
 import { getDataPath } from '@tg-search/common/node/path'
-import path from 'pathe'
 
 const DICT_URL = 'https://github.com/fxsjy/jieba/raw/master/extra_dict/dict.txt.small'
 const DICT_PATH = path.resolve(getDataPath(), 'dict.txt')

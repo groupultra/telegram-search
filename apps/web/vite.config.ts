@@ -8,12 +8,13 @@ import Info from 'unplugin-info/vite'
 import Unused from 'unplugin-unused/vite'
 import VueMacros from 'unplugin-vue-macros/vite'
 import VueRouter from 'unplugin-vue-router/vite'
-import { defineConfig } from 'vite'
 import Inspect from 'vite-plugin-inspect'
-import { VitePWA } from 'vite-plugin-pwa'
-import { splashScreen } from 'vite-plugin-splash-screen'
 import Devtools from 'vite-plugin-vue-devtools'
 import Layouts from 'vite-plugin-vue-layouts'
+
+import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
+import { splashScreen } from 'vite-plugin-splash-screen'
 
 export default defineConfig({
   plugins: [
@@ -86,6 +87,11 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        // https://github.com/moeru-ai/airi/blob/main/apps/stage-web/vite.config.ts#L136-L141
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/ws\//,
+        ],
       },
     }),
 
@@ -110,7 +116,20 @@ export default defineConfig({
   },
 
   optimizeDeps: {
-    exclude: ['@electric-sql/pglite'],
+    exclude: [
+      '@electric-sql/pglite',
+    ],
+    include: [
+      'virtua/vue',
+      'workbox-window',
+      'date-fns',
+      'echarts/charts',
+      'echarts/components',
+      'echarts/core',
+      'echarts/renderers',
+      'vue-echarts',
+      'lottie-web',
+    ],
   },
 
   build: {

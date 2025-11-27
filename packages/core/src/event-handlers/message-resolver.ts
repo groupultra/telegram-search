@@ -2,22 +2,22 @@ import type { CoreContext } from '../context'
 import type { MessageResolverService } from '../services/message-resolver'
 
 import { useLogger } from '@guiiai/logg'
-import pLimit from 'p-limit'
+import { newQueue } from '@henrygd/queue'
 
-import { MESSAGE_PROCESS_LIMIT } from '../constants'
+import { MESSAGE_RESOLVER_QUEUE_SIZE } from '../constants'
 
 export function registerMessageResolverEventHandlers(ctx: CoreContext) {
   const { emitter } = ctx
   const logger = useLogger('core:message-resolver:event')
 
   return (messageResolverService: MessageResolverService) => {
-    const limit = pLimit(MESSAGE_PROCESS_LIMIT)
+    const queue = newQueue(MESSAGE_RESOLVER_QUEUE_SIZE)
 
     // TODO: debounce, background tasks
-    emitter.on('message:process', ({ messages, isTakeout = false }) => {
-      void limit(async () => {
+    emitter.on('message:process', ({ messages, isTakeout = false, syncOptions }) => {
+      void queue.add(async () => {
         try {
-          await messageResolverService.processMessages(messages, { takeout: isTakeout })
+          await messageResolverService.processMessages(messages, { takeout: isTakeout, syncOptions })
         }
         catch (error) {
           logger.withError(error).warn('Failed to process messages')

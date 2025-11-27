@@ -56,10 +56,10 @@ graph TB
     subgraph "🖥️ Frontend Layer"
         Frontend["Web Frontend<br/>(Vue 3 + Pinia)"]
         Electron["Electron Desktop"]
-        
+
         subgraph "Client Event Handlers"
             ClientAuth["Auth Handler"]
-            ClientMessage["Message Handler"] 
+            ClientMessage["Message Handler"]
             ClientStorage["Storage Handler"]
             ClientEntity["Entity Handler"]
             ClientServer["Server Handler"]
@@ -72,7 +72,7 @@ graph TB
 
     subgraph "🚀 Backend Service Layer"
         Server["Backend Server<br/>(REST API)"]
-        
+
         subgraph "Session Management"
             SessionMgr["Session Manager<br/>• Client State<br/>• CoreContext Instance<br/>• Event Listeners"]
         end
@@ -80,7 +80,7 @@ graph TB
 
     subgraph "🎯 Core Event System"
         Context["CoreContext<br/>🔥 Central Event Bus<br/>(EventEmitter3)<br/>• ToCoreEvent<br/>• FromCoreEvent<br/>• Event Wrappers<br/>• Error Handling"]
-        
+
         subgraph "Core Event Handlers"
             AuthHandler["🔐 Auth Handler"]
             MessageHandler["📝 Message Handler"]
@@ -104,10 +104,10 @@ graph TB
             ConnectionService["Connection<br/>Service"]
             TakeoutService["Takeout<br/>Service"]
         end
-        
+
         subgraph "Message Processing Pipeline"
             MsgResolverService["Message Resolver<br/>Service"]
-            
+
             subgraph "Message Resolvers"
                 EmbeddingResolver["🤖 Embedding<br/>Resolver<br/>(OpenAI)"]
                 JiebaResolver["📚 Jieba<br/>Resolver<br/>(Chinese Segmentation)"]
@@ -131,7 +131,7 @@ graph TB
     %% WebSocket Event Flow
     Frontend -.->|"WsEventToServer<br/>• auth:login<br/>• message:query<br/>• dialog:fetch"| WS
     WS -.->|"WsEventToClient<br/>• message:data<br/>• auth:status<br/>• storage:progress"| Frontend
-    
+
     Electron -.->|"WebSocket Events"| WS
     WS -.->|"Real-time Updates"| Electron
 

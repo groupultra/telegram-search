@@ -1,53 +1,22 @@
 import type { TelegramClient } from 'telegram'
 
-import type { ClientInstanceEventFromCore, ClientInstanceEventToCore } from './instance'
-import type { SessionEventFromCore, SessionEventToCore } from './services'
-import type { ConfigEventFromCore, ConfigEventToCore } from './services/config'
-import type { ConnectionEventFromCore, ConnectionEventToCore } from './services/connection'
-import type { DialogEventFromCore, DialogEventToCore } from './services/dialog'
-import type { EntityEventFromCore, EntityEventToCore } from './services/entity'
-import type { GramEventsEventFromCore, GramEventsEventToCore } from './services/gram-events'
-import type { MessageEventFromCore, MessageEventToCore } from './services/message'
-import type { MessageResolverEventFromCore, MessageResolverEventToCore } from './services/message-resolver'
-import type { StorageEventFromCore, StorageEventToCore } from './services/storage'
-import type { TakeoutEventFromCore, TakeoutEventToCore } from './services/takeout'
+import type {
+  CoreEmitter,
+  CoreEvent,
+  FromCoreEvent,
+  ToCoreEvent,
+} from './types/events'
 
 import { useLogger } from '@guiiai/logg'
 import { EventEmitter } from 'eventemitter3'
 
-export type FromCoreEvent = ClientInstanceEventFromCore
-  & MessageEventFromCore
-  & DialogEventFromCore
-  & ConnectionEventFromCore
-  & TakeoutEventFromCore
-  & SessionEventFromCore
-  & EntityEventFromCore
-  & StorageEventFromCore
-  & ConfigEventFromCore
-  & GramEventsEventFromCore
-  & MessageResolverEventFromCore
+import { detectMemoryLeak } from './utils/memory-leak-detector'
 
-export type ToCoreEvent = ClientInstanceEventToCore
-  & MessageEventToCore
-  & DialogEventToCore
-  & ConnectionEventToCore
-  & TakeoutEventToCore
-  & SessionEventToCore
-  & EntityEventToCore
-  & StorageEventToCore
-  & ConfigEventToCore
-  & GramEventsEventToCore
-  & MessageResolverEventToCore
-
-export type CoreEvent = FromCoreEvent & ToCoreEvent
-
-export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
-
-export type CoreEmitter = EventEmitter<CoreEvent>
-
-export type Service<T> = (ctx: CoreContext) => T
+export type { CoreEmitter, CoreEvent, CoreEventData, FromCoreEvent, ToCoreEvent } from './types/events'
 
 export type CoreContext = ReturnType<typeof createCoreContext>
+
+export type Service<T> = (ctx: CoreContext) => T
 
 function createErrorHandler(emitter: CoreEmitter) {
   const logger = useLogger()
@@ -59,7 +28,7 @@ function createErrorHandler(emitter: CoreEmitter) {
     }
 
     // Emit raw error for frontend to handle (i18n, UI, etc.)
-    emitter.emit('core:error', { error })
+    emitter.emit('core:error', { error: error instanceof Error ? error.message : String(error), description })
 
     // Log error details
     if (error instanceof Error) {
@@ -78,6 +47,7 @@ export function createCoreContext() {
   const emitter = new EventEmitter<CoreEvent>()
   const withError = createErrorHandler(emitter)
   let telegramClient: TelegramClient
+  let currentAccountId: string | undefined
 
   const toCoreEvents = new Set<keyof ToCoreEvent>()
   const fromCoreEvents = new Set<keyof FromCoreEvent>()
@@ -138,6 +108,44 @@ export function createCoreContext() {
     return telegramClient
   }
 
+  function setCurrentAccountId(accountId: string) {
+    useLogger().withFields({ accountId }).debug('Set current account ID')
+    currentAccountId = accountId
+  }
+
+  function getCurrentAccountId(): string {
+    if (!currentAccountId) {
+      throw withError('Current account ID not set')
+    }
+    return currentAccountId
+  }
+
+  // Setup memory leak detection and get cleanup function
+  const cleanupMemoryLeakDetector = detectMemoryLeak(emitter)
+
+  function cleanup() {
+    useLogger().debug('Cleaning up CoreContext')
+
+    // Clean up memory leak detector first
+    cleanupMemoryLeakDetector()
+
+    // Remove all event listeners
+    emitter.removeAllListeners()
+
+    // Clear event sets
+    toCoreEvents.clear()
+    fromCoreEvents.clear()
+
+    // Clear client reference
+    // @ts-expect-error - Allow setting to undefined for cleanup
+    telegramClient = undefined
+
+    // Clear account reference
+    currentAccountId = undefined
+
+    useLogger().debug('CoreContext cleaned up')
+  }
+
   wrapEmitterOn(emitter, (event) => {
     useLogger('core:event').withFields({ event }).debug('Core event received')
   })
@@ -154,7 +162,10 @@ export function createCoreContext() {
     wrapEmitterOn,
     setClient,
     getClient: ensureClient,
+    setCurrentAccountId,
+    getCurrentAccountId,
     withError,
+    cleanup,
   }
 }
 

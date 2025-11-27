@@ -26,16 +26,16 @@ describe('messageWindow', () => {
     fromId: '',
     fromName: '',
     content: '',
-    media: hasMedia ? [{ type: 'photo', mimeType: 'image/jpeg', blobUrl: 'blob:test' } as any] : undefined,
-    reply: {} as any,
-    forward: {} as any,
-    vectors: {} as any,
+    media: hasMedia ? [{ type: 'photo', mimeType: 'image/jpeg', blobUrl: 'blob:test' }] : undefined,
+    reply: {},
+    forward: {},
+    vectors: {},
     jiebaTokens: [],
     platformTimestamp: Date.now(),
     createdAt: Date.now(),
     updatedAt: Date.now(),
     deletedAt: undefined,
-  })
+  } as any)
 
   beforeEach(() => {
     messageWindow = new MessageWindow(3) // Small size for easier testing

@@ -10,6 +10,7 @@ export interface RuntimeFlags {
 
   isDebugMode: boolean
   isDatabaseDebugMode: boolean
+  disableMigrations: boolean
 
   dbProvider?: DatabaseType
   dbUrl?: string
@@ -38,6 +39,7 @@ export interface RuntimeFlags {
 const DEFAULT_FLAGS: RuntimeFlags = {
   logLevel: LoggerLevel.Verbose,
   logFormat: LoggerFormat.Pretty,
+  disableMigrations: false,
 
   isDebugMode: false,
   isDatabaseDebugMode: false,
@@ -103,6 +105,7 @@ export function parseEnvFlags(env: Record<string, string | undefined>): RuntimeF
     }
   }
 
+  result.disableMigrations = readBooleanEnv('DISABLE_MIGRATIONS', env)
   result.isDatabaseDebugMode = readBooleanEnv('DATABASE_DEBUG', env)
 
   assignIfPresent(result, 'dbProvider', readEnvValue('DATABASE_TYPE', env))
@@ -152,6 +155,7 @@ export function parseEnvFlags(env: Record<string, string | undefined>): RuntimeF
   assignIfPresent(result, 'embeddingApiKey', readEnvValue('EMBEDDING_API_KEY', env))
   assignIfPresent(result, 'embeddingApiBase', readEnvValue('EMBEDDING_BASE_URL', env))
 
+  // Since the logger is not initialized yet, we use console.log
   // eslint-disable-next-line no-console
   console.log('Flags parsed', result)
 

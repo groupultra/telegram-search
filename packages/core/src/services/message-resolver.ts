@@ -2,24 +2,12 @@ import type { Api } from 'telegram'
 
 import type { CoreContext } from '../context'
 import type { MessageResolverRegistryFn } from '../message-resolvers'
+import type { SyncOptions } from '../types/events'
 
 import { useLogger } from '@guiiai/logg'
 import { useConfig } from '@tg-search/common'
 
 import { convertToCoreMessage } from '../utils/message'
-
-export interface MessageResolverEventToCore {
-  /**
-   * Processes messages. If `isTakeout` is true, suppresses 'message:data' emissions (browser-facing)
-   * while still recording messages to storage. Consumers should be aware that setting `isTakeout`
-   * changes event side effects.
-   */
-  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean }) => void
-}
-
-export interface MessageResolverEventFromCore {}
-
-export type MessageResolverEvent = MessageResolverEventFromCore & MessageResolverEventToCore
 
 export type MessageResolverService = ReturnType<ReturnType<typeof createMessageResolverService>>
 
@@ -30,7 +18,7 @@ export function createMessageResolverService(ctx: CoreContext) {
     const { emitter } = ctx
 
     // TODO: worker_threads?
-    async function processMessages(messages: Api.Message[], options: { takeout?: boolean } = {}) {
+    async function processMessages(messages: Api.Message[], options: { takeout?: boolean, syncOptions?: SyncOptions } = {}) {
       logger.withFields({ count: messages.length }).verbose('Process messages')
 
       const coreMessages = messages
@@ -49,7 +37,9 @@ export function createMessageResolverService(ctx: CoreContext) {
       // Storage the messages first
       emitter.emit('storage:record:messages', { messages: coreMessages })
 
-      const disabledResolvers = useConfig().resolvers.disabledResolvers || []
+      // Avatar resolver is disabled by default (configured in generateDefaultConfig).
+      // Current strategy: client-driven, on-demand avatar loading via entity:avatar:fetch.
+      const disabledResolvers = useConfig().resolvers?.disabledResolvers
 
       // Embedding or resolve messages
       const promises = Array.from(resolvers.registry.entries())
@@ -59,14 +49,14 @@ export function createMessageResolverService(ctx: CoreContext) {
 
           try {
             if (resolver.run) {
-              const result = (await resolver.run({ messages: coreMessages })).unwrap()
+              const result = (await resolver.run({ messages: coreMessages, syncOptions: options.syncOptions })).unwrap()
 
               if (result.length > 0) {
                 emitter.emit('storage:record:messages', { messages: result })
               }
             }
             else if (resolver.stream) {
-              for await (const message of resolver.stream({ messages: coreMessages })) {
+              for await (const message of resolver.stream({ messages: coreMessages, syncOptions: options.syncOptions })) {
                 if (!options.takeout) {
                   emitter.emit('message:data', { messages: [message] })
                 }

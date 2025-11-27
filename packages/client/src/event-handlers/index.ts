@@ -2,15 +2,6 @@ import type { WsEventToClient, WsEventToClientData } from '@tg-search/server/typ
 
 import type { ClientSendEventFn } from '../composables/useBridge'
 
-import { registerBasicEventHandlers } from './auth'
-import { registerConfigEventHandlers } from './config'
-import { registerDialogEventHandlers } from './dialog'
-import { registerEntityEventHandlers } from './entity'
-import { registerMessageEventHandlers } from './message'
-import { registerServerEventHandlers } from './server'
-import { registerStorageEventHandlers } from './storage'
-import { registerTakeoutEventHandlers } from './takeout'
-
 export type ClientEventHandler<T extends keyof WsEventToClient> = (data: WsEventToClientData<T>) => void
 export type ClientRegisterEventHandler = <T extends keyof WsEventToClient>(event: T, handler: ClientEventHandler<T>) => void
 export type ClientEventHandlerMap = Map<keyof WsEventToClient, ClientEventHandler<keyof WsEventToClient>>
@@ -30,16 +21,3 @@ export function getRegisterEventHandler(
 }
 
 export type ClientRegisterEventHandlerFn = ReturnType<typeof getRegisterEventHandler>
-
-export function registerAllEventHandlers(
-  registerEventHandler: ClientRegisterEventHandlerFn,
-) {
-  registerServerEventHandlers(registerEventHandler)
-  registerBasicEventHandlers(registerEventHandler)
-  registerEntityEventHandlers(registerEventHandler)
-  registerTakeoutEventHandlers(registerEventHandler)
-  registerConfigEventHandlers(registerEventHandler)
-  registerDialogEventHandlers(registerEventHandler)
-  registerStorageEventHandlers(registerEventHandler)
-  registerMessageEventHandlers(registerEventHandler)
-}

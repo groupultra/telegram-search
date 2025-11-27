@@ -34,7 +34,7 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-// 关闭时添加动画
+// Add animation when closing
 function closeWithAnimation() {
   if (contentRef.value) {
     contentRef.value.classList.add('dialog-content-leave')
@@ -63,7 +63,7 @@ watch(isOpen, (value) => {
   if (value) {
     isVisible.value = true
     disableScroll()
-    // 打开时重置动画类
+    // Reset animation class when opening
     if (contentRef.value) {
       contentRef.value.classList.remove('dialog-content-leave')
     }
@@ -91,16 +91,16 @@ onUnmounted(() => {
     <div
       v-show="isVisible"
       ref="dialogRef"
-      class="fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden p-4"
+      class="fixed inset-0 z-50 w-dvw overflow-hidden p-4 h-dvh"
       :class="{ 'cursor-pointer': !persistent }"
       @click="handleOutsideClick"
     >
-      <!-- 背景遮罩 -->
+      <!-- Background overlay -->
       <Transition name="fade">
         <div v-show="isVisible" class="absolute inset-0 h-full w-full backdrop-blur-sm" />
       </Transition>
 
-      <!-- 对话框内容 -->
+      <!-- Dialog content -->
       <div class="z-51 h-full w-full flex items-center justify-center">
         <Transition name="dialog">
           <div
@@ -119,7 +119,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 背景遮罩动画 */
+/* Background overlay animation */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease-in-out;
@@ -130,7 +130,7 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-/* 对话框内容动画 */
+/* Dialog content animation */
 .dialog-enter-active,
 .dialog-leave-active {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);

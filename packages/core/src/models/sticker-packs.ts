@@ -3,7 +3,7 @@
 import { desc } from 'drizzle-orm'
 
 import { withDb } from '../db'
-import { stickerPacksTable } from '../schemas/sticker_packs'
+import { stickerPacksTable } from '../schemas/sticker-packs'
 
 export async function recordStickerPack(platformId: string, name: string, platform = 'telegram') {
   return withDb(async db => db

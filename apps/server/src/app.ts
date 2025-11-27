@@ -9,6 +9,8 @@ import { initDrizzle } from '@tg-search/core'
 import { createApp, createRouter, defineEventHandler, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 
+import pkg from '../package.json' with { type: 'json' }
+
 import { setupWsRoutes } from './ws/routes'
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
@@ -55,22 +57,6 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
     },
   })
 
-  // app.use(eventHandler((event) => {
-  //   setResponseHeaders(event, {
-  //     'Access-Control-Allow-Origin': 'http://localhost:3333',
-  //     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  //     'Access-Control-Allow-Credentials': 'true',
-  //     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, X-Requested-With',
-  //   })
-
-  //   if (event.method === 'OPTIONS') {
-  //     setResponseHeaders(event, {
-  //       'Access-Control-Max-Age': '86400',
-  //     })
-  //     return null
-  //   }
-  // }))
-
   const router = createRouter()
   router.get('/health', defineEventHandler(() => {
     return Response.json({ success: true })
@@ -86,10 +72,16 @@ async function bootstrap() {
   const flags = parseEnvFlags(process.env as Record<string, string>)
   initLogger(flags.logLevel, flags.logFormat)
   const logger = useLogger().useGlobalConfig()
+
+  logger.log(`Telegram Search v${pkg.version}`)
+
   const config = await initConfig(flags)
 
   try {
-    await initDrizzle(logger, config, { isDatabaseDebugMode: flags.isDatabaseDebugMode })
+    await initDrizzle(logger, config, {
+      isDatabaseDebugMode: flags.isDatabaseDebugMode,
+      disableMigrations: flags.disableMigrations,
+    })
     logger.log('Database initialized successfully')
   }
   catch (error) {
@@ -103,10 +95,7 @@ async function bootstrap() {
   const listener = toNodeListener(app)
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000
-  // const { handleUpgrade } = wsAdapter(app.websocket as NodeOptions)
   const server = await listen(listener, { port, ws: app.websocket as CrossWSOptions })
-  // const server = createServer(listener).listen(port)
-  // server.on('upgrade', handleUpgrade)
 
   logger.log('Server started')
 

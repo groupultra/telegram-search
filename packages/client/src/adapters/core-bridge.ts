@@ -1,31 +1,71 @@
-import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { Config } from '@tg-search/common'
+import type { CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { SessionContext } from '../stores/useAuth'
+import type { StoredSession } from '../types/session'
 
-import { initLogger, LoggerFormat, LoggerLevel, useLogger } from '@guiiai/logg'
-import { initConfig, useConfig } from '@tg-search/common'
-import { createCoreInstance, initDrizzle } from '@tg-search/core'
+import { useLogger } from '@guiiai/logg'
+import { generateDefaultConfig, initConfig } from '@tg-search/common'
+import { initDrizzle } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
-import defu from 'defu'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
-import { getRegisterEventHandler, registerAllEventHandlers } from '../event-handlers'
+import { getRegisterEventHandler } from '../event-handlers'
+import { registerAllEventHandlers } from '../event-handlers/register'
+import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
+import { createSessionStore } from '../utils/session-store'
+import { createCoreRuntime } from './core-runtime'
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
-  const storageSessions = useLocalStorage('core-bridge/sessions', new Map<string, SessionContext>())
-  const storageActiveSessionId = useLocalStorage('core-bridge/active-session-id', uuidv4())
-
+  const storageSessions = useLocalStorage<StoredSession[]>('core-bridge/sessions', [])
+  // active-session-slot: index into storageSessions array
+  const storageActiveSessionSlot = useLocalStorage<number>('core-bridge/active-session-slot', 0)
   const logger = useLogger('CoreBridge')
-  let ctx: CoreContext
+
+  const {
+    ensureSessionInvariants,
+    getActiveSession,
+    updateActiveSessionMetadata,
+    updateSessionMetadataById,
+    addNewAccount,
+    removeCurrentAccount,
+    cleanup: resetSessions,
+  } = createSessionStore(storageSessions, storageActiveSessionSlot, { generateId: () => uuidv4() })
+
+  const activeSessionId = computed(() => {
+    const slot = storageActiveSessionSlot.value
+    const session = storageSessions.value[slot]
+    return session?.uuid ?? ''
+  })
 
   const eventHandlers: ClientEventHandlerMap = new Map()
   const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
-  const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
   const isInitialized = ref(false)
+  const config = useLocalStorage<Config>('core-bridge/config', generateDefaultConfig())
+  const coreRuntime = createCoreRuntime(config, logger)
+
+  const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
+
+  ensureSessionInvariants()
+
+  // When switching accounts, destroy the existing CoreContext so that the
+  // next interaction will create a fresh instance for the new account.
+  watch(activeSessionId, (newId, oldId) => {
+    if (!oldId || newId === oldId)
+      return
+    logger.withFields({ oldId, newId }).debug('Active session changed, destroying CoreContext')
+    coreRuntime.destroy().then(() => {
+      // After tearing down the old CoreContext, re-register client-side
+      // event handlers. These will emit server:event:register events and
+      // lazily create a fresh CoreContext via ensureCtx / coreRuntime.
+      registerAllEventHandlers(registerEventHandler)
+    }).catch((error) => {
+      logger.withError(error).error('Failed to destroy CoreContext on account switch')
+    })
+  })
 
   function deepClone<T>(data?: T): T | undefined {
     if (!data)
@@ -41,52 +81,51 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   }
 
   function ensureCtx() {
-    if (!ctx) {
-      // TODO: use flags
-      const isDebug = !!import.meta.env.VITE_DEBUG
-      initLogger(isDebug ? LoggerLevel.Debug : LoggerLevel.Verbose, LoggerFormat.Pretty)
+    // Lazily create a CoreContext via runtime helper. This function is kept
+    // minimal on purpose; event wiring is handled explicitly in init() and
+    // in the account-switch watcher above.
+    return coreRuntime.getCtx()
+  }
 
-      try {
-        const config = useConfig()
-        config.api.telegram.apiId ||= import.meta.env.VITE_TELEGRAM_APP_ID
-        config.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_APP_HASH
+  const switchAccount = (sessionId: string) => {
+    const index = storageSessions.value.findIndex(session => session.uuid === sessionId)
+    if (index !== -1) {
+      // When switching to an existing account, optimistically mark its
+      // connection state as disconnected. AuthStore's auto-login watcher
+      // will observe the combination of { hasSession, !isConnected } for
+      // the new active slot and trigger a fresh login using the stored
+      // session string.
+      updateSessionMetadataById(sessionId, { isConnected: false })
 
-        ctx = createCoreInstance(config)
-        initDrizzle(logger, config, {
-          debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL as string,
-          isDatabaseDebugMode: import.meta.env.VITE_DB_DEBUG === 'true',
-        })
-      }
-      catch (error) {
-        console.error(error)
-        initConfig()
-      }
+      storageActiveSessionSlot.value = index
+      logger.withFields({ sessionId }).verbose('Switched to account')
     }
-
-    return ctx
   }
 
-  const getActiveSession = () => {
-    return storageSessions.value.get(storageActiveSessionId.value)
+  /**
+   * Apply session:update to the current active account.
+   *
+   * We rely on the caller to select the appropriate active slot before
+   * triggering the login flow.
+   */
+  const applySessionUpdate = (session: string) => {
+    updateActiveSessionMetadata({ session })
   }
 
-  const updateActiveSession = (sessionId: string, partialSession: Partial<SessionContext>) => {
-    const mergedSession = defu({}, partialSession, storageSessions.value.get(sessionId))
+  const logoutCurrentAccount = async () => {
+    const removed = removeCurrentAccount()
+    if (!removed)
+      return
 
-    storageSessions.value.set(sessionId, mergedSession)
-    storageActiveSessionId.value = sessionId
-  }
-
-  const cleanup = () => {
-    storageSessions.value.clear()
-    storageActiveSessionId.value = uuidv4()
+    // Emit logout event
+    sendEvent('auth:logout', undefined)
   }
 
   /**
    * Send event to core
    */
   function sendEvent<T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) {
-    const ctx = ensureCtx()
+    const ctx = ensureCtx()!
     logger.withFields({ event, data }).debug('Receive event from client')
 
     try {
@@ -95,12 +134,17 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
         const eventName = data.event as keyof FromCoreEvent
 
         if (!eventName.startsWith('server:')) {
-          const fn = (data: WsEventToClientData<keyof FromCoreEvent>) => {
+          const fn = (payload: WsEventToClientData<keyof FromCoreEvent>) => {
             logger.withFields({ eventName }).debug('Sending event to client')
-            sendWsEvent({ type: eventName as any, data })
+            // FromCoreEvent keys are a superset of WsEventToClient keys; we assert compatibility here.
+            const message = {
+              type: eventName as unknown as WsMessageToClient['type'],
+              data: payload,
+            } as WsMessageToClient
+            sendWsEvent(message)
           }
 
-          ctx.emitter.on(eventName, fn as any)
+          ctx.emitter.on(eventName, fn as (...args: unknown[]) => void)
         }
       }
       else {
@@ -113,30 +157,45 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     }
   }
 
-  function init() {
+  async function init() {
     if (isInitialized.value) {
       logger.debug('Core bridge already initialized, skipping')
       return
     }
 
-    initConfig().then(() => {
-      registerAllEventHandlers(registerEventHandler)
-      sendWsEvent({ type: 'server:connected', data: { sessionId: storageActiveSessionId.value, connected: false } })
-      isInitialized.value = true
+    logger.verbose('Initializing core bridge')
+
+    config.value = await initConfig()
+    config.value.api.telegram.apiId ||= import.meta.env.VITE_TELEGRAM_APP_ID
+    config.value.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_APP_HASH
+
+    logger.withFields({ config: config.value }).verbose('Initialized config')
+
+    await initDrizzle(logger, config.value, {
+      debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL as string,
+      isDatabaseDebugMode: import.meta.env.VITE_DB_DEBUG === 'true',
     })
+
+    ensureSessionInvariants()
+
+    // Register event handlers once per CoreBridge lifecycle; each handler
+    // will register itself with core via server:event:register when needed.
+    registerAllEventHandlers(registerEventHandler)
+
+    // Emit an initial server:connected event so the UI knows core-bridge
+    // mode is available, mirroring websocket adapter behavior.
+    sendWsEvent({ type: 'server:connected', data: { sessionId: activeSessionId.value, connected: false } })
+
+    isInitialized.value = true
   }
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {
     logger.withFields({ event }).debug('Waiting for event from core')
 
     return new Promise<WsEventToClientData<T>>((resolve) => {
-      const handlers = eventHandlersQueue.get(event) ?? []
-
-      handlers.push((data) => {
+      enqueueEventHandler(eventHandlersQueue, event, (data: WsEventToClientData<T>) => {
         resolve(deepClone(data) as WsEventToClientData<T>)
       })
-
-      eventHandlersQueue.set(event, handlers)
     })
   }
 
@@ -157,17 +216,14 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     }
 
     if (eventHandlersQueue.has(event.type)) {
-      const fnQueue = eventHandlersQueue.get(event.type) ?? []
-
-      try {
-        fnQueue.forEach((inQueueFn) => {
-          inQueueFn(deepClone(event.data) as WsEventToClientData<keyof WsEventToClient>)
-          fnQueue.pop()
-        })
-      }
-      catch (error) {
-        logger.withError(error).error('Failed to handle event')
-      }
+      drainEventQueue(
+        eventHandlersQueue,
+        event.type as keyof WsEventToClient,
+        deepClone(event.data) as WsEventToClientData<keyof WsEventToClient>,
+        (error) => {
+          logger.withError(error).error('Failed to handle queued event')
+        },
+      )
     }
   }
 
@@ -175,10 +231,15 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     init,
 
     sessions: storageSessions,
-    activeSessionId: storageActiveSessionId,
+    activeSessionId,
     getActiveSession,
-    updateActiveSession,
-    cleanup,
+    updateActiveSessionMetadata,
+    updateSessionMetadataById,
+    switchAccount,
+    addNewAccount,
+    applySessionUpdate,
+    logoutCurrentAccount,
+    cleanup: resetSessions,
 
     sendEvent,
     waitForEvent,

@@ -5,8 +5,9 @@ import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
-import { Button } from '../components/ui/Button'
 import SelectDropdown from '../components/ui/SelectDropdown.vue'
+
+import { Button } from '../components/ui/Button'
 
 const { t } = useI18n()
 
@@ -117,12 +118,12 @@ onMounted(() => {
             <label class="block text-sm text-muted-foreground font-medium">Connection URL</label>
             <input
               v-model="config.database.url"
-              type="text"
+              type="password"
               placeholder="postgresql://user:password@host:port/database"
               class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
             <p class="mt-1 text-xs text-muted-foreground">
-              Optional: Use connection URL instead of individual fields below
+              Optional: Use connection URL instead of individual fields below (default: <code>postgresql://user:password@host:port/database</code>)
             </p>
           </div>
           <div v-if="isPostgresSelected" class="grid gap-4 md:grid-cols-2">
@@ -268,6 +269,74 @@ onMounted(() => {
                   type="text"
                   class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
+              </div>
+            </div>
+          </div>
+
+          <!-- LLM API -->
+          <div>
+            <h3 class="mb-2 text-lg font-medium">
+              {{ t('settings.llm') }}
+            </h3>
+            <div class="grid gap-4">
+              <div>
+                <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.llmProvider') }}</label>
+                <input
+                  v-model="config.api.llm.provider"
+                  type="text"
+                  placeholder="openai"
+                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+              </div>
+              <div>
+                <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.llmModel') }}</label>
+                <input
+                  v-model="config.api.llm.model"
+                  type="text"
+                  placeholder="gpt-4o-mini"
+                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+              </div>
+              <div>
+                <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.apiKey') }}</label>
+                <input
+                  v-model="config.api.llm.apiKey"
+                  type="password"
+                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+              </div>
+              <div>
+                <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.apiBaseUrl') }}</label>
+                <input
+                  v-model="config.api.llm.apiBase"
+                  type="text"
+                  placeholder="https://api.openai.com/v1"
+                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+              </div>
+              <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.temperature') }}</label>
+                  <input
+                    v-model.number="config.api.llm.temperature"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                </div>
+                <div>
+                  <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.maxTokens') }}</label>
+                  <input
+                    v-model.number="config.api.llm.maxTokens"
+                    type="number"
+                    step="100"
+                    min="100"
+                    max="32000"
+                    class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                </div>
               </div>
             </div>
           </div>

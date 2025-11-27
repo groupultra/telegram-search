@@ -4,6 +4,9 @@ import type { CoreMessage } from '@tg-search/core/types'
 import type { AnimationItem } from 'lottie-web'
 
 import lottie from 'lottie-web'
+
+import { useSettingsStore } from '@tg-search/client'
+import { storeToRefs } from 'pinia'
 import { computed, onUnmounted, ref, watch } from 'vue'
 
 import MediaWebpage from './MediaWebpage.vue'
@@ -15,6 +18,7 @@ const props = defineProps<{
 }>()
 
 const runtimeError = ref<string>()
+const { debugMode } = storeToRefs(useSettingsStore())
 
 const isMedia = computed(() => {
   return props.message.media?.length
@@ -155,7 +159,7 @@ onUnmounted(() => {
   </div>
 
   <!-- Loading state with dynamic placeholder sizing based on actual image dimensions -->
-  <div v-if="isLoading" class="flex items-center justify-center">
+  <div v-if="isLoading" class="flex items-center">
     <div
       class="max-w-xs w-full animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700"
       :style="processedMedia.width && processedMedia.height
@@ -165,7 +169,7 @@ onUnmounted(() => {
   </div>
 
   <!-- Error state -->
-  <div v-if="finalError" class="flex items-center gap-2 rounded bg-red-100 p-2 dark:bg-red-900">
+  <div v-if="finalError && debugMode" class="flex items-center gap-2 rounded bg-red-100 p-2 dark:bg-red-900">
     <div class="i-lucide-alert-circle h-4 w-4 text-red-500" />
     <span class="text-sm text-red-700 dark:text-red-300">{{ finalError }}</span>
   </div>
@@ -173,7 +177,8 @@ onUnmounted(() => {
   <!-- Media content -->
   <div v-if="processedMedia.src || processedMedia.tgsAnimationData">
     <MediaWebpage
-      v-if="processedMedia.type === 'webpage'" v-model:runtime-error="runtimeError"
+      v-if="processedMedia.type === 'webpage'"
+      v-model:runtime-error="runtimeError"
       :processed-media="processedMedia"
     />
 
@@ -189,13 +194,17 @@ onUnmounted(() => {
     >
 
     <div
-      v-else-if="processedMedia.mimeType === 'application/gzip'" ref="tgsContainer"
+      v-else-if="processedMedia.mimeType === 'application/gzip'"
+      ref="tgsContainer"
       class="h-auto max-w-[12rem] rounded-lg"
     />
 
     <video
-      v-else-if="processedMedia.mimeType?.startsWith('video/')" :src="processedMedia.src"
-      class="h-auto max-w-[12rem] rounded-lg" alt="Video" autoplay loop muted playsinline
+      v-else-if="processedMedia.mimeType?.startsWith('video/')"
+      :src="processedMedia.src"
+      class="h-auto max-w-[12rem] rounded-lg"
+      alt="Video"
+      autoplay loop muted playsinline
       @error="runtimeError = 'Sticker failed to load'"
     />
   </div>

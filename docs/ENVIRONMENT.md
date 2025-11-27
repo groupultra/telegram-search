@@ -163,19 +163,19 @@ services:
   telegram-search:
     image: ghcr.io/groupultra/telegram-search:latest
     ports:
-      - "3333:3333"
+      - '3333:3333'
     volumes:
       - telegram-search-data:/app/data
     environment:
-      TELEGRAM_API_ID: "611335"
-      TELEGRAM_API_HASH: "d524b414d21f4d37f08684c1df41ac9c"
-      DATABASE_TYPE: "postgres"
-      DATABASE_URL: "postgresql://postgres:postgres@pgvector:5432/postgres"
-      EMBEDDING_API_KEY: "sk-xxxx"
-      EMBEDDING_BASE_URL: "https://api.openai.com/v1"
-      EMBEDDING_PROVIDER: "openai"
-      EMBEDDING_MODEL: "text-embedding-3-small"
-      EMBEDDING_DIMENSION: "1536"
+      TELEGRAM_API_ID: '611335'
+      TELEGRAM_API_HASH: 'd524b414d21f4d37f08684c1df41ac9c'
+      DATABASE_TYPE: 'postgres'
+      DATABASE_URL: 'postgresql://postgres:postgres@pgvector:5432/postgres'
+      EMBEDDING_API_KEY: 'sk-xxxx'
+      EMBEDDING_BASE_URL: 'https://api.openai.com/v1'
+      EMBEDDING_PROVIDER: 'openai'
+      EMBEDDING_MODEL: 'text-embedding-3-small'
+      EMBEDDING_DIMENSION: '1536'
     depends_on:
       pgvector:
         condition: service_healthy
@@ -189,9 +189,9 @@ services:
     volumes:
       - pgvector-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - '5432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS vector; SELECT 1;'"]
+      test: ['CMD-SHELL', "psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS vector; SELECT 1;'"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -226,4 +226,3 @@ pnpm run server:dev
 - **Embeddings are optional** for basic search but recommended for semantic/natural language search.
 - **PGlite mode** runs entirely in the browser with no server needed.
 - **PostgreSQL mode** requires a PostgreSQL instance with pgvector extension.
-
