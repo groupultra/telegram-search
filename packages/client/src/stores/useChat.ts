@@ -41,6 +41,14 @@ export const useChatStore = defineStore('chat', () => {
     // Fetch all dialogs from Telegram
     if (chats.value.length === 0) {
       useBridgeStore().sendEvent('dialog:fetch')
+      // In websocket mode, we explicitly trigger a storage fetch to hydrate
+      // dialogs from the server-side database. In core-bridge (browser-core)
+      // mode, dialogs are bootstrapped by the core pipeline itself after
+      // login, and there is no stable accountId yet when this runs, so we
+      // avoid firing storage:fetch:dialogs to prevent "Current account ID not set"
+      // noise from the core context.
+      if (!import.meta.env.VITE_WITH_CORE)
+        useBridgeStore().sendEvent('storage:fetch:dialogs')
     }
   }
 
