@@ -351,6 +351,9 @@ importers:
       '@henrygd/queue':
         specifier: ^1.1.1
         version: 1.1.1
+      '@moeru/eventa':
+        specifier: 1.0.0-alpha.7
+        version: 1.0.0-alpha.7
       '@moeru/std':
         specifier: 0.1.0-beta.13
         version: 0.1.0-beta.13
@@ -363,9 +366,6 @@ importers:
       '@tg-search/common':
         specifier: workspace:*
         version: link:../common
-      '@unbird/eventa':
-        specifier: ^0.2.3
-        version: 0.2.3
       '@unbird/result':
         specifier: 'catalog:'
         version: 1.1.1
@@ -1517,6 +1517,20 @@ packages:
       eslint-plugin-oxlint:
         optional: true
 
+  '@moeru/eventa@1.0.0-alpha.7':
+    resolution: {integrity: sha512-z6iFGxq0VpmcIFIQaybVV2dwyKxtNLQ+R17UBy5wEH0EIBnoPlvPfZmX6+mJCe11/rk6eLa8QL8sWL6CTLdSvw==}
+    peerDependencies:
+      electron: '>=30'
+      h3: 2.0.0-beta.1
+      web-worker: ^1.5.0
+    peerDependenciesMeta:
+      electron:
+        optional: true
+      h3:
+        optional: true
+      web-worker:
+        optional: true
+
   '@moeru/std@0.1.0-beta.13':
     resolution: {integrity: sha512-h96JMCYgXZwMBrw1bGJ6xVVIwhjc9mfKEKMtQdti55x1NJm2wHBLJVYtGV3ULr7lGtTQEn2sW1F/9YIqV6mF2Q==}
 
@@ -2327,21 +2341,6 @@ packages:
   '@typescript-eslint/visitor-keys@8.46.4':
     resolution: {integrity: sha512-/++5CYLQqsO9HFGLI7APrxBJYo+5OCMpViuhV8q5/Qa3o5mMrF//eQHks+PXcsAVaLdn817fMuS7zqoXNNZGaw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@unbird/eventa@0.2.3':
-    resolution: {integrity: sha512-RCw4sKk5NihX84lIm7q/TYKPRw9jGUsZln1DgNqmuGl6sGATFH0sJ+jRjl9v49cECVrBadg6vvnQEiw5Z2jpsg==}
-    deprecated: Please migrate to use @moeru/eventa, the API maintains the same without extra changes
-    peerDependencies:
-      electron: '>=30'
-      h3: 2.0.0-beta.1
-      web-worker: ^1.5.0
-    peerDependenciesMeta:
-      electron:
-        optional: true
-      h3:
-        optional: true
-      web-worker:
-        optional: true
 
   '@unbird/result@1.1.1':
     resolution: {integrity: sha512-hYI5EhbNAIafphxS9wjyvLJXV6s+7ZPI0PeaEfNJa7E7I0nGJvqE2eSvoKy2XZg+M4y+sSOAf49ine0slxsX3w==}
@@ -7322,6 +7321,11 @@ snapshots:
       - supports-color
       - typescript
 
+  '@moeru/eventa@1.0.0-alpha.7':
+    dependencies:
+      nanoid: 5.1.6
+      picomatch: 4.0.3
+
   '@moeru/std@0.1.0-beta.13': {}
 
   '@napi-rs/wasm-runtime@0.2.12':
@@ -7990,11 +7994,6 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.46.4
       eslint-visitor-keys: 4.2.1
-
-  '@unbird/eventa@0.2.3':
-    dependencies:
-      nanoid: 5.1.6
-      picomatch: 4.0.3
 
   '@unbird/result@1.1.1': {}
 
