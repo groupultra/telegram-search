@@ -251,7 +251,7 @@ watch(activeGroupChats, (list) => {
         class="min-h-0 flex flex-1 flex-col border-t"
       >
         <!-- Tab selector -->
-        <div class="flex items-center gap-1 border-b p-2">
+        <div class="flex items-center gap-1 overflow-x-auto border-b p-2">
           <button
             :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'synced' }"
             class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
