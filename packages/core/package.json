@@ -40,7 +40,7 @@
     "telegram": "^2.26.22",
     "tiny-lru": "^11.4.5",
     "uuid": "^13.0.0",
-    "valibot": "^1.1.0"
+    "valibot": "^1.2.0"
   },
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "catalog:",
