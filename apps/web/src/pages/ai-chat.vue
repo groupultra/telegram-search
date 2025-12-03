@@ -29,7 +29,7 @@ const aiChatLogic = useAIChatLogic()
 
 // Check if API is configured
 const isApiConfigured = computed(() => {
-  return config.value?.api?.llm?.apiKey && config.value.api.llm.apiKey.trim().length > 0
+  return config.value?.llm?.apiKey && config.value.llm.apiKey.trim().length > 0
 })
 
 // Scroll to bottom when new messages arrive
@@ -63,7 +63,7 @@ async function sendMessage() {
   aiChatStore.clearError()
 
   try {
-    const llmConfig = config.value!.api!.llm!
+    const llmConfig = config.value!.llm!
 
     // Track all retrieved messages and tool calls
     const allRetrievedMessages: CoreRetrievalMessages[] = []
