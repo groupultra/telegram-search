@@ -1,4 +1,4 @@
-import type { Config, CorePagination } from '@tg-search/common'
+import type { CorePagination } from '@tg-search/common'
 import type { EventEmitter } from 'eventemitter3'
 import type { Api } from 'telegram'
 

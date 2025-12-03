@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBridgeStore, useSettingsStore } from '@tg-search/client'
+import { useAccountStore, useBridgeStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -11,7 +11,7 @@ import { Button } from '../components/ui/Button'
 
 const { t } = useI18n()
 
-const { config } = storeToRefs(useSettingsStore())
+const { accountSettings } = storeToRefs(useAccountStore())
 const websocketStore = useBridgeStore()
 
 const embeddingProviderOptions = [
@@ -29,21 +29,21 @@ const messageResolvers = [
 
 // Computed properties for message resolver switches
 const isResolverEnabled = computed(() => (resolverKey: string) => {
-  if (!config.value?.resolvers?.disabledResolvers)
+  if (!accountSettings.value?.resolvers?.disabledResolvers)
     return true
-  return !config.value.resolvers.disabledResolvers.includes(resolverKey)
+  return !accountSettings.value.resolvers.disabledResolvers.includes(resolverKey)
 })
 
 function toggleMessageResolver(resolverKey: string, enabled: boolean) {
-  if (!config.value) {
+  if (!accountSettings.value) {
     return
   }
 
   // Ensure resolvers and disabledResolvers are initialized.
-  config.value.resolvers ??= { disabledResolvers: [] }
-  config.value.resolvers.disabledResolvers ??= []
+  accountSettings.value.resolvers ??= { disabledResolvers: [] }
+  accountSettings.value.resolvers.disabledResolvers ??= []
 
-  const disabledResolvers = config.value.resolvers.disabledResolvers
+  const disabledResolvers = accountSettings.value.resolvers.disabledResolvers
   const index = disabledResolvers.indexOf(resolverKey)
 
   if (enabled && index !== -1) {
@@ -57,11 +57,11 @@ function toggleMessageResolver(resolverKey: string, enabled: boolean) {
 }
 
 async function updateConfig() {
-  if (!config.value)
+  if (!accountSettings.value)
     return
 
-    // FIXME
-  // websocketStore.sendEvent('config:update', { config: config.value })
+  // FIXME
+  // websocketStore.sendEvent('config:update', { config: accountSettings.value })
 
   toast.success(t('settings.settingsSavedSuccessfully'))
 }
@@ -104,28 +104,28 @@ onMounted(() => {
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">Provider</label>
                 <SelectDropdown
-                  v-model="config.embedding.provider"
+                  v-model="accountSettings.embedding.provider"
                   :options="embeddingProviderOptions"
                 />
               </div>
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.model') }}</label>
                 <input
-                  v-model="config.embedding.model"
+                  v-model="accountSettings.embedding.model"
                   class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
               </div>
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.dimension') }}</label>
                 <input
-                  v-model="config.embedding.dimension"
+                  v-model="accountSettings.embedding.dimension"
                   class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
               </div>
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.apiKey') }}</label>
                 <input
-                  v-model="config.embedding.apiKey"
+                  v-model="accountSettings.embedding.apiKey"
                   type="password"
                   class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -133,7 +133,7 @@ onMounted(() => {
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.apiBaseUrl') }}</label>
                 <input
-                  v-model="config.embedding.apiBase"
+                  v-model="accountSettings.embedding.apiBase"
                   type="text"
                   class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -150,7 +150,7 @@ onMounted(() => {
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.llmProvider') }}</label>
                 <input
-                  v-model="config.llm.provider"
+                  v-model="accountSettings.llm.provider"
                   type="text"
                   placeholder="openai"
                   class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -159,7 +159,7 @@ onMounted(() => {
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.llmModel') }}</label>
                 <input
-                  v-model="config.llm.model"
+                  v-model="accountSettings.llm.model"
                   type="text"
                   placeholder="gpt-4o-mini"
                   class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -168,7 +168,7 @@ onMounted(() => {
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.apiKey') }}</label>
                 <input
-                  v-model="config.llm.apiKey"
+                  v-model="accountSettings.llm.apiKey"
                   type="password"
                   class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -176,7 +176,7 @@ onMounted(() => {
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.apiBaseUrl') }}</label>
                 <input
-                  v-model="config.llm.apiBase"
+                  v-model="accountSettings.llm.apiBase"
                   type="text"
                   placeholder="https://api.openai.com/v1"
                   class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -186,7 +186,7 @@ onMounted(() => {
                 <div>
                   <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.temperature') }}</label>
                   <input
-                    v-model.number="config.llm.temperature"
+                    v-model.number="accountSettings.llm.temperature"
                     type="number"
                     step="0.1"
                     min="0"
@@ -197,7 +197,7 @@ onMounted(() => {
                 <div>
                   <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.maxTokens') }}</label>
                   <input
-                    v-model.number="config.llm.maxTokens"
+                    v-model.number="accountSettings.llm.maxTokens"
                     type="number"
                     step="100"
                     min="100"

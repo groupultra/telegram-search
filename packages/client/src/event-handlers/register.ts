@@ -1,7 +1,7 @@
 import type { ClientRegisterEventHandlerFn } from './types'
 
 import { registerBasicEventHandlers } from './auth'
-import { registerConfigEventHandlers } from './config'
+import { registerConfigEventHandlers } from './account-settings'
 import { registerDialogEventHandlers } from './dialog'
 import { registerEntityEventHandlers } from './entity'
 import { registerMessageEventHandlers } from './message'
