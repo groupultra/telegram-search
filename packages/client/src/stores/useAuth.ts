@@ -48,6 +48,9 @@ export const useAuthStore = defineStore('session', () => {
     })
   }
 
+  /**
+   * Watch the active session's connection status and handle reconnection logic.
+   */
   watch(
     () => activeSessionComputed.value?.isConnected,
     (isConnected, prevConnected) => {

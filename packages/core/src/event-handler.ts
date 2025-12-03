@@ -66,13 +66,8 @@ export function basicEventHandler(ctx: CoreContext, config: Config): EventHandle
   return () => {}
 }
 
-export function afterConnectedEventHandler(
-  ctx: CoreContext,
-  _config: Config,
-): EventHandler {
-  const { emitter } = ctx
-
-  emitter.once('auth:connected', () => {
+export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
+  ctx.emitter.once('auth:connected', () => {
     const entityService = useService(ctx, createEntityService)
     const messageService = useService(ctx, createMessageService)
     const dialogService = useService(ctx, createDialogService)
@@ -83,7 +78,7 @@ export function afterConnectedEventHandler(
     registerEntityEventHandlers(ctx)(entityService)
 
     // Ensure current account ID is established before any dialog/storage access.
-    emitter.emit('entity:me:fetch')
+    ctx.emitter.emit('entity:me:fetch')
 
     registerMessageEventHandlers(ctx)(messageService)
     registerDialogEventHandlers(ctx)(dialogService)

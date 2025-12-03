@@ -11,7 +11,6 @@ const { t } = useI18n()
 
 const { accountSettings } = storeToRefs(useAccountStore())
 
-
 // Message resolvers configuration
 const messageResolvers = [
   { key: 'media' },

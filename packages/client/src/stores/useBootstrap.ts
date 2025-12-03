@@ -3,7 +3,7 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import { useBridgeStore } from '../composables/useBridge'
-import { useAccountStore } from './useAccountSettings'
+import { useAccountStore } from './useAccount'
 import { useAuthStore } from './useAuth'
 import { useChatStore } from './useChat'
 

@@ -146,6 +146,7 @@ export function setupWsRoutes(app: App, config: Config) {
       }
 
       accountStates.set(accountId, account)
+      return account
     }
 
     const account = accountStates.get(accountId)!

@@ -1,6 +1,6 @@
 import type { ClientRegisterEventHandler } from '.'
 
-import { useAccountStore } from '../stores/useAccountSettings'
+import { useAccountStore } from '../stores/useAccount'
 
 export function registerConfigEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
