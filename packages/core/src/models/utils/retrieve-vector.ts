@@ -1,5 +1,6 @@
-import type { CorePagination, EmbeddingDimension } from '@tg-search/common'
+import type { CorePagination } from '@tg-search/common'
 
+import type { EmbeddingDimension } from '../../types/account-settings'
 import type { DBRetrievalMessages } from './message'
 
 import { and, desc, eq, gt, sql } from 'drizzle-orm'

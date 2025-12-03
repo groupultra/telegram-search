@@ -14,7 +14,7 @@ export function createMessageResolverService(ctx: CoreContext) {
   const logger = useLogger('core:message-resolver:service')
 
   return (resolvers: MessageResolverRegistryFn) => {
-    const { emitter, getConfig } = ctx
+    const { emitter } = ctx
 
     // TODO: worker_threads?
     async function processMessages(messages: Api.Message[], options: { takeout?: boolean, syncOptions?: SyncOptions } = {}) {
@@ -38,7 +38,7 @@ export function createMessageResolverService(ctx: CoreContext) {
 
       // Avatar resolver is disabled by default (configured in generateDefaultConfig).
       // Current strategy: client-driven, on-demand avatar loading via entity:avatar:fetch.
-      const disabledResolvers = getConfig().resolvers?.disabledResolvers
+      const disabledResolvers = ctx.getAccountSettings().resolvers?.disabledResolvers
 
       // Embedding or resolve messages
       const promises = Array.from(resolvers.registry.entries())

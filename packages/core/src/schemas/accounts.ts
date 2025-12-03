@@ -2,7 +2,7 @@ import type { AccountSettings } from '../types/account-settings'
 
 import { bigint, jsonb, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
-import { generateDefaultAccountSettings } from '../types/account-settings'
+import { generateDefaultAccountSettings } from '../utils/account-settings'
 
 export const accountsTable = pgTable('accounts', {
   id: uuid().primaryKey().defaultRandom(),

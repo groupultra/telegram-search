@@ -1,12 +1,11 @@
-import type { EmbeddingConfig } from '@tg-search/common'
-
 import type { MessageResolver, MessageResolverOpts } from '.'
+import type { EmbeddingConfig } from '../types/account-settings'
 import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
-import { EmbeddingDimension } from '@tg-search/common'
 import { Err, Ok } from '@unbird/result'
 
+import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
 
 export function createEmbeddingResolver(embeddingConfig: EmbeddingConfig): MessageResolver {

@@ -5,15 +5,13 @@ import type { CoreContext } from '../context'
 import { configSchema } from '@tg-search/common'
 import { safeParse } from 'valibot'
 
-export type ConfigService = ReturnType<typeof createConfigService>
+export type AccountSettingsService = ReturnType<typeof createAccountSettingsService>
 
-export function createConfigService(ctx: CoreContext) {
-  const { emitter, getConfig } = ctx
-
+export function createAccountSettingsService(ctx: CoreContext) {
   async function fetchConfig() {
-    const config = getConfig()
+    const config = ctx.getConfig()
 
-    emitter.emit('config:data', { config })
+    ctx.emitter.emit('config:data', { config })
   }
 
   async function updateConfig(config: Config) {
@@ -25,7 +23,7 @@ export function createConfigService(ctx: CoreContext) {
     // FIXME
     // updateConfigCommon(validatedConfig.output)
 
-    emitter.emit('config:data', { config: validatedConfig.output })
+    ctx.emitter.emit('config:data', { config: validatedConfig.output })
   }
 
   return {

@@ -6,10 +6,6 @@
     ".": {
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
-    },
-    "./types": {
-      "types": "./dist/types.d.mts",
-      "import": "./dist/types.mjs"
     }
   },
   "main": "./dist/index.mjs",

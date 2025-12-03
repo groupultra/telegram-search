@@ -1,11 +1,13 @@
-import type { EmbeddingConfig } from '@tg-search/common'
 import type { Result } from '@unbird/result'
 import type { EmbedManyResult } from '@xsai/embed'
 
-import { EmbeddingProvider } from '@tg-search/common'
+import type { EmbeddingConfig } from '../types/account-settings'
+
 import { Err, Ok } from '@unbird/result'
 import { createOllama } from '@xsai-ext/providers-local'
 import { embedMany } from '@xsai/embed'
+
+import { EmbeddingProvider } from '../types/account-settings'
 
 export async function embedContents(
   contents: string[],

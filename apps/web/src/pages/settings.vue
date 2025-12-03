@@ -19,19 +19,6 @@ const embeddingProviderOptions = [
   { label: 'Ollama', value: 'ollama' },
 ]
 
-const databaseProviderOptions = [
-  { label: 'PostgreSQL', value: 'postgres' },
-  { label: 'PGLite', value: 'pglite' },
-]
-
-// Check if VITE_WITH_CORE is enabled
-const isWithCore = import.meta.env.VITE_WITH_CORE === 'true'
-
-// Computed properties for dynamic form behavior
-const isPostgresSelected = computed(() => config.value?.database?.type === 'postgres')
-const hasConnectionUrl = computed(() => !!config.value?.database?.url?.trim())
-const shouldDisableIndividualFields = computed(() => isPostgresSelected.value && hasConnectionUrl.value)
-
 // Message resolvers configuration
 const messageResolvers = [
   { key: 'media' },
@@ -101,132 +88,12 @@ onMounted(() => {
   <div class="container mx-auto p-6 space-y-6">
     <!-- Settings form -->
     <div class="space-y-6">
-      <!-- Database settings (hidden when VITE_WITH_CORE is enabled) -->
-      <div v-if="!isWithCore" class="border rounded-lg bg-card p-6 shadow-sm">
-        <h2 class="mb-4 text-xl font-semibold">
-          {{ t('settings.databaseSettings') }}
-        </h2>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm text-muted-foreground font-medium">Provider</label>
-            <SelectDropdown
-              v-model="config.database.type"
-              :options="databaseProviderOptions"
-            />
-          </div>
-          <div v-if="isPostgresSelected">
-            <label class="block text-sm text-muted-foreground font-medium">Connection URL</label>
-            <input
-              v-model="config.database.url"
-              type="password"
-              placeholder="postgresql://user:password@host:port/database"
-              class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-            <p class="mt-1 text-xs text-muted-foreground">
-              Optional: Use connection URL instead of individual fields below (default: <code>postgresql://user:password@host:port/database</code>)
-            </p>
-          </div>
-          <div v-if="isPostgresSelected" class="grid gap-4 md:grid-cols-2">
-            <div>
-              <label class="block text-sm text-muted-foreground font-medium">Host</label>
-              <input
-                v-model="config.database.host"
-                type="text"
-                :disabled="shouldDisableIndividualFields"
-                class="mt-1 block w-full border rounded-md px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                :class="{
-                  'cursor-not-allowed bg-muted opacity-60': shouldDisableIndividualFields,
-                  'bg-background': !shouldDisableIndividualFields,
-                }"
-              >
-            </div>
-            <div>
-              <label class="block text-sm text-muted-foreground font-medium">Port</label>
-              <input
-                v-model.number="config.database.port"
-                type="number"
-                :disabled="shouldDisableIndividualFields"
-                class="mt-1 block w-full border rounded-md px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                :class="{
-                  'cursor-not-allowed bg-muted opacity-60': shouldDisableIndividualFields,
-                  'bg-background': !shouldDisableIndividualFields,
-                }"
-              >
-            </div>
-            <div>
-              <label class="block text-sm text-muted-foreground font-medium">Username</label>
-              <input
-                v-model="config.database.user"
-                type="text"
-                :disabled="shouldDisableIndividualFields"
-                class="mt-1 block w-full border rounded-md px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                :class="{
-                  'cursor-not-allowed bg-muted opacity-60': shouldDisableIndividualFields,
-                  'bg-background': !shouldDisableIndividualFields,
-                }"
-              >
-            </div>
-            <div>
-              <label class="block text-sm text-muted-foreground font-medium">Password</label>
-              <input
-                v-model="config.database.password"
-                type="password"
-                :disabled="shouldDisableIndividualFields"
-                class="mt-1 block w-full border rounded-md px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                :class="{
-                  'cursor-not-allowed bg-muted opacity-60': shouldDisableIndividualFields,
-                  'bg-background': !shouldDisableIndividualFields,
-                }"
-              >
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm text-muted-foreground font-medium">Database Name</label>
-              <input
-                v-model="config.database.database"
-                type="text"
-                :disabled="shouldDisableIndividualFields"
-                class="mt-1 block w-full border rounded-md px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                :class="{
-                  'cursor-not-allowed bg-muted opacity-60': shouldDisableIndividualFields,
-                  'bg-background': !shouldDisableIndividualFields,
-                }"
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- API settings -->
       <div class="border rounded-lg bg-card p-6 shadow-sm">
         <h2 class="mb-4 text-xl font-semibold">
           {{ t('settings.apiSettings') }}
         </h2>
         <div class="space-y-4">
-          <!-- Telegram API -->
-          <div>
-            <h3 class="mb-2 text-lg font-medium">
-              {{ t('settings.telegramApi') }}
-            </h3>
-            <div class="grid gap-4 md:grid-cols-2">
-              <div>
-                <label class="block text-sm text-muted-foreground font-medium">API ID</label>
-                <input
-                  v-model="config.api.telegram.apiId"
-                  type="text"
-                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-              </div>
-              <div>
-                <label class="block text-sm text-muted-foreground font-medium">API Hash</label>
-                <input
-                  v-model="config.api.telegram.apiHash"
-                  type="password"
-                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-              </div>
-            </div>
-          </div>
-
           <!-- OpenAI API -->
           <div>
             <h3 class="mb-2 text-lg font-medium">

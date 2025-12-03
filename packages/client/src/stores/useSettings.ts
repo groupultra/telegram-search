@@ -1,9 +1,7 @@
+import type { AccountSettings, DialogType } from '@tg-search/core'
 // https://github.com/moeru-ai/airi/blob/d4a1e9f5f67201f7a25960956ce97e20edfecdfa/packages/stage/src/stores/settings.ts
 
-import type { Config } from '@tg-search/common'
-import type { DialogType } from '@tg-search/core'
-
-import { generateDefaultConfig } from '@tg-search/common'
+import { generateDefaultAccountSettings } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { converter } from 'culori'
 import { defu } from 'defu'
@@ -26,7 +24,10 @@ export const useSettingsStore = defineStore('settings', () => {
   const theme = useLocalStorage<string>('settings/theme', 'default')
 
   // FIXME: Merge with common/config
-  const storageConfig = useLocalStorage<Config>('settings/config', generateDefaultConfig())
+  /**
+   * @deprecated Use account settings instead
+   */
+  const storageConfig = useLocalStorage<AccountSettings>('settings/config', generateDefaultAccountSettings())
 
   const themeColorsHue = useLocalStorage('settings/theme/colors/hue', DEFAULT_THEME_COLORS_HUE)
   const themeColorsHueDynamic = useLocalStorage('settings/theme/colors/hue-dynamic', false)
@@ -71,7 +72,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
 
     // Merge with default config
-    storageConfig.value = defu({}, storageConfig.value, generateDefaultConfig())
+    storageConfig.value = defu({}, storageConfig.value, generateDefaultAccountSettings())
     isInitialized.value = true
   }
 

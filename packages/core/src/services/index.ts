@@ -1,4 +1,4 @@
-export type * from './config'
+export type * from './account-settings'
 export type * from './connection'
 export type * from './dialog'
 export type * from './entity'

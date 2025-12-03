@@ -26,7 +26,7 @@ function hasNoMedia(message: CoreMessage): boolean {
 }
 
 export function registerStorageEventHandlers(ctx: CoreContext) {
-  const { emitter, getConfig } = ctx
+  const { emitter } = ctx
   const logger = useLogger('core:storage:event')
 
   emitter.on('storage:fetch:messages', async ({ chatId, pagination }) => {
@@ -170,11 +170,12 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       timeRange: params.timeRange,
     }
 
-    const embeddingDimension = getConfig().api.embedding.dimension
+    const accountSettings = ctx.getAccountSettings()
+    const embeddingDimension = accountSettings.embedding.dimension
     let dbMessages: DBRetrievalMessages[] = []
     if (params.useVector) {
       let embedding: number[] = []
-      const embeddingResult = (await embedContents([params.content], getConfig().api.embedding)).orUndefined()
+      const embeddingResult = (await embedContents([params.content], accountSettings.embedding)).orUndefined()
       if (embeddingResult)
         embedding = embeddingResult.embeddings[0]
 

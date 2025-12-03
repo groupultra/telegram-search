@@ -6,7 +6,7 @@ import { useLogger } from '@guiiai/logg'
 
 import { useService } from './context'
 import { registerBasicEventHandlers } from './event-handlers/auth'
-import { registerConfigEventHandlers } from './event-handlers/config'
+import { registerAccountSettingsEventHandlers } from './event-handlers/account-settings'
 import { registerDialogEventHandlers } from './event-handlers/dialog'
 import { registerEntityEventHandlers } from './event-handlers/entity'
 import { registerGramEventsEventHandlers } from './event-handlers/gram-events'
@@ -21,7 +21,7 @@ import { createJiebaResolver } from './message-resolvers/jieba-resolver'
 import { createLinkResolver } from './message-resolvers/link-resolver'
 import { createMediaResolver } from './message-resolvers/media-resolver'
 import { createUserResolver } from './message-resolvers/user-resolver'
-import { createConfigService } from './services/config'
+import { createAccountSettingsService } from './services/account-settings'
 import { createConnectionService } from './services/connection'
 import { createDialogService } from './services/dialog'
 import { createEntityService } from './services/entity'
@@ -32,10 +32,10 @@ import { createTakeoutService } from './services/takeout'
 
 type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
 
-export function basicEventHandler(
-  ctx: CoreContext,
-  config: Config,
-): EventHandler {
+export function basicEventHandler(ctx: CoreContext): EventHandler {
+  const config = ctx.getConfig()
+  const accountSettings = ctx.getAccountSettings()
+
   const registry = useMessageResolverRegistry()
 
   const connectionService = useService(ctx, createConnectionService)({
@@ -43,7 +43,7 @@ export function basicEventHandler(
     apiHash: config.api.telegram.apiHash!,
     proxy: config.api.telegram.proxy,
   })
-  const configService = useService(ctx, createConfigService)
+  const configService = useService(ctx, createAccountSettingsService)
   const messageResolverService = useService(ctx, createMessageResolverService)(registry)
 
   registry.register('media', createMediaResolver(ctx))
@@ -55,11 +55,11 @@ export function basicEventHandler(
   // server-side prefetch in the future if desired.
   registry.register('avatar', createAvatarResolver(ctx))
   registry.register('link', createLinkResolver())
-  registry.register('embedding', createEmbeddingResolver(config.api.embedding))
+  registry.register('embedding', createEmbeddingResolver(accountSettings.embedding))
   registry.register('jieba', createJiebaResolver())
 
   registerStorageEventHandlers(ctx)
-  registerConfigEventHandlers(ctx)(configService)
+  registerAccountSettingsEventHandlers(ctx)(configService)
   registerMessageResolverEventHandlers(ctx)(messageResolverService)
 
   ;(async () => {

@@ -1,6 +1,6 @@
 import type { InferOutput } from 'valibot'
 
-import { array, enum as enumType, number, object, optional, safeParse, string } from 'valibot'
+import { array, enum as enumType, number, object, optional, string } from 'valibot'
 
 export enum EmbeddingProvider {
   OPENAI = 'openai',
@@ -44,12 +44,3 @@ export const accountSettingsSchema = object({
 export type EmbeddingConfig = InferOutput<typeof embeddingConfigSchema>
 export type AccountSettings = InferOutput<typeof accountSettingsSchema>
 
-export function generateDefaultAccountSettings(): AccountSettings {
-  const defaultSettings = safeParse(accountSettingsSchema, {})
-
-  if (!defaultSettings.success) {
-    throw new Error('Failed to generate default account settings', { cause: defaultSettings.issues })
-  }
-
-  return defaultSettings.output
-}

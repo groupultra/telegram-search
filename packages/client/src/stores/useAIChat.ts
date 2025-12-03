@@ -1,4 +1,4 @@
-import type { CoreRetrievalMessages } from '@tg-search/core/types'
+import type { CoreRetrievalMessages } from '@tg-search/core'
 
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
