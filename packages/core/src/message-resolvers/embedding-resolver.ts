@@ -1,15 +1,16 @@
+import type { EmbeddingConfig } from '@tg-search/common'
+
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
-import { EmbeddingDimension, useConfig } from '@tg-search/common'
+import { EmbeddingDimension } from '@tg-search/common'
 import { Err, Ok } from '@unbird/result'
 
 import { embedContents } from '../utils/embed'
 
-export function createEmbeddingResolver(): MessageResolver {
+export function createEmbeddingResolver(embeddingConfig: EmbeddingConfig): MessageResolver {
   const logger = useLogger('core:resolver:embedding')
-  const embeddingConfig = useConfig().api.embedding
 
   return {
     run: async (opts: MessageResolverOpts) => {
@@ -36,7 +37,7 @@ export function createEmbeddingResolver(): MessageResolver {
 
       logger.withFields({ messages: messages.length }).verbose('Embedding messages')
 
-      const { embeddings, usage, dimension } = (await embedContents(messages.map(message => message.content))).expect('Failed to embed messages')
+      const { embeddings, usage, dimension } = (await embedContents(messages.map(message => message.content), embeddingConfig)).expect('Failed to embed messages')
 
       // if (message.sticker != null) {
       //   text = `A sticker sent by user ${await findStickerDescription(message.sticker.file_id)}, sticker set named ${message.sticker.set_name}`

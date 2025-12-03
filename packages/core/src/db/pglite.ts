@@ -10,7 +10,7 @@ import migrations from 'virtual:drizzle-migrations.sql'
 import { PGlite } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
 import { migrate } from '@proj-airi/drizzle-orm-browser-migrator/pglite'
-import { getDatabaseFilePath } from '@tg-search/common/node/path'
+import { getDatabaseFilePath } from '@tg-search/common/node'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/pglite'
 

@@ -6,7 +6,7 @@ import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event
 import type { StoredSession } from '../types/session'
 
 import { useLogger } from '@guiiai/logg'
-import { generateDefaultConfig, initConfig } from '@tg-search/common'
+import { generateDefaultConfig } from '@tg-search/common'
 import { initDrizzle } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
@@ -165,7 +165,6 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     logger.verbose('Initializing core bridge')
 
-    config.value = await initConfig()
     config.value.api.telegram.apiId ||= import.meta.env.VITE_TELEGRAM_APP_ID
     config.value.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_APP_HASH
 

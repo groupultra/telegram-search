@@ -375,6 +375,9 @@ importers:
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
+      defu:
+        specifier: ^6.1.4
+        version: 6.1.4
       drizzle-orm:
         specifier: ^0.44.7
         version: 0.44.7(@electric-sql/pglite@0.3.14)(@types/pg@8.15.6)(postgres@3.4.7)

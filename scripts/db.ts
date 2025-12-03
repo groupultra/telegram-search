@@ -4,15 +4,18 @@ import { spawn } from 'node:child_process'
 
 import { initLogger, useLogger } from '@guiiai/logg'
 
-import { getDatabaseDSN, initConfig, parseEnvFlags, useConfig } from '../packages/common/src'
+import { getDatabaseDSN, mergeConfigWithEnv, parseEnvFlags } from '../packages/common/src'
+import { loadConfigFromFile } from '../packages/common/src/node'
 
 (async () => {
   const flags = parseEnvFlags(process.env)
-  await initConfig(flags)
   initLogger(flags.logLevel, flags.logFormat)
+
+  const config = mergeConfigWithEnv(process.env, await loadConfigFromFile())
+
   const logger = useLogger('script:drizzle')
 
-  const dsn = getDatabaseDSN(useConfig())
+  const dsn = getDatabaseDSN(config.database)
   const args = process.argv.slice(2)
 
   try {

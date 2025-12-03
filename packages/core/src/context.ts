@@ -1,3 +1,4 @@
+import type { Config } from '@tg-search/common'
 import type { TelegramClient } from 'telegram'
 
 import type {
@@ -8,6 +9,7 @@ import type {
 } from './types/events'
 
 import { useLogger } from '@guiiai/logg'
+import { generateDefaultConfig } from '@tg-search/common'
 import { EventEmitter } from 'eventemitter3'
 
 import { detectMemoryLeak } from './utils/memory-leak-detector'
@@ -48,6 +50,7 @@ export function createCoreContext() {
   const withError = createErrorHandler(emitter)
   let telegramClient: TelegramClient
   let currentAccountId: string | undefined
+  const config: Config = generateDefaultConfig()
 
   const toCoreEvents = new Set<keyof ToCoreEvent>()
   const fromCoreEvents = new Set<keyof FromCoreEvent>()
@@ -120,6 +123,13 @@ export function createCoreContext() {
     return currentAccountId
   }
 
+  function getConfig(): Config {
+    if (!config) {
+      throw withError('Config not set')
+    }
+    return config
+  }
+
   // Setup memory leak detection and get cleanup function
   const cleanupMemoryLeakDetector = detectMemoryLeak(emitter)
 
@@ -166,6 +176,7 @@ export function createCoreContext() {
     getCurrentAccountId,
     withError,
     cleanup,
+    getConfig,
   }
 }
 

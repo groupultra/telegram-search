@@ -55,7 +55,7 @@ export function basicEventHandler(
   // server-side prefetch in the future if desired.
   registry.register('avatar', createAvatarResolver(ctx))
   registry.register('link', createLinkResolver())
-  registry.register('embedding', createEmbeddingResolver())
+  registry.register('embedding', createEmbeddingResolver(config.api.embedding))
   registry.register('jieba', createJiebaResolver())
 
   registerStorageEventHandlers(ctx)

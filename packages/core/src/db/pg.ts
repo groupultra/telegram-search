@@ -33,7 +33,7 @@ export async function initPgDrizzle(
   logger.log('Initializing postgres drizzle...')
 
   // Initialize PostgreSQL database
-  const connectionString = getDatabaseDSN(config)
+  const connectionString = getDatabaseDSN(config.database)
   logger.log(`Connecting to PostgreSQL database: ${connectionString}`)
 
   const client = postgres(connectionString, {

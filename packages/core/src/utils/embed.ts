@@ -1,14 +1,16 @@
+import type { EmbeddingConfig } from '@tg-search/common'
 import type { Result } from '@unbird/result'
 import type { EmbedManyResult } from '@xsai/embed'
 
-import { EmbeddingProvider, useConfig } from '@tg-search/common'
+import { EmbeddingProvider } from '@tg-search/common'
 import { Err, Ok } from '@unbird/result'
 import { createOllama } from '@xsai-ext/providers-local'
 import { embedMany } from '@xsai/embed'
 
-export async function embedContents(contents: string[]): Promise<Result<EmbedManyResult & { dimension: number }>> {
-  const embeddingConfig = useConfig().api.embedding
-
+export async function embedContents(
+  contents: string[],
+  embeddingConfig: EmbeddingConfig,
+): Promise<Result<EmbedManyResult & { dimension: number }>> {
   try {
     let embeddings: EmbedManyResult
     switch (embeddingConfig.provider) {

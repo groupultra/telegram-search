@@ -51,7 +51,6 @@ export const telegramConfigSchema = object({
   apiHash: optional(string()),
   proxy: optional(proxyConfigSchema),
   receiveMessage: optional(boolean(), false),
-  autoReconnect: optional(boolean(), true),
 })
 
 export const embeddingConfigSchema = object({
@@ -90,6 +89,8 @@ export const configSchema = object({
 
 export type Config = InferOutput<typeof configSchema>
 export type ProxyConfig = InferOutput<typeof proxyConfigSchema>
+export type EmbeddingConfig = InferOutput<typeof embeddingConfigSchema>
+export type DatabaseConfig = InferOutput<typeof databaseConfigSchema>
 
 export function generateDefaultConfig(): Config {
   const defaultConfig = safeParse(configSchema, {})

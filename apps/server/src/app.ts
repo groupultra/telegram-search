@@ -1,10 +1,11 @@
-import type { RuntimeFlags } from '@tg-search/common'
+import type { Config, RuntimeFlags } from '@tg-search/common'
 import type { CrossWSOptions } from 'listhen'
 
 import process from 'node:process'
 
 import { initLogger, useLogger } from '@guiiai/logg'
-import { initConfig, parseEnvFlags } from '@tg-search/common'
+import { mergeConfigWithEnv, parseEnvFlags } from '@tg-search/common'
+import { loadConfigFromFile } from '@tg-search/common/node'
 import { initDrizzle } from '@tg-search/core'
 import { createApp, createRouter, defineEventHandler, toNodeListener } from 'h3'
 import { listen } from 'listhen'
@@ -23,7 +24,7 @@ function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
   process.on('unhandledRejection', error => handleError(error, 'Unhandled rejection'))
 }
 
-function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFlags) {
+function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFlags, config: Config) {
   const app = createApp({
     debug: flags.isDebugMode,
     onRequest(event) {
@@ -63,19 +64,19 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
   }))
 
   app.use(router)
-  setupWsRoutes(app)
+  setupWsRoutes(app, config)
 
   return app
 }
 
 async function bootstrap() {
-  const flags = parseEnvFlags(process.env as Record<string, string>)
+  const flags = parseEnvFlags(process.env)
   initLogger(flags.logLevel, flags.logFormat)
   const logger = useLogger().useGlobalConfig()
 
   logger.log(`Telegram Search v${pkg.version}`)
 
-  const config = await initConfig(flags)
+  const config = mergeConfigWithEnv(process.env, await loadConfigFromFile())
 
   try {
     await initDrizzle(logger, config, {
@@ -91,7 +92,7 @@ async function bootstrap() {
 
   setupErrorHandlers(logger)
 
-  const app = configureServer(logger, flags)
+  const app = configureServer(logger, flags, config)
   const listener = toNodeListener(app)
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000

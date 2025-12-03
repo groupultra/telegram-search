@@ -5,7 +5,7 @@ import type { ProxyInterface } from 'telegram/network/connection/TCPMTProxy'
 import type { CoreContext } from '../context'
 
 import { useLogger } from '@guiiai/logg'
-import { isBrowser, updateConfig, useConfig } from '@tg-search/common'
+import { isBrowser } from '@tg-search/common'
 import { Err, Ok } from '@unbird/result'
 import { Api, TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions'
@@ -109,10 +109,6 @@ export function createConnectionService(ctx: CoreContext) {
           return Err(error)
         }
 
-        // TODO: reactivity
-        useConfig().api.telegram.autoReconnect = true
-        updateConfig(useConfig())
-
         // NOTE: The client will return string session, so forward it to frontend
         const sessionString = await client.session.save() as unknown as string
         logger.withFields({ hasSession: !!sessionString }).verbose('Forwarding session to client')
@@ -158,10 +154,6 @@ export function createConnectionService(ctx: CoreContext) {
           await signIn(phoneNumber, client)
         }
 
-        // TODO: reactivity
-        useConfig().api.telegram.autoReconnect = true
-        updateConfig(useConfig())
-
         // NOTE: The client will return string session, so forward it to frontend
         const sessionString = await client.session.save() as unknown as string
         logger.withFields({ hasSession: !!sessionString }).verbose('Forwarding session to client')
@@ -196,11 +188,6 @@ export function createConnectionService(ctx: CoreContext) {
         }, {
           phoneNumber,
           phoneCode: async () => {
-          // Set auto reconnect to false
-          // TODO: reactivity
-            useConfig().api.telegram.autoReconnect = false
-            updateConfig(useConfig())
-
             logger.verbose('Waiting for code')
             emitter.emit('auth:code:needed')
             const { code } = await waitForEvent(emitter, 'auth:code')
