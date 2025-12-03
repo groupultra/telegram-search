@@ -1,5 +1,6 @@
 export * from './circular-object'
 export * from './config-schema'
+export * from './deep-clone'
 export * from './dsn'
 export * from './env'
 export * from './flags'

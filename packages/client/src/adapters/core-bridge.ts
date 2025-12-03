@@ -6,7 +6,7 @@ import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event
 import type { StoredSession } from '../types/session'
 
 import { useLogger } from '@guiiai/logg'
-import { generateDefaultConfig } from '@tg-search/common'
+import { deepClone, generateDefaultConfig } from '@tg-search/common'
 import { initDrizzle } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
@@ -66,19 +66,6 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       logger.withError(error).error('Failed to destroy CoreContext on account switch')
     })
   })
-
-  function deepClone<T>(data?: T): T | undefined {
-    if (!data)
-      return data
-
-    try {
-      return JSON.parse(JSON.stringify(data)) as T
-    }
-    catch (error) {
-      logger.withError(error).error('Failed to deep clone data')
-      return data
-    }
-  }
 
   function ensureCtx() {
     // Lazily create a CoreContext via runtime helper. This function is kept

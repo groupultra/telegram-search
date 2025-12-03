@@ -4,7 +4,7 @@ import type { CrossWSOptions } from 'listhen'
 import process from 'node:process'
 
 import { initLogger, useLogger } from '@guiiai/logg'
-import { mergeConfigWithEnv, parseEnvFlags } from '@tg-search/common'
+import { circularStringify, mergeConfigWithEnv, parseEnvFlags } from '@tg-search/common'
 import { loadConfigFromFile } from '@tg-search/common/node'
 import { initDrizzle } from '@tg-search/core'
 import { createApp, createRouter, defineEventHandler, toNodeListener } from 'h3'
@@ -17,7 +17,7 @@ import { setupWsRoutes } from './ws/routes'
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
   // TODO: fix type
   const handleError = (error: any, type: string) => {
-    logger.withFields({ cause: String(error?.cause), cause_json: JSON.stringify(error?.cause) }).withError(error).error(type)
+    logger.withFields({ cause_json: circularStringify(error?.cause) }).withError(error).error(type)
   }
 
   process.on('uncaughtException', error => handleError(error, 'Uncaught exception'))

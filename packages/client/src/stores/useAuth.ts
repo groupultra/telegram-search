@@ -43,7 +43,6 @@ export const useAuthStore = defineStore('session', () => {
 
     logger.log('Attempting login')
     websocketStore.sendEvent('auth:login', {
-      phoneNumber: '',
       session: activeSession.session,
     })
   }
