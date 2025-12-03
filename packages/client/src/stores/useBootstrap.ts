@@ -3,6 +3,7 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import { useBridgeStore } from '../composables/useBridge'
+import { useAccountStore } from './useAccountSettings'
 import { useAuthStore } from './useAuth'
 import { useChatStore } from './useChat'
 
@@ -24,6 +25,7 @@ export const useBootstrapStore = defineStore('bootstrap', () => {
   const bridgeStore = useBridgeStore()
   const authStore = useAuthStore()
   const chatStore = useChatStore()
+  const accountStore = useAccountStore()
 
   const phase = ref<BootstrapPhase>('idle')
 
@@ -67,6 +69,9 @@ export const useBootstrapStore = defineStore('bootstrap', () => {
     // will have already emitted storage:dialogs as part of its bootstrap.
     // In websocket mode, ChatStore.init() will explicitly request dialogs.
     chatStore.init()
+
+    // Initialize account settings store
+    accountStore.init()
 
     phase.value = 'ready'
   }

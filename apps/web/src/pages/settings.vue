@@ -65,10 +65,6 @@ async function updateConfig() {
 
   toast.success(t('settings.settingsSavedSuccessfully'))
 }
-
-onMounted(() => {
-  websocketStore.sendEvent('config:fetch')
-})
 </script>
 
 <template>
