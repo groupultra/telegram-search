@@ -16,7 +16,7 @@ export function registerAccountSettingsEventHandlers(ctx: CoreContext) {
     ctx.emitter.on('config:update', async ({ accountSettings }) => {
       logger.verbose('Saving config')
 
-      configService.setAccountSettings(accountSettings)
+      await configService.setAccountSettings(accountSettings)
     })
   }
 }
