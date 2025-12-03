@@ -7,6 +7,7 @@ import { useBridgeStore } from '../composables/useBridge'
 import { useMessageStore } from './useMessage'
 
 export const useAuthStore = defineStore('session', () => {
+  const logger = useLogger('AuthStore')
   const websocketStore = useBridgeStore()
 
   const authStatus = ref({
@@ -33,15 +34,18 @@ export const useAuthStore = defineStore('session', () => {
    *   auth:error and frontend should fall back to manual login.
    */
   const attemptLogin = async () => {
-    useLogger('AuthStore').log('Attempting login')
     const activeSession = websocketStore.getActiveSession()
 
-    if (!activeSession?.isConnected && activeSession?.session) {
-      websocketStore.sendEvent('auth:login', {
-        phoneNumber: '',
-        session: activeSession.session,
-      })
+    if (activeSession?.isConnected || !activeSession?.session) {
+      logger.log('No need to login')
+      return
     }
+
+    logger.log('Attempting login')
+    websocketStore.sendEvent('auth:login', {
+      phoneNumber: '',
+      session: activeSession.session,
+    })
   }
 
   watch(

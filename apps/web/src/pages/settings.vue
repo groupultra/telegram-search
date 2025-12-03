@@ -12,7 +12,6 @@ import { Button } from '../components/ui/Button'
 const { t } = useI18n()
 
 const { accountSettings } = storeToRefs(useAccountStore())
-const websocketStore = useBridgeStore()
 
 const embeddingProviderOptions = [
   { label: 'OpenAI', value: 'openai' },
@@ -60,11 +59,14 @@ async function updateConfig() {
   if (!accountSettings.value)
     return
 
-  // FIXME
-  // websocketStore.sendEvent('config:update', { config: accountSettings.value })
+  useBridgeStore().sendEvent('config:update', { accountSettings: accountSettings.value })
 
   toast.success(t('settings.settingsSavedSuccessfully'))
 }
+
+onMounted(() => {
+  useBridgeStore().sendEvent('config:fetch')
+})
 </script>
 
 <template>

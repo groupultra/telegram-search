@@ -41,7 +41,7 @@ export interface AIChatMessage {
   debugInfo?: RAGDebugInfo
 }
 
-export const useAIChatStore = defineStore('aiChat', () => {
+export const useAIChatStore = defineStore('ai-chat', () => {
   const messages = ref<AIChatMessage[]>([])
   const isLoading = ref(false)
   const isSearching = ref(false)
