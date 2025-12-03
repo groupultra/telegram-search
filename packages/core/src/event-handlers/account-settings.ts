@@ -10,13 +10,13 @@ export function registerAccountSettingsEventHandlers(ctx: CoreContext) {
     ctx.emitter.on('config:fetch', async () => {
       logger.verbose('Getting config')
 
-      configService.fetchConfig()
+      configService.fetchAccountSettings()
     })
 
-    ctx.emitter.on('config:update', async ({ config }) => {
+    ctx.emitter.on('config:update', async ({ accountSettings }) => {
       logger.verbose('Saving config')
 
-      configService.updateConfig(config)
+      configService.setAccountSettings(accountSettings)
     })
   }
 }

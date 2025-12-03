@@ -1,34 +1,33 @@
-import type { Config } from '@tg-search/common'
-
 import type { CoreContext } from '../context'
+import type { AccountSettings } from '../types'
 
-import { configSchema } from '@tg-search/common'
 import { safeParse } from 'valibot'
+
+import { accountSettingsSchema } from '../types'
 
 export type AccountSettingsService = ReturnType<typeof createAccountSettingsService>
 
 export function createAccountSettingsService(ctx: CoreContext) {
-  // FIXME: deprecated
-  async function fetchConfig() {
-    // const config = ctx.getConfig()
+  async function fetchAccountSettings() {
+    const accountSettings = await ctx.getAccountSettings()
 
-    // ctx.emitter.emit('config:data', { config })
+    ctx.emitter.emit('config:data', { accountSettings })
   }
 
-  async function updateConfig(config: Config) {
-    const validatedConfig = safeParse(configSchema, config)
+  async function setAccountSettings(accountSettings: AccountSettings) {
+    const parsedAccountSettings = safeParse(accountSettingsSchema, accountSettings)
     // TODO: handle error
-    if (!validatedConfig.success) {
+    if (!parsedAccountSettings.success) {
       throw new Error('Invalid config')
     }
-    // FIXME
-    // updateConfigCommon(validatedConfig.output)
 
-    ctx.emitter.emit('config:data', { config: validatedConfig.output })
+    ctx.setAccountSettings(parsedAccountSettings.output)
+
+    ctx.emitter.emit('config:data', { accountSettings: parsedAccountSettings.output })
   }
 
   return {
-    fetchConfig,
-    updateConfig,
+    fetchAccountSettings,
+    setAccountSettings,
   }
 }

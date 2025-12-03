@@ -2,6 +2,7 @@ import type { Config, CorePagination } from '@tg-search/common'
 import type { EventEmitter } from 'eventemitter3'
 import type { Api } from 'telegram'
 
+import type { AccountSettings } from './account-settings'
 import type { CoreDialog } from './dialog'
 import type { CoreMessage } from './message'
 import type { CoreTask } from './task'
@@ -48,16 +49,16 @@ export interface SessionEventFromCore {
 }
 
 // ============================================================================
-// Config Events
+// Account Settings Events
 // ============================================================================
 
-export interface ConfigEventToCore {
+export interface AccountSettingsEventToCore {
   'config:fetch': () => void
-  'config:update': (data: { config: Config }) => void
+  'config:update': (data: { accountSettings: AccountSettings }) => void
 }
 
-export interface ConfigEventFromCore {
-  'config:data': (data: { config: Config }) => void
+export interface AccountSettingsEventFromCore {
+  'config:data': (data: { accountSettings: AccountSettings }) => void
 }
 
 // ============================================================================
@@ -324,7 +325,7 @@ export type FromCoreEvent = ClientInstanceEventFromCore
   & SessionEventFromCore
   & EntityEventFromCore
   & StorageEventFromCore
-  & ConfigEventFromCore
+  & AccountSettingsEventFromCore
   & GramEventsEventFromCore
   & MessageResolverEventFromCore
 
@@ -335,7 +336,7 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & TakeoutEventToCore
   & EntityEventToCore
   & StorageEventToCore
-  & ConfigEventToCore
+  & AccountSettingsEventToCore
   & GramEventsEventToCore
   & MessageResolverEventToCore
 
