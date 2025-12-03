@@ -2,11 +2,6 @@ import type { InferOutput } from 'valibot'
 
 import { array, enum as enumType, number, object, optional, string } from 'valibot'
 
-export enum EmbeddingProvider {
-  OPENAI = 'openai',
-  OLLAMA = 'ollama',
-}
-
 export enum EmbeddingDimension {
   DIMENSION_1536 = 1536,
   DIMENSION_1024 = 1024,
@@ -14,7 +9,6 @@ export enum EmbeddingDimension {
 }
 
 export const embeddingConfigSchema = object({
-  provider: optional(enumType(EmbeddingProvider), EmbeddingProvider.OPENAI),
   model: optional(string(), 'text-embedding-3-small'),
   dimension: optional(enumType(EmbeddingDimension), EmbeddingDimension.DIMENSION_1536),
   apiKey: optional(string(), ''),

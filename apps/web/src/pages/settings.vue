@@ -5,18 +5,12 @@ import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
-import SelectDropdown from '../components/ui/SelectDropdown.vue'
-
 import { Button } from '../components/ui/Button'
 
 const { t } = useI18n()
 
 const { accountSettings } = storeToRefs(useAccountStore())
 
-const embeddingProviderOptions = [
-  { label: 'OpenAI', value: 'openai' },
-  { label: 'Ollama', value: 'ollama' },
-]
 
 // Message resolvers configuration
 const messageResolvers = [
@@ -100,13 +94,6 @@ onMounted(() => {
             </h3>
             <div class="grid gap-4">
               <div>
-                <label class="block text-sm text-muted-foreground font-medium">Provider</label>
-                <SelectDropdown
-                  v-model="accountSettings.embedding.provider"
-                  :options="embeddingProviderOptions"
-                />
-              </div>
-              <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.model') }}</label>
                 <input
                   v-model="accountSettings.embedding.model"
@@ -145,15 +132,6 @@ onMounted(() => {
               {{ t('settings.llm') }}
             </h3>
             <div class="grid gap-4">
-              <div>
-                <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.llmProvider') }}</label>
-                <input
-                  v-model="accountSettings.llm.provider"
-                  type="text"
-                  placeholder="openai"
-                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-              </div>
               <div>
                 <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.llmModel') }}</label>
                 <input
