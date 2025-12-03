@@ -1,5 +1,5 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
-import type { EmbeddingConfig } from '../types/account-settings'
+import type { CoreContext } from '../context'
 import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
@@ -8,15 +8,16 @@ import { Err, Ok } from '@unbird/result'
 import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
 
-export function createEmbeddingResolver(embeddingConfig: EmbeddingConfig): MessageResolver {
+export function createEmbeddingResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:embedding')
 
   return {
     run: async (opts: MessageResolverOpts) => {
-      logger.verbose('Executing embedding resolver')
+      const embeddingSettings = (await ctx.getAccountSettings()).embedding
+      logger.withFields({ embeddingSettings }).verbose('Executing embedding resolver')
 
       // Skip embedding if API key is empty
-      if (!embeddingConfig.apiKey || embeddingConfig.apiKey.trim() === '') {
+      if (!embeddingSettings.apiKey || embeddingSettings.apiKey.trim() === '') {
         logger.verbose('Skipping embedding: API key is empty')
         return Ok([])
       }
@@ -36,7 +37,7 @@ export function createEmbeddingResolver(embeddingConfig: EmbeddingConfig): Messa
 
       logger.withFields({ messages: messages.length }).verbose('Embedding messages')
 
-      const { embeddings, usage, dimension } = (await embedContents(messages.map(message => message.content), embeddingConfig)).expect('Failed to embed messages')
+      const { embeddings, usage, dimension } = (await embedContents(messages.map(message => message.content), embeddingSettings)).expect('Failed to embed messages')
 
       // if (message.sticker != null) {
       //   text = `A sticker sent by user ${await findStickerDescription(message.sticker.file_id)}, sticker set named ${message.sticker.set_name}`

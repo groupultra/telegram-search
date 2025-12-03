@@ -39,7 +39,6 @@ export const telegramConfigSchema = object({
   apiId: optional(string()),
   apiHash: optional(string()),
   proxy: optional(proxyConfigSchema),
-  receiveMessage: optional(boolean(), false),
 })
 
 export const apiConfigSchema = object({

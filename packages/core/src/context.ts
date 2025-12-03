@@ -13,6 +13,7 @@ import { useLogger } from '@guiiai/logg'
 import { generateDefaultConfig } from '@tg-search/common'
 import { EventEmitter } from 'eventemitter3'
 
+import { fetchSettingsByAccountId, updateAccountSettings } from './models/account-settings'
 import { generateDefaultAccountSettings } from './utils/account-settings'
 import { detectMemoryLeak } from './utils/memory-leak-detector'
 
@@ -52,8 +53,6 @@ export function createCoreContext() {
   const withError = createErrorHandler(emitter)
   let telegramClient: TelegramClient
   let currentAccountId: string | undefined
-  const config: Config = generateDefaultConfig()
-  const accountSettings = generateDefaultAccountSettings()
 
   const toCoreEvents = new Set<keyof ToCoreEvent>()
   const fromCoreEvents = new Set<keyof FromCoreEvent>()
@@ -126,20 +125,12 @@ export function createCoreContext() {
     return currentAccountId
   }
 
-  function getConfig(): Config {
-    if (!config) {
-      throw withError('Config not set')
-    }
-    return config
+  async function getAccountSettings(): Promise<AccountSettings> {
+    return (await fetchSettingsByAccountId(getCurrentAccountId())).expect('Failed to fetch account settings')
   }
 
-  function getAccountSettings(): AccountSettings {
-    return accountSettings
-  }
-
-  function setAccountSettings(_newSettings: AccountSettings) {
-    // FIXME: TODO
-    throw new Error('No implement')
+  async function setAccountSettings(newSettings: AccountSettings) {
+    return (await updateAccountSettings(getCurrentAccountId(), newSettings)).expect('Failed to update account settings')
   }
 
   // Setup memory leak detection and get cleanup function
@@ -188,7 +179,6 @@ export function createCoreContext() {
     getCurrentAccountId,
     withError,
     cleanup,
-    getConfig,
     getAccountSettings,
     setAccountSettings,
   }

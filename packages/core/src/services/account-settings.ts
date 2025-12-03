@@ -8,10 +8,11 @@ import { safeParse } from 'valibot'
 export type AccountSettingsService = ReturnType<typeof createAccountSettingsService>
 
 export function createAccountSettingsService(ctx: CoreContext) {
+  // FIXME: deprecated
   async function fetchConfig() {
-    const config = ctx.getConfig()
+    // const config = ctx.getConfig()
 
-    ctx.emitter.emit('config:data', { config })
+    // ctx.emitter.emit('config:data', { config })
   }
 
   async function updateConfig(config: Config) {

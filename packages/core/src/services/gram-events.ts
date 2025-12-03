@@ -6,7 +6,7 @@ import { NewMessage } from 'telegram/events'
 export type GramEventsService = ReturnType<typeof createGramEventsService>
 
 export function createGramEventsService(ctx: CoreContext) {
-  const { emitter, getClient, getConfig } = ctx
+  const { emitter, getClient } = ctx
   const logger = useLogger('core:gram-events')
 
   // Store event handler reference and event type for cleanup
@@ -21,7 +21,7 @@ export function createGramEventsService(ctx: CoreContext) {
     }
 
     eventHandler = (event) => {
-      if (event.message && getConfig().api.telegram.receiveMessage) {
+      if (event.message) {
         emitter.emit('gram:message:received', { message: event.message })
       }
     }

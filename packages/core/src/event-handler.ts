@@ -32,10 +32,7 @@ import { createTakeoutService } from './services/takeout'
 
 type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
 
-export function basicEventHandler(ctx: CoreContext): EventHandler {
-  const config = ctx.getConfig()
-  const accountSettings = ctx.getAccountSettings()
-
+export function basicEventHandler(ctx: CoreContext, config: Config): EventHandler {
   const registry = useMessageResolverRegistry()
 
   const connectionService = useService(ctx, createConnectionService)({
@@ -55,7 +52,7 @@ export function basicEventHandler(ctx: CoreContext): EventHandler {
   // server-side prefetch in the future if desired.
   registry.register('avatar', createAvatarResolver(ctx))
   registry.register('link', createLinkResolver())
-  registry.register('embedding', createEmbeddingResolver(accountSettings.embedding))
+  registry.register('embedding', createEmbeddingResolver(ctx))
   registry.register('jieba', createJiebaResolver())
 
   registerStorageEventHandlers(ctx)
