@@ -21,7 +21,7 @@ export function createAccountSettingsService(ctx: CoreContext) {
       throw new Error('Invalid config')
     }
 
-    ctx.setAccountSettings(parsedAccountSettings.output)
+    await ctx.setAccountSettings(parsedAccountSettings.output)
 
     ctx.emitter.emit('config:data', { accountSettings: parsedAccountSettings.output })
   }
