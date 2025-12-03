@@ -1,21 +1,10 @@
 import type { InferOutput } from 'valibot'
 
-import { array, boolean, enum as enumType, number, object, optional, safeParse, string } from 'valibot'
+import { boolean, enum as enumType, number, object, optional, safeParse, string } from 'valibot'
 
 export enum SocksType {
   SOCKS4 = 4,
   SOCKS5 = 5,
-}
-
-export enum EmbeddingProvider {
-  OPENAI = 'openai',
-  OLLAMA = 'ollama',
-}
-
-export enum EmbeddingDimension {
-  DIMENSION_1536 = 1536,
-  DIMENSION_1024 = 1024,
-  DIMENSION_768 = 768,
 }
 
 export enum DatabaseType {
@@ -53,43 +42,17 @@ export const telegramConfigSchema = object({
   receiveMessage: optional(boolean(), false),
 })
 
-export const embeddingConfigSchema = object({
-  provider: optional(enumType(EmbeddingProvider), EmbeddingProvider.OPENAI),
-  model: optional(string(), 'text-embedding-3-small'),
-  dimension: optional(enumType(EmbeddingDimension), EmbeddingDimension.DIMENSION_1536),
-  apiKey: optional(string(), ''),
-  apiBase: optional(string(), ''),
-})
-
-export const llmConfigSchema = object({
-  provider: optional(string(), 'openai'),
-  model: optional(string(), 'gpt-4o-mini'),
-  apiKey: optional(string(), ''),
-  apiBase: optional(string(), 'https://api.openai.com/v1'),
-  temperature: optional(number(), 0.7),
-  maxTokens: optional(number(), 2000),
-})
-
 export const apiConfigSchema = object({
   telegram: optional(telegramConfigSchema, {}),
-  embedding: optional(embeddingConfigSchema, {}),
-  llm: optional(llmConfigSchema, {}),
-})
-
-export const resolversConfigSchema = object({
-  // Avatar resolver is disabled by default: client-driven, on-demand fetching
-  disabledResolvers: optional(array(string()), ['avatar']),
 })
 
 export const configSchema = object({
   database: optional(databaseConfigSchema, {}),
   api: optional(apiConfigSchema, {}),
-  resolvers: optional(resolversConfigSchema, {}),
 })
 
 export type Config = InferOutput<typeof configSchema>
 export type ProxyConfig = InferOutput<typeof proxyConfigSchema>
-export type EmbeddingConfig = InferOutput<typeof embeddingConfigSchema>
 export type DatabaseConfig = InferOutput<typeof databaseConfigSchema>
 
 export function generateDefaultConfig(): Config {
