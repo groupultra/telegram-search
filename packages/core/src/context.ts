@@ -1,4 +1,3 @@
-import type { Config } from '@tg-search/common'
 import type { TelegramClient } from 'telegram'
 
 import type { AccountSettings } from './types/account-settings'
@@ -10,11 +9,9 @@ import type {
 } from './types/events'
 
 import { useLogger } from '@guiiai/logg'
-import { generateDefaultConfig } from '@tg-search/common'
 import { EventEmitter } from 'eventemitter3'
 
 import { fetchSettingsByAccountId, updateAccountSettings } from './models/account-settings'
-import { generateDefaultAccountSettings } from './utils/account-settings'
 import { detectMemoryLeak } from './utils/memory-leak-detector'
 
 export type { CoreEmitter, CoreEvent, CoreEventData, FromCoreEvent, ToCoreEvent } from './types/events'

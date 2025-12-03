@@ -170,12 +170,12 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       timeRange: params.timeRange,
     }
 
-    const accountSettings = ctx.getAccountSettings()
-    const embeddingDimension = accountSettings.embedding.dimension
+    const embeddingSettings = (await ctx.getAccountSettings()).embedding
+    const embeddingDimension = embeddingSettings.dimension
     let dbMessages: DBRetrievalMessages[] = []
     if (params.useVector) {
       let embedding: number[] = []
-      const embeddingResult = (await embedContents([params.content], accountSettings.embedding)).orUndefined()
+      const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()
       if (embeddingResult)
         embedding = embeddingResult.embeddings[0]
 

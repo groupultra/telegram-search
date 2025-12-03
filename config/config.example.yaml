@@ -17,47 +17,6 @@ api:
     # Get these values from https://my.telegram.org/apps
     apiId: '611335'
     apiHash: d524b414d21f4d37f08684c1df41ac9c
-    receiveMessage: false
 
-    # Optional proxy settings
-    # Proxy configuration can be set via environment variables or config file settings.
-    # Environment variables take precedence over config file settings.
-    #
-    # Use PROXY_URL environment variable for simplified proxy configuration
-    # Environment variable: PROXY_URL
-    # Supported formats:
-    # - socks4://username:password@host:port?timeout=15
-    # - socks5://username:password@host:port?timeout=15
-    # - http://username:password@host:port?timeout=15
-    # - mtproxy://secret@host:port?timeout=15
-    #
     # proxy:
     #   proxyUrl: 'socks5://username:password@proxy.example.com:1080?timeout=15'
-
-  # Embedding settings
-  embedding:
-    # Embedding provider (openai or ollama)
-    provider: openai
-    # Embedding model
-    model: text-embedding-3-small
-    # API key for provider
-    apiKey: ''
-    # Optional, available dimensions: 1536, 1024, 768. Default dimension is 1536. #If using gemini-embedding-exp-03-07, choose 768
-    dimension: 1536
-    # Optional, for custom API providers
-    apiBase: 'https://api.openai.com/v1'
-
-  # LLM settings for AI chat
-  llm:
-    # LLM provider (openai, anthropic, ollama, etc.)
-    provider: openai
-    # LLM model
-    model: gpt-4o-mini
-    # API key for provider
-    apiKey: ''
-    # API base URL for custom providers
-    apiBase: 'https://api.openai.com/v1'
-    # Temperature for response generation (0.0-2.0)
-    temperature: 0.7
-    # Maximum tokens in response
-    maxTokens: 2000
