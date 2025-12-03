@@ -58,7 +58,7 @@ export async function destroyCoreInstance(ctx: CoreContext) {
   ctx.emitter.emit('core:cleanup')
 
   // Give services time to cleanup
-  // FIXME
+  // TODO: use Promise.allSettled to wait for all services to cleanup
   await new Promise(resolve => setTimeout(resolve, 100))
 
   // Disconnect Telegram client if connected

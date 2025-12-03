@@ -38,7 +38,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           downloadQueue.add(async () => {
             logger.withFields({ media }).debug('Media')
 
-            // FIXME: move it to storage
+            // TODO: move it to storage
             if (media.type === 'sticker') {
               const sticker = (await findStickerByFileId(media.platformId)).unwrap()
 
@@ -55,7 +55,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               }
             }
 
-            // FIXME: move it to storage
+            // TODO: move it to storage
             if (media.type === 'photo') {
               const photo = (await findPhotoByFileId(media.platformId)).unwrap()
               if (photo && photo.image_bytes) {
