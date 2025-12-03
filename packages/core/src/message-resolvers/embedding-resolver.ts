@@ -39,16 +39,6 @@ export function createEmbeddingResolver(ctx: CoreContext): MessageResolver {
 
       const { embeddings, usage, dimension } = (await embedContents(messages.map(message => message.content), embeddingSettings)).expect('Failed to embed messages')
 
-      // if (message.sticker != null) {
-      //   text = `A sticker sent by user ${await findStickerDescription(message.sticker.file_id)}, sticker set named ${message.sticker.set_name}`
-      // }
-      // else if (message.photo != null) {
-      //   text = `A set of photo, descriptions are: ${(await Promise.all(message.photo.map(photo => findPhotoDescription(photo.file_id)))).join('\n')}`
-      // }
-      // else if (message.text) {
-      //   text = message.text || message.caption || ''
-      // }
-
       logger.withFields({ embeddings: embeddings.length, usage }).verbose('Embedding messages done')
 
       for (const [index, message] of messages.entries()) {

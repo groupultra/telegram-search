@@ -16,6 +16,15 @@ export async function embedContents(
       baseURL: embeddingConfig.apiBase || '',
       input: contents,
       model: embeddingConfig.model,
+      /**
+       * The number of dimensions the resulting output embeddings should have.
+       *
+       * Not every model from every providers supports this parameter, currently
+       * known: OpenAI, Voyage AI.
+       *
+       * @see {@link https://platform.openai.com/docs/api-reference/embeddings/object}
+       */
+      dimension: embeddingConfig.dimension,
     })
 
     return Ok({

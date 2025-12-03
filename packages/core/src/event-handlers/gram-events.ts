@@ -9,7 +9,7 @@ export function registerGramEventsEventHandlers(ctx: CoreContext) {
 
   return (_: GramEventsService) => {
     emitter.on('gram:message:received', async ({ message }) => {
-      logger.verbose('Message received')
+      logger.withFields({ message: message.id }).debug('Message received')
 
       emitter.emit('message:process', {
         messages: [
