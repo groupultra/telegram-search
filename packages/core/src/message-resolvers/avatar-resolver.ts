@@ -143,7 +143,6 @@ function createAvatarHelper(ctx: CoreContext) {
         logger.withError(err as Error).debug('downloadProfilePhoto failed, trying fallback')
       }
       if (!buffer) {
-        // eslint-disable-next-line ts/no-explicit-any
         const photo = (entity as Record<string, any>).photo
         if (photo) {
           try {
@@ -246,9 +245,8 @@ function createAvatarHelper(ctx: CoreContext) {
         if (!entity) {
           entity = await getClient().getEntity(String(idRaw)) as Api.User | Api.Chat | Api.Channel
           try {
-            // eslint-disable-next-line ts/no-explicit-any
             if (entity && (entity as any).id)
-              // eslint-disable-next-line ts/no-explicit-any
+
               dialogEntityCache.set(String((entity as any).id.toJSNumber?.() ?? (entity as any).id), entity)
           }
           catch {}

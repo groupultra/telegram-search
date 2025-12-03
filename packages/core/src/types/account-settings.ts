@@ -43,4 +43,3 @@ export const accountSettingsSchema = object({
 
 export type EmbeddingConfig = InferOutput<typeof embeddingConfigSchema>
 export type AccountSettings = InferOutput<typeof accountSettingsSchema>
-

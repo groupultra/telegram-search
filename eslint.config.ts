@@ -57,6 +57,6 @@ export default defineConfig({
     'style/padding-line-between-statements': 'error',
     'vue/prefer-separate-static-class': 'off',
     'yaml/plain-scalar': 'off',
-    '@typescript-eslint/no-explicit-any': 'warn',
+    // '@typescript-eslint/no-explicit-any': 'warn',
   },
 })
