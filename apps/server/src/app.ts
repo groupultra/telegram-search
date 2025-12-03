@@ -9,6 +9,7 @@ import { loadConfigFromFile } from '@tg-search/common/node'
 import { initDrizzle } from '@tg-search/core'
 import { createApp, createRouter, defineEventHandler, toNodeListener } from 'h3'
 import { listen } from 'listhen'
+import { collectDefaultMetrics, register } from 'prom-client'
 
 import pkg from '../package.json' with { type: 'json' }
 
@@ -61,6 +62,15 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
   const router = createRouter()
   router.get('/health', defineEventHandler(() => {
     return Response.json({ success: true })
+  }))
+
+  collectDefaultMetrics()
+  router.get('/metrics', defineEventHandler(async () => {
+    const metrics = await register.metrics()
+    return new Response(metrics, {
+      status: 200,
+      headers: { 'Content-Type': register.contentType },
+    })
   }))
 
   app.use(router)

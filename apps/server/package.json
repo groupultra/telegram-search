@@ -18,7 +18,8 @@
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "h3": "^1.15.4",
-    "listhen": "^1.9.0"
+    "listhen": "^1.9.0",
+    "prom-client": "^15.1.3"
   },
   "devDependencies": {
     "@proj-airi/unplugin-drizzle-orm-migrations": "catalog:",
