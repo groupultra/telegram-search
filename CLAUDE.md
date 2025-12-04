@@ -160,8 +160,8 @@ This automatically:
 ### Configuration
 
 **Browser mode**: `.env` file
-- `VITE_TELEGRAM_APP_ID`
-- `VITE_TELEGRAM_APP_HASH`
+- `VITE_TELEGRAM_API_ID`
+- `VITE_TELEGRAM_API_HASH`
 
 **Server mode**: `config/config.yaml`
 - Database settings (`database.type`, `database.host`, etc.)

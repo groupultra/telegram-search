@@ -45,22 +45,28 @@ export function parseEnvToConfig(env: Environment): Config {
     },
     api: {
       telegram: {
-        apiId: readEnvValue('TELEGRAM_API_ID', env),
-        apiHash: readEnvValue('TELEGRAM_API_HASH', env),
+        apiId: readEnvValue('TELEGRAM_API_ID', env) || readEnvValue('TELEGRAM_APP_ID', env),
+        apiHash: readEnvValue('TELEGRAM_API_HASH', env) || readEnvValue('TELEGRAM_APP_HASH', env),
         proxy: {
           MTProxy: readBooleanEnv('PROXY_MT_PROXY', env),
           proxyUrl: readEnvValue('PROXY_URL', env),
         },
       },
       embedding: {
-        provider: readEnvValue('EMBEDDING_PROVIDER', env),
         model: readEnvValue('EMBEDDING_MODEL', env),
         apiKey: readEnvValue('EMBEDDING_API_KEY', env),
         apiBase: readEnvValue('EMBEDDING_API_BASE', env),
         dimension: readIntegerEnv('EMBEDDING_DIMENSION', env),
       },
+      llm: {
+        model: readEnvValue('LLM_MODEL', env),
+        apiKey: readEnvValue('LLM_API_KEY', env),
+        apiBase: readEnvValue('LLM_API_BASE', env),
+        dimension: readIntegerEnv('LLM_DIMENSION', env),
+        provider: readEnvValue('LLM_PROVIDER', env),
+      },
     },
-  } as Partial<Config>
+  }
 
   const parsedConfig = safeParse(configSchema, partialConfig)
   if (!parsedConfig.success) {

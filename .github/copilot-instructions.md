@@ -32,7 +32,7 @@ This repo is a pnpm-powered monorepo for a Telegram search/export app. It uses a
   - Types/tests/lint: `pnpm typecheck` (builds packages first), `pnpm test` (Vitest), `pnpm lint` / `pnpm lint:fix`.
   - DB tools: `pnpm db:generate` (drizzle-kit), `pnpm db:kit` (scripts/db.ts).
 - Config:
-  - Browser mode uses `.env` (`VITE_TELEGRAM_APP_ID`, `VITE_TELEGRAM_APP_HASH`).
+  - Browser mode uses `.env` (`VITE_TELEGRAM_API_ID`, `VITE_TELEGRAM_API_HASH`).
   - Server mode uses `config/config.yaml` (database, embedding provider/model/dimension, Telegram API, optional proxy). See `docs/ENVIRONMENT.md`.
 
 ## Conventions and patterns

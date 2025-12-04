@@ -161,8 +161,8 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     logger.verbose('Initializing core bridge')
 
-    config.value.api.telegram.apiId ||= import.meta.env.VITE_TELEGRAM_APP_ID
-    config.value.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_APP_HASH
+    config.value.api.telegram.apiId ||= import.meta.env.VITE_TELEGRAM_API_ID
+    config.value.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_API_HASH
 
     logger.withFields({ config: config.value }).verbose('Initialized config')
 
