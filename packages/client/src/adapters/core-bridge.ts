@@ -19,6 +19,14 @@ import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { createSessionStore } from '../utils/session-store'
 import { createCoreRuntime } from './core-runtime'
 
+// Dev-only PGlite handle for browser-only mode debugging.
+// Typed as unknown to avoid introducing a hard dependency from client to PGlite.
+let pgliteDevDb: unknown
+
+export function usePGliteDevDb(): unknown {
+  return pgliteDevDb
+}
+
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const storageSessions = useLocalStorage<StoredSession[]>('core-bridge/sessions', [])
   // active-session-slot: index into storageSessions array
@@ -157,10 +165,11 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     logger.withFields({ config: config.value }).verbose('Initialized config')
 
-    await initDrizzle(logger, config.value, {
+    const { pglite } = await initDrizzle(logger, config.value, {
       debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL as string,
       isDatabaseDebugMode: import.meta.env.VITE_DB_DEBUG === 'true',
     })
+    pgliteDevDb = pglite
 
     ensureSessionInvariants()
 

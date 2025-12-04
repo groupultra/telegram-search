@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { usePGlite } from '@tg-search/core'
+import { usePGliteDevDb } from '@tg-search/client'
 import { onMounted, ref } from 'vue'
 
 import '@electric-sql/pglite-repl/webcomponent'
@@ -16,7 +16,7 @@ const errorMessage = ref<string>()
 onMounted(() => {
   // Try to get PGlite instance
   try {
-    const db = usePGlite()
+    const db = usePGliteDevDb()
     if (db) {
       pglite.value = db
       replReady.value = true
@@ -28,7 +28,7 @@ onMounted(() => {
 
       const checkInterval = setInterval(() => {
         attempts++
-        const db = usePGlite()
+        const db = usePGliteDevDb()
         if (db) {
           pglite.value = db
           replReady.value = true

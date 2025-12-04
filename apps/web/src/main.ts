@@ -3,7 +3,7 @@ import NProgress from 'nprogress'
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { initLogger, LoggerFormat } from '@guiiai/logg'
 import { VueQueryPlugin } from '@tanstack/vue-query'
-import { usePGlite } from '@tg-search/core'
+import { usePGliteDevDb } from '@tg-search/client'
 import { setupPGliteDevtools } from '@unbird/pglite-inspector'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
@@ -66,7 +66,7 @@ if (import.meta.env.DEV) {
   router.isReady().then(() => {
     // Wait a bit for database initialization to complete
     setTimeout(() => {
-      const pglite = usePGlite()
+      const pglite = usePGliteDevDb()
       if (pglite) {
         setupPGliteDevtools({ app, db: pglite })
       }

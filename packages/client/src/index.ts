@@ -1,3 +1,4 @@
+export { usePGliteDevDb } from './adapters/core-bridge'
 export * from './composables'
 export * from './event-handlers'
 export * from './stores'

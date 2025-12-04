@@ -1,4 +1,3 @@
-import type { PGlite } from '@electric-sql/pglite'
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
 
@@ -14,7 +13,15 @@ export type CoreDB = PostgresDB | PgliteDB
 export type CoreTransaction = Parameters<Parameters<CoreDB['transaction']>[0]>[0]
 
 let dbInstance: CoreDB
-let pgliteInstance: PGlite | undefined
+
+export interface InitDrizzleResult {
+  db: CoreDB
+  /**
+   * Underlying PGlite instance when DatabaseType.PGLITE is used.
+   * Undefined for Postgres or when running in environments without PGlite.
+   */
+  pglite?: any
+}
 
 /**
  * Set the global database instance.
@@ -36,7 +43,7 @@ export async function initDrizzle(
     isDatabaseDebugMode?: boolean
     disableMigrations?: boolean
   },
-) {
+): Promise<InitDrizzleResult> {
   logger.log('Initializing database...')
 
   // Get configuration
@@ -54,30 +61,29 @@ export async function initDrizzle(
         isDatabaseDebugMode: options?.isDatabaseDebugMode,
         disableMigrations: options?.disableMigrations,
       })
-      pgliteInstance = undefined
-      break
+      return { db: dbInstance }
     }
 
     case DatabaseType.PGLITE: {
       if (isBrowser()) {
         const { initPgliteDrizzleInBrowser } = await import('./pglite.browser')
-        const result = await initPgliteDrizzleInBrowser(logger, {
+        const { db, pglite } = await initPgliteDrizzleInBrowser(logger, {
+          debuggerWebSocketUrl: options?.debuggerWebSocketUrl,
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
           disableMigrations: options?.disableMigrations,
         })
-        dbInstance = result.db
-        pgliteInstance = result.pglite
+        dbInstance = db
+        return { db, pglite }
       }
       else {
         const { initPgliteDrizzleInNode } = await import('./pglite')
-        const result = await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
+        const { db, pglite } = await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
           disableMigrations: options?.disableMigrations,
         })
-        dbInstance = result.db
-        pgliteInstance = result.pglite
+        dbInstance = db
+        return { db, pglite }
       }
-      break
     }
 
     default:
@@ -91,10 +97,6 @@ function useDrizzle() {
   }
 
   return dbInstance
-}
-
-export function usePGlite(): PGlite | undefined {
-  return pgliteInstance
 }
 
 export async function withDb<T>(
