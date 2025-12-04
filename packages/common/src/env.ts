@@ -37,6 +37,16 @@ export function readIntegerEnv(key: string, env: Environment): number | undefine
   return undefined
 }
 
+export function readStringEnv(keys: string[], env: Environment): string | undefined {
+  for (const key of keys) {
+    const value = readEnvValue(key, env)
+    if (value) {
+      return value
+    }
+  }
+  return undefined
+}
+
 export function parseEnvToConfig(env: Environment): Config {
   const partialConfig = {
     database: {
@@ -45,8 +55,8 @@ export function parseEnvToConfig(env: Environment): Config {
     },
     api: {
       telegram: {
-        apiId: readEnvValue('TELEGRAM_API_ID', env) || readEnvValue('TELEGRAM_APP_ID', env),
-        apiHash: readEnvValue('TELEGRAM_API_HASH', env) || readEnvValue('TELEGRAM_APP_HASH', env),
+        apiId: readStringEnv(['TELEGRAM_API_ID', 'TELEGRAM_APP_ID', 'VITE_TELEGRAM_API_ID', 'VITE_TELEGRAM_APP_ID'], env),
+        apiHash: readStringEnv(['TELEGRAM_API_HASH', 'TELEGRAM_APP_HASH', 'VITE_TELEGRAM_API_HASH', 'VITE_TELEGRAM_APP_HASH'], env),
         proxy: {
           MTProxy: readBooleanEnv('PROXY_MT_PROXY', env),
           proxyUrl: readEnvValue('PROXY_URL', env),
