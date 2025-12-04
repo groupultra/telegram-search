@@ -8,10 +8,11 @@
     "node": ">=24.11.0"
   },
   "scripts": {
+    "apply:env": "dotenvx run -f .env -f .env.local --overload --ignore=MISSING_ENV_FILE",
     "start": "concurrently \"pnpm run server:dev\" \"pnpm run web:preview --host 0.0.0.0\"",
-    "server:dev": "pnpm run packages:build && pnpm -F @tg-search/server dev",
-    "server:build": "pnpm -F @tg-search/server build",
-    "server:run": "pnpm -F @tg-search/server start",
+    "server:dev": "pnpm run packages:build && pnpm apply:env -- pnpm -F @tg-search/server dev",
+    "server:build": "pnpm run packages:build && pnpm apply:env -- pnpm -F @tg-search/server build",
+    "server:run": "pnpm run packages:build && pnpm apply:env -- pnpm -F @tg-search/server start",
     "web:dev": "pnpm -F @tg-search/web dev",
     "web:build": "pnpm -F @tg-search/web build",
     "web:preview": "pnpm -F @tg-search/web preview",
@@ -25,14 +26,14 @@
     "test": "vitest",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache . --fix",
-    "typecheck": "pnpm run packages:build && tsc --noEmit && pnpm -r --parallel typecheck",
+    "typecheck": "pnpm run packages:build && pnpm -r --parallel typecheck",
     "bump": "bumpp",
     "bump:deps": "taze -I -f -w -r",
     "db:generate": "drizzle-kit generate",
-    "db:kit": "tsx scripts/db.ts",
     "postinstall": "pnpm run packages:build"
   },
   "dependencies": {
+    "@dotenvx/dotenvx": "^1.51.1",
     "unocss-preset-shadcn": "^1.0.1"
   },
   "devDependencies": {

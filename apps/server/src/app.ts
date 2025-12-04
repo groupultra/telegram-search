@@ -4,8 +4,7 @@ import type { CrossWSOptions } from 'listhen'
 import process from 'node:process'
 
 import { initLogger, useLogger } from '@guiiai/logg'
-import { mergeConfigWithEnv, parseEnvFlags } from '@tg-search/common'
-import { loadConfigFromFile } from '@tg-search/common/node'
+import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
 import { initDrizzle } from '@tg-search/core'
 import { createApp, createRouter, defineEventHandler, toNodeListener } from 'h3'
 import { listen } from 'listhen'
@@ -85,7 +84,7 @@ async function bootstrap() {
 
   logger.log(`Telegram Search v${pkg.version}`)
 
-  const config = mergeConfigWithEnv(process.env, await loadConfigFromFile())
+  const config = parseEnvToConfig(process.env)
 
   try {
     await initDrizzle(logger, config, {

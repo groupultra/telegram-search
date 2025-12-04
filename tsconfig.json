@@ -14,11 +14,8 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
-  "include": [
-    "scripts/**/*"
-  ],
   "exclude": [
     "node_modules",
-    "dist"
+    "**/dist/**"
   ]
 }

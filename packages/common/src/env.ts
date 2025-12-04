@@ -47,17 +47,9 @@ export function parseEnvToConfig(env: Environment): Config {
       telegram: {
         apiId: readEnvValue('TELEGRAM_API_ID', env),
         apiHash: readEnvValue('TELEGRAM_API_HASH', env),
-        receiveMessage: readBooleanEnv('TELEGRAM_RECEIVE_MESSAGE', env),
         proxy: {
-          proxyUrl: readEnvValue('PROXY_URL', env),
-          ip: readEnvValue('PROXY_IP', env),
-          port: readIntegerEnv('PROXY_PORT', env),
           MTProxy: readBooleanEnv('PROXY_MT_PROXY', env),
-          secret: readEnvValue('PROXY_SECRET', env),
-          socksType: readIntegerEnv('PROXY_SOCKS_TYPE', env),
-          timeout: readIntegerEnv('PROXY_TIMEOUT', env),
-          username: readEnvValue('PROXY_USERNAME', env),
-          password: readEnvValue('PROXY_PASSWORD', env),
+          proxyUrl: readEnvValue('PROXY_URL', env),
         },
       },
       embedding: {
@@ -74,6 +66,9 @@ export function parseEnvToConfig(env: Environment): Config {
   if (!parsedConfig.success) {
     throw new Error('Failed to parse config', { cause: parsedConfig.issues })
   }
+
+  // eslint-disable-next-line no-console
+  console.log('Config parsed', parsedConfig.output)
 
   return parsedConfig.output
 }

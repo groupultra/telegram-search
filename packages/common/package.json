@@ -20,10 +20,8 @@
   },
   "dependencies": {
     "@guiiai/logg": "catalog:",
-    "@vue/reactivity": "^3.5.24",
     "defu": "^6.1.4",
     "pathe": "^2.0.3",
-    "valibot": "^1.1.0",
-    "yaml": "^2.8.1"
+    "valibot": "^1.1.0"
   }
 }
