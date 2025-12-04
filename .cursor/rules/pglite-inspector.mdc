@@ -1,0 +1,37 @@
+---
+when:
+  - "packages/pglite-inspector/src/**/*"
+priority: 30
+---
+
+## PGlite Inspector (Devtool)
+
+- **Role**: Developer-only tooling to inspect and debug the in-browser PGlite database.
+- Must **not** become a production dependency for core features.
+
+### API & Integration
+
+- Keep the public surface minimal:
+  - Primary entry point is `setupPGliteDevtools({ app, db })`.
+  - Avoid exposing low-level PGlite internals; the caller should only need a `PGlite` instance and a Vue `App`.
+- Callers (e.g. `apps/web/src/main.ts`) must guard usage with `import.meta.env.DEV` and handle the case where `db` is unavailable.
+
+### Behavior & UX
+
+- Present a clear, read-only view of:
+  - Table list and basic metadata.
+  - Columns and types.
+  - Sample data (capped to a safe limit).
+- Timeline events (queries) should:
+  - Be lightweight to emit.
+  - Not significantly slow down query execution even in debug mode.
+
+### Reliability & Safety
+
+- On any error (failed query, inspector read failure):
+  - Fail gracefully with a visible error state in devtools.
+  - Avoid crashing the host app.
+- Logging:
+  - Use `console.error` sparingly for truly unexpected failures in dev builds only.
+  - Do not spam the console on every normal query.
+
