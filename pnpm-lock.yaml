@@ -435,7 +435,7 @@ importers:
     dependencies:
       '@electric-sql/pglite':
         specifier: '*'
-        version: 0.3.11
+        version: 0.3.14
       '@vue/devtools-kit':
         specifier: ^8.0.3
         version: 8.0.3
@@ -1111,9 +1111,6 @@ packages:
     peerDependenciesMeta:
       '@electric-sql/pglite':
         optional: true
-
-  '@electric-sql/pglite@0.3.11':
-    resolution: {integrity: sha512-FJtjnEyez8XgmgyE5Ewmx89TGVN+75ZjykFoExApRIbJBMT4dsbsuZkF/YWLuymGDfGFHDACjvENPMEqg4FoWg==}
 
   '@electric-sql/pglite@0.3.14':
     resolution: {integrity: sha512-3DB258dhqdsArOI1fIt7cb9RpUOgcDg5hXWVgVHAeqVQ/qxtFy605QKs4gx6mFq3jWsSPqDN8TgSEsqC3OfV9Q==}
@@ -7207,8 +7204,6 @@ snapshots:
       - '@codemirror/state'
       - '@codemirror/theme-one-dark'
       - codemirror
-
-  '@electric-sql/pglite@0.3.11': {}
 
   '@electric-sql/pglite@0.3.14': {}
 
