@@ -3,8 +3,6 @@ import NProgress from 'nprogress'
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { initLogger, LoggerFormat } from '@guiiai/logg'
 import { VueQueryPlugin } from '@tanstack/vue-query'
-import { usePGliteDevDb } from '@tg-search/client'
-import { setupPGliteDevtools } from '@unbird/pglite-inspector'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
 import { createApp } from 'vue'
@@ -15,6 +13,7 @@ import App from './App.vue'
 
 import { LOG_LEVEL } from './constants'
 import { i18n } from './modules/i18n'
+import { createPGliteDevtoolsPlugin } from './plugins/pglite-devtools'
 
 import '@unocss/reset/tailwind.css'
 import 'nprogress/nprogress.css'
@@ -60,18 +59,6 @@ app.use(router)
 app.use(VueQueryPlugin)
 app.use(pinia)
 app.use(autoAnimatePlugin)
-
-// Setup PGlite DevTools (only in development mode)
-if (import.meta.env.DEV) {
-  router.isReady().then(() => {
-    // Wait a bit for database initialization to complete
-    setTimeout(() => {
-      const pglite = usePGliteDevDb()
-      if (pglite) {
-        setupPGliteDevtools({ app, db: pglite })
-      }
-    }, 1000)
-  })
-}
+app.use(createPGliteDevtoolsPlugin())
 
 app.mount('#app')
