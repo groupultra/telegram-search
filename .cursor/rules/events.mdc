@@ -1,0 +1,77 @@
+---
+when:
+  - "packages/core/src/event-handlers/**/*"
+  - "packages/core/src/services/**/*"
+  - "packages/client/src/event-handlers/**/*"
+  - "packages/client/src/adapters/**/*"
+  - "apps/server/src/ws/**/*"
+priority: 45
+---
+
+## Cross-Layer Events & Protocol Design
+
+- **Scope**: Any change that adds/renames/removes events flowing between:
+  - Vue/Pinia (apps/web)
+  - `packages/client`
+  - `apps/server` WebSocket layer
+  - `packages/core` event handlers & services
+
+### 1. Before You Add or Change an Event
+
+- Answer, in your head or in an RFC:
+  - **Where is the bottleneck?** (UX latency? DB load? Telegram API limits?)
+  - **What is the minimal new behavior?** (One sentence, domain language.)
+  - **What is the data flow?** (Component → store → client adapter → WS/core → DB → back.)
+  - **How does this handle failure?**
+    - Core error?
+    - Network loss?
+    - Partial success (e.g. some messages processed)?
+
+### 2. Event Naming & Payloads
+
+- Naming:
+  - Use `<domain>:<action>` or `<domain>:<action>:<subaction>`.
+  - Avoid generic verbs like `update`, `done`; always include the domain (`message`, `storage`, `auth`, etc.).
+- Payloads:
+  - Prefer **IDs + small shapes** over dumping full DB rows or Telegram objects.
+  - Do not leak raw internal schemas as event payloads unless they are explicitly part of the public model.
+  - Include enough context to render the UI without requiring a second roundtrip when reasonable.
+
+### 3. End-to-End Wiring Checklist
+
+When adding a new event, ensure all of the following are updated **in one change**:
+
+- **Types & contracts**:
+  - `@tg-search/core` `ToCoreEvent` / `FromCoreEvent`.
+  - `@tg-search/server/types` WS mappings (`WsEventToServer`, `WsEventToClient`).
+  - Client event handler maps in `packages/client`.
+- **Handlers**:
+  - Core event handler under `packages/core/src/event-handlers`.
+  - Service function(s) in `packages/core/src/services`.
+  - Client-side handler that maps `FromCoreEvent` into Pinia state.
+- **UI**:
+  - Minimal component/store changes to actually use the new event.
+
+### 4. Backwards Compatibility & Refactors
+
+- Prefer **adding** new events over changing semantics of existing ones.
+- If an event must change:
+  - Keep the old event name working for at least one release where possible.
+  - Introduce a new event name for the new behavior and migrate callers gradually.
+- For refactors across layers (e.g. renaming a domain or action):
+  - Do a **mechanical rename** across types, handlers, and callers in one PR.
+  - Avoid long-lived “mixed” states where some code uses old names and some uses new ones.
+
+### 5. Errors, Timeouts & Idempotency
+
+- Treat every event as potentially:
+  - Lost (network issues).
+  - Duplicated (retries).
+  - Delayed (backpressure).
+- Design handlers to be **idempotent** where possible:
+  - Re-applying the same event should not corrupt state.
+  - Use message IDs and versioning to detect duplicates.
+- Error semantics:
+  - Core should emit structured error events with codes and key context, not just strings.
+  - Client should surface user-friendly messages and, where safe, allow retry.
+

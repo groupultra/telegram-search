@@ -1,0 +1,53 @@
+---
+when:
+  - "apps/**/*"
+  - "packages/**/*"
+  - "drizzle/**/*"
+  - "sql/**/*"
+  - "config/**/*"
+  - "Dockerfile"
+  - "docker-compose.yml"
+priority: 5
+---
+
+## Contribution & Refactor Guidelines
+
+- **Prime rule**: Code is a liability, functionality is the asset. Any change must pay for its own complexity.
+
+### 1. Before Large Changes (Refactors, New Infra, New Domains)
+
+- Ask yourself, and write down in the PR description if possible:
+  - **Where is the bottleneck?** Latency, throughput, DX, or maintainability? Be concrete.
+  - **What is the simplest change that fixes it?** Prefer removal/cleanup over new systems.
+  - **What is the data flow?** Sketch: entrypoint → adapters → core → DB/Telegram → back.
+  - **What happens on failure?**
+    - If step B fails, does step A need a rollback or can we tolerate partial state?
+    - Is this best modeled as a saga / compensating action, or is “at-least-once” good enough?
+
+### 2. Backend Mindset
+
+- Avoid hidden in-memory state that couples requests:
+  - Session-local state lives in `CoreContext` or explicit stores, never in random globals.
+  - Cross-request state must go into the database or a well-defined cache layer.
+- For multi-step workflows:
+  - Make each step observable (events + logs) and ideally resumable.
+  - Design states explicitly (`pending`, `running`, `failed`, `completed`) rather than boolean flags.
+
+### 3. TypeScript Style
+
+- Strict TS is non-negotiable:
+  - Avoid `any` unless wrapping truly dynamic data, and confine it at the edge.
+  - Prefer small, composable types over giant “god” interfaces.
+- Functional style:
+  - Prefer pure functions and small modules over classes unless there is a clear lifecycle to model.
+  - Keep side effects at the boundary (adapters, services) and core logic pure where possible.
+
+### 4. PR Hygiene
+
+- Keep PRs focused:
+  - One domain behavior or refactor per PR.
+  - Mechanical renames and large formatting should be isolated from behavioral changes.
+- Tests:
+  - Add or update tests alongside behavior changes, especially for core and DB logic.
+  - Do not rely solely on manual E2E verification for critical paths.
+

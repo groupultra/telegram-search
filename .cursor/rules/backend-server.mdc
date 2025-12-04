@@ -1,0 +1,55 @@
+---
+when:
+  - "apps/server/src/**/*"
+  - "config/config.yaml"
+  - "config/config.example.yaml"
+priority: 30
+---
+
+## Backend Server (apps/server)
+
+- **Role**: Thin WebSocket + HTTP edge that:
+  - Hosts a **`CoreContext` per WebSocket connection**.
+  - Exposes health/metrics endpoints.
+  - Delegates all business logic to `packages/core`.
+- Do **not** add business rules, Telegram API calls, or heavy data processing into `apps/server`; push those into `packages/core`.
+
+### Bootstrap & Lifecycle
+
+- Preserve the bootstrap sequence from `src/app.ts`:
+  1. Parse env flags (`parseEnvFlags`).
+  2. Initialize logging (`initLogger` + `useLogger().useGlobalConfig()`).
+  3. Load and merge config (`loadConfigFromFile` + `mergeConfigWithEnv`).
+  4. Initialize database via `initDrizzle`.
+  5. Configure the HTTP/WebSocket server.
+  6. Start listening via `listhen` and register graceful shutdown handlers.
+- Any changes must keep this order clear and failure modes explicit.
+
+### HTTP & WebSocket Design
+
+- HTTP:
+  - Keep endpoints minimal: health checks, metrics, and potentially a small set of diagnostics.
+  - Reuse `h3` helpers (`createApp`, `createRouter`, `defineEventHandler`) and centralize error handling in `onError`.
+  - Never leak internal error details in HTTP responses; log full details, return generic messages.
+- WebSocket:
+  - Route all WS traffic through a dedicated module (e.g. `ws/routes`) that knows how to instantiate and manage `CoreContext`.
+  - Enforce **one `CoreContext` per connection**; no cross-connection sharing.
+  - When adding new events, ensure types are synchronized with `@tg-search/server/types` and `@tg-search/core`.
+
+### Configuration & Environment
+
+- Source configuration from `config.yaml` + environment variables only; avoid hard-coding URLs, ports, or credentials.
+- Keep the config schema compatible between server and browser modes where applicable (database, embedding, Telegram API).
+- When adding new configuration options:
+  - Document them in `config.example.yaml`.
+  - Provide safe defaults that will not break existing deployments.
+
+### Error Handling & Observability
+
+- Use central error handlers:
+  - `setupErrorHandlers` for process-level errors (uncaughtException, unhandledRejection).
+  - `h3`'s `onError` hook for HTTP path errors.
+- Metrics:
+  - Use `prom-client` and expose metrics from `/metrics` using the shared registry.
+  - Only add new metrics when they support explicit SLOs (latency, error rate, throughput).
+
