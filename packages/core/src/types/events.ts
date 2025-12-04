@@ -49,6 +49,16 @@ export interface SessionEventFromCore {
 }
 
 // ============================================================================
+// Account Events
+// ============================================================================
+
+export interface AccountEventToCore {}
+
+export interface AccountEventFromCore {
+  'account:ready': () => void
+}
+
+// ============================================================================
 // Account Settings Events
 // ============================================================================
 
@@ -320,6 +330,7 @@ export interface MessageResolverEventFromCore {}
 export type FromCoreEvent = ClientInstanceEventFromCore
   & MessageEventFromCore
   & DialogEventFromCore
+  & AccountEventFromCore
   & ConnectionEventFromCore
   & TakeoutEventFromCore
   & SessionEventFromCore
@@ -332,6 +343,7 @@ export type FromCoreEvent = ClientInstanceEventFromCore
 export type ToCoreEvent = ClientInstanceEventToCore
   & MessageEventToCore
   & DialogEventToCore
+  & AccountEventToCore
   & ConnectionEventToCore
   & TakeoutEventToCore
   & EntityEventToCore

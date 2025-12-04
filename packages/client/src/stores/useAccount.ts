@@ -1,7 +1,7 @@
 import { useLogger } from '@guiiai/logg'
 import { generateDefaultAccountSettings } from '@tg-search/core'
 import { defineStore, storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 import { useBridgeStore } from '../composables/useBridge'
 
@@ -9,10 +9,15 @@ export const useAccountStore = defineStore('account', () => {
   const accountSettings = ref(generateDefaultAccountSettings())
   const { activeSessionId } = storeToRefs(useBridgeStore())
 
-  const isReady = computed(() => {
-    const session = useBridgeStore().getActiveSession()
-    return !!session?.me
-  })
+  const isReady = ref(false)
+
+  function markReady() {
+    isReady.value = true
+  }
+
+  function resetReady() {
+    isReady.value = false
+  }
 
   function init() {
     if (isReady.value) {
@@ -29,7 +34,8 @@ export const useAccountStore = defineStore('account', () => {
 
   return {
     init,
-    isReady,
+    markReady,
+    resetReady,
     accountSettings,
   }
 })

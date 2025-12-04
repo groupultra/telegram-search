@@ -1,6 +1,6 @@
 import type { ClientRegisterEventHandlerFn } from './index'
 
-import { registerConfigEventHandlers } from './account-settings'
+import { registerAccountEventHandlers } from './account'
 import { registerBasicEventHandlers } from './auth'
 import { registerDialogEventHandlers } from './dialog'
 import { registerEntityEventHandlers } from './entity'
@@ -16,7 +16,7 @@ export function registerAllEventHandlers(
   registerBasicEventHandlers(registerEventHandler)
   registerEntityEventHandlers(registerEventHandler)
   registerTakeoutEventHandlers(registerEventHandler)
-  registerConfigEventHandlers(registerEventHandler)
+  registerAccountEventHandlers(registerEventHandler)
   registerDialogEventHandlers(registerEventHandler)
   registerStorageEventHandlers(registerEventHandler)
   registerMessageEventHandlers(registerEventHandler)

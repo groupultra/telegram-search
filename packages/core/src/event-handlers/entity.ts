@@ -24,6 +24,8 @@ export function registerEntityEventHandlers(ctx: CoreContext) {
 
       logger.withFields({ accountId: account.id }).verbose('Set current account ID')
 
+      emitter.emit('account:ready')
+
       // Bootstrap dialogs once the account context is established. This
       // ensures that any dialog/storage handlers relying on currentAccountId
       // see a consistent state.

@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
 import { useBridgeStore } from '../composables/useBridge'
+import { useAccountStore } from './useAccount'
 import { useMessageStore } from './useMessage'
 
 export const useAuthStore = defineStore('session', () => {
@@ -41,6 +42,7 @@ export const useAuthStore = defineStore('session', () => {
       return
     }
 
+    useAccountStore().resetReady()
     logger.log('Attempting login')
     websocketStore.sendEvent('auth:login', {
       session: activeSession.session,
