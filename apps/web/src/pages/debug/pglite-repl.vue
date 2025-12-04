@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePGliteDevDb } from '@tg-search/client'
-import { onMounted, ref } from 'vue'
+import { markRaw, onMounted, ref } from 'vue'
 
 import '@electric-sql/pglite-repl/webcomponent'
 
@@ -18,7 +18,9 @@ onMounted(() => {
   try {
     const db = usePGliteDevDb()
     if (db) {
-      pglite.value = db
+      // Ensure the PGlite instance is not wrapped in a reactive Proxy,
+      // which would break private field access inside the library.
+      pglite.value = markRaw(db)
       replReady.value = true
     }
     else {
@@ -30,7 +32,7 @@ onMounted(() => {
         attempts++
         const db = usePGliteDevDb()
         if (db) {
-          pglite.value = db
+          pglite.value = markRaw(db)
           replReady.value = true
           clearInterval(checkInterval)
         }
