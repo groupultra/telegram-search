@@ -2,8 +2,9 @@ import type { ClientRegisterEventHandler } from '.'
 
 import { useBridgeStore } from '../composables/useBridge'
 import { useAvatarStore } from '../stores/useAvatar'
+import { useBootstrapStore } from '../stores/useBootstrap'
 import { persistUserAvatar } from '../utils/avatar-cache'
-import { optimizeAvatarBlob } from '../utils/image'
+import { bytesToBlob, canDecodeAvatar } from '../utils/image'
 
 /**
  * Register entity-related client event handlers.
@@ -13,7 +14,17 @@ export function registerEntityEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
   registerEventHandler('entity:me:data', (data) => {
-    useBridgeStore().getActiveSession()!.me = data
+    const bridgeStore = useBridgeStore()
+    const bootstrapStore = useBootstrapStore()
+
+    const activeSession = bridgeStore.getActiveSession()
+    if (activeSession)
+      activeSession.me = data
+
+    // Now that core has recorded the account and set currentAccountId,
+    // signal frontend bootstrap that the account context is ready. This
+    // will perform client-side post-bootstrap work (e.g. hydrate dialogs).
+    bootstrapStore.markAccountReady()
   })
 
   // User avatar bytes -> blob url
@@ -22,8 +33,9 @@ export function registerEntityEventHandlers(
 
     let buffer: Uint8Array | undefined
     try {
-      if ((data.byte as any)?.data?.length)
-        buffer = new Uint8Array((data.byte as any).data)
+      // Type guard to check if byte is an object with data property
+      if (typeof data.byte === 'object' && 'data' in data.byte && Array.isArray(data.byte.data))
+        buffer = new Uint8Array(data.byte.data)
       else buffer = data.byte as Uint8Array
     }
     catch (error) {
@@ -32,17 +44,27 @@ export function registerEntityEventHandlers(
     }
 
     if (!buffer) {
-      // Use warn to comply with lint rule: allow only warn/error
-      console.warn('[Avatar] Missing byte for user avatar')
+      // Clear in-flight flag to avoid repeated sends
+      avatarStore.markUserFetchCompleted(data.userId)
       return
     }
 
-    const blob = await optimizeAvatarBlob(buffer, data.mimeType)
+    // Decode-check: only set src when image is decodable; otherwise let component fallback
+    const decodable = await canDecodeAvatar(buffer, data.mimeType)
+    if (!decodable) {
+      // Clear in-flight flag even if image is not decodable
+      avatarStore.markUserFetchCompleted(data.userId)
+      // Clean up ArrayBuffer references to help the GC reclaim memory
+      buffer = undefined
+      return
+    }
+    // Convert bytes to Blob directly (optimization step removed)
+    const blob = bytesToBlob(buffer, data.mimeType)
     const url = URL.createObjectURL(blob)
 
     // Persist optimized blob into IndexedDB for cache-first load next time
     try {
-      await persistUserAvatar(data.userId, blob, data.mimeType)
+      await persistUserAvatar(data.userId, blob, data.mimeType, data.fileId)
     }
     catch (error) {
       // Warn-only logging to comply with lint rules
@@ -50,6 +72,12 @@ export function registerEntityEventHandlers(
     }
 
     avatarStore.setUserAvatar(data.userId, { blobUrl: url, fileId: data.fileId, mimeType: data.mimeType })
+
+    // Clear in-flight flag after successful update
+    avatarStore.markUserFetchCompleted(data.userId)
+
+    // Clean up ArrayBuffer references to help the GC reclaim memory
+    buffer = undefined
 
     // console.warn('[Avatar] Updated user avatar', { userId: data.userId, fileId: data.fileId })
   })

@@ -1,6 +1,7 @@
 import NProgress from 'nprogress'
 
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
+import { initLogger, LoggerFormat } from '@guiiai/logg'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { usePGlite } from '@tg-search/core'
 import { setupPGliteDevtools } from '@unbird/pglite-inspector'
@@ -12,14 +13,16 @@ import { routes as generatedRoutes } from 'vue-router/auto-routes'
 
 import App from './App.vue'
 
-import { ensureChatAvatarDirective } from './directives/ensure-chat-avatar'
+import { LOG_LEVEL } from './constants'
 import { i18n } from './modules/i18n'
 
 import '@unocss/reset/tailwind.css'
-import 'uno.css'
 import 'nprogress/nprogress.css'
+import 'uno.css'
 import 'vue-sonner/style.css'
 import './styles/main.css'
+
+initLogger(LOG_LEVEL, LoggerFormat.Pretty)
 
 const app = createApp(App)
 
@@ -71,5 +74,4 @@ if (import.meta.env.DEV) {
   })
 }
 
-app.directive('ensure-chat-avatar', ensureChatAvatarDirective)
 app.mount('#app')

@@ -2,7 +2,7 @@
   "name": "@tg-search/client",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.20.0",
+  "packageManager": "pnpm@10.22.0",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -24,7 +24,7 @@
     "vue-sonner": "catalog:"
   },
   "devDependencies": {
-    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.3",
+    "@proj-airi/unplugin-drizzle-orm-migrations": "catalog:",
     "@types/culori": "^4.0.1",
     "@types/pako": "^2.0.4"
   }

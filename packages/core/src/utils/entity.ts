@@ -11,7 +11,7 @@ export function resolveEntity(entity: Entity): Result<CoreEntity> {
     return Ok({
       type: 'user',
       id: entity.id.toString(),
-      name: `${entity.firstName ?? ''} ${entity.lastName ?? ''}`,
+      name: [entity.firstName, entity.lastName].filter(Boolean).join(' ').trim(),
       username: entity.username ?? entity.id.toString(),
     })
   }

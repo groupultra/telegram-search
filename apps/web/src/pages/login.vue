@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore, useBridgeStore } from '@tg-search/client'
+import { useAuthStore, useAvatarStore, useBridgeStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -16,12 +16,13 @@ const route = useRoute()
 
 const authStore = useAuthStore()
 const websocketStore = useBridgeStore()
+const avatarStore = useAvatarStore()
 const { isLoggedIn } = storeToRefs(authStore)
 
 const state = ref({
   currentStep: 'phone' as LoginStep,
   showAdvancedSettings: false,
-  phoneNumber: websocketStore.getActiveSession()?.phoneNumber ?? '',
+  phoneNumber: '',
   verificationCode: '',
   twoFactorPassword: '',
 })
@@ -53,6 +54,13 @@ watch(isLoggedIn, (value) => {
   if (value) {
     authStore.auth.isLoading = false
     state.value.currentStep = 'complete'
+
+    // High-priority fetch for self avatar to avoid being queued behind chat list
+    const me = websocketStore.getActiveSession()?.me
+    if (me?.id) {
+      // Force refresh to always get the latest avatar on login
+      avatarStore.ensureUserAvatar(me.id, undefined, true)
+    }
   }
 })
 
@@ -102,7 +110,7 @@ async function handleLogin() {
         {{ steps.find(s => s.value === state.currentStep)?.description }}
       </p>
 
-      <!-- 手机号码表单 -->
+      <!-- Phone number form -->
       <form v-if="state.currentStep === 'phone'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
           <label for="phoneNumber" class="mb-2 block text-base font-semibold">{{ t('login.phoneNumber') }}</label>
@@ -126,7 +134,7 @@ async function handleLogin() {
         </button>
       </form>
 
-      <!-- 验证码表单 -->
+      <!-- Verification code form -->
       <form v-if="state.currentStep === 'code'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
           <label for="verificationCode" class="mb-2 block text-base font-semibold">{{ t('login.verificationCode') }}</label>
@@ -149,7 +157,7 @@ async function handleLogin() {
         </button>
       </form>
 
-      <!-- 两步验证密码表单 -->
+      <!-- Two-factor authentication password form -->
       <form v-if="state.currentStep === 'password'" class="space-y-6" @submit.prevent="handleLogin">
         <div>
           <label for="twoFactorPassword" class="mb-2 block text-base font-semibold">{{ t('login.twoFactorPassword') }}</label>
@@ -172,7 +180,7 @@ async function handleLogin() {
         </button>
       </form>
 
-      <!-- 登录完成 -->
+      <!-- Login complete -->
       <div v-if="state.currentStep === 'complete'" class="text-center">
         <div class="mb-4 text-3xl">
           🎉

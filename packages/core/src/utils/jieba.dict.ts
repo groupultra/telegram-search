@@ -6,7 +6,7 @@ import { Buffer } from 'buffer'
 import path from 'pathe'
 
 import { useLogger } from '@guiiai/logg'
-import { getDataPath } from '@tg-search/common/node/path'
+import { getDataPath } from '@tg-search/common/node'
 
 const DICT_URL = 'https://github.com/fxsjy/jieba/raw/master/extra_dict/dict.txt.small'
 const DICT_PATH = path.resolve(getDataPath(), 'dict.txt')

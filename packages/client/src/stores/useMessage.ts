@@ -1,6 +1,7 @@
 import type { CorePagination } from '@tg-search/common'
 import type { CoreMessage } from '@tg-search/core'
 
+import { useLogger } from '@guiiai/logg'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
@@ -20,6 +21,15 @@ export const useMessageStore = defineStore('message', () => {
   const messageWindow = ref<MessageWindow>()
 
   const websocketStore = useBridgeStore()
+
+  const logger = useLogger('MessageStore')
+
+  function reset() {
+    logger.log('Resetting message store for account switch')
+    currentChatId.value = undefined
+    messageWindow.value?.clear()
+    messageWindow.value = undefined
+  }
 
   function replaceMessages(messages: CoreMessage[], options?: { chatId?: string, limit?: number }) {
     const previousChatId = currentChatId.value
@@ -74,15 +84,14 @@ export const useMessageStore = defineStore('message', () => {
 
     const direction = determineMessageDirection(filteredMessages, messageWindow.value)
 
-    // eslint-disable-next-line no-console
-    console.log(`[MessageStore] Push ${filteredMessages.length} messages (${direction})`, filteredMessages)
+    logger.debug(`Push ${filteredMessages.length} messages (${direction})`, filteredMessages)
 
     if (messages.length === 0) {
       return
     }
 
     if (!messageWindow.value) {
-      console.warn('[MessageStore] Message window not initialized')
+      logger.warn('Message window not initialized')
       return
     }
 
@@ -113,8 +122,7 @@ export const useMessageStore = defineStore('message', () => {
     ) {
       isLoading.value = true
 
-      // eslint-disable-next-line no-console
-      console.log(`[MessageStore] Fetching messages for chat ${chatId}`, pagination.offset)
+      logger.log(`Fetching messages for chat ${chatId}`, pagination.offset)
 
       // Then, fetch the messages from server & update the cache
       switch (direction) {
@@ -138,7 +146,7 @@ export const useMessageStore = defineStore('message', () => {
         websocketStore.waitForEvent('storage:messages'),
         createContextWithTimeout(10000),
       ]).catch(() => {
-        console.warn('[MessageStore] Message fetch timed out or failed')
+        logger.warn('Message fetch timed out or failed')
       }).finally(() => {
         isLoading.value = false
       })
@@ -153,11 +161,12 @@ export const useMessageStore = defineStore('message', () => {
   return {
     chatId: computed(() => currentChatId),
     sortedMessageIds: computed(() => messageWindow.value?.getSortedIds() ?? []),
-    // FIXME: too heavy to compute every time
+    // TODO: too heavy to compute every time
     sortedMessageArray: computed(() => messageWindow.value?.getSortedIds().map(id => messageWindow.value!.get(id)!) ?? []),
     messageWindow: computed(() => messageWindow.value!),
 
     replaceMessages,
+    reset,
     pushMessages,
     useFetchMessages,
     loadMessageContext,

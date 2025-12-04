@@ -1,20 +1,17 @@
 import type { Config } from '@tg-search/common'
 
 import type { CoreContext } from './context'
-import type { SessionService } from './services/session'
 
 import { useLogger } from '@guiiai/logg'
-import { isBrowser } from '@tg-search/common'
 
 import { useService } from './context'
+import { registerAccountSettingsEventHandlers } from './event-handlers/account-settings'
 import { registerBasicEventHandlers } from './event-handlers/auth'
-import { registerConfigEventHandlers } from './event-handlers/config'
 import { registerDialogEventHandlers } from './event-handlers/dialog'
 import { registerEntityEventHandlers } from './event-handlers/entity'
 import { registerGramEventsEventHandlers } from './event-handlers/gram-events'
 import { registerMessageEventHandlers } from './event-handlers/message'
 import { registerMessageResolverEventHandlers } from './event-handlers/message-resolver'
-import { registerSessionEventHandlers } from './event-handlers/session'
 import { registerStorageEventHandlers } from './event-handlers/storage'
 import { registerTakeoutEventHandlers } from './event-handlers/takeout'
 import { useMessageResolverRegistry } from './message-resolvers'
@@ -24,7 +21,7 @@ import { createJiebaResolver } from './message-resolvers/jieba-resolver'
 import { createLinkResolver } from './message-resolvers/link-resolver'
 import { createMediaResolver } from './message-resolvers/media-resolver'
 import { createUserResolver } from './message-resolvers/user-resolver'
-import { createConfigService } from './services/config'
+import { createAccountSettingsService } from './services/account-settings'
 import { createConnectionService } from './services/connection'
 import { createDialogService } from './services/dialog'
 import { createEntityService } from './services/entity'
@@ -35,10 +32,7 @@ import { createTakeoutService } from './services/takeout'
 
 type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
 
-export function basicEventHandler(
-  ctx: CoreContext,
-  config: Config,
-): EventHandler {
+export function basicEventHandler(ctx: CoreContext, config: Config): EventHandler {
   const registry = useMessageResolverRegistry()
 
   const connectionService = useService(ctx, createConnectionService)({
@@ -46,61 +40,54 @@ export function basicEventHandler(
     apiHash: config.api.telegram.apiHash!,
     proxy: config.api.telegram.proxy,
   })
-  const configService = useService(ctx, createConfigService)
+  const configService = useService(ctx, createAccountSettingsService)
   const messageResolverService = useService(ctx, createMessageResolverService)(registry)
 
   registry.register('media', createMediaResolver(ctx))
   registry.register('user', createUserResolver(ctx))
   // Centralized avatar fetching for users (via messages)
+  // Note: avatar resolver is registered but filtered by the disabled list
+  // (see message-resolver service). Current strategy is client-driven and
+  // on-demand via frontend events; the resolver remains available to enable
+  // server-side prefetch in the future if desired.
   registry.register('avatar', createAvatarResolver(ctx))
   registry.register('link', createLinkResolver())
-  registry.register('embedding', createEmbeddingResolver())
+  registry.register('embedding', createEmbeddingResolver(ctx))
   registry.register('jieba', createJiebaResolver())
 
   registerStorageEventHandlers(ctx)
-  registerConfigEventHandlers(ctx)(configService)
+  registerAccountSettingsEventHandlers(ctx)(configService)
   registerMessageResolverEventHandlers(ctx)(messageResolverService)
 
   ;(async () => {
-    let sessionService: SessionService
-
-    if (isBrowser()) {
-      const { createSessionService } = await import('./services/session.browser')
-      sessionService = useService(ctx, createSessionService)
-    }
-    else {
-      const { createSessionService } = await import('./services/session')
-      sessionService = useService(ctx, createSessionService)
-    }
-
-    registerBasicEventHandlers(ctx)(connectionService, sessionService)
-    registerSessionEventHandlers(ctx)(sessionService)
+    registerBasicEventHandlers(ctx)(connectionService)
   })()
 
   return () => {}
 }
 
-export function afterConnectedEventHandler(
-  ctx: CoreContext,
-  _config: Config,
-): EventHandler {
-  const { emitter } = ctx
-
-  emitter.on('auth:connected', () => {
+export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
+  ctx.emitter.once('auth:connected', () => {
+    const entityService = useService(ctx, createEntityService)
     const messageService = useService(ctx, createMessageService)
     const dialogService = useService(ctx, createDialogService)
     const takeoutService = useService(ctx, createTakeoutService)
-    const entityService = useService(ctx, createEntityService)
     const gramEventsService = useService(ctx, createGramEventsService)
+
+    // Register entity handlers first so we can establish currentAccountId.
+    registerEntityEventHandlers(ctx)(entityService)
+
+    // Ensure current account ID is established before any dialog/storage access.
+    ctx.emitter.emit('entity:me:fetch')
 
     registerMessageEventHandlers(ctx)(messageService)
     registerDialogEventHandlers(ctx)(dialogService)
     registerTakeoutEventHandlers(ctx)(takeoutService)
-    registerEntityEventHandlers(ctx)(entityService)
     registerGramEventsEventHandlers(ctx)(gramEventsService)
 
-    // Init all entities
-    emitter.emit('dialog:fetch')
+    // Dialog bootstrap is now triggered from entity:me:fetch handler once
+    // currentAccountId has been established, to avoid races where dialog or
+    // storage handlers read account context too early.
     gramEventsService.registerGramEvents()
   })
 

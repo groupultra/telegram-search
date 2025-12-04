@@ -17,6 +17,11 @@ const selectedChats = defineModel<number[]>('selectedChats', {
   required: true,
 })
 
+// Currently focused chat for status/visualization panel
+const activeChatId = defineModel<number | null>('activeChatId', {
+  default: null,
+})
+
 /**
  * Build chat type options localized by current language.
  * Returns localized labels with corresponding values for the dropdown.
@@ -92,6 +97,9 @@ function toggleSelection(id: number): void {
     newSelection.splice(index, 1)
 
   selectedChats.value = newSelection
+
+  // Always focus the chat that was interacted with so status panel switches accordingly
+  activeChatId.value = id
 }
 </script>
 

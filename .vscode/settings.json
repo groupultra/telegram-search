@@ -112,5 +112,6 @@
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "[vue]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
-  }
+  },
+  "findUnusedExports.detectCircularImports": true
 }

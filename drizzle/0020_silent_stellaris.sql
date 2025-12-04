@@ -1,0 +1,1 @@
+ALTER TABLE "accounts" ADD COLUMN "settings" jsonb DEFAULT '{"embedding":{"provider":"openai","model":"text-embedding-3-small","dimension":1536,"apiKey":"","apiBase":""},"llm":{"provider":"openai","model":"gpt-4o-mini","apiKey":"","apiBase":"https://api.openai.com/v1","temperature":0.7,"maxTokens":2000},"resolvers":{"disabledResolvers":["avatar"]}}'::jsonb;

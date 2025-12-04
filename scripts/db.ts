@@ -2,16 +2,20 @@ import process from 'node:process'
 
 import { spawn } from 'node:child_process'
 
-import { useLogger } from '@guiiai/logg'
+import { initLogger, useLogger } from '@guiiai/logg'
 
-import { getDatabaseDSN, initConfig, parseEnvFlags, useConfig } from '../packages/common/src'
+import { getDatabaseDSN, mergeConfigWithEnv, parseEnvFlags } from '../packages/common/src'
+import { loadConfigFromFile } from '../packages/common/src/node'
 
 (async () => {
   const flags = parseEnvFlags(process.env)
-  await initConfig(flags)
+  initLogger(flags.logLevel, flags.logFormat)
+
+  const config = mergeConfigWithEnv(process.env, await loadConfigFromFile())
+
   const logger = useLogger('script:drizzle')
 
-  const dsn = getDatabaseDSN(useConfig())
+  const dsn = getDatabaseDSN(config.database)
   const args = process.argv.slice(2)
 
   try {
@@ -20,17 +24,8 @@ import { getDatabaseDSN, initConfig, parseEnvFlags, useConfig } from '../package
         ...process.env,
         DATABASE_DSN: dsn,
       },
-      stdio: 'pipe',
-      shell: true,
-    })
-
-    child.stdout.on('data', (data) => {
-      // eslint-disable-next-line no-console
-      console.log(data.toString())
-    })
-
-    child.stderr.on('data', (data) => {
-      console.error(data.toString())
+      stdio: 'inherit', // Use current terminal's stdin/stdout/stderr
+      shell: false,
     })
 
     await new Promise<void>((resolve, reject) => {

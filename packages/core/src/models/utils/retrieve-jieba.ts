@@ -6,11 +6,13 @@ import { useLogger } from '@guiiai/logg'
 import { and, eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../../db'
-import { chatMessagesTable } from '../../schemas/chat_messages'
-import { joinedChatsTable } from '../../schemas/joined_chats'
+import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
+import { chatMessagesTable } from '../../schemas/chat-messages'
+import { joinedChatsTable } from '../../schemas/joined-chats'
 import { ensureJieba } from '../../utils/jieba'
 
 export async function retrieveJieba(
+  accountId: string,
   chatId: string | undefined,
   content: string,
   pagination?: CorePagination,
@@ -28,6 +30,7 @@ export async function retrieveJieba(
   }
 
   logger.withFields({
+    accountId,
     chatId,
     content,
     jiebaTokens,
@@ -41,6 +44,12 @@ export async function retrieveJieba(
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
     filters?.timeRange?.start ? sql`${chatMessagesTable.platform_timestamp} >= ${filters.timeRange.start}` : undefined,
     filters?.timeRange?.end ? sql`${chatMessagesTable.platform_timestamp} <= ${filters.timeRange.end}` : undefined,
+    // ACL: for private dialogs, only return messages owned by this account (or legacy NULL owner).
+    sql`(
+      ${joinedChatsTable.chat_type} != 'user'
+      OR ${chatMessagesTable.owner_account_id} = ${accountId}
+      OR ${chatMessagesTable.owner_account_id} IS NULL
+    )`,
   ].filter(Boolean)
 
   return (await withDb(db => db
@@ -52,6 +61,7 @@ export async function retrieveJieba(
       from_name: chatMessagesTable.from_name,
       from_user_uuid: chatMessagesTable.from_user_uuid,
       in_chat_id: chatMessagesTable.in_chat_id,
+      in_chat_type: chatMessagesTable.in_chat_type,
       content: chatMessagesTable.content,
       is_reply: chatMessagesTable.is_reply,
       reply_to_name: chatMessagesTable.reply_to_name,
@@ -61,10 +71,18 @@ export async function retrieveJieba(
       deleted_at: chatMessagesTable.deleted_at,
       platform_timestamp: chatMessagesTable.platform_timestamp,
       jieba_tokens: chatMessagesTable.jieba_tokens,
+      owner_account_id: chatMessagesTable.owner_account_id,
       chat_name: joinedChatsTable.chat_name,
     })
     .from(chatMessagesTable)
-    .leftJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
+    .innerJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
+    .innerJoin(
+      accountJoinedChatsTable,
+      and(
+        eq(accountJoinedChatsTable.joined_chat_id, joinedChatsTable.id),
+        eq(accountJoinedChatsTable.account_id, accountId),
+      ),
+    )
     .where(and(...whereConditions))
     .limit(pagination?.limit || 20),
   )).expect('Failed to fetch text relevant messages')

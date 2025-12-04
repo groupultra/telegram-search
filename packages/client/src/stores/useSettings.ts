@@ -1,12 +1,8 @@
 // https://github.com/moeru-ai/airi/blob/d4a1e9f5f67201f7a25960956ce97e20edfecdfa/packages/stage/src/stores/settings.ts
-
-import type { Config } from '@tg-search/common'
 import type { DialogType } from '@tg-search/core'
 
-import { generateDefaultConfig } from '@tg-search/common'
 import { useLocalStorage } from '@vueuse/core'
 import { converter } from 'culori'
-import { defu } from 'defu'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
@@ -24,9 +20,6 @@ export const useSettingsStore = defineStore('settings', () => {
   const useCachedMessage = useLocalStorage<boolean>('settings/use-cached-message-v2', true)
 
   const theme = useLocalStorage<string>('settings/theme', 'default')
-
-  // FIXME: Merge with common/config
-  const storageConfig = useLocalStorage<Config>('settings/config', generateDefaultConfig())
 
   const themeColorsHue = useLocalStorage('settings/theme/colors/hue', DEFAULT_THEME_COLORS_HUE)
   const themeColorsHueDynamic = useLocalStorage('settings/theme/colors/hue-dynamic', false)
@@ -70,8 +63,6 @@ export const useSettingsStore = defineStore('settings', () => {
       return
     }
 
-    // Merge with default config
-    storageConfig.value = defu({}, storageConfig.value, generateDefaultConfig())
     isInitialized.value = true
   }
 
@@ -83,7 +74,6 @@ export const useSettingsStore = defineStore('settings', () => {
     themeColorsHueDynamic,
     isColorSelectedForPrimary,
     applyPrimaryColorFrom,
-    config: storageConfig,
     selectedGroup,
     useCachedMessage,
     debugMode,

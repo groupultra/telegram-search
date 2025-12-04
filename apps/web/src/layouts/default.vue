@@ -1,21 +1,23 @@
 <script lang="ts" setup>
 import type { ChatGroup } from '@tg-search/client'
+import type { CoreDialog } from '@tg-search/core/types'
 
 import buildTime from '~build/time'
 
-import { prefillChatAvatarIntoStore, prefillUserAvatarIntoStore, useAvatarStore, useBridgeStore, useChatStore, useSettingsStore } from '@tg-search/client'
+import { prefillChatAvatarIntoStore, useBridgeStore, useChatStore, useSettingsStore } from '@tg-search/client'
 import { breakpointsTailwind, useBreakpoints, useDark } from '@vueuse/core'
 import { abbreviatedSha as gitShortSha } from '~build/git'
 import { version as pkgVersion } from '~build/package'
 import { storeToRefs } from 'pinia'
 import { VList } from 'virtua/vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
+import EntityAvatar from '../components/avatar/EntityAvatar.vue'
 import LanguageSelector from '../components/layout/LanguageSelector.vue'
 import SidebarSelector from '../components/layout/SidebarSelector.vue'
-import Avatar from '../components/ui/Avatar.vue'
+import UserDropdown from '../components/layout/UserDropdown.vue'
 
 import { Button } from '../components/ui/Button'
 
@@ -26,7 +28,6 @@ const isDark = useDark()
 const websocketStore = useBridgeStore()
 const route = useRoute()
 const router = useRouter()
-const avatarStore = useAvatarStore()
 
 const { t } = useI18n()
 
@@ -57,6 +58,9 @@ const isMobile = breakpoints.smaller('md') // < 768px
 
 // Mobile drawer state
 const mobileDrawerOpen = ref(false)
+
+// User dropdown state
+const userDropdownOpen = ref(false)
 
 const chatStore = useChatStore()
 const chats = computed(() => chatStore.chats)
@@ -125,47 +129,12 @@ function closeMobileDrawer() {
   }
 }
 
-function handleAvatarClick() {
-  if (!websocketStore.getActiveSession()?.isConnected) {
-    router.push({
-      path: '/login',
-      query: { redirect: route.fullPath },
-    })
-  }
-}
-
-/**
- * Setup current user's avatar state and lazy fetch.
- * - Computes avatar URL via `useAvatarStore` for active session user.
- * - Ensures avatar is fetched when layout mounts and when connection status changes.
- */
-function useCurrentUserAvatar() {
-  const meId = computed(() => websocketStore.getActiveSession()?.me?.id)
-  const userAvatarSrc = computed(() => avatarStore.getUserAvatarUrl(meId.value))
-
-  onMounted(() => {
-    if (meId.value) {
-      // Prefill from disk cache to speed up first paint
-      prefillUserAvatarIntoStore(meId.value).finally(() => avatarStore.ensureUserAvatar(meId.value))
-    }
-  })
-
-  watch(() => websocketStore.getActiveSession()?.isConnected, (connected) => {
-    if (connected && meId.value)
-      avatarStore.ensureUserAvatar(meId.value)
-  })
-
-  return { userAvatarSrc }
-}
-
-const { userAvatarSrc } = useCurrentUserAvatar()
-
 /**
  * Prefill chat avatars from persistent cache in parallel.
  * - Avoids sequential IndexedDB waits when chat list is large.
  * - Only warms cache; network fetch continues to be driven by server events.
  */
-async function prefillChatAvatarsParallel(list: any[]) {
+async function prefillChatAvatarsParallel(list: CoreDialog[]) {
   const tasks = list.map(chat => prefillChatAvatarIntoStore(chat.id))
   try {
     await Promise.all(tasks)
@@ -175,22 +144,14 @@ async function prefillChatAvatarsParallel(list: any[]) {
   }
 }
 
-// Prefill chat avatars when chat list changes (parallelized)
-watch(chats, (list) => {
-  void prefillChatAvatarsParallel(list)
-}, { immediate: true })
-
 /**
- * Prioritize fetching avatars for currently visible chats.
- * - Prefills small set from disk cache
- * - Triggers prioritized network fetch for missing avatars
+ * Prefill avatars for currently visible chats only.
+ * - Warms disk -> memory cache for first `count` items
+ * - Does NOT trigger network; visible elements use composable ensure
  */
-async function prioritizeVisibleAvatars(list: any[], count = 50) {
+async function prioritizeVisibleAvatars(list: CoreDialog[], count = 50) {
   const top = list.slice(0, count)
   await prefillChatAvatarsParallel(top)
-  for (const chat of top) {
-    avatarStore.ensureChatAvatar(chat.id, chat.avatarFileId)
-  }
 }
 
 // Prioritize visible avatars on group change and initial render
@@ -321,16 +282,17 @@ watch(activeGroupChats, (list) => {
             <template #default="{ item: chat }">
               <div
                 :key="chat.id"
-                v-ensure-chat-avatar="{ chatId: chat.id, fileId: chat.avatarFileId }"
                 :class="{ 'bg-accent text-accent-foreground': route.params.chatId === chat.id.toString() }"
                 class="mx-2 my-0.5 flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
                 @click="router.push(`/chat/${chat.id}`)"
               >
-                <Avatar
-                  :src="avatarStore.getChatAvatarUrl(chat.id)"
+                <EntityAvatar
+                  :id="chat.id"
+                  entity="other"
+                  entity-type="chat"
+                  :file-id="chat.avatarFileId"
                   :name="chat.name"
                   size="sm"
-                  class="flex-shrink-0"
                 />
                 <div class="min-w-0 flex flex-1 flex-col">
                   <span class="truncate text-sm font-medium">
@@ -347,16 +309,18 @@ watch(activeGroupChats, (list) => {
       </div>
 
       <!-- User profile section -->
-      <div class="border-t p-3">
+      <div class="relative border-t p-3">
         <div class="flex items-center justify-between gap-2">
           <div
-            class="min-w-0 flex flex-1 cursor-pointer items-center gap-2.5 transition-opacity hover:opacity-80"
-            :class="{ 'cursor-pointer': !websocketStore.getActiveSession()?.isConnected }"
-            @click="handleAvatarClick"
+            class="min-w-0 flex flex-1 cursor-pointer items-center gap-2.5 rounded-md p-1 transition-colors hover:bg-accent"
+            @click="userDropdownOpen = !userDropdownOpen"
           >
             <div class="h-8 w-8 flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
-              <Avatar
-                :src="userAvatarSrc"
+              <EntityAvatar
+                v-if="websocketStore.getActiveSession()?.me?.id != null"
+                :id="websocketStore.getActiveSession()?.me?.id!"
+                entity="self"
+                entity-type="user"
                 :name="websocketStore.getActiveSession()?.me?.name"
                 size="sm"
               />
@@ -365,6 +329,7 @@ watch(activeGroupChats, (list) => {
               <span class="truncate text-sm font-medium">{{ websocketStore.getActiveSession()?.me?.name }}</span>
               <span class="truncate text-xs text-muted-foreground">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
             </div>
+            <div class="i-lucide-chevron-up h-4 w-4 flex-shrink-0 text-muted-foreground" />
           </div>
 
           <!-- Control buttons -->
@@ -381,6 +346,9 @@ watch(activeGroupChats, (list) => {
             <LanguageSelector />
           </div>
         </div>
+
+        <!-- User dropdown menu -->
+        <UserDropdown v-model:open="userDropdownOpen" />
       </div>
     </div>
 

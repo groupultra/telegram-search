@@ -4,16 +4,17 @@ packages:
   - apps/*
 
 catalog:
-  '@guiiai/logg': ^1.2.5
+  '@guiiai/logg': ^1.2.6
+  '@proj-airi/drizzle-orm-browser-migrator': ^0.1.4
+  '@proj-airi/unplugin-drizzle-orm-migrations': ^0.1.4
   '@unbird/result': ^1.1.1
-  '@xsai-ext/providers-cloud': ^0.4.0-beta.8
-  '@xsai-ext/providers-local': ^0.4.0-beta.8
-  '@xsai/embed': ^0.4.0-beta.8
-  '@xsai/tool': ^0.4.0-beta.8
+  '@xsai-ext/providers-cloud': ^0.4.0-beta.9
+  '@xsai-ext/providers-local': ^0.4.0-beta.9
+  '@xsai/embed': ^0.4.0-beta.9
+  '@xsai/tool': ^0.4.0-beta.9
   tsdown: ^0.16.0
   vue-sonner: ^2.0.9
-  xsai: ^0.4.0-beta.8
-  xsschema: ^0.4.0-beta.8
+  xsai: ^0.4.0-beta.9
 
 onlyBuiltDependencies:
   - '@parcel/watcher'

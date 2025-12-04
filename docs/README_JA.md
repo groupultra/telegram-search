@@ -11,13 +11,28 @@
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/NzYsmJSgCT"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2FNzYsmJSgCT%3Fwith_counts%3Dtrue&query=%24.approximate_member_count&suffix=%20members&logo=discord&logoColor=white&label=%20&color=7389D8&labelColor=6A7EC2"></a>
-  <a href="https://t.me/+Gs3SH2qAPeFhYmU9"><img src="https://img.shields.io/badge/Telegram-%235AA9E6?logo=telegram&labelColor=FFFFFF"></a>
+  <a href="https://discord.gg/NzYsmJSgCT">
+    <img alt="Discord" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2FNzYsmJSgCT%3Fwith_counts%3Dtrue&query=%24.approximate_member_count&suffix=%20members&logo=discord&logoColor=white&label=%20&color=7389D8&labelColor=6A7EC2" />
+  </a>
+  <a href="https://t.me/+Gs3SH2qAPeFhYmU9">
+    <img alt="Telegram" src="https://img.shields.io/badge/Telegram-%235AA9E6?logo=telegram&labelColor=FFFFFF" />
+  </a>
+  <a href="https://deepwiki.com/groupultra/telegram-search">
+    <img alt="DeepWiki" src="https://deepwiki.com/badge.svg" />
+  </a>
   <br>
-  <a href="https://github.com/groupultra/telegram-search/releases"><img src="https://img.shields.io/github/package-json/v/groupultra/telegram-search?style=flat&colorA=080f12&colorB=1fa669"></a>
-  <a href="https://github.com/groupultra/telegram-search/actions"><img src="https://img.shields.io/github/actions/workflow/status/groupultra/telegram-search/ci.yaml?style=flat&colorA=080f12&colorB=1fa669"></a>
-  <a href="https://app.netlify.com/projects/tgsearch/deploys"><img src="https://api.netlify.com/api/v1/badges/89bfbfd2-0f73-41b0-8db4-4ab6b6512f6e/deploy-status"></a>
-  <a href="https://deepwiki.com/groupultra/telegram-search"><img src="https://deepwiki.com/badge.svg"></a>
+  <a href="https://github.com/groupultra/telegram-search/releases">
+    <img alt="GitHub Package Version" src="https://img.shields.io/github/package-json/v/groupultra/telegram-search?style=flat&colorA=080f12&colorB=1fa669" />
+  </a>
+  <a href="https://github.com/groupultra/telegram-search/actions/workflows/release-docker.yaml">
+    <img alt="Release Docker / OCI" src="https://github.com/groupultra/telegram-search/actions/workflows/release-docker.yaml/badge.svg" />
+  </a>
+  <a href="https://github.com/groupultra/telegram-search/actions/workflows/ci.yaml">
+    <img alt="CI" src="https://github.com/groupultra/telegram-search/actions/workflows/ci.yaml/badge.svg" />
+  </a>
+  <a href="https://app.netlify.com/sites/tgsearch/deploys">
+    <img alt="Netlify Status" src="https://api.netlify.com/api/v1/badges/89bfbfd2-0f73-41b0-8db4-4ab6b6512f6e/deploy-status" />
+  </a>
 </p>
 
 **強力なセマンティック検索で Telegram メッセージを簡単に検索・エクスポート。すべての言語と分かち書きなしの文に対応。**
@@ -38,18 +53,18 @@
 ### 🔍 チャット履歴の検索
 - [x] キーワード検索：多言語対応（中国語、英語など）
 - [x] 自然言語検索：質問するようにメッセージを検索
-- [ ] スマートフィルター：連絡先/グループ、時間範囲、添付ファイル付きなど
+- [x] スマートフィルター：連絡先/グループ、時間範囲、添付ファイル付きなど
 
 ### 🔄 同期とストレージ
 - [x] 増分同期：使用中に同期
 - [x] ストレージオプション：サーバー（PostgreSQL + pgvector）またはブラウザのみモード（PGlite）
 - [ ] 中断からの再開：失敗後に自動的に続行
 
-### 🧠 AI 機能（予定）
-- [ ] チャットについて AI に質問：現在のチャットまたは選択範囲を照会
+### 🧠 AI 機能
+- [x] チャットについて AI に質問：現在のチャットまたは選択範囲を照会
 - [ ] AI メッセージ要約：キーポイント、ToDo、結論を自動抽出
-- [ ] AI 駆動検索：自然言語クエリで正確な結果を取得
-- [ ] AI チャット：チャットコンテキストに基づいて AI と会話
+- [x] AI 駆動検索：自然言語クエリで正確な結果を取得
+- [x] AI チャット：チャットコンテキストに基づいて AI と会話
 - [ ] AI 分析：トレンド、感情、キーワード、リンクとファイルからの洞察
 - [ ] ローカルモデルサポート：ローカル Embedding / 推論（クラウド不要）
 
@@ -99,14 +114,13 @@ docker run -d --name telegram-search \
 | `TELEGRAM_API_HASH` | Telegram アプリ Hash |
 | `DATABASE_TYPE` | `postgres` または `pglite`（デフォルト：`pglite`） |
 | `DATABASE_URL` | PostgreSQL 接続文字列（`DATABASE_TYPE=postgres` の場合のみ） |
-| `EMBEDDING_API_KEY` | OpenAI/Ollama の API キー |
-| `EMBEDDING_BASE_URL` | カスタム Embedding API ベース URL |
-| `EMBEDDING_PROVIDER` | `openai` または `ollama` |
-| `EMBEDDING_MODEL` | モデル名 |
-| `EMBEDDING_DIMENSION` | Embedding 次元（例：`1536`、`1024`、`768`） |
 | `PROXY_URL` | プロキシ URL（例：`socks5://user:pass@host:port`） |
 
-**PostgreSQL と Embeddings を使用する例：**
+> [!IMPORTANT]
+> AI Embedding & LLM 設定は現在アプリ内で**アカウントごとに設定**されています（設定 → API）。  
+> 環境変数 like `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, etc. は廃止され、将来のリリースで削除されます。
+
+**PostgreSQL を使用する例：**
 
 ```bash
 docker run -d --name telegram-search \

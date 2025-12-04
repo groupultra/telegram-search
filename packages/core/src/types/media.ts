@@ -43,4 +43,5 @@ export type CoreMessageMediaFromCache = CoreMessageMedia & {
 export type CoreMessageMediaFromBlob = CoreMessageMedia & {
   blobUrl?: string
   mimeType?: string
+  tgsAnimationData?: string
 }

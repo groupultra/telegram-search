@@ -24,12 +24,6 @@ export function createDialogService(ctx: CoreContext) {
    */
   const avatarHelper = useAvatarHelper(ctx)
 
-  /**
-   * In-memory map of dialog entities keyed by `chatId`.
-   * Helps resolve a single dialog entity quickly for prioritized avatar fetching.
-   */
-  const dialogEntities = new Map<number, Api.User | Api.Chat | Api.Channel>()
-
   // Single-fetch deduplication is handled in the centralized helper
 
   /**
@@ -112,14 +106,6 @@ export function createDialogService(ctx: CoreContext) {
         continue
       }
 
-      // Cache entity for prioritized single fetch later
-      try {
-        const id = dialog.entity.id?.toJSNumber?.()
-        if (id)
-          dialogEntities.set(id, dialog.entity as Api.User | Api.Chat | Api.Channel)
-      }
-      catch {}
-
       const result = resolveDialog(dialog).orUndefined()
       if (!result) {
         continue
@@ -156,37 +142,19 @@ export function createDialogService(ctx: CoreContext) {
 
     emitter.emit('dialog:data', { dialogs })
 
-    // Kick off avatar download in background
-    void avatarHelper.fetchDialogAvatars(dialogList, 12).catch(error => logger.withError(error).warn('Failed to fetch dialog avatars'))
-
     return Ok(dialogs)
   }
 
-  // Removed legacy local `fetchDialogAvatars` implementation.
-  // Avatars are now fetched via centralized AvatarHelper for consistency.
-
-  /**
-   * Fetch a single dialog's small avatar immediately and emit incremental update.
-   *
-   * Logic:
-   * - Resolve dialog entity from in-memory map or via Telegram API.
-   * - If cached and `fileId` unchanged, skip redundant emit.
-   * - Dedupe concurrent requests for the same `chatId` to avoid wasted work.
-   * - Download small avatar bytes and emit `dialog:avatar:data`.
-   */
-  /**
-   * Fetch a single dialog avatar via centralized AvatarHelper.
-   * Reuses dialog entity cache populated during fetchDialogs when available.
-   */
   async function fetchSingleDialogAvatar(chatId: string | number) {
-    await avatarHelper.fetchDialogAvatar(chatId, { entityOverride: dialogEntities.get(typeof chatId === 'string' ? Number(chatId) : chatId) })
+    // Do not pass long-lived entity overrides; rely on helper's LRU/TTL or fresh resolution
+    await avatarHelper.fetchDialogAvatar(chatId)
   }
 
   return {
     fetchDialogs,
     // Delegated to AvatarHelper
     fetchDialogAvatars: async (dialogs: Dialog[]) => {
-      await avatarHelper.fetchDialogAvatars(dialogs, 8)
+      await avatarHelper.fetchDialogAvatars(dialogs)
     },
     fetchSingleDialogAvatar,
   }

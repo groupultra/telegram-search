@@ -1,27 +1,30 @@
-import type { RuntimeFlags } from '@tg-search/common'
+import type { Config, RuntimeFlags } from '@tg-search/common'
 import type { CrossWSOptions } from 'listhen'
 
 import process from 'node:process'
 
 import { initLogger, useLogger } from '@guiiai/logg'
-import { initConfig, parseEnvFlags } from '@tg-search/common'
+import { mergeConfigWithEnv, parseEnvFlags } from '@tg-search/common'
+import { loadConfigFromFile } from '@tg-search/common/node'
 import { initDrizzle } from '@tg-search/core'
 import { createApp, createRouter, defineEventHandler, toNodeListener } from 'h3'
 import { listen } from 'listhen'
+import { collectDefaultMetrics, register } from 'prom-client'
+
+import pkg from '../package.json' with { type: 'json' }
 
 import { setupWsRoutes } from './ws/routes'
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
-  // TODO: fix type
-  const handleError = (error: any, type: string) => {
-    logger.withFields({ cause: String(error?.cause), cause_json: JSON.stringify(error?.cause) }).withError(error).error(type)
+  const handleError = (error: unknown, type: string) => {
+    logger.withError(error).error(type)
   }
 
   process.on('uncaughtException', error => handleError(error, 'Uncaught exception'))
   process.on('unhandledRejection', error => handleError(error, 'Unhandled rejection'))
 }
 
-function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFlags) {
+function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFlags, config: Config) {
   const app = createApp({
     debug: flags.isDebugMode,
     onRequest(event) {
@@ -60,20 +63,35 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
     return Response.json({ success: true })
   }))
 
+  collectDefaultMetrics()
+  router.get('/metrics', defineEventHandler(async () => {
+    const metrics = await register.metrics()
+    return new Response(metrics, {
+      status: 200,
+      headers: { 'Content-Type': register.contentType },
+    })
+  }))
+
   app.use(router)
-  setupWsRoutes(app)
+  setupWsRoutes(app, config)
 
   return app
 }
 
 async function bootstrap() {
-  const flags = parseEnvFlags(process.env as Record<string, string>)
+  const flags = parseEnvFlags(process.env)
   initLogger(flags.logLevel, flags.logFormat)
   const logger = useLogger().useGlobalConfig()
-  const config = await initConfig(flags)
+
+  logger.log(`Telegram Search v${pkg.version}`)
+
+  const config = mergeConfigWithEnv(process.env, await loadConfigFromFile())
 
   try {
-    await initDrizzle(logger, config, { isDatabaseDebugMode: flags.isDatabaseDebugMode })
+    await initDrizzle(logger, config, {
+      isDatabaseDebugMode: flags.isDatabaseDebugMode,
+      disableMigrations: flags.disableMigrations,
+    })
     logger.log('Database initialized successfully')
   }
   catch (error) {
@@ -83,7 +101,7 @@ async function bootstrap() {
 
   setupErrorHandlers(logger)
 
-  const app = configureServer(logger, flags)
+  const app = configureServer(logger, flags, config)
   const listener = toNodeListener(app)
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000

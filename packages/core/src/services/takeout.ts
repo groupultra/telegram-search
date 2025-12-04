@@ -10,6 +10,9 @@ import { useLogger } from '@guiiai/logg'
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
+import { TELEGRAM_HISTORY_INTERVAL_MS } from '../constants'
+import { createMinIntervalWaiter } from '../utils/min-interval'
+
 export type TakeoutService = ReturnType<typeof createTakeoutService>
 
 // https://core.telegram.org/api/takeout
@@ -17,6 +20,9 @@ export function createTakeoutService(ctx: CoreContext) {
   const { withError, getClient } = ctx
 
   const logger = useLogger()
+
+  // Abortable min-interval waiter shared within this service
+  const waitHistoryInterval = createMinIntervalWaiter(TELEGRAM_HISTORY_INTERVAL_MS)
 
   async function initTakeout() {
     const fileMaxSize = bigInt(1024 * 1024 * 1024) // 1GB
@@ -131,6 +137,14 @@ export function createTakeoutService(ctx: CoreContext) {
 
         logger.withFields(historyQuery).verbose('Historical messages query')
 
+        // Pace requests before invoking Telegram API; allow abort while waiting
+        try {
+          await waitHistoryInterval(task.abortController.signal)
+        }
+        catch {
+          logger.verbose('Aborted during rate-limit wait')
+          break
+        }
         const result = await getClient().invoke(
           new Api.InvokeWithTakeout({
             takeoutId: takeoutSession.id,
@@ -180,6 +194,8 @@ export function createTakeoutService(ctx: CoreContext) {
             `Processed ${processedCount}/${count} messages`,
           )
         }
+
+        logger.withFields({ processedCount, count }).verbose('Processed messages')
       }
 
       await finishTakeout(takeoutSession, true)

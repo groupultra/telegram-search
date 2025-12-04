@@ -1,22 +1,24 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
+import type { CoreContext } from '../context'
 import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
-import { EmbeddingDimension, useConfig } from '@tg-search/common'
 import { Err, Ok } from '@unbird/result'
 
+import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
 
-export function createEmbeddingResolver(): MessageResolver {
+export function createEmbeddingResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:embedding')
-  const embeddingConfig = useConfig().api.embedding
 
   return {
     run: async (opts: MessageResolverOpts) => {
-      logger.verbose('Executing embedding resolver')
+      // TODO: should we store the account settings into ctx, to avoid fetching it from db every time?
+      const embeddingSettings = (await ctx.getAccountSettings()).embedding
+      logger.withFields({ embeddingSettings }).verbose('Executing embedding resolver')
 
       // Skip embedding if API key is empty
-      if (!embeddingConfig.apiKey || embeddingConfig.apiKey.trim() === '') {
+      if (!embeddingSettings.apiKey || embeddingSettings.apiKey.trim() === '') {
         logger.verbose('Skipping embedding: API key is empty')
         return Ok([])
       }
@@ -36,17 +38,7 @@ export function createEmbeddingResolver(): MessageResolver {
 
       logger.withFields({ messages: messages.length }).verbose('Embedding messages')
 
-      const { embeddings, usage, dimension } = (await embedContents(messages.map(message => message.content))).expect('Failed to embed messages')
-
-      // if (message.sticker != null) {
-      //   text = `A sticker sent by user ${await findStickerDescription(message.sticker.file_id)}, sticker set named ${message.sticker.set_name}`
-      // }
-      // else if (message.photo != null) {
-      //   text = `A set of photo, descriptions are: ${(await Promise.all(message.photo.map(photo => findPhotoDescription(photo.file_id)))).join('\n')}`
-      // }
-      // else if (message.text) {
-      //   text = message.text || message.caption || ''
-      // }
+      const { embeddings, usage, dimension } = (await embedContents(messages.map(message => message.content), embeddingSettings)).expect('Failed to embed messages')
 
       logger.withFields({ embeddings: embeddings.length, usage }).verbose('Embedding messages done')
 

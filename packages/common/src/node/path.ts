@@ -66,14 +66,3 @@ export async function useConfigPath(): Promise<string> {
 
   return configPath
 }
-
-export function getSessionPath(): string {
-  const sessionPath = resolve(getDataPath(), 'sessions')
-  if (!fs.existsSync(sessionPath)) {
-    fs.mkdirSync(sessionPath, { recursive: true })
-  }
-
-  logger.withFields({ sessionPath }).log('Session path')
-
-  return sessionPath
-}

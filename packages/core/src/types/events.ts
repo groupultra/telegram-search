@@ -1,7 +1,8 @@
-import type { Config, CorePagination } from '@tg-search/common'
+import type { CorePagination } from '@tg-search/common'
 import type { EventEmitter } from 'eventemitter3'
 import type { Api } from 'telegram'
 
+import type { AccountSettings } from './account-settings'
 import type { CoreDialog } from './dialog'
 import type { CoreMessage } from './message'
 import type { CoreTask } from './task'
@@ -15,7 +16,7 @@ export interface ClientInstanceEventToCore {
 }
 
 export interface ClientInstanceEventFromCore {
-  'core:error': (data: { error?: string | Error | unknown }) => void
+  'core:error': (data: { error: string, description?: string }) => void
 }
 
 // ============================================================================
@@ -23,7 +24,7 @@ export interface ClientInstanceEventFromCore {
 // ============================================================================
 
 export interface ConnectionEventToCore {
-  'auth:login': (data: { phoneNumber: string }) => void
+  'auth:login': (data: { phoneNumber?: string, session?: string }) => void
   'auth:logout': () => void
   'auth:code': (data: { code: string }) => void
   'auth:password': (data: { password: string }) => void
@@ -33,6 +34,7 @@ export interface ConnectionEventFromCore {
   'auth:code:needed': () => void
   'auth:password:needed': () => void
   'auth:connected': () => void
+  'auth:disconnected': () => void
   'auth:error': (data: { error: unknown }) => void
 }
 
@@ -40,24 +42,23 @@ export interface ConnectionEventFromCore {
 // Session Events
 // ============================================================================
 
-export interface SessionEventToCore {
-  'session:update': (data: { phoneNumber: string, session: string }) => void
-  'session:clean': (data: { phoneNumber: string }) => void
+export interface SessionEventToCore {}
+
+export interface SessionEventFromCore {
+  'session:update': (data: { session: string }) => void
 }
 
-export interface SessionEventFromCore {}
-
 // ============================================================================
-// Config Events
+// Account Settings Events
 // ============================================================================
 
-export interface ConfigEventToCore {
+export interface AccountSettingsEventToCore {
   'config:fetch': () => void
-  'config:update': (data: { config: Config }) => void
+  'config:update': (data: { accountSettings: AccountSettings }) => void
 }
 
-export interface ConfigEventFromCore {
-  'config:data': (data: { config: Config }) => void
+export interface AccountSettingsEventFromCore {
+  'config:data': (data: { accountSettings: AccountSettings }) => void
 }
 
 // ============================================================================
@@ -122,8 +123,19 @@ export interface EntityEventToCore {
   'entity:me:fetch': () => void
   /**
    * Lazy fetch of a user's avatar by userId. Core should respond with 'entity:avatar:data'.
+   * Optional fileId allows core to check cache before fetching.
    */
-  'entity:avatar:fetch': (data: { userId: string }) => void
+  'entity:avatar:fetch': (data: { userId: string, fileId?: string }) => void
+  /**
+   * Prime the core LRU cache with fileId information from frontend IndexedDB.
+   * This allows fileId-based cache validation without requiring entity fetch.
+   */
+  'entity:avatar:prime-cache': (data: { userId: string, fileId: string }) => void
+  /**
+   * Prime the core LRU cache with chat avatar fileId information from frontend IndexedDB.
+   * This allows fileId-based cache validation without requiring entity fetch.
+   */
+  'entity:chat-avatar:prime-cache': (data: { chatId: string, fileId: string }) => void
 }
 
 export interface EntityEventFromCore {
@@ -162,8 +174,8 @@ export interface StorageEventToCore {
   'storage:fetch:messages': (data: { chatId: string, pagination: CorePagination }) => void
   'storage:record:messages': (data: { messages: CoreMessage[] }) => void
 
-  'storage:fetch:dialogs': () => void
-  'storage:record:dialogs': (data: { dialogs: CoreDialog[] }) => void
+  'storage:fetch:dialogs': (data: { accountId: string }) => void
+  'storage:record:dialogs': (data: { dialogs: CoreDialog[], accountId: string }) => void
 
   'storage:search:messages': (data: CoreMessageSearchParams) => void
 
@@ -213,13 +225,39 @@ export interface StorageMessageContextParams {
 // Takeout Events
 // ============================================================================
 
+export interface SyncOptions {
+  // Whether to sync media files
+  syncMedia?: boolean
+  // Maximum size for media files in MB (0 = unlimited)
+  maxMediaSize?: number
+  // Time range for sync
+  startTime?: Date
+  endTime?: Date
+  // Message ID range for sync
+  minMessageId?: number
+  maxMessageId?: number
+}
+
 export interface TakeoutEventToCore {
-  'takeout:run': (data: { chatIds: string[], increase?: boolean }) => void
+  'takeout:run': (data: { chatIds: string[], increase?: boolean, syncOptions?: SyncOptions }) => void
   'takeout:task:abort': (data: { taskId: string }) => void
+  'takeout:stats:fetch': (data: { chatId: string }) => void
+}
+
+export interface ChatSyncStats {
+  chatId: string
+  totalMessages: number
+  syncedMessages: number
+  firstMessageId: number
+  latestMessageId: number
+  oldestMessageDate?: Date
+  newestMessageDate?: Date
+  syncedRanges: Array<{ start: number, end: number }>
 }
 
 export interface TakeoutEventFromCore {
   'takeout:task:progress': (data: CoreTask<'takeout'>) => void
+  'takeout:stats:data': (data: ChatSyncStats) => void
 }
 
 export interface TakeoutOpts {
@@ -245,6 +283,9 @@ export interface TakeoutOpts {
 
   // Task object (required, should be created by handler and passed in)
   task: CoreTask<'takeout'>
+
+  // Sync options (media size limit, etc.)
+  syncOptions?: SyncOptions
 }
 
 // ============================================================================
@@ -267,7 +308,7 @@ export interface MessageResolverEventToCore {
    * while still recording messages to storage. Consumers should be aware that setting `isTakeout`
    * changes event side effects.
    */
-  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean }) => void
+  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean, syncOptions?: SyncOptions }) => void
 }
 
 export interface MessageResolverEventFromCore {}
@@ -284,7 +325,7 @@ export type FromCoreEvent = ClientInstanceEventFromCore
   & SessionEventFromCore
   & EntityEventFromCore
   & StorageEventFromCore
-  & ConfigEventFromCore
+  & AccountSettingsEventFromCore
   & GramEventsEventFromCore
   & MessageResolverEventFromCore
 
@@ -293,10 +334,9 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & DialogEventToCore
   & ConnectionEventToCore
   & TakeoutEventToCore
-  & SessionEventToCore
   & EntityEventToCore
   & StorageEventToCore
-  & ConfigEventToCore
+  & AccountSettingsEventToCore
   & GramEventsEventToCore
   & MessageResolverEventToCore
 
@@ -304,4 +344,4 @@ export type CoreEvent = FromCoreEvent & ToCoreEvent
 
 export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
 
-export type CoreEmitter = EventEmitter<CoreEvent, any>
+export type CoreEmitter = EventEmitter<CoreEvent>

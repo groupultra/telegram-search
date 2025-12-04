@@ -19,7 +19,6 @@ export default defineConfig({
   ],
   external: [
     'vue',
-    '@vueuse/core',
     '@node-rs/jieba',
     '@node-rs/jieba-darwin-arm64',
     '@electric-sql/pglite',
@@ -27,7 +26,7 @@ export default defineConfig({
   noExternal: [
     '@tg-search/core',
     '@tg-search/common',
-    '@tg-search/common/node/path',
+    '@tg-search/common/node',
     /^telegram\//,
   ],
 })

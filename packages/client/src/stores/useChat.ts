@@ -1,24 +1,32 @@
 import type { CoreDialog } from '@tg-search/core'
 
+import { useLogger } from '@guiiai/logg'
+import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed } from 'vue'
 
 import { useBridgeStore } from '../composables/useBridge'
 
 export const useChatStore = defineStore('chat', () => {
-  const chats = ref<CoreDialog[]>([])
-  const websocketStore = useBridgeStore()
+  const computedChatKey = computed(() => `chat/chats/${useBridgeStore().activeSessionId}`)
+  const chats = useLocalStorage<CoreDialog[]>(computedChatKey, [])
 
   const getChat = (id: string) => {
     return chats.value.find(chat => chat.id === Number(id))
   }
 
   const init = () => {
-    // eslint-disable-next-line no-console
-    console.log('[ChatStore] Init dialogs')
+    useLogger('ChatStore').log('Init dialogs')
 
     if (chats.value.length === 0) {
-      websocketStore.sendEvent('storage:fetch:dialogs')
+      // In websocket mode, we explicitly trigger a storage fetch to hydrate
+      // dialogs from the server-side database. In core-bridge (browser-core)
+      // mode, dialogs are bootstrapped by the core pipeline itself after
+      // login, and there is no stable accountId yet when this runs, so we
+      // avoid firing storage:fetch:dialogs to prevent "Current account ID not set"
+      // noise from the core context.
+      if (!import.meta.env.VITE_WITH_CORE)
+        useBridgeStore().sendEvent('storage:fetch:dialogs')
     }
   }
 

@@ -318,10 +318,10 @@ IMPORTANT INSTRUCTIONS:
 6. Be concise and direct in your responses
 
 EXAMPLES:
-- "你好" -> Respond directly with a greeting, NO tool calling
+- "Hello" -> Respond directly with a greeting, NO tool calling
 - "How are you?" -> Respond directly, NO tool calling
 - "What did we discuss?" -> Use searchMessages with query="discuss", useVector=true, limit=5
-- "我喜欢吃什么" -> Use searchMessages with query="喜欢 吃", useVector=true, limit=5
+- "What do I like to eat" -> Use searchMessages with query="like eat", useVector=true, limit=5
 
 Remember: Only use tools when necessary. For greetings or general questions, respond directly without calling any tools.`
   }

@@ -45,9 +45,15 @@ export function createUserResolver(ctx: CoreContext): MessageResolver {
         // If user not found in cache or database, fetch from Telegram API
         if (!dbUser) {
           if (!entities.has(message.fromId)) {
-            const entity = await ctx.getClient().getEntity(message.fromId)
-            entities.set(message.fromId, entity)
-            logger.withFields(entity).debug('Resolved entity from Telegram API')
+            try {
+              const entity = await ctx.getClient().getEntity(message.fromId)
+              entities.set(message.fromId, entity)
+              logger.withFields(entity).debug('Resolved entity from Telegram API')
+            }
+            catch {
+              // TODO: is there needs access_hash?
+              logger.withFields({ fromId: message.fromId }).warn('Failed to get entity from Telegram API')
+            }
           }
 
           const entity = entities.get(message.fromId)!

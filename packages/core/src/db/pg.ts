@@ -27,12 +27,13 @@ export async function initPgDrizzle(
   config: Config,
   options: {
     isDatabaseDebugMode?: boolean
+    disableMigrations?: boolean
   } = {},
 ) {
   logger.log('Initializing postgres drizzle...')
 
   // Initialize PostgreSQL database
-  const connectionString = getDatabaseDSN(config)
+  const connectionString = getDatabaseDSN(config.database)
   logger.log(`Connecting to PostgreSQL database: ${connectionString}`)
 
   const client = postgres(connectionString, {
@@ -50,7 +51,9 @@ export async function initPgDrizzle(
     logger.log('Database connection established successfully')
 
     // Migrate database
-    await applyMigrations(logger, db)
+    if (!options.disableMigrations) {
+      await applyMigrations(logger, db)
+    }
   }
   catch (error) {
     logger.withError(error).error('Failed to connect to database')

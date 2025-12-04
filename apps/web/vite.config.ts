@@ -92,6 +92,11 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        // https://github.com/moeru-ai/airi/blob/main/apps/stage-web/vite.config.ts#L136-L141
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/ws\//,
+        ],
       },
     }),
 
@@ -116,7 +121,20 @@ export default defineConfig({
   },
 
   optimizeDeps: {
-    exclude: ['@electric-sql/pglite'],
+    exclude: [
+      '@electric-sql/pglite',
+    ],
+    include: [
+      'virtua/vue',
+      'workbox-window',
+      'date-fns',
+      'echarts/charts',
+      'echarts/components',
+      'echarts/core',
+      'echarts/renderers',
+      'vue-echarts',
+      'lottie-web',
+    ],
   },
 
   build: {

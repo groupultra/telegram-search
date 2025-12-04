@@ -13,7 +13,10 @@ export function registerDialogEventHandlers(ctx: CoreContext) {
 
       const dialogs = (await dialogService.fetchDialogs()).expect('Failed to fetch dialogs')
 
-      emitter.emit('storage:record:dialogs', { dialogs })
+      // Get current account ID from context
+      const accountId = ctx.getCurrentAccountId()
+
+      emitter.emit('storage:record:dialogs', { dialogs, accountId })
     })
 
     // Prioritized single-avatar fetch for viewport-visible items

@@ -21,11 +21,10 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
     return Err(new Error(`Message ${message.id} has no sender or sender is empty`))
   }
 
-  // FIXME: space
   let fromName = ''
   if (sender instanceof Api.User) {
     if ([sender.firstName, sender.lastName].some(Boolean)) {
-      fromName = [sender.firstName, sender.lastName].join(' ')
+      fromName = [sender.firstName, sender.lastName].filter(Boolean).join(' ').trim()
     }
     else {
       fromName = sender.username ?? String(sender.id)

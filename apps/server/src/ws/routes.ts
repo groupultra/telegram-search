@@ -30,6 +30,7 @@
  * See PR #434 for detailed discussion and review comments
  */
 
+import type { Config } from '@tg-search/common'
 import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { App } from 'h3'
 
@@ -37,7 +38,6 @@ import type { WsMessageToServer } from './events'
 import type { Peer } from './types'
 
 import { useLogger } from '@guiiai/logg'
-import { useConfig } from '@tg-search/common'
 import { createCoreInstance, destroyCoreInstance } from '@tg-search/core'
 import { defineWebSocketHandler } from 'h3'
 
@@ -78,7 +78,6 @@ import { sendWsEvent } from './events'
  */
 export interface AccountState {
   ctx: CoreContext
-  phoneNumber?: string
   isConnected: boolean
   // Core event listeners (registered once, shared by all WebSocket connections)
   coreEventListeners: Map<keyof FromCoreEvent, (data: any) => void>
@@ -88,7 +87,7 @@ export interface AccountState {
   lastActive: number
 }
 
-export function setupWsRoutes(app: App) {
+export function setupWsRoutes(app: App, config: Config) {
   const logger = useLogger('server:ws')
 
   /**
@@ -132,11 +131,11 @@ export function setupWsRoutes(app: App) {
    * - Listeners properly cleaned up on logout via ctx.cleanup()
    * - No listener accumulation = no memory leak
    */
-  function getOrCreateAccount(accountId: string): AccountState {
+  function getOrCreateAccount(accountId: string, config: Config): AccountState {
     if (!accountStates.has(accountId)) {
       logger.withFields({ accountId }).log('Creating new account state')
 
-      const ctx = createCoreInstance(useConfig())
+      const ctx = createCoreInstance(config)
       const account: AccountState = {
         ctx,
         isConnected: false,
@@ -147,6 +146,7 @@ export function setupWsRoutes(app: App) {
       }
 
       accountStates.set(accountId, account)
+      return account
     }
 
     const account = accountStates.get(accountId)!
@@ -174,7 +174,7 @@ export function setupWsRoutes(app: App) {
       logger.withFields({ peerId: peer.id, accountId }).log('WebSocket connection opened')
 
       // Get or create account state (reuses existing if available)
-      const account = getOrCreateAccount(accountId)
+      const account = getOrCreateAccount(accountId, config)
 
       // Track this peer
       peerToAccountId.set(peer.id, accountId)
@@ -255,7 +255,7 @@ export function setupWsRoutes(app: App) {
           }
         }
         else {
-          logger.withFields({ type: event.type, accountId }).log('Message received')
+          logger.withFields({ type: event.type, accountId }).verbose('Message received')
 
           // Emit to core context
           account.ctx.emitter.emit(event.type, event.data as CoreEventData<keyof ToCoreEvent>)
@@ -264,7 +264,6 @@ export function setupWsRoutes(app: App) {
         // Update account state based on events
         switch (event.type) {
           case 'auth:login':
-            account.phoneNumber = event.data.phoneNumber
             account.ctx.emitter.once('auth:connected', () => {
               account.isConnected = true
             })

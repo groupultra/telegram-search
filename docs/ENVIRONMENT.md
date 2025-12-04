@@ -14,12 +14,11 @@ These variables can be set when starting the Docker container or during runtime:
 | `TELEGRAM_API_HASH` | `d524b414d21f4d37f08684c1df41ac9c` | Telegram app hash from the same page |
 | `DATABASE_TYPE` | `pglite` | Database type: `postgres` or `pglite` |
 | `DATABASE_URL` | - | PostgreSQL connection string (only when `DATABASE_TYPE=postgres`) |
-| `EMBEDDING_API_KEY` | - | API key for embedding provider (OpenAI/Ollama) |
-| `EMBEDDING_BASE_URL` | - | Custom base URL for self-hosted or compatible embedding providers |
-| `EMBEDDING_PROVIDER` | `openai` | Embedding provider: `openai` or `ollama` |
-| `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model name |
-| `EMBEDDING_DIMENSION` | `1536` | Embedding dimension (e.g. `1536`, `1024`, `768`) |
 | `PROXY_URL` | - | Proxy configuration URL (see formats below) |
+
+> [!IMPORTANT]
+> AI Embedding & LLM settings are now configured **per account inside the app** (Settings → API).  
+> Environment variables like `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, etc. are deprecated and will be removed in a future release.
 
 ## Compile-Time Environment Variables
 
@@ -101,30 +100,6 @@ docker run -d --name telegram-search \
   ghcr.io/groupultra/telegram-search:latest
 ```
 
-### With OpenAI Embeddings
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  -e EMBEDDING_API_KEY=sk-xxxx \
-  -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \
-  -e EMBEDDING_MODEL=text-embedding-3-small \
-  -e EMBEDDING_DIMENSION=1536 \
-  ghcr.io/groupultra/telegram-search:latest
-```
-
-### With Ollama (Local)
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  -e EMBEDDING_PROVIDER=ollama \
-  -e EMBEDDING_BASE_URL=http://localhost:11434 \
-  -e EMBEDDING_MODEL=nomic-embed-text \
-  -e EMBEDDING_DIMENSION=768 \
-  ghcr.io/groupultra/telegram-search:latest
-```
-
 ### With Proxy
 ```bash
 docker run -d --name telegram-search \
@@ -143,11 +118,6 @@ docker run -d --name telegram-search \
   -e TELEGRAM_API_HASH=d524b414d21f4d37f08684c1df41ac9c \
   -e DATABASE_TYPE=postgres \
   -e DATABASE_URL=postgresql://user:pass@postgres-host:5432/telegram \
-  -e EMBEDDING_API_KEY=sk-xxxx \
-  -e EMBEDDING_BASE_URL=https://api.openai.com/v1 \
-  -e EMBEDDING_PROVIDER=openai \
-  -e EMBEDDING_MODEL=text-embedding-3-small \
-  -e EMBEDDING_DIMENSION=1536 \
   -e PROXY_URL=socks5://user:pass@proxy.example.com:1080 \
   ghcr.io/groupultra/telegram-search:latest
 ```
@@ -171,11 +141,6 @@ services:
       TELEGRAM_API_HASH: 'd524b414d21f4d37f08684c1df41ac9c'
       DATABASE_TYPE: 'postgres'
       DATABASE_URL: 'postgresql://postgres:postgres@pgvector:5432/postgres'
-      EMBEDDING_API_KEY: 'sk-xxxx'
-      EMBEDDING_BASE_URL: 'https://api.openai.com/v1'
-      EMBEDDING_PROVIDER: 'openai'
-      EMBEDDING_MODEL: 'text-embedding-3-small'
-      EMBEDDING_DIMENSION: '1536'
     depends_on:
       pgvector:
         condition: service_healthy
@@ -223,6 +188,5 @@ pnpm run server:dev
 ## Notes
 
 - **Default Telegram API credentials** are provided for convenience but have rate limits. Get your own from [my.telegram.org](https://my.telegram.org/apps) for better performance.
-- **Embeddings are optional** for basic search but recommended for semantic/natural language search.
 - **PGlite mode** runs entirely in the browser with no server needed.
 - **PostgreSQL mode** requires a PostgreSQL instance with pgvector extension.

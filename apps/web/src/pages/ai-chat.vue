@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
-import { useAIChatStore, useBridgeStore, useSettingsStore } from '@tg-search/client'
+import { useAccountStore, useAIChatStore, useBridgeStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -18,8 +18,8 @@ const aiChatStore = useAIChatStore()
 const { messages, isLoading, isSearching, searchStage, error } = storeToRefs(aiChatStore)
 
 const bridgeStore = useBridgeStore()
-const settingsStore = useSettingsStore()
-const { config } = storeToRefs(settingsStore)
+
+const { accountSettings } = storeToRefs(useAccountStore())
 
 const messageInput = ref('')
 const messagesContainer = ref<HTMLElement>()
@@ -29,7 +29,7 @@ const aiChatLogic = useAIChatLogic()
 
 // Check if API is configured
 const isApiConfigured = computed(() => {
-  return config.value?.api?.llm?.apiKey && config.value.api.llm.apiKey.trim().length > 0
+  return accountSettings.value.llm.apiKey.trim().length > 0
 })
 
 // Scroll to bottom when new messages arrive
@@ -63,7 +63,7 @@ async function sendMessage() {
   aiChatStore.clearError()
 
   try {
-    const llmConfig = config.value!.api!.llm!
+    const llmConfig = accountSettings.value!.llm!
 
     // Track all retrieved messages and tool calls
     const allRetrievedMessages: CoreRetrievalMessages[] = []

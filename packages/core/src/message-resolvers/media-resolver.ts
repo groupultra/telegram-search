@@ -9,52 +9,63 @@ import type { CoreMessage } from '../types/message'
 import { Buffer } from 'buffer'
 
 import { useLogger } from '@guiiai/logg'
+import { newQueue } from '@henrygd/queue'
 import { fileTypeFromBuffer } from 'file-type'
 
+import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
 import { findPhotoByFileId, findStickerByFileId } from '../models'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
+  // Create concurrency limit queue
+  const downloadQueue = newQueue(MEDIA_DOWNLOAD_CONCURRENCY)
 
   return {
     async* stream(opts: MessageResolverOpts) {
       logger.verbose('Executing media resolver')
+
+      // Get media size limit from sync options (in MB, 0 = unlimited)
+      const maxMediaSizeMB = opts.syncOptions?.maxMediaSize ?? 0
+      const maxMediaSizeBytes = maxMediaSizeMB > 0 ? maxMediaSizeMB * 1024 * 1024 : Number.POSITIVE_INFINITY
 
       for (const message of opts.messages) {
         if (!message.media || message.media.length === 0) {
           continue
         }
 
-        const fetchedMedia = await Promise.all(
-          message.media.map(async (media) => {
+        // Use concurrency limit queue to avoid downloading too many files simultaneously
+        const mediaPromises = message.media.map(media =>
+          downloadQueue.add(async () => {
             logger.withFields({ media }).debug('Media')
 
-            // FIXME: move it to storage
+            // TODO: move it to storage
             if (media.type === 'sticker') {
               const sticker = (await findStickerByFileId(media.platformId)).unwrap()
 
-              // 只有当数据库中有 sticker_bytes 时才直接返回
+              // Only return directly when sticker_bytes exists in the database
               if (sticker && sticker.sticker_bytes) {
+                const stickerBytes = sticker.sticker_bytes
                 return {
                   messageUUID: message.uuid,
-                  byte: Buffer.from(sticker.sticker_bytes),
+                  byte: stickerBytes,
                   type: media.type,
                   platformId: media.platformId,
-                  mimeType: (await fileTypeFromBuffer(sticker.sticker_bytes))?.mime,
+                  mimeType: (await fileTypeFromBuffer(stickerBytes))?.mime,
                 } satisfies CoreMessageMediaFromCache
               }
             }
 
-            // FIXME: move it to storage
+            // TODO: move it to storage
             if (media.type === 'photo') {
               const photo = (await findPhotoByFileId(media.platformId)).unwrap()
               if (photo && photo.image_bytes) {
+                const imageBytes = photo.image_bytes
                 return {
                   messageUUID: message.uuid,
-                  byte: Buffer.from(photo.image_bytes),
+                  byte: imageBytes,
                   type: media.type,
                   platformId: media.platformId,
-                  mimeType: (await fileTypeFromBuffer(photo.image_bytes))?.mime,
+                  mimeType: (await fileTypeFromBuffer(imageBytes))?.mime,
                 } satisfies CoreMessageMediaFromServer
               }
             }
@@ -66,9 +77,24 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               logger.warn(`Media is not a buffer, ${mediaFetched?.constructor.name}`)
             }
 
+            // Check media size against limit
+            if (byte && byte.length > maxMediaSizeBytes) {
+              logger.withFields({
+                size: byte.length,
+                maxSize: maxMediaSizeBytes,
+                platformId: media.platformId,
+              }).verbose('Media exceeds size limit, skipping')
+              return {
+                messageUUID: message.uuid,
+                byte: undefined, // Skip media that exceeds size limit
+                type: media.type,
+                platformId: media.platformId,
+                mimeType: undefined,
+              } satisfies CoreMessageMediaFromServer
+            }
+
             return {
               messageUUID: message.uuid,
-              apiMedia: media.apiMedia,
               byte,
               type: media.type,
               platformId: media.platformId,
@@ -76,6 +102,8 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             } satisfies CoreMessageMediaFromServer
           }),
         )
+
+        const fetchedMedia = await Promise.all(mediaPromises)
 
         yield {
           ...message,

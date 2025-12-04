@@ -1,7 +1,6 @@
 import type { CoreContext } from '../context'
 
 import { useLogger } from '@guiiai/logg'
-import { useConfig } from '@tg-search/common'
 import { NewMessage } from 'telegram/events'
 
 export type GramEventsService = ReturnType<typeof createGramEventsService>
@@ -22,7 +21,7 @@ export function createGramEventsService(ctx: CoreContext) {
     }
 
     eventHandler = (event) => {
-      if (event.message && useConfig().api.telegram.receiveMessage) {
+      if (event.message) {
         emitter.emit('gram:message:received', { message: event.message })
       }
     }
