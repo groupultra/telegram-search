@@ -29,7 +29,8 @@
     "typecheck": "pnpm run packages:build && pnpm -r --parallel typecheck",
     "bump": "bumpp",
     "bump:deps": "taze -I -f -w -r",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "pnpm apply:env -- drizzle-kit generate",
+    "db:kit": "pnpm apply:env -- drizzle-kit",
     "postinstall": "pnpm run packages:build"
   },
   "dependencies": {
