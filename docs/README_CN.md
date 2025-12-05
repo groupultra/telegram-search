@@ -115,6 +115,10 @@ docker run -d --name telegram-search \
 | `DATABASE_TYPE` | `postgres` 或 `pglite`（默认：`pglite`） |
 | `DATABASE_URL` | PostgreSQL 连接字符串（仅当 `DATABASE_TYPE=postgres` 时） |
 | `PROXY_URL` | 代理 URL（如 `socks5://user:pass@host:port`） |
+| `PORT` | 后端 HTTP/WebSocket 端口（默认：`3000`） |
+| `HOST` | 后端监听主机（默认：`0.0.0.0`） |
+| `BACKEND_URL` | Nginx 上游 URL 用于 `/api` 和 `/ws`（默认：`http://127.0.0.1:3000`） |
+
 
 > [!IMPORTANT]
 > AI Embedding & LLM 设置现在在应用内**按账户**配置（设置 → API）。  

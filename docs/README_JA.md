@@ -115,6 +115,9 @@ docker run -d --name telegram-search \
 | `DATABASE_TYPE` | `postgres` または `pglite`（デフォルト：`pglite`） |
 | `DATABASE_URL` | PostgreSQL 接続文字列（`DATABASE_TYPE=postgres` の場合のみ） |
 | `PROXY_URL` | プロキシ URL（例：`socks5://user:pass@host:port`） |
+| `PORT` | コンテナ内のバックエンド HTTP/WebSocket ポート（デフォルト：`3000`） |
+| `HOST` | コンテナ内のバックエンド監視ホスト（デフォルト：`0.0.0.0`） |
+| `BACKEND_URL` | Nginx 上流 URL 用 `/api` と `/ws`（デフォルト：`http://127.0.0.1:3000`） |
 
 > [!IMPORTANT]
 > AI Embedding & LLM 設定は現在アプリ内で**アカウントごとに設定**されています（設定 → API）。  

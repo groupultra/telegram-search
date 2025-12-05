@@ -15,6 +15,9 @@ These variables can be set when starting the Docker container or during runtime:
 | `DATABASE_TYPE` | `pglite` | Database type: `postgres` or `pglite` |
 | `DATABASE_URL` | - | PostgreSQL connection string (only when `DATABASE_TYPE=postgres`) |
 | `PROXY_URL` | - | Proxy configuration URL (see formats below) |
+| `PORT` | `3000` | Backend HTTP/WebSocket port inside the container |
+| `HOST` | `0.0.0.0` | Backend listen host inside the container |
+| `BACKEND_URL` | `http://127.0.0.1:3000` | Nginx upstream URL for `/api` and `/ws` |
 
 > [!IMPORTANT]
 > AI Embedding & LLM settings are now configured **per account inside the app** (Settings → API).  

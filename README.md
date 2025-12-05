@@ -115,6 +115,9 @@ Then open **http://localhost:3333** 🎉
 | `DATABASE_TYPE` | `postgres` or `pglite` (default: `pglite`) |
 | `DATABASE_URL` | PostgreSQL connection string (only when `DATABASE_TYPE=postgres`) |
 | `PROXY_URL` | Proxy URL (e.g. `socks5://user:pass@host:port`) |
+| `PORT` | Backend HTTP/WebSocket port inside the container (default: `3000`) |
+| `HOST` | Backend listen host inside the container (default: `0.0.0.0`) |
+| `BACKEND_URL` | Nginx upstream URL for `/api` and `/ws` (default: `http://127.0.0.1:3000`) |
 
 > [!IMPORTANT]
 > AI Embedding & LLM settings are now configured **per account inside the app** (Settings → API).  

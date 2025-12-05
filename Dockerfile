@@ -52,7 +52,8 @@ FROM node:24.11.0-alpine
 WORKDIR /app
 
 # Install nginx and curl for serving frontend and healthcheck
-RUN apk add --no-cache nginx curl ca-certificates
+# gettext provides envsubst for templating nginx config with env vars
+RUN apk add --no-cache nginx curl ca-certificates gettext
 
 # Enable pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -78,8 +79,8 @@ COPY --from=builder /app/packages/client/src ./packages/client/src
 COPY --from=builder /app/packages/pglite-inspector/dist ./packages/pglite-inspector/dist
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
 
-# Copy nginx config and frontend
-COPY --from=web /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+# Copy nginx config template and frontend
+COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY --from=web /usr/share/nginx/html /usr/share/nginx/html
 
 # Copy essential config files
@@ -88,15 +89,22 @@ COPY --from=builder /app/drizzle ./drizzle
 # Copy root configs needed at runtime (including pnpm-workspace.yaml for project root detection)
 COPY pnpm-workspace.yaml tsconfig.json drizzle.config.ts ./
 
+# Copy entrypoint script
+COPY scripts/entrypoint.sh ./scripts/entrypoint.sh
+RUN chmod +x ./scripts/entrypoint.sh
+
 # Environment variables with default values
 ENV DATABASE_TYPE="pglite"
 ENV DATABASE_URL=""
 ENV TELEGRAM_API_ID="611335"
 ENV TELEGRAM_API_HASH="d524b414d21f4d37f08684c1df41ac9c"
 ENV PROXY_URL=""
+ENV PORT="3000"
+ENV HOST="0.0.0.0"
+ENV BACKEND_URL="http://127.0.0.1:3000"
 
 # Declare volumes for data persistence
 VOLUME ["/app/config", "/app/data"]
 
-# Start nginx and server
-CMD ["sh", "-c", "nginx && exec node apps/server/dist/app.mjs"]
+# Start via entrypoint (nginx + server, both env-configurable)
+CMD ["./scripts/entrypoint.sh"]
