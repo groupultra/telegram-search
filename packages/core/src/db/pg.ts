@@ -22,6 +22,24 @@ async function applyMigrations(logger: Logger, db: PostgresDB) {
   }
 }
 
+async function ensureVectorExtension(logger: Logger, db: PostgresDB) {
+  // For pgvector-rs compatibility
+  try {
+    await db.execute(sql`ALTER SYSTEM SET vectors.pgvector_compatibility=on;`)
+    await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vectors;`)
+    logger.log('pgvector-rs extension enabled successfully')
+    return
+  }
+  catch {}
+
+  // For pgvector compatibility
+  try {
+    await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector;`)
+    logger.log('pgvector extension enabled successfully')
+  }
+  catch {}
+}
+
 export async function initPgDrizzle(
   logger: Logger,
   config: Config,
@@ -49,6 +67,9 @@ export async function initPgDrizzle(
   try {
     await db.execute(sql`select 1`)
     logger.log('Database connection established successfully')
+
+    // Ensure vector extension is enabled
+    await ensureVectorExtension(logger, db)
 
     // Migrate database
     if (!options.disableMigrations) {
