@@ -29,7 +29,8 @@ pnpm install
 3. Configure environment
 
 ```bash
-cp config/config.example.yaml config/config.yaml
+cp .env.example .env
+# Edit .env with your Telegram API keys, DATABASE_TYPE / DATABASE_URL, PROXY_URL, etc.
 ```
 
 4. Start database container:

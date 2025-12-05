@@ -1,8 +1,6 @@
 ---
 when:
   - "apps/server/src/**/*"
-  - "config/config.yaml"
-  - "config/config.example.yaml"
 priority: 30
 ---
 
@@ -19,8 +17,8 @@ priority: 30
 - Preserve the bootstrap sequence from `src/app.ts`:
   1. Parse env flags (`parseEnvFlags`).
   2. Initialize logging (`initLogger` + `useLogger().useGlobalConfig()`).
-  3. Load and merge config (`loadConfigFromFile` + `mergeConfigWithEnv`).
-  4. Initialize database via `initDrizzle`.
+  3. Build runtime config from environment (`parseEnvToConfig(process.env)`).
+  4. Initialize database via `initDrizzle` using that config.
   5. Configure the HTTP/WebSocket server.
   6. Start listening via `listhen` and register graceful shutdown handlers.
 - Any changes must keep this order clear and failure modes explicit.
@@ -41,7 +39,7 @@ priority: 30
 - Source configuration from `config.yaml` + environment variables only; avoid hard-coding URLs, ports, or credentials.
 - Keep the config schema compatible between server and browser modes where applicable (database, embedding, Telegram API).
 - When adding new configuration options:
-  - Document them in `config.example.yaml`.
+  - Document them in `.env.example`.
   - Provide safe defaults that will not break existing deployments.
 
 ### Error Handling & Observability

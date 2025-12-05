@@ -4,7 +4,6 @@ dist
 .env
 .session
 .DS_Store
-config.yaml
 !.gemini/
 .postgres/
 out/

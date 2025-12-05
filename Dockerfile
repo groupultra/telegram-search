@@ -84,7 +84,6 @@ COPY --from=web /usr/share/nginx/html /usr/share/nginx/html
 
 # Copy essential config files
 COPY --from=builder /app/drizzle ./drizzle
-COPY --from=builder /app/config/config.example.yaml ./config/config.example.yaml
 
 # Copy root configs needed at runtime (including pnpm-workspace.yaml for project root detection)
 COPY pnpm-workspace.yaml tsconfig.json drizzle.config.ts ./

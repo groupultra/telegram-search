@@ -37,7 +37,7 @@
 
 **強力なセマンティック検索で Telegram メッセージを簡単に検索・エクスポート。すべての言語と分かち書きなしの文に対応。**
 
-メッセージ検索を高速、正確、プライバシー重視に — セルフホストまたはオンラインでお試しください。
+メッセージ検索を高速・正確かつプライバシー重視に — Docker でローカル実行するか、オンラインで試せます。
 
 ## 💖 スポンサー
 
@@ -158,7 +158,7 @@ docker compose up -d
 ## 💻 開発ガイド
 
 > [!CAUTION]
-> 開発には **Node.js >= 22.18** と **pnpm** が必要です。インストールされていることを確認してください。
+> 開発には **Node.js >= 24.11** と **pnpm** が必要です。インストールされていることを確認してください。
 
 ### ブラウザのみモード
 
@@ -176,14 +176,17 @@ pnpm run dev
 git clone https://github.com/groupultra/telegram-search.git
 cd telegram-search
 pnpm install
-cp config/config.example.yaml config/config.yaml
 
-# データベースを起動（Docker）
+# 環境変数をコピーして編集（Telegram キー、DB タイプ/URL、プロキシなど）
+cp .env.example .env
+# 任意: .env.local で上書き（Git には含めない）
+
+# PostgreSQL + pgvector を起動（または DATABASE_URL を自前の DB に向ける）
 docker compose up -d pgvector
 
-# バックエンドとフロントエンドを起動
-pnpm run server:dev  # ターミナル 1
-pnpm run web:dev     # ターミナル 2
+# バックエンドとフロントエンドを起動（2つのターミナル）
+pnpm run server:dev  # ターミナル 1: WebSocket バックエンド（dotenvx 経由で .env/.env.local を読み込み）
+pnpm run web:dev     # ターミナル 2: Vue フロントエンド
 ```
 
 📖 **開発の詳細：** [CONTRIBUTING.md](../CONTRIBUTING.md)

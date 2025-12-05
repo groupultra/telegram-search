@@ -37,7 +37,7 @@
 
 **轻松查找和导出您的 Telegram 消息，强大的语义搜索支持所有语言和无分词句子。**
 
-让消息检索更快速、更准确、更注重隐私 — 自托管或在线试用。
+让消息检索更快速、更准确、更注重隐私 — 使用 Docker 本地运行，或在线试用。
 
 ## 💖 赞助者
 
@@ -158,7 +158,7 @@ docker compose up -d
 ## 💻 开发指南
 
 > [!CAUTION]
-> 开发需要 **Node.js >= 22.18** 和 **pnpm**。请确保已安装。
+> 开发需要 **Node.js >= 24.11** 和 **pnpm**。请确保已安装。
 
 ### 纯浏览器模式
 
@@ -176,14 +176,17 @@ pnpm run dev
 git clone https://github.com/groupultra/telegram-search.git
 cd telegram-search
 pnpm install
-cp config/config.example.yaml config/config.yaml
 
-# 启动数据库（Docker）
+# 复制并修改环境变量（Telegram 密钥、数据库类型/URL、代理等）
+cp .env.example .env
+# 可选：在 .env.local 中覆盖（不会提交到 Git）
+
+# 启动 PostgreSQL + pgvector（或将 DATABASE_URL 指向你自己的数据库）
 docker compose up -d pgvector
 
-# 启动后端和前端
-pnpm run server:dev  # 终端 1
-pnpm run web:dev     # 终端 2
+# 启动后端与前端（两个终端）
+pnpm run server:dev  # 终端 1：WebSocket 后端（通过 dotenvx 读取 .env/.env.local）
+pnpm run web:dev     # 终端 2：Vue 前端
 ```
 
 📖 **更多开发细节：** [CONTRIBUTING.md](../CONTRIBUTING.md)

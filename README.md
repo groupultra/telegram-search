@@ -84,7 +84,7 @@ We provide an online version where you can experience all features of Telegram S
 
 Visit: https://search.lingogram.app
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Self-Hosted)
 
 ### 1-Minute Start with Docker
 
@@ -100,7 +100,7 @@ docker run -d --name telegram-search \
 
 Then open **http://localhost:3333** 🎉
 
-### Advanced Setup (Optional)
+### Advanced Setup (Optional, Environment Variables)
 
 <details>
 <summary>🔧 Environment Variables</summary>
@@ -158,7 +158,7 @@ docker compose up -d
 ## 💻 Development Guide
 
 > [!CAUTION]
-> Development requires **Node.js >= 22.18** and **pnpm**. Make sure you have them installed.
+> Development requires **Node.js >= 24.11** and **pnpm**. Make sure you have them installed.
 
 ### Browser-Only Mode
 
@@ -176,14 +176,17 @@ pnpm run dev
 git clone https://github.com/groupultra/telegram-search.git
 cd telegram-search
 pnpm install
-cp config/config.example.yaml config/config.yaml
 
-# Start database (Docker)
+# Copy and adjust environment variables (Telegram keys, DB type/URL, proxy, etc.)
+cp .env.example .env
+# Optionally override in .env.local (ignored by Git)
+
+# Start PostgreSQL with pgvector (or point DATABASE_URL to your own DB)
 docker compose up -d pgvector
 
-# Start backend & frontend
-pnpm run server:dev  # Terminal 1
-pnpm run web:dev     # Terminal 2
+# Start backend & frontend (two terminals)
+pnpm run server:dev  # Terminal 1: WebSocket server (uses .env/.env.local via dotenvx)
+pnpm run web:dev     # Terminal 2: Vue frontend
 ```
 
 📖 **More development details:** [CONTRIBUTING.md](./CONTRIBUTING.md)
@@ -218,3 +221,4 @@ This project is a **monorepo** with event-driven architecture:
 ![Alt](https://repobeats.axiom.co/api/embed/69d5ef9f5e72cd7901b32ff71b5f359bc7ca42ea.svg "Repobeats analytics image")
 
 [![Star History Chart](https://api.star-history.com/svg?repos=groupultra/telegram-search&type=Date)](https://star-history.com/#groupultra/telegram-search&Date)
+

@@ -208,7 +208,6 @@ pnpm run packages:build   # 构建所有 packages
 
 # 数据库
 pnpm run db:generate      # 生成迁移文件
-pnpm run db:kit           # 数据库工具
 
 # 代码质量
 pnpm run lint             # ESLint 检查
@@ -222,21 +221,17 @@ pnpm run test             # 运行测试
 ### 环境配置
 
 - **浏览器模式**: `.env` 文件
-- **服务器模式**: [config/config.yaml](mdc:config/config.yaml)
-- **示例配置**: [config/config.example.yaml](mdc:config/config.example.yaml)
+  - `VITE_TELEGRAM_API_ID`
+  - `VITE_TELEGRAM_API_HASH`
 
-### 主要配置项
+- **服务器模式**: 通过环境变量配置，由 `.env` / `.env.local` 加载并通过 dotenvx 注入 `apps/server`
+  - `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`
+  - `DATABASE_TYPE`, `DATABASE_URL`
+  - `PROXY_URL`, `PROXY_MT_PROXY` 等代理相关配置
 
-- `TELEGRAM_API_ID`: Telegram API ID
-- `TELEGRAM_API_HASH`: Telegram API Hash
-- `DATABASE_TYPE`: 数据库类型（postgres/pglite）
-- `DATABASE_URL`: 数据库连接字符串
-- `EMBEDDING_API_KEY`: 向量嵌入 API Key
-- `EMBEDDING_BASE_URL`: 向量嵌入 API Base URL
-- `EMBEDDING_PROVIDER`: 向量嵌入提供商（openai/ollama）
-- `EMBEDDING_MODEL`: 向量嵌入模型名称
-- `EMBEDDING_DIMENSION`: 向量维度
-- `PROXY_URL`: 代理配置
+> [!NOTE]
+> Embedding / LLM 相关设置现在在应用内按账号配置（设置 → API）。  
+> 环境变量如 `EMBEDDING_API_KEY`, `EMBEDDING_MODEL` 等已废弃，仅保留向后兼容，不推荐新增依赖。
 
 ## 开发规范
 

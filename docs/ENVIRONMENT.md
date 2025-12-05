@@ -169,7 +169,7 @@ volumes:
 
 ## Development Mode
 
-For development, you can use `.env` file or `config/config.yaml`:
+For development, you can use `.env` (and optionally `.env.local`) for both browser-only and server mode:
 
 ### Browser Mode (.env)
 ```bash
@@ -178,11 +178,19 @@ cp .env.example .env
 pnpm run dev
 ```
 
-### Server Mode (config.yaml)
+### Server Mode (.env + PostgreSQL)
 ```bash
-cp config/config.example.yaml config/config.yaml
-# Edit config/config.yaml with your values
+cp .env.example .env
+# Edit .env with your Telegram keys, DATABASE_TYPE / DATABASE_URL, PROXY_URL, etc.
+
+# Start PostgreSQL + pgvector (or point DATABASE_URL to your own instance)
+docker compose up -d pgvector
+
+# In one terminal: start backend (uses .env / .env.local via dotenvx)
 pnpm run server:dev
+
+# In another terminal: start frontend
+pnpm run web:dev
 ```
 
 ## Notes

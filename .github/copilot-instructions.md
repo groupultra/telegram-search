@@ -30,10 +30,10 @@ This repo is a pnpm-powered monorepo for a Telegram search/export app. It uses a
   - Server mode: `pnpm server:dev` and `pnpm web:dev` (two terminals). DB via `docker compose up -d pgvector`.
   - Builds: `pnpm build`, `pnpm web:build`, `pnpm server:build`, `pnpm packages:build`.
   - Types/tests/lint: `pnpm typecheck` (builds packages first), `pnpm test` (Vitest), `pnpm lint` / `pnpm lint:fix`.
-  - DB tools: `pnpm db:generate` (drizzle-kit), `pnpm db:kit` (scripts/db.ts).
+  - DB tools: `pnpm db:generate` (drizzle-kit).
 - Config:
   - Browser mode uses `.env` (`VITE_TELEGRAM_API_ID`, `VITE_TELEGRAM_API_HASH`).
-  - Server mode uses `config/config.yaml` (database, embedding provider/model/dimension, Telegram API, optional proxy). See `docs/ENVIRONMENT.md`.
+  - Server mode uses environment variables (database, Telegram API, optional proxy) loaded via `.env` / `.env.local` and dotenvx. See `docs/ENVIRONMENT.md`.
 
 ## Conventions and patterns
 - Events are the API. Don’t call services directly across layers; emit on `ctx.emitter` and listen for results. Use types from `packages/core/src/types/events.ts`.

@@ -53,16 +53,3 @@ export function getDatabaseFilePath(config: Config): string {
 
   return resolve(getDataPath(), `db${extension}`)
 }
-
-export async function useConfigPath(): Promise<string> {
-  const configPath = resolve(getRootPath(), './config', 'config.yaml')
-
-  logger.withFields({ configPath }).log('Config path')
-
-  if (!fs.existsSync(configPath)) {
-    fs.mkdirSync(dirname(configPath), { recursive: true })
-    fs.copyFileSync(resolve(dirname(configPath), 'config.example.yaml'), configPath)
-  }
-
-  return configPath
-}
