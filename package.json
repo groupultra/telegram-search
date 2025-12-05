@@ -3,9 +3,9 @@
   "type": "module",
   "version": "1.1.33",
   "private": true,
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "pnpm@10.24.0",
   "engines": {
-    "node": ">=24.11.0"
+    "node": ">=24.11.1"
   },
   "scripts": {
     "apply:env": "dotenvx run -f .env -f .env.local --overload --ignore=MISSING_ENV_FILE",
@@ -40,13 +40,13 @@
   "devDependencies": {
     "@moeru/eslint-config": "0.1.0-beta.13",
     "@types/node": "^24.10.1",
-    "bumpp": "^10.3.1",
+    "bumpp": "^10.3.2",
     "concurrently": "^9.2.1",
-    "drizzle-kit": "^0.31.7",
+    "drizzle-kit": "^0.31.8",
     "eslint": "^9.39.1",
-    "taze": "^19.9.0",
+    "taze": "^19.9.2",
     "typescript": "^5.9.3",
-    "vite": "npm:rolldown-vite@7.2.2",
+    "vite": "npm:rolldown-vite@7.2.10",
     "vitest": "^3.2.4"
   }
 }

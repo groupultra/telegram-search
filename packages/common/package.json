@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@vueuse/core": "^14.0.0"
+    "@vueuse/core": "^14.1.0"
   },
   "peerDependenciesMeta": {
     "@vueuse/core": {
