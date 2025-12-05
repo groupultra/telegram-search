@@ -1,10 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "composite": true,
-    "types": [
-      "vite/client"
-    ]
+    "composite": true
   },
   "include": [
     "src/**/*"
