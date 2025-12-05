@@ -5,11 +5,12 @@ FROM node:24.11.0-alpine AS builder
 
 WORKDIR /app
 
+# Enable pnpm
+RUN corepack enable pnpm && \
+    corepack prepare pnpm@10.22.0 --activate
+
 # Install build tools (git needed for vite plugins)
 RUN apk add --no-cache git
-
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy dependency manifests first (for layer caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -26,10 +27,11 @@ RUN CI=true pnpm install --frozen-lockfile --ignore-scripts
 # Copy source code
 COPY . .
 
-# Build all artifacts
-RUN pnpm run packages:build
-RUN pnpm run server:build
+# Build web app
 RUN pnpm run web:build
+
+# Build server app
+RUN pnpm run server:build
 
 # ---------------------------------
 # --------- Nginx Stage -----------
@@ -51,46 +53,34 @@ FROM node:24.11.0-alpine
 
 WORKDIR /app
 
+# Enable pnpm
+RUN corepack enable pnpm && \
+    corepack prepare pnpm@10.22.0 --activate
+
 # Install nginx and curl for serving frontend and healthcheck
 # gettext provides envsubst for templating nginx config with env vars
 RUN apk add --no-cache nginx curl ca-certificates gettext
 
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy package.json files from builder (for workspace structure)
+# Copy server dist from builder
+COPY --from=builder /app/apps/server/dist ./apps/server/dist
+COPY --from=builder /app/apps/server/package.json ./apps/server/package.json
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=builder /app/packages/core/package.json ./packages/core/package.json
-COPY --from=builder /app/packages/common/package.json ./packages/common/package.json
-COPY --from=builder /app/packages/client/package.json ./packages/client/package.json
-COPY --from=builder /app/packages/pglite-inspector/dist ./packages/pglite-inspector/dist
-COPY --from=builder /app/apps/server/package.json ./apps/server/package.json
-COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
 
-# Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile --ignore-scripts
-
-# Copy built artifacts from builder
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
-COPY --from=builder /app/packages/common/src ./packages/common/src
-COPY --from=builder /app/packages/client/src ./packages/client/src
-COPY --from=builder /app/packages/pglite-inspector/dist ./packages/pglite-inspector/dist
-COPY --from=builder /app/apps/server/dist ./apps/server/dist
+# Install production dependencies
+RUN CI=true pnpm install --frozen-lockfile --ignore-scripts --prod
 
 # Copy nginx config template and frontend
 COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY --from=web /usr/share/nginx/html /usr/share/nginx/html
 
-# Copy essential config files
-COPY --from=builder /app/drizzle ./drizzle
-
-# Copy root configs needed at runtime (including pnpm-workspace.yaml for project root detection)
-COPY pnpm-workspace.yaml tsconfig.json drizzle.config.ts ./
-
 # Copy entrypoint script
 COPY --chmod=755 scripts/entrypoint.sh ./scripts/entrypoint.sh
+
+# Prepare nginx directories and give node user permission to modify them
+RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx && \
+    chown -R node:node /etc/nginx /var/cache/nginx /var/run /var/log/nginx
 
 # Environment variables with default values
 ENV DATABASE_TYPE="pglite"
@@ -105,5 +95,9 @@ ENV BACKEND_URL="http://127.0.0.1:3000"
 # Declare volumes for data persistence
 VOLUME ["/app/data"]
 
+# Switch to non-root user
+USER node
+
 # Start via entrypoint (nginx + server, both env-configurable)
+ENTRYPOINT ["/bin/sh", "-c"]
 CMD ["./scripts/entrypoint.sh"]

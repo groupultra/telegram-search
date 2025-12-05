@@ -7,4 +7,4 @@ envsubst '${BACKEND_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.co
 
 nginx
 
-exec node apps/server/dist/app.mjs
+cd apps/server && exec npm run start
