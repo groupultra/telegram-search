@@ -90,8 +90,7 @@ COPY --from=builder /app/drizzle ./drizzle
 COPY pnpm-workspace.yaml tsconfig.json drizzle.config.ts ./
 
 # Copy entrypoint script
-COPY scripts/entrypoint.sh ./scripts/entrypoint.sh
-RUN chmod +x ./scripts/entrypoint.sh
+COPY --chmod=755 scripts/entrypoint.sh ./scripts/entrypoint.sh
 
 # Environment variables with default values
 ENV DATABASE_TYPE="pglite"
@@ -104,7 +103,7 @@ ENV HOST="0.0.0.0"
 ENV BACKEND_URL="http://127.0.0.1:3000"
 
 # Declare volumes for data persistence
-VOLUME ["/app/config", "/app/data"]
+VOLUME ["/app/data"]
 
 # Start via entrypoint (nginx + server, both env-configurable)
 CMD ["./scripts/entrypoint.sh"]

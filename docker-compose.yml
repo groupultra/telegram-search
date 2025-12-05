@@ -28,7 +28,6 @@ services:
       pgvector:
         condition: service_healthy
     volumes:
-      - ./config:/app/config
       - app_data:/app/data
     restart: none
     environment:
