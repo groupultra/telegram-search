@@ -12,7 +12,10 @@ dist
 .next
 out
 
-# Development
+# Runtime data
+data
+
+# Env & logs
 .env
 .env.local
 .env*.local
@@ -27,26 +30,13 @@ logs
 *~
 .DS_Store
 
-# Testing
+# Tests & cache
 coverage
 .nyc_output
-
-# Misc
-*.md
-!README.md
-docs
-README_*.md
-
-# Data (重要：避免复制运行时数据)
-data/db.pglite
-data/sessions/*.session
-
-# Temp files
-*.tmp
-tmp
-temp
-
-# Cache
 .cache
 .eslintcache
 
+# Temp
+*.tmp
+tmp
+temp
