@@ -62,19 +62,6 @@ export function parseEnvToConfig(env: Environment): Config {
           proxyUrl: readEnvValue('PROXY_URL', env),
         },
       },
-      embedding: {
-        model: readEnvValue('EMBEDDING_MODEL', env),
-        apiKey: readEnvValue('EMBEDDING_API_KEY', env),
-        apiBase: readEnvValue('EMBEDDING_API_BASE', env),
-        dimension: readIntegerEnv('EMBEDDING_DIMENSION', env),
-      },
-      llm: {
-        model: readEnvValue('LLM_MODEL', env),
-        apiKey: readEnvValue('LLM_API_KEY', env),
-        apiBase: readEnvValue('LLM_API_BASE', env),
-        dimension: readIntegerEnv('LLM_DIMENSION', env),
-        provider: readEnvValue('LLM_PROVIDER', env),
-      },
     },
   }
 
