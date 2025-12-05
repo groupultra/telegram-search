@@ -78,10 +78,6 @@ COPY --from=web /usr/share/nginx/html /usr/share/nginx/html
 # Copy entrypoint script
 COPY --chmod=755 scripts/entrypoint.sh ./scripts/entrypoint.sh
 
-# Prepare nginx directories and give node user permission to modify them
-RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx && \
-    chown -R node:node /etc/nginx /var/cache/nginx /var/run /var/log/nginx
-
 # Environment variables with default values
 ENV DATABASE_TYPE="pglite"
 ENV DATABASE_URL=""
@@ -94,9 +90,6 @@ ENV BACKEND_URL="http://127.0.0.1:3000"
 
 # Declare volumes for data persistence
 VOLUME ["/app/data"]
-
-# Switch to non-root user
-USER node
 
 # Start via entrypoint (nginx + server, both env-configurable)
 ENTRYPOINT ["/bin/sh", "-c"]
