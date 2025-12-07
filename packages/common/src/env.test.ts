@@ -1,6 +1,7 @@
+import type { Config } from './config-schema'
+
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { Config } from './config-schema'
 import { DatabaseType } from './config-schema'
 import {
   mergeConfigWithEnv,

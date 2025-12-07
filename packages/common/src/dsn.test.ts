@@ -1,6 +1,7 @@
+import type { DatabaseConfig } from './config-schema'
+
 import { describe, expect, it } from 'vitest'
 
-import type { DatabaseConfig } from './config-schema'
 import { DatabaseType } from './config-schema'
 import { getDatabaseDSN } from './dsn'
 
