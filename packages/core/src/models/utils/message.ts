@@ -13,6 +13,25 @@ export interface DBRetrievalMessages extends Omit<DBSelectMessage, 'content_vect
   chat_name?: string | null
 }
 
+/**
+ * Strip large server-only fields (vectors, jiebaTokens) from CoreMessage before sending to client.
+ * These fields are only used for server-side search and can cause WebSocket messages to exceed size limits.
+ */
+export function stripServerOnlyFields<T extends CoreMessage>(message: T): T {
+  return {
+    ...message,
+    vectors: { vector1536: [], vector1024: [], vector768: [] },
+    jiebaTokens: [],
+  }
+}
+
+/**
+ * Strip large server-only fields from an array of CoreMessages.
+ */
+export function stripServerOnlyFieldsFromMessages<T extends CoreMessage>(messages: T[]): T[] {
+  return messages.map(stripServerOnlyFields)
+}
+
 export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessage {
   return {
     uuid: message.id,

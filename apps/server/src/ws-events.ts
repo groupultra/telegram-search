@@ -36,26 +36,29 @@ export function sendWsEvent<T extends keyof WsEventToClient>(
   event: T,
   data: WsEventToClientData<T>,
 ) {
-  peer.send(createWsMessage(event, data))
+  const message = createWsMessage(event, data)
+  if (message !== null) {
+    peer.send(message)
+  }
 }
 
 export function createWsMessage<T extends keyof WsEventToClient>(
   type: T,
   data: WsEventToClientData<T>,
-): Extract<WsMessageToClient, { type: T }> {
+): Extract<WsMessageToClient, { type: T }> | null {
   try {
     // ensure args[0] can be stringified
     const stringifiedData = JSON.stringify(data)
     if (stringifiedData.length > 1024 * 1024) {
-      useLogger().withFields({ type, length: stringifiedData.length }).warn('Dropped event data')
-      return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
+      useLogger().withFields({ type, length: stringifiedData.length }).warn('Dropped event data: payload too large')
+      return null
     }
 
     return { type, data } as Extract<WsMessageToClient, { type: T }>
   }
   catch {
-    useLogger().withFields({ type }).warn('Dropped event data')
+    useLogger().withFields({ type }).warn('Dropped event data: serialization failed')
 
-    return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
+    return null
   }
 }

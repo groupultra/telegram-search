@@ -15,6 +15,7 @@ import {
   recordChats,
   recordMessagesWithMedia,
   retrieveMessages,
+  stripServerOnlyFieldsFromMessages,
 } from '../models'
 import { embedContents } from '../utils/embed'
 
@@ -41,7 +42,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
     }
 
     const messages = (await fetchMessagesWithPhotos(accountId, chatId, pagination)).unwrap()
-    emitter.emit('storage:messages', { messages })
+    emitter.emit('storage:messages', { messages: stripServerOnlyFieldsFromMessages(messages) })
   })
 
   emitter.on('storage:fetch:message-context', async ({ chatId, messageId, before = 20, after = 20 }) => {
@@ -63,7 +64,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       { chatId, messageId, before: safeBefore, after: safeAfter },
     )).unwrap()
 
-    emitter.emit('storage:messages:context', { chatId, messageId, messages })
+    emitter.emit('storage:messages:context', { chatId, messageId, messages: stripServerOnlyFieldsFromMessages(messages) })
 
     // After emitting the initial messages, identify messages that might be missing media
     // and trigger a fetch from Telegram to download them
@@ -190,6 +191,6 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
 
     const coreMessages = convertToCoreRetrievalMessages(dbMessages)
 
-    emitter.emit('storage:search:messages:data', { messages: coreMessages })
+    emitter.emit('storage:search:messages:data', { messages: stripServerOnlyFieldsFromMessages(coreMessages) })
   })
 }

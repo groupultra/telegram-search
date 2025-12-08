@@ -6,6 +6,7 @@ import type { SyncOptions } from '../types/events'
 
 import { useLogger } from '@guiiai/logg'
 
+import { stripServerOnlyFields, stripServerOnlyFieldsFromMessages } from '../models/utils/message'
 import { convertToCoreMessage } from '../utils/message'
 
 export type MessageResolverService = ReturnType<ReturnType<typeof createMessageResolverService>>
@@ -30,7 +31,7 @@ export function createMessageResolverService(ctx: CoreContext) {
 
       // Return the messages first
       if (!options.takeout) {
-        emitter.emit('message:data', { messages: coreMessages })
+        emitter.emit('message:data', { messages: stripServerOnlyFieldsFromMessages(coreMessages) })
       }
 
       // Storage the messages first
@@ -57,7 +58,7 @@ export function createMessageResolverService(ctx: CoreContext) {
             else if (resolver.stream) {
               for await (const message of resolver.stream({ messages: coreMessages, syncOptions: options.syncOptions })) {
                 if (!options.takeout) {
-                  emitter.emit('message:data', { messages: [message] })
+                  emitter.emit('message:data', { messages: [stripServerOnlyFields(message)] })
                 }
 
                 emitter.emit('storage:record:messages', { messages: [message] })
