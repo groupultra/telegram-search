@@ -1,0 +1,119 @@
+import type { Logger } from '@guiiai/logg'
+import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
+
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import { Buffer } from 'buffer'
+import { Err, Ok } from '@unbird/result'
+
+import { setMediaBinaryProvider } from '@tg-search/core'
+import { Client as MinioClient } from 'minio'
+
+let minioClient: MinioClient | undefined
+
+function getMinioClient() {
+  if (minioClient) {
+    return Ok(minioClient)
+  }
+
+  const endPoint = process.env.MINIO_ENDPOINT
+  const portRaw = process.env.MINIO_PORT
+  const accessKey = process.env.MINIO_ACCESS_KEY
+  const secretKey = process.env.MINIO_SECRET_KEY
+  const useSSL = process.env.MINIO_USE_SSL === 'true'
+
+  if (!endPoint || !accessKey || !secretKey) {
+    return Err(new Error('MinIO configuration is incomplete; MINIO_ENDPOINT, MINIO_ACCESS_KEY and MINIO_SECRET_KEY are required'))
+  }
+
+  const port = portRaw ? Number.parseInt(portRaw, 10) : undefined
+
+  minioClient = new MinioClient({
+    endPoint,
+    port,
+    useSSL,
+    accessKey,
+    secretKey,
+  })
+
+  return Ok(minioClient)
+}
+
+function buildObjectKey(descriptor: MediaBinaryDescriptor): string {
+  const segments = [
+    descriptor.kind,
+    descriptor.platform || 'telegram',
+    descriptor.platformId,
+  ]
+
+  return segments
+    .map(part => String(part).trim())
+    .filter(Boolean)
+    .join('/')
+}
+
+export async function registerMinioMediaStorage(logger: Logger) {
+  const bucket = process.env.MINIO_BUCKET || 'telegram-media'
+
+  const clientResult = getMinioClient()
+  if (clientResult.isErr()) {
+    logger.withError(clientResult.unwrapErr()).warn('MinIO storage not configured; falling back to DB bytea for media')
+    return
+  }
+
+  const client = clientResult.unwrap()
+
+  try {
+    const exists = await client.bucketExists(bucket)
+    if (!exists) {
+      logger.withFields({ bucket }).log('Creating MinIO bucket for media storage')
+      await client.makeBucket(bucket)
+    }
+  }
+  catch (error) {
+    logger.withError(error).warn('Failed to ensure MinIO bucket; falling back to DB bytea for media')
+    return
+  }
+
+  const provider: MediaBinaryProvider = {
+    async save(descriptor: MediaBinaryDescriptor, bytes: Uint8Array, mimeType?: string): Promise<MediaBinaryLocation> {
+      const objectName = buildObjectKey(descriptor)
+
+      const buffer = Buffer.from(bytes)
+
+      await client.putObject(bucket, objectName, buffer, {
+        'Content-Type': mimeType || 'application/octet-stream',
+      })
+
+      return {
+        kind: descriptor.kind,
+        path: objectName,
+      }
+    },
+
+    async load(location: MediaBinaryLocation): Promise<Uint8Array | null> {
+      try {
+        const stream = await client.getObject(bucket, location.path)
+        const chunks: Buffer[] = []
+
+        for await (const chunk of stream as AsyncIterable<Buffer>) {
+          chunks.push(chunk)
+        }
+
+        if (chunks.length === 0) {
+          return null
+        }
+
+        const buffer = Buffer.concat(chunks)
+        return new Uint8Array(buffer)
+      }
+      catch (error) {
+        logger.withError(error).warn('Failed to load media from MinIO; returning null')
+        return null
+      }
+    },
+  }
+
+  setMediaBinaryProvider(provider)
+  logger.withFields({ bucket }).log('MinIO media storage provider registered')
+}
+

@@ -14,10 +14,17 @@ import { stickersTable } from '../schemas/stickers'
 import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
 
-/**
- * Record stickers for a specific account
- */
-export async function recordStickers(db: CoreDB, stickers: (CoreMessageMediaSticker & { byte?: Buffer })[]): Promise<DBInsertSticker[]> {
+type StickerMediaForRecord = CoreMessageMediaSticker & {
+  byte?: Buffer
+  /**
+   * Optional external storage path when a MediaBinaryProvider is configured.
+   * When present, this value will be persisted to image_path instead of
+   * storing raw bytes in image_bytes.
+   */
+  storagePath?: string
+}
+
+export async function recordStickers(db: CoreDB, stickers: StickerMediaForRecord[]): Promise<DBInsertSticker[]> {
   if (stickers.length === 0) {
     return []
   }
@@ -28,14 +35,21 @@ export async function recordStickers(db: CoreDB, stickers: (CoreMessageMediaStic
   )
 
   const dataToInsert = uniqueStickers
-    .filter(sticker => sticker.byte != null)
-    .map(sticker => ({
-      platform: 'telegram',
-      file_id: sticker.platformId,
-      sticker_bytes: sticker.byte,
-      emoji: sticker.emoji,
-      sticker_mime_type: sticker.mimeType,
-    } satisfies DBInsertSticker))
+    .filter(sticker => sticker.byte != null || sticker.storagePath)
+    .map((sticker) => {
+      const hasExternalStorage = Boolean(sticker.storagePath)
+
+      return {
+        platform: 'telegram',
+        file_id: sticker.platformId,
+        emoji: sticker.emoji,
+        // When an external storage provider is configured, prefer persisting
+        // the opaque storage path instead of raw bytes.
+        sticker_bytes: hasExternalStorage ? undefined : sticker.byte,
+        sticker_path: sticker.storagePath,
+        sticker_mime_type: sticker.mimeType,
+      } satisfies DBInsertSticker
+    })
 
   if (dataToInsert.length === 0) {
     return []
@@ -49,6 +63,7 @@ export async function recordStickers(db: CoreDB, stickers: (CoreMessageMediaStic
       set: {
         emoji: sql`excluded.emoji`,
         sticker_bytes: sql`excluded.sticker_bytes`,
+        sticker_path: sql`excluded.sticker_path`,
         sticker_mime_type: sql`excluded.sticker_mime_type`,
         updated_at: Date.now(),
       },

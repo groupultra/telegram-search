@@ -160,6 +160,19 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     const db = await initDB(logger, config.value)
 
+    // In With Core (browser-only) mode, register an OPFS-based media storage
+    // provider so that media bytes are kept out of the embedded database.
+    if (import.meta.env.VITE_WITH_CORE) {
+      const { registerOpfsMediaStorage } = await import('./core-media-opfs')
+      try {
+        await registerOpfsMediaStorage()
+        logger.debug('Registered OPFS media storage provider')
+      }
+      catch (error) {
+        logger.withError(error).warn('Failed to register OPFS media storage provider; falling back to DB bytea')
+      }
+    }
+
     // Wire up Vue DevTools plugin if the shell has registered a setup
     // callback via provide/inject (dev-only).
     if (import.meta.env.DEV && typeof window !== 'undefined') {

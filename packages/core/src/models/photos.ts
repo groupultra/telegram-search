@@ -14,25 +14,38 @@ import { photosTable } from '../schemas/photos'
 import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
 
-/**
- * Record photos for a specific account
- */
-export async function recordPhotos(db: CoreDB, media: (CoreMessageMediaPhoto & { byte?: Buffer })[]): Promise<DBInsertPhoto[]> {
+type PhotoMediaForRecord = CoreMessageMediaPhoto & {
+  byte?: Buffer
+  mimeType?: string
+  /**
+   * Optional external storage path when a MediaBinaryProvider is configured.
+   * When present, this value will be persisted to image_path instead of
+   * storing raw bytes in image_bytes.
+   */
+  storagePath?: string
+}
+
+export async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<DBInsertPhoto[]> {
   if (media.length === 0) {
     return []
   }
 
   const dataToInsert = media
-    .filter(media => media.byte != null)
-    .map(
-      media => ({
+    .filter(media => media.byte != null || media.storagePath)
+    .map((media) => {
+      const hasExternalStorage = Boolean(media.storagePath)
+
+      return {
         platform: 'telegram',
         file_id: media.platformId,
         message_id: media.messageUUID,
-        image_bytes: media.byte,
+        // When an external storage provider is configured, prefer persisting
+        // the opaque storage path instead of raw bytes.
+        image_bytes: hasExternalStorage ? undefined : media.byte,
+        image_path: media.storagePath,
         image_mime_type: media.mimeType,
-      } satisfies DBInsertPhoto),
-    )
+      } satisfies DBInsertPhoto
+    })
 
   if (dataToInsert.length === 0) {
     return []
@@ -45,6 +58,7 @@ export async function recordPhotos(db: CoreDB, media: (CoreMessageMediaPhoto & {
       target: [photosTable.platform, photosTable.file_id],
       set: {
         image_bytes: sql`excluded.image_bytes`,
+        image_path: sql`excluded.image_path`,
         image_mime_type: sql`excluded.image_mime_type`,
         updated_at: Date.now(),
       },
