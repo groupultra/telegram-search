@@ -65,6 +65,9 @@ describe('blob', () => {
       const result = createMediaBlob(media)
 
       expect(pako.inflate).toHaveBeenCalledWith(expect.any(Uint8Array), { to: 'string' })
+      if (result.type !== 'sticker') {
+        throw new Error('Expected sticker media result')
+      }
       expect(result.tgsAnimationData).toBe('inflated-animation-data')
       expect(result.blobUrl).toBeUndefined()
       expect(result.byte).toBeUndefined()

@@ -30,8 +30,8 @@ describe('photos', () => {
       expect(result).toEqual({
         type: 'photo',
         messageUUID: 'msg-456',
-        byte: Buffer.from([1, 2, 3, 4]),
         platformId: 'file-789',
+        queryId: '123',
       })
     })
 
@@ -57,8 +57,8 @@ describe('photos', () => {
       expect(result).toEqual({
         type: 'photo',
         messageUUID: undefined,
-        byte: Buffer.from([5, 6, 7]),
         platformId: 'file-789',
+        queryId: '123',
       })
     })
 
@@ -84,8 +84,8 @@ describe('photos', () => {
       expect(result).toEqual({
         type: 'photo',
         messageUUID: 'msg-456',
-        byte: undefined,
         platformId: 'file-789',
+        queryId: '123',
       })
     })
 
