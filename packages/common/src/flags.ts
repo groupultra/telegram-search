@@ -23,6 +23,21 @@ const DEFAULT_FLAGS: RuntimeFlags = {
 export function parseEnvFlags(env: Record<string, string | undefined>): RuntimeFlags {
   const result: RuntimeFlags = { ...DEFAULT_FLAGS }
 
+  const logFormatValue = readEnvValue('LOG_FORMAT', env)
+  if (logFormatValue) {
+    const normalized = logFormatValue.toLowerCase()
+    switch (normalized) {
+      case 'json':
+        result.logFormat = LoggerFormat.JSON
+        break
+      case 'pretty':
+        result.logFormat = LoggerFormat.Pretty
+        break
+      default:
+        break
+    }
+  }
+
   const logLevelValue = readEnvValue('LOG_LEVEL', env)
   if (logLevelValue) {
     const normalized = logLevelValue.toLowerCase()

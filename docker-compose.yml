@@ -33,6 +33,7 @@ services:
     environment:
       DATABASE_TYPE: postgres
       DATABASE_URL: 'postgresql://postgres:123456@pgvector:5432/postgres'
+      LOG_FORMAT: json
     healthcheck:
       test: [CMD-SHELL, 'curl -f http://localhost/health || exit 1']
       interval: 30s
