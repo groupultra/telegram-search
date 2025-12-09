@@ -16,13 +16,16 @@ export interface CoreMessage {
 
   reply: CoreMessageReply
   forward: CoreMessageForward
-  vectors: CoreMessageVector
-  jiebaTokens: string[]
 
   platformTimestamp: number
   createdAt?: number
   updatedAt?: number
   deletedAt?: number
+}
+
+export type ProcessedCoreMessage = CoreMessage & {
+  vectors?: CoreMessageVector
+  jiebaTokens?: string[]
 }
 
 export interface CoreMessageReply {

@@ -1,6 +1,6 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
-import type { CoreMessage } from '../types/message'
+import type { ProcessedCoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
 import { Err, Ok } from '@unbird/result'
@@ -26,12 +26,7 @@ export function createEmbeddingResolver(ctx: CoreContext): MessageResolver {
       if (opts.messages.length === 0)
         return Err('No messages')
 
-      const messages: CoreMessage[] = opts.messages.filter(
-        message => message.content
-          && (message.vectors.vector1024?.length === 0
-            || message.vectors.vector1536?.length === 0
-            || message.vectors.vector768?.length === 0),
-      )
+      const messages: ProcessedCoreMessage[] = opts.messages.filter(message => message.content)
 
       if (messages.length === 0)
         return Err('No messages to embed')
@@ -43,6 +38,12 @@ export function createEmbeddingResolver(ctx: CoreContext): MessageResolver {
       logger.withFields({ embeddings: embeddings.length, usage }).verbose('Embedding messages done')
 
       for (const [index, message] of messages.entries()) {
+        message.vectors = {
+          vector1536: [],
+          vector1024: [],
+          vector768: [],
+        }
+
         switch (dimension) {
           case EmbeddingDimension.DIMENSION_1536:
             message.vectors.vector1536 = embeddings[index]

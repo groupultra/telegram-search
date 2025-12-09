@@ -90,12 +90,6 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
       media,
       reply,
       forward,
-      vectors: {
-        vector1536: [],
-        vector1024: [],
-        vector768: [],
-      },
-      jiebaTokens: [],
       platformTimestamp: message.date,
     } satisfies CoreMessage,
   )

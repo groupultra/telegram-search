@@ -28,12 +28,6 @@ function createCoreMessage(overrides: Partial<CoreMessage>): CoreMessage {
     forward: {
       isForward: false,
     },
-    vectors: {
-      vector1536: [],
-      vector1024: [],
-      vector768: [],
-    },
-    jiebaTokens: [],
     platformTimestamp: Date.now(),
     ...overrides,
   }

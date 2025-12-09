@@ -1,5 +1,5 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
-import type { CoreMessage } from '../types/message'
+import type { ProcessedCoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
 import { Err, Ok } from '@unbird/result'
@@ -16,9 +16,7 @@ export function createJiebaResolver(): MessageResolver {
       if (opts.messages.length === 0)
         return Err('No messages')
 
-      const messages: CoreMessage[] = opts.messages.filter(
-        message => message.content && message.jiebaTokens.length === 0,
-      )
+      const messages: ProcessedCoreMessage[] = opts.messages.filter(message => message.content)
 
       if (messages.length === 0)
         return Err('No messages to parse')

@@ -1,7 +1,7 @@
 import type { chatMessagesTable } from '../../schemas/chat-messages'
 import type { JoinedChatType } from '../../schemas/joined-chats'
 import type { CoreRetrievalMessages } from '../../types/events'
-import type { CoreMessage } from '../../types/message'
+import type { CoreMessage, ProcessedCoreMessage } from '../../types/message'
 
 export type DBInsertMessage = typeof chatMessagesTable.$inferInsert
 export type DBSelectMessage = typeof chatMessagesTable.$inferSelect
@@ -39,14 +39,6 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
       // forwardFromMessageId: message.forward_from_message_id,
     },
 
-    vectors: {
-      vector1536: message.content_vector_1536 || [],
-      vector1024: message.content_vector_1024 || [],
-      vector768: message.content_vector_768 || [],
-    },
-
-    jiebaTokens: message.jieba_tokens as unknown as string[],
-
     createdAt: message.created_at,
     updatedAt: message.updated_at,
     platformTimestamp: message.platform_timestamp,
@@ -56,7 +48,7 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
 export function convertToDBInsertMessage(
   ownerAccountId: string | null | undefined,
   type: JoinedChatType,
-  message: CoreMessage,
+  message: ProcessedCoreMessage,
 ): DBInsertMessage {
   const msg: DBInsertMessage = {
     platform: message.platform,
@@ -77,16 +69,18 @@ export function convertToDBInsertMessage(
     msg.owner_account_id = ownerAccountId
   }
 
-  if (message.vectors.vector1536?.length) {
-    msg.content_vector_1536 = message.vectors.vector1536
-  }
+  if (message.vectors) {
+    if (message.vectors.vector1536?.length) {
+      msg.content_vector_1536 = message.vectors.vector1536
+    }
 
-  if (message.vectors.vector1024?.length) {
-    msg.content_vector_1024 = message.vectors.vector1024
-  }
+    if (message.vectors.vector1024?.length) {
+      msg.content_vector_1024 = message.vectors.vector1024
+    }
 
-  if (message.vectors.vector768?.length) {
-    msg.content_vector_768 = message.vectors.vector768
+    if (message.vectors.vector768?.length) {
+      msg.content_vector_768 = message.vectors.vector768
+    }
   }
 
   if (message.jiebaTokens?.length) {
