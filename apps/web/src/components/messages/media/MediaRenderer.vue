@@ -5,7 +5,7 @@ import type { AnimationItem } from 'lottie-web'
 
 import lottie from 'lottie-web'
 
-import { useSettingsStore } from '@tg-search/client'
+import { hydrateMediaBlobWithCore, useSettingsStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, onUnmounted, ref, watch } from 'vue'
 
@@ -78,6 +78,21 @@ const processedMedia = computed<ProcessedMedia>(() => {
       } satisfies ProcessedMedia
   }
 })
+
+// In With Core mode, lazily hydrate media blobs from the embedded database
+// only when this component is mounted and has a media item to render.
+if (import.meta.env.VITE_WITH_CORE) {
+  watch(
+    () => props.message.media?.[0],
+    (mediaItem) => {
+      if (!mediaItem || !mediaItem.queryId || mediaItem.blobUrl)
+        return
+
+      void hydrateMediaBlobWithCore(mediaItem)
+    },
+    { immediate: true },
+  )
+}
 
 const isLoading = computed(() => {
   return !processedMedia.value.src && !processedMedia.value.tgsAnimationData && isMedia.value

@@ -1,5 +1,5 @@
 import type { Config } from '@tg-search/common'
-import type { CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { CoreDB, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
@@ -23,9 +23,18 @@ import { createCoreRuntime } from './core-runtime'
 // Dev-only PGlite handle for browser-only mode debugging.
 // Typed as any to avoid introducing a hard dependency from client to PGlite.
 let pgliteDevDb: any
+let dbInstance: CoreDB | undefined
 
 export function usePGliteDevDb(): any {
   return pgliteDevDb
+}
+
+export function useDb(): CoreDB {
+  if (!dbInstance) {
+    throw new Error('Database not initialized')
+  }
+
+  return dbInstance
 }
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
@@ -166,11 +175,12 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     logger.withFields({ config: config.value }).verbose('Initialized config')
 
-    const { pglite } = await initDrizzle(logger, config.value, {
+    const { pglite, db } = await initDrizzle(logger, config.value, {
       debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL as string,
       isDatabaseDebugMode: import.meta.env.VITE_DB_DEBUG === 'true',
     })
     pgliteDevDb = pglite
+    dbInstance = db
 
     // Wire up Vue DevTools plugin if the shell has registered a setup
     // callback via provide/inject (dev-only).
