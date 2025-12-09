@@ -48,6 +48,7 @@ export function createCoreRuntime(
       if (!configRef.value)
         throw new Error('Core runtime is not initialized')
 
+      // In browser runtime we do not wire metrics; pass undefined.
       ctx = createCoreInstance(configRef.value)
     }
 

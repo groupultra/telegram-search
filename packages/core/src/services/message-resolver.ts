@@ -18,6 +18,7 @@ export function createMessageResolverService(ctx: CoreContext) {
 
     // TODO: worker_threads?
     async function processMessages(messages: Api.Message[], options: { takeout?: boolean, syncOptions?: SyncOptions } = {}) {
+      const start = performance.now()
       logger.withFields({ count: messages.length }).verbose('Process messages')
 
       // Sort by message ID in reverse order to process in reverse.
@@ -73,6 +74,14 @@ export function createMessageResolverService(ctx: CoreContext) {
         })())
 
       await Promise.allSettled(promises)
+
+      // Record batch duration if metrics sink is available (Node/server runtime only).
+      if (ctx.metrics) {
+        const durationMs = performance.now() - start
+        const source = options.takeout ? 'takeout' : 'realtime'
+        ctx.metrics.messageBatchDuration.observe({ source }, durationMs)
+        ctx.metrics.messagesProcessed.inc({ source }, coreMessages.length)
+      }
     }
 
     return {

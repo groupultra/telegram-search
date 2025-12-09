@@ -1,12 +1,8 @@
+import type { CoreMetrics } from '@tg-search/common'
 import type { TelegramClient } from 'telegram'
 
 import type { AccountSettings } from './types/account-settings'
-import type {
-  CoreEmitter,
-  CoreEvent,
-  FromCoreEvent,
-  ToCoreEvent,
-} from './types/events'
+import type { CoreEmitter, CoreEvent, FromCoreEvent, ToCoreEvent } from './types/events'
 
 import { useLogger } from '@guiiai/logg'
 import { EventEmitter } from 'eventemitter3'
@@ -16,7 +12,28 @@ import { detectMemoryLeak } from './utils/memory-leak-detector'
 
 export type { CoreEmitter, CoreEvent, CoreEventData, FromCoreEvent, ToCoreEvent } from './types/events'
 
-export type CoreContext = ReturnType<typeof createCoreContext>
+export interface CoreContext {
+  emitter: CoreEmitter
+  toCoreEvents: Set<keyof ToCoreEvent>
+  fromCoreEvents: Set<keyof FromCoreEvent>
+  wrapEmitterEmit: (emitter: CoreEmitter, fn?: (event: keyof FromCoreEvent) => void) => void
+  wrapEmitterOn: (emitter: CoreEmitter, fn?: (event: keyof ToCoreEvent) => void) => void
+  setClient: (client: TelegramClient) => void
+  getClient: () => TelegramClient
+  setCurrentAccountId: (accountId: string) => void
+  getCurrentAccountId: () => string
+  withError: (error: unknown, description?: string) => Error
+  cleanup: () => void
+  getAccountSettings: () => Promise<AccountSettings>
+  setAccountSettings: (newSettings: AccountSettings) => Promise<unknown> // TODO: fix return type
+
+  /**
+   * Optional metrics sink for core operations.
+   * - In browser environment, this is typically undefined.
+   * - In server environment, this can be wired to Prometheus / OTEL metrics adapter.
+   */
+  metrics?: CoreMetrics
+}
 
 export type Service<T> = (ctx: CoreContext) => T
 
@@ -45,7 +62,7 @@ function createErrorHandler(emitter: CoreEmitter) {
   }
 }
 
-export function createCoreContext() {
+export function createCoreContext(metrics?: CoreMetrics): CoreContext {
   const emitter = new EventEmitter<CoreEvent>()
   const withError = createErrorHandler(emitter)
   let telegramClient: TelegramClient
@@ -178,6 +195,7 @@ export function createCoreContext() {
     cleanup,
     getAccountSettings,
     setAccountSettings,
+    metrics,
   }
 }
 
