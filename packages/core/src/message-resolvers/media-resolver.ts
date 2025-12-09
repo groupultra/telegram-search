@@ -46,6 +46,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
             const db = useDrizzle()
 
+            // TODO: store the mime type in the DB
             // Stickers: prefer existing DB row -> queryId, otherwise download & store.
             if (media.type === 'sticker') {
               try {
@@ -65,7 +66,6 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               }
             }
 
-            // Photos: prefer existing DB row -> queryId + optional mimeType, otherwise download & store.
             // Photos: prefer existing DB row -> queryId, otherwise download & store.
             if (media.type === 'photo') {
               try {
