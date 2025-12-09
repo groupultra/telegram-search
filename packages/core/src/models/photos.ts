@@ -1,5 +1,6 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/photos.ts
 
+import type { CoreDB } from '../db'
 import type { CoreMessageMediaPhoto } from '../types/media'
 import type { DBInsertPhoto } from './utils/photos'
 
@@ -10,8 +11,8 @@ import { withDb } from '../db'
 import { photosTable } from '../schemas/photos'
 import { must0 } from './utils/must'
 
-export async function findPhotoByFileId(fileId: string) {
-  const photos = (await withDb(db => db
+export async function findPhotoByFileId(db: CoreDB, fileId: string) {
+  const photos = await db
     .select()
     .from(photosTable)
     .where(
@@ -19,8 +20,7 @@ export async function findPhotoByFileId(fileId: string) {
         eq(photosTable.platform, 'telegram'),
         eq(photosTable.file_id, fileId),
       ),
-    ),
-  )).expect('Failed to find photos by file ID')
+    )
 
   return Ok(must0(photos))
 }

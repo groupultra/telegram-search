@@ -13,6 +13,7 @@ import { newQueue } from '@henrygd/queue'
 import { fileTypeFromBuffer } from 'file-type'
 
 import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
+import { useDrizzle } from '../db'
 import { findPhotoByFileId, findStickerByFileId } from '../models'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
@@ -57,7 +58,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
             // TODO: move it to storage
             if (media.type === 'photo') {
-              const photo = (await findPhotoByFileId(media.platformId)).unwrap()
+              const photo = (await findPhotoByFileId(useDrizzle(), media.platformId)).unwrap()
               if (photo && photo.image_bytes) {
                 const imageBytes = photo.image_bytes
                 return {

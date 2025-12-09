@@ -19,6 +19,7 @@
     "@tg-search/core": "workspace:*",
     "crossws": "^0.4.1",
     "figlet": "^1.9.4",
+    "file-type": "^21.1.1",
     "h3": "^2.0.1-rc.5",
     "prom-client": "^15.1.3"
   },

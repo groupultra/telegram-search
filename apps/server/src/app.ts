@@ -6,13 +6,14 @@ import figlet from 'figlet'
 
 import { initLogger, useLogger } from '@guiiai/logg'
 import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
-import { initDrizzle } from '@tg-search/core'
 import { plugin as wsPlugin } from 'crossws/server'
 import { defineEventHandler, H3, serve } from 'h3'
 import { collectDefaultMetrics, register } from 'prom-client'
 
 import pkg from '../package.json' with { type: 'json' }
 
+import { v1api } from './apis/v1'
+import { initDb } from './db'
 import { setupWsRoutes } from './ws-routes'
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
@@ -71,6 +72,8 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
     })
   }))
 
+  app.mount('/v1', v1api())
+
   setupWsRoutes(app, config)
 
   return app
@@ -88,17 +91,7 @@ async function bootstrap() {
 
   const config = parseEnvToConfig(process.env, logger)
 
-  try {
-    await initDrizzle(logger, config, {
-      isDatabaseDebugMode: flags.isDatabaseDebugMode,
-      disableMigrations: flags.disableMigrations,
-    })
-    logger.log('Database initialized successfully')
-  }
-  catch (error) {
-    logger.withError(error).error('Failed to initialize services')
-    process.exit(1)
-  }
+  await initDb(logger, config, flags)
 
   setupErrorHandlers(logger)
 

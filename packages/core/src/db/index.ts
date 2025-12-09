@@ -91,7 +91,7 @@ export async function initDrizzle(
   }
 }
 
-function useDrizzle() {
+export function useDrizzle() {
   if (!dbInstance) {
     throw new Error('Database not initialized')
   }

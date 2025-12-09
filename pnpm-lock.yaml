@@ -93,6 +93,9 @@ importers:
       figlet:
         specifier: ^1.9.4
         version: 1.9.4
+      file-type:
+        specifier: ^21.1.1
+        version: 21.1.1
       h3:
         specifier: ^2.0.1-rc.5
         version: 2.0.1-rc.5(crossws@0.4.1(srvx@0.9.7))
