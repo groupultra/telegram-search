@@ -14,7 +14,6 @@ import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
 import { initDb } from './db'
-import { initOtel } from './otel'
 import { setupWsRoutes } from './ws-routes'
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
@@ -85,8 +84,6 @@ async function bootstrap() {
     // eslint-disable-next-line no-console
     console.log(`\n${result}\nv${pkg.version}\n`)
   })
-
-  await initOtel()
 
   const flags = parseEnvFlags(process.env)
   initLogger(flags.logLevel, flags.logFormat)

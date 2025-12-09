@@ -22,6 +22,7 @@ onlyBuiltDependencies:
   - electron-winstaller
   - es5-ext
   - esbuild
+  - protobufjs
   - sharp
   - unrs-resolver
   - utf-8-validate
