@@ -62,12 +62,12 @@ export type CoreMessageMediaUnknown = CoreMessageMediaBase & {
   type: 'unknown'
 }
 
-export type CoreMessageMedia =
-  | CoreMessageMediaPhoto
-  | CoreMessageMediaSticker
-  | CoreMessageMediaDocument
-  | CoreMessageMediaWebPage
-  | CoreMessageMediaUnknown
+export type CoreMessageMedia
+  = | CoreMessageMediaPhoto
+    | CoreMessageMediaSticker
+    | CoreMessageMediaDocument
+    | CoreMessageMediaWebPage
+    | CoreMessageMediaUnknown
 
 /**
  * Media representation used in the core pipeline (server-side).
