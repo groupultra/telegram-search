@@ -40,8 +40,23 @@ import type { WsMessageToServer } from './ws-events'
 import { useLogger } from '@guiiai/logg'
 import { createCoreInstance, destroyCoreInstance } from '@tg-search/core'
 import { defineWebSocketHandler } from 'h3'
+import { Counter, Gauge } from 'prom-client'
 
 import { sendWsEvent } from './ws-events'
+
+const WS_MODE_LABEL = 'server' as const
+
+const wsConnectionsActive = new Gauge({
+  name: 'ws_connections_active',
+  help: 'Number of active WebSocket connections',
+  labelNames: ['mode'] as const,
+})
+
+const coreEventsInTotal = new Counter({
+  name: 'core_events_in_total',
+  help: 'Total number of events sent from client to core',
+  labelNames: ['event_name'] as const,
+})
 
 /**
  * Account state - one per Telegram account
@@ -184,6 +199,7 @@ export function setupWsRoutes(app: H3, config: Config) {
       const accountId = url.searchParams.get('sessionId') || crypto.randomUUID()
 
       logger.withFields({ peerId: peer.id, accountId }).log('WebSocket connection opened')
+      wsConnectionsActive.inc({ mode: WS_MODE_LABEL })
 
       // Get or create account state (reuses existing if available)
       const account = getOrCreateAccount(accountId, config)
@@ -269,6 +285,10 @@ export function setupWsRoutes(app: H3, config: Config) {
         else {
           logger.withFields({ type: event.type, accountId }).verbose('Message received')
 
+          if (!event.type.startsWith('server:')) {
+            coreEventsInTotal.inc({ event_name: event.type })
+          }
+
           // Emit to core context
           account.ctx.emitter.emit(event.type, event.data as CoreEventData<keyof ToCoreEvent>)
         }
@@ -323,6 +343,7 @@ export function setupWsRoutes(app: H3, config: Config) {
 
     async close(peer) {
       logger.withFields({ peerId: peer.id }).log('WebSocket connection closed')
+      wsConnectionsActive.dec({ mode: WS_MODE_LABEL })
 
       const accountId = peerToAccountId.get(peer.id)
       if (!accountId) {
