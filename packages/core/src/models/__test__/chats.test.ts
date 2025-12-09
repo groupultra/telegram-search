@@ -2,6 +2,7 @@ import type { CoreDB } from '../../db'
 import type { CoreDialog } from '../../types/dialog'
 
 import { describe, expect, it, vi } from 'vitest'
+
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { fetchChatsByAccountId, recordChats } from '../chats'

@@ -1,6 +1,7 @@
 import type { CoreDB } from '../../db'
 
 import { beforeEach, describe, expect, it } from 'vitest'
+
 import { mockDB } from '../../db/mock'
 import { accountsTable } from '../../schemas/accounts'
 import { chatMessagesTable } from '../../schemas/chat-messages'

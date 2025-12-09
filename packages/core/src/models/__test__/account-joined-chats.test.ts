@@ -1,6 +1,7 @@
 import type { CoreDB } from '../../db'
 
 import { describe, expect, it, vi } from 'vitest'
+
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import {
   findAccountIdsByJoinedChatId,
