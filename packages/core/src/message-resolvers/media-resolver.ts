@@ -15,7 +15,6 @@ import { fileTypeFromBuffer } from 'file-type'
 import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
 import { useDrizzle } from '../db'
 import {
-  findPhotoByFileId,
   getPhotoQueryIdByFileId,
   getStickerQueryIdByFileId,
   recordPhotos,
