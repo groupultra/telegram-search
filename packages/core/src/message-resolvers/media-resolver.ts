@@ -2,7 +2,7 @@ import type { Api } from 'telegram'
 
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
-import type { CoreMessageMediaFromCache, CoreMessageMediaFromServer } from '../types/media'
+import type { CoreMessageMediaFromServer } from '../types/media'
 import type { CoreMessage } from '../types/message'
 
 // eslint-disable-next-line unicorn/prefer-node-protocol
@@ -14,7 +14,7 @@ import { fileTypeFromBuffer } from 'file-type'
 
 import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
 import { useDrizzle } from '../db'
-import { findPhotoByFileId, findStickerByFileId } from '../models'
+import { findPhotoByFileId, getPhotoQueryIdByFileId, getStickerQueryIdByFileId } from '../models'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
@@ -24,10 +24,6 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
   return {
     async* stream(opts: MessageResolverOpts) {
       logger.verbose('Executing media resolver')
-
-      // Get media size limit from sync options (in MB, 0 = unlimited)
-      const maxMediaSizeMB = opts.syncOptions?.maxMediaSize ?? 0
-      const maxMediaSizeBytes = maxMediaSizeMB > 0 ? maxMediaSizeMB * 1024 * 1024 : Number.POSITIVE_INFINITY
 
       for (const message of opts.messages) {
         if (!message.media || message.media.length === 0) {
@@ -39,59 +35,71 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           downloadQueue.add(async () => {
             logger.withFields({ media }).debug('Media')
 
-            // TODO: move it to storage
+            // Stickers: prefer existing DB row -> queryId, otherwise download & store via storage pipeline.
             if (media.type === 'sticker') {
-              const sticker = (await findStickerByFileId(media.platformId)).unwrap()
+              const db = useDrizzle()
+              try {
+                const queryId = (await getStickerQueryIdByFileId(db, media.platformId)).orUndefined() as string | undefined
 
-              // Only return directly when sticker_bytes exists in the database
-              if (sticker && sticker.sticker_bytes) {
-                const stickerBytes = sticker.sticker_bytes
-                return {
-                  messageUUID: message.uuid,
-                  byte: stickerBytes,
-                  type: media.type,
-                  platformId: media.platformId,
-                  mimeType: (await fileTypeFromBuffer(stickerBytes))?.mime,
-                } satisfies CoreMessageMediaFromCache
+                if (queryId) {
+                  return {
+                    messageUUID: message.uuid,
+                    queryId,
+                    type: media.type,
+                    platformId: media.platformId,
+                  } satisfies CoreMessageMediaFromServer
+                }
+              }
+              catch (error) {
+                logger.withError(error).debug('Failed to resolve sticker from cache, falling back to download')
               }
             }
 
-            // TODO: move it to storage
+            // Photos: prefer existing DB row -> queryId + optional mimeType, otherwise download.
             if (media.type === 'photo') {
-              const photo = (await findPhotoByFileId(useDrizzle(), media.platformId)).unwrap()
-              if (photo && photo.image_bytes) {
-                const imageBytes = photo.image_bytes
-                return {
-                  messageUUID: message.uuid,
-                  byte: imageBytes,
-                  type: media.type,
-                  platformId: media.platformId,
-                  mimeType: (await fileTypeFromBuffer(imageBytes))?.mime,
-                } satisfies CoreMessageMediaFromServer
+              const db = useDrizzle()
+              try {
+                const photo = (await findPhotoByFileId(db, media.platformId)).orUndefined()
+                if (photo && photo.id) {
+                  const cachedBytes = photo.image_bytes
+                  const mimeType = cachedBytes ? (await fileTypeFromBuffer(cachedBytes))?.mime : undefined
+
+                  return {
+                    messageUUID: message.uuid,
+                    queryId: photo.id,
+                    type: media.type,
+                    platformId: media.platformId,
+                    mimeType,
+                  } satisfies CoreMessageMediaFromServer
+                }
+              }
+              catch (error) {
+                logger.withError(error).debug('Failed to resolve photo from cache, falling back to download')
+              }
+
+              // As a secondary fast path, try to resolve just the queryId without loading bytes.
+              try {
+                const queryId = (await getPhotoQueryIdByFileId(db, media.platformId)).orUndefined() as string | undefined
+                if (queryId) {
+                  return {
+                    messageUUID: message.uuid,
+                    queryId,
+                    type: media.type,
+                    platformId: media.platformId,
+                  } satisfies CoreMessageMediaFromServer
+                }
+              }
+              catch (error) {
+                logger.withError(error).debug('Failed to resolve photo queryId from cache, falling back to download')
               }
             }
 
+            // Fallback: download media from Telegram.
             const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
             const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
 
             if (!byte) {
               logger.warn(`Media is not a buffer, ${mediaFetched?.constructor.name}`)
-            }
-
-            // Check media size against limit
-            if (byte && byte.length > maxMediaSizeBytes) {
-              logger.withFields({
-                size: byte.length,
-                maxSize: maxMediaSizeBytes,
-                platformId: media.platformId,
-              }).verbose('Media exceeds size limit, skipping')
-              return {
-                messageUUID: message.uuid,
-                byte: undefined, // Skip media that exceeds size limit
-                type: media.type,
-                platformId: media.platformId,
-                mimeType: undefined,
-              } satisfies CoreMessageMediaFromServer
             }
 
             return {

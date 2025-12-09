@@ -4,7 +4,25 @@ import pako from 'pako'
 
 import { useLogger } from '@guiiai/logg'
 
+/**
+ * Create a browser-friendly media representation.
+ *
+ * Strategy:
+ * - If `byte` is present, create a Blob URL (legacy / browser-only mode).
+ * - If no `byte` but `queryId` exists, construct an HTTP URL that the server
+ *   can serve (server mode, preferred).
+ * - For TGS stickers with gzip mimeType, inflate into animation data.
+ */
 export function createMediaBlob(media: CoreMessageMediaFromBlob) {
+  const logger = useLogger('Blob')
+
+  // Prefer HTTP-based media fetching when we have a queryId and no bytes.
+  if (!media.byte && media.queryId && media.type === 'photo') {
+    media.blobUrl = `/v1/photos/${media.queryId}`
+    logger.debug('Using HTTP media endpoint for photo', { queryId: media.queryId, url: media.blobUrl })
+    return media
+  }
+
   // when media.type is 'webpage'
   // media.byte (preview image) might be an empty buffer
   if (media.byte) {
@@ -24,7 +42,7 @@ export function createMediaBlob(media: CoreMessageMediaFromBlob) {
       const url = URL.createObjectURL(blob)
       media.blobUrl = url
 
-      useLogger('Blob').log('Blob URL created:', {
+      logger.log('Blob URL created:', {
         url,
         blobSize: blob.size,
       })
@@ -36,13 +54,13 @@ export function createMediaBlob(media: CoreMessageMediaFromBlob) {
 }
 
 export function cleanupMediaBlob(media: CoreMessageMediaFromBlob): void {
-  if (media.blobUrl) {
+  if (media.blobUrl?.startsWith('blob:')) {
     URL.revokeObjectURL(media.blobUrl)
 
     useLogger('Blob').log('Blob URL revoked:', { url: media.blobUrl })
-
-    media.blobUrl = undefined
   }
+
+  media.blobUrl = undefined
 }
 
 export function cleanupMediaBlobs(mediaArray: CoreMessageMediaFromBlob[]): void {

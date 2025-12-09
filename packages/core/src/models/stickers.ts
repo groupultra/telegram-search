@@ -1,8 +1,12 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/stickers.ts
 
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import type { Buffer } from 'buffer'
+
+import type { CoreDB } from '../db'
 import type { CoreMessageMediaSticker } from '../types/media'
 
-import { Ok } from '@unbird/result'
+import { Err, Ok } from '@unbird/result'
 import { eq, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
@@ -29,7 +33,23 @@ export async function findStickerByFileId(fileId: string) {
   return Ok(must0(sticker))
 }
 
-export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
+export async function getStickerQueryIdByFileId(db: CoreDB, fileId: string) {
+  const stickers = await db
+    .select({
+      id: stickersTable.id,
+    })
+    .from(stickersTable)
+    .where(eq(stickersTable.file_id, fileId))
+    .limit(1)
+
+  if (stickers.length === 0) {
+    return Err(new Error('Sticker not found'))
+  }
+
+  return Ok(stickers[0].id)
+}
+
+export async function recordStickers(stickers: CoreMessageMediaSticker & { byte: Buffer }[]) {
   if (stickers.length === 0) {
     return
   }

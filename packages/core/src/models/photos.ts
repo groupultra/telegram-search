@@ -4,7 +4,7 @@ import type { CoreDB } from '../db'
 import type { CoreMessageMediaPhoto } from '../types/media'
 import type { DBInsertPhoto } from './utils/photos'
 
-import { Ok } from '@unbird/result'
+import { Err, Ok } from '@unbird/result'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
 import { withDb } from '../db'
@@ -21,6 +21,37 @@ export async function findPhotoByFileId(db: CoreDB, fileId: string) {
         eq(photosTable.file_id, fileId),
       ),
     )
+    .limit(1)
+
+  return Ok(must0(photos))
+}
+
+export async function getPhotoQueryIdByFileId(db: CoreDB, fileId: string) {
+  const photos = await db
+    .select({
+      id: photosTable.id,
+    })
+    .from(photosTable)
+    .where(
+      and(
+        eq(photosTable.platform, 'telegram'),
+        eq(photosTable.file_id, fileId),
+      ),
+    )
+    .limit(1)
+
+  if (photos.length === 0) {
+    return Err(new Error('Photo not found'))
+  }
+
+  return Ok(photos[0].id)
+}
+
+export async function findPhotoByQueryId(db: CoreDB, queryId: string) {
+  const photos = await db
+    .select()
+    .from(photosTable)
+    .where(eq(photosTable.id, queryId))
 
   return Ok(must0(photos))
 }

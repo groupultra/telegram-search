@@ -1,4 +1,4 @@
-import { findPhotoByFileId } from '@tg-search/core'
+import { findPhotoByQueryId } from '@tg-search/core'
 import { fileTypeFromBuffer } from 'file-type'
 import { defineEventHandler, getRouterParam, H3, HTTPError } from 'h3'
 
@@ -7,18 +7,18 @@ import { getDb } from '../../db'
 export function v1api(): H3 {
   const app = new H3()
 
-  app.all('/photos/:id', defineEventHandler(async (event) => {
-    const id = getRouterParam(event, 'id')
+  app.all('/photos/:queryId', defineEventHandler(async (event) => {
+    const queryId = getRouterParam(event, 'queryId')
 
-    if (!id) {
+    if (!queryId) {
       return new HTTPError({
         statusCode: 400,
-        statusMessage: 'File ID is required',
+        statusMessage: 'Query ID is required',
       })
     }
 
     try {
-      const photo = (await findPhotoByFileId(getDb(), id)).expect('Failed to find photo')
+      const photo = (await findPhotoByQueryId(getDb(), queryId)).expect('Failed to find photo')
 
       const bytes = new Uint8Array(photo?.image_bytes ?? new ArrayBuffer(0))
       if (bytes.length === 0) {
