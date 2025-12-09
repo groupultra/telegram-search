@@ -17,6 +17,11 @@ export function createMediaBlob(media: CoreMessageMediaFromBlob) {
     logger.debug('Using HTTP media endpoint for photo', { queryId: media.queryId, url: media.blobUrl })
   }
 
+  if (media.queryId && media.type === 'sticker') {
+    media.blobUrl = `/api/v1/stickers/${media.queryId}`
+    logger.debug('Using HTTP media endpoint for sticker', { queryId: media.queryId, url: media.blobUrl })
+  }
+
   return media
 }
 

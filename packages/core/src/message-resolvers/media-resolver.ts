@@ -146,12 +146,15 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                 }])
 
                 const inserted = result?.unwrap()?.[0]
+                const mimeType = (await fileTypeFromBuffer(byte))?.mime
+
                 if (inserted?.id) {
                   return {
                     messageUUID: message.uuid,
                     queryId: inserted.id,
                     type: media.type,
                     platformId: media.platformId,
+                    mimeType,
                   } satisfies CoreMessageMediaFromServer
                 }
               }

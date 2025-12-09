@@ -33,6 +33,15 @@ export async function findStickerByFileId(fileId: string) {
   return Ok(must0(sticker))
 }
 
+export async function findStickerByQueryId(db: CoreDB, queryId: string) {
+  const stickers = await db
+    .select()
+    .from(stickersTable)
+    .where(eq(stickersTable.id, queryId))
+
+  return Ok(must0(stickers))
+}
+
 export async function getStickerQueryIdByFileId(db: CoreDB, fileId: string) {
   const stickers = await db
     .select({
