@@ -98,24 +98,10 @@ describe('chat-message model with account-aware ownership', () => {
     expect(groupRow?.owner_account_id).toBeUndefined()
   })
 
-  it('recordMessagesWithMedia should use a single transaction for messages and media', async () => {
+  it('recordMessagesWithMedia should delegate to recordMessages for backward compatibility', async () => {
     const messages: CoreMessage[] = [
       createCoreMessage({
         chatId: '1001',
-        media: [
-          {
-            type: 'photo',
-            platformId: 'photo-1',
-            byte: new Uint8Array([1, 2, 3]),
-            messageUUID: 'uuid-1',
-          } as any,
-          {
-            type: 'sticker',
-            platformId: 'sticker-1',
-            byte: new Uint8Array([4, 5, 6]),
-            messageUUID: 'uuid-1',
-          } as any,
-        ],
       }),
     ]
 
@@ -123,11 +109,9 @@ describe('chat-message model with account-aware ownership', () => {
       { chat_id: '1001', chat_type: 'user' as const },
     ]
 
-    const select = vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => chatRows),
-      })),
-    }))
+    const where = vi.fn(() => chatRows)
+    const from = vi.fn(() => ({ where }))
+    const select = vi.fn(() => ({ from }))
 
     const onConflictDoUpdateMessages = vi.fn(() => ({
       returning: vi.fn(async () => [
@@ -138,18 +122,6 @@ describe('chat-message model with account-aware ownership', () => {
       onConflictDoUpdate: onConflictDoUpdateMessages,
     }))
 
-    const photosValues = vi.fn(() => ({
-      onConflictDoUpdate: vi.fn(() => ({
-        returning: vi.fn(async () => []),
-      })),
-    }))
-
-    const stickersValues = vi.fn(() => ({
-      onConflictDoUpdate: vi.fn(() => ({
-        returning: vi.fn(async () => []),
-      })),
-    }))
-
     const insert = vi.fn((table: unknown) => {
       if (table === chatMessagesTable) {
         return {
@@ -157,38 +129,19 @@ describe('chat-message model with account-aware ownership', () => {
           onConflictDoUpdate: onConflictDoUpdateMessages,
         }
       }
-      if ((table as { name?: string }).name === 'photos') {
-        return {
-          values: photosValues,
-          onConflictDoUpdate: vi.fn(() => ({
-            returning: vi.fn(async () => []),
-          })),
-        }
-      }
-      if ((table as { name?: string }).name === 'stickers') {
-        return {
-          values: stickersValues,
-          onConflictDoUpdate: vi.fn(() => ({
-            returning: vi.fn(async () => []),
-          })),
-        }
-      }
       throw new Error('Unexpected table')
     })
 
-    const transaction = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
-      return fn({ select, insert })
-    })
-
     const fakeDb = {
-      transaction,
+      select,
+      insert,
     }
 
     setDbInstanceForTests(fakeDb)
 
     await recordMessagesWithMedia('account-1', messages)
 
-    expect(transaction).toHaveBeenCalledTimes(1)
+    expect(select).toHaveBeenCalled()
     expect(insert).toHaveBeenCalledWith(chatMessagesTable)
     expect(messageValues).toHaveBeenCalled()
   })

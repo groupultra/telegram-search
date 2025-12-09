@@ -20,6 +20,9 @@ export function createMessageResolverService(ctx: CoreContext) {
     async function processMessages(messages: Api.Message[], options: { takeout?: boolean, syncOptions?: SyncOptions } = {}) {
       logger.withFields({ count: messages.length }).verbose('Process messages')
 
+      // Sort by message ID in reverse order to process in reverse.
+      messages = messages.sort((a, b) => Number(b.id) - Number(a.id))
+
       const coreMessages = messages
         .map(message => convertToCoreMessage(message).orUndefined())
         .filter(message => message != null)

@@ -13,7 +13,7 @@ import {
   getChatMessagesStats,
   isChatAccessibleByAccount,
   recordChats,
-  recordMessagesWithMedia,
+  recordMessages,
   retrieveMessages,
 } from '../models'
 import { embedContents } from '../utils/embed'
@@ -91,7 +91,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
 
     logger.withFields({ messages: messages.length, accountId }).verbose('Recording messages')
 
-    await recordMessagesWithMedia(accountId, messages)
+    await recordMessages(accountId, messages)
   })
 
   emitter.on('storage:fetch:dialogs', async (data) => {

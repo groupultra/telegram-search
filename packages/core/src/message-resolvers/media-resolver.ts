@@ -14,7 +14,13 @@ import { fileTypeFromBuffer } from 'file-type'
 
 import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
 import { useDrizzle } from '../db'
-import { findPhotoByFileId, getPhotoQueryIdByFileId, getStickerQueryIdByFileId } from '../models'
+import {
+  findPhotoByFileId,
+  getPhotoQueryIdByFileId,
+  getStickerQueryIdByFileId,
+  recordPhotos,
+  recordStickers,
+} from '../models'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
@@ -29,18 +35,20 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
         const message = opts.messages[index]
         const rawMessage = opts.rawMessages[index]
 
-        if (!message.media || message.media.length === 0) {
+        // If the raw Telegram message has no media, there is nothing to resolve.
+        if (!rawMessage?.media || !message.media || message.media.length === 0) {
           continue
         }
 
-        // Use concurrency limit queue to avoid downloading too many files simultaneously
+        // Use concurrency limit queue to avoid downloading too many files simultaneously.
         const mediaPromises = message.media.map(media =>
           downloadQueue.add(async () => {
             logger.withFields({ media }).debug('Media')
 
-            // Stickers: prefer existing DB row -> queryId, otherwise download & store via storage pipeline.
+            const db = useDrizzle()
+
+            // Stickers: prefer existing DB row -> queryId, otherwise download & store.
             if (media.type === 'sticker') {
-              const db = useDrizzle()
               try {
                 const queryId = (await getStickerQueryIdByFileId(db, media.platformId)).orUndefined() as string | undefined
 
@@ -58,9 +66,8 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               }
             }
 
-            // Photos: prefer existing DB row -> queryId + optional mimeType, otherwise download.
+            // Photos: prefer existing DB row -> queryId + optional mimeType, otherwise download & store.
             if (media.type === 'photo') {
-              const db = useDrizzle()
               try {
                 const photo = (await findPhotoByFileId(db, media.platformId)).orUndefined()
                 if (photo && photo.id) {
@@ -97,17 +104,8 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               }
             }
 
-            // Fallback: download media from Telegram using the raw Api message.
-            const apiMedia = rawMessage.media as Api.TypeMessageMedia | undefined
-            if (!apiMedia) {
-              logger.withFields({ messageId: rawMessage.id }).warn('No media found on raw Telegram message')
-              return {
-                messageUUID: message.uuid,
-                type: media.type,
-                platformId: media.platformId,
-              } satisfies CoreMessageMediaFromServer
-            }
-
+            // Fallback: download media from Telegram using the raw Api message, then persist and return queryId.
+            const apiMedia = rawMessage.media as Api.TypeMessageMedia
             const mediaFetched = await ctx.getClient().downloadMedia(apiMedia)
             const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
 
@@ -115,6 +113,54 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               logger.warn(`Media is not a buffer, ${mediaFetched?.constructor.name}`)
             }
 
+            // Persist media bytes when available so future fetches can use queryId/HTTP endpoint.
+            try {
+              if (media.type === 'photo' && byte) {
+                const result = await recordPhotos([{
+                  type: 'photo',
+                  platformId: media.platformId,
+                  messageUUID: message.uuid,
+                  byte,
+                }])
+
+                const inserted = result?.unwrap()?.[0]
+                if (inserted?.id) {
+                  const mimeType = (await fileTypeFromBuffer(byte))?.mime
+
+                  return {
+                    messageUUID: message.uuid,
+                    queryId: inserted.id,
+                    type: media.type,
+                    platformId: media.platformId,
+                    mimeType,
+                  } satisfies CoreMessageMediaFromServer
+                }
+              }
+
+              if (media.type === 'sticker' && byte) {
+                const result = await recordStickers([{
+                  type: 'sticker',
+                  platformId: media.platformId,
+                  messageUUID: message.uuid,
+                  byte,
+                }])
+
+                const inserted = result?.unwrap()?.[0]
+                if (inserted?.id) {
+                  return {
+                    messageUUID: message.uuid,
+                    queryId: inserted.id,
+                    type: media.type,
+                    platformId: media.platformId,
+                  } satisfies CoreMessageMediaFromServer
+                }
+              }
+            }
+            catch (error) {
+              logger.withError(error).warn('Failed to persist media bytes')
+            }
+
+            // Last resort: return media without queryId, using best-effort mimeType if we have bytes.
             return {
               messageUUID: message.uuid,
               type: media.type,

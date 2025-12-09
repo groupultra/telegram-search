@@ -104,58 +104,6 @@ export async function recordMessages(accountId: string, messages: CoreMessage[])
   return withDb(db => upsertMessagesForAccount(db, accountId, messages))
 }
 
-export async function recordMessagesWithMedia(accountId: string, messages: CoreMessage[]): Promise<void> {
-  if (messages.length === 0) {
-    return
-  }
-
-  // Use a single transaction so messages and media stay consistent.
-  const dbMessagesResult = await withDb(async db => db.transaction(async (tx) => {
-    const inserted = await upsertMessagesForAccount(tx, accountId, messages)
-    return inserted
-  }))
-
-  const dbMessages = dbMessagesResult?.expect('Failed to record messages with media')
-
-  // Then, collect and record photos that are linked to messages
-  const allPhotoMedia = messages
-    .filter(message => message.media && message.media.length > 0)
-    .flatMap((message) => {
-      // Update media messageUUID to match the newly inserted message UUID
-      const dbMessage = dbMessages?.find((dbMsg: { platform_message_id: string, in_chat_id: string }) =>
-        dbMsg.platform_message_id === message.platformMessageId
-        && dbMsg.in_chat_id === message.chatId,
-      )
-
-      useLogger().withFields({ dbMessageId: dbMessage?.id }).debug('DB message ID')
-
-      return message.media?.filter(media => media.type === 'photo')
-        .map((media) => {
-          return {
-            ...media,
-            messageUUID: dbMessage?.id,
-          }
-        }) || []
-    }) satisfies CoreMessageMediaPhoto[]
-
-  const allStickerMedia = messages
-    .flatMap(message => message.media ?? [])
-    .filter(media => media.type === 'sticker')
-    .map((media) => {
-      // const emoji = media.apiMedia?.document?.attributes?.find((attr: any) => attr.alt)?.alt ?? ''
-
-      return media
-    }) satisfies CoreMessageMediaSticker[]
-
-  if (allPhotoMedia.length > 0) {
-    (await recordPhotos(allPhotoMedia))?.expect('Failed to record photos')
-  }
-
-  if (allStickerMedia.length > 0) {
-    (await recordStickers(allStickerMedia))?.expect('Failed to record stickers')
-  }
-}
-
 export async function fetchMessages(accountId: string, chatId: string, pagination: CorePagination) {
   const dbMessagesResults = (await withDb(db => db
     .select({
