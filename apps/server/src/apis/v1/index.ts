@@ -7,7 +7,7 @@ import { getDb } from '../../db'
 export function v1api(): H3 {
   const app = new H3()
 
-  app.all('/photos/:queryId', defineEventHandler(async (event) => {
+  app.get('/photos/:queryId', defineEventHandler(async (event) => {
     const queryId = getRouterParam(event, 'queryId')
 
     if (!queryId) {
@@ -46,7 +46,7 @@ export function v1api(): H3 {
     }
   }))
 
-  app.all('/stickers/:queryId', defineEventHandler(async (event) => {
+  app.get('/stickers/:queryId', defineEventHandler(async (event) => {
     const queryId = getRouterParam(event, 'queryId')
 
     if (!queryId) {

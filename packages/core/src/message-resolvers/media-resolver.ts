@@ -67,30 +67,12 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             }
 
             // Photos: prefer existing DB row -> queryId + optional mimeType, otherwise download & store.
+            // Photos: prefer existing DB row -> queryId, otherwise download & store.
             if (media.type === 'photo') {
-              try {
-                const photo = (await findPhotoByFileId(db, media.platformId)).orUndefined()
-                if (photo && photo.id) {
-                  const cachedBytes = photo.image_bytes
-                  const mimeType = cachedBytes ? (await fileTypeFromBuffer(cachedBytes))?.mime : undefined
-
-                  return {
-                    messageUUID: message.uuid,
-                    queryId: photo.id,
-                    type: media.type,
-                    platformId: media.platformId,
-                    mimeType,
-                  } satisfies CoreMessageMediaFromServer
-                }
-              }
-              catch (error) {
-                logger.withError(error).debug('Failed to resolve photo from cache, falling back to download')
-              }
-
-              // As a secondary fast path, try to resolve just the queryId without loading bytes.
               try {
                 const queryId = (await getPhotoQueryIdByFileId(db, media.platformId)).orUndefined() as string | undefined
                 if (queryId) {
+                  // MimeType can be determined by the API endpoint when the media is requested.
                   return {
                     messageUUID: message.uuid,
                     queryId,
@@ -100,10 +82,11 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                 }
               }
               catch (error) {
-                logger.withError(error).debug('Failed to resolve photo queryId from cache, falling back to download')
+                logger.withError(error).debug('Failed to resolve photo from cache, falling back to download')
               }
             }
 
+            // TODO: check the media size
             // Fallback: download media from Telegram using the raw Api message, then persist and return queryId.
             const apiMedia = rawMessage.media as Api.TypeMessageMedia
             const mediaFetched = await ctx.getClient().downloadMedia(apiMedia)
