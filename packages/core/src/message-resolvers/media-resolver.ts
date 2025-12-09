@@ -25,7 +25,10 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
     async* stream(opts: MessageResolverOpts) {
       logger.verbose('Executing media resolver')
 
-      for (const message of opts.messages) {
+      for (let index = 0; index < opts.messages.length; index++) {
+        const message = opts.messages[index]
+        const rawMessage = opts.rawMessages[index]
+
         if (!message.media || message.media.length === 0) {
           continue
         }
@@ -94,8 +97,18 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               }
             }
 
-            // Fallback: download media from Telegram.
-            const mediaFetched = await ctx.getClient().downloadMedia(media.apiMedia as Api.TypeMessageMedia)
+            // Fallback: download media from Telegram using the raw Api message.
+            const apiMedia = rawMessage.media as Api.TypeMessageMedia | undefined
+            if (!apiMedia) {
+              logger.withFields({ messageId: rawMessage.id }).warn('No media found on raw Telegram message')
+              return {
+                messageUUID: message.uuid,
+                type: media.type,
+                platformId: media.platformId,
+              } satisfies CoreMessageMediaFromServer
+            }
+
+            const mediaFetched = await ctx.getClient().downloadMedia(apiMedia)
             const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
 
             if (!byte) {
@@ -104,7 +117,6 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
             return {
               messageUUID: message.uuid,
-              byte,
               type: media.type,
               platformId: media.platformId,
               mimeType: byte ? (await fileTypeFromBuffer(byte))?.mime : undefined,

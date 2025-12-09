@@ -66,15 +66,13 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
     replyToName: undefined, // Needs async user lookup
   }
 
-  // Waiting for media resolver to fetch media
+  // Waiting for media resolver to fetch media (no raw Telegram types attached)
   const media: CoreMessageMediaFromServer[] = []
   if (message.media) {
     media.push({
       messageUUID,
       type: parseMediaType(message.media),
-      apiMedia: message.media,
       platformId: parseMediaId(message.media),
-      byte: undefined,
     })
   }
 

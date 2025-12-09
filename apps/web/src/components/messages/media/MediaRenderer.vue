@@ -45,67 +45,38 @@ export interface ProcessedMedia {
 }
 
 const processedMedia = computed<ProcessedMedia>(() => {
-  if (isMedia.value) {
-    for (const mediaItem of props.message.media!) {
-      switch (mediaItem.type) {
-        case 'webpage': {
-          // TODO: add webpage to core media
-          const webpage = (mediaItem.apiMedia as any)?.webpage
-          if (!webpage)
-            continue
-
-          return {
-            src: webpage.url,
-            type: mediaItem.type,
-            webpageData: {
-              title: webpage.title,
-              description: webpage.description,
-              siteName: webpage.siteName,
-              url: webpage.url,
-              displayUrl: webpage.displayUrl,
-              previewImage: mediaItem.blobUrl,
-            },
-          } satisfies ProcessedMedia
-        }
-        case 'photo': {
-          // Extract dimensions from Telegram API PhotoSize
-          let width: number | undefined
-          let height: number | undefined
-
-          const apiMedia = mediaItem.apiMedia as any
-          if (apiMedia?.photo?.sizes) {
-            // Get the largest photo size for dimensions
-            const sizes = apiMedia.photo.sizes
-            const largestSize = sizes[sizes.length - 1]
-            if (largestSize?.w && largestSize?.h) {
-              width = largestSize.w
-              height = largestSize.h
-            }
-          }
-
-          return {
-            src: mediaItem.blobUrl,
-            type: mediaItem.type,
-            mimeType: mediaItem.mimeType,
-            width,
-            height,
-          } satisfies ProcessedMedia
-        }
-        default:
-          return {
-            src: mediaItem.blobUrl,
-            type: mediaItem.type,
-            mimeType: mediaItem.mimeType,
-            tgsAnimationData: mediaItem.type === 'sticker' ? mediaItem.tgsAnimationData : undefined,
-          } satisfies ProcessedMedia
-      }
-    }
+  const mediaItem = props.message.media?.[0]
+  if (!mediaItem) {
+    return {
+      src: undefined,
+      type: 'unknown',
+    } satisfies ProcessedMedia
   }
 
-  return {
-    src: undefined,
-    type: 'unknown',
-  } satisfies ProcessedMedia
+  switch (mediaItem.type) {
+    case 'webpage': {
+      // Webpage previews are not hydrated from Telegram raw media anymore.
+      // Rely on content text and treat as a simple link/web preview.
+      return {
+        src: undefined,
+        type: mediaItem.type,
+      } satisfies ProcessedMedia
+    }
+    case 'photo': {
+      return {
+        src: mediaItem.blobUrl,
+        type: mediaItem.type,
+        mimeType: mediaItem.mimeType,
+      } satisfies ProcessedMedia
+    }
+    default:
+      return {
+        src: mediaItem.blobUrl,
+        type: mediaItem.type,
+        mimeType: mediaItem.mimeType,
+        tgsAnimationData: mediaItem.type === 'sticker' ? mediaItem.tgsAnimationData : undefined,
+      } satisfies ProcessedMedia
+  }
 })
 
 const isLoading = computed(() => {

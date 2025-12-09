@@ -1,5 +1,8 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/stickers.ts
 
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import type { Buffer } from 'buffer'
+
 import type { CoreDB } from '../db'
 import type { CoreMessageMediaSticker } from '../types/media'
 
@@ -46,7 +49,11 @@ export async function getStickerQueryIdByFileId(db: CoreDB, fileId: string) {
   return Ok(stickers[0].id)
 }
 
-export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
+type StickerMediaForRecord = CoreMessageMediaSticker & {
+  byte?: Buffer
+}
+
+export async function recordStickers(stickers: StickerMediaForRecord[]) {
   if (stickers.length === 0) {
     return
   }
@@ -62,7 +69,7 @@ export async function recordStickers(stickers: CoreMessageMediaSticker[]) {
       platform: 'telegram',
       file_id: sticker.platformId ?? '',
       sticker_bytes: sticker.byte,
-    // TODO: Emoji
+      // TODO: Emoji
     }))
 
   if (dataToInsert.length === 0) {

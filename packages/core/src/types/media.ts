@@ -1,10 +1,6 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol
-import type { Buffer } from 'buffer'
-
 /**
  * Core media representation used inside the backend.
  *
- * - `byte` is optional so we can avoid shipping raw media buffers over WebSocket.
  * - `queryId` is an optional opaque identifier (typically the DB primary key)
  *   that the client can use to fetch media via HTTP endpoints.
  * - `mimeType` is optional and can be populated lazily (e.g. via file-type).
@@ -12,12 +8,6 @@ import type { Buffer } from 'buffer'
 export interface CoreMessageMediaBase {
   platformId: string
   messageUUID?: string
-
-  /**
-   * Raw media bytes (only used on the server / storage pipeline).
-   * This should not be sent to browser clients over WebSocket.
-   */
-  byte?: Buffer
 
   /**
    * Opaque identifier that can be used by clients to query media
@@ -72,16 +62,10 @@ export type CoreMessageMedia
 /**
  * Media representation used in the core pipeline (server-side).
  *
- * - May include Telegram `apiMedia` and raw `byte` buffers.
- * - Should not be exposed directly to untrusted clients.
+ * Kept as a distinct alias for clarity, but intentionally identical to
+ * `CoreMessageMedia` so that core messages never carry raw Telegram types.
  */
-export type CoreMessageMediaFromServer = CoreMessageMedia & {
-  /**
-   * Raw Telegram media object.
-   * Typed as unknown here to avoid pulling in Telegram types everywhere.
-   */
-  apiMedia?: unknown
-}
+export type CoreMessageMediaFromServer = CoreMessageMedia
 
 /**
  * Media representation that has been hydrated from cache / database.

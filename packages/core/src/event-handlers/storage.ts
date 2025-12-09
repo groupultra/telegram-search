@@ -90,7 +90,6 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
     const accountId = ctx.getCurrentAccountId()
 
     logger.withFields({ messages: messages.length, accountId }).verbose('Recording messages')
-    logger.withFields(messages).debug('Recording messages')
 
     await recordMessagesWithMedia(accountId, messages)
   })

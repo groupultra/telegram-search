@@ -1,5 +1,8 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/photos.ts
 
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import type { Buffer } from 'buffer'
+
 import type { CoreDB } from '../db'
 import type { CoreMessageMediaPhoto } from '../types/media'
 import type { DBInsertPhoto } from './utils/photos'
@@ -56,7 +59,11 @@ export async function findPhotoByQueryId(db: CoreDB, queryId: string) {
   return Ok(must0(photos))
 }
 
-export async function recordPhotos(media: CoreMessageMediaPhoto[]) {
+type PhotoMediaForRecord = CoreMessageMediaPhoto & {
+  byte?: Buffer
+}
+
+export async function recordPhotos(media: PhotoMediaForRecord[]) {
   if (media.length === 0) {
     return
   }

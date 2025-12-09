@@ -1,4 +1,5 @@
 import type { Result } from '@unbird/result'
+import type { Api } from 'telegram'
 
 import type { SyncOptions } from '../types/events'
 import type { CoreMessage } from '../types/message'
@@ -6,7 +7,15 @@ import type { CoreMessage } from '../types/message'
 import { useLogger } from '@guiiai/logg'
 
 export interface MessageResolverOpts {
+  /**
+   * Core message projection, UI/DB friendly.
+   */
   messages: CoreMessage[]
+  /**
+   * Raw Telegram messages, kept only for resolvers that need access
+   * to original Api.Message structures (e.g. media download).
+   */
+  rawMessages: Api.Message[]
   syncOptions?: SyncOptions
 }
 
