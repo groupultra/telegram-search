@@ -78,7 +78,7 @@ export async function recordStickers(stickers: StickerMediaForRecord[]) {
       platform: 'telegram',
       file_id: sticker.platformId ?? '',
       sticker_bytes: sticker.byte,
-      // TODO: Emoji
+      emoji: sticker.emoji ?? '',
     }))
 
   if (dataToInsert.length === 0) {
@@ -91,6 +91,7 @@ export async function recordStickers(stickers: StickerMediaForRecord[]) {
     .onConflictDoUpdate({
       target: [stickersTable.platform, stickersTable.file_id],
       set: {
+        emoji: sql`excluded.emoji`,
         sticker_bytes: sql`excluded.sticker_bytes`,
         updated_at: Date.now(),
       },
