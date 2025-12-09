@@ -1,13 +1,6 @@
 ---
-when:
-  - "packages/core/src/event-handlers/**/*"
-  - "packages/core/src/services/**/*"
-  - "packages/client/src/event-handlers/**/*"
-  - "packages/client/src/adapters/**/*"
-  - "apps/server/src/ws/**/*"
-priority: 45
+globs: packages/core/src/event-handlers/**, packages/core/src/services/**, packages/client/src/event-handlers/**, packages/client/src/adapters/**, apps/server/src/**
 ---
-
 ## Cross-Layer Events & Protocol Design
 
 - **Scope**: Any change that adds/renames/removes events flowing between:

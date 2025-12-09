@@ -1,7 +1,5 @@
 ---
-when:
-  - "apps/server/src/**/*"
-priority: 30
+globs: apps/server/src/**/*
 ---
 
 ## Backend Server (apps/server)

@@ -1,7 +1,5 @@
 ---
-when:
-  - "packages/core/src/**/*"
-priority: 40
+globs: packages/core/src/**/*
 ---
 
 ## Core (packages/core)

@@ -1,10 +1,5 @@
 ---
-when:
-  - "**/*.spec.ts"
-  - "**/*.test.ts"
-  - "vitest.config.ts"
-  - "packages/**/vitest.config.ts"
-priority: 25
+globs: **/*.spec.ts, **/*.test.ts, vitest.config.ts, packages/**/vitest.config.ts
 ---
 
 ## Testing (Vitest)

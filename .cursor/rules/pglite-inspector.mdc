@@ -1,7 +1,5 @@
 ---
-when:
-  - "packages/pglite-inspector/src/**/*"
-priority: 30
+globs: packages/pglite-inspector/src/**/*
 ---
 
 ## PGlite Inspector (Devtool)

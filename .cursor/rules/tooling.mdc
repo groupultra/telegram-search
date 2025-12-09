@@ -1,17 +1,5 @@
 ---
-when:
-  - "tsconfig*.json"
-  - "eslint.config.ts"
-  - "pnpm-workspace.yaml"
-  - "package.json"
-  - "apps/**/package.json"
-  - "packages/**/package.json"
-  - "uno.config.ts"
-  - "apps/**/uno.config.ts"
-  - "vite.config.ts"
-  - "apps/**/vite.config.ts"
-  - "packages/**/vite.config.ts"
-priority: 20
+globs: tsconfig*.json, eslint.config.ts, pnpm-workspace.yaml, package.json, apps/**/package.json, packages/**/package.json, uno.config.ts, apps/**/uno.config.ts, vite.config.ts, apps/**/vite.config.ts, packages/**/vite.config.ts
 ---
 
 ## Tooling & Monorepo Configuration

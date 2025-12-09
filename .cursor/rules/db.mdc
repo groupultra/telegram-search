@@ -1,10 +1,5 @@
 ---
-when:
-  - "drizzle/**/*"
-  - "sql/**/*"
-  - "packages/core/src/schemas/**/*"
-  - "packages/core/src/models/**/*"
-priority: 35
+globs: drizzle/**/*, sql/**/*, packages/core/src/schemas/**/*, packages/core/src/models/**/*
 ---
 
 ## Database & Migrations

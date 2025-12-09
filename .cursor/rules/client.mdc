@@ -1,7 +1,5 @@
 ---
-when:
-  - "packages/client/src/**/*"
-priority: 40
+globs: packages/client/src/**/*
 ---
 
 ## Client Adapters (packages/client)

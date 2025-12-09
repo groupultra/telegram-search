@@ -1,13 +1,5 @@
 ---
-when:
-  - "apps/**/*"
-  - "packages/**/*"
-  - "drizzle/**/*"
-  - "sql/**/*"
-  - "config/**/*"
-  - "Dockerfile"
-  - "docker-compose.yml"
-priority: 5
+globs: apps/**/*, packages/**/*, drizzle/**/*, sql/**/*, config/**/*, Dockerfile, docker-compose.yml
 ---
 
 ## Contribution & Refactor Guidelines

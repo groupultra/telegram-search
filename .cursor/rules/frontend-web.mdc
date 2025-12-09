@@ -1,11 +1,5 @@
 ---
-when:
-  - "apps/web/src/**/*"
-  - "apps/web/index.html"
-  - "apps/web/uno.config.ts"
-  - "apps/web/vite.config.ts"
-  - "apps/web/typed-router.d.ts"
-priority: 30
+globs: apps/web/src/**/*, apps/web/index.html, apps/web/uno.config.ts, apps/web/vite.config.ts, apps/web/typed-router.d.ts
 ---
 
 ## Frontend (apps/web)
