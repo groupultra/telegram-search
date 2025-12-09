@@ -18,7 +18,7 @@ export function createMediaBlob(media: CoreMessageMediaFromBlob) {
 
   // Prefer HTTP-based media fetching when we have a queryId and no bytes.
   if (!media.byte && media.queryId && media.type === 'photo') {
-    media.blobUrl = `/v1/photos/${media.queryId}`
+    media.blobUrl = `/api/v1/photos/${media.queryId}`
     logger.debug('Using HTTP media endpoint for photo', { queryId: media.queryId, url: media.blobUrl })
     return media
   }
