@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { setDbInstanceForTests } from '../../db'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
-import { recordMessages, recordMessagesWithMedia } from '../chat-message'
+import { recordMessages } from '../chat-message'
 
 import * as photosModel from '../photos'
 import * as stickersModel from '../stickers'
@@ -96,53 +96,5 @@ describe('chat-message model with account-aware ownership', () => {
 
     expect(privateRow?.owner_account_id).toBe('account-1')
     expect(groupRow?.owner_account_id).toBeUndefined()
-  })
-
-  it('recordMessagesWithMedia should delegate to recordMessages for backward compatibility', async () => {
-    const messages: CoreMessage[] = [
-      createCoreMessage({
-        chatId: '1001',
-      }),
-    ]
-
-    const chatRows = [
-      { chat_id: '1001', chat_type: 'user' as const },
-    ]
-
-    const where = vi.fn(() => chatRows)
-    const from = vi.fn(() => ({ where }))
-    const select = vi.fn(() => ({ from }))
-
-    const onConflictDoUpdateMessages = vi.fn(() => ({
-      returning: vi.fn(async () => [
-        { id: 'db-msg-1', platform_message_id: '1', in_chat_id: '1001' },
-      ]),
-    }))
-    const messageValues = vi.fn(() => ({
-      onConflictDoUpdate: onConflictDoUpdateMessages,
-    }))
-
-    const insert = vi.fn((table: unknown) => {
-      if (table === chatMessagesTable) {
-        return {
-          values: messageValues,
-          onConflictDoUpdate: onConflictDoUpdateMessages,
-        }
-      }
-      throw new Error('Unexpected table')
-    })
-
-    const fakeDb = {
-      select,
-      insert,
-    }
-
-    setDbInstanceForTests(fakeDb)
-
-    await recordMessagesWithMedia('account-1', messages)
-
-    expect(select).toHaveBeenCalled()
-    expect(insert).toHaveBeenCalledWith(chatMessagesTable)
-    expect(messageValues).toHaveBeenCalled()
   })
 })
