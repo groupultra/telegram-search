@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import type { CoreDB } from '../../db'
 
-import { setDbInstanceForTests } from '../../db'
+import { describe, expect, it, vi } from 'vitest'
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import {
   findAccountIdsByJoinedChatId,
@@ -24,13 +24,11 @@ describe('account-joined-chats model', () => {
       returning,
     }))
 
-    const fakeDb = {
+    const fakeDb: CoreDB = {
       insert,
     }
 
-    setDbInstanceForTests(fakeDb)
-
-    await linkAccountToJoinedChat('account-1', 'joined-chat-1')
+    await linkAccountToJoinedChat(fakeDb, 'account-1', 'joined-chat-1')
 
     expect(insert).toHaveBeenCalledWith(accountJoinedChatsTable)
     expect(values).toHaveBeenCalledWith({
@@ -55,13 +53,11 @@ describe('account-joined-chats model', () => {
       from,
     }))
 
-    const fakeDb = {
+    const fakeDb: CoreDB = {
       select,
     }
 
-    setDbInstanceForTests(fakeDb)
-
-    const result = await findJoinedChatIdsByAccountId('account-1')
+    const result = await findJoinedChatIdsByAccountId(fakeDb, 'account-1')
 
     expect(select).toHaveBeenCalled()
     expect(from).toHaveBeenCalled()
@@ -83,13 +79,11 @@ describe('account-joined-chats model', () => {
       from,
     }))
 
-    const fakeDb = {
+    const fakeDb: CoreDB = {
       select,
     }
 
-    setDbInstanceForTests(fakeDb)
-
-    const result = await findAccountIdsByJoinedChatId('joined-chat-1')
+    const result = await findAccountIdsByJoinedChatId(fakeDb, 'joined-chat-1')
 
     expect(select).toHaveBeenCalled()
     expect(from).toHaveBeenCalled()

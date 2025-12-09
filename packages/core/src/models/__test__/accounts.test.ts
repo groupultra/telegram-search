@@ -1,18 +1,20 @@
+import type { CoreDB } from '../../db'
+
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { setDbInstanceForTests } from '../../db'
 import { mockDB } from '../../db/mock'
 import { accountsTable } from '../../schemas/accounts'
 import { findAccountByPlatformId, findAccountByUUID, recordAccount } from '../accounts'
 
 describe('accounts model', () => {
+  let db: CoreDB
+
   beforeEach(async () => {
-    const db = await mockDB({ accountsTable })
-    setDbInstanceForTests(db)
+    db = await mockDB({ accountsTable })
   })
 
   it('recordAccount should insert account with correct values', async () => {
-    const result = await recordAccount('telegram', 'user-123')
+    const result = await recordAccount(db, 'telegram', 'user-123')
     const rows = result.unwrap()
 
     expect(rows).toHaveLength(1)
@@ -23,10 +25,10 @@ describe('accounts model', () => {
   })
 
   it('findAccountByPlatformId should query by platform and platform_user_id and return first result or null', async () => {
-    const inserted = await recordAccount('telegram', 'user-xyz')
+    const inserted = await recordAccount(db, 'telegram', 'user-xyz')
     const [account] = inserted.unwrap()
 
-    const result = await findAccountByPlatformId('telegram', 'user-xyz')
+    const result = await findAccountByPlatformId(db, 'telegram', 'user-xyz')
     const found = result.unwrap()
 
     expect(found).not.toBeNull()
@@ -36,10 +38,10 @@ describe('accounts model', () => {
   })
 
   it('findAccountByUUID should query by id and return first result or null', async () => {
-    const inserted = await recordAccount('telegram', 'user-abc')
+    const inserted = await recordAccount(db, 'telegram', 'user-abc')
     const [account] = inserted.unwrap()
 
-    const result = await findAccountByUUID(account.id)
+    const result = await findAccountByUUID(db, account.id)
     const found = result.unwrap()
 
     expect(found).not.toBeNull()

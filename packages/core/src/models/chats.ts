@@ -1,28 +1,30 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chats.ts
 
+import type { CoreDB } from '../db'
 import type { CoreDialog } from '../types/dialog'
 
+import { Ok } from '@unbird/result'
 import { and, desc, eq, sql } from 'drizzle-orm'
 
-import { withDb } from '../db'
 import { accountJoinedChatsTable } from '../schemas/account-joined-chats'
 import { joinedChatsTable } from '../schemas/joined-chats'
 import { parseDate } from './utils/time'
 
-export async function fetchChats() {
-  return withDb(db => db
+export async function fetchChats(db: CoreDB) {
+  const rows = await db
     .select()
     .from(joinedChatsTable)
     .where(eq(joinedChatsTable.platform, 'telegram'))
-    .orderBy(desc(joinedChatsTable.dialog_date)),
-  )
+    .orderBy(desc(joinedChatsTable.dialog_date))
+
+  return Ok(rows)
 }
 
 /**
  * Fetch chats for a specific account
  */
-export async function fetchChatsByAccountId(accountId: string) {
-  return withDb(db => db
+export async function fetchChatsByAccountId(db: CoreDB, accountId: string) {
+  const rows = await db
     .select({
       id: joinedChatsTable.id,
       platform: joinedChatsTable.platform,
@@ -39,8 +41,9 @@ export async function fetchChatsByAccountId(accountId: string) {
       eq(joinedChatsTable.id, accountJoinedChatsTable.joined_chat_id),
     )
     .where(eq(accountJoinedChatsTable.account_id, accountId))
-    .orderBy(desc(joinedChatsTable.dialog_date)),
-  )
+    .orderBy(desc(joinedChatsTable.dialog_date))
+
+  return Ok(rows)
 }
 
 /**
@@ -49,64 +52,62 @@ export async function fetchChatsByAccountId(accountId: string) {
  * This is used by higher-level handlers to enforce that message-level access
  * never exceeds the dialogs visible to the account.
  */
-export async function isChatAccessibleByAccount(accountId: string, chatId: string) {
-  return withDb(async (db) => {
-    const rows = await db
-      .select({
-        id: joinedChatsTable.id,
-      })
-      .from(joinedChatsTable)
-      .innerJoin(
-        accountJoinedChatsTable,
-        and(
-          eq(accountJoinedChatsTable.joined_chat_id, joinedChatsTable.id),
-          eq(accountJoinedChatsTable.account_id, accountId),
-        ),
-      )
-      .where(eq(joinedChatsTable.chat_id, chatId))
-      .limit(1)
+export async function isChatAccessibleByAccount(db: CoreDB, accountId: string, chatId: string) {
+  const rows = await db
+    .select({
+      id: joinedChatsTable.id,
+    })
+    .from(joinedChatsTable)
+    .innerJoin(
+      accountJoinedChatsTable,
+      and(
+        eq(accountJoinedChatsTable.joined_chat_id, joinedChatsTable.id),
+        eq(accountJoinedChatsTable.account_id, accountId),
+      ),
+    )
+    .where(eq(joinedChatsTable.chat_id, chatId))
+    .limit(1)
 
-    return rows.length > 0
-  })
+  return Ok(rows.length > 0)
 }
 
-export async function recordChats(chats: CoreDialog[], accountId: string) {
-  return withDb(async (db) => {
-    // Use a single transaction so joined_chats and account_joined_chats are consistent
-    return db.transaction(async (tx) => {
-      // Insert or update joined_chats
-      const insertedChats = await tx
-        .insert(joinedChatsTable)
-        .values(chats.map(chat => ({
-          platform: 'telegram',
-          chat_id: chat.id.toString(),
-          chat_name: chat.name,
-          chat_type: chat.type,
-          dialog_date: parseDate(chat.lastMessageDate),
+export async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string) {
+  // Use a single transaction so joined_chats and account_joined_chats are consistent
+  const insertedChats = await db.transaction(async (tx) => {
+    // Insert or update joined_chats
+    const joinedChats = await tx
+      .insert(joinedChatsTable)
+      .values(chats.map(chat => ({
+        platform: 'telegram',
+        chat_id: chat.id.toString(),
+        chat_name: chat.name,
+        chat_type: chat.type,
+        dialog_date: parseDate(chat.lastMessageDate),
+      })))
+      .onConflictDoUpdate({
+        target: joinedChatsTable.chat_id,
+        set: {
+          chat_name: sql`excluded.chat_name`,
+          chat_type: sql`excluded.chat_type`,
+          dialog_date: sql`excluded.dialog_date`,
+          updated_at: Date.now(),
+        },
+      })
+      .returning()
+
+    // If accountId is provided, automatically link to account_joined_chats
+    if (accountId && joinedChats.length > 0) {
+      await tx
+        .insert(accountJoinedChatsTable)
+        .values(joinedChats.map(chat => ({
+          account_id: accountId,
+          joined_chat_id: chat.id,
         })))
-        .onConflictDoUpdate({
-          target: joinedChatsTable.chat_id,
-          set: {
-            chat_name: sql`excluded.chat_name`,
-            chat_type: sql`excluded.chat_type`,
-            dialog_date: sql`excluded.dialog_date`,
-            updated_at: Date.now(),
-          },
-        })
-        .returning()
+        .onConflictDoNothing()
+    }
 
-      // If accountId is provided, automatically link to account_joined_chats
-      if (accountId && insertedChats.length > 0) {
-        await tx
-          .insert(accountJoinedChatsTable)
-          .values(insertedChats.map(chat => ({
-            account_id: accountId,
-            joined_chat_id: chat.id,
-          })))
-          .onConflictDoNothing()
-      }
-
-      return insertedChats
-    })
+    return joinedChats
   })
+
+  return Ok(insertedChats)
 }

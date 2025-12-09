@@ -1,7 +1,8 @@
+import type { CoreDB } from '../db'
+
 import { Ok } from '@unbird/result'
 import { and, eq, sql } from 'drizzle-orm'
 
-import { withDb } from '../db'
 import { chatMessagesTable } from '../schemas/chat-messages'
 import { joinedChatsTable } from '../schemas/joined-chats'
 
@@ -13,8 +14,8 @@ import { joinedChatsTable } from '../schemas/joined-chats'
  * - For group/channel chats, messages are shared across accounts and the count
  *   is global (owner_account_id is NULL by design).
  */
-export async function getChatMessagesStats(accountId: string) {
-  return withDb(db => db
+export async function getChatMessagesStats(db: CoreDB, accountId: string) {
+  const rows = await db
     .select({
       platform: joinedChatsTable.platform,
       chat_id: joinedChatsTable.chat_id,
@@ -43,12 +44,13 @@ export async function getChatMessagesStats(accountId: string) {
       joinedChatsTable.platform,
       joinedChatsTable.chat_id,
       joinedChatsTable.chat_name,
-    ),
-  )
+    )
+
+  return Ok(rows)
 }
 
-export async function getChatMessageStatsByChatId(accountId: string, chatId: string) {
-  const res = (await withDb(db => db
+export async function getChatMessageStatsByChatId(db: CoreDB, accountId: string, chatId: string) {
+  const rows = await db
     .select({
       platform: joinedChatsTable.platform,
       chat_id: joinedChatsTable.chat_id,
@@ -83,8 +85,7 @@ export async function getChatMessageStatsByChatId(accountId: string, chatId: str
       joinedChatsTable.chat_id,
       joinedChatsTable.chat_name,
     )
-    .limit(1),
-  )).expect('Failed to fetch chat message stats by chat ID')
+    .limit(1)
 
-  return Ok(res[0])
+  return Ok(rows[0])
 }

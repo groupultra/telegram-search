@@ -1,8 +1,6 @@
 import type { CoreDB } from '../../db'
 
 import { beforeEach, describe, expect, it } from 'vitest'
-
-import { setDbInstanceForTests } from '../../db'
 import { mockDB } from '../../db/mock'
 import { accountsTable } from '../../schemas/accounts'
 import { chatMessagesTable } from '../../schemas/chat-messages'
@@ -22,7 +20,6 @@ describe('chat-message-stats model', () => {
       chatMessagesTable,
       usersTable,
     })
-    setDbInstanceForTests(db)
   })
 
   it('getChatMessagesStats should select all telegram stats', async () => {
@@ -73,7 +70,7 @@ describe('chat-message-stats model', () => {
       },
     ])
 
-    const result = await getChatMessagesStats(UUID_NULL)
+    const result = await getChatMessagesStats(db, UUID_NULL)
     const rows = result.unwrap()
 
     const simplified = rows
@@ -121,7 +118,7 @@ describe('chat-message-stats model', () => {
       },
     ])
 
-    const resultOk = await getChatMessageStatsByChatId(UUID_NULL, '1001')
+    const resultOk = await getChatMessageStatsByChatId(db, UUID_NULL, '1001')
     const row = resultOk.unwrap()
 
     expect(row.chat_id).toBe('1001')

@@ -1,8 +1,7 @@
+import type { CoreDB } from '../../db'
 import type { CoreDialog } from '../../types/dialog'
 
 import { describe, expect, it, vi } from 'vitest'
-
-import { setDbInstanceForTests } from '../../db'
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { fetchChatsByAccountId, recordChats } from '../chats'
@@ -36,13 +35,11 @@ describe('chats model with accounts', () => {
       from,
     }))
 
-    const fakeDb = {
+    const fakeDb: CoreDB = {
       select,
     }
 
-    setDbInstanceForTests(fakeDb)
-
-    const result = await fetchChatsByAccountId('account-1')
+    const result = await fetchChatsByAccountId(fakeDb, 'account-1')
 
     expect(select).toHaveBeenCalledWith({
       id: joinedChatsTable.id,
@@ -114,13 +111,11 @@ describe('chats model with accounts', () => {
       return fn({ insert: chatsInsert })
     })
 
-    const fakeDb = {
+    const fakeDb: CoreDB = {
       transaction,
     }
 
-    setDbInstanceForTests(fakeDb)
-
-    const result = await recordChats(dialogs, 'account-1')
+    const result = await recordChats(fakeDb, dialogs, 'account-1')
 
     expect(transaction).toHaveBeenCalledTimes(1)
 
@@ -200,13 +195,11 @@ describe('chats model with accounts', () => {
       return fn({ insert: chatsInsert })
     })
 
-    const fakeDb = {
+    const fakeDb: CoreDB = {
       transaction,
     }
 
-    setDbInstanceForTests(fakeDb)
-
-    const result = await recordChats(dialogs, '') // falsy accountId
+    const result = await recordChats(fakeDb, dialogs, '') // falsy accountId
 
     expect(transaction).toHaveBeenCalledTimes(1)
 

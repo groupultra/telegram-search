@@ -1,12 +1,14 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/sticker-packs.ts
 
+import type { CoreDB } from '../db'
+
+import { Ok } from '@unbird/result'
 import { desc } from 'drizzle-orm'
 
-import { withDb } from '../db'
 import { stickerPacksTable } from '../schemas/sticker-packs'
 
-export async function recordStickerPack(platformId: string, name: string, platform = 'telegram') {
-  return withDb(async db => db
+export async function recordStickerPack(db: CoreDB, platformId: string, name: string, platform = 'telegram') {
+  const rows = await db
     .insert(stickerPacksTable)
     .values({
       platform,
@@ -14,14 +16,16 @@ export async function recordStickerPack(platformId: string, name: string, platfo
       name,
       description: '',
     })
-    .returning(),
-  )
+    .returning()
+
+  return Ok(rows)
 }
 
-export async function listStickerPacks() {
-  return withDb(db => db
+export async function listStickerPacks(db: CoreDB) {
+  const rows = await db
     .select()
     .from(stickerPacksTable)
-    .orderBy(desc(stickerPacksTable.created_at)),
-  )
+    .orderBy(desc(stickerPacksTable.created_at))
+
+  return Ok(rows)
 }
