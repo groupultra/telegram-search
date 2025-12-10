@@ -37,7 +37,7 @@ pnpm run web:build            # Build frontend (server mode)
 pnpm run server:build         # Build backend server
 pnpm run packages:build       # Build all packages (required before typecheck)
 pnpm run typecheck            # TypeScript type checking (runs packages:build first)
-pnpm run test                 # Run Vitest tests
+pnpm run test run             # Run Vitest tests
 pnpm run lint                 # ESLint check
 pnpm run lint:fix             # Auto-fix ESLint issues
 ```
@@ -192,7 +192,7 @@ This automatically:
 
 Test framework: Vitest
 - Test files: `*.spec.ts` or `*.test.ts`
-- Run: `pnpm run test`
+- Run: `pnpm run test run`
 
 ## Key Technical Considerations
 

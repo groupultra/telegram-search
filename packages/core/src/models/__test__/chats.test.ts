@@ -36,9 +36,9 @@ describe('chats model with accounts', () => {
       from,
     }))
 
-    const fakeDb: CoreDB = {
+    const fakeDb = {
       select,
-    }
+    } as unknown as CoreDB
 
     const result = await fetchChatsByAccountId(fakeDb, 'account-1')
 
@@ -112,9 +112,9 @@ describe('chats model with accounts', () => {
       return fn({ insert: chatsInsert })
     })
 
-    const fakeDb: CoreDB = {
+    const fakeDb = {
       transaction,
-    }
+    } as unknown as CoreDB
 
     const result = await recordChats(fakeDb, dialogs, 'account-1')
 
@@ -196,9 +196,9 @@ describe('chats model with accounts', () => {
       return fn({ insert: chatsInsert })
     })
 
-    const fakeDb: CoreDB = {
+    const fakeDb = {
       transaction,
-    }
+    } as unknown as CoreDB
 
     const result = await recordChats(fakeDb, dialogs, '') // falsy accountId
 

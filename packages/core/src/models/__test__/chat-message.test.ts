@@ -1,9 +1,9 @@
+import type { CoreDB } from '../../db'
 import type { CoreMessage } from '../../types/message'
 
 import { Ok } from '@unbird/result'
 import { describe, expect, it, vi } from 'vitest'
 
-import { setDbInstanceForTests } from '../../db'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { recordMessages } from '../chat-message'
@@ -71,11 +71,9 @@ describe('chat-message model with account-aware ownership', () => {
     const fakeDb = {
       select,
       insert,
-    }
+    } as unknown as CoreDB
 
-    setDbInstanceForTests(fakeDb)
-
-    await recordMessages('account-1', messages)
+    await recordMessages(fakeDb, 'account-1', messages)
 
     expect(select).toHaveBeenCalledWith({
       chat_id: joinedChatsTable.chat_id,

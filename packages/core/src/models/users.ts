@@ -14,7 +14,6 @@ export type DBSelectUser = typeof usersTable.$inferSelect
  * Record or update a user in the database
  */
 export async function recordUser(db: CoreDB, user: CoreEntity) {
-
   const rows = await db
     .insert(usersTable)
     .values({

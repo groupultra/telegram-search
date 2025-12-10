@@ -25,9 +25,9 @@ describe('account-joined-chats model', () => {
       returning,
     }))
 
-    const fakeDb: CoreDB = {
+    const fakeDb = {
       insert,
-    }
+    } as unknown as CoreDB
 
     await linkAccountToJoinedChat(fakeDb, 'account-1', 'joined-chat-1')
 
@@ -54,9 +54,9 @@ describe('account-joined-chats model', () => {
       from,
     }))
 
-    const fakeDb: CoreDB = {
+    const fakeDb = {
       select,
-    }
+    } as unknown as CoreDB
 
     const result = await findJoinedChatIdsByAccountId(fakeDb, 'account-1')
 
@@ -80,9 +80,9 @@ describe('account-joined-chats model', () => {
       from,
     }))
 
-    const fakeDb: CoreDB = {
+    const fakeDb = {
       select,
-    }
+    } as unknown as CoreDB
 
     const result = await findAccountIdsByJoinedChatId(fakeDb, 'joined-chat-1')
 

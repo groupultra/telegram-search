@@ -7,9 +7,9 @@ import type { CoreEmitter, CoreEvent, FromCoreEvent, ToCoreEvent } from './types
 import { useLogger } from '@guiiai/logg'
 import { EventEmitter } from 'eventemitter3'
 
+import { useDrizzle } from './db'
 import { fetchSettingsByAccountId, updateAccountSettings } from './models/account-settings'
 import { detectMemoryLeak } from './utils/memory-leak-detector'
-import { useDrizzle } from './db'
 
 export type { CoreEmitter, CoreEvent, CoreEventData, FromCoreEvent, ToCoreEvent } from './types/events'
 

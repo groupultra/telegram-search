@@ -15,10 +15,9 @@ describe('accounts model', () => {
 
   it('recordAccount should insert account with correct values', async () => {
     const result = await recordAccount(db, 'telegram', 'user-123')
-    const rows = result.unwrap()
+    const account = result.unwrap()
 
-    expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({
+    expect(account).toMatchObject({
       platform: 'telegram',
       platform_user_id: 'user-123',
     })
@@ -26,27 +25,27 @@ describe('accounts model', () => {
 
   it('findAccountByPlatformId should query by platform and platform_user_id and return first result or null', async () => {
     const inserted = await recordAccount(db, 'telegram', 'user-xyz')
-    const [account] = inserted.unwrap()
+    const account = inserted.unwrap()
 
     const result = await findAccountByPlatformId(db, 'telegram', 'user-xyz')
     const found = result.unwrap()
 
-    expect(found).not.toBeNull()
-    expect(found?.id).toBe(account.id)
-    expect(found?.platform).toBe('telegram')
-    expect(found?.platform_user_id).toBe('user-xyz')
+    expect(found).toBeDefined()
+    expect(found.id).toBe(account.id)
+    expect(found.platform).toBe('telegram')
+    expect(found.platform_user_id).toBe('user-xyz')
   })
 
   it('findAccountByUUID should query by id and return first result or null', async () => {
     const inserted = await recordAccount(db, 'telegram', 'user-abc')
-    const [account] = inserted.unwrap()
+    const account = inserted.unwrap()
 
     const result = await findAccountByUUID(db, account.id)
     const found = result.unwrap()
 
-    expect(found).not.toBeNull()
-    expect(found?.id).toBe(account.id)
-    expect(found?.platform).toBe('telegram')
-    expect(found?.platform_user_id).toBe('user-abc')
+    expect(found).toBeDefined()
+    expect(found.id).toBe(account.id)
+    expect(found.platform).toBe('telegram')
+    expect(found.platform_user_id).toBe('user-abc')
   })
 })

@@ -213,7 +213,7 @@ pnpm run db:generate      # 生成迁移文件
 pnpm run lint             # ESLint 检查
 pnpm run lint:fix         # 自动修复
 pnpm run typecheck        # 类型检查
-pnpm run test             # 运行测试
+pnpm run test run         # 运行测试
 ```
 
 ## 配置文件
@@ -286,7 +286,7 @@ pnpm run test             # 运行测试
 ### 运行测试
 
 ```bash
-pnpm run test
+pnpm run test run
 ```
 
 ## Docker 部署
