@@ -1,17 +1,18 @@
 import type { CorePagination } from '@tg-search/common'
 
+import type { CoreDB } from '../../db'
 import type { EmbeddingDimension } from '../../types/account-settings'
 import type { DBRetrievalMessages } from './message'
 
 import { and, desc, eq, gt, sql } from 'drizzle-orm'
 
-import { withDb } from '../../db'
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { getSimilaritySql } from './similarity'
 
 export async function retrieveVector(
+  db: CoreDB,
   accountId: string,
   chatId: string | undefined,
   embedding: number[],
@@ -47,7 +48,7 @@ export async function retrieveVector(
   ].filter(Boolean)
 
   // Get top messages with similarity above threshold
-  return (await withDb(db => db
+  return await db
     .select({
       id: chatMessagesTable.id,
       platform: chatMessagesTable.platform,
@@ -83,6 +84,5 @@ export async function retrieveVector(
     )
     .where(and(...whereConditions))
     .orderBy(desc(sql`combined_score`))
-    .limit(pagination?.limit || 20),
-  )).expect('Failed to fetch relevant messages')
+    .limit(pagination?.limit || 20)
 }

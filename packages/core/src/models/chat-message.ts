@@ -13,7 +13,6 @@ import { useLogger } from '@guiiai/logg'
 import { Ok } from '@unbird/result'
 import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm'
 
-import { withDb } from '../db'
 import { chatMessagesTable } from '../schemas/chat-messages'
 import { joinedChatsTable } from '../schemas/joined-chats'
 import { findPhotosByMessageIds } from './photos'
@@ -98,12 +97,12 @@ async function upsertMessagesForAccount(
     .returning()
 }
 
-export async function recordMessages(accountId: string, messages: CoreMessage[]) {
-  return withDb(db => upsertMessagesForAccount(db, accountId, messages))
+export async function recordMessages(db: CoreDB, accountId: string, messages: CoreMessage[]) {
+  return upsertMessagesForAccount(db, accountId, messages)
 }
 
-export async function fetchMessages(accountId: string, chatId: string, pagination: CorePagination) {
-  const dbMessagesResults = (await withDb(db => db
+export async function fetchMessages(db: CoreDB, accountId: string, chatId: string, pagination: CorePagination) {
+  const dbMessagesResults = await db
     .select({
       chat_messages: chatMessagesTable,
       joined_chats: joinedChatsTable,
@@ -121,8 +120,7 @@ export async function fetchMessages(accountId: string, chatId: string, paginatio
     ))
     .orderBy(desc(chatMessagesTable.created_at))
     .limit(pagination.limit)
-    .offset(pagination.offset),
-  )).expect('Failed to fetch messages')
+    .offset(pagination.offset)
 
   return Ok({
     dbMessagesResults: dbMessagesResults.map(row => row.chat_messages),
@@ -130,12 +128,12 @@ export async function fetchMessages(accountId: string, chatId: string, paginatio
   })
 }
 
-export async function fetchMessagesWithPhotos(accountId: string, chatId: string, pagination: CorePagination) {
-  const { dbMessagesResults, coreMessages } = (await fetchMessages(accountId, chatId, pagination)).unwrap()
+export async function fetchMessagesWithPhotos(db: CoreDB, accountId: string, chatId: string, pagination: CorePagination) {
+  const { dbMessagesResults, coreMessages } = (await fetchMessages(db, accountId, chatId, pagination)).expect('Failed to fetch messages')
 
   // Fetch photos for all messages in batch
   const messageIds = dbMessagesResults.map(msg => msg.id)
-  const photos = (await findPhotosByMessageIds(messageIds)).unwrap()
+  const photos = (await findPhotosByMessageIds(db, messageIds)).expect('Failed to fetch photos')
 
   // Group photos by message_id
   const photosByMessage = Object.groupBy(
@@ -152,10 +150,11 @@ export async function fetchMessagesWithPhotos(accountId: string, chatId: string,
 }
 
 export async function fetchMessageContextWithPhotos(
+  db: CoreDB,
   accountId: string,
   { chatId, messageId, before, after }: Required<StorageMessageContextParams>,
 ) {
-  const targetMessages = (await withDb(db => db
+  const targetMessages = await db
     .select({
       chat_messages: chatMessagesTable,
       joined_chats: joinedChatsTable,
@@ -171,15 +170,14 @@ export async function fetchMessageContextWithPhotos(
         OR ${chatMessagesTable.owner_account_id} IS NULL
       )`,
     ))
-    .limit(1),
-  )).expect('Failed to locate target message')
+    .limit(1)
 
   if (targetMessages.length === 0)
     return Ok<CoreMessage[]>([])
 
   const targetMessage = targetMessages[0].chat_messages
 
-  const previousMessages = (await withDb(db => db
+  const previousMessages = await db
     .select({
       chat_messages: chatMessagesTable,
       joined_chats: joinedChatsTable,
@@ -196,10 +194,9 @@ export async function fetchMessageContextWithPhotos(
       )`,
     ))
     .orderBy(desc(chatMessagesTable.platform_timestamp))
-    .limit(before),
-  )).expect('Failed to fetch previous messages')
+    .limit(before)
 
-  const nextMessages = (await withDb(db => db
+  const nextMessages = await db
     .select({
       chat_messages: chatMessagesTable,
       joined_chats: joinedChatsTable,
@@ -216,8 +213,7 @@ export async function fetchMessageContextWithPhotos(
       )`,
     ))
     .orderBy(asc(chatMessagesTable.platform_timestamp))
-    .limit(after),
-  )).expect('Failed to fetch next messages')
+    .limit(after)
 
   const combinedDbMessages = [
     ...previousMessages.map(row => row.chat_messages).reverse(),
@@ -229,7 +225,7 @@ export async function fetchMessageContextWithPhotos(
     return Ok<CoreMessage[]>([])
 
   const messageIds = combinedDbMessages.map(msg => msg.id)
-  const photos = (await findPhotosByMessageIds(messageIds)).unwrap()
+  const photos = (await findPhotosByMessageIds(db, messageIds)).expect('Failed to fetch photos')
   const photosByMessage = Object.groupBy(
     photos.filter(photo => photo.message_id),
     photo => photo.message_id!,
@@ -243,6 +239,7 @@ export async function fetchMessageContextWithPhotos(
 }
 
 export async function retrieveMessages(
+  db: CoreDB,
   accountId: string,
   chatId: string | undefined,
   embeddingDimension: EmbeddingDimension,
@@ -261,13 +258,13 @@ export async function retrieveMessages(
   const retrievalMessages: DBRetrievalMessages[] = []
 
   if (content.text) {
-    const relevantMessages = await retrieveJieba(accountId, chatId, content.text, pagination, filters)
+    const relevantMessages = await retrieveJieba(db, accountId, chatId, content.text, pagination, filters)
     logger.withFields({ relevantMessages: relevantMessages.length }).verbose('Retrieved jieba messages')
     retrievalMessages.push(...relevantMessages)
   }
 
   if (content.embedding && content.embedding.length !== 0) {
-    const relevantMessages = await retrieveVector(accountId, chatId, content.embedding, embeddingDimension, pagination, filters)
+    const relevantMessages = await retrieveVector(db, accountId, chatId, content.embedding, embeddingDimension, pagination, filters)
     logger.withFields({ relevantMessages: relevantMessages.length }).verbose('Retrieved vector messages')
     retrievalMessages.push(...relevantMessages)
   }

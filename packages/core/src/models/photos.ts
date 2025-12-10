@@ -10,7 +10,6 @@ import type { DBInsertPhoto } from './utils/photos'
 import { Ok } from '@unbird/result'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
-import { withDb } from '../db'
 import { photosTable } from '../schemas/photos'
 import { must0 } from './utils/must'
 
@@ -60,9 +59,9 @@ type PhotoMediaForRecord = CoreMessageMediaPhoto & {
   byte?: Buffer
 }
 
-export async function recordPhotos(media: PhotoMediaForRecord[]) {
+export async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]) {
   if (media.length === 0) {
-    return
+    return Ok([])
   }
 
   const dataToInsert = media
@@ -77,10 +76,10 @@ export async function recordPhotos(media: PhotoMediaForRecord[]) {
     )
 
   if (dataToInsert.length === 0) {
-    return
+    return Ok([])
   }
 
-  return withDb(async db => db
+  const rows = await db
     .insert(photosTable)
     .values(dataToInsert)
     .onConflictDoUpdate({
@@ -90,22 +89,25 @@ export async function recordPhotos(media: PhotoMediaForRecord[]) {
         updated_at: Date.now(),
       },
     })
-    .returning(),
-  )
+    .returning()
+
+  return Ok(rows)
 }
 
-export async function findPhotosByMessageId(messageUUID: string) {
-  return withDb(db => db
+export async function findPhotosByMessageId(db: CoreDB, messageUUID: string) {
+  const rows = await db
     .select()
     .from(photosTable)
-    .where(eq(photosTable.message_id, messageUUID)),
-  )
+    .where(eq(photosTable.message_id, messageUUID))
+
+  return Ok(rows)
 }
 
-export async function findPhotosByMessageIds(messageUUIDs: string[]) {
-  return withDb(db => db
+export async function findPhotosByMessageIds(db: CoreDB, messageUUIDs: string[]) {
+  const rows = await db
     .select()
     .from(photosTable)
-    .where(inArray(photosTable.message_id, messageUUIDs)),
-  )
+    .where(inArray(photosTable.message_id, messageUUIDs))
+
+  return Ok(rows)
 }

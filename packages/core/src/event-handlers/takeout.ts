@@ -7,6 +7,7 @@ import { useLogger } from '@guiiai/logg'
 import { usePagination } from '@tg-search/common'
 
 import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
+import { useDrizzle } from '../db'
 import { getChatMessageStatsByChatId } from '../models'
 import { createTask } from '../utils/task'
 
@@ -25,7 +26,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
       // Get chat message stats for incremental sync
       const increaseOptions: { chatId: string, firstMessageId: number, latestMessageId: number, messageCount: number }[] = await Promise.all(
         chatIds.map(async (chatId) => {
-          const stats = (await getChatMessageStatsByChatId(ctx.getCurrentAccountId(), chatId))?.unwrap()
+          const stats = (await getChatMessageStatsByChatId(useDrizzle(), ctx.getCurrentAccountId(), chatId))?.unwrap()
           return {
             chatId,
             firstMessageId: stats?.first_message_id ?? 0, // First synced message ID
@@ -341,7 +342,7 @@ export function registerTakeoutEventHandlers(ctx: CoreContext) {
 
       try {
         // Get chat message stats from DB
-        const stats = (await getChatMessageStatsByChatId(ctx.getCurrentAccountId(), chatId))?.unwrap()
+        const stats = (await getChatMessageStatsByChatId(useDrizzle(), ctx.getCurrentAccountId(), chatId))?.unwrap()
 
         // Get total message count from Telegram
         const totalMessageCount = (await takeoutService.getTotalMessageCount(chatId)) ?? 0

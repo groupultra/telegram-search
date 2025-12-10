@@ -3,6 +3,7 @@ import type { EntityService } from '../services/entity'
 
 import { useLogger } from '@guiiai/logg'
 
+import { useDrizzle } from '../db'
 import { recordAccount } from '../models'
 
 export function registerEntityEventHandlers(ctx: CoreContext) {
@@ -19,7 +20,7 @@ export function registerEntityEventHandlers(ctx: CoreContext) {
       // Record account and set current account ID
       logger.withFields({ userId: meInfo.id }).verbose('Recording account for current user')
 
-      const [account] = (await recordAccount('telegram', meInfo.id))?.expect('Failed to record account')
+      const account = (await recordAccount(useDrizzle(), 'telegram', meInfo.id)).expect('Failed to record account')
       ctx.setCurrentAccountId(account.id)
 
       logger.withFields({ accountId: account.id }).verbose('Set current account ID')

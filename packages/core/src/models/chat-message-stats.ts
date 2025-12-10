@@ -5,6 +5,7 @@ import { and, eq, sql } from 'drizzle-orm'
 
 import { chatMessagesTable } from '../schemas/chat-messages'
 import { joinedChatsTable } from '../schemas/joined-chats'
+import { must0 } from './utils/must'
 
 /**
  * Get per-chat message stats for a specific logical account.
@@ -87,5 +88,5 @@ export async function getChatMessageStatsByChatId(db: CoreDB, accountId: string,
     )
     .limit(1)
 
-  return Ok(rows[0])
+  return Ok(must0(rows))
 }

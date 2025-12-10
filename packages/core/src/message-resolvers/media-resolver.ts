@@ -20,6 +20,7 @@ import {
   recordPhotos,
   recordStickers,
 } from '../models'
+import { must0 } from '../models/utils/must'
 
 export function createMediaResolver(ctx: CoreContext): MessageResolver {
   const logger = useLogger('core:resolver:media')
@@ -101,7 +102,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               if (media.type === 'photo' && byte) {
                 const mimeType = (await fileTypeFromBuffer(byte))?.mime
 
-                const result = await recordPhotos([{
+                const result = await recordPhotos(db, [{
                   type: 'photo',
                   platformId: media.platformId,
                   messageUUID: message.uuid,
@@ -109,7 +110,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                   mimeType,
                 }])
 
-                const inserted = result?.unwrap()?.[0]
+                const inserted = must0(result.unwrap())
                 if (inserted?.id) {
                   return {
                     messageUUID: message.uuid,
@@ -124,7 +125,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               if (media.type === 'sticker' && byte) {
                 const mimeType = (await fileTypeFromBuffer(byte))?.mime
 
-                const result = await recordStickers([{
+                const result = await recordStickers(db, [{
                   type: 'sticker',
                   platformId: media.platformId,
                   messageUUID: message.uuid,
@@ -132,8 +133,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                   mimeType,
                 }])
 
-                const inserted = result?.unwrap()?.[0]
-
+                const inserted = must0(result.unwrap())
                 if (inserted?.id) {
                   return {
                     messageUUID: message.uuid,

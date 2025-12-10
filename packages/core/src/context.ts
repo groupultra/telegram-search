@@ -9,6 +9,7 @@ import { EventEmitter } from 'eventemitter3'
 
 import { fetchSettingsByAccountId, updateAccountSettings } from './models/account-settings'
 import { detectMemoryLeak } from './utils/memory-leak-detector'
+import { useDrizzle } from './db'
 
 export type { CoreEmitter, CoreEvent, CoreEventData, FromCoreEvent, ToCoreEvent } from './types/events'
 
@@ -140,11 +141,11 @@ export function createCoreContext(metrics?: CoreMetrics): CoreContext {
   }
 
   async function getAccountSettings(): Promise<AccountSettings> {
-    return (await fetchSettingsByAccountId(getCurrentAccountId())).expect('Failed to fetch account settings')
+    return (await fetchSettingsByAccountId(useDrizzle(), getCurrentAccountId())).expect('Failed to fetch account settings')
   }
 
   async function setAccountSettings(newSettings: AccountSettings) {
-    return (await updateAccountSettings(getCurrentAccountId(), newSettings)).expect('Failed to update account settings')
+    return (await updateAccountSettings(useDrizzle(), getCurrentAccountId(), newSettings)).expect('Failed to update account settings')
   }
 
   // Setup memory leak detection and get cleanup function

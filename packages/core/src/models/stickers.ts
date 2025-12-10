@@ -9,26 +9,15 @@ import type { CoreMessageMediaSticker } from '../types/media'
 import { Ok } from '@unbird/result'
 import { eq, sql } from 'drizzle-orm'
 
-import { withDb } from '../db'
 import { stickersTable } from '../schemas/stickers'
 import { must0 } from './utils/must'
 
-export async function findStickerDescription(fileId: string) {
-  const sticker = (await findStickerByFileId(fileId))?.unwrap()
-  if (sticker == null) {
-    return ''
-  }
-
-  return Ok(sticker.description)
-}
-
-export async function findStickerByFileId(fileId: string) {
-  const sticker = (await withDb(db => db
+export async function findStickerByFileId(db: CoreDB, fileId: string) {
+  const sticker = await db
     .select()
     .from(stickersTable)
     .where(eq(stickersTable.file_id, fileId))
-    .limit(1),
-  )).expect('Failed to find sticker by file ID')
+    .limit(1)
 
   return Ok(must0(sticker))
 }
@@ -54,13 +43,9 @@ export async function getStickerQueryIdByFileId(db: CoreDB, fileId: string) {
   return Ok(must0(stickers))
 }
 
-type StickerMediaForRecord = CoreMessageMediaSticker & {
-  byte?: Buffer
-}
-
-export async function recordStickers(stickers: StickerMediaForRecord[]) {
+export async function recordStickers(db: CoreDB, stickers: (CoreMessageMediaSticker & { byte?: Buffer })[]) {
   if (stickers.length === 0) {
-    return
+    return Ok([])
   }
 
   // Deduplicate the sticker array, using file_id as the unique identifier
@@ -78,10 +63,10 @@ export async function recordStickers(stickers: StickerMediaForRecord[]) {
     }))
 
   if (dataToInsert.length === 0) {
-    return
+    return Ok([])
   }
 
-  return withDb(async db => db
+  const rows = await db
     .insert(stickersTable)
     .values(dataToInsert)
     .onConflictDoUpdate({
@@ -92,6 +77,7 @@ export async function recordStickers(stickers: StickerMediaForRecord[]) {
         updated_at: Date.now(),
       },
     })
-    .returning(),
-  )
+    .returning()
+
+  return Ok(rows)
 }

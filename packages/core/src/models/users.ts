@@ -1,9 +1,11 @@
+import type { CoreDB } from '../db'
 import type { CoreEntity } from '../types/events'
 
+import { Ok } from '@unbird/result'
 import { and, eq, sql } from 'drizzle-orm'
 
-import { withDb } from '../db'
 import { usersTable } from '../schemas/users'
+import { must0 } from './utils/must'
 
 export type DBInsertUser = typeof usersTable.$inferInsert
 export type DBSelectUser = typeof usersTable.$inferSelect
@@ -11,18 +13,17 @@ export type DBSelectUser = typeof usersTable.$inferSelect
 /**
  * Record or update a user in the database
  */
-export async function recordUser(user: CoreEntity) {
-  const dbUser: DBInsertUser = {
-    platform: 'telegram',
-    platform_user_id: user.id,
-    name: user.name,
-    username: 'username' in user ? user.username : user.id,
-    type: user.type,
-  }
+export async function recordUser(db: CoreDB, user: CoreEntity) {
 
-  return withDb(async db => db
+  const rows = await db
     .insert(usersTable)
-    .values(dbUser)
+    .values({
+      platform: 'telegram',
+      platform_user_id: user.id,
+      name: user.name,
+      username: 'username' in user ? user.username : user.id,
+      type: user.type,
+    })
     .onConflictDoUpdate({
       target: [usersTable.platform, usersTable.platform_user_id],
       set: {
@@ -32,41 +33,38 @@ export async function recordUser(user: CoreEntity) {
         updated_at: Date.now(),
       },
     })
-    .returning(),
-  )
+    .returning()
+
+  return Ok(must0(rows))
 }
 
 /**
  * Find a user by platform and platform_user_id
  */
-export async function findUserByPlatformId(platform: string, platformUserId: string) {
-  return withDb(async (db) => {
-    const results = await db
-      .select()
-      .from(usersTable)
-      .where(and(
-        eq(usersTable.platform, platform),
-        eq(usersTable.platform_user_id, platformUserId),
-      ))
-      .limit(1)
+export async function findUserByPlatformId(db: CoreDB, platform: string, platformUserId: string) {
+  const rows = await db
+    .select()
+    .from(usersTable)
+    .where(and(
+      eq(usersTable.platform, platform),
+      eq(usersTable.platform_user_id, platformUserId),
+    ))
+    .limit(1)
 
-    return results.length > 0 ? results[0] : null
-  })
+  return Ok(must0(rows))
 }
 
 /**
  * Find a user by UUID
  */
-export async function findUserByUUID(uuid: string) {
-  return withDb(async (db) => {
-    const results = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, uuid))
-      .limit(1)
+export async function findUserByUUID(db: CoreDB, uuid: string) {
+  const rows = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, uuid))
+    .limit(1)
 
-    return results[0] || null
-  })
+  return Ok(must0(rows))
 }
 
 /**

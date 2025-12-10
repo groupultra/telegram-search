@@ -1,17 +1,18 @@
 import type { CorePagination } from '@tg-search/common'
 
+import type { CoreDB } from '../../db'
 import type { DBRetrievalMessages } from './message'
 
 import { useLogger } from '@guiiai/logg'
 import { and, eq, sql } from 'drizzle-orm'
 
-import { withDb } from '../../db'
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { ensureJieba } from '../../utils/jieba'
 
 export async function retrieveJieba(
+  db: CoreDB,
   accountId: string,
   chatId: string | undefined,
   content: string,
@@ -52,7 +53,7 @@ export async function retrieveJieba(
     )`,
   ].filter(Boolean)
 
-  return (await withDb(db => db
+  return await db
     .select({
       id: chatMessagesTable.id,
       platform: chatMessagesTable.platform,
@@ -84,6 +85,5 @@ export async function retrieveJieba(
       ),
     )
     .where(and(...whereConditions))
-    .limit(pagination?.limit || 20),
-  )).expect('Failed to fetch text relevant messages')
+    .limit(pagination?.limit || 20)
 }

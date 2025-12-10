@@ -5,7 +5,6 @@ import type { PostgresDB } from './pg'
 import type { PgliteDB } from './pglite'
 
 import { DatabaseType, isBrowser } from '@tg-search/common'
-import { Err, Ok } from '@unbird/result'
 
 export type CoreDB = PostgresDB | PgliteDB
 
@@ -98,20 +97,3 @@ export function useDrizzle() {
 
   return dbInstance
 }
-
-export async function withDb<T>(
-  fn: (db: CoreDB) => Promise<T>,
-) {
-  try {
-    return Ok(await fn(useDrizzle()))
-  }
-  catch (error) {
-    return Err<T>((error instanceof Error) ? error.cause : error)
-  }
-}
-
-// export function withDb2<T>(
-//   fn: (db: CoreDB) => Promise<T>,
-// ): Future<T> {
-//   return Async(async () => fn(useDrizzle()))
-// }
