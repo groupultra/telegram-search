@@ -14,9 +14,15 @@ import {
 } from '../models'
 import { registerStorageEventHandlers } from './storage'
 
+vi.mock('../db', () => {
+  return {
+    useDrizzle: vi.fn(() => ({} as any)),
+  }
+})
+
 vi.mock('../models', () => {
   // Dialog-related mocks
-  const fetchChatsByAccountId = vi.fn(async (_accountId: string) => {
+  const fetchChatsByAccountId = vi.fn(async (_db: unknown, _accountId: string) => {
     const rows = [
       {
         id: 'joined-chat-1',
@@ -32,7 +38,7 @@ vi.mock('../models', () => {
     return Ok(rows)
   })
 
-  const getChatMessagesStats = vi.fn(async () => {
+  const getChatMessagesStats = vi.fn(async (_db: unknown, _accountId: string) => {
     const stats = [
       {
         chat_id: '1001',
@@ -42,7 +48,7 @@ vi.mock('../models', () => {
     return Ok(stats)
   })
 
-  const recordChats = vi.fn(async () => {
+  const recordChats = vi.fn(async (_db: unknown, _dialogs: CoreDialog[], _accountId?: string) => {
     // Simulate Result-like object used by production code
     return {
       expect<T>(_message: string): T[] {
@@ -53,11 +59,11 @@ vi.mock('../models', () => {
   })
 
   // Message-related mocks
-  const isChatAccessibleByAccount = vi.fn(async () => Ok(true))
+  const isChatAccessibleByAccount = vi.fn(async (_db: unknown, _accountId: string, _chatId: string) => Ok(true))
   const fetchMessageContextWithPhotos = vi.fn()
-  const fetchMessagesWithPhotos = vi.fn(async () => Ok([] as unknown[]))
+  const fetchMessagesWithPhotos = vi.fn(async (_db: unknown, _accountId: string, _chatId: string, _pagination: unknown) => Ok([] as unknown[]))
   const recordMessagesWithMedia = vi.fn()
-  const retrieveMessages = vi.fn(async () => Ok([] as unknown[]))
+  const retrieveMessages = vi.fn(async (_db: unknown, _accountId: string, _chatId: string | undefined, _dimension: unknown, _content: unknown, _pagination: unknown, _filters: unknown) => Ok([] as unknown[]))
 
   return {
     fetchChatsByAccountId,
@@ -92,9 +98,9 @@ describe('storage event handlers - dialogs with accounts', () => {
 
     const dialogs = await dialogsPromise
 
-    // Verify models were called with correct account id
-    expect(fetchChatsByAccountId).toHaveBeenCalledWith(ACCOUNT_ID)
-    expect(getChatMessagesStats).toHaveBeenCalled()
+    // Verify models were called with correct account id (first arg is db instance)
+    expect(fetchChatsByAccountId).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID)
+    expect(getChatMessagesStats).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID)
 
     // Verify mapping to CoreDialog shape
     expect(dialogs).toEqual([
@@ -124,7 +130,7 @@ describe('storage event handlers - dialogs with accounts', () => {
     ctx.emitter.emit('storage:record:dialogs', { dialogs, accountId: ACCOUNT_ID })
 
     expect(recordChats).toHaveBeenCalledTimes(1)
-    expect(recordChats).toHaveBeenCalledWith(dialogs, ACCOUNT_ID)
+    expect(recordChats).toHaveBeenCalledWith(expect.anything(), dialogs, ACCOUNT_ID)
   })
 })
 
@@ -155,7 +161,7 @@ describe('storage event handlers - message access control', () => {
     const error = await errorPromise
 
     expect(error).toBe('Unauthorized chat access')
-    expect(isChatAccessibleByAccount).toHaveBeenCalledWith(ACCOUNT_ID, CHAT_ID)
+    expect(isChatAccessibleByAccount).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID, CHAT_ID)
     expect(fetchMessagesWithPhotos).not.toHaveBeenCalled()
   })
 
@@ -187,7 +193,7 @@ describe('storage event handlers - message access control', () => {
     const error = await errorPromise
 
     expect(error).toBe('Unauthorized chat access')
-    expect(isChatAccessibleByAccount).toHaveBeenCalledWith(ACCOUNT_ID, CHAT_ID)
+    expect(isChatAccessibleByAccount).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID, CHAT_ID)
     expect(retrieveMessages).not.toHaveBeenCalled()
   })
 })

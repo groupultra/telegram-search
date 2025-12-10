@@ -1,217 +1,188 @@
-import type { CoreDB } from '../../db'
 import type { CoreDialog } from '../../types/dialog'
 
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
+import { mockDB } from '../../db/mock'
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
+import { accountsTable } from '../../schemas/accounts'
 import { joinedChatsTable } from '../../schemas/joined-chats'
-import { fetchChatsByAccountId, recordChats } from '../chats'
+import { fetchChats, fetchChatsByAccountId, isChatAccessibleByAccount, recordChats } from '../chats'
 
-describe('chats model with accounts', () => {
-  it('fetchChatsByAccountId should join account_joined_chats and joined_chats and return rows', async () => {
-    const rows = [
-      {
-        id: 'joined-chat-1',
-        platform: 'telegram',
-        chat_id: '1001',
-        chat_name: 'Test Chat',
-        chat_type: 'user',
-        dialog_date: 123,
-        created_at: 1,
-        updated_at: 2,
-      },
-    ]
-
-    const orderBy = vi.fn(() => rows)
-    const where = vi.fn(() => ({
-      orderBy,
-    }))
-    const innerJoin = vi.fn(() => ({
-      where,
-    }))
-    const from = vi.fn(() => ({
-      innerJoin,
-    }))
-    const select = vi.fn(() => ({
-      from,
-    }))
-
-    const fakeDb = {
-      select,
-    } as unknown as CoreDB
-
-    const result = await fetchChatsByAccountId(fakeDb, 'account-1')
-
-    expect(select).toHaveBeenCalledWith({
-      id: joinedChatsTable.id,
-      platform: joinedChatsTable.platform,
-      chat_id: joinedChatsTable.chat_id,
-      chat_name: joinedChatsTable.chat_name,
-      chat_type: joinedChatsTable.chat_type,
-      dialog_date: joinedChatsTable.dialog_date,
-      created_at: joinedChatsTable.created_at,
-      updated_at: joinedChatsTable.updated_at,
-    })
-    expect(from).toHaveBeenCalledWith(joinedChatsTable)
-    expect(innerJoin).toHaveBeenCalledWith(
-      accountJoinedChatsTable,
-      expect.anything(),
-    )
-    expect(where).toHaveBeenCalled()
-    expect(orderBy).toHaveBeenCalled()
-    expect(result.unwrap()).toEqual(rows)
+async function setupDb() {
+  return mockDB({
+    accountsTable,
+    joinedChatsTable,
+    accountJoinedChatsTable,
   })
+}
 
-  it('recordChats should insert chats and link them to account', async () => {
+describe('models/chats', () => {
+  it('recordChats inserts dialogs and links them to account', async () => {
+    const db = await setupDb()
+
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
     const dialogs: CoreDialog[] = [
       {
-        id: 1001,
+        id: 1,
         name: 'Chat 1',
         type: 'user',
-        messageCount: 0,
+        lastMessageDate: new Date('2024-01-01T00:00:00Z'),
+      },
+      {
+        id: 2,
+        name: 'Chat 2',
+        type: 'group',
+        lastMessageDate: new Date('2024-01-02T00:00:00Z'),
       },
     ]
 
-    const insertedRows = [
-      { id: 'joined-chat-1' },
-    ]
+    const result = await recordChats(db, dialogs, account.id)
+    const inserted = result.unwrap()
 
-    const onConflictDoNothingLinks = vi.fn(() => undefined)
-    const linkValues = vi.fn(() => ({
-      onConflictDoNothing: onConflictDoNothingLinks,
-    }))
+    expect(inserted).toHaveLength(2)
 
-    const returning = vi.fn(async () => insertedRows)
-    const onConflictDoUpdate = vi.fn(() => ({
-      returning,
-    }))
-    const chatsValues = vi.fn(() => ({
-      onConflictDoUpdate,
-      returning,
-    }))
+    const chatsInDb = await db.select().from(joinedChatsTable)
+    expect(chatsInDb.map(c => c.chat_name).sort()).toEqual(['Chat 1', 'Chat 2'])
 
-    const chatsInsert = vi.fn((table: unknown) => {
-      if (table === joinedChatsTable) {
-        return {
-          values: chatsValues,
-          onConflictDoUpdate,
-          returning,
-        }
-      }
-      if (table === accountJoinedChatsTable) {
-        return {
-          values: linkValues,
-          onConflictDoNothing: onConflictDoNothingLinks,
-        }
-      }
-      throw new Error('Unexpected table')
-    })
-
-    const transaction = vi.fn(async (fn: (tx: { insert: typeof chatsInsert }) => Promise<unknown>) => {
-      // Simulate drizzle transaction: pass tx with insert method
-      return fn({ insert: chatsInsert })
-    })
-
-    const fakeDb = {
-      transaction,
-    } as unknown as CoreDB
-
-    const result = await recordChats(fakeDb, dialogs, 'account-1')
-
-    expect(transaction).toHaveBeenCalledTimes(1)
-
-    // First insert into joined_chats
-    expect(chatsInsert).toHaveBeenCalledWith(joinedChatsTable)
-    expect(chatsValues).toHaveBeenCalledWith([
-      {
-        platform: 'telegram',
-        chat_id: '1001',
-        chat_name: 'Chat 1',
-        chat_type: 'user',
-        dialog_date: expect.any(Number),
-      },
-    ])
-    expect(onConflictDoUpdate).toHaveBeenCalled()
-    expect(returning).toHaveBeenCalled()
-
-    // Then insert into account_joined_chats
-    expect(chatsInsert).toHaveBeenCalledWith(accountJoinedChatsTable)
-    expect(linkValues).toHaveBeenCalledWith([
-      {
-        account_id: 'account-1',
-        joined_chat_id: 'joined-chat-1',
-      },
-    ])
-    expect(onConflictDoNothingLinks).toHaveBeenCalled()
-
-    expect(result.unwrap()).toEqual(insertedRows)
+    const links = await db.select().from(accountJoinedChatsTable)
+    expect(links).toHaveLength(2)
+    expect(new Set(links.map(l => l.account_id))).toEqual(new Set([account.id]))
   })
 
-  it('recordChats should not link chats when accountId is falsy', async () => {
-    const dialogs: CoreDialog[] = [
+  it('recordChats updates chat name and dialog_date on conflict', async () => {
+    const db = await setupDb()
+
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const dialogsV1: CoreDialog[] = [
       {
-        id: 1002,
-        name: 'Chat 2',
+        id: 1,
+        name: 'Old Name',
         type: 'user',
-        messageCount: 0,
+        lastMessageDate: new Date('2024-01-01T00:00:00Z'),
       },
     ]
 
-    const insertedRows = [
-      { id: 'joined-chat-2' },
+    await recordChats(db, dialogsV1, account.id)
+
+    const dialogsV2: CoreDialog[] = [
+      {
+        id: 1,
+        name: 'New Name',
+        type: 'user',
+        lastMessageDate: new Date('2024-02-01T00:00:00Z'),
+      },
     ]
 
-    const onConflictDoNothingLinks = vi.fn(() => undefined)
-    const linkValues = vi.fn(() => ({
-      onConflictDoNothing: onConflictDoNothingLinks,
-    }))
+    await recordChats(db, dialogsV2, account.id)
 
-    const returning = vi.fn(async () => insertedRows)
-    const onConflictDoUpdate = vi.fn(() => ({
-      returning,
-    }))
-    const chatsValues = vi.fn(() => ({
-      onConflictDoUpdate,
-      returning,
-    }))
+    const [chat] = await db.select().from(joinedChatsTable)
 
-    const chatsInsert = vi.fn((table: unknown) => {
-      if (table === joinedChatsTable) {
-        return {
-          values: chatsValues,
-          onConflictDoUpdate,
-          returning,
-        }
-      }
-      if (table === accountJoinedChatsTable) {
-        return {
-          values: linkValues,
-          onConflictDoNothing: onConflictDoNothingLinks,
-        }
-      }
-      throw new Error('Unexpected table')
-    })
+    expect(chat.chat_name).toBe('New Name')
+  })
 
-    const transaction = vi.fn(async (fn: (tx: { insert: typeof chatsInsert }) => Promise<unknown>) => {
-      return fn({ insert: chatsInsert })
-    })
+  it('fetchChats returns all telegram chats ordered by dialog_date desc', async () => {
+    const db = await setupDb()
 
-    const fakeDb = {
-      transaction,
-    } as unknown as CoreDB
+    await db.insert(joinedChatsTable).values([
+      {
+        platform: 'telegram',
+        chat_id: '1',
+        chat_name: 'Chat 1',
+        chat_type: 'user',
+        dialog_date: 1,
+      },
+      {
+        platform: 'telegram',
+        chat_id: '2',
+        chat_name: 'Chat 2',
+        chat_type: 'group',
+        dialog_date: 2,
+      },
+    ])
 
-    const result = await recordChats(fakeDb, dialogs, '') // falsy accountId
+    const result = await fetchChats(db)
+    const chats = result.unwrap()
 
-    expect(transaction).toHaveBeenCalledTimes(1)
+    expect(chats.map(c => c.chat_id)).toEqual(['2', '1'])
+  })
 
-    // joined_chats still inserted
-    expect(chatsInsert).toHaveBeenCalledWith(joinedChatsTable)
-    expect(chatsValues).toHaveBeenCalled()
+  it('fetchChatsByAccountId returns only chats linked to the given account', async () => {
+    const db = await setupDb()
 
-    // account_joined_chats should NOT be inserted
-    expect(chatsInsert).not.toHaveBeenCalledWith(accountJoinedChatsTable)
-    expect(onConflictDoNothingLinks).not.toHaveBeenCalled()
+    const [account1] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
 
-    expect(result.unwrap()).toEqual(insertedRows)
+    const [account2] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-2',
+    }).returning()
+
+    const dialogsForAccount1: CoreDialog[] = [
+      {
+        id: 1,
+        name: 'Account1 Chat',
+        type: 'user',
+        lastMessageDate: new Date('2024-01-01T00:00:00Z'),
+      },
+    ]
+
+    const dialogsForAccount2: CoreDialog[] = [
+      {
+        id: 2,
+        name: 'Account2 Chat',
+        type: 'user',
+        lastMessageDate: new Date('2024-01-01T00:00:00Z'),
+      },
+    ]
+
+    await recordChats(db, dialogsForAccount1, account1.id)
+    await recordChats(db, dialogsForAccount2, account2.id)
+
+    const result = await fetchChatsByAccountId(db, account1.id)
+    const chats = result.unwrap()
+
+    expect(chats).toHaveLength(1)
+    expect(chats[0].chat_name).toBe('Account1 Chat')
+  })
+
+  it('isChatAccessibleByAccount returns true only when account is linked to chat', async () => {
+    const db = await setupDb()
+
+    const [account1] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const [account2] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-2',
+    }).returning()
+
+    const dialogs: CoreDialog[] = [
+      {
+        id: 1,
+        name: 'Shared Chat',
+        type: 'group',
+        lastMessageDate: new Date('2024-01-01T00:00:00Z'),
+      },
+    ]
+
+    await recordChats(db, dialogs, account1.id)
+
+    const okForAccount1 = (await isChatAccessibleByAccount(db, account1.id, '1')).unwrap()
+    const okForAccount2 = (await isChatAccessibleByAccount(db, account2.id, '1')).unwrap()
+
+    expect(okForAccount1).toBe(true)
+    expect(okForAccount2).toBe(false)
   })
 })

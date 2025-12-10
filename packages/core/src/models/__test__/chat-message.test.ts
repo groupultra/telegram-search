@@ -1,98 +1,310 @@
-import type { CoreDB } from '../../db'
+import type { CorePagination } from '@tg-search/common'
+
 import type { CoreMessage } from '../../types/message'
 
-import { Ok } from '@unbird/result'
-import { describe, expect, it, vi } from 'vitest'
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import { Buffer } from 'buffer'
 
+import { describe, expect, it } from 'vitest'
+
+import { mockDB } from '../../db/mock'
+import { accountsTable } from '../../schemas/accounts'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
-import { recordMessages } from '../chat-message'
+import { photosTable } from '../../schemas/photos'
+import {
+  fetchMessageContextWithPhotos,
+  fetchMessages,
+  fetchMessagesWithPhotos,
+  recordMessages,
+} from '../chat-message'
 
-import * as photosModel from '../photos'
-import * as stickersModel from '../stickers'
+async function setupDb() {
+  return mockDB({
+    accountsTable,
+    joinedChatsTable,
+    chatMessagesTable,
+    photosTable,
+  })
+}
 
-function createCoreMessage(overrides: Partial<CoreMessage>): CoreMessage {
+function buildCoreMessage(overrides: Partial<CoreMessage> = {}): CoreMessage {
   return {
-    uuid: 'uuid-1',
+    uuid: overrides.uuid ?? 'uuid-1',
     platform: 'telegram',
-    platformMessageId: '1',
-    chatId: '1001',
-    fromId: '10',
-    fromName: 'User 10',
-    fromUserUuid: undefined,
-    content: 'hello',
-    media: [],
-    reply: {
-      isReply: false,
-    },
-    forward: {
-      isForward: false,
-    },
-    platformTimestamp: Date.now(),
-    ...overrides,
+    platformMessageId: overrides.platformMessageId ?? '1',
+    chatId: overrides.chatId ?? 'chat-1',
+    fromId: overrides.fromId ?? 'from-1',
+    fromName: overrides.fromName ?? 'From 1',
+    content: overrides.content ?? 'content',
+    reply: overrides.reply ?? { isReply: false, replyToId: undefined, replyToName: undefined },
+    forward: overrides.forward ?? { isForward: false },
+    platformTimestamp: overrides.platformTimestamp ?? Date.now(),
+    createdAt: overrides.createdAt,
+    updatedAt: overrides.updatedAt,
+    deletedAt: overrides.deletedAt,
+    media: overrides.media,
+    fromUserUuid: overrides.fromUserUuid,
   }
 }
 
-vi.spyOn(photosModel, 'recordPhotos').mockImplementation(async () => Ok([]))
-vi.spyOn(stickersModel, 'recordStickers').mockImplementation(async () => Ok([]))
+describe('models/chat-message', () => {
+  it('recordMessages scopes owner_account_id only for private (user) chats', async () => {
+    const db = await setupDb()
 
-describe('chat-message model with account-aware ownership', () => {
-  it('recordMessages should set owner_account_id only for private chats', async () => {
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const [privateChat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-private',
+      chat_name: 'Private Chat',
+      chat_type: 'user',
+    }).returning()
+
+    const [groupChat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-group',
+      chat_name: 'Group Chat',
+      chat_type: 'group',
+    }).returning()
+
     const messages: CoreMessage[] = [
-      createCoreMessage({ chatId: '1001' }), // user chat
-      createCoreMessage({ chatId: '2001', platformMessageId: '2' }), // group chat
+      buildCoreMessage({
+        uuid: 'm1',
+        platformMessageId: '1',
+        chatId: privateChat.chat_id,
+        content: 'private message',
+      }),
+      buildCoreMessage({
+        uuid: 'm2',
+        platformMessageId: '2',
+        chatId: groupChat.chat_id,
+        content: 'group message',
+      }),
     ]
 
-    const chatRows = [
-      { chat_id: '1001', chat_type: 'user' as const },
-      { chat_id: '2001', chat_type: 'group' as const },
+    await recordMessages(db, account.id, messages)
+
+    const rows = await db
+      .select()
+      .from(chatMessagesTable)
+      .orderBy(chatMessagesTable.platform_message_id)
+
+    const privateRow = rows[0]
+    const groupRow = rows[1]
+
+    expect(privateRow.in_chat_type).toBe('user')
+    expect(privateRow.owner_account_id).toBe(account.id)
+
+    expect(groupRow.in_chat_type).toBe('group')
+    expect(groupRow.owner_account_id).toBeNull()
+  })
+
+  it('fetchMessages enforces ACL and returns messages ordered by created_at desc', async () => {
+    const db = await setupDb()
+
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const [otherAccount] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-2',
+    }).returning()
+
+    const [chat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-1',
+      chat_name: 'Private Chat',
+      chat_type: 'user',
+    }).returning()
+
+    await db.insert(chatMessagesTable).values([
+      // Allowed message: owned by account
+      {
+        platform: 'telegram',
+        platform_message_id: '1',
+        from_id: 'u1',
+        from_name: 'User 1',
+        in_chat_id: chat.chat_id,
+        in_chat_type: 'user',
+        content: 'allowed-1',
+        is_reply: false,
+        reply_to_name: '',
+        reply_to_id: '',
+        platform_timestamp: 1000,
+        created_at: 1000,
+        owner_account_id: account.id,
+      },
+      // Not allowed: owned by other account
+      {
+        platform: 'telegram',
+        platform_message_id: '2',
+        from_id: 'u2',
+        from_name: 'User 2',
+        in_chat_id: chat.chat_id,
+        in_chat_type: 'user',
+        content: 'for-other-account',
+        is_reply: false,
+        reply_to_name: '',
+        reply_to_id: '',
+        platform_timestamp: 2000,
+        created_at: 2000,
+        owner_account_id: otherAccount.id,
+      },
+      // Allowed legacy message: NULL owner
+      {
+        platform: 'telegram',
+        platform_message_id: '3',
+        from_id: 'u3',
+        from_name: 'User 3',
+        in_chat_id: chat.chat_id,
+        in_chat_type: 'user',
+        content: 'allowed-legacy',
+        is_reply: false,
+        reply_to_name: '',
+        reply_to_id: '',
+        platform_timestamp: 3000,
+        created_at: 3000,
+      },
+    ])
+
+    const pagination: CorePagination = { limit: 10, offset: 0 }
+
+    const result = await fetchMessages(db, account.id, chat.chat_id, pagination)
+    const { dbMessagesResults, coreMessages } = result.unwrap()
+
+    // Should only see 2 messages due to ACL
+    expect(dbMessagesResults).toHaveLength(2)
+    expect(coreMessages).toHaveLength(2)
+
+    // Ordered by created_at desc => message 3 then message 1
+    expect(dbMessagesResults.map(m => m.platform_message_id)).toEqual(['3', '1'])
+  })
+
+  it('fetchMessagesWithPhotos attaches media for each message', async () => {
+    const db = await setupDb()
+
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const [chat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-1',
+      chat_name: 'Chat with photos',
+      chat_type: 'user',
+    }).returning()
+
+    const messages: CoreMessage[] = [
+      buildCoreMessage({
+        uuid: 'msg-uuid-1',
+        platformMessageId: '1',
+        chatId: chat.chat_id,
+        content: 'with photo',
+        platformTimestamp: 1000,
+      }),
     ]
 
-    const where = vi.fn(() => chatRows)
-    const from = vi.fn(() => ({ where }))
-    const select = vi.fn(() => ({ from }))
+    await recordMessages(db, account.id, messages)
 
-    const onConflictDoUpdate = vi.fn(() => ({
-      returning: vi.fn(async () => []),
-    }))
-    const values = vi.fn(() => ({
-      onConflictDoUpdate,
-    }))
-    const insert = vi.fn((table: unknown) => {
-      if (table === chatMessagesTable) {
-        return {
-          values,
-          onConflictDoUpdate,
-        }
-      }
-      throw new Error('Unexpected table')
+    const [dbMessage] = await db.select().from(chatMessagesTable)
+
+    await db.insert(photosTable).values({
+      platform: 'telegram',
+      file_id: 'file-1',
+      message_id: dbMessage.id,
+      image_bytes: Buffer.from([1, 2, 3]),
+      image_mime_type: 'image/jpeg',
     })
 
-    const fakeDb = {
-      select,
-      insert,
-    } as unknown as CoreDB
+    const pagination: CorePagination = { limit: 10, offset: 0 }
 
-    await recordMessages(fakeDb, 'account-1', messages)
+    const result = await fetchMessagesWithPhotos(db, account.id, chat.chat_id, pagination)
+    const messagesWithPhotos = result.unwrap()
 
-    expect(select).toHaveBeenCalledWith({
-      chat_id: joinedChatsTable.chat_id,
-      chat_type: joinedChatsTable.chat_type,
+    expect(messagesWithPhotos).toHaveLength(1)
+    const [message] = messagesWithPhotos
+    expect(message.media).toBeDefined()
+    expect(message.media?.length).toBe(1)
+    expect(message.media?.[0].type).toBe('photo')
+    expect(message.media?.[0].messageUUID).toBe('msg-uuid-1')
+  })
+
+  it('fetchMessageContextWithPhotos returns surrounding messages with media attached', async () => {
+    const db = await setupDb()
+
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const [chat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-ctx',
+      chat_name: 'Context Chat',
+      chat_type: 'user',
+    }).returning()
+
+    const coreMessages: CoreMessage[] = [
+      buildCoreMessage({
+        uuid: 'uuid-1',
+        platformMessageId: '1',
+        chatId: chat.chat_id,
+        content: 'before',
+        platformTimestamp: 1000,
+      }),
+      buildCoreMessage({
+        uuid: 'uuid-2',
+        platformMessageId: '2',
+        chatId: chat.chat_id,
+        content: 'target',
+        platformTimestamp: 2000,
+      }),
+      buildCoreMessage({
+        uuid: 'uuid-3',
+        platformMessageId: '3',
+        chatId: chat.chat_id,
+        content: 'after',
+        platformTimestamp: 3000,
+      }),
+    ]
+
+    await recordMessages(db, account.id, coreMessages)
+
+    const dbMessages = await db
+      .select()
+      .from(chatMessagesTable)
+      .orderBy(chatMessagesTable.platform_message_id)
+
+    // Attach one photo per message
+    for (const dbMessage of dbMessages) {
+      await db.insert(photosTable).values({
+        platform: 'telegram',
+        file_id: `file-${dbMessage.platform_message_id}`,
+        message_id: dbMessage.id,
+        image_bytes: Buffer.from([1]),
+        image_mime_type: 'image/jpeg',
+      })
+    }
+
+    const context = (await fetchMessageContextWithPhotos(db, account.id, {
+      chatId: chat.chat_id,
+      messageId: '2',
+      before: 1,
+      after: 1,
+    })).unwrap()
+
+    expect(context.map(m => m.platformMessageId)).toEqual(['1', '2', '3'])
+    context.forEach((message) => {
+      expect(message.media).toBeDefined()
+      expect(message.media?.length).toBe(1)
+      expect(message.media?.[0].type).toBe('photo')
     })
-    expect(from).toHaveBeenCalledWith(joinedChatsTable)
-    expect(where).toHaveBeenCalled()
-
-    expect(insert).toHaveBeenCalledWith(chatMessagesTable)
-    expect(values).toHaveBeenCalled()
-
-    const firstCall = values.mock.calls[0] as unknown as [Array<Record<string, unknown>>]
-    const inserted = firstCall[0]
-    expect(inserted.length).toBeGreaterThan(0)
-
-    const privateRow = inserted.find(row => row.in_chat_id === '1001')
-    const groupRow = inserted.find(row => row.in_chat_id === '2001')
-
-    expect(privateRow?.owner_account_id).toBe('account-1')
-    expect(groupRow?.owner_account_id).toBeUndefined()
   })
 })

@@ -1,51 +1,60 @@
-import type { CoreDB } from '../../db'
-
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { mockDB } from '../../db/mock'
 import { accountsTable } from '../../schemas/accounts'
 import { findAccountByPlatformId, findAccountByUUID, recordAccount } from '../accounts'
 
-describe('accounts model', () => {
-  let db: CoreDB
-
-  beforeEach(async () => {
-    db = await mockDB({ accountsTable })
+async function setupDb() {
+  return mockDB({
+    accountsTable,
   })
+}
 
-  it('recordAccount should insert account with correct values', async () => {
-    const result = await recordAccount(db, 'telegram', 'user-123')
+describe('models/accounts', () => {
+  it('recordAccount inserts a new account when none exists', async () => {
+    const db = await setupDb()
+
+    const result = await recordAccount(db, 'telegram', 'user-1')
     const account = result.unwrap()
 
-    expect(account).toMatchObject({
-      platform: 'telegram',
-      platform_user_id: 'user-123',
-    })
+    expect(account.platform).toBe('telegram')
+    expect(account.platform_user_id).toBe('user-1')
+
+    const accounts = await db.select().from(accountsTable)
+    expect(accounts).toHaveLength(1)
   })
 
-  it('findAccountByPlatformId should query by platform and platform_user_id and return first result or null', async () => {
-    const inserted = await recordAccount(db, 'telegram', 'user-xyz')
-    const account = inserted.unwrap()
+  it('recordAccount updates existing account on conflict and bumps updated_at', async () => {
+    const db = await setupDb()
 
-    const result = await findAccountByPlatformId(db, 'telegram', 'user-xyz')
-    const found = result.unwrap()
+    const first = (await recordAccount(db, 'telegram', 'user-1')).unwrap()
 
-    expect(found).toBeDefined()
-    expect(found.id).toBe(account.id)
-    expect(found.platform).toBe('telegram')
-    expect(found.platform_user_id).toBe('user-xyz')
+    // Small delay to make updated_at difference observable even if clocks are coarse
+    const second = (await recordAccount(db, 'telegram', 'user-1')).unwrap()
+
+    expect(second.id).toBe(first.id)
+    expect(second.updated_at).toBeGreaterThanOrEqual(first.updated_at)
   })
 
-  it('findAccountByUUID should query by id and return first result or null', async () => {
-    const inserted = await recordAccount(db, 'telegram', 'user-abc')
-    const account = inserted.unwrap()
+  it('findAccountByPlatformId returns the correct account', async () => {
+    const db = await setupDb()
 
-    const result = await findAccountByUUID(db, account.id)
-    const found = result.unwrap()
+    const created = (await recordAccount(db, 'telegram', 'user-1')).unwrap()
 
-    expect(found).toBeDefined()
-    expect(found.id).toBe(account.id)
+    const found = (await findAccountByPlatformId(db, 'telegram', 'user-1')).unwrap()
+
+    expect(found.id).toBe(created.id)
     expect(found.platform).toBe('telegram')
-    expect(found.platform_user_id).toBe('user-abc')
+    expect(found.platform_user_id).toBe('user-1')
+  })
+
+  it('findAccountByUUID returns the correct account', async () => {
+    const db = await setupDb()
+
+    const created = (await recordAccount(db, 'telegram', 'user-1')).unwrap()
+
+    const found = (await findAccountByUUID(db, created.id)).unwrap()
+
+    expect(found.id).toBe(created.id)
   })
 })

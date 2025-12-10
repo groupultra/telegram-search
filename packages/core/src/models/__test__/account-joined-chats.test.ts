@@ -1,94 +1,129 @@
-import type { CoreDB } from '../../db'
+import { describe, expect, it } from 'vitest'
 
-import { describe, expect, it, vi } from 'vitest'
-
+import { mockDB } from '../../db/mock'
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
+import { accountsTable } from '../../schemas/accounts'
+import { joinedChatsTable } from '../../schemas/joined-chats'
 import {
   findAccountIdsByJoinedChatId,
   findJoinedChatIdsByAccountId,
   linkAccountToJoinedChat,
 } from '../account-joined-chats'
 
-describe('account-joined-chats model', () => {
-  it('linkAccountToJoinedChat should insert link with correct values', async () => {
-    const returning = vi.fn(async () => [{ id: 'link-1' }])
-    const onConflictDoNothing = vi.fn(() => ({
-      returning,
-    }))
-    const values = vi.fn(() => ({
-      onConflictDoNothing,
-      returning,
-    }))
-    const insert = vi.fn(() => ({
-      values,
-      onConflictDoNothing,
-      returning,
-    }))
+async function setupDb() {
+  return mockDB({
+    accountsTable,
+    joinedChatsTable,
+    accountJoinedChatsTable,
+  })
+}
 
-    const fakeDb = {
-      insert,
-    } as unknown as CoreDB
+describe('models/account-joined-chats', () => {
+  it('linkAccountToJoinedChat inserts a link and returns it', async () => {
+    const db = await setupDb()
 
-    await linkAccountToJoinedChat(fakeDb, 'account-1', 'joined-chat-1')
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
 
-    expect(insert).toHaveBeenCalledWith(accountJoinedChatsTable)
-    expect(values).toHaveBeenCalledWith({
-      account_id: 'account-1',
-      joined_chat_id: 'joined-chat-1',
-    })
-    expect(onConflictDoNothing).toHaveBeenCalled()
-    expect(returning).toHaveBeenCalled()
+    const [chat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-1',
+      chat_name: 'Test Chat',
+      chat_type: 'user',
+    }).returning()
+
+    const result = await linkAccountToJoinedChat(db, account.id, chat.id)
+    const rows = result.unwrap()
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0].account_id).toBe(account.id)
+    expect(rows[0].joined_chat_id).toBe(chat.id)
+
+    const linksInDb = await db.select().from(accountJoinedChatsTable)
+    expect(linksInDb).toHaveLength(1)
   })
 
-  it('findJoinedChatIdsByAccountId should return list of joined_chat_id', async () => {
-    const rows = [
-      { joined_chat_id: 'chat-1' },
-      { joined_chat_id: 'chat-2' },
-    ]
+  it('linkAccountToJoinedChat is idempotent due to ON CONFLICT DO NOTHING', async () => {
+    const db = await setupDb()
 
-    const where = vi.fn(() => Promise.resolve(rows))
-    const from = vi.fn(() => ({
-      where,
-    }))
-    const select = vi.fn(() => ({
-      from,
-    }))
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
 
-    const fakeDb = {
-      select,
-    } as unknown as CoreDB
+    const [chat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-1',
+      chat_name: 'Test Chat',
+      chat_type: 'user',
+    }).returning()
 
-    const result = await findJoinedChatIdsByAccountId(fakeDb, 'account-1')
+    await linkAccountToJoinedChat(db, account.id, chat.id)
+    await linkAccountToJoinedChat(db, account.id, chat.id)
 
-    expect(select).toHaveBeenCalled()
-    expect(from).toHaveBeenCalled()
-    expect(where).toHaveBeenCalled()
-    expect(result.unwrap()).toEqual(['chat-1', 'chat-2'])
+    const linksInDb = await db.select().from(accountJoinedChatsTable)
+    expect(linksInDb).toHaveLength(1)
   })
 
-  it('findAccountIdsByJoinedChatId should return list of account_id', async () => {
-    const rows = [
-      { account_id: 'account-1' },
-      { account_id: 'account-2' },
-    ]
+  it('findJoinedChatIdsByAccountId returns all joined_chat_ids for an account', async () => {
+    const db = await setupDb()
 
-    const where = vi.fn(() => Promise.resolve(rows))
-    const from = vi.fn(() => ({
-      where,
-    }))
-    const select = vi.fn(() => ({
-      from,
-    }))
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
 
-    const fakeDb = {
-      select,
-    } as unknown as CoreDB
+    const [chat1] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-1',
+      chat_name: 'Test Chat 1',
+      chat_type: 'user',
+    }).returning()
 
-    const result = await findAccountIdsByJoinedChatId(fakeDb, 'joined-chat-1')
+    const [chat2] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-2',
+      chat_name: 'Test Chat 2',
+      chat_type: 'group',
+    }).returning()
 
-    expect(select).toHaveBeenCalled()
-    expect(from).toHaveBeenCalled()
-    expect(where).toHaveBeenCalled()
-    expect(result.unwrap()).toEqual(['account-1', 'account-2'])
+    await linkAccountToJoinedChat(db, account.id, chat1.id)
+    await linkAccountToJoinedChat(db, account.id, chat2.id)
+
+    const result = await findJoinedChatIdsByAccountId(db, account.id)
+    const joinedChatIds = result.unwrap()
+
+    expect(new Set(joinedChatIds)).toEqual(new Set([chat1.id, chat2.id]))
+  })
+
+  it('findAccountIdsByJoinedChatId returns all account_ids for a joined chat', async () => {
+    const db = await setupDb()
+
+    const [account1] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const [account2] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-2',
+    }).returning()
+
+    const [chat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'chat-1',
+      chat_name: 'Test Chat',
+      chat_type: 'group',
+    }).returning()
+
+    await linkAccountToJoinedChat(db, account1.id, chat.id)
+    await linkAccountToJoinedChat(db, account2.id, chat.id)
+
+    const result = await findAccountIdsByJoinedChatId(db, chat.id)
+    const accountIds = result.unwrap()
+
+    expect(new Set(accountIds)).toEqual(new Set([account1.id, account2.id]))
   })
 })
