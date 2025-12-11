@@ -35,7 +35,5 @@ export type DBSelectPhoto = typeof photosTable.$inferSelect
 export type DBSelectSticker = typeof stickersTable.$inferSelect
 export type DBInsertSticker = typeof stickersTable.$inferInsert
 
-
 export type DBInsertUser = typeof usersTable.$inferInsert
 export type DBSelectUser = typeof usersTable.$inferSelect
-
