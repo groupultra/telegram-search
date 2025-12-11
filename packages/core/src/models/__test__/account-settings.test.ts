@@ -1,8 +1,10 @@
+import { safeParse } from 'valibot'
 import { describe, expect, it } from 'vitest'
 
 import { mockDB } from '../../db/mock'
 import { accountsTable } from '../../schemas/accounts'
-import { accountSettingsSchema, generateDefaultAccountSettings } from '../../utils/account-settings'
+import { accountSettingsSchema } from '../../types/account-settings'
+import { generateDefaultAccountSettings } from '../../utils/account-settings'
 import { fetchSettingsByAccountId, updateAccountSettings } from '../account-settings'
 
 async function setupDb() {
@@ -69,9 +71,12 @@ describe('models/account-settings', () => {
       },
     }
 
-    const parsed = accountSettingsSchema.parse(partialSettings)
+    const parsed = safeParse(accountSettingsSchema, partialSettings)
+    if (!parsed.success) {
+      throw new Error('Failed to parse settings', { cause: parsed.issues })
+    }
 
-    const result = await updateAccountSettings(db, account.id, partialSettings)
+    const result = await updateAccountSettings(db, account.id, parsed.output)
     const updated = result.unwrap()
 
     expect(updated.settings).toEqual(parsed)
