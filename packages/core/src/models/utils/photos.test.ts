@@ -1,4 +1,4 @@
-import type { DBSelectPhoto } from './photos'
+import type { DBSelectPhoto } from './types'
 
 import { Buffer } from 'node:buffer'
 

@@ -41,6 +41,7 @@ import { useLogger } from '@guiiai/logg'
 import { createCoreInstance, destroyCoreInstance } from '@tg-search/core'
 import { defineWebSocketHandler } from 'h3'
 import { Counter, Gauge, Histogram } from 'prom-client'
+import { v4 as uuidv4 } from 'uuid'
 
 import { sendWsEvent } from './ws-events'
 
@@ -248,7 +249,7 @@ export function setupWsRoutes(app: H3, config: Config) {
 
     async open(peer) {
       const url = new URL(peer.request.url)
-      const accountId = url.searchParams.get('sessionId') || crypto.randomUUID()
+      const accountId = url.searchParams.get('sessionId') || uuidv4()
 
       logger.withFields({ peerId: peer.id, accountId }).log('WebSocket connection opened')
       wsConnectionsActive.inc({ mode: WS_MODE_LABEL })

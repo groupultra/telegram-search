@@ -1,8 +1,5 @@
-import type { photosTable } from '../../schemas/photos'
 import type { CoreMessageMediaPhoto } from '../../types/media'
-
-export type DBInsertPhoto = typeof photosTable.$inferInsert
-export type DBSelectPhoto = typeof photosTable.$inferSelect
+import type { DBSelectPhoto } from './types'
 
 export function convertDBPhotoToCoreMessageMedia(dbPhoto: DBSelectPhoto): CoreMessageMediaPhoto {
   return {

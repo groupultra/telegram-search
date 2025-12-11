@@ -1,10 +1,7 @@
-import type { chatMessagesTable } from '../../schemas/chat-messages'
 import type { JoinedChatType } from '../../schemas/joined-chats'
 import type { CoreRetrievalMessages } from '../../types/events'
 import type { CoreMessage, ProcessedCoreMessage } from '../../types/message'
-
-export type DBInsertMessage = typeof chatMessagesTable.$inferInsert
-export type DBSelectMessage = typeof chatMessagesTable.$inferSelect
+import type { DBInsertMessage, DBSelectMessage } from './types'
 
 export interface DBRetrievalMessages extends Omit<DBSelectMessage, 'content_vector_1536' | 'content_vector_1024' | 'content_vector_768'> {
   similarity?: number
@@ -51,6 +48,7 @@ export function convertToDBInsertMessage(
   message: ProcessedCoreMessage,
 ): DBInsertMessage {
   const msg: DBInsertMessage = {
+    id: message.uuid,
     platform: message.platform,
     from_id: message.fromId,
     platform_message_id: message.platformMessageId,

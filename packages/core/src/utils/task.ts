@@ -2,6 +2,7 @@ import type { CoreEmitter } from '../context'
 import type { CoreTask, CoreTaskData, CoreTasks, CoreTaskType } from '../types/task'
 
 import { useLogger } from '@guiiai/logg'
+import { v4 as uuidv4 } from 'uuid'
 
 /**
  * Create a task that manages its own state
@@ -12,7 +13,7 @@ export function createTask<T extends CoreTaskType>(
   emitter: CoreEmitter,
 ): CoreTask<T> {
   const state: CoreTaskData<T> = {
-    taskId: crypto.randomUUID(),
+    taskId: uuidv4(),
     type,
     progress: 0,
     metadata,

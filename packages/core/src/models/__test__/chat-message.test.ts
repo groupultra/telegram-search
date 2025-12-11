@@ -12,6 +12,7 @@ import { accountsTable } from '../../schemas/accounts'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { photosTable } from '../../schemas/photos'
+import { usersTable } from '../../schemas/users'
 import {
   fetchMessageContextWithPhotos,
   fetchMessages,
@@ -25,6 +26,7 @@ async function setupDb() {
     joinedChatsTable,
     chatMessagesTable,
     photosTable,
+    usersTable,
   })
 }
 

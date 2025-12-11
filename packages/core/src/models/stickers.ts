@@ -5,45 +5,66 @@ import type { Buffer } from 'buffer'
 
 import type { CoreDB } from '../db'
 import type { CoreMessageMediaSticker } from '../types/media'
+import type { PromiseResult } from '../utils/result'
+import type { DBInsertSticker, DBSelectSticker } from './utils/types'
 
 import { Ok } from '@unbird/result'
 import { eq, sql } from 'drizzle-orm'
 
 import { stickersTable } from '../schemas/stickers'
+import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
 
-export async function findStickerByFileId(db: CoreDB, fileId: string) {
-  const sticker = await db
-    .select()
-    .from(stickersTable)
-    .where(eq(stickersTable.file_id, fileId))
-    .limit(1)
+/**
+ * Find a sticker by file_id
+ */
+export async function findStickerByFileId(db: CoreDB, fileId: string): PromiseResult<DBSelectSticker> {
+  return withResult(async () => {
+    const sticker = await db
+      .select()
+      .from(stickersTable)
+      .where(eq(stickersTable.file_id, fileId))
+      .limit(1)
 
-  return Ok(must0(sticker))
+    return must0(sticker)
+  })
 }
 
-export async function findStickerByQueryId(db: CoreDB, queryId: string) {
-  const stickers = await db
-    .select()
-    .from(stickersTable)
-    .where(eq(stickersTable.id, queryId))
+/**
+ * Find a sticker by query_id
+ */
+export async function findStickerByQueryId(db: CoreDB, queryId: string): PromiseResult<DBSelectSticker> {
+  return withResult(async () => {
+    const stickers = await db
+      .select()
+      .from(stickersTable)
+      .where(eq(stickersTable.id, queryId))
 
-  return Ok(must0(stickers))
+    return must0(stickers)
+  })
 }
 
-export async function getStickerQueryIdByFileId(db: CoreDB, fileId: string) {
-  const stickers = await db
-    .select({
-      id: stickersTable.id,
-    })
-    .from(stickersTable)
-    .where(eq(stickersTable.file_id, fileId))
-    .limit(1)
+/**
+ * Get the query_id for a sticker by file_id
+ */
+export async function getStickerQueryIdByFileId(db: CoreDB, fileId: string): PromiseResult<{ id: string }> {
+  return withResult(async () => {
+    const stickers = await db
+      .select({
+        id: stickersTable.id,
+      })
+      .from(stickersTable)
+      .where(eq(stickersTable.file_id, fileId))
+      .limit(1)
 
-  return Ok(must0(stickers))
+    return must0(stickers)
+  })
 }
 
-export async function recordStickers(db: CoreDB, stickers: (CoreMessageMediaSticker & { byte?: Buffer })[]) {
+/**
+ * Record stickers for a specific account
+ */
+export async function recordStickers(db: CoreDB, stickers: (CoreMessageMediaSticker & { byte?: Buffer })[]): PromiseResult<DBInsertSticker[]> {
   if (stickers.length === 0) {
     return Ok([])
   }
@@ -66,7 +87,7 @@ export async function recordStickers(db: CoreDB, stickers: (CoreMessageMediaStic
     return Ok([])
   }
 
-  const rows = await db
+  return withResult(() => db
     .insert(stickersTable)
     .values(dataToInsert)
     .onConflictDoUpdate({
@@ -77,7 +98,6 @@ export async function recordStickers(db: CoreDB, stickers: (CoreMessageMediaStic
         updated_at: Date.now(),
       },
     })
-    .returning()
-
-  return Ok(rows)
+    .returning(),
+  )
 }

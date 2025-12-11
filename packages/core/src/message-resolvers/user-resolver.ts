@@ -2,7 +2,7 @@ import type { Entity } from 'telegram/define'
 
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
-import type { DBSelectUser } from '../models/users'
+import type { DBSelectUser } from '../models/utils/types'
 
 import { useLogger } from '@guiiai/logg'
 import { Ok } from '@unbird/result'

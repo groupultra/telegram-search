@@ -37,9 +37,9 @@ describe('models/account-joined-chats', () => {
     const result = await linkAccountToJoinedChat(db, account.id, chat.id)
     const rows = result.unwrap()
 
-    expect(rows).toHaveLength(1)
-    expect(rows[0].account_id).toBe(account.id)
-    expect(rows[0].joined_chat_id).toBe(chat.id)
+    expect(rows).toBeDefined()
+    expect(rows.account_id).toBe(account.id)
+    expect(rows.joined_chat_id).toBe(chat.id)
 
     const linksInDb = await db.select().from(accountJoinedChatsTable)
     expect(linksInDb).toHaveLength(1)

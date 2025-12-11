@@ -4,6 +4,7 @@ import { mockDB } from '../../db/mock'
 import { accountsTable } from '../../schemas/accounts'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
+import { usersTable } from '../../schemas/users'
 import { getChatMessagesStats, getChatMessageStatsByChatId } from '../chat-message-stats'
 
 async function setupDb() {
@@ -11,6 +12,7 @@ async function setupDb() {
     accountsTable,
     joinedChatsTable,
     chatMessagesTable,
+    usersTable,
   })
 }
 

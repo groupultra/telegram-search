@@ -1,6 +1,7 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
 
+import { v4 as uuidv4 } from 'uuid'
 import { describe, expect, it } from 'vitest'
 
 import { mockDB } from '../../db/mock'
@@ -46,15 +47,16 @@ describe('models/photos', () => {
 
     const firstBytes = Buffer.from([1, 2, 3])
     const secondBytes = Buffer.from([9, 9, 9, 9])
+    const messageUUID = uuidv4()
 
     const first = await recordPhotos(db, [
       {
         type: 'photo',
         platformId: 'file-1',
-        messageUUID: 'msg-1',
+        messageUUID,
         byte: firstBytes,
       },
-    ] as any)
+    ])
 
     const inserted = first.unwrap()
     expect(inserted).toHaveLength(1)
@@ -64,10 +66,10 @@ describe('models/photos', () => {
       {
         type: 'photo',
         platformId: 'file-1',
-        messageUUID: 'msg-1',
+        messageUUID,
         byte: secondBytes,
       },
-    ] as any)
+    ])
 
     const updated = second.unwrap()
     expect(updated).toHaveLength(1)

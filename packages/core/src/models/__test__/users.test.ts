@@ -4,13 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 import { mockDB } from '../../db/mock'
 import { usersTable } from '../../schemas/users'
-import {
-  convertCoreEntityToDBUser,
-  convertDBUserToCoreEntity,
-  findUserByPlatformId,
-  findUserByUUID,
-  recordUser,
-} from '../users'
+import { findUserByPlatformId, findUserByUUID, recordUser } from '../users'
+import { convertCoreEntityToDBUser, convertDBUserToCoreEntity } from '../utils/users'
 
 async function setupDb() {
   return mockDB({

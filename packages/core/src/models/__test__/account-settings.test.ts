@@ -14,13 +14,10 @@ async function setupDb() {
 }
 
 describe('models/account-settings', () => {
-  it('fetchSettingsByAccountId returns default settings when account does not exist', async () => {
+  it('fetchSettingsByAccountId throws when account does not exist', async () => {
     const db = await setupDb()
 
-    const result = await fetchSettingsByAccountId(db, 'non-existent-id')
-    const settings = result.unwrap()
-
-    expect(settings).toEqual(generateDefaultAccountSettings())
+    await expect(fetchSettingsByAccountId(db, 'non-existent-id')).rejects.toThrowError()
   })
 
   it('fetchSettingsByAccountId returns parsed settings when present and valid', async () => {
@@ -79,7 +76,7 @@ describe('models/account-settings', () => {
     const result = await updateAccountSettings(db, account.id, parsed.output)
     const updated = result.unwrap()
 
-    expect(updated.settings).toEqual(parsed)
+    expect(updated.settings).toEqual(parsed.output)
   })
 
   it('updateAccountSettings throws when settings are invalid', async () => {

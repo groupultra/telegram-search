@@ -74,8 +74,8 @@ describe('models/stickers', () => {
     const [row] = await db.select().from(stickersTable)
 
     expect(row.emoji).toBe('🎉')
-    expect(row.sticker_bytes).toBeInstanceOf(Buffer)
-    expect((row.sticker_bytes as Buffer).length).toBe(4)
+    expect(row.sticker_bytes).toBeInstanceOf(Uint8Array)
+    expect((row.sticker_bytes as Uint8Array).length).toBe(4)
   })
 
   it('findStickerByFileId, getStickerQueryIdByFileId, and findStickerByQueryId work together', async () => {
