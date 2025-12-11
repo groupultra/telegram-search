@@ -25,85 +25,84 @@ import { retrieveVector } from './utils/retrieve-vector'
 
 /**
  * Upsert messages for a specific account.
+ * NOTE: Without result wrapper, because it's insert operation, maybe outer don't receive any error, just throw error directly.
  */
 export async function recordMessages(
   tx: CoreTransaction | CoreDB,
   accountId: string,
   messages: CoreMessage[],
-): PromiseResult<DBInsertMessage[]> {
-  return withResult(async () => {
-    if (messages.length === 0) {
-      return []
-    }
+): Promise<DBInsertMessage[]> {
+  if (messages.length === 0) {
+    return []
+  }
 
-    // Resolve chat types in batch so we can decide whether to scope messages
-    // to an owning account (private dialogs) or keep them shared (groups/channels).
-    const chatIds = Array.from(new Set(messages.map(message => message.chatId)))
+  // Resolve chat types in batch so we can decide whether to scope messages
+  // to an owning account (private dialogs) or keep them shared (groups/channels).
+  const chatIds = Array.from(new Set(messages.map(message => message.chatId)))
 
-    const chatRows = await tx
-      .select({
-        chat_id: joinedChatsTable.chat_id,
-        chat_type: joinedChatsTable.chat_type,
-      })
-      .from(joinedChatsTable)
-      .where(inArray(joinedChatsTable.chat_id, chatIds))
-
-    const chatTypeById = new Map<string, JoinedChatType>()
-    for (const row of chatRows)
-      chatTypeById.set(row.chat_id, row.chat_type)
-
-    const dbMessages = messages.map((message) => {
-      const chatType = chatTypeById.get(message.chatId)!
-      // Only scope by account for private dialogs; keep group/channel messages shared.
-      const ownerAccountId = chatType === 'user' ? accountId : null
-      return convertToDBInsertMessage(ownerAccountId, chatType, message)
+  const chatRows = await tx
+    .select({
+      chat_id: joinedChatsTable.chat_id,
+      chat_type: joinedChatsTable.chat_type,
     })
+    .from(joinedChatsTable)
+    .where(inArray(joinedChatsTable.chat_id, chatIds))
 
-    if (dbMessages.length === 0)
-      return []
+  const chatTypeById = new Map<string, JoinedChatType>()
+  for (const row of chatRows)
+    chatTypeById.set(row.chat_id, row.chat_type)
 
-    const rows = await tx
-      .insert(chatMessagesTable)
-      .values(dbMessages)
-      .onConflictDoUpdate({
-        target: [
-          chatMessagesTable.platform,
-          chatMessagesTable.platform_message_id,
-          chatMessagesTable.in_chat_id,
-          chatMessagesTable.owner_account_id,
-        ],
-        set: {
+  const dbMessages = messages.map((message) => {
+    const chatType = chatTypeById.get(message.chatId)!
+    // Only scope by account for private dialogs; keep group/channel messages shared.
+    const ownerAccountId = chatType === 'user' ? accountId : null
+    return convertToDBInsertMessage(ownerAccountId, chatType, message)
+  })
+
+  if (dbMessages.length === 0)
+    return []
+
+  const rows = await tx
+    .insert(chatMessagesTable)
+    .values(dbMessages)
+    .onConflictDoUpdate({
+      target: [
+        chatMessagesTable.platform,
+        chatMessagesTable.platform_message_id,
+        chatMessagesTable.in_chat_id,
+        chatMessagesTable.owner_account_id,
+      ],
+      set: {
         // Content: always update with new content
-          content: sql`excluded.content`,
+        content: sql`excluded.content`,
 
-          // User UUID: update if not null
-          from_user_uuid: sql`COALESCE(excluded.from_user_uuid, ${chatMessagesTable.from_user_uuid})`,
+        // User UUID: update if not null
+        from_user_uuid: sql`COALESCE(excluded.from_user_uuid, ${chatMessagesTable.from_user_uuid})`,
 
-          // From name: always update (for backward compatibility)
-          from_name: sql`excluded.from_name`,
+        // From name: always update (for backward compatibility)
+        from_name: sql`excluded.from_name`,
 
-          // Vectors: update only if not null (vectors can be null in schema)
-          content_vector_1024: sql`COALESCE(excluded.content_vector_1024, ${chatMessagesTable.content_vector_1024})`,
-          content_vector_1536: sql`COALESCE(excluded.content_vector_1536, ${chatMessagesTable.content_vector_1536})`,
-          content_vector_768: sql`COALESCE(excluded.content_vector_768, ${chatMessagesTable.content_vector_768})`,
+        // Vectors: update only if not null (vectors can be null in schema)
+        content_vector_1024: sql`COALESCE(excluded.content_vector_1024, ${chatMessagesTable.content_vector_1024})`,
+        content_vector_1536: sql`COALESCE(excluded.content_vector_1536, ${chatMessagesTable.content_vector_1536})`,
+        content_vector_768: sql`COALESCE(excluded.content_vector_768, ${chatMessagesTable.content_vector_768})`,
 
-          // Jieba tokens: update only if new array is not empty
-          jieba_tokens: sql`CASE
+        // Jieba tokens: update only if new array is not empty
+        jieba_tokens: sql`CASE
           WHEN excluded.jieba_tokens IS NOT NULL
                AND jsonb_array_length(excluded.jieba_tokens) > 0
           THEN excluded.jieba_tokens
           ELSE ${chatMessagesTable.jieba_tokens}
         END`,
 
-          // Platform timestamp: always update
-          platform_timestamp: sql`excluded.platform_timestamp`,
-          updated_at: Date.now(),
-        },
-      })
-      .returning()
+        // Platform timestamp: always update
+        platform_timestamp: sql`excluded.platform_timestamp`,
+        updated_at: Date.now(),
+      },
+    })
+    .returning()
 
-    return rows
-  })
+  return rows
 }
 
 /**

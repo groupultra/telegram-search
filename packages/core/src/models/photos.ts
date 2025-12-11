@@ -8,12 +8,47 @@ import type { CoreMessageMediaPhoto } from '../types/media'
 import type { PromiseResult } from '../utils/result'
 import type { DBInsertPhoto, DBSelectPhoto } from './utils/types'
 
-import { Ok } from '@unbird/result'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
 import { photosTable } from '../schemas/photos'
 import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
+
+/**
+ * Record photos for a specific account
+ */
+export async function recordPhotos(db: CoreDB, media: (CoreMessageMediaPhoto & { byte?: Buffer })[]): Promise<DBInsertPhoto[]> {
+  if (media.length === 0) {
+    return []
+  }
+
+  const dataToInsert = media
+    .filter(media => media.byte != null)
+    .map(
+      media => ({
+        platform: 'telegram',
+        file_id: media.platformId,
+        message_id: media.messageUUID,
+        image_bytes: media.byte,
+      } satisfies DBInsertPhoto),
+    )
+
+  if (dataToInsert.length === 0) {
+    return []
+  }
+
+  return db
+    .insert(photosTable)
+    .values(dataToInsert)
+    .onConflictDoUpdate({
+      target: [photosTable.platform, photosTable.file_id],
+      set: {
+        image_bytes: sql`excluded.image_bytes`,
+        updated_at: Date.now(),
+      },
+    })
+    .returning()
+}
 
 /**
  * Find a photo by file_id
@@ -71,43 +106,6 @@ export async function findPhotoByQueryId(db: CoreDB, queryId: string): PromiseRe
 
     return must0(photos)
   })
-}
-
-/**
- * Record photos for a specific account
- */
-export async function recordPhotos(db: CoreDB, media: (CoreMessageMediaPhoto & { byte?: Buffer })[]): PromiseResult<DBInsertPhoto[]> {
-  if (media.length === 0) {
-    return Ok([])
-  }
-
-  const dataToInsert = media
-    .filter(media => media.byte != null)
-    .map(
-      media => ({
-        platform: 'telegram',
-        file_id: media.platformId,
-        message_id: media.messageUUID,
-        image_bytes: media.byte,
-      } satisfies DBInsertPhoto),
-    )
-
-  if (dataToInsert.length === 0) {
-    return Ok([])
-  }
-
-  return withResult(() => db
-    .insert(photosTable)
-    .values(dataToInsert)
-    .onConflictDoUpdate({
-      target: [photosTable.platform, photosTable.file_id],
-      set: {
-        image_bytes: sql`excluded.image_bytes`,
-        updated_at: Date.now(),
-      },
-    })
-    .returning(),
-  )
 }
 
 export async function findPhotosByMessageId(db: CoreDB, messageUUID: string): PromiseResult<DBSelectPhoto[]> {

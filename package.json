@@ -28,7 +28,7 @@
     "test": "vitest",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache . --fix",
-    "typecheck": "pnpm run packages:build && pnpm -r --parallel typecheck",
+    "typecheck": "pnpm -r --parallel typecheck",
     "bump": "bumpp",
     "bump:deps": "taze -I -f -w -r",
     "db:generate": "pnpm apply:env -- drizzle-kit generate",

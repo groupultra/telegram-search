@@ -11,19 +11,17 @@ import { must0 } from './utils/must'
 /**
  * Link an account to a joined chat
  */
-export async function linkAccountToJoinedChat(db: CoreDB, accountId: string, joinedChatId: string): PromiseResult<DBSelectAccountJoinedChat> {
-  return withResult(async () => {
-    const rows = await db
-      .insert(accountJoinedChatsTable)
-      .values({
-        account_id: accountId,
-        joined_chat_id: joinedChatId,
-      })
-      .onConflictDoNothing()
-      .returning()
+export async function linkAccountToJoinedChat(db: CoreDB, accountId: string, joinedChatId: string): Promise<DBSelectAccountJoinedChat> {
+  const rows = await db
+    .insert(accountJoinedChatsTable)
+    .values({
+      account_id: accountId,
+      joined_chat_id: joinedChatId,
+    })
+    .onConflictDoNothing()
+    .returning()
 
-    return must0(rows)
-  })
+  return must0(rows)
 }
 
 /**

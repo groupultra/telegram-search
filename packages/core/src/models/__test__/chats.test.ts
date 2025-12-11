@@ -41,7 +41,7 @@ describe('models/chats', () => {
     ]
 
     const result = await recordChats(db, dialogs, account.id)
-    const inserted = result.unwrap()
+    const inserted = result
 
     expect(inserted).toHaveLength(2)
 

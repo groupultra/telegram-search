@@ -20,7 +20,7 @@ export function registerEntityEventHandlers(ctx: CoreContext) {
       // Record account and set current account ID
       logger.withFields({ userId: meInfo.id }).verbose('Recording account for current user')
 
-      const account = (await recordAccount(useDrizzle(), 'telegram', meInfo.id)).expect('Failed to record account')
+      const account = await recordAccount(useDrizzle(), 'telegram', meInfo.id)
       ctx.setCurrentAccountId(account.id)
 
       logger.withFields({ accountId: account.id }).verbose('Set current account ID')

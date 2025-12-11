@@ -13,24 +13,22 @@ import { convertCoreEntityToDBUser } from './utils/users'
 /**
  * Record or update a user in the database
  */
-export async function recordUser(db: CoreDB, user: CoreEntity): PromiseResult<DBSelectUser> {
-  return withResult(async () => {
-    const rows = await db
-      .insert(usersTable)
-      .values(convertCoreEntityToDBUser(user))
-      .onConflictDoUpdate({
-        target: [usersTable.platform, usersTable.platform_user_id],
-        set: {
-          name: sql`excluded.name`,
-          username: sql`excluded.username`,
-          type: sql`excluded.type`,
-          updated_at: Date.now(),
-        },
-      })
-      .returning()
+export async function recordUser(db: CoreDB, user: CoreEntity): Promise<DBSelectUser> {
+  const rows = await db
+    .insert(usersTable)
+    .values(convertCoreEntityToDBUser(user))
+    .onConflictDoUpdate({
+      target: [usersTable.platform, usersTable.platform_user_id],
+      set: {
+        name: sql`excluded.name`,
+        username: sql`excluded.username`,
+        type: sql`excluded.type`,
+        updated_at: Date.now(),
+      },
+    })
+    .returning()
 
-    return must0(rows)
-  })
+  return must0(rows)
 }
 
 /**

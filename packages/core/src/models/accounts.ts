@@ -11,24 +11,22 @@ import { must0 } from './utils/must'
 /**
  * Record or update an account in the database
  */
-export async function recordAccount(db: CoreDB, platform: string, platformUserId: string): PromiseResult<DBSelectAccount> {
-  return withResult(async () => {
-    const rows = await db
-      .insert(accountsTable)
-      .values({
-        platform,
-        platform_user_id: platformUserId,
-      })
-      .onConflictDoUpdate({
-        target: [accountsTable.platform, accountsTable.platform_user_id],
-        set: {
-          updated_at: Date.now(),
-        },
-      })
-      .returning()
+export async function recordAccount(db: CoreDB, platform: string, platformUserId: string): Promise<DBSelectAccount> {
+  const rows = await db
+    .insert(accountsTable)
+    .values({
+      platform,
+      platform_user_id: platformUserId,
+    })
+    .onConflictDoUpdate({
+      target: [accountsTable.platform, accountsTable.platform_user_id],
+      set: {
+        updated_at: Date.now(),
+      },
+    })
+    .returning()
 
-    return must0(rows)
-  })
+  return must0(rows)
 }
 
 /**

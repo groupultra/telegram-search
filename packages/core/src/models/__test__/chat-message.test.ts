@@ -90,7 +90,7 @@ describe('models/chat-message', () => {
     ]
 
     const result = await recordMessages(db, account.id, messages)
-    const affectedRows = result.unwrap()
+    const affectedRows = result
     expect(affectedRows).toHaveLength(2)
 
     const selectedRows = await db

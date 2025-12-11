@@ -25,7 +25,7 @@ describe('models/users', () => {
     }
 
     const result = await recordUser(db, coreUser)
-    const user = result.unwrap()
+    const user = result
 
     expect(user.platform).toBe('telegram')
     expect(user.platform_user_id).toBe('123')
@@ -47,7 +47,7 @@ describe('models/users', () => {
       username: 'alice',
     }
 
-    const first = (await recordUser(db, coreUser)).unwrap()
+    const first = await recordUser(db, coreUser)
 
     const updatedUser: CoreEntity = {
       ...coreUser,
@@ -55,7 +55,7 @@ describe('models/users', () => {
       username: 'alice_new',
     }
 
-    const second = (await recordUser(db, updatedUser)).unwrap()
+    const second = await recordUser(db, updatedUser)
 
     expect(second.id).toBe(first.id)
     expect(second.name).toBe('Alice Updated')
@@ -72,13 +72,13 @@ describe('models/users', () => {
       username: 'alice',
     }
 
-    const created = (await recordUser(db, coreUser)).unwrap()
+    const created = await recordUser(db, coreUser)
 
     const byPlatform = (await findUserByPlatformId(db, 'telegram', '123')).unwrap()
-    expect(byPlatform.id).toBe(created.id)
+    expect(byPlatform?.id).toBe(created.id)
 
     const byUuid = (await findUserByUUID(db, created.id)).unwrap()
-    expect(byUuid.id).toBe(created.id)
+    expect(byUuid?.id).toBe(created.id)
   })
 
   it('convertCoreEntityToDBUser maps CoreEntity to DBInsertUser correctly', () => {

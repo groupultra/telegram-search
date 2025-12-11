@@ -145,7 +145,7 @@ export function createCoreContext(metrics?: CoreMetrics): CoreContext {
   }
 
   async function setAccountSettings(newSettings: AccountSettings) {
-    return (await updateAccountSettings(useDrizzle(), getCurrentAccountId(), newSettings)).expect('Failed to update account settings')
+    await updateAccountSettings(useDrizzle(), getCurrentAccountId(), newSettings)
   }
 
   // Setup memory leak detection and get cleanup function

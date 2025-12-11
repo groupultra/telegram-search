@@ -13,6 +13,29 @@ import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
 
 /**
+ * Update settings for a specific account
+ */
+export async function updateAccountSettings(
+  db: CoreDB,
+  accountId: string,
+  settings: Partial<AccountSettings>,
+): Promise<DBInsertAccount> {
+  const parsedSettings = safeParse(accountSettingsSchema, settings)
+  if (!parsedSettings.success) {
+    throw new Error('Invalid settings', { cause: parsedSettings.issues })
+  }
+
+  // Only update the "settings" column (which is a JSONB), not the root row fields
+  const updatedRows = await db
+    .update(accountsTable)
+    .set({ settings: parsedSettings.output })
+    .where(eq(accountsTable.id, accountId))
+    .returning()
+
+  return must0(updatedRows)
+}
+
+/**
  * Fetch settings by accountId
  */
 export async function fetchSettingsByAccountId(db: CoreDB, accountId: string): PromiseResult<AccountSettings> {
@@ -31,30 +54,5 @@ export async function fetchSettingsByAccountId(db: CoreDB, accountId: string): P
     }
 
     return generateDefaultAccountSettings()
-  })
-}
-
-/**
- * Update settings for a specific account
- */
-export async function updateAccountSettings(
-  db: CoreDB,
-  accountId: string,
-  settings: Partial<AccountSettings>,
-): PromiseResult<DBInsertAccount> {
-  return withResult(async () => {
-    const parsedSettings = safeParse(accountSettingsSchema, settings)
-    if (!parsedSettings.success) {
-      throw new Error('Invalid settings', { cause: parsedSettings.issues })
-    }
-
-    // Only update the "settings" column (which is a JSONB), not the root row fields
-    const updatedRows = await db
-      .update(accountsTable)
-      .set({ settings: parsedSettings.output })
-      .where(eq(accountsTable.id, accountId))
-      .returning()
-
-    return must0(updatedRows)
   })
 }

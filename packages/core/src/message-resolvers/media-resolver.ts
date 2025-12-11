@@ -110,7 +110,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                   mimeType,
                 }])
 
-                const inserted = must0(result.unwrap())
+                const inserted = must0(result)
                 if (inserted?.id) {
                   return {
                     messageUUID: message.uuid,
@@ -133,7 +133,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                   mimeType,
                 }])
 
-                const inserted = must0(result.unwrap())
+                const inserted = must0(result)
                 if (inserted?.id) {
                   return {
                     messageUUID: message.uuid,

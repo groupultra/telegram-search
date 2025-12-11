@@ -75,7 +75,7 @@ describe('models/account-settings', () => {
     }
 
     const result = await updateAccountSettings(db, account.id, parsed.output)
-    const updated = result.unwrap()
+    const updated = result
 
     expect(updated.settings).toEqual(parsed.output)
   })
@@ -89,12 +89,10 @@ describe('models/account-settings', () => {
     }).returning()
 
     await expect(async () => {
-      const result = await updateAccountSettings(db, account.id, {
+      await updateAccountSettings(db, account.id, {
         // @ts-expect-error runtime validation should reject invalid enum
         embedding: { dimension: 999 },
       })
-
-      result.unwrap()
     }).rejects.toThrow()
   })
 })

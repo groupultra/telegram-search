@@ -65,12 +65,10 @@ export function createUserResolver(ctx: CoreContext): MessageResolver {
           }
 
           // Save to database
-          const recordedUser = (await recordUser(useDrizzle(), coreEntity)).orUndefined()
-          if (recordedUser) {
-            dbUser = recordedUser
-            userCache.set(cacheKey, dbUser)
-            logger.withFields({ userId: dbUser.id, fromId: message.fromId }).debug('User saved to database')
-          }
+          const recordedUser = await recordUser(useDrizzle(), coreEntity)
+          dbUser = recordedUser
+          userCache.set(cacheKey, dbUser)
+          logger.withFields({ userId: dbUser.id, fromId: message.fromId }).debug('User saved to database')
         }
 
         // Update message with user information

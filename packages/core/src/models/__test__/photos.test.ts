@@ -26,7 +26,7 @@ describe('models/photos', () => {
     const db = await setupDb()
 
     const resultEmpty = await recordPhotos(db, [])
-    expect(resultEmpty.unwrap()).toEqual([])
+    expect(resultEmpty).toEqual([])
 
     const resultNoBytes = await recordPhotos(db, [
       {
@@ -36,7 +36,7 @@ describe('models/photos', () => {
       },
     ])
 
-    expect(resultNoBytes.unwrap()).toEqual([])
+    expect(resultNoBytes).toEqual([])
 
     const all = await db.select().from(photosTable)
     expect(all).toHaveLength(0)
@@ -58,7 +58,7 @@ describe('models/photos', () => {
       },
     ])
 
-    const inserted = first.unwrap()
+    const inserted = first
     expect(inserted).toHaveLength(1)
     expect(inserted[0].file_id).toBe('file-1')
 
@@ -71,7 +71,7 @@ describe('models/photos', () => {
       },
     ])
 
-    const updated = second.unwrap()
+    const updated = second
     expect(updated).toHaveLength(1)
 
     const [photo] = await db.select().from(photosTable)

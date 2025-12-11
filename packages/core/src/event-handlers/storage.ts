@@ -133,7 +133,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       return
     }
 
-    const result = (await recordChats(useDrizzle(), dialogs, accountId))?.expect('Failed to record dialogs')
+    const result = await recordChats(useDrizzle(), dialogs, accountId)
     logger.withFields({ recorded: result.length }).verbose('Successfully recorded dialogs')
   })
 
