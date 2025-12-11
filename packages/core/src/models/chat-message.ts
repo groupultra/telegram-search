@@ -26,7 +26,7 @@ import { retrieveVector } from './utils/retrieve-vector'
 /**
  * Upsert messages for a specific account.
  */
-async function upsertMessagesForAccount(
+export async function recordMessages(
   tx: CoreTransaction | CoreDB,
   accountId: string,
   messages: CoreMessage[],
@@ -104,17 +104,6 @@ async function upsertMessagesForAccount(
 
     return rows
   })
-}
-
-/**
- * Record messages for a specific account.
- */
-export async function recordMessages(
-  db: CoreDB,
-  accountId: string,
-  messages: CoreMessage[],
-): PromiseResult<DBInsertMessage[]> {
-  return upsertMessagesForAccount(db, accountId, messages)
 }
 
 /**

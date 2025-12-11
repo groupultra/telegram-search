@@ -19,7 +19,7 @@ import {
   fetchMessagesWithPhotos,
   recordMessages,
 } from '../chat-message'
-
+import { v4 as uuidv4 } from 'uuid'
 async function setupDb() {
   return mockDB({
     accountsTable,
@@ -75,28 +75,31 @@ describe('models/chat-message', () => {
 
     const messages: CoreMessage[] = [
       buildCoreMessage({
-        uuid: 'm1',
+        uuid: uuidv4(),
         platformMessageId: '1',
         chatId: privateChat.chat_id,
         content: 'private message',
       }),
       buildCoreMessage({
-        uuid: 'm2',
+        uuid: uuidv4(),
         platformMessageId: '2',
         chatId: groupChat.chat_id,
         content: 'group message',
       }),
     ]
 
-    await recordMessages(db, account.id, messages)
+    const result = await recordMessages(db, account.id, messages)
+    const affectedRows = result.unwrap()
+    expect(affectedRows).toHaveLength(2)
 
-    const rows = await db
+    const selectedRows = await db
       .select()
       .from(chatMessagesTable)
       .orderBy(chatMessagesTable.platform_message_id)
 
-    const privateRow = rows[0]
-    const groupRow = rows[1]
+    expect(selectedRows).toHaveLength(2)
+    const privateRow = selectedRows[0]
+    const groupRow = selectedRows[1]
 
     expect(privateRow.in_chat_type).toBe('user')
     expect(privateRow.owner_account_id).toBe(account.id)
@@ -203,9 +206,10 @@ describe('models/chat-message', () => {
       chat_type: 'user',
     }).returning()
 
+    const messageUuid = uuidv4()
     const messages: CoreMessage[] = [
       buildCoreMessage({
-        uuid: 'msg-uuid-1',
+        uuid: messageUuid,
         platformMessageId: '1',
         chatId: chat.chat_id,
         content: 'with photo',
@@ -235,7 +239,7 @@ describe('models/chat-message', () => {
     expect(message.media).toBeDefined()
     expect(message.media?.length).toBe(1)
     expect(message.media?.[0].type).toBe('photo')
-    expect(message.media?.[0].messageUUID).toBe('msg-uuid-1')
+    expect(message.media?.[0].messageUUID).toBe(messageUuid)
   })
 
   it('fetchMessageContextWithPhotos returns surrounding messages with media attached', async () => {
@@ -255,21 +259,21 @@ describe('models/chat-message', () => {
 
     const coreMessages: CoreMessage[] = [
       buildCoreMessage({
-        uuid: 'uuid-1',
+        uuid: uuidv4(),
         platformMessageId: '1',
         chatId: chat.chat_id,
         content: 'before',
         platformTimestamp: 1000,
       }),
       buildCoreMessage({
-        uuid: 'uuid-2',
+        uuid: uuidv4(),
         platformMessageId: '2',
         chatId: chat.chat_id,
         content: 'target',
         platformTimestamp: 2000,
       }),
       buildCoreMessage({
-        uuid: 'uuid-3',
+        uuid: uuidv4(),
         platformMessageId: '3',
         chatId: chat.chat_id,
         content: 'after',

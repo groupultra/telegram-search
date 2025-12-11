@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { safeParse } from 'valibot'
 import { describe, expect, it } from 'vitest'
 
@@ -14,10 +15,10 @@ async function setupDb() {
 }
 
 describe('models/account-settings', () => {
-  it('fetchSettingsByAccountId throws when account does not exist', async () => {
+  it('fetchSettingsByAccountId returns default settings when account does not exist', async () => {
     const db = await setupDb()
 
-    await expect(fetchSettingsByAccountId(db, 'non-existent-id')).rejects.toThrowError()
+    expect((await fetchSettingsByAccountId(db, uuidv4())).unwrap()).toEqual(generateDefaultAccountSettings())
   })
 
   it('fetchSettingsByAccountId returns parsed settings when present and valid', async () => {
@@ -87,9 +88,13 @@ describe('models/account-settings', () => {
       platform_user_id: 'user-1',
     }).returning()
 
-    await expect(updateAccountSettings(db, account.id, {
-      // @ts-expect-error runtime validation should reject invalid enum
-      embedding: { dimension: 999 },
-    })).rejects.toThrowError('Invalid settings')
+    await expect(async () => {
+      const result = await updateAccountSettings(db, account.id, {
+        // @ts-expect-error runtime validation should reject invalid enum
+        embedding: { dimension: 999 },
+      })
+
+      result.unwrap()
+    }).rejects.toThrow()
   })
 })

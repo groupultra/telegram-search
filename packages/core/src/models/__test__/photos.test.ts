@@ -32,9 +32,9 @@ describe('models/photos', () => {
       {
         type: 'photo',
         platformId: 'file-1',
-        messageUUID: 'msg-1',
+        messageUUID: uuidv4(),
       },
-    ] as any)
+    ])
 
     expect(resultNoBytes.unwrap()).toEqual([])
 
@@ -75,8 +75,8 @@ describe('models/photos', () => {
     expect(updated).toHaveLength(1)
 
     const [photo] = await db.select().from(photosTable)
-    expect(photo.image_bytes).toBeInstanceOf(Buffer)
-    expect((photo.image_bytes as Buffer).length).toBe(secondBytes.length)
+    expect(photo.image_bytes).toBeInstanceOf(Uint8Array)
+    expect((photo.image_bytes as Uint8Array).length).toBe(secondBytes.length)
   })
 
   it('findPhotoByFileId and findPhotoByQueryId return the correct photo', async () => {
@@ -85,7 +85,7 @@ describe('models/photos', () => {
     const [inserted] = await db.insert(photosTable).values({
       platform: 'telegram',
       file_id: 'file-42',
-      message_id: '00000000-0000-0000-0000-000000000042',
+      message_id: uuidv4(),
       image_bytes: Buffer.from([1]),
       image_mime_type: 'image/jpeg',
     }).returning()
@@ -115,33 +115,36 @@ describe('models/photos', () => {
   it('findPhotosByMessageId(s) return all matching photos', async () => {
     const db = await setupDb()
 
+    const messageUuid1 = uuidv4()
+    const messageUuid3 = uuidv4()
+
     await db.insert(photosTable).values([
       {
         platform: 'telegram',
         file_id: 'file-a',
-        message_id: '00000000-0000-0000-0000-000000000001',
+        message_id: messageUuid1,
         image_mime_type: 'image/jpeg',
       },
       {
         platform: 'telegram',
         file_id: 'file-b',
-        message_id: '00000000-0000-0000-0000-000000000001',
+        message_id: messageUuid1,
         image_mime_type: 'image/jpeg',
       },
       {
         platform: 'telegram',
         file_id: 'file-c',
-        message_id: '00000000-0000-0000-0000-000000000002',
+        message_id: messageUuid3,
         image_mime_type: 'image/jpeg',
       },
     ])
 
-    const forMsg1 = (await findPhotosByMessageId(db, '00000000-0000-0000-0000-000000000001')).unwrap()
+    const forMsg1 = (await findPhotosByMessageId(db, messageUuid1)).unwrap()
     expect(forMsg1.map(p => p.file_id).sort()).toEqual(['file-a', 'file-b'])
 
     const forBoth = (await findPhotosByMessageIds(db, [
-      '00000000-0000-0000-0000-000000000001',
-      '00000000-0000-0000-0000-000000000002',
+      messageUuid1,
+      messageUuid3,
     ])).unwrap()
     expect(forBoth.map(p => p.file_id).sort()).toEqual(['file-a', 'file-b', 'file-c'])
   })
