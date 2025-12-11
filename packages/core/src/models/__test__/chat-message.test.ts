@@ -5,6 +5,7 @@ import type { CoreMessage } from '../../types/message'
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
 
+import { v4 as uuidv4 } from 'uuid'
 import { describe, expect, it } from 'vitest'
 
 import { mockDB } from '../../db/mock'
@@ -19,7 +20,7 @@ import {
   fetchMessagesWithPhotos,
   recordMessages,
 } from '../chat-message'
-import { v4 as uuidv4 } from 'uuid'
+
 async function setupDb() {
   return mockDB({
     accountsTable,
