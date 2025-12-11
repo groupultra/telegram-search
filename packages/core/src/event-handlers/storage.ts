@@ -91,9 +91,9 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
   emitter.on('storage:record:messages', async ({ messages }) => {
     const accountId = ctx.getCurrentAccountId()
 
-    logger.withFields({ messages: messages.length, accountId }).verbose('Recording messages')
-
     await recordMessages(useDrizzle(), accountId, messages)
+
+    logger.withFields({ messages: messages.length, accountId }).verbose('Messages recorded')
   })
 
   emitter.on('storage:fetch:dialogs', async (data) => {

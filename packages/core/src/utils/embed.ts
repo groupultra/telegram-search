@@ -27,6 +27,13 @@ export async function embedContents(
       dimension: embeddingConfig.dimension,
     })
 
+    if (embeddings.embeddings.length > 0) {
+      const outputDimension = embeddings.embeddings[0].length
+      if (outputDimension !== embeddingConfig.dimension) {
+        return Err(`Output dimension ${outputDimension} does not match expected dimension ${embeddingConfig.dimension}`)
+      }
+    }
+
     return Ok({
       ...embeddings,
       dimension: embeddingConfig.dimension,
