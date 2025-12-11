@@ -35,8 +35,13 @@ export function getRootPath(): string {
   return ROOT_DIR
 }
 
-export function getDataPath(): string {
-  return resolve(ROOT_DIR, './data')
+export function useDataPath(): string {
+  const path = resolve(ROOT_DIR, './data')
+  if (!fs.existsSync(path)) {
+    fs.mkdirSync(path, { recursive: true })
+  }
+
+  return path
 }
 
 export function getDatabaseFilePath(config: Config): string {
@@ -51,5 +56,5 @@ export function getDatabaseFilePath(config: Config): string {
       return ''
   }
 
-  return resolve(getDataPath(), `db${extension}`)
+  return resolve(useDataPath(), `db${extension}`)
 }
