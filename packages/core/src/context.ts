@@ -84,7 +84,7 @@ export function createCoreContext(metrics?: CoreMetrics): CoreContext {
           return await listener(...args)
         }
         catch (error) {
-          useLogger().withError(error).error('Failed to handle core event')
+          useLogger().withError(error instanceof Error ? (error.cause ?? error) : error).error('Failed to handle core event')
         }
       })
 
