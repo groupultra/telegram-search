@@ -28,6 +28,11 @@ catalogs:
       specifier: ^0.4.0-beta.10
       version: 0.4.0-beta.10
 
+patchedDependencies:
+  '@guiiai/logg':
+    hash: 105d19a4ddbabb5ca70c2078856e4d102a5bf676ff4f586a018b9dd736894edb
+    path: patches/@guiiai__logg.patch
+
 importers:
 
   .:
@@ -37,7 +42,7 @@ importers:
         version: 1.51.1
       '@guiiai/logg':
         specifier: 'catalog:'
-        version: 1.2.6
+        version: 1.2.6(patch_hash=105d19a4ddbabb5ca70c2078856e4d102a5bf676ff4f586a018b9dd736894edb)
     devDependencies:
       '@moeru/eslint-config':
         specifier: 0.1.0-beta.13
@@ -80,7 +85,7 @@ importers:
         version: 0.3.14
       '@guiiai/logg':
         specifier: 'catalog:'
-        version: 1.2.6
+        version: 1.2.6(patch_hash=105d19a4ddbabb5ca70c2078856e4d102a5bf676ff4f586a018b9dd736894edb)
       '@node-rs/jieba':
         specifier: ^2.0.1
         version: 2.0.1
@@ -341,7 +346,7 @@ importers:
     dependencies:
       '@guiiai/logg':
         specifier: 'catalog:'
-        version: 1.2.6
+        version: 1.2.6(patch_hash=105d19a4ddbabb5ca70c2078856e4d102a5bf676ff4f586a018b9dd736894edb)
       '@vueuse/core':
         specifier: ^14.1.0
         version: 14.1.0(vue@3.5.25(typescript@5.9.3))
@@ -362,7 +367,7 @@ importers:
         version: 0.3.14
       '@guiiai/logg':
         specifier: 'catalog:'
-        version: 1.2.6
+        version: 1.2.6(patch_hash=105d19a4ddbabb5ca70c2078856e4d102a5bf676ff4f586a018b9dd736894edb)
       '@henrygd/queue':
         specifier: ^1.2.0
         version: 1.2.0
@@ -7495,7 +7500,7 @@ snapshots:
 
   '@formkit/auto-animate@0.9.0': {}
 
-  '@guiiai/logg@1.2.6':
+  '@guiiai/logg@1.2.6(patch_hash=105d19a4ddbabb5ca70c2078856e4d102a5bf676ff4f586a018b9dd736894edb)':
     dependencies:
       error-stack-parser: 2.1.4
       pathe: 2.0.3
@@ -7819,7 +7824,7 @@ snapshots:
 
   '@proj-airi/drizzle-orm-browser-migrator@0.1.4(drizzle-orm@0.45.0(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(postgres@3.4.7))':
     dependencies:
-      '@guiiai/logg': 1.2.6
+      '@guiiai/logg': 1.2.6(patch_hash=105d19a4ddbabb5ca70c2078856e4d102a5bf676ff4f586a018b9dd736894edb)
       drizzle-orm: 0.45.0(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(postgres@3.4.7)
 
   '@proj-airi/unocss-preset-chromatic@1.0.2': {}

@@ -1,10 +1,11 @@
+import type { Log } from '@guiiai/logg'
 import type { Config, RuntimeFlags } from '@tg-search/common'
 
 import process from 'node:process'
 
 import figlet from 'figlet'
 
-import { initLogger, useLogger } from '@guiiai/logg'
+import { initLogger, setGlobalAfterLog, useLogger } from '@guiiai/logg'
 import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
 import { models } from '@tg-search/core'
 import { plugin as wsPlugin } from 'crossws/server'
@@ -14,7 +15,7 @@ import { collectDefaultMetrics, register } from 'prom-client'
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
-import { initOtelLogger, shutdownOtelLogger } from './otel-logger'
+import { emitOtelLog, initOtelLogger, shutdownOtelLogger } from './otel-logger'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
@@ -102,6 +103,11 @@ async function bootstrap() {
       serviceName: config.otel.serviceName || 'telegram-search',
       serviceVersion: config.otel.serviceVersion || pkg.version,
       headers: config.otel.headers,
+    })
+
+    emitOtelLog('info', 'OpenTelemetry logger initialized')
+    setGlobalAfterLog((log: Log) => {
+      emitOtelLog(log.level, log.message, log.fields)
     })
   }
 
