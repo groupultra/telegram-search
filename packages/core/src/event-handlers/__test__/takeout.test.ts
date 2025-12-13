@@ -3,16 +3,11 @@ import type { CoreTaskData, CoreTaskType } from '../../types/task'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createCoreContext } from '../../context'
-import { registerTakeoutEventHandlers } from '../takeout'
 import { chatMessageStatsModels } from '../../models/chat-message-stats'
+import { registerTakeoutEventHandlers } from '../takeout'
 
 const mockGetChatMessageStatsByChatId = vi.fn()
-
-vi.mock('../../models', () => {
-  return {
-    getChatMessageStatsByChatId: (...args: any[]) => mockGetChatMessageStatsByChatId(...args),
-  }
-})
+vi.spyOn(chatMessageStatsModels, 'getChatMessageStatsByChatId').mockImplementation(mockGetChatMessageStatsByChatId)
 
 interface MockTask {
   state: CoreTaskData<CoreTaskType>

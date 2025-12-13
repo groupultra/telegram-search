@@ -1,3 +1,4 @@
+import type { Models } from '../../models'
 import type { CoreDialog } from '../../types/dialog'
 
 import { Ok } from '@unbird/result'
@@ -5,7 +6,6 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createCoreContext } from '../../context'
 import { registerStorageEventHandlers } from '../storage'
-import type { Models } from '../../models'
 
 const fetchChatsByAccountId = vi.fn(async (_db: unknown, _accountId: string) => {
   const rows = [

@@ -9,7 +9,7 @@ import { MessageWindow } from '../useMessageWindow'
 import * as blobUtils from '../../utils/blob'
 
 // Mock the blob utilities
-vi.mock('../utils/blob', () => ({
+vi.mock('../../utils/blob', () => ({
   cleanupMediaBlobs: vi.fn(),
 }))
 

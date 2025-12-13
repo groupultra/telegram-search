@@ -23,7 +23,7 @@ export async function initDrizzle(logger: Logger, config: Config, flags: Runtime
   }
 }
 
-export function getDb() {
+export function getDB() {
   if (!db) {
     throw new Error('Database not initialized')
   }

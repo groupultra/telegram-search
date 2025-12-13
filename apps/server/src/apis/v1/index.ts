@@ -1,15 +1,13 @@
-import type { MediaBinaryLocation } from '@tg-search/core'
+import type { CoreDB, MediaBinaryLocation, Models } from '@tg-search/core'
 
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
 
-import { getMediaBinaryProvider, models } from '@tg-search/core'
+import { getMediaBinaryProvider } from '@tg-search/core'
 import { fileTypeFromBuffer } from 'file-type'
 import { defineEventHandler, getRouterParam, H3, HTTPError } from 'h3'
 
-import { getDb } from '../../storage/drizzle'
-
-export function v1api(): H3 {
+export function v1api(db: CoreDB, models: Models): H3 {
   const app = new H3()
 
   app.get('/photos/:queryId', defineEventHandler(async (event) => {
@@ -20,7 +18,7 @@ export function v1api(): H3 {
     }
 
     try {
-      const photo = (await models.photoModels.findPhotoByQueryId(getDb(), queryId)).expect('Failed to find photo')
+      const photo = (await models.photoModels.findPhotoByQueryId(db, queryId)).expect('Failed to find photo')
 
       const provider = getMediaBinaryProvider()
       let bytes: Uint8Array | undefined
@@ -65,7 +63,7 @@ export function v1api(): H3 {
     }
 
     try {
-      const sticker = (await models.stickerModels.findStickerByQueryId(getDb(), queryId)).expect('Failed to find sticker')
+      const sticker = (await models.stickerModels.findStickerByQueryId(db, queryId)).expect('Failed to find sticker')
 
       const provider = getMediaBinaryProvider()
       let bytes: Uint8Array | undefined
