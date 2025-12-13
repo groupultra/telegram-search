@@ -14,6 +14,7 @@ import { collectDefaultMetrics, register } from 'prom-client'
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
+import { initOtelLogger, shutdownOtelLogger } from './otel-logger'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
@@ -94,6 +95,16 @@ async function bootstrap() {
 
   const config = parseEnvToConfig(import.meta.env, logger)
 
+  // Initialize OpenTelemetry logger if configured
+  if (config.otel?.endpoint) {
+    initOtelLogger({
+      endpoint: config.otel.endpoint,
+      serviceName: config.otel.serviceName || 'telegram-search',
+      serviceVersion: config.otel.serviceVersion || pkg.version,
+      headers: config.otel.headers,
+    })
+  }
+
   await initDrizzle(logger, config, flags)
 
   await initMinioMediaStorage(logger)
@@ -121,8 +132,9 @@ async function bootstrap() {
 
   logger.withFields({ port, hostname }).log('Server started')
 
-  const shutdown = () => {
+  const shutdown = async () => {
     logger.log('Shutting down server gracefully...')
+    await shutdownOtelLogger()
     server.close()
     process.exit(0)
   }

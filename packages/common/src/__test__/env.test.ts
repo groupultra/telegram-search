@@ -84,6 +84,7 @@ describe('mergeConfigWithEnv', () => {
           apiId: 'from-config',
         },
       },
+      otel: {},
     }
 
     const env = createEnv({

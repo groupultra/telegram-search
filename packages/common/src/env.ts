@@ -65,6 +65,11 @@ export function parseEnvToConfig(env: Environment, logger?: Logger): Config {
         },
       },
     },
+    otel: {
+      endpoint: readEnvValue('OTEL_EXPORTER_OTLP_ENDPOINT', env),
+      serviceName: readEnvValue('OTEL_SERVICE_NAME', env),
+      serviceVersion: readEnvValue('OTEL_SERVICE_VERSION', env),
+    },
   }
 
   const parsedConfig = safeParse(configSchema, partialConfig)

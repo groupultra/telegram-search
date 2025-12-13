@@ -68,6 +68,13 @@ export const telegramConfigSchema = object({
   proxy: optional(proxyConfigSchema),
 })
 
+export const otelConfigSchema = object({
+  endpoint: optional(string()),
+  serviceName: optional(string()),
+  serviceVersion: optional(string()),
+  headers: optional(object({})),
+})
+
 export const apiConfigSchema = object({
   telegram: optional(telegramConfigSchema, {}),
 })
@@ -75,11 +82,13 @@ export const apiConfigSchema = object({
 export const configSchema = object({
   database: optional(databaseConfigSchema, {}),
   api: optional(apiConfigSchema, {}),
+  otel: optional(otelConfigSchema, {}),
 })
 
 export type Config = InferOutput<typeof configSchema>
 export type ProxyConfig = InferOutput<typeof proxyConfigSchema>
 export type DatabaseConfig = InferOutput<typeof databaseConfigSchema>
+export type OtelConfig = InferOutput<typeof otelConfigSchema>
 
 export function generateDefaultConfig(): Config {
   const defaultConfig = safeParse(configSchema, {})
