@@ -1,4 +1,6 @@
-import type { CoreContext } from '../../context'
+import type { CoreContext, CoreEmitter } from '../../context'
+import type { CoreDB } from '../../db'
+import type { AccountSettings } from '../../types/account-settings'
 
 import bigInt from 'big-integer'
 
@@ -20,19 +22,19 @@ function createMockCtx(client: any) {
   const withError = vi.fn((error: unknown) => (error instanceof Error ? error : new Error(String(error))))
 
   const ctx: CoreContext = {
-    emitter: {} as any,
-    toCoreEvents: new Set() as any,
-    fromCoreEvents: new Set() as any,
+    emitter: {} as unknown as CoreEmitter,
+    toCoreEvents: new Set(),
+    fromCoreEvents: new Set(),
     wrapEmitterEmit: () => {},
     wrapEmitterOn: () => {},
     setClient: () => {},
     getClient: () => client,
     setCurrentAccountId: () => {},
     getCurrentAccountId: () => 'acc-1',
-    getDB: () => ({}) as any,
+    getDB: () => ({} as unknown as CoreDB),
     withError,
     cleanup: () => {},
-    getAccountSettings: async () => ({}) as any,
+    getAccountSettings: async () => ({}) as unknown as AccountSettings,
     setAccountSettings: async () => ({}),
     metrics: undefined,
   }
@@ -42,7 +44,7 @@ function createMockCtx(client: any) {
 
 function createTask() {
   // Minimal emitter stub for CoreTask -> task.ts only calls emitter.emit(...)
-  const emitter = { emit: vi.fn() } as any
+  const emitter = { emit: vi.fn() } as unknown as CoreEmitter
   return createCoreTask('takeout', { chatIds: ['123'] }, emitter)
 }
 
@@ -54,7 +56,7 @@ describe('takeout service', () => {
           return {
             count: 123,
             messages: [],
-          } as any
+          }
         }
         throw new Error('unexpected query')
       }),
@@ -92,27 +94,27 @@ describe('takeout service', () => {
         calls.push(query)
 
         if (query instanceof Api.account.InitTakeoutSession) {
-          return { id: bigInt(1) } as any
+          return { id: bigInt(1) }
         }
 
         if (query instanceof Api.InvokeWithTakeout) {
-          const inner = (query as any).query
+          const inner = (query).query
           if (inner instanceof Api.messages.GetHistory) {
             // First page has 3 results (one empty), second is boundary.
-            if ((inner as any).offsetId === 0) {
+            if ((inner).offsetId === 0) {
               return {
                 messages: [
                   new Api.MessageEmpty({ id: 1 }),
-                  { id: 2 } as any,
-                  { id: 3 } as any,
+                  { id: 2 },
+                  { id: 3 },
                 ],
-              } as any
+              }
             }
-            return { messages: [] } as any
+            return { messages: [] }
           }
 
           if (inner instanceof Api.account.FinishTakeoutSession) {
-            return {} as any
+            return {}
           }
         }
 
@@ -149,9 +151,9 @@ describe('takeout service', () => {
     expect(task.updateProgress).toHaveBeenCalledWith(100)
 
     // Ensure we finished session successfully.
-    const finished = calls.find(q => q instanceof Api.InvokeWithTakeout && (q as any).query instanceof Api.account.FinishTakeoutSession)
+    const finished = calls.find(q => q instanceof Api.InvokeWithTakeout && (q).query instanceof Api.account.FinishTakeoutSession)
     expect(finished).toBeTruthy()
-    expect((finished as any).query.success).toBe(true)
+    expect((finished).query.success).toBe(true)
   })
 
   it('takeoutMessages should updateError and stop when initTakeout fails', async () => {
@@ -206,18 +208,18 @@ describe('takeout service', () => {
         calls.push(query)
 
         if (query instanceof Api.account.InitTakeoutSession) {
-          return { id: bigInt(1) } as any
+          return { id: bigInt(1) }
         }
 
         if (query instanceof Api.InvokeWithTakeout) {
-          const inner = (query as any).query
+          const inner = (query).query
           if (inner instanceof Api.messages.GetHistory) {
             return {
-              messages: [{ id: 1 } as any],
-            } as any
+              messages: [{ id: 1 }],
+            }
           }
           if (inner instanceof Api.account.FinishTakeoutSession) {
-            return {} as any
+            return {}
           }
         }
 
@@ -250,8 +252,8 @@ describe('takeout service', () => {
     expect(yielded).toEqual([])
 
     // Should still finish takeout session successfully after breaking.
-    const finished = calls.find(q => q instanceof Api.InvokeWithTakeout && (q as any).query instanceof Api.account.FinishTakeoutSession)
+    const finished = calls.find(q => q instanceof Api.InvokeWithTakeout && (q).query instanceof Api.account.FinishTakeoutSession)
     expect(finished).toBeTruthy()
-    expect((finished as any).query.success).toBe(true)
+    expect((finished).query.success).toBe(true)
   })
 })

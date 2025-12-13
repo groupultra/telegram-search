@@ -38,7 +38,7 @@ vi.mock('minio', () => {
 })
 
 describe('storage/minio - initMinioMediaStorage', () => {
-  const logger: Logger = {
+  const logger = {
     log: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
@@ -48,7 +48,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
     withError() {
       return this
     },
-  } as any
+  } as unknown as Logger
 
   beforeEach(() => {
     vi.resetAllMocks()
@@ -98,7 +98,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
     expect(putObject).toHaveBeenCalledTimes(1)
     const [bucket, objectName, buffer, _size, meta] = putObject.mock.calls[0]
     expect(bucket).toBe('telegram-media-test')
-    expect(objectName).toBe('photo/telegram/file-123')
+    expect(objectName).toBe(`photo/${uuid}`)
     expect(Buffer.isBuffer(buffer)).toBe(true)
     expect(meta).toEqual({
       'Content-Type': 'image/jpeg',
@@ -122,7 +122,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
 
     const location: MediaBinaryLocation = {
       kind: 'photo',
-      path: 'photo/telegram/missing',
+      path: 'photo/missing',
     }
 
     const result = await provider.load(location)

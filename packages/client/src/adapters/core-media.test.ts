@@ -58,7 +58,7 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
       async load(location: MediaBinaryLocation) {
         expect(location).toEqual({
           kind: 'photo',
-          path: 'photo/telegram/file-1',
+          path: 'photo/file-1',
         })
         return bytes
       },
@@ -67,7 +67,7 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
     mockGetMediaBinaryProvider.mockReturnValue(provider)
     mockFindPhotoByQueryId.mockResolvedValue({
       orUndefined: () => ({
-        image_path: 'photo/telegram/file-1',
+        image_path: 'photo/file-1',
         image_bytes: null,
         image_mime_type: 'image/jpeg',
       }),
@@ -121,7 +121,7 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
       async load(location: MediaBinaryLocation) {
         expect(location).toEqual({
           kind: 'sticker',
-          path: 'sticker/telegram/file-3',
+          path: 'sticker/file-3',
         })
         return bytes
       },
@@ -130,7 +130,7 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
     mockGetMediaBinaryProvider.mockReturnValue(provider)
     mockFindStickerByQueryId.mockResolvedValue({
       orUndefined: () => ({
-        sticker_path: 'sticker/telegram/file-3',
+        sticker_path: 'sticker/file-3',
         sticker_bytes: null,
         sticker_mime_type: 'image/webp',
       }),

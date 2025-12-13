@@ -4,9 +4,9 @@ import type { MockedFunction } from 'vitest'
 import { v4 as uuidv4 } from 'uuid'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { MessageWindow } from './useMessageWindow'
+import { MessageWindow } from '../useMessageWindow'
 
-import * as blobUtils from '../utils/blob'
+import * as blobUtils from '../../utils/blob'
 
 // Mock the blob utilities
 vi.mock('../utils/blob', () => ({

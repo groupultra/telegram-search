@@ -46,7 +46,7 @@ function buildObjectKey(descriptor: MediaBinaryDescriptor): string {
     .join('/')
 }
 
-export async function registerMinioMediaStorage(logger: Logger, options: ClientOptions, bucket = 'telegram-media') {
+export async function registerMinioMediaStorage(logger: Logger, options: ClientOptions, bucket: string) {
   const client = getMinioClient(options).expect('Failed to get MinIO client')
 
   try {
@@ -111,6 +111,7 @@ export async function registerMinioMediaStorage(logger: Logger, options: ClientO
  */
 export async function initMinioMediaStorage(logger: Logger) {
   try {
+    const bucket = import.meta.env.MINIO_BUCKET || 'telegram-media'
     const options: ClientOptions = {
       endPoint: import.meta.env.MINIO_ENDPOINT || '',
       port: import.meta.env.MINIO_PORT ? Number.parseInt(import.meta.env.MINIO_PORT, 10) : undefined,
@@ -123,7 +124,7 @@ export async function initMinioMediaStorage(logger: Logger) {
       return
     }
 
-    return await registerMinioMediaStorage(logger, options)
+    return await registerMinioMediaStorage(logger, options, bucket)
   }
   catch (error) {
     logger.withError(error).warn('Failed to register MinIO media storage; falling back to DB bytea')

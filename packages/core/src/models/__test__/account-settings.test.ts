@@ -1,3 +1,5 @@
+import type { AccountSettings } from '../../types/account-settings'
+
 import { v4 as uuidv4 } from 'uuid'
 import { safeParse } from 'valibot'
 import { describe, expect, it } from 'vitest'
@@ -46,7 +48,7 @@ describe('models/account-settings', () => {
       platform: 'telegram',
       platform_user_id: 'user-1',
       // Intentionally store invalid settings shape
-      settings: { invalid: true } as any,
+      settings: { invalid: true } as unknown as AccountSettings,
     }).returning()
 
     const result = await fetchSettingsByAccountId(db, account.id)
