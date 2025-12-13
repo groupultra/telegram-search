@@ -53,8 +53,7 @@ async function getFileHandle(path: string) {
 function buildOpfsPath(descriptor: MediaBinaryDescriptor): string {
   const segments = [
     descriptor.kind,
-    descriptor.platform || 'telegram',
-    descriptor.platformId,
+    descriptor.uuid,
   ]
 
   return segments
@@ -71,7 +70,7 @@ export async function registerOpfsMediaStorage() {
       const writable = await fileHandle.createWritable()
 
       try {
-        await writable.write(bytes)
+        await writable.write(bytes as Uint8Array<ArrayBuffer>)
       }
       finally {
         await writable.close()

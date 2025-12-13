@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 // Mocks
 const mockFindPhotoByQueryId = vi.fn()
 const mockFindStickerByQueryId = vi.fn()
-const mockGetMediaBinaryProvider = vi.fn<MediaBinaryProvider | undefined, []>()
+const mockGetMediaBinaryProvider = vi.fn()
 
 vi.mock('@tg-search/core', () => {
   return {

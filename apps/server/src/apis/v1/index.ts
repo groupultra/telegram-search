@@ -16,10 +16,7 @@ export function v1api(): H3 {
     const queryId = getRouterParam(event, 'queryId')
 
     if (!queryId) {
-      throw new HTTPError({
-        statusCode: 400,
-        statusMessage: 'Query ID is required',
-      })
+      throw new HTTPError('Query ID is required', { status: 400 })
     }
 
     try {
@@ -41,10 +38,7 @@ export function v1api(): H3 {
       }
 
       if (!bytes || bytes.length === 0) {
-        throw new HTTPError({
-          statusCode: 404,
-          statusMessage: 'Photo not found',
-        })
+        throw new HTTPError('Photo not found', { status: 404 })
       }
 
       const fileType = photo.image_mime_type
@@ -59,11 +53,7 @@ export function v1api(): H3 {
       })
     }
     catch (error) {
-      throw new HTTPError({
-        statusCode: 500,
-        statusMessage: 'Failed to find photo',
-        cause: error,
-      })
+      throw new HTTPError('Failed to find photo', { status: 500, cause: error })
     }
   }))
 
@@ -71,10 +61,7 @@ export function v1api(): H3 {
     const queryId = getRouterParam(event, 'queryId')
 
     if (!queryId) {
-      return new HTTPError({
-        statusCode: 400,
-        statusMessage: 'Query ID is required',
-      })
+      throw new HTTPError('Query ID is required', { status: 400 })
     }
 
     try {
@@ -96,10 +83,7 @@ export function v1api(): H3 {
       }
 
       if (!bytes || bytes.length === 0) {
-        return new HTTPError({
-          statusCode: 404,
-          statusMessage: 'Sticker not found',
-        })
+        throw new HTTPError('Sticker not found', { status: 404 })
       }
 
       const fileType = sticker.sticker_mime_type
@@ -114,11 +98,7 @@ export function v1api(): H3 {
       })
     }
     catch (error) {
-      return new HTTPError({
-        statusCode: 500,
-        statusMessage: 'Failed to find sticker',
-        cause: error,
-      })
+      throw new HTTPError('Failed to find sticker', { status: 500, cause: error })
     }
   }))
 

@@ -5,7 +5,7 @@ import type { Api } from 'telegram'
 import type { AccountSettings } from './account-settings'
 import type { CoreDialog } from './dialog'
 import type { CoreMessage } from './message'
-import type { CoreTask } from './task'
+import type { CoreTask, CoreTaskData } from './task'
 
 // ============================================================================
 // Instance Events
@@ -266,7 +266,7 @@ export interface ChatSyncStats {
 }
 
 export interface TakeoutEventFromCore {
-  'takeout:task:progress': (data: CoreTask<'takeout'>) => void
+  'takeout:task:progress': (data: CoreTaskData<'takeout'>) => void
   'takeout:stats:data': (data: ChatSyncStats) => void
 }
 

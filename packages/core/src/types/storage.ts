@@ -2,18 +2,7 @@ export type MediaKind = 'photo' | 'sticker'
 
 export interface MediaBinaryDescriptor {
   kind: MediaKind
-  /**
-   * Logical platform for the media, e.g. 'telegram'.
-   */
-  platform: string
-  /**
-   * Platform-specific file identifier (e.g. Telegram file_id / media id).
-   */
-  platformId: string
-  /**
-   * Optional message UUID the media is associated with.
-   */
-  messageUUID?: string
+  uuid: string
 }
 
 export interface MediaBinaryLocation {

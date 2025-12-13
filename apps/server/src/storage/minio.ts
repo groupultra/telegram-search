@@ -37,8 +37,7 @@ function getMinioClient(options: ClientOptions): Result<MinioClient> {
 function buildObjectKey(descriptor: MediaBinaryDescriptor): string {
   const segments = [
     descriptor.kind,
-    descriptor.platform || 'telegram',
-    descriptor.platformId,
+    descriptor.uuid,
   ]
 
   return segments

@@ -30,6 +30,7 @@ describe('models/photos', () => {
 
     const resultNoBytes = await recordPhotos(db, [
       {
+        uuid: uuidv4(),
         type: 'photo',
         platformId: 'file-1',
         messageUUID: uuidv4(),
@@ -50,6 +51,7 @@ describe('models/photos', () => {
     // First insert with inline bytes only.
     await recordPhotos(db, [
       {
+        uuid: uuidv4(),
         type: 'photo',
         platformId: 'file-external',
         messageUUID,
@@ -91,6 +93,7 @@ describe('models/photos', () => {
 
     const first = await recordPhotos(db, [
       {
+        uuid: uuidv4(),
         type: 'photo',
         platformId: 'file-1',
         messageUUID,
@@ -106,6 +109,7 @@ describe('models/photos', () => {
 
     const second = await recordPhotos(db, [
       {
+        uuid: uuidv4(),
         type: 'photo',
         platformId: 'file-1',
         messageUUID,
