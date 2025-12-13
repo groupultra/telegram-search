@@ -17,7 +17,7 @@ export function createMessageResolverService(ctx: CoreContext) {
     const { emitter } = ctx
 
     // TODO: worker_threads?
-    async function processMessages(messages: Api.Message[], options: { takeout?: boolean, syncOptions?: SyncOptions } = {}) {
+    async function processMessages(messages: Api.Message[], options: { takeout?: boolean, syncOptions?: SyncOptions, forceRefetch?: boolean } = {}) {
       const start = performance.now()
       logger.withFields({ count: messages.length }).verbose('Process messages')
 
@@ -52,14 +52,14 @@ export function createMessageResolverService(ctx: CoreContext) {
 
           try {
             if (resolver.run) {
-              const result = (await resolver.run({ messages: coreMessages, rawMessages: messages, syncOptions: options.syncOptions })).unwrap()
+              const result = (await resolver.run({ messages: coreMessages, rawMessages: messages, syncOptions: options.syncOptions, forceRefetch: options.forceRefetch })).unwrap()
 
               if (result.length > 0) {
                 emitter.emit('storage:record:messages', { messages: result })
               }
             }
             else if (resolver.stream) {
-              for await (const message of resolver.stream({ messages: coreMessages, rawMessages: messages, syncOptions: options.syncOptions })) {
+              for await (const message of resolver.stream({ messages: coreMessages, rawMessages: messages, syncOptions: options.syncOptions, forceRefetch: options.forceRefetch })) {
                 if (!options.takeout) {
                   emitter.emit('message:data', { messages: [message] })
                 }

@@ -49,7 +49,8 @@ export function createMediaResolver(
             const db = ctx.getDB()
 
             // Stickers: prefer existing DB row -> queryId, otherwise download & store.
-            if (media.type === 'sticker') {
+            // Skip cache lookup if forceRefetch is enabled (e.g., for reprocessing after 404 errors).
+            if (media.type === 'sticker' && !opts.forceRefetch) {
               try {
                 const sticker = (await stickerModels.getStickerQueryIdByFileIdWithMimeType(db, media.platformId)).orUndefined()
 
@@ -69,7 +70,8 @@ export function createMediaResolver(
             }
 
             // Photos: prefer existing DB row -> queryId, otherwise download & store.
-            if (media.type === 'photo') {
+            // Skip cache lookup if forceRefetch is enabled (e.g., for reprocessing after 404 errors).
+            if (media.type === 'photo' && !opts.forceRefetch) {
               try {
                 const photo = (await photoModels.findPhotoByFileIdWithMimeType(db, media.platformId)).orUndefined()
                 if (photo) {

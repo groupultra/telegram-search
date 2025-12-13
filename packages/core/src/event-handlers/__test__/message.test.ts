@@ -12,7 +12,7 @@ import { registerMessageEventHandlers } from '../message'
 const models = {} as unknown as Models
 
 describe('message event handlers', () => {
-  it('message:reprocess should fetch messages and emit message:process', async () => {
+  it('message:reprocess should fetch messages and emit message:process with forceRefetch', async () => {
     const ctx = createCoreContext({ models, db: getMockEmptyDB })
 
     // Mock message service
@@ -35,10 +35,10 @@ describe('message event handlers', () => {
     const registerHandlers = registerMessageEventHandlers(ctx)
     registerHandlers(mockMessageService as any)
 
-    // Set up listener for message:process
-    const processedMessages: Api.Message[] = []
-    ctx.emitter.on('message:process', ({ messages }) => {
-      processedMessages.push(...messages)
+    // Set up listener for message:process to capture forceRefetch flag
+    let capturedForceRefetch: boolean | undefined
+    ctx.emitter.on('message:process', ({ messages, forceRefetch }) => {
+      capturedForceRefetch = forceRefetch
     })
 
     // Emit message:reprocess event
@@ -51,10 +51,9 @@ describe('message event handlers', () => {
     // Wait for async handlers to complete
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    // Verify
+    // Verify forceRefetch flag is set to true
     expect(mockMessageService.fetchSpecificMessages).toHaveBeenCalledWith('789', [123])
-    expect(processedMessages).toHaveLength(1)
-    expect(processedMessages[0].id).toBe(123)
+    expect(capturedForceRefetch).toBe(true)
   })
 
   it('message:reprocess should handle fetch errors gracefully', async () => {

@@ -317,8 +317,9 @@ export interface MessageResolverEventToCore {
    * Processes messages. If `isTakeout` is true, suppresses 'message:data' emissions (browser-facing)
    * while still recording messages to storage. Consumers should be aware that setting `isTakeout`
    * changes event side effects.
+   * @param forceRefetch - If true, forces resolvers to skip database cache and re-fetch from source
    */
-  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean, syncOptions?: SyncOptions }) => void
+  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean, syncOptions?: SyncOptions, forceRefetch?: boolean }) => void
   /**
    * Re-processes specific messages to regenerate resolver outputs (e.g., media downloads).
    * Used when media files are missing from storage (404) or when resolver outputs need refreshing.

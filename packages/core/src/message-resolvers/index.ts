@@ -17,6 +17,11 @@ export interface MessageResolverOpts {
    */
   rawMessages: Api.Message[]
   syncOptions?: SyncOptions
+  /**
+   * If true, forces resolvers to skip database cache and re-fetch from source.
+   * Used when media files are missing from storage (404) to force re-download from Telegram.
+   */
+  forceRefetch?: boolean
 }
 
 export interface MessageResolver {

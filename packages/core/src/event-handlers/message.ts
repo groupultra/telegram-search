@@ -93,7 +93,10 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
         // will also update other resolver outputs (embeddings, tokens, etc.) if enabled.
         // Future enhancement: Add resolver filtering to message:process event to run only
         // specific resolvers and avoid unnecessary work.
-        emitter.emit('message:process', { messages })
+        //
+        // Force refetch to skip database cache and re-download from Telegram.
+        // This is necessary when media files are missing from storage (404 errors).
+        emitter.emit('message:process', { messages, forceRefetch: true })
       }
       catch (error) {
         logger.withError(error as Error).warn('Failed to re-process messages')
