@@ -113,7 +113,7 @@ async function bootstrap() {
 
   await initDrizzle(logger, config, flags)
 
-  await initMinioMediaStorage(logger)
+  await initMinioMediaStorage(logger, config.minio)
 
   setupErrorHandlers(logger)
 
