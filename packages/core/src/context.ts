@@ -64,7 +64,7 @@ function createErrorHandler(emitter: CoreEmitter) {
   }
 }
 
-export function createCoreContext(db?: CoreDB, metrics?: CoreMetrics): CoreContext {
+export function createCoreContext(db: () => CoreDB, metrics?: CoreMetrics): CoreContext {
   const emitter = new EventEmitter<CoreEvent>()
   const withError = createErrorHandler(emitter)
   let telegramClient: TelegramClient
@@ -153,10 +153,11 @@ export function createCoreContext(db?: CoreDB, metrics?: CoreMetrics): CoreConte
   const cleanupMemoryLeakDetector = detectMemoryLeak(emitter)
 
   function getDB(): CoreDB {
-    if (!db) {
+    const dbInstance = db()
+    if (!dbInstance) {
       throw withError('Database not initialized')
     }
-    return db
+    return dbInstance
   }
 
   function cleanup() {
