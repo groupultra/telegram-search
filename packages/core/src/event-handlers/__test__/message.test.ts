@@ -1,4 +1,6 @@
-import { Ok } from '@unbird/result'
+import type { Models } from '../../models'
+
+import bigInt from 'big-integer'
 import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -6,15 +8,17 @@ import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
 import { registerMessageEventHandlers } from '../message'
 
+const models = {} as unknown as Models
+
 describe('message event handlers', () => {
   it('message:reprocess should fetch messages and emit message:process', async () => {
-    const ctx = createCoreContext({ models: null, db: getMockEmptyDB })
+    const ctx = createCoreContext({ models, db: getMockEmptyDB })
 
     // Mock message service
     const mockMessages = [
       new Api.Message({
         id: 123,
-        peerId: new Api.PeerUser({ userId: BigInt(456) }),
+        peerId: new Api.PeerUser({ userId: bigInt(456) }),
         message: 'Test message',
         date: Math.floor(Date.now() / 1000),
       }),
@@ -22,7 +26,7 @@ describe('message event handlers', () => {
 
     const mockMessageService = {
       fetchSpecificMessages: vi.fn(async (_chatId: string, _messageIds: number[]) => {
-        return Ok(mockMessages)
+        return mockMessages
       }),
     }
 
@@ -53,7 +57,7 @@ describe('message event handlers', () => {
   })
 
   it('message:reprocess should handle fetch errors gracefully', async () => {
-    const ctx = createCoreContext({ models: null, db: getMockEmptyDB })
+    const ctx = createCoreContext({ models, db: getMockEmptyDB })
 
     // Mock message service that throws error
     const mockMessageService = {
@@ -89,12 +93,12 @@ describe('message event handlers', () => {
   })
 
   it('message:reprocess should not emit message:process if no messages found', async () => {
-    const ctx = createCoreContext({ models: null, db: getMockEmptyDB })
+    const ctx = createCoreContext({ models, db: getMockEmptyDB })
 
     // Mock message service that returns empty array
     const mockMessageService = {
       fetchSpecificMessages: vi.fn(async () => {
-        return Ok([])
+        return []
       }),
     }
 

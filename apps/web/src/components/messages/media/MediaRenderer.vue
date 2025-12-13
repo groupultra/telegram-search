@@ -24,6 +24,9 @@ const { debugMode } = storeToRefs(useSettingsStore())
 const bridgeStore = useBridgeStore()
 const isReprocessing = ref(false)
 
+// Delay before allowing another reprocess attempt for the same media
+const REPROCESS_RETRY_DELAY_MS = 5000
+
 export interface WebpageData {
   title: string
   description?: string
@@ -150,74 +153,48 @@ onUnmounted(() => {
     animation.destroy()
 })
 
-async function handleImageError(_event: Event) {
-  // Check if this is a 404 error by trying to fetch the image
+async function handleMediaError(_event: Event, mediaType: 'Image' | 'Sticker') {
+  // Check if this is a 404 error by trying to fetch the media
   if (processedMedia.value.src) {
     try {
       const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
       if (response.status === 404 && props.message.chatId && props.message.platformMessageId && !isReprocessing.value) {
-        // Image not found in storage, trigger re-processing
+        // Media not found in storage, trigger re-processing
         isReprocessing.value = true
-        runtimeError.value = 'Image not found, re-downloading...'
+        runtimeError.value = `${mediaType} not found, re-downloading...`
 
+        const messageId = Number.parseInt(props.message.platformMessageId, 10)
         bridgeStore.sendEvent('message:reprocess', {
           chatId: props.message.chatId,
-          messageIds: [Number.parseInt(props.message.platformMessageId, 10)],
+          messageIds: [messageId],
           resolvers: ['media'],
         })
 
         // Reset reprocessing flag after a delay to allow retry
         setTimeout(() => {
           isReprocessing.value = false
-        }, 5000)
+        }, REPROCESS_RETRY_DELAY_MS)
       }
       else {
-        runtimeError.value = 'Image failed to load'
+        runtimeError.value = `${mediaType} failed to load`
       }
     }
     catch (error) {
-      console.error('Failed to check image availability', error)
-      runtimeError.value = 'Image failed to load'
+      console.error(`Failed to check ${mediaType.toLowerCase()} availability`, error)
+      runtimeError.value = `${mediaType} failed to load`
     }
   }
   else {
-    runtimeError.value = 'Image failed to load'
+    runtimeError.value = `${mediaType} failed to load`
   }
 }
 
-async function handleStickerError(_event: Event) {
-  // Check if this is a 404 error by trying to fetch the sticker
-  if (processedMedia.value.src) {
-    try {
-      const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
-      if (response.status === 404 && props.message.chatId && props.message.platformMessageId && !isReprocessing.value) {
-        // Sticker not found in storage, trigger re-processing
-        isReprocessing.value = true
-        runtimeError.value = 'Sticker not found, re-downloading...'
+function handleImageError(event: Event) {
+  void handleMediaError(event, 'Image')
+}
 
-        bridgeStore.sendEvent('message:reprocess', {
-          chatId: props.message.chatId,
-          messageIds: [Number.parseInt(props.message.platformMessageId, 10)],
-          resolvers: ['media'],
-        })
-
-        // Reset reprocessing flag after a delay to allow retry
-        setTimeout(() => {
-          isReprocessing.value = false
-        }, 5000)
-      }
-      else {
-        runtimeError.value = 'Sticker failed to load'
-      }
-    }
-    catch (error) {
-      console.error('Failed to check sticker availability', error)
-      runtimeError.value = 'Sticker failed to load'
-    }
-  }
-  else {
-    runtimeError.value = 'Sticker failed to load'
-  }
+function handleStickerError(event: Event) {
+  void handleMediaError(event, 'Sticker')
 }
 </script>
 
