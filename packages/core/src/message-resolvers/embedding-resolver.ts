@@ -15,7 +15,7 @@ export function createEmbeddingResolver(ctx: CoreContext): MessageResolver {
     run: async (opts: MessageResolverOpts) => {
       // TODO: should we store the account settings into ctx, to avoid fetching it from db every time?
       const embeddingSettings = (await ctx.getAccountSettings()).embedding
-      logger.withFields({ embeddingSettings }).verbose('Executing embedding resolver')
+      logger.withFields({ embedding_settings: embeddingSettings }).verbose('Executing embedding resolver')
 
       // Skip embedding if API key is empty
       if (!embeddingSettings.apiKey || embeddingSettings.apiKey.trim() === '') {

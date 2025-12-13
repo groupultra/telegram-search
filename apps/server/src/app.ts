@@ -15,7 +15,7 @@ import { collectDefaultMetrics, register } from 'prom-client'
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
-import { emitOtelLog, initOtelLogger, shutdownOtelLogger } from './otel-logger'
+import { emitOtelLog, initOtelLogger, shutdownOtelLogger } from './libs/otel-logger'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
