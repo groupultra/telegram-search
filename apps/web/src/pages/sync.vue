@@ -62,20 +62,20 @@ const isTaskInProgress = computed(() => {
 // Get i18n error message from raw error
 const errorMessage = computed(() => {
   const task = currentTask.value
-  if (!task?.rawError)
-    return task?.lastError
-  return getErrorMessage(task.rawError, (key, params) => t(key, params || {}))
+  if (!task?.state.rawError)
+    return task?.state.lastError
+  return getErrorMessage(task.state.rawError, (key, params) => t(key, params || {}))
 })
 
 // Check if task was cancelled (not an error)
 const isTaskCancelled = computed(() => {
   const task = currentTask.value
-  return task?.lastError === 'Task aborted'
+  return task?.state.lastError === 'Task aborted'
 })
 
 // Show task status area (includes in-progress and error states, but not cancelled)
 const shouldShowTaskStatus = computed(() => {
-  return !!currentTask.value && (isTaskInProgress.value || (currentTask.value.lastError && !isTaskCancelled.value))
+  return !!currentTask.value && (isTaskInProgress.value || (currentTask.value.state.lastError && !isTaskCancelled.value))
 })
 
 // Disable buttons during sync or when no chats selected
@@ -156,7 +156,7 @@ function handleSelectAll() {
  * Parses "Processed X/Y messages" and maps known status strings.
  */
 const localizedTaskMessage = computed(() => {
-  const msg = currentTask.value?.lastMessage || ''
+  const msg = currentTask.value?.state.lastMessage || ''
   if (!msg)
     return ''
 
@@ -209,7 +209,7 @@ function handleResync() {
 function handleAbort() {
   if (currentTask.value) {
     websocketStore.sendEvent('takeout:task:abort', {
-      taskId: currentTask.value.taskId,
+      taskId: currentTask.value.state.taskId,
     })
   }
   else {
@@ -223,7 +223,7 @@ watch(currentTaskProgress, (progress) => {
     NProgress.done()
     increase.value = true
   }
-  else if (progress < 0 && currentTask.value?.lastError) {
+  else if (progress < 0 && currentTask.value?.state.lastError) {
     // Check if task was cancelled
     if (isTaskCancelled.value) {
       // Task was cancelled, just clear the task and stop progress
@@ -330,7 +330,7 @@ watch(activeChatId, (chatId) => {
         <div
           class="flex flex-1 flex-col border rounded-2xl bg-card p-6 shadow-sm transition-all"
           :class="shouldShowTaskStatus
-            ? (currentTask?.lastError ? 'border-destructive/20 bg-destructive/5' : 'border-primary/20 bg-primary/5')
+            ? (currentTask?.state.lastError ? 'border-destructive/20 bg-destructive/5' : 'border-primary/20 bg-primary/5')
             : 'border-border'"
         >
           <div
@@ -340,28 +340,28 @@ watch(activeChatId, (chatId) => {
             <div class="flex items-center gap-4">
               <div
                 class="h-12 w-12 flex shrink-0 items-center justify-center rounded-full"
-                :class="currentTask?.lastError ? 'bg-destructive/10' : 'bg-primary/10'"
+                :class="currentTask?.state.lastError ? 'bg-destructive/10' : 'bg-primary/10'"
               >
-                <div v-if="currentTask?.lastError" class="i-lucide-alert-circle h-6 w-6 text-destructive" />
+                <div v-if="currentTask?.state.lastError" class="i-lucide-alert-circle h-6 w-6 text-destructive" />
                 <div v-else class="i-lucide-loader-2 h-6 w-6 animate-spin text-primary" />
               </div>
               <div class="flex flex-1 flex-col gap-1">
                 <span class="text-base text-foreground font-semibold">
-                  {{ currentTask?.lastError ? t('sync.syncFailed') : t('sync.syncing') }}
+                  {{ currentTask?.state.lastError ? t('sync.syncFailed') : t('sync.syncing') }}
                 </span>
-                <span v-if="currentTask?.lastError" class="text-sm text-destructive">{{ errorMessage }}</span>
+                <span v-if="currentTask?.state.lastError" class="text-sm text-destructive">{{ errorMessage }}</span>
                 <span v-else-if="localizedTaskMessage" class="text-sm text-muted-foreground">{{ localizedTaskMessage }}</span>
               </div>
             </div>
 
             <Progress
-              v-if="!currentTask?.lastError"
+              v-if="!currentTask?.state.lastError"
               :progress="currentTaskProgress"
             />
 
             <div class="flex justify-end gap-2">
               <Button
-                v-if="currentTask?.lastError"
+                v-if="currentTask?.state.lastError"
                 icon="i-lucide-x"
                 size="sm"
                 variant="outline"
