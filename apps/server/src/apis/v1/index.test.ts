@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 // Mocks
 const mockFindPhotoByQueryId = vi.fn()
 const mockFindStickerByQueryId = vi.fn()
-const mockGetMediaBinaryProvider = vi.fn<[], MediaBinaryProvider | undefined>()
+const mockGetMediaBinaryProvider = vi.fn()
 
 vi.mock('@tg-search/core', () => {
   return {
@@ -46,7 +46,7 @@ describe('v1api media endpoints', () => {
       async load(location: MediaBinaryLocation) {
         expect(location).toEqual({
           kind: 'photo',
-          path: 'photo/telegram/file-1',
+          path: 'photo/file-1',
         })
         return bytes
       },
@@ -56,7 +56,7 @@ describe('v1api media endpoints', () => {
     mockFindPhotoByQueryId.mockResolvedValue({
       expect: () => ({
         id: 'photo-id',
-        image_path: 'photo/telegram/file-1',
+        image_path: 'photo/file-1',
         image_bytes: null,
         image_mime_type: 'image/jpeg',
       }),
@@ -91,7 +91,7 @@ describe('v1api media endpoints', () => {
     mockFindPhotoByQueryId.mockResolvedValue({
       expect: () => ({
         id: 'photo-id',
-        image_path: 'photo/telegram/file-1',
+        image_path: 'photo/file-1',
         image_bytes: bytes,
         image_mime_type: undefined,
       }),
@@ -107,7 +107,7 @@ describe('v1api media endpoints', () => {
   })
 
   // eslint-disable-next-line test/prefer-lowercase-title
-  it('GET /stickers/:queryId should mirror provider and fallback behaviour for stickers', async () => {
+  it('GET /stickers/:queryId should mirror provider and fallback behavior for stickers', async () => {
     const app = v1api()
 
     const bytes = new Uint8Array([5, 6, 7])
@@ -118,7 +118,7 @@ describe('v1api media endpoints', () => {
       async load(location: MediaBinaryLocation) {
         expect(location).toEqual({
           kind: 'sticker',
-          path: 'sticker/telegram/file-2',
+          path: 'sticker/file-2',
         })
         return bytes
       },
@@ -128,7 +128,7 @@ describe('v1api media endpoints', () => {
     mockFindStickerByQueryId.mockResolvedValue({
       expect: () => ({
         id: 'sticker-id',
-        sticker_path: 'sticker/telegram/file-2',
+        sticker_path: 'sticker/file-2',
         sticker_bytes: null,
         sticker_mime_type: 'image/webp',
       }),

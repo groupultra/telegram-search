@@ -15,6 +15,7 @@ import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
 
 type StickerMediaForRecord = CoreMessageMediaSticker & {
+  uuid: string
   byte?: Buffer
   /**
    * Optional external storage path when a MediaBinaryProvider is configured.
@@ -40,6 +41,7 @@ export async function recordStickers(db: CoreDB, stickers: StickerMediaForRecord
       const hasExternalStorage = Boolean(sticker.storagePath)
 
       return {
+        id: sticker.uuid,
         platform: 'telegram',
         file_id: sticker.platformId,
         emoji: sticker.emoji,

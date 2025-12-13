@@ -30,6 +30,7 @@ describe('models/photos', () => {
 
     const resultNoBytes = await recordPhotos(db, [
       {
+        uuid: uuidv4(),
         type: 'photo',
         platformId: 'file-1',
         messageUUID: uuidv4(),
@@ -50,6 +51,7 @@ describe('models/photos', () => {
     // First insert with inline bytes only.
     await recordPhotos(db, [
       {
+        uuid: uuidv4(),
         type: 'photo',
         platformId: 'file-external',
         messageUUID,
@@ -66,19 +68,20 @@ describe('models/photos', () => {
     // Second insert switches to external storage only (no inline bytes).
     await recordPhotos(db, [
       {
+        uuid: uuidv4(),
         type: 'photo',
         platformId: 'file-external',
         messageUUID,
-        storagePath: 'photo/telegram/file-external',
+        storagePath: 'photo/file-external',
         mimeType: 'image/jpeg',
-      } as any,
+      },
     ])
 
     ;[row] = await db.select().from(photosTable)
 
     // When using external storage, image_bytes should be cleared and image_path populated.
     expect(row.image_bytes).toBeNull()
-    expect(row.image_path).toBe('photo/telegram/file-external')
+    expect(row.image_path).toBe('photo/file-external')
     expect(row.image_mime_type).toBe('image/jpeg')
   })
 
@@ -91,6 +94,7 @@ describe('models/photos', () => {
 
     const first = await recordPhotos(db, [
       {
+        uuid: uuidv4(),
         type: 'photo',
         platformId: 'file-1',
         messageUUID,
@@ -106,6 +110,7 @@ describe('models/photos', () => {
 
     const second = await recordPhotos(db, [
       {
+        uuid: uuidv4(),
         type: 'photo',
         platformId: 'file-1',
         messageUUID,

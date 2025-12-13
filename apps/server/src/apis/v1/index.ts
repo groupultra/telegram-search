@@ -1,10 +1,13 @@
 import type { MediaBinaryLocation } from '@tg-search/core'
 
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import { Buffer } from 'buffer'
+
 import { findPhotoByQueryId, findStickerByQueryId, getMediaBinaryProvider } from '@tg-search/core'
 import { fileTypeFromBuffer } from 'file-type'
 import { defineEventHandler, getRouterParam, H3, HTTPError } from 'h3'
 
-import { getDb } from '../../db'
+import { getDb } from '../../storage/drizzle'
 
 export function v1api(): H3 {
   const app = new H3()
@@ -13,10 +16,7 @@ export function v1api(): H3 {
     const queryId = getRouterParam(event, 'queryId')
 
     if (!queryId) {
-      return new HTTPError({
-        statusCode: 400,
-        statusMessage: 'Query ID is required',
-      })
+      throw new HTTPError('Query ID is required', { status: 400 })
     }
 
     try {
@@ -38,17 +38,14 @@ export function v1api(): H3 {
       }
 
       if (!bytes || bytes.length === 0) {
-        return new HTTPError({
-          statusCode: 404,
-          statusMessage: 'Photo not found',
-        })
+        throw new HTTPError('Photo not found', { status: 404 })
       }
 
       const fileType = photo.image_mime_type
         || (await fileTypeFromBuffer(bytes))?.mime
         || 'application/octet-stream'
 
-      return new Response(bytes, {
+      return new Response(Buffer.from(bytes), {
         headers: {
           'Content-Type': fileType,
           'Content-Length': bytes.length.toString(),
@@ -56,11 +53,7 @@ export function v1api(): H3 {
       })
     }
     catch (error) {
-      return new HTTPError({
-        statusCode: 500,
-        statusMessage: 'Failed to find photo',
-        cause: error,
-      })
+      throw new HTTPError('Failed to find photo', { status: 500, cause: error })
     }
   }))
 
@@ -68,10 +61,7 @@ export function v1api(): H3 {
     const queryId = getRouterParam(event, 'queryId')
 
     if (!queryId) {
-      return new HTTPError({
-        statusCode: 400,
-        statusMessage: 'Query ID is required',
-      })
+      throw new HTTPError('Query ID is required', { status: 400 })
     }
 
     try {
@@ -93,17 +83,14 @@ export function v1api(): H3 {
       }
 
       if (!bytes || bytes.length === 0) {
-        return new HTTPError({
-          statusCode: 404,
-          statusMessage: 'Sticker not found',
-        })
+        throw new HTTPError('Sticker not found', { status: 404 })
       }
 
       const fileType = sticker.sticker_mime_type
         || (await fileTypeFromBuffer(bytes))?.mime
         || 'application/octet-stream'
 
-      return new Response(bytes, {
+      return new Response(Buffer.from(bytes), {
         headers: {
           'Content-Type': fileType,
           'Content-Length': bytes.length.toString(),
@@ -111,11 +98,7 @@ export function v1api(): H3 {
       })
     }
     catch (error) {
-      return new HTTPError({
-        statusCode: 500,
-        statusMessage: 'Failed to find sticker',
-        cause: error,
-      })
+      throw new HTTPError('Failed to find sticker', { status: 500, cause: error })
     }
   }))
 

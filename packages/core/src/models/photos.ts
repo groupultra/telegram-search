@@ -15,6 +15,7 @@ import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
 
 type PhotoMediaForRecord = CoreMessageMediaPhoto & {
+  uuid: string
   byte?: Buffer
   mimeType?: string
   /**
@@ -36,6 +37,7 @@ export async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Pr
       const hasExternalStorage = Boolean(media.storagePath)
 
       return {
+        id: media.uuid,
         platform: 'telegram',
         file_id: media.platformId,
         message_id: media.messageUUID,

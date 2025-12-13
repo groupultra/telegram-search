@@ -51,7 +51,7 @@ export function createCoreRuntime(
         throw new Error('Core runtime is not initialized')
 
       // In browser runtime we do not wire metrics; pass undefined.
-      ctx = createCoreInstance(getDB(), configRef.value)
+      ctx = createCoreInstance(getDB, configRef.value)
     }
 
     return ctx

@@ -1,17 +1,17 @@
 import type { Logger } from '@guiiai/logg'
 import type { Config, RuntimeFlags } from '@tg-search/common'
 
-import type { CoreDB } from '../../../packages/core/src/db'
+import type { CoreDB } from '../../../../packages/core/src/db'
 
-import { initDrizzle } from '@tg-search/core'
+import { initDrizzle as initDrizzleCore } from '@tg-search/core'
 
 import { registerMinioMediaStorage } from './storage/minio'
 
 let db: CoreDB | undefined
 
-export async function initDb(logger: Logger, config: Config, flags: RuntimeFlags) {
+export async function initDrizzle(logger: Logger, config: Config, flags: RuntimeFlags) {
   try {
-    const result = await initDrizzle(logger, config, {
+    const result = await initDrizzleCore(logger, config, {
       isDatabaseDebugMode: flags.isDatabaseDebugMode,
       disableMigrations: flags.disableMigrations,
     })

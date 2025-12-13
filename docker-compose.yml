@@ -54,8 +54,8 @@ services:
     environment:
       DATABASE_TYPE: postgres
       DATABASE_URL: 'postgresql://postgres:123456@pgvector:5432/postgres'
-      LOG_FORMAT: json
-      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
     healthcheck:

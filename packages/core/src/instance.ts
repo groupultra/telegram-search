@@ -6,7 +6,7 @@ import type { CoreDB } from './db'
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, basicEventHandler, useEventHandler } from './event-handler'
 
-export function createCoreInstance(db: CoreDB, config: Config, metrics?: CoreMetrics): CoreContext {
+export function createCoreInstance(db: () => CoreDB, config: Config, metrics?: CoreMetrics): CoreContext {
   const ctx = createCoreContext(db, metrics)
 
   const { register: registerEventHandler } = useEventHandler(ctx, config)

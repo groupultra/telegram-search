@@ -4,7 +4,10 @@ import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } 
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
 
+import { v4 as uuidv4 } from 'uuid'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { initMinioMediaStorage } from './minio'
 
 const mockSetMediaBinaryProvider = vi.fn<(provider: MediaBinaryProvider) => void>()
 
@@ -34,12 +37,8 @@ vi.mock('minio', () => {
   }
 })
 
-// Import under test after mocks
-// eslint-disable-next-line import/first
-import { registerMinioMediaStorage } from './minio'
-
-describe('storage/minio - registerMinioMediaStorage', () => {
-  const logger: Logger = {
+describe('storage/minio - initMinioMediaStorage', () => {
+  const logger = {
     log: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
@@ -49,7 +48,7 @@ describe('storage/minio - registerMinioMediaStorage', () => {
     withError() {
       return this
     },
-  } as any
+  } as unknown as Logger
 
   beforeEach(() => {
     vi.resetAllMocks()
@@ -74,18 +73,17 @@ describe('storage/minio - registerMinioMediaStorage', () => {
       },
     })
 
-    await registerMinioMediaStorage(logger)
+    await initMinioMediaStorage(logger)
 
     expect(bucketExists).toHaveBeenCalledWith('telegram-media-test')
     expect(mockSetMediaBinaryProvider).toHaveBeenCalledTimes(1)
 
     const provider = mockSetMediaBinaryProvider.mock.calls[0][0] as MediaBinaryProvider
 
+    const uuid = uuidv4()
     const descriptor: MediaBinaryDescriptor = {
       kind: 'photo',
-      platform: 'telegram',
-      platformId: 'file-123',
-      messageUUID: 'msg-1',
+      uuid,
     }
 
     const bytes = new Uint8Array([1, 2, 3])
@@ -94,13 +92,13 @@ describe('storage/minio - registerMinioMediaStorage', () => {
 
     expect(location).toEqual({
       kind: 'photo',
-      path: 'photo/telegram/file-123',
+      path: `photo/${uuid}`,
     })
 
     expect(putObject).toHaveBeenCalledTimes(1)
-    const [bucket, objectName, buffer, , meta] = putObject.mock.calls[0]
+    const [bucket, objectName, buffer, _size, meta] = putObject.mock.calls[0]
     expect(bucket).toBe('telegram-media-test')
-    expect(objectName).toBe('photo/telegram/file-123')
+    expect(objectName).toBe(`photo/${uuid}`)
     expect(Buffer.isBuffer(buffer)).toBe(true)
     expect(meta).toEqual({
       'Content-Type': 'image/jpeg',
@@ -118,13 +116,13 @@ describe('storage/minio - registerMinioMediaStorage', () => {
     bucketExists.mockResolvedValue(true)
     getObject.mockRejectedValue(new Error('boom'))
 
-    await registerMinioMediaStorage(logger)
+    await initMinioMediaStorage(logger)
 
     const provider = mockSetMediaBinaryProvider.mock.calls[0][0] as MediaBinaryProvider
 
     const location: MediaBinaryLocation = {
       kind: 'photo',
-      path: 'photo/telegram/missing',
+      path: 'photo/missing',
     }
 
     const result = await provider.load(location)

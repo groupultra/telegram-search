@@ -68,12 +68,12 @@ describe('takeout event handlers', () => {
       unwrap: () => undefined,
     })
 
-    const ctx = createCoreContext({} as any)
+    const ctx = createCoreContext()
     ctx.setCurrentAccountId('acc-1')
 
     const takeoutMessages = async function* () {
       for (let i = 1; i <= 51; i++) {
-        yield ({ id: i } as any)
+        yield ({ id: i })
       }
     }
 
@@ -120,7 +120,7 @@ describe('takeout event handlers', () => {
 
     mockGetChatMessageStatsByChatId.mockResolvedValue({ unwrap: () => undefined })
 
-    const ctx = createCoreContext({} as any)
+    const ctx = createCoreContext()
     ctx.setCurrentAccountId('acc-1')
 
     const takeoutMessages = async function* (_chatId: string, opts: any) {
@@ -129,7 +129,7 @@ describe('takeout event handlers', () => {
       while (!opts.task.abortController.signal.aborted && i < 10_000) {
         i++
         await tick()
-        yield ({ id: i } as any)
+        yield ({ id: i })
       }
     }
 
@@ -168,7 +168,7 @@ describe('takeout event handlers', () => {
       }),
     })
 
-    const ctx = createCoreContext({} as any)
+    const ctx = createCoreContext()
     ctx.setCurrentAccountId('acc-1')
 
     registerTakeoutEventHandlers(ctx)(
@@ -178,7 +178,7 @@ describe('takeout event handlers', () => {
     )
 
     const dataPromise = new Promise<any>((resolve) => {
-      ctx.emitter.on('takeout:stats:data', payload => resolve(payload as any))
+      ctx.emitter.on('takeout:stats:data', payload => resolve(payload))
     })
 
     ctx.emitter.emit('takeout:stats:fetch', { chatId: '123' })
@@ -206,7 +206,7 @@ describe('takeout event handlers', () => {
       throw new Error('boom')
     })
 
-    const ctx = createCoreContext({} as any)
+    const ctx = createCoreContext()
     ctx.setCurrentAccountId('acc-1')
 
     registerTakeoutEventHandlers(ctx)(
@@ -216,7 +216,7 @@ describe('takeout event handlers', () => {
     )
 
     const errorPromise = new Promise<{ error: string, description?: string }>((resolve) => {
-      ctx.emitter.on('core:error', payload => resolve(payload as any))
+      ctx.emitter.on('core:error', payload => resolve(payload))
     })
 
     ctx.emitter.emit('takeout:stats:fetch', { chatId: '123' })
@@ -240,7 +240,7 @@ describe('takeout event handlers', () => {
       unwrap: () => statsRow,
     })
 
-    const ctx = createCoreContext({} as any)
+    const ctx = createCoreContext()
     ctx.setCurrentAccountId('acc-1')
 
     const calls: any[] = []
@@ -250,15 +250,15 @@ describe('takeout event handlers', () => {
       // Phase 1: backward (offset=0)
       if (opts.pagination?.offset === 0) {
         // Include latestMessageId itself to verify handler skips it.
-        yield ({ id: 100 } as any)
-        yield ({ id: 101 } as any)
+        yield ({ id: 100 })
+        yield ({ id: 101 })
         return
       }
 
       // Phase 2: forward (offset=first_message_id)
       if (opts.pagination?.offset === 10) {
-        yield ({ id: 9 } as any)
-        yield ({ id: 8 } as any)
+        yield ({ id: 9 })
+        yield ({ id: 8 })
       }
     }
 
@@ -270,7 +270,7 @@ describe('takeout event handlers', () => {
     registerTakeoutEventHandlers(ctx)(service)
 
     const processed = new Promise<any>((resolve) => {
-      ctx.emitter.on('message:process', payload => resolve(payload as any))
+      ctx.emitter.on('message:process', payload => resolve(payload))
     })
 
     ctx.emitter.emit('takeout:run', {
@@ -313,20 +313,20 @@ describe('takeout event handlers', () => {
       unwrap: () => undefined,
     })
 
-    const ctx = createCoreContext({} as any)
+    const ctx = createCoreContext()
     ctx.setCurrentAccountId('acc-1')
 
     const calls: any[] = []
     const takeoutMessages = async function* (_chatId: string, opts: any) {
       calls.push(opts)
-      yield ({ id: 1 } as any)
-      yield ({ id: 2 } as any)
+      yield ({ id: 1 })
+      yield ({ id: 2 })
     }
 
     registerTakeoutEventHandlers(ctx)(makeTakeoutService({ takeoutMessages }))
 
     const processed = new Promise<any>((resolve) => {
-      ctx.emitter.on('message:process', payload => resolve(payload as any))
+      ctx.emitter.on('message:process', payload => resolve(payload))
     })
 
     ctx.emitter.emit('takeout:run', {

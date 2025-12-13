@@ -1,6 +1,6 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
-import type { CoreMessageMedia, CoreMessageMediaPhoto, CoreMessageMediaSticker, CoreMessageMediaWebPage } from '../types/media'
+import type { CoreMessageMediaFromServer, CoreMessageMediaPhoto, CoreMessageMediaSticker, CoreMessageMediaWebPage } from '../types/media'
 import type { CoreMessage } from '../types/message'
 import type { MediaBinaryDescriptor } from '../types/storage'
 
@@ -11,6 +11,7 @@ import { useLogger } from '@guiiai/logg'
 import { newQueue } from '@henrygd/queue'
 import { fileTypeFromBuffer } from 'file-type'
 import { Api } from 'telegram'
+import { v4 as uuidv4 } from 'uuid'
 
 import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
 import {
@@ -105,11 +106,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             // Persist media bytes when available so future fetches can use queryId/HTTP endpoint.
             try {
               const provider = getMediaBinaryProvider()
-              const descriptorBase: Omit<MediaBinaryDescriptor, 'kind'> = {
-                platform: 'telegram',
-                platformId: media.platformId,
-                messageUUID: message.uuid,
-              }
+              const uuid = uuidv4()
 
               switch (media.type) {
                 case 'photo': {
@@ -120,7 +117,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
                   if (provider) {
                     const location = await provider.save(
-                      { ...descriptorBase, kind: 'photo' },
+                      { uuid, kind: 'photo' },
                       new Uint8Array(byte),
                       mimeType,
                     )
@@ -128,6 +125,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                   }
 
                   const result = await recordPhotos(db, [{
+                    uuid,
                     type: 'photo',
                     platformId: media.platformId,
                     messageUUID: message.uuid,
@@ -153,7 +151,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
 
                   if (provider) {
                     const location = await provider.save(
-                      { ...descriptorBase, kind: 'sticker' },
+                      { uuid, kind: 'sticker' },
                       new Uint8Array(byte),
                       mimeType,
                     )
@@ -161,6 +159,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                   }
 
                   const result = await recordStickers(db, [{
+                    uuid,
                     type: 'sticker',
                     platformId: media.platformId,
                     messageUUID: message.uuid,
@@ -209,7 +208,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               type: 'unknown',
               platformId: media.platformId,
               mimeType: mimeType ?? (byte ? (await fileTypeFromBuffer(byte))?.mime : undefined),
-            } satisfies CoreMessageMedia
+            } satisfies CoreMessageMediaFromServer
           }),
         )
 
