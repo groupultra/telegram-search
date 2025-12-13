@@ -4,6 +4,7 @@ import type { PhotoModels } from '../models/photos'
 import type { StickerModels } from '../models/stickers'
 import type { CoreMessageMediaFromServer, CoreMessageMediaPhoto, CoreMessageMediaSticker, CoreMessageMediaWebPage } from '../types/media'
 import type { CoreMessage } from '../types/message'
+import type { MediaBinaryProvider } from '../types/storage'
 
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
@@ -16,9 +17,13 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
 import { must0 } from '../models/utils/must'
-import { getMediaBinaryProvider } from '../utils/media-storage'
 
-export function createMediaResolver(ctx: CoreContext, photoModels: PhotoModels, stickerModels: StickerModels): MessageResolver {
+export function createMediaResolver(
+  ctx: CoreContext,
+  photoModels: PhotoModels,
+  stickerModels: StickerModels,
+  mediaBinaryProvider: MediaBinaryProvider | undefined,
+): MessageResolver {
   const logger = useLogger('core:resolver:media')
   // Create concurrency limit queue
   const downloadQueue = newQueue(MEDIA_DOWNLOAD_CONCURRENCY)
@@ -100,7 +105,6 @@ export function createMediaResolver(ctx: CoreContext, photoModels: PhotoModels, 
 
             // Persist media bytes when available so future fetches can use queryId/HTTP endpoint.
             try {
-              const provider = getMediaBinaryProvider()
               const uuid = uuidv4()
 
               switch (media.type) {
@@ -110,8 +114,8 @@ export function createMediaResolver(ctx: CoreContext, photoModels: PhotoModels, 
 
                   let storagePath: string | undefined
 
-                  if (provider) {
-                    const location = await provider.save(
+                  if (mediaBinaryProvider) {
+                    const location = await mediaBinaryProvider.save(
                       { uuid, kind: 'photo' },
                       new Uint8Array(byte),
                       mimeType,
@@ -144,8 +148,8 @@ export function createMediaResolver(ctx: CoreContext, photoModels: PhotoModels, 
 
                   let storagePath: string | undefined
 
-                  if (provider) {
-                    const location = await provider.save(
+                  if (mediaBinaryProvider) {
+                    const location = await mediaBinaryProvider.save(
                       { uuid, kind: 'sticker' },
                       new Uint8Array(byte),
                       mimeType,

@@ -1,8 +1,12 @@
 import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
 
-import { setMediaBinaryProvider } from '@tg-search/core'
-
 let rootHandlePromise: Promise<FileSystemDirectoryHandle> | undefined
+
+let mediaBinaryProvider: MediaBinaryProvider | undefined
+
+export function getMediaBinaryProvider(): MediaBinaryProvider | undefined {
+  return mediaBinaryProvider
+}
 
 async function getRootDirectoryHandle() {
   if (!rootHandlePromise) {
@@ -62,7 +66,7 @@ function buildOpfsPath(descriptor: MediaBinaryDescriptor): string {
     .join('/')
 }
 
-export async function registerOpfsMediaStorage() {
+export async function registerOpfsMediaStorage(): Promise<MediaBinaryProvider> {
   const provider: MediaBinaryProvider = {
     async save(descriptor: MediaBinaryDescriptor, bytes: Uint8Array, _mimeType?: string): Promise<MediaBinaryLocation> {
       const path = buildOpfsPath(descriptor)
@@ -95,5 +99,6 @@ export async function registerOpfsMediaStorage() {
     },
   }
 
-  setMediaBinaryProvider(provider)
+  mediaBinaryProvider = provider
+  return provider
 }

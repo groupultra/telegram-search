@@ -1,13 +1,20 @@
+import type { Models } from '../../models'
 import type { CoreTaskData, CoreTaskType } from '../../types/task'
 
 import { describe, expect, it, vi } from 'vitest'
 
+import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
 import { chatMessageStatsModels } from '../../models/chat-message-stats'
 import { registerTakeoutEventHandlers } from '../takeout'
 
 const mockGetChatMessageStatsByChatId = vi.fn()
-vi.spyOn(chatMessageStatsModels, 'getChatMessageStatsByChatId').mockImplementation(mockGetChatMessageStatsByChatId)
+
+const models = {
+  chatMessageStatsModels: {
+    getChatMessageStatsByChatId: mockGetChatMessageStatsByChatId,
+  },
+} as unknown as Models
 
 interface MockTask {
   state: CoreTaskData<CoreTaskType>
@@ -64,7 +71,7 @@ describe('takeout event handlers', () => {
       unwrap: () => undefined,
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     const takeoutMessages = async function* () {
@@ -116,7 +123,7 @@ describe('takeout event handlers', () => {
 
     mockGetChatMessageStatsByChatId.mockResolvedValue({ unwrap: () => undefined })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     const takeoutMessages = async function* (_chatId: string, opts: any) {
@@ -164,7 +171,7 @@ describe('takeout event handlers', () => {
       }),
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     registerTakeoutEventHandlers(ctx, chatMessageStatsModels)(
@@ -202,7 +209,7 @@ describe('takeout event handlers', () => {
       throw new Error('boom')
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     registerTakeoutEventHandlers(ctx, chatMessageStatsModels)(
@@ -236,7 +243,7 @@ describe('takeout event handlers', () => {
       unwrap: () => statsRow,
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     const calls: any[] = []
@@ -309,7 +316,7 @@ describe('takeout event handlers', () => {
       unwrap: () => undefined,
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     const calls: any[] = []

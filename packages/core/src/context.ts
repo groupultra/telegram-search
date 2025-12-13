@@ -64,8 +64,8 @@ function createErrorHandler(emitter: CoreEmitter) {
   }
 }
 
-export function createCoreContext(options?: {
-  db?: CoreDB
+export function createCoreContext(options: {
+  db: CoreDB
   models: Models
   metrics?: CoreMetrics
 }): CoreContext {
@@ -146,14 +146,14 @@ export function createCoreContext(options?: {
   }
 
   async function getAccountSettings(): Promise<AccountSettings> {
-    if (!options?.models) {
+    if (!options.models) {
       throw withError('Models not initialized')
     }
     return (await options.models.accountSettingsModels.fetchSettingsByAccountId(getDB(), getCurrentAccountId())).expect('Failed to fetch account settings')
   }
 
   async function setAccountSettings(newSettings: AccountSettings) {
-    if (!options?.models) {
+    if (!options.models) {
       throw withError('Models not initialized')
     }
     await options.models.accountSettingsModels.updateAccountSettings(getDB(), getCurrentAccountId(), newSettings)
@@ -163,7 +163,7 @@ export function createCoreContext(options?: {
   const cleanupMemoryLeakDetector = detectMemoryLeak(emitter)
 
   function getDB(): CoreDB {
-    if (!options?.db) {
+    if (!options.db) {
       throw withError('Database not initialized')
     }
     return options.db
@@ -215,7 +215,7 @@ export function createCoreContext(options?: {
     cleanup,
     getAccountSettings,
     setAccountSettings,
-    metrics: options?.metrics,
+    metrics: options.metrics,
   }
 }
 

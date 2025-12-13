@@ -15,7 +15,7 @@ import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
 import { getDB, initDrizzle } from './storage/drizzle'
-import { initMinioMediaStorage } from './storage/minio'
+import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
@@ -74,7 +74,7 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
     })
   }))
 
-  app.mount('/v1', v1api(getDB(), models))
+  app.mount('/v1', v1api(getDB(), models, getMinioMediaStorage()))
 
   setupWsRoutes(app, config)
 

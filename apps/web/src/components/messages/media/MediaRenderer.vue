@@ -6,7 +6,8 @@ import type { AnimationItem } from 'lottie-web'
 import lottie from 'lottie-web'
 import pako from 'pako'
 
-import { hydrateMediaBlobWithCore, useSettingsStore } from '@tg-search/client'
+import { getMediaBinaryProvider, hydrateMediaBlobWithCore, useSettingsStore } from '@tg-search/client'
+import { models } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
@@ -95,7 +96,7 @@ if (import.meta.env.VITE_WITH_CORE) {
       if (!mediaItem || !mediaItem.queryId || mediaItem.blobUrl)
         return
 
-      void hydrateMediaBlobWithCore(mediaItem)
+      void hydrateMediaBlobWithCore(mediaItem, models.photoModels, models.stickerModels, getMediaBinaryProvider())
     },
     { immediate: true },
   )

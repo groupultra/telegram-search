@@ -1,6 +1,7 @@
 import type { Config } from '@tg-search/common'
 
 import type { CoreContext } from './context'
+import type { MediaBinaryProvider } from './types/storage'
 
 import { useLogger } from '@guiiai/logg'
 
@@ -36,9 +37,9 @@ import { createMessageService } from './services/message'
 import { createMessageResolverService } from './services/message-resolver'
 import { createTakeoutService } from './services/takeout'
 
-type EventHandler<T = void> = (ctx: CoreContext, config: Config) => T
+type EventHandler<T = void> = (ctx: CoreContext, config: Config, mediaBinaryProvider: MediaBinaryProvider | undefined) => T
 
-export function basicEventHandler(ctx: CoreContext, config: Config): EventHandler {
+export function basicEventHandler(ctx: CoreContext, config: Config, mediaBinaryProvider: MediaBinaryProvider | undefined): EventHandler {
   const registry = useMessageResolverRegistry()
 
   const connectionService = useService(ctx, createConnectionService)({
@@ -49,7 +50,7 @@ export function basicEventHandler(ctx: CoreContext, config: Config): EventHandle
   const configService = useService(ctx, createAccountSettingsService)
   const messageResolverService = useService(ctx, createMessageResolverService)(registry)
 
-  registry.register('media', createMediaResolver(ctx, photoModels, stickerModels))
+  registry.register('media', createMediaResolver(ctx, photoModels, stickerModels, mediaBinaryProvider))
   registry.register('user', createUserResolver(ctx, userModels))
   // Centralized avatar fetching for users (via messages)
   // Note: avatar resolver is registered but filtered by the disabled list
@@ -103,12 +104,13 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
 export function useEventHandler(
   ctx: CoreContext,
   config: Config,
+  mediaBinaryProvider: MediaBinaryProvider | undefined,
 ) {
   const logger = useLogger()
 
   function register(fn: EventHandler) {
     logger.withFields({ fn: fn.name }).log('Register event handler')
-    fn(ctx, config)
+    fn(ctx, config, mediaBinaryProvider)
   }
 
   return {

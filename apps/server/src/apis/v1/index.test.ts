@@ -7,7 +7,6 @@ import { v1api } from './index'
 // Mocks
 const mockFindPhotoByQueryId = vi.fn()
 const mockFindStickerByQueryId = vi.fn()
-const mockGetMediaBinaryProvider = vi.fn()
 
 const mockFileTypeFromBuffer = vi.fn()
 
@@ -17,7 +16,10 @@ vi.mock('file-type', () => {
   }
 })
 
-const mockDB = vi.fn()
+function mockDB() {
+  return {} as any
+}
+
 const mockModels = {
   photoModels: {
     findPhotoByQueryId: mockFindPhotoByQueryId,
@@ -30,8 +32,6 @@ const mockModels = {
 describe('v1api media endpoints', () => {
   // eslint-disable-next-line test/prefer-lowercase-title
   it('GET /photos/:queryId should prefer MediaBinaryProvider when image_path is present', async () => {
-    const app = v1api(mockDB(), mockModels)
-
     const bytes = new Uint8Array([1, 2, 3])
     const provider: MediaBinaryProvider = {
       async save() {
@@ -46,7 +46,8 @@ describe('v1api media endpoints', () => {
       },
     }
 
-    mockGetMediaBinaryProvider.mockReturnValue(provider)
+    const app = v1api(mockDB(), mockModels, provider)
+
     mockFindPhotoByQueryId.mockResolvedValue({
       expect: () => ({
         id: 'photo-id',
@@ -69,18 +70,17 @@ describe('v1api media endpoints', () => {
 
   // eslint-disable-next-line test/prefer-lowercase-title
   it('GET /photos/:queryId should fallback to image_bytes when provider is unavailable or load returns null', async () => {
-    const app = v1api(mockDB(), mockModels)
-
     const bytes = new Uint8Array([9, 9, 9, 9])
-
-    mockGetMediaBinaryProvider.mockReturnValue({
+    const provider: MediaBinaryProvider = {
       async save() {
         throw new Error('not used in this test')
       },
       async load() {
         return null
       },
-    } as MediaBinaryProvider)
+    }
+
+    const app = v1api(mockDB(), mockModels, provider)
 
     mockFindPhotoByQueryId.mockResolvedValue({
       expect: () => ({
@@ -102,8 +102,6 @@ describe('v1api media endpoints', () => {
 
   // eslint-disable-next-line test/prefer-lowercase-title
   it('GET /stickers/:queryId should mirror provider and fallback behavior for stickers', async () => {
-    const app = v1api(mockDB(), mockModels)
-
     const bytes = new Uint8Array([5, 6, 7])
     const provider: MediaBinaryProvider = {
       async save() {
@@ -118,7 +116,8 @@ describe('v1api media endpoints', () => {
       },
     }
 
-    mockGetMediaBinaryProvider.mockReturnValue(provider)
+    const app = v1api(mockDB(), mockModels, provider)
+
     mockFindStickerByQueryId.mockResolvedValue({
       expect: () => ({
         id: 'sticker-id',

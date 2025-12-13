@@ -209,7 +209,7 @@ export function setupWsRoutes(app: H3, config: Config) {
     if (!accountStates.has(accountId)) {
       logger.withFields({ accountId }).log('Creating new account state')
 
-      const ctx = createCoreInstance(getDB(), config, coreMetrics)
+      const ctx = createCoreInstance(getDB(), config, undefined, coreMetrics)
       const account: AccountState = {
         ctx,
         accountReady: false,

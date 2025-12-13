@@ -4,6 +4,7 @@ import type { CoreDialog } from '../../types/dialog'
 import { Ok } from '@unbird/result'
 import { describe, expect, it, vi } from 'vitest'
 
+import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
 import { registerStorageEventHandlers } from '../storage'
 
@@ -61,11 +62,14 @@ const models = {
     recordMessagesWithMedia,
     retrieveMessages,
   },
+  chatMessageStatsModels: {
+    getChatMessagesStats,
+  },
 } as unknown as Models
 
 describe('storage event handlers - dialogs with accounts', () => {
   it('storage:fetch:dialogs should query dialogs for given account and emit mapped dialogs', async () => {
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ models, db: getMockEmptyDB() })
     registerStorageEventHandlers(ctx, models)
 
     const ACCOUNT_ID = 'account-xyz'
@@ -96,7 +100,7 @@ describe('storage event handlers - dialogs with accounts', () => {
   })
 
   it('storage:record:dialogs should call recordChats with dialogs and accountId', async () => {
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ models, db: getMockEmptyDB() })
     registerStorageEventHandlers(ctx, models)
 
     const ACCOUNT_ID = 'account-abc'
@@ -118,7 +122,7 @@ describe('storage event handlers - dialogs with accounts', () => {
 
 describe('storage event handlers - message access control', () => {
   it('storage:fetch:messages should reject when account has no access to chat', async () => {
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ models, db: getMockEmptyDB() })
     registerStorageEventHandlers(ctx, models)
 
     const ACCOUNT_ID = 'account-no-access'
@@ -148,7 +152,7 @@ describe('storage event handlers - message access control', () => {
   })
 
   it('storage:search:messages should reject when account has no access to specified chatId', async () => {
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ models, db: getMockEmptyDB() })
     registerStorageEventHandlers(ctx, models)
 
     const ACCOUNT_ID = 'account-no-access'

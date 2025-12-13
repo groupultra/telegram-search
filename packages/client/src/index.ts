@@ -1,5 +1,6 @@
 export { usePGliteDevDb } from './adapters/core-db'
 export { hydrateMediaBlobWithCore } from './adapters/core-media'
+export { getMediaBinaryProvider } from './adapters/core-media-opfs'
 export * from './composables'
 export { PGLITE_DEVTOOLS_SETUP_KEY } from './devtools/pglite-devtools'
 export * from './event-handlers'
