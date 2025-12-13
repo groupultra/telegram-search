@@ -98,4 +98,3 @@ export async function registerOpfsMediaStorage() {
 
   setMediaBinaryProvider(provider)
 }
-

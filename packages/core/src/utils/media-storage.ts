@@ -9,4 +9,3 @@ export function setMediaBinaryProvider(provider: MediaBinaryProvider | undefined
 export function getMediaBinaryProvider(): MediaBinaryProvider | undefined {
   return mediaBinaryProvider
 }
-

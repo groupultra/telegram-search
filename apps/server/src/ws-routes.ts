@@ -43,7 +43,7 @@ import { defineWebSocketHandler } from 'h3'
 import { Counter, Gauge, Histogram } from 'prom-client'
 import { v4 as uuidv4 } from 'uuid'
 
-import { getDb } from './db'
+import { getDb } from './storage/drizzle'
 import { sendWsEvent } from './ws-events'
 
 const WS_MODE_LABEL = 'server' as const

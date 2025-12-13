@@ -1,13 +1,16 @@
 import type { Logger } from '@guiiai/logg'
 import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
 
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import { Buffer } from 'buffer'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockSetMediaBinaryProvider = vi.fn<(provider: MediaBinaryProvider) => void>()
 
 vi.mock('@tg-search/core', () => {
   return {
-    setMediaBinaryProvider: (...args: any[]) => mockSetMediaBinaryProvider(...args),
+    setMediaBinaryProvider: (provider: MediaBinaryProvider) => mockSetMediaBinaryProvider(provider),
   }
 })
 
@@ -51,12 +54,12 @@ describe('storage/minio - registerMinioMediaStorage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
 
-    process.env.MINIO_ENDPOINT = 'localhost'
-    process.env.MINIO_PORT = '9000'
-    process.env.MINIO_ACCESS_KEY = 'access'
-    process.env.MINIO_SECRET_KEY = 'secret'
-    process.env.MINIO_USE_SSL = 'false'
-    process.env.MINIO_BUCKET = 'telegram-media-test'
+    import.meta.env.MINIO_ENDPOINT = 'localhost'
+    import.meta.env.MINIO_PORT = '9000'
+    import.meta.env.MINIO_ACCESS_KEY = 'access'
+    import.meta.env.MINIO_SECRET_KEY = 'secret'
+    import.meta.env.MINIO_USE_SSL = 'false'
+    import.meta.env.MINIO_BUCKET = 'telegram-media-test'
   })
 
   it('registers a MediaBinaryProvider that writes and reads objects via MinIO', async () => {
@@ -64,7 +67,7 @@ describe('storage/minio - registerMinioMediaStorage', () => {
 
     const chunks: Buffer[] = []
     getObject.mockResolvedValue({
-      async *[Symbol.asyncIterator]() {
+      async* [Symbol.asyncIterator]() {
         for (const chunk of chunks) {
           yield chunk
         }
@@ -129,5 +132,3 @@ describe('storage/minio - registerMinioMediaStorage', () => {
     expect(logger.warn).toHaveBeenCalled()
   })
 })
-
-

@@ -13,7 +13,8 @@ import { collectDefaultMetrics, register } from 'prom-client'
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
-import { initDb } from './db'
+import { initDrizzle } from './storage/drizzle'
+import { initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
@@ -85,20 +86,23 @@ async function bootstrap() {
     console.log(`\n${result}\nv${pkg.version}\n`)
   })
 
-  const flags = parseEnvFlags(process.env)
+  Object.assign(import.meta.env, process.env)
+  const flags = parseEnvFlags(import.meta.env)
   initLogger(flags.logLevel, flags.logFormat)
   const logger = useLogger().useGlobalConfig()
 
-  const config = parseEnvToConfig(process.env, logger)
+  const config = parseEnvToConfig(import.meta.env, logger)
 
-  await initDb(logger, config, flags)
+  await initDrizzle(logger, config, flags)
+
+  await initMinioMediaStorage(logger)
 
   setupErrorHandlers(logger)
 
   const app = configureServer(logger, flags, config)
 
-  const port = process.env.PORT ? Number(process.env.PORT) : 3000
-  const hostname = process.env.HOST || '0.0.0.0'
+  const port = import.meta.env.PORT ? Number(import.meta.env.PORT) : 3000
+  const hostname = import.meta.env.HOST || '0.0.0.0'
 
   const server = serve(app, {
     port,

@@ -1,5 +1,4 @@
-import type { CoreMessageMediaFromBlob } from '@tg-search/core'
-import type { MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
+import type { CoreMessageMediaFromBlob, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -150,5 +149,3 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
     expect(media.blobUrl).toBe('blob:test-url')
   })
 })
-
-
