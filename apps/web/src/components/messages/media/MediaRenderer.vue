@@ -155,36 +155,43 @@ onUnmounted(() => {
 
 async function handleMediaError(_event: Event, mediaType: 'Image' | 'Sticker') {
   // Check if this is a 404 error by trying to fetch the media
-  if (processedMedia.value.src) {
-    try {
-      const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
-      if (response.status === 404 && props.message.chatId && props.message.platformMessageId && !isReprocessing.value) {
-        // Media not found in storage, trigger re-processing
-        isReprocessing.value = true
-        runtimeError.value = `${mediaType} not found, re-downloading...`
-
-        const messageId = Number.parseInt(props.message.platformMessageId, 10)
-        bridgeStore.sendEvent('message:reprocess', {
-          chatId: props.message.chatId,
-          messageIds: [messageId],
-          resolvers: ['media'],
-        })
-
-        // Reset reprocessing flag after a delay to allow retry
-        setTimeout(() => {
-          isReprocessing.value = false
-        }, REPROCESS_RETRY_DELAY_MS)
-      }
-      else {
-        runtimeError.value = `${mediaType} failed to load`
-      }
-    }
-    catch (error) {
-      console.error(`Failed to check ${mediaType.toLowerCase()} availability`, error)
-      runtimeError.value = `${mediaType} failed to load`
-    }
+  if (!processedMedia.value.src) {
+    runtimeError.value = `${mediaType} failed to load`
+    return
   }
-  else {
+
+  try {
+    const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
+    if (response.status !== 404 || !props.message.chatId || !props.message.platformMessageId || isReprocessing.value) {
+      runtimeError.value = `${mediaType} failed to load`
+      return
+    }
+
+    // Validate message ID is a valid number
+    const messageId = Number.parseInt(props.message.platformMessageId, 10)
+    if (Number.isNaN(messageId)) {
+      console.error(`Invalid message ID: ${props.message.platformMessageId}`)
+      runtimeError.value = `${mediaType} failed to load`
+      return
+    }
+
+    // Media not found in storage, trigger re-processing
+    isReprocessing.value = true
+    runtimeError.value = `${mediaType} not found, re-downloading...`
+
+    bridgeStore.sendEvent('message:reprocess', {
+      chatId: props.message.chatId,
+      messageIds: [messageId],
+      resolvers: ['media'],
+    })
+
+    // Reset reprocessing flag after a delay to allow retry
+    setTimeout(() => {
+      isReprocessing.value = false
+    }, REPROCESS_RETRY_DELAY_MS)
+  }
+  catch (error) {
+    console.error(`Failed to check ${mediaType.toLowerCase()} availability`, error)
     runtimeError.value = `${mediaType} failed to load`
   }
 }

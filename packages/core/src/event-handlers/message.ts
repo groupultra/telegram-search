@@ -74,14 +74,20 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
         // Fetch specific messages by their IDs from Telegram
         const messages = await messageService.fetchSpecificMessages(chatId, messageIds)
 
-        if (messages.length > 0) {
-          logger.withFields({ count: messages.length, resolvers }).verbose('Fetched messages for re-processing')
-          // TODO: Pass resolvers filter to message:process to run only specific resolvers
-          emitter.emit('message:process', { messages })
-        }
-        else {
+        if (messages.length === 0) {
           logger.withFields({ chatId, messageIds }).warn('No messages found for re-processing')
+          return
         }
+
+        logger.withFields({ count: messages.length, resolvers }).verbose('Fetched messages for re-processing')
+
+        // NOTE: The 'resolvers' parameter is currently not passed to message:process.
+        // The message:process event runs all enabled resolvers (not disabled in account settings).
+        // This is acceptable for the initial implementation since re-downloading media
+        // will also update other resolver outputs (embeddings, tokens, etc.) if enabled.
+        // Future enhancement: Add resolver filtering to message:process event to run only
+        // specific resolvers and avoid unnecessary work.
+        emitter.emit('message:process', { messages })
       }
       catch (error) {
         logger.withError(error as Error).warn('Failed to re-process messages')
