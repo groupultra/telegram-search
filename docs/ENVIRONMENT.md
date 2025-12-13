@@ -19,8 +19,6 @@ These variables can be set when starting the Docker container or during runtime:
 | `HOST` | `0.0.0.0` | Backend listen host inside the container |
 | `BACKEND_URL` | `http://127.0.0.1:3000` | Nginx upstream URL for `/api` and `/ws` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | - | OpenTelemetry OTLP endpoint for sending logs to Loki (e.g., `http://localhost:3100/otlp/v1/logs`) |
-| `OTEL_SERVICE_NAME` | `telegram-search` | Service name for OpenTelemetry logs |
-| `OTEL_SERVICE_VERSION` | - | Service version for OpenTelemetry logs |
 
 > [!IMPORTANT]
 > AI Embedding & LLM settings are now configured **per account inside the app** (Settings → API).  
@@ -112,7 +110,6 @@ docker run -d --name telegram-search \
   -p 3333:3333 \
   -v telegram-search-data:/app/data \
   -e OTEL_EXPORTER_OTLP_ENDPOINT=http://loki-host:3100/otlp/v1/logs \
-  -e OTEL_SERVICE_NAME=telegram-search \
   ghcr.io/groupultra/telegram-search:latest
 ```
 
@@ -222,8 +219,6 @@ services:
 
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:3100/otlp/v1/logs
-OTEL_SERVICE_NAME=telegram-search
-# OTEL_SERVICE_VERSION is optional and defaults to the package version
 ```
 
 3. **Restart the server**. Logs will now be exported to Loki via OTLP HTTP protocol.

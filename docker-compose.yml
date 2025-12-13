@@ -59,7 +59,7 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
     healthcheck:
-      test: [CMD-SHELL, 'curl -f http://localhost/health || exit 1']
+      test: [CMD-SHELL, 'curl -f http://localhost:3333/api/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3

@@ -2,7 +2,9 @@ import { logs, SeverityNumber } from '@opentelemetry/api-logs'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
 import { resourceFromAttributes } from '@opentelemetry/resources'
 import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs'
-import { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
+
+import pkg from '../../package.json' with { type: 'json' }
 
 let loggerProvider: LoggerProvider | null = null
 let isInitialized = false
@@ -63,8 +65,8 @@ export function initOtelLogger(config: OtelConfig): void {
 
     // Create resource with service information
     const resource = resourceFromAttributes({
-      [SEMRESATTRS_SERVICE_NAME]: config.serviceName || 'telegram-search',
-      [SEMRESATTRS_SERVICE_VERSION]: config.serviceVersion || '1.0.0',
+      [ATTR_SERVICE_NAME]: config.serviceName || 'telegram-search',
+      [ATTR_SERVICE_VERSION]: config.serviceVersion || pkg.version,
     })
 
     // Create logger provider with resource and processor
