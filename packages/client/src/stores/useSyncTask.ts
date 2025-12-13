@@ -1,11 +1,11 @@
-import type { ChatSyncStats, CoreTask } from '@tg-search/core'
+import type { ChatSyncStats, CoreTaskData } from '@tg-search/core'
 
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 export const useSyncTaskStore = defineStore('sync-task', () => {
   const increase = ref(false)
-  const currentTask = ref<CoreTask<'takeout'>>()
+  const currentTask = ref<CoreTaskData<'takeout'>>()
   const chatStats = ref<ChatSyncStats>()
   const chatStatsLoading = ref(false)
 
@@ -13,7 +13,7 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
     if (!currentTask.value)
       return 0
 
-    return currentTask.value.state.progress
+    return currentTask.value.progress
   })
 
   return {
