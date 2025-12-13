@@ -5,6 +5,7 @@ import process from 'node:process'
 
 import figlet from 'figlet'
 
+// @ts-expect-error - TODO: setGlobalAfterLog
 import { initLogger, setGlobalAfterLog, useLogger } from '@guiiai/logg'
 import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
 import { models } from '@tg-search/core'
