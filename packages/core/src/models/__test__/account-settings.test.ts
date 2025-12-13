@@ -8,7 +8,7 @@ import { mockDB } from '../../db/mock'
 import { accountsTable } from '../../schemas/accounts'
 import { accountSettingsSchema } from '../../types/account-settings'
 import { generateDefaultAccountSettings } from '../../utils/account-settings'
-import { fetchSettingsByAccountId, updateAccountSettings } from '../account-settings'
+import { accountSettingsModels } from '../account-settings'
 
 async function setupDb() {
   return mockDB({
@@ -20,7 +20,7 @@ describe('models/account-settings', () => {
   it('fetchSettingsByAccountId returns default settings when account does not exist', async () => {
     const db = await setupDb()
 
-    expect((await fetchSettingsByAccountId(db, uuidv4())).unwrap()).toEqual(generateDefaultAccountSettings())
+    expect((await accountSettingsModels.fetchSettingsByAccountId(db, uuidv4())).unwrap()).toEqual(generateDefaultAccountSettings())
   })
 
   it('fetchSettingsByAccountId returns parsed settings when present and valid', async () => {
@@ -35,7 +35,7 @@ describe('models/account-settings', () => {
       settings: customSettings,
     }).returning()
 
-    const result = await fetchSettingsByAccountId(db, account.id)
+    const result = await accountSettingsModels.fetchSettingsByAccountId(db, account.id)
     const settings = result.unwrap()
 
     expect(settings.embedding?.model).toBe('custom-model')
@@ -51,7 +51,7 @@ describe('models/account-settings', () => {
       settings: { invalid: true } as unknown as AccountSettings,
     }).returning()
 
-    const result = await fetchSettingsByAccountId(db, account.id)
+    const result = await accountSettingsModels.fetchSettingsByAccountId(db, account.id)
     const settings = result.unwrap()
 
     expect(settings).toEqual(generateDefaultAccountSettings())
@@ -76,7 +76,7 @@ describe('models/account-settings', () => {
       throw new Error('Failed to parse settings', { cause: parsed.issues })
     }
 
-    const result = await updateAccountSettings(db, account.id, parsed.output)
+    const result = await accountSettingsModels.updateAccountSettings(db, account.id, parsed.output)
     const updated = result
 
     expect(updated.settings).toEqual(parsed.output)
@@ -91,7 +91,7 @@ describe('models/account-settings', () => {
     }).returning()
 
     await expect(async () => {
-      await updateAccountSettings(db, account.id, {
+      await accountSettingsModels.updateAccountSettings(db, account.id, {
         // @ts-expect-error runtime validation should reject invalid enum
         embedding: { dimension: 999 },
       })

@@ -1,7 +1,7 @@
 import type { CoreMessageMediaFromBlob, MediaBinaryLocation } from '@tg-search/core'
 
 import { useLogger } from '@guiiai/logg'
-import { findPhotoByQueryId, findStickerByQueryId, getMediaBinaryProvider } from '@tg-search/core'
+import { getMediaBinaryProvider, models } from '@tg-search/core'
 
 import { getDB } from './core-db'
 
@@ -16,7 +16,7 @@ export async function hydrateMediaBlobWithCore(media: CoreMessageMediaFromBlob):
 
   try {
     if (media.type === 'photo') {
-      const photo = (await findPhotoByQueryId(db, media.queryId)).orUndefined()
+      const photo = (await models.photoModels.findPhotoByQueryId(db, media.queryId)).orUndefined()
       const provider = getMediaBinaryProvider()
 
       let bytes: Uint8Array | undefined
@@ -49,7 +49,7 @@ export async function hydrateMediaBlobWithCore(media: CoreMessageMediaFromBlob):
     }
 
     if (media.type === 'sticker') {
-      const sticker = (await findStickerByQueryId(db, media.queryId)).orUndefined()
+      const sticker = (await models.stickerModels.findStickerByQueryId(db, media.queryId)).orUndefined()
       const provider = getMediaBinaryProvider()
 
       let bytes: Uint8Array | undefined

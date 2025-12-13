@@ -1,5 +1,7 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
+import type { PhotoModels } from '../models/photos'
+import type { StickerModels } from '../models/stickers'
 import type { CoreMessageMediaFromServer, CoreMessageMediaPhoto, CoreMessageMediaSticker, CoreMessageMediaWebPage } from '../types/media'
 import type { CoreMessage } from '../types/message'
 
@@ -13,16 +15,10 @@ import { Api } from 'telegram'
 import { v4 as uuidv4 } from 'uuid'
 
 import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
-import {
-  findPhotoByFileIdWithMimeType,
-  getStickerQueryIdByFileIdWithMimeType,
-  recordPhotos,
-  recordStickers,
-} from '../models'
 import { must0 } from '../models/utils/must'
 import { getMediaBinaryProvider } from '../utils/media-storage'
 
-export function createMediaResolver(ctx: CoreContext): MessageResolver {
+export function createMediaResolver(ctx: CoreContext, photoModels: PhotoModels, stickerModels: StickerModels): MessageResolver {
   const logger = useLogger('core:resolver:media')
   // Create concurrency limit queue
   const downloadQueue = newQueue(MEDIA_DOWNLOAD_CONCURRENCY)
@@ -50,7 +46,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             // Stickers: prefer existing DB row -> queryId, otherwise download & store.
             if (media.type === 'sticker') {
               try {
-                const sticker = (await getStickerQueryIdByFileIdWithMimeType(db, media.platformId)).orUndefined()
+                const sticker = (await stickerModels.getStickerQueryIdByFileIdWithMimeType(db, media.platformId)).orUndefined()
 
                 if (sticker) {
                   return {
@@ -70,7 +66,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
             // Photos: prefer existing DB row -> queryId, otherwise download & store.
             if (media.type === 'photo') {
               try {
-                const photo = (await findPhotoByFileIdWithMimeType(db, media.platformId)).orUndefined()
+                const photo = (await photoModels.findPhotoByFileIdWithMimeType(db, media.platformId)).orUndefined()
                 if (photo) {
                   return {
                     messageUUID: message.uuid,
@@ -123,7 +119,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                     storagePath = location.path
                   }
 
-                  const result = await recordPhotos(db, [{
+                  const result = await photoModels.recordPhotos(db, [{
                     uuid,
                     type: 'photo',
                     platformId: media.platformId,
@@ -157,7 +153,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                     storagePath = location.path
                   }
 
-                  const result = await recordStickers(db, [{
+                  const result = await stickerModels.recordStickers(db, [{
                     uuid,
                     type: 'sticker',
                     platformId: media.platformId,

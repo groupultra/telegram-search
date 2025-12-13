@@ -5,9 +5,10 @@ import type { CoreDB } from './db'
 
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, basicEventHandler, useEventHandler } from './event-handler'
+import { models } from './models'
 
 export function createCoreInstance(db: CoreDB, config: Config, metrics?: CoreMetrics): CoreContext {
-  const ctx = createCoreContext(db, metrics)
+  const ctx = createCoreContext({ db, metrics, models })
 
   const { register: registerEventHandler } = useEventHandler(ctx, config)
   registerEventHandler(basicEventHandler)

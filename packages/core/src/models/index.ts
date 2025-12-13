@@ -19,3 +19,5 @@ export const models = {
   accountSettingsModels,
   accountModels,
 }
+
+export type Models = typeof models

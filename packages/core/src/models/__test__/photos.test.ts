@@ -6,14 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { mockDB } from '../../db/mock'
 import { photosTable } from '../../schemas/photos'
-import {
-  findPhotoByFileId,
-  findPhotoByFileIdWithMimeType,
-  findPhotoByQueryId,
-  findPhotosByMessageId,
-  findPhotosByMessageIds,
-  recordPhotos,
-} from '../photos'
+import { photoModels } from '../photos'
 
 async function setupDb() {
   return mockDB({
@@ -25,10 +18,10 @@ describe('models/photos', () => {
   it('recordPhotos returns empty array when there is no media with bytes', async () => {
     const db = await setupDb()
 
-    const resultEmpty = await recordPhotos(db, [])
+    const resultEmpty = await photoModels.recordPhotos(db, [])
     expect(resultEmpty).toEqual([])
 
-    const resultNoBytes = await recordPhotos(db, [
+    const resultNoBytes = await photoModels.recordPhotos(db, [
       {
         uuid: uuidv4(),
         type: 'photo',
@@ -49,7 +42,7 @@ describe('models/photos', () => {
     const messageUUID = uuidv4()
 
     // First insert with inline bytes only.
-    await recordPhotos(db, [
+    await photoModels.recordPhotos(db, [
       {
         uuid: uuidv4(),
         type: 'photo',
@@ -66,7 +59,7 @@ describe('models/photos', () => {
     expect(row.image_path).toBe('')
 
     // Second insert switches to external storage only (no inline bytes).
-    await recordPhotos(db, [
+    await photoModels.recordPhotos(db, [
       {
         uuid: uuidv4(),
         type: 'photo',
@@ -92,7 +85,7 @@ describe('models/photos', () => {
     const secondBytes = Buffer.from([9, 9, 9, 9])
     const messageUUID = uuidv4()
 
-    const first = await recordPhotos(db, [
+    const first = await photoModels.recordPhotos(db, [
       {
         uuid: uuidv4(),
         type: 'photo',
@@ -108,7 +101,7 @@ describe('models/photos', () => {
     expect(inserted[0].file_id).toBe('file-1')
     expect(inserted[0].image_mime_type).toEqual('image/jpeg')
 
-    const second = await recordPhotos(db, [
+    const second = await photoModels.recordPhotos(db, [
       {
         uuid: uuidv4(),
         type: 'photo',
@@ -139,11 +132,11 @@ describe('models/photos', () => {
       image_mime_type: 'image/jpeg',
     }).returning()
 
-    const byFileId = (await findPhotoByFileId(db, 'file-42')).unwrap()
+    const byFileId = (await photoModels.findPhotoByFileId(db, 'file-42')).unwrap()
     expect(byFileId.id).toBe(inserted.id)
     expect(byFileId.image_mime_type).toBe('image/jpeg')
 
-    const byQueryId = (await findPhotoByQueryId(db, inserted.id)).unwrap()
+    const byQueryId = (await photoModels.findPhotoByQueryId(db, inserted.id)).unwrap()
     expect(byQueryId.id).toBe(inserted.id)
     expect(byQueryId.image_mime_type).toBe('image/jpeg')
   })
@@ -157,7 +150,7 @@ describe('models/photos', () => {
       image_mime_type: 'image/png',
     }).returning()
 
-    const result = (await findPhotoByFileIdWithMimeType(db, 'file-mime')).unwrap()
+    const result = (await photoModels.findPhotoByFileIdWithMimeType(db, 'file-mime')).unwrap()
 
     expect(result.id).toBe(inserted.id)
     expect(result.mimeType).toBe('image/png')
@@ -190,10 +183,10 @@ describe('models/photos', () => {
       },
     ])
 
-    const forMsg1 = (await findPhotosByMessageId(db, messageUuid1)).unwrap()
+    const forMsg1 = (await photoModels.findPhotosByMessageId(db, messageUuid1)).unwrap()
     expect(forMsg1.map(p => p.file_id).sort()).toEqual(['file-a', 'file-b'])
 
-    const forBoth = (await findPhotosByMessageIds(db, [
+    const forBoth = (await photoModels.findPhotosByMessageIds(db, [
       messageUuid1,
       messageUuid3,
     ])).unwrap()

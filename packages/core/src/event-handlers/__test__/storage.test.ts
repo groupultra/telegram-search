@@ -4,81 +4,69 @@ import { Ok } from '@unbird/result'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createCoreContext } from '../../context'
-import {
-  fetchChatsByAccountId,
-  fetchMessagesWithPhotos,
-  getChatMessagesStats,
-  isChatAccessibleByAccount,
-  recordChats,
-  retrieveMessages,
-} from '../../models'
 import { registerStorageEventHandlers } from '../storage'
+import type { Models } from '../../models'
 
-vi.mock('../../models', () => {
-  // Dialog-related mocks
-  const fetchChatsByAccountId = vi.fn(async (_db: unknown, _accountId: string) => {
-    const rows = [
-      {
-        id: 'joined-chat-1',
-        platform: 'telegram',
-        chat_id: '1001',
-        chat_name: 'Test Chat',
-        chat_type: 'user',
-        dialog_date: Date.now(),
-        created_at: Date.now(),
-        updated_at: Date.now(),
-      },
-    ]
-    return Ok(rows)
-  })
+const fetchChatsByAccountId = vi.fn(async (_db: unknown, _accountId: string) => {
+  const rows = [
+    {
+      id: 'joined-chat-1',
+      platform: 'telegram',
+      chat_id: '1001',
+      chat_name: 'Test Chat',
+      chat_type: 'user',
+      dialog_date: Date.now(),
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    },
+  ]
+  return Ok(rows)
+})
 
-  const getChatMessagesStats = vi.fn(async (_db: unknown, _accountId: string) => {
-    const stats = [
-      {
-        chat_id: '1001',
-        message_count: 42,
-      },
-    ]
-    return Ok(stats)
-  })
+const getChatMessagesStats = vi.fn(async (_db: unknown, _accountId: string) => {
+  const stats = [
+    {
+      chat_id: '1001',
+      message_count: 42,
+    },
+  ]
+  return Ok(stats)
+})
 
-  const recordChats = vi.fn(async (_db: unknown, _dialogs: CoreDialog[], _accountId?: string) => {
-    // Simulate Result-like object used by production code
-    return {
-      expect<T>(_message: string): T[] {
-        // For this test we don't need to assert on returned value
-        return [] as unknown as T[]
-      },
-    }
-  })
-
-  // Message-related mocks
-  const isChatAccessibleByAccount = vi.fn(async (_db: unknown, _accountId: string, _chatId: string) => Ok(true))
-  const fetchMessageContextWithPhotos = vi.fn()
-  const fetchMessagesWithPhotos = vi.fn(async (_db: unknown, _accountId: string, _chatId: string, _pagination: unknown) => Ok([] as unknown[]))
-  const recordMessagesWithMedia = vi.fn()
-  const retrieveMessages = vi.fn(async (_db: unknown, _accountId: string, _chatId: string | undefined, _dimension: unknown, _content: unknown, _pagination: unknown, _filters: unknown) => Ok([] as unknown[]))
-
+const recordChats = vi.fn(async (_db: unknown, _dialogs: CoreDialog[], _accountId?: string) => {
+  // Simulate Result-like object used by production code
   return {
+    expect<T>(_message: string): T[] {
+      // For this test we don't need to assert on returned value
+      return [] as unknown as T[]
+    },
+  }
+})
+
+// Message-related mocks
+const isChatAccessibleByAccount = vi.fn(async (_db: unknown, _accountId: string, _chatId: string) => Ok(true))
+const fetchMessageContextWithPhotos = vi.fn()
+const fetchMessagesWithPhotos = vi.fn(async (_db: unknown, _accountId: string, _chatId: string, _pagination: unknown) => Ok([] as unknown[]))
+const recordMessagesWithMedia = vi.fn()
+const retrieveMessages = vi.fn(async (_db: unknown, _accountId: string, _chatId: string | undefined, _dimension: unknown, _content: unknown, _pagination: unknown, _filters: unknown) => Ok([] as unknown[]))
+
+const models = {
+  chatModels: {
     fetchChatsByAccountId,
     getChatMessagesStats,
     recordChats,
-
     isChatAccessibleByAccount,
     fetchMessageContextWithPhotos,
     fetchMessagesWithPhotos,
     recordMessagesWithMedia,
     retrieveMessages,
-
-    // Unused here but required by storage.ts
-    convertToCoreRetrievalMessages: vi.fn(),
-  }
-})
+  },
+} as unknown as Models
 
 describe('storage event handlers - dialogs with accounts', () => {
   it('storage:fetch:dialogs should query dialogs for given account and emit mapped dialogs', async () => {
     const ctx = createCoreContext()
-    registerStorageEventHandlers(ctx)
+    registerStorageEventHandlers(ctx, models)
 
     const ACCOUNT_ID = 'account-xyz'
 
@@ -109,7 +97,7 @@ describe('storage event handlers - dialogs with accounts', () => {
 
   it('storage:record:dialogs should call recordChats with dialogs and accountId', async () => {
     const ctx = createCoreContext()
-    registerStorageEventHandlers(ctx)
+    registerStorageEventHandlers(ctx, models)
 
     const ACCOUNT_ID = 'account-abc'
     const dialogs: CoreDialog[] = [
@@ -131,7 +119,7 @@ describe('storage event handlers - dialogs with accounts', () => {
 describe('storage event handlers - message access control', () => {
   it('storage:fetch:messages should reject when account has no access to chat', async () => {
     const ctx = createCoreContext()
-    registerStorageEventHandlers(ctx)
+    registerStorageEventHandlers(ctx, models)
 
     const ACCOUNT_ID = 'account-no-access'
     const CHAT_ID = '1001'
@@ -161,7 +149,7 @@ describe('storage event handlers - message access control', () => {
 
   it('storage:search:messages should reject when account has no access to specified chatId', async () => {
     const ctx = createCoreContext()
-    registerStorageEventHandlers(ctx)
+    registerStorageEventHandlers(ctx, models)
 
     const ACCOUNT_ID = 'account-no-access'
     const CHAT_ID = '2002'

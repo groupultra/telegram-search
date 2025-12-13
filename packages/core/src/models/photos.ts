@@ -26,7 +26,7 @@ type PhotoMediaForRecord = CoreMessageMediaPhoto & {
   storagePath?: string
 }
 
-export async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<DBInsertPhoto[]> {
+async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<DBInsertPhoto[]> {
   if (media.length === 0) {
     return []
   }
@@ -71,7 +71,7 @@ export async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Pr
 /**
  * Find a photo by file_id
  */
-export async function findPhotoByFileId(db: CoreDB, fileId: string): PromiseResult<DBSelectPhoto> {
+async function findPhotoByFileId(db: CoreDB, fileId: string): PromiseResult<DBSelectPhoto> {
   return withResult(async () => {
     const photos = await db
       .select()
@@ -91,7 +91,7 @@ export async function findPhotoByFileId(db: CoreDB, fileId: string): PromiseResu
 /**
  * Find a photo by file_id with mime_type
  */
-export async function findPhotoByFileIdWithMimeType(db: CoreDB, fileId: string): PromiseResult<{ id: string, mimeType: string }> {
+async function findPhotoByFileIdWithMimeType(db: CoreDB, fileId: string): PromiseResult<{ id: string, mimeType: string }> {
   return withResult(async () => {
     const photos = await db
       .select({
@@ -114,7 +114,7 @@ export async function findPhotoByFileIdWithMimeType(db: CoreDB, fileId: string):
 /**
  * Find a photo by query_id
  */
-export async function findPhotoByQueryId(db: CoreDB, queryId: string): PromiseResult<DBSelectPhoto> {
+async function findPhotoByQueryId(db: CoreDB, queryId: string): PromiseResult<DBSelectPhoto> {
   return withResult(async () => {
     const photos = await db
       .select()
@@ -126,7 +126,7 @@ export async function findPhotoByQueryId(db: CoreDB, queryId: string): PromiseRe
   })
 }
 
-export async function findPhotosByMessageId(db: CoreDB, messageUUID: string): PromiseResult<DBSelectPhoto[]> {
+async function findPhotosByMessageId(db: CoreDB, messageUUID: string): PromiseResult<DBSelectPhoto[]> {
   return withResult(() => db
     .select()
     .from(photosTable)
@@ -134,7 +134,7 @@ export async function findPhotosByMessageId(db: CoreDB, messageUUID: string): Pr
   )
 }
 
-export async function findPhotosByMessageIds(db: CoreDB, messageUUIDs: string[]): PromiseResult<DBSelectPhoto[]> {
+async function findPhotosByMessageIds(db: CoreDB, messageUUIDs: string[]): PromiseResult<DBSelectPhoto[]> {
   return withResult(() => db
     .select()
     .from(photosTable)
@@ -150,3 +150,5 @@ export const photoModels = {
   findPhotosByMessageId,
   findPhotosByMessageIds,
 }
+
+export type PhotoModels = typeof photoModels

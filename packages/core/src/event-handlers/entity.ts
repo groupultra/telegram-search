@@ -1,11 +1,10 @@
 import type { CoreContext } from '../context'
+import type { AccountModels } from '../models/accounts'
 import type { EntityService } from '../services/entity'
 
 import { useLogger } from '@guiiai/logg'
 
-import { recordAccount } from '../models'
-
-export function registerEntityEventHandlers(ctx: CoreContext) {
+export function registerEntityEventHandlers(ctx: CoreContext, accountModels: AccountModels) {
   const logger = useLogger('core:entity:event')
 
   return (entityService: EntityService) => {
@@ -18,7 +17,7 @@ export function registerEntityEventHandlers(ctx: CoreContext) {
       // Record account and set current account ID
       logger.withFields({ userId: meInfo.id }).verbose('Recording account for current user')
 
-      const account = await recordAccount(ctx.getDB(), 'telegram', meInfo.id)
+      const account = await accountModels.recordAccount(ctx.getDB(), 'telegram', meInfo.id)
       ctx.setCurrentAccountId(account.id)
 
       logger.withFields({ accountId: account.id }).verbose('Set current account ID')

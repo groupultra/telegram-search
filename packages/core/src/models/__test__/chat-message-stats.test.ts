@@ -5,7 +5,7 @@ import { accountsTable } from '../../schemas/accounts'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { usersTable } from '../../schemas/users'
-import { getChatMessagesStats, getChatMessageStatsByChatId } from '../chat-message-stats'
+import { chatMessageStatsModels } from '../chat-message-stats'
 
 async function setupDb() {
   return mockDB({
@@ -118,7 +118,7 @@ describe('models/chat-message-stats', () => {
       },
     ])
 
-    const stats = (await getChatMessagesStats(db, account.id)).unwrap()
+    const stats = (await chatMessageStatsModels.getChatMessagesStats(db, account.id)).unwrap()
 
     const privateStats = stats.find(s => s.chat_id === privateChat.chat_id)
     const groupStats = stats.find(s => s.chat_id === groupChat.chat_id)
@@ -197,7 +197,7 @@ describe('models/chat-message-stats', () => {
       },
     ])
 
-    const stat = (await getChatMessageStatsByChatId(db, account.id, privateChat.chat_id)).unwrap()
+    const stat = (await chatMessageStatsModels.getChatMessageStatsByChatId(db, account.id, privateChat.chat_id)).unwrap()
 
     expect(stat.message_count).toBe(2)
     expect(stat.first_message_id).toBe(1)

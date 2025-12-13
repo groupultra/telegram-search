@@ -6,7 +6,7 @@ import { mockDB } from '../../db/mock'
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { accountsTable } from '../../schemas/accounts'
 import { joinedChatsTable } from '../../schemas/joined-chats'
-import { fetchChats, fetchChatsByAccountId, isChatAccessibleByAccount, recordChats } from '../chats'
+import { chatModels } from '../chats'
 
 async function setupDb() {
   return mockDB({
@@ -40,7 +40,7 @@ describe('models/chats', () => {
       },
     ]
 
-    const result = await recordChats(db, dialogs, account.id)
+    const result = await chatModels.recordChats(db, dialogs, account.id)
     const inserted = result
 
     expect(inserted).toHaveLength(2)
@@ -70,7 +70,7 @@ describe('models/chats', () => {
       },
     ]
 
-    await recordChats(db, dialogsV1, account.id)
+    await chatModels.recordChats(db, dialogsV1, account.id)
 
     const dialogsV2: CoreDialog[] = [
       {
@@ -81,7 +81,7 @@ describe('models/chats', () => {
       },
     ]
 
-    await recordChats(db, dialogsV2, account.id)
+    await chatModels.recordChats(db, dialogsV2, account.id)
 
     const [chat] = await db.select().from(joinedChatsTable)
 
@@ -108,7 +108,7 @@ describe('models/chats', () => {
       },
     ])
 
-    const result = await fetchChats(db)
+    const result = await chatModels.fetchChats(db)
     const chats = result.unwrap()
 
     expect(chats.map(c => c.chat_id)).toEqual(['2', '1'])
@@ -145,10 +145,10 @@ describe('models/chats', () => {
       },
     ]
 
-    await recordChats(db, dialogsForAccount1, account1.id)
-    await recordChats(db, dialogsForAccount2, account2.id)
+    await chatModels.recordChats(db, dialogsForAccount1, account1.id)
+    await chatModels.recordChats(db, dialogsForAccount2, account2.id)
 
-    const result = await fetchChatsByAccountId(db, account1.id)
+    const result = await chatModels.fetchChatsByAccountId(db, account1.id)
     const chats = result.unwrap()
 
     expect(chats).toHaveLength(1)
@@ -177,10 +177,10 @@ describe('models/chats', () => {
       },
     ]
 
-    await recordChats(db, dialogs, account1.id)
+    await chatModels.recordChats(db, dialogs, account1.id)
 
-    const okForAccount1 = (await isChatAccessibleByAccount(db, account1.id, '1')).unwrap()
-    const okForAccount2 = (await isChatAccessibleByAccount(db, account2.id, '1')).unwrap()
+    const okForAccount1 = (await chatModels.isChatAccessibleByAccount(db, account1.id, '1')).unwrap()
+    const okForAccount2 = (await chatModels.isChatAccessibleByAccount(db, account2.id, '1')).unwrap()
 
     expect(okForAccount1).toBe(true)
     expect(okForAccount2).toBe(false)

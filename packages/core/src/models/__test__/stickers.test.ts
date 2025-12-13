@@ -6,12 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { mockDB } from '../../db/mock'
 import { stickersTable } from '../../schemas/stickers'
-import {
-  findStickerByFileId,
-  findStickerByQueryId,
-  getStickerQueryIdByFileIdWithMimeType,
-  recordStickers,
-} from '../stickers'
+import { stickerModels } from '../stickers'
 
 async function setupDb() {
   return mockDB({
@@ -23,7 +18,7 @@ describe('models/stickers', () => {
   it('recordStickers deduplicates by file_id and ignores entries without bytes', async () => {
     const db = await setupDb()
 
-    await recordStickers(db, [
+    await stickerModels.recordStickers(db, [
       {
         uuid: uuidv4(),
         type: 'sticker',
@@ -62,7 +57,7 @@ describe('models/stickers', () => {
     const db = await setupDb()
 
     // Initial insert with inline bytes only.
-    await recordStickers(db, [
+    await stickerModels.recordStickers(db, [
       {
         uuid: uuidv4(),
         type: 'sticker',
@@ -79,7 +74,7 @@ describe('models/stickers', () => {
     expect(row.sticker_path).toBe('')
 
     // Second insert switches to external storage only (no inline bytes).
-    await recordStickers(db, [
+    await stickerModels.recordStickers(db, [
       {
         uuid: uuidv4(),
         type: 'sticker',
@@ -100,7 +95,7 @@ describe('models/stickers', () => {
   it('recordStickers updates emoji and bytes on conflict', async () => {
     const db = await setupDb()
 
-    await recordStickers(db, [
+    await stickerModels.recordStickers(db, [
       {
         uuid: uuidv4(),
         type: 'sticker',
@@ -111,7 +106,7 @@ describe('models/stickers', () => {
       },
     ])
 
-    await recordStickers(db, [
+    await stickerModels.recordStickers(db, [
       {
         uuid: uuidv4(),
         type: 'sticker',
@@ -142,15 +137,15 @@ describe('models/stickers', () => {
       sticker_mime_type: 'image/webp',
     }).returning()
 
-    const byFileId = (await findStickerByFileId(db, 'file-123')).unwrap()
+    const byFileId = (await stickerModels.findStickerByFileId(db, 'file-123')).unwrap()
     expect(byFileId.id).toBe(inserted.id)
     expect(byFileId.sticker_mime_type).toBe('image/webp')
 
-    const queryId = (await getStickerQueryIdByFileIdWithMimeType(db, 'file-123')).unwrap()
+    const queryId = (await stickerModels.getStickerQueryIdByFileIdWithMimeType(db, 'file-123')).unwrap()
     expect(queryId.id).toBe(inserted.id)
     expect(queryId.mimeType).toBe('image/webp')
 
-    const byQueryId = (await findStickerByQueryId(db, inserted.id)).unwrap()
+    const byQueryId = (await stickerModels.findStickerByQueryId(db, inserted.id)).unwrap()
     expect(byQueryId.id).toBe(inserted.id)
     expect(byQueryId.sticker_mime_type).toBe('image/webp')
   })

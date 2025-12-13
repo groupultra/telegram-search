@@ -1,21 +1,12 @@
 import type { CoreContext } from '../context'
-import type { DBRetrievalMessages } from '../models'
+import type { Models } from '../models'
+import type { DBRetrievalMessages } from '../models/utils/message'
 import type { CoreDialog } from '../types/dialog'
 import type { CoreMessage } from '../types/message'
 
 import { useLogger } from '@guiiai/logg'
 
-import {
-  convertToCoreRetrievalMessages,
-  fetchChatsByAccountId,
-  fetchMessageContextWithPhotos,
-  fetchMessagesWithPhotos,
-  getChatMessagesStats,
-  isChatAccessibleByAccount,
-  recordChats,
-  recordMessages,
-  retrieveMessages,
-} from '../models'
+import { convertToCoreRetrievalMessages } from '../models/utils/message'
 import { embedContents } from '../utils/embed'
 
 /**
@@ -25,21 +16,21 @@ function hasNoMedia(message: CoreMessage): boolean {
   return !message.media || message.media.length === 0
 }
 
-export function registerStorageEventHandlers(ctx: CoreContext) {
+export function registerStorageEventHandlers(ctx: CoreContext, dbModels: Models) {
   const logger = useLogger('core:storage:event')
 
   ctx.emitter.on('storage:fetch:messages', async ({ chatId, pagination }) => {
     logger.withFields({ chatId, pagination }).verbose('Fetching messages')
 
     const accountId = ctx.getCurrentAccountId()
-    const hasAccess = (await isChatAccessibleByAccount(ctx.getDB(), accountId, chatId)).expect('Failed to check chat access')
+    const hasAccess = (await dbModels.chatModels.isChatAccessibleByAccount(ctx.getDB(), accountId, chatId)).expect('Failed to check chat access')
 
     if (!hasAccess) {
       ctx.withError('Unauthorized chat access', 'Account does not have access to requested chat messages')
       return
     }
 
-    const messages = (await fetchMessagesWithPhotos(ctx.getDB(), accountId, chatId, pagination)).unwrap()
+    const messages = (await dbModels.chatMessageModels.fetchMessagesWithPhotos(ctx.getDB(), dbModels.photoModels, accountId, chatId, pagination)).unwrap()
     ctx.emitter.emit('storage:messages', { messages })
   })
 
@@ -50,15 +41,16 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
     logger.withFields({ chatId, messageId, before: safeBefore, after: safeAfter }).verbose('Fetching message context')
 
     const accountId = ctx.getCurrentAccountId()
-    const hasAccess = (await isChatAccessibleByAccount(ctx.getDB(), accountId, chatId)).expect('Failed to check chat access')
+    const hasAccess = (await dbModels.chatModels.isChatAccessibleByAccount(ctx.getDB(), accountId, chatId)).expect('Failed to check chat access')
 
     if (!hasAccess) {
       ctx.withError('Unauthorized chat access', 'Account does not have access to requested message context')
       return
     }
 
-    const messages = (await fetchMessageContextWithPhotos(
+    const messages = (await dbModels.chatMessageModels.fetchMessageContextWithPhotos(
       ctx.getDB(),
+      dbModels.photoModels,
       accountId,
       { chatId, messageId, before: safeBefore, after: safeAfter },
     )).unwrap()
@@ -89,7 +81,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
   ctx.emitter.on('storage:record:messages', async ({ messages }) => {
     const accountId = ctx.getCurrentAccountId()
 
-    await recordMessages(ctx.getDB(), accountId, messages)
+    await dbModels.chatMessageModels.recordMessages(ctx.getDB(), accountId, messages)
 
     logger.withFields({ messages: messages.length, accountId }).verbose('Messages recorded')
   })
@@ -99,8 +91,8 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
 
     const accountId = data?.accountId || ctx.getCurrentAccountId()
 
-    const dbChats = (await fetchChatsByAccountId(ctx.getDB(), accountId))?.unwrap()
-    const chatsMessageStats = (await getChatMessagesStats(ctx.getDB(), accountId))?.unwrap()
+    const dbChats = (await dbModels.chatModels.fetchChatsByAccountId(ctx.getDB(), accountId))?.unwrap()
+    const chatsMessageStats = (await dbModels.chatMessageStatsModels.getChatMessagesStats(ctx.getDB(), accountId))?.unwrap()
 
     logger.withFields({ accountId, dbChatsSize: dbChats.length, chatsMessageStatsSize: chatsMessageStats.length }).verbose('Fetched dialogs for account')
 
@@ -131,7 +123,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       return
     }
 
-    const result = await recordChats(ctx.getDB(), dialogs, accountId)
+    const result = await dbModels.chatModels.recordChats(ctx.getDB(), dialogs, accountId)
     logger.withFields({ recorded: result.length }).verbose('Successfully recorded dialogs')
   })
 
@@ -145,7 +137,7 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
     }
 
     if (params.chatId) {
-      const hasAccess = (await isChatAccessibleByAccount(ctx.getDB(), accountId, params.chatId)).expect('Failed to check chat access')
+      const hasAccess = (await dbModels.chatModels.isChatAccessibleByAccount(ctx.getDB(), accountId, params.chatId)).expect('Failed to check chat access')
 
       if (!hasAccess) {
         ctx.withError('Unauthorized chat access', 'Account does not have access to requested chat messages')
@@ -168,10 +160,10 @@ export function registerStorageEventHandlers(ctx: CoreContext) {
       if (embeddingResult)
         embedding = embeddingResult.embeddings[0]
 
-      dbMessages = (await retrieveMessages(ctx.getDB(), accountId, params.chatId, embeddingDimension, { embedding, text: params.content }, params.pagination, filters)).expect('Failed to retrieve messages')
+      dbMessages = (await dbModels.chatMessageModels.retrieveMessages(ctx.getDB(), accountId, params.chatId, embeddingDimension, { embedding, text: params.content }, params.pagination, filters)).expect('Failed to retrieve messages')
     }
     else {
-      dbMessages = (await retrieveMessages(ctx.getDB(), accountId, params.chatId, embeddingDimension, { text: params.content }, params.pagination, filters)).expect('Failed to retrieve messages')
+      dbMessages = (await dbModels.chatMessageModels.retrieveMessages(ctx.getDB(), accountId, params.chatId, embeddingDimension, { text: params.content }, params.pagination, filters)).expect('Failed to retrieve messages')
     }
 
     logger.withFields({ messages: dbMessages.length }).verbose('Retrieved messages')

@@ -21,6 +21,12 @@ import { createJiebaResolver } from './message-resolvers/jieba-resolver'
 import { createLinkResolver } from './message-resolvers/link-resolver'
 import { createMediaResolver } from './message-resolvers/media-resolver'
 import { createUserResolver } from './message-resolvers/user-resolver'
+import { models } from './models'
+import { accountModels } from './models/accounts'
+import { chatMessageStatsModels } from './models/chat-message-stats'
+import { photoModels } from './models/photos'
+import { stickerModels } from './models/stickers'
+import { userModels } from './models/users'
 import { createAccountSettingsService } from './services/account-settings'
 import { createConnectionService } from './services/connection'
 import { createDialogService } from './services/dialog'
@@ -43,8 +49,8 @@ export function basicEventHandler(ctx: CoreContext, config: Config): EventHandle
   const configService = useService(ctx, createAccountSettingsService)
   const messageResolverService = useService(ctx, createMessageResolverService)(registry)
 
-  registry.register('media', createMediaResolver(ctx))
-  registry.register('user', createUserResolver(ctx))
+  registry.register('media', createMediaResolver(ctx, photoModels, stickerModels))
+  registry.register('user', createUserResolver(ctx, userModels))
   // Centralized avatar fetching for users (via messages)
   // Note: avatar resolver is registered but filtered by the disabled list
   // (see message-resolver service). Current strategy is client-driven and
@@ -55,7 +61,7 @@ export function basicEventHandler(ctx: CoreContext, config: Config): EventHandle
   registry.register('embedding', createEmbeddingResolver(ctx))
   registry.register('jieba', createJiebaResolver())
 
-  registerStorageEventHandlers(ctx)
+  registerStorageEventHandlers(ctx, models)
   registerAccountSettingsEventHandlers(ctx)(configService)
   registerMessageResolverEventHandlers(ctx)(messageResolverService)
 
@@ -75,14 +81,14 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     const gramEventsService = useService(ctx, createGramEventsService)
 
     // Register entity handlers first so we can establish currentAccountId.
-    registerEntityEventHandlers(ctx)(entityService)
+    registerEntityEventHandlers(ctx, accountModels)(entityService)
 
     // Ensure current account ID is established before any dialog/storage access.
     ctx.emitter.emit('entity:me:fetch')
 
     registerMessageEventHandlers(ctx)(messageService)
     registerDialogEventHandlers(ctx)(dialogService)
-    registerTakeoutEventHandlers(ctx)(takeoutService)
+    registerTakeoutEventHandlers(ctx, chatMessageStatsModels)(takeoutService)
     registerGramEventsEventHandlers(ctx)(gramEventsService)
 
     // Dialog bootstrap is now triggered from entity:me:fetch handler once
