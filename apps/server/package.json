@@ -18,6 +18,7 @@
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
+    "@unbird/result": "catalog:",
     "crossws": "^0.4.1",
     "figlet": "^1.9.4",
     "file-type": "^21.1.1",

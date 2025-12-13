@@ -1,38 +1,39 @@
 import type { Logger } from '@guiiai/logg'
 import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
+import type { Result } from '@unbird/result'
 
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
-import { Err, Ok } from '@unbird/result'
 
 import { setMediaBinaryProvider } from '@tg-search/core'
+import { Err, Ok } from '@unbird/result'
 import { Client as MinioClient } from 'minio'
 
 let minioClient: MinioClient | undefined
 
-function getMinioClient() {
+function getMinioClient(options: {
+  endpoint: string
+  port?: number
+  accessKey: string
+  secretKey: string
+  useSSL?: boolean
+}): Result<MinioClient> {
   if (minioClient) {
     return Ok(minioClient)
   }
 
-  const endPoint = process.env.MINIO_ENDPOINT
-  const portRaw = process.env.MINIO_PORT
-  const accessKey = process.env.MINIO_ACCESS_KEY
-  const secretKey = process.env.MINIO_SECRET_KEY
-  const useSSL = process.env.MINIO_USE_SSL === 'true'
-
-  if (!endPoint || !accessKey || !secretKey) {
+  if (!options?.endpoint || !options?.accessKey || !options?.secretKey) {
     return Err(new Error('MinIO configuration is incomplete; MINIO_ENDPOINT, MINIO_ACCESS_KEY and MINIO_SECRET_KEY are required'))
   }
 
-  const port = portRaw ? Number.parseInt(portRaw, 10) : undefined
+  const port = options.port ? options.port : undefined
 
   minioClient = new MinioClient({
-    endPoint,
+    endPoint: options.endpoint,
     port,
-    useSSL,
-    accessKey,
-    secretKey,
+    useSSL: options.useSSL,
+    accessKey: options.accessKey,
+    secretKey: options.secretKey,
   })
 
   return Ok(minioClient)
@@ -53,14 +54,19 @@ function buildObjectKey(descriptor: MediaBinaryDescriptor): string {
 
 export async function registerMinioMediaStorage(logger: Logger) {
   const bucket = process.env.MINIO_BUCKET || 'telegram-media'
+  const endpoint = process.env.MINIO_ENDPOINT || ''
+  const port = process.env.MINIO_PORT ? Number.parseInt(process.env.MINIO_PORT, 10) : undefined
+  const accessKey = process.env.MINIO_ACCESS_KEY || ''
+  const secretKey = process.env.MINIO_SECRET_KEY || ''
+  const useSSL = process.env.MINIO_USE_SSL === 'true'
 
-  const clientResult = getMinioClient()
-  if (clientResult.isErr()) {
-    logger.withError(clientResult.unwrapErr()).warn('MinIO storage not configured; falling back to DB bytea for media')
-    return
-  }
-
-  const client = clientResult.unwrap()
+  const client = getMinioClient({
+    endpoint,
+    port,
+    accessKey,
+    secretKey,
+    useSSL,
+  }).expect('Failed to get MinIO client')
 
   try {
     const exists = await client.bucketExists(bucket)
@@ -80,7 +86,7 @@ export async function registerMinioMediaStorage(logger: Logger) {
 
       const buffer = Buffer.from(bytes)
 
-      await client.putObject(bucket, objectName, buffer, {
+      await client.putObject(bucket, objectName, buffer, undefined, {
         'Content-Type': mimeType || 'application/octet-stream',
       })
 
@@ -116,4 +122,3 @@ export async function registerMinioMediaStorage(logger: Logger) {
   setMediaBinaryProvider(provider)
   logger.withFields({ bucket }).log('MinIO media storage provider registered')
 }
-
