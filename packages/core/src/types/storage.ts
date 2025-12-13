@@ -36,11 +36,11 @@ export interface MediaBinaryProvider {
    * MinIO object key, OPFS file path) as long as the returned path is
    * sufficient to retrieve the same bytes via load().
    */
-  save(
+  save: (
     descriptor: MediaBinaryDescriptor,
     bytes: Uint8Array,
     mimeType?: string,
-  ): Promise<MediaBinaryLocation>
+  ) => Promise<MediaBinaryLocation>
 
   /**
    * Load media bytes from a previously returned location.
@@ -48,6 +48,5 @@ export interface MediaBinaryProvider {
    * Implementations should return null when the underlying object no
    * longer exists instead of throwing where possible.
    */
-  load(location: MediaBinaryLocation): Promise<Uint8Array | null>
+  load: (location: MediaBinaryLocation) => Promise<Uint8Array | null>
 }
-

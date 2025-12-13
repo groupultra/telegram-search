@@ -16,5 +16,3 @@ describe('utils/media-storage', () => {
     expect(getMediaBinaryProvider()).toBeUndefined()
   })
 })
-
-

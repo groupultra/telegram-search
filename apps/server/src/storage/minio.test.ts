@@ -64,7 +64,7 @@ describe('storage/minio - registerMinioMediaStorage', () => {
 
     const chunks: Buffer[] = []
     getObject.mockResolvedValue({
-      async *[Symbol.asyncIterator]() {
+      async* [Symbol.asyncIterator]() {
         for (const chunk of chunks) {
           yield chunk
         }
@@ -129,5 +129,3 @@ describe('storage/minio - registerMinioMediaStorage', () => {
     expect(logger.warn).toHaveBeenCalled()
   })
 })
-
-
