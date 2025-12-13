@@ -65,7 +65,7 @@ function createErrorHandler(emitter: CoreEmitter) {
 }
 
 export function createCoreContext(options: {
-  db: CoreDB
+  db: () => CoreDB
   models: Models
   metrics?: CoreMetrics
 }): CoreContext {
@@ -163,10 +163,11 @@ export function createCoreContext(options: {
   const cleanupMemoryLeakDetector = detectMemoryLeak(emitter)
 
   function getDB(): CoreDB {
-    if (!options.db) {
+    const dbInstance = options.db()
+    if (!dbInstance) {
       throw withError('Database not initialized')
     }
-    return options.db
+    return dbInstance
   }
 
   function cleanup() {

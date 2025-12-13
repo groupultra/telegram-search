@@ -9,7 +9,7 @@ import { afterConnectedEventHandler, basicEventHandler, useEventHandler } from '
 import { models } from './models'
 
 export function createCoreInstance(
-  db: CoreDB,
+  db: () => CoreDB,
   config: Config,
   mediaBinaryProvider: MediaBinaryProvider | undefined,
   metrics?: CoreMetrics,

@@ -17,7 +17,6 @@ import { usersTable } from '../../schemas/users'
 import { chatMessageModels } from '../chat-message'
 import { photoModels } from '../photos'
 
-
 async function setupDb() {
   return mockDB({
     accountsTable,

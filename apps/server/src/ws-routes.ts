@@ -44,6 +44,7 @@ import { Counter, Gauge, Histogram } from 'prom-client'
 import { v4 as uuidv4 } from 'uuid'
 
 import { getDB } from './storage/drizzle'
+import { getMinioMediaStorage } from './storage/minio'
 import { sendWsEvent } from './ws-events'
 
 const WS_MODE_LABEL = 'server' as const
@@ -209,7 +210,7 @@ export function setupWsRoutes(app: H3, config: Config) {
     if (!accountStates.has(accountId)) {
       logger.withFields({ accountId }).log('Creating new account state')
 
-      const ctx = createCoreInstance(getDB(), config, undefined, coreMetrics)
+      const ctx = createCoreInstance(getDB, config, getMinioMediaStorage(), coreMetrics)
       const account: AccountState = {
         ctx,
         accountReady: false,

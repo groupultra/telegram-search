@@ -1,4 +1,4 @@
-import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
+import type { MediaBinaryDescriptor, MediaBinaryLocation } from '@tg-search/core'
 
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
