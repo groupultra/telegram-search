@@ -31,7 +31,9 @@ export function createTask<T extends CoreTaskType>(
   }
 
   task = {
-    ...state,
+    get state() {
+      return state
+    },
 
     updateProgress(progress: number, message?: string) {
       state.progress = progress

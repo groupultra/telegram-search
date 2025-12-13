@@ -23,7 +23,8 @@ export interface CoreTaskData<T extends CoreTaskType> {
   abortController: AbortController
 }
 
-export interface CoreTask<T extends CoreTaskType> extends CoreTaskData<T> {
+export interface CoreTask<T extends CoreTaskType> {
+  get state(): CoreTaskData<T>
   updateProgress: (progress: number, message?: string) => CoreTask<T>
   updateError: (error: Error | unknown) => CoreTask<T>
   markStarted: () => CoreTask<T>

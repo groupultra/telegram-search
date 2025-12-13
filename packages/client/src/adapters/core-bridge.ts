@@ -1,5 +1,5 @@
 import type { Config } from '@tg-search/common'
-import type { CoreDB, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
@@ -7,7 +7,6 @@ import type { StoredSession } from '../types/session'
 
 import { useLogger } from '@guiiai/logg'
 import { deepClone, generateDefaultConfig } from '@tg-search/common'
-import { initDrizzle } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
@@ -18,24 +17,8 @@ import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { createSessionStore } from '../utils/session-store'
+import { initDB } from './core-db'
 import { createCoreRuntime } from './core-runtime'
-
-// Dev-only PGlite handle for browser-only mode debugging.
-// Typed as any to avoid introducing a hard dependency from client to PGlite.
-let pgliteDevDb: any
-let dbInstance: CoreDB | undefined
-
-export function usePGliteDevDb(): any {
-  return pgliteDevDb
-}
-
-export function useDb(): CoreDB {
-  if (!dbInstance) {
-    throw new Error('Database not initialized')
-  }
-
-  return dbInstance
-}
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const storageSessions = useLocalStorage<StoredSession[]>('core-bridge/sessions', [])
@@ -175,18 +158,13 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     logger.withFields({ config: config.value }).verbose('Initialized config')
 
-    const { pglite, db } = await initDrizzle(logger, config.value, {
-      debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL as string,
-      isDatabaseDebugMode: import.meta.env.VITE_DB_DEBUG === 'true',
-    })
-    pgliteDevDb = pglite
-    dbInstance = db
+    const db = await initDB(logger, config.value)
 
     // Wire up Vue DevTools plugin if the shell has registered a setup
     // callback via provide/inject (dev-only).
     if (import.meta.env.DEV && typeof window !== 'undefined') {
       const setupDevtools = useSetupPGliteDevtools()
-      setupDevtools?.(pgliteDevDb)
+      setupDevtools?.(db.pglite)
     }
 
     ensureSessionInvariants()

@@ -3,7 +3,7 @@ import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 import { useLogger } from '@guiiai/logg'
 import { findPhotoByQueryId, findStickerByQueryId } from '@tg-search/core'
 
-import { useDb } from './core-bridge'
+import { getDB } from './core-db'
 
 export async function hydrateMediaBlobWithCore(media: CoreMessageMediaFromBlob): Promise<void> {
   const logger = useLogger('MediaWithCore')
@@ -12,7 +12,7 @@ export async function hydrateMediaBlobWithCore(media: CoreMessageMediaFromBlob):
     return
   }
 
-  const db = useDb()
+  const db = getDB()
 
   try {
     if (media.type === 'photo') {

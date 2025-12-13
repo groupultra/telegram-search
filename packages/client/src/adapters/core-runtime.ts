@@ -4,6 +4,8 @@ import type { Ref } from 'vue'
 
 import { createCoreInstance, destroyCoreInstance } from '@tg-search/core'
 
+import { getDB } from './core-db'
+
 interface CoreRuntimeLogger {
   withError?: (error: unknown) => { error: (message: string) => void }
 }
@@ -49,7 +51,7 @@ export function createCoreRuntime(
         throw new Error('Core runtime is not initialized')
 
       // In browser runtime we do not wire metrics; pass undefined.
-      ctx = createCoreInstance(configRef.value)
+      ctx = createCoreInstance(getDB(), configRef.value)
     }
 
     return ctx

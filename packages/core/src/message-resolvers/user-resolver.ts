@@ -7,7 +7,6 @@ import type { DBSelectUser } from '../models/utils/types'
 import { useLogger } from '@guiiai/logg'
 import { Ok } from '@unbird/result'
 
-import { useDrizzle } from '../db'
 import { findUserByPlatformId, recordUser } from '../models/users'
 import { resolveEntity } from '../utils/entity'
 
@@ -34,7 +33,7 @@ export function createUserResolver(ctx: CoreContext): MessageResolver {
 
         if (!dbUser) {
           // Check database
-          const dbUserOrNull = (await findUserByPlatformId(useDrizzle(), 'telegram', message.fromId)).orUndefined()
+          const dbUserOrNull = (await findUserByPlatformId(ctx.getDB(), 'telegram', message.fromId)).orUndefined()
 
           if (dbUserOrNull) {
             dbUser = dbUserOrNull
@@ -65,7 +64,7 @@ export function createUserResolver(ctx: CoreContext): MessageResolver {
           }
 
           // Save to database
-          const recordedUser = await recordUser(useDrizzle(), coreEntity)
+          const recordedUser = await recordUser(ctx.getDB(), coreEntity)
           dbUser = recordedUser
           userCache.set(cacheKey, dbUser)
           logger.withFields({ userId: dbUser.id, fromId: message.fromId }).debug('User saved to database')

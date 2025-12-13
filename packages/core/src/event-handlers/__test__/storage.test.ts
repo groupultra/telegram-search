@@ -1,9 +1,9 @@
-import type { CoreDialog } from '../types/dialog'
+import type { CoreDialog } from '../../types/dialog'
 
 import { Ok } from '@unbird/result'
 import { describe, expect, it, vi } from 'vitest'
 
-import { createCoreContext } from '../context'
+import { createCoreContext } from '../../context'
 import {
   fetchChatsByAccountId,
   fetchMessagesWithPhotos,
@@ -11,16 +11,10 @@ import {
   isChatAccessibleByAccount,
   recordChats,
   retrieveMessages,
-} from '../models'
-import { registerStorageEventHandlers } from './storage'
+} from '../../models'
+import { registerStorageEventHandlers } from '../storage'
 
-vi.mock('../db', () => {
-  return {
-    useDrizzle: vi.fn(() => ({} as any)),
-  }
-})
-
-vi.mock('../models', () => {
+vi.mock('../../models', () => {
   // Dialog-related mocks
   const fetchChatsByAccountId = vi.fn(async (_db: unknown, _accountId: string) => {
     const rows = [
@@ -83,7 +77,7 @@ vi.mock('../models', () => {
 
 describe('storage event handlers - dialogs with accounts', () => {
   it('storage:fetch:dialogs should query dialogs for given account and emit mapped dialogs', async () => {
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({} as any)
     registerStorageEventHandlers(ctx)
 
     const ACCOUNT_ID = 'account-xyz'
@@ -114,7 +108,7 @@ describe('storage event handlers - dialogs with accounts', () => {
   })
 
   it('storage:record:dialogs should call recordChats with dialogs and accountId', async () => {
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({} as any)
     registerStorageEventHandlers(ctx)
 
     const ACCOUNT_ID = 'account-abc'
@@ -136,7 +130,7 @@ describe('storage event handlers - dialogs with accounts', () => {
 
 describe('storage event handlers - message access control', () => {
   it('storage:fetch:messages should reject when account has no access to chat', async () => {
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({} as any)
     registerStorageEventHandlers(ctx)
 
     const ACCOUNT_ID = 'account-no-access'
@@ -166,7 +160,7 @@ describe('storage event handlers - message access control', () => {
   })
 
   it('storage:search:messages should reject when account has no access to specified chatId', async () => {
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({} as any)
     registerStorageEventHandlers(ctx)
 
     const ACCOUNT_ID = 'account-no-access'

@@ -1,3 +1,4 @@
+import type { PGlite } from '@electric-sql/pglite'
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
 
@@ -11,25 +12,13 @@ export type CoreDB = PostgresDB | PgliteDB
 // Reference: https://github.com/drizzle-team/drizzle-orm/issues/2851#issuecomment-2517850853
 export type CoreTransaction = Parameters<Parameters<CoreDB['transaction']>[0]>[0]
 
-let dbInstance: CoreDB
-
 export interface InitDrizzleResult {
   db: CoreDB
   /**
    * Underlying PGlite instance when DatabaseType.PGLITE is used.
    * Undefined for Postgres or when running in environments without PGlite.
    */
-  pglite?: any
-}
-
-/**
- * Set the global database instance.
- *
- * In production this is called indirectly via initDrizzle.
- * In tests you can inject a mock implementation (for example, drizzle.mock()).
- */
-export function setDbInstanceForTests(db: unknown) {
-  dbInstance = db as CoreDB
+  pglite?: PGlite
 }
 
 // TODO: options? here should contain dbPath, config.
@@ -56,44 +45,32 @@ export async function initDrizzle(
   switch (dbType) {
     case DatabaseType.POSTGRES: {
       const { initPgDrizzle } = await import('./pg')
-      dbInstance = await initPgDrizzle(logger, config, {
+      const db = await initPgDrizzle(logger, config, {
         isDatabaseDebugMode: options?.isDatabaseDebugMode,
         disableMigrations: options?.disableMigrations,
       })
-      return { db: dbInstance }
+      return { db }
     }
 
     case DatabaseType.PGLITE: {
       if (isBrowser()) {
         const { initPgliteDrizzleInBrowser } = await import('./pglite.browser')
-        const { db, pglite } = await initPgliteDrizzleInBrowser(logger, {
+        return await initPgliteDrizzleInBrowser(logger, {
           debuggerWebSocketUrl: options?.debuggerWebSocketUrl,
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
           disableMigrations: options?.disableMigrations,
         })
-        dbInstance = db
-        return { db, pglite }
       }
       else {
         const { initPgliteDrizzleInNode } = await import('./pglite')
-        const { db, pglite } = await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
+        return await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
           disableMigrations: options?.disableMigrations,
         })
-        dbInstance = db
-        return { db, pglite }
       }
     }
 
     default:
       throw new Error(`Unsupported database type: ${dbType}`)
   }
-}
-
-export function useDrizzle() {
-  if (!dbInstance) {
-    throw new Error('Database not initialized')
-  }
-
-  return dbInstance
 }

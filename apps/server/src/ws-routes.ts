@@ -43,6 +43,7 @@ import { defineWebSocketHandler } from 'h3'
 import { Counter, Gauge, Histogram } from 'prom-client'
 import { v4 as uuidv4 } from 'uuid'
 
+import { getDb } from './db'
 import { sendWsEvent } from './ws-events'
 
 const WS_MODE_LABEL = 'server' as const
@@ -208,7 +209,7 @@ export function setupWsRoutes(app: H3, config: Config) {
     if (!accountStates.has(accountId)) {
       logger.withFields({ accountId }).log('Creating new account state')
 
-      const ctx = createCoreInstance(config, coreMetrics)
+      const ctx = createCoreInstance(getDb(), config, coreMetrics)
       const account: AccountState = {
         ctx,
         accountReady: false,

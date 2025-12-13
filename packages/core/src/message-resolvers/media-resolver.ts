@@ -12,7 +12,6 @@ import { fileTypeFromBuffer } from 'file-type'
 import { Api } from 'telegram'
 
 import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
-import { useDrizzle } from '../db'
 import {
   findPhotoByFileIdWithMimeType,
   getStickerQueryIdByFileIdWithMimeType,
@@ -44,7 +43,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
           downloadQueue.add(async () => {
             logger.withFields({ media }).debug('Media')
 
-            const db = useDrizzle()
+            const db = ctx.getDB()
 
             // Stickers: prefer existing DB row -> queryId, otherwise download & store.
             if (media.type === 'sticker') {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createMinIntervalWaiter } from './min-interval'
+import { createMinIntervalWaiter } from '../min-interval'
 
 describe('min-interval', () => {
   beforeEach(() => {

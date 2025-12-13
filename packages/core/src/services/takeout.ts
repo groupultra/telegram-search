@@ -117,7 +117,7 @@ export function createTakeoutService(ctx: CoreContext) {
 
       logger.withFields({ expectedCount: count, providedCount: options.expectedCount }).verbose('Message count for progress')
 
-      while (hasMore && !task.abortController.signal.aborted) {
+      while (hasMore && !task.state.abortController.signal.aborted) {
         // https://core.telegram.org/api/offsets#hash-generation
         const id = BigInt(chatId)
         const hashBigInt = id ^ (id >> 21n) ^ (id << 35n) ^ (id >> 4n) + id
@@ -139,7 +139,7 @@ export function createTakeoutService(ctx: CoreContext) {
 
         // Pace requests before invoking Telegram API; allow abort while waiting
         try {
-          await waitHistoryInterval(task.abortController.signal)
+          await waitHistoryInterval(task.state.abortController.signal)
         }
         catch {
           logger.verbose('Aborted during rate-limit wait')
@@ -172,7 +172,7 @@ export function createTakeoutService(ctx: CoreContext) {
         logger.withFields({ count: messages.length }).debug('Got messages batch')
 
         for (const message of messages) {
-          if (task.abortController.signal.aborted) {
+          if (task.state.abortController.signal.aborted) {
             break
           }
 
@@ -200,9 +200,9 @@ export function createTakeoutService(ctx: CoreContext) {
 
       await finishTakeout(takeoutSession, true)
 
-      if (task.abortController.signal.aborted) {
+      if (task.state.abortController.signal.aborted) {
         // Task was aborted, handler layer already updated task status
-        logger.withFields({ taskId: task.taskId }).verbose('Takeout messages aborted')
+        logger.withFields({ taskId: task.state.taskId }).verbose('Takeout messages aborted')
         return
       }
 
@@ -210,7 +210,7 @@ export function createTakeoutService(ctx: CoreContext) {
       if (!options.disableAutoProgress) {
         task.updateProgress(100)
       }
-      logger.withFields({ taskId: task.taskId }).verbose('Takeout messages finished')
+      logger.withFields({ taskId: task.state.taskId }).verbose('Takeout messages finished')
     }
     catch (error) {
       logger.withError(error).error('Takeout messages failed')

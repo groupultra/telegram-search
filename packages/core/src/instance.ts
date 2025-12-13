@@ -1,12 +1,13 @@
 import type { Config, CoreMetrics } from '@tg-search/common'
 
 import type { CoreContext } from './context'
+import type { CoreDB } from './db'
 
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, basicEventHandler, useEventHandler } from './event-handler'
 
-export function createCoreInstance(config: Config, metrics?: CoreMetrics): CoreContext {
-  const ctx = createCoreContext(metrics)
+export function createCoreInstance(db: CoreDB, config: Config, metrics?: CoreMetrics): CoreContext {
+  const ctx = createCoreContext(db, metrics)
 
   const { register: registerEventHandler } = useEventHandler(ctx, config)
   registerEventHandler(basicEventHandler)

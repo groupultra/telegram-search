@@ -1,13 +1,13 @@
 import type { CoreMetrics } from '@tg-search/common'
 import type { TelegramClient } from 'telegram'
 
+import type { CoreDB } from './db'
 import type { AccountSettings } from './types/account-settings'
 import type { CoreEmitter, CoreEvent, FromCoreEvent, ToCoreEvent } from './types/events'
 
 import { useLogger } from '@guiiai/logg'
 import { EventEmitter } from 'eventemitter3'
 
-import { useDrizzle } from './db'
 import { fetchSettingsByAccountId, updateAccountSettings } from './models/account-settings'
 import { detectMemoryLeak } from './utils/memory-leak-detector'
 
@@ -23,6 +23,7 @@ export interface CoreContext {
   getClient: () => TelegramClient
   setCurrentAccountId: (accountId: string) => void
   getCurrentAccountId: () => string
+  getDB: () => CoreDB
   withError: (error: unknown, description?: string) => Error
   cleanup: () => void
   getAccountSettings: () => Promise<AccountSettings>
@@ -63,7 +64,7 @@ function createErrorHandler(emitter: CoreEmitter) {
   }
 }
 
-export function createCoreContext(metrics?: CoreMetrics): CoreContext {
+export function createCoreContext(db?: CoreDB, metrics?: CoreMetrics): CoreContext {
   const emitter = new EventEmitter<CoreEvent>()
   const withError = createErrorHandler(emitter)
   let telegramClient: TelegramClient
@@ -141,15 +142,22 @@ export function createCoreContext(metrics?: CoreMetrics): CoreContext {
   }
 
   async function getAccountSettings(): Promise<AccountSettings> {
-    return (await fetchSettingsByAccountId(useDrizzle(), getCurrentAccountId())).expect('Failed to fetch account settings')
+    return (await fetchSettingsByAccountId(getDB(), getCurrentAccountId())).expect('Failed to fetch account settings')
   }
 
   async function setAccountSettings(newSettings: AccountSettings) {
-    await updateAccountSettings(useDrizzle(), getCurrentAccountId(), newSettings)
+    await updateAccountSettings(getDB(), getCurrentAccountId(), newSettings)
   }
 
   // Setup memory leak detection and get cleanup function
   const cleanupMemoryLeakDetector = detectMemoryLeak(emitter)
+
+  function getDB(): CoreDB {
+    if (!db) {
+      throw withError('Database not initialized')
+    }
+    return db
+  }
 
   function cleanup() {
     useLogger().debug('Cleaning up CoreContext')
@@ -192,6 +200,7 @@ export function createCoreContext(metrics?: CoreMetrics): CoreContext {
     getClient: ensureClient,
     setCurrentAccountId,
     getCurrentAccountId,
+    getDB,
     withError,
     cleanup,
     getAccountSettings,
