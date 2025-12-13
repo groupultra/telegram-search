@@ -44,12 +44,12 @@ describe('storage/minio - initMinioMediaStorage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
 
-    import.meta.env.MINIO_ENDPOINT = 'localhost'
-    import.meta.env.MINIO_PORT = '9000'
-    import.meta.env.MINIO_ACCESS_KEY = 'access'
-    import.meta.env.MINIO_SECRET_KEY = 'secret'
-    import.meta.env.MINIO_USE_SSL = 'false'
-    import.meta.env.MINIO_BUCKET = 'telegram-media-test'
+    process.env.MINIO_ENDPOINT = 'localhost'
+    process.env.MINIO_PORT = '9000'
+    process.env.MINIO_ACCESS_KEY = 'access'
+    process.env.MINIO_SECRET_KEY = 'secret'
+    process.env.MINIO_USE_SSL = 'false'
+    process.env.MINIO_BUCKET = 'telegram-media-test'
   })
 
   it('registers a MediaBinaryProvider that writes and reads objects via MinIO', async () => {

@@ -3,6 +3,7 @@ export default {
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: import.meta.env.DATABASE_URL,
+    // eslint-disable-next-line node/prefer-global/process
+    url: process.env.DATABASE_URL,
   },
 }

@@ -90,12 +90,11 @@ async function bootstrap() {
     console.log(`\n${result}\nv${pkg.version}\n`)
   })
 
-  Object.assign(import.meta.env, process.env)
-  const flags = parseEnvFlags(import.meta.env)
+  const flags = parseEnvFlags(process.env)
   initLogger(flags.logLevel, flags.logFormat)
   const logger = useLogger().useGlobalConfig()
 
-  const config = parseEnvToConfig(import.meta.env, logger)
+  const config = parseEnvToConfig(process.env, logger)
 
   // Initialize OpenTelemetry logger if configured
   if (config.otel?.endpoint) {
@@ -120,8 +119,8 @@ async function bootstrap() {
 
   const app = configureServer(logger, flags, config)
 
-  const port = import.meta.env.PORT ? Number(import.meta.env.PORT) : 3000
-  const hostname = import.meta.env.HOST || '0.0.0.0'
+  const port = process.env.PORT ? Number(process.env.PORT) : 3000
+  const hostname = process.env.HOST || '0.0.0.0'
 
   const server = serve(app, {
     port,

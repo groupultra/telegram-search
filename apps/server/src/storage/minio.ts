@@ -111,13 +111,13 @@ export async function registerMinioMediaStorage(logger: Logger, options: ClientO
  */
 export async function initMinioMediaStorage(logger: Logger): Promise<MediaBinaryProvider | undefined> {
   try {
-    const bucket = import.meta.env.MINIO_BUCKET || 'telegram-media'
+    const bucket = process.env.MINIO_BUCKET || 'telegram-media'
     const options: ClientOptions = {
-      endPoint: import.meta.env.MINIO_ENDPOINT || '',
-      port: import.meta.env.MINIO_PORT ? Number.parseInt(import.meta.env.MINIO_PORT, 10) : undefined,
-      accessKey: import.meta.env.MINIO_ACCESS_KEY || '',
-      secretKey: import.meta.env.MINIO_SECRET_KEY || '',
-      useSSL: import.meta.env.MINIO_USE_SSL === 'true',
+      endPoint: process.env.MINIO_ENDPOINT || '',
+      port: process.env.MINIO_PORT ? Number.parseInt(process.env.MINIO_PORT, 10) : undefined,
+      accessKey: process.env.MINIO_ACCESS_KEY || '',
+      secretKey: process.env.MINIO_SECRET_KEY || '',
+      useSSL: process.env.MINIO_USE_SSL === 'true',
     }
 
     if (!options.endPoint || !options.accessKey || !options.secretKey) {
