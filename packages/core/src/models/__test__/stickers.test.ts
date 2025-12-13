@@ -54,6 +54,43 @@ describe('models/stickers', () => {
     expect(rows[0].sticker_mime_type).toBe('image/webp')
   })
 
+  it('recordStickers can persist external storage path without raw bytes and clears bytes on conflict', async () => {
+    const db = await setupDb()
+
+    // Initial insert with inline bytes only.
+    await recordStickers(db, [
+      {
+        type: 'sticker',
+        platformId: 'file-external',
+        emoji: '😀',
+        byte: Buffer.from([1, 2, 3]),
+        mimeType: 'image/webp',
+      },
+    ] as any)
+
+    let [row] = await db.select().from(stickersTable)
+    expect(row.sticker_bytes).toBeInstanceOf(Uint8Array)
+    // Default path is an empty string when no external storage is used.
+    expect(row.sticker_path).toBe('')
+
+    // Second insert switches to external storage only (no inline bytes).
+    await recordStickers(db, [
+      {
+        type: 'sticker',
+        platformId: 'file-external',
+        emoji: '😀',
+        storagePath: 'sticker/telegram/file-external',
+        mimeType: 'image/webp',
+      },
+    ] as any)
+
+    ;[row] = await db.select().from(stickersTable)
+
+    expect(row.sticker_bytes).toBeNull()
+    expect(row.sticker_path).toBe('sticker/telegram/file-external')
+    expect(row.sticker_mime_type).toBe('image/webp')
+  })
+
   it('recordStickers updates emoji and bytes on conflict', async () => {
     const db = await setupDb()
 

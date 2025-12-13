@@ -42,6 +42,46 @@ describe('models/photos', () => {
     expect(all).toHaveLength(0)
   })
 
+  it('recordPhotos can persist external storage path without raw bytes and clears bytes on conflict', async () => {
+    const db = await setupDb()
+
+    const messageUUID = uuidv4()
+
+    // First insert with inline bytes only.
+    await recordPhotos(db, [
+      {
+        type: 'photo',
+        platformId: 'file-external',
+        messageUUID,
+        byte: Buffer.from([1, 2, 3]),
+        mimeType: 'image/jpeg',
+      },
+    ])
+
+    let [row] = await db.select().from(photosTable)
+    expect(row.image_bytes).toBeInstanceOf(Uint8Array)
+    // Default path is an empty string when no external storage is used.
+    expect(row.image_path).toBe('')
+
+    // Second insert switches to external storage only (no inline bytes).
+    await recordPhotos(db, [
+      {
+        type: 'photo',
+        platformId: 'file-external',
+        messageUUID,
+        storagePath: 'photo/telegram/file-external',
+        mimeType: 'image/jpeg',
+      } as any,
+    ])
+
+    ;[row] = await db.select().from(photosTable)
+
+    // When using external storage, image_bytes should be cleared and image_path populated.
+    expect(row.image_bytes).toBeNull()
+    expect(row.image_path).toBe('photo/telegram/file-external')
+    expect(row.image_mime_type).toBe('image/jpeg')
+  })
+
   it('recordPhotos inserts new photos and updates on conflict', async () => {
     const db = await setupDb()
 
