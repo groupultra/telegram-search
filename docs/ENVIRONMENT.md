@@ -223,7 +223,7 @@ services:
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:3100/otlp/v1/logs
 OTEL_SERVICE_NAME=telegram-search
-OTEL_SERVICE_VERSION=1.1.36
+# OTEL_SERVICE_VERSION is optional and defaults to the package version
 ```
 
 3. **Restart the server**. Logs will now be exported to Loki via OTLP HTTP protocol.
