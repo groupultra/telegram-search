@@ -14,6 +14,8 @@ const DB_VERSION = 3 // Upgrade to version 3, add support for the fileId field
 const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const MAX_CACHE_BYTES_DEFAULT = 50 * 1024 * 1024 // 50 MB
 
+type ID = string | number
+
 export interface AvatarCacheRecord {
   /**
    * Deterministic primary key for a single avatar scope.
@@ -160,7 +162,7 @@ export async function persistChatAvatar(chatId: string | number, blob: Blob, mim
  * Note: For backwards compatibility, old records without fileId will still be loaded but fileId will be undefined.
  * Optimization: Add memory cleaning to ensure that original blob references are released and prevent memory leaks.
  */
-export async function loadUserAvatarFromCache(userId: string | number | undefined): Promise<{ url: string, mimeType: string, fileId?: string } | undefined> {
+export async function loadUserAvatarFromCache(userId: ID): Promise<{ url: string, mimeType: string, fileId?: string } | undefined> {
   if (!userId)
     return undefined
   const db = await openDb()
@@ -208,7 +210,7 @@ export async function loadUserAvatarFromCache(userId: string | number | undefine
  * Load latest valid chat avatar by primary key and return an object URL + mimeType + fileId.
  * Optimization: Add memory cleaning to ensure that original blob references are released and prevent memory leaks.
  */
-export async function loadChatAvatarFromCache(chatId: string | number | undefined): Promise<{ url: string, mimeType: string, fileId?: string } | undefined> {
+export async function loadChatAvatarFromCache(chatId: ID): Promise<{ url: string, mimeType: string, fileId?: string } | undefined> {
   if (!chatId)
     return undefined
   const db = await openDb()
@@ -329,7 +331,7 @@ interface AvatarStoreLike {
   setChatAvatar: (chatId: string | number, data: { blobUrl: string, fileId?: string, mimeType?: string, ttlMs?: number }) => void
 }
 
-async function prefillAvatarIntoStore<T extends string | number | undefined>(
+async function prefillAvatarIntoStore<T extends ID>(
   id: T,
   loader: (id: T) => Promise<{ url: string, mimeType: string, fileId?: string } | undefined>,
   apply: (store: AvatarStoreLike, idStr: string, url: string, mimeType: string, fileId?: string) => void,
@@ -351,7 +353,7 @@ async function prefillAvatarIntoStore<T extends string | number | undefined>(
 /**
  * Convenience: prefill in-memory avatar store for user from disk cache.
  */
-export async function prefillUserAvatarIntoStore(userId: string | number | undefined): Promise<boolean> {
+export async function prefillUserAvatarIntoStore(userId: ID): Promise<boolean> {
   return prefillAvatarIntoStore(userId, loadUserAvatarFromCache, (store, idStr, url, mimeType, fileId) => {
     store.setUserAvatar(idStr, { blobUrl: url, mimeType, fileId, ttlMs: DEFAULT_TTL_MS })
   })
@@ -360,7 +362,7 @@ export async function prefillUserAvatarIntoStore(userId: string | number | undef
 /**
  * Convenience: prefill in-memory avatar store for chat from disk cache.
  */
-export async function prefillChatAvatarIntoStore(chatId: string | number | undefined): Promise<boolean> {
+export async function prefillChatAvatarIntoStore(chatId: ID): Promise<boolean> {
   return prefillAvatarIntoStore(chatId, loadChatAvatarFromCache, (store, idStr, url, mimeType, fileId) => {
     store.setChatAvatar(idStr, { blobUrl: url, mimeType, fileId, ttlMs: DEFAULT_TTL_MS })
   })
