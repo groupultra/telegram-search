@@ -51,7 +51,7 @@ export function useEntityAvatar(props: Readonly<Props>): { src: ComputedRef<stri
       watch(() => props.id, trigger)
     }
     else {
-      isChat ? useEnsureChatAvatar(idRef, fileIdRef) : useEnsureUserAvatar(idRef)
+      isChat ? useEnsureChatAvatar(idRef, fileIdRef.value) : useEnsureUserAvatar(idRef)
     }
   }
 

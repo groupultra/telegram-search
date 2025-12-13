@@ -5,8 +5,6 @@ import type { CoreDB } from '../../../../packages/core/src/db'
 
 import { initDrizzle as initDrizzleCore } from '@tg-search/core'
 
-import { registerMinioMediaStorage } from './storage/minio'
-
 let db: CoreDB | undefined
 
 export async function initDrizzle(logger: Logger, config: Config, flags: RuntimeFlags) {
@@ -18,11 +16,6 @@ export async function initDrizzle(logger: Logger, config: Config, flags: Runtime
 
     db = result.db
     logger.log('Database initialized successfully')
-
-    // Attempt to register MinIO-based media storage. When configuration is
-    // incomplete or MinIO is unavailable we log a warning and gracefully
-    // fall back to storing media bytes in the database.
-    await registerMinioMediaStorage(logger)
   }
   catch (error) {
     logger.withError(error).error('Failed to initialize database')

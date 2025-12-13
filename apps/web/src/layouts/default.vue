@@ -22,7 +22,7 @@ import UserDropdown from '../components/layout/UserDropdown.vue'
 import { Button } from '../components/ui/Button'
 
 const settingsStore = useSettingsStore()
-const { theme, disableSettings } = storeToRefs(settingsStore)
+const { theme } = storeToRefs(settingsStore)
 const isDark = useDark()
 
 const websocketStore = useBridgeStore()
@@ -231,7 +231,6 @@ watch(activeGroupChats, (list) => {
         />
 
         <SidebarSelector
-          v-if="!disableSettings"
           path="/settings"
           icon="i-lucide-settings"
           :name="t('settings.settings')"

@@ -67,7 +67,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return {
     init,
-    disableSettings,
     theme,
     themeColorsHue,
     themeColorsHueDynamic,
