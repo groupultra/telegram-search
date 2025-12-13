@@ -15,7 +15,7 @@ globs: apps/server/src/**/*
 - Preserve the bootstrap sequence from `src/app.ts`:
   1. Parse env flags (`parseEnvFlags`).
   2. Initialize logging (`initLogger` + `useLogger().useGlobalConfig()`).
-  3. Build runtime config from environment (`parseEnvToConfig(process.env)`).
+  3. Build runtime config from environment (`parseEnvToConfig(import.meta.env)`).
   4. Initialize database via `initDrizzle` using that config.
   5. Configure the HTTP/WebSocket server.
   6. Start listening via `listhen` and register graceful shutdown handlers.

@@ -1,6 +1,6 @@
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
-import type { CoreMessageMediaFromServer, CoreMessageMediaPhoto, CoreMessageMediaSticker, CoreMessageMediaWebPage } from '../types/media'
+import type { CoreMessageMedia, CoreMessageMediaPhoto, CoreMessageMediaSticker, CoreMessageMediaWebPage } from '../types/media'
 import type { CoreMessage } from '../types/message'
 import type { MediaBinaryDescriptor } from '../types/storage'
 
@@ -59,7 +59,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                     type: media.type,
                     platformId: media.platformId,
                     mimeType: sticker.mimeType,
-                  } satisfies CoreMessageMediaFromServer
+                  } satisfies CoreMessageMedia
                 }
               }
               catch (error) {
@@ -78,7 +78,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
                     mimeType: photo.mimeType,
                     type: media.type,
                     platformId: media.platformId,
-                  } satisfies CoreMessageMediaFromServer
+                  } satisfies CoreMessageMedia
                 }
               }
               catch (error) {
@@ -209,7 +209,7 @@ export function createMediaResolver(ctx: CoreContext): MessageResolver {
               type: 'unknown',
               platformId: media.platformId,
               mimeType: mimeType ?? (byte ? (await fileTypeFromBuffer(byte))?.mime : undefined),
-            } satisfies CoreMessageMediaFromServer
+            } satisfies CoreMessageMedia
           }),
         )
 

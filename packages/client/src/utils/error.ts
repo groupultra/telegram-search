@@ -30,11 +30,6 @@ export function getErrorMessage(error: unknown, t: (key: string, params?: Record
       return t('errors.takeoutRequired')
     }
 
-    // if (errorMessage.startsWith('TAKEOUT_INIT_DELAY_')) {
-    //   const seconds = errorMessage.split('_')[3]
-    //   return t('errors.takeoutInitDelay', { seconds })
-    // }
-
     // Generic RPC error
     return t('errors.rpcError', { message: errorMessage, code: rpcError.code })
   }

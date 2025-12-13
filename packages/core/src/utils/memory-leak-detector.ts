@@ -9,7 +9,7 @@ import { useLogger } from '@guiiai/logg'
 export function detectMemoryLeak(emitter: CoreEmitter): () => void {
   // Memory leak detection in development mode
   // eslint-disable-next-line node/prefer-global/process
-  const isDevelopment = typeof process !== 'undefined' && process.env?.NODE_ENV === 'development'
+  const isDevelopment = typeof process !== 'undefined' && import.meta.env?.NODE_ENV === 'development'
 
   let checkInterval: NodeJS.Timeout | undefined
 

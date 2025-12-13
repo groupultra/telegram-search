@@ -19,6 +19,7 @@ describe('getDatabaseDSN', () => {
     const config: DatabaseConfig = {
       type: DatabaseType.POSTGRES,
       user: 'user',
+      // eslint-disable-next-line sonarjs/no-hardcoded-passwords
       password: 'pass',
       host: 'localhost',
       port: 5432,

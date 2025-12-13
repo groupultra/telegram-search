@@ -26,13 +26,7 @@ initLogger(LOG_LEVEL, LoggerFormat.Pretty)
 const app = createApp(App)
 
 const pinia = createPinia()
-const routes = setupLayouts(generatedRoutes.filter((route) => {
-  if (route.path === '/settings'
-    && import.meta.env.VITE_DISABLE_SETTINGS === 'true') {
-    return false
-  }
-  return true
-}))
+const routes = setupLayouts(generatedRoutes.filter(_ => true))
 const router = createRouter({
   routes,
   history: createWebHistory(import.meta.env.BASE_URL),

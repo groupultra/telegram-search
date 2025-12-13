@@ -62,23 +62,6 @@ export type CoreMessageMedia
 export type CoreMessageMediaType = CoreMessageMedia['type']
 
 /**
- * Media representation used in the core pipeline (server-side).
- *
- * Kept as a distinct alias for clarity, but intentionally identical to
- * `CoreMessageMedia` so that core messages never carry raw Telegram types.
- */
-export type CoreMessageMediaFromServer = CoreMessageMedia
-
-/**
- * Media representation that has been hydrated from cache / database.
- *
- * - Typically has `queryId` populated.
- * - May also have `mimeType` populated.
- */
-export type CoreMessageMediaFromCache = CoreMessageMedia & {
-}
-
-/**
  * Media representation used by the browser.
  *
  * - `blobUrl` is a local object URL created from a Blob, OR

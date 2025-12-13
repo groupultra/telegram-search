@@ -47,14 +47,10 @@ export function useDataPath(): string {
 export function getDatabaseFilePath(config: Config): string {
   const { database } = config
 
-  let extension = ''
-  switch (database.type) {
-    case DatabaseType.PGLITE:
-      extension = '.pglite'
-      break
-    default:
-      return ''
+  if (database.type === DatabaseType.PGLITE) {
+    return resolve(useDataPath(), `db.pglite`)
   }
-
-  return resolve(useDataPath(), `db${extension}`)
+  else {
+    throw new Error(`Unsupported database type: ${database.type}`)
+  }
 }

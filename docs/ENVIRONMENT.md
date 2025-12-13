@@ -23,15 +23,6 @@ These variables can be set when starting the Docker container or during runtime:
 > AI Embedding & LLM settings are now configured **per account inside the app** (Settings → API).  
 > Environment variables like `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, etc. are deprecated and will be removed in a future release.
 
-## Compile-Time Environment Variables
-
-These variables must be set **before building** (not at `docker run` time):
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `VITE_PREVIEW_ALLOW_ALL_HOSTS` | `false` | Allow all hosts to access preview page |
-| `VITE_DISABLE_SETTINGS` | `false` | Disable settings page |
-
 ## Proxy URL Formats
 
 The `PROXY_URL` environment variable supports these formats:

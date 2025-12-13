@@ -29,6 +29,8 @@ interface AvatarCacheEntry {
  */
 const __avatarHelperSingleton = new WeakMap<CoreContext, ReturnType<typeof createAvatarHelper>>()
 
+type AvatarEntity = Api.User | Api.Chat | Api.Channel
+
 /**
  * Create shared avatar helper bound to a CoreContext.
  * Encapsulates caches and in-flight deduplication for users and dialogs.
@@ -40,7 +42,7 @@ function createAvatarHelper(ctx: CoreContext) {
   // Use tiny-lru to implement LRU cache with automatic expiration and eviction
   const userAvatarCache = lru<AvatarCacheEntry>(MAX_AVATAR_CACHE_SIZE, AVATAR_CACHE_TTL)
   const chatAvatarCache = lru<AvatarCacheEntry>(MAX_AVATAR_CACHE_SIZE, AVATAR_CACHE_TTL)
-  const dialogEntityCache = lru<Api.User | Api.Chat | Api.Channel>(MAX_AVATAR_CACHE_SIZE, AVATAR_CACHE_TTL)
+  const dialogEntityCache = lru<AvatarEntity>(MAX_AVATAR_CACHE_SIZE, AVATAR_CACHE_TTL)
   // Negative caches (sentinels): record entities known to have no avatar
   const noUserAvatarCache = lru<boolean>(MAX_AVATAR_CACHE_SIZE, AVATAR_CACHE_TTL)
   const noChatAvatarCache = lru<boolean>(MAX_AVATAR_CACHE_SIZE, AVATAR_CACHE_TTL)

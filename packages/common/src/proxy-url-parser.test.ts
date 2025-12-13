@@ -1,3 +1,5 @@
+/* eslint-disable sonarjs/no-hardcoded-passwords */
+
 import { describe, expect, it } from 'vitest'
 
 import { SocksType } from './config-schema'

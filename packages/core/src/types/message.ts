@@ -1,4 +1,4 @@
-import type { CoreMessageMediaFromServer } from './media'
+import type { CoreMessageMedia } from './media'
 
 export interface CoreMessage {
   uuid: string
@@ -12,7 +12,7 @@ export interface CoreMessage {
   fromUserUuid?: string
 
   content: string
-  media?: CoreMessageMediaFromServer[]
+  media?: CoreMessageMedia[]
 
   reply: CoreMessageReply
   forward: CoreMessageForward

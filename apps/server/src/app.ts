@@ -85,11 +85,11 @@ async function bootstrap() {
     console.log(`\n${result}\nv${pkg.version}\n`)
   })
 
-  const flags = parseEnvFlags(process.env)
+  const flags = parseEnvFlags(import.meta.env)
   initLogger(flags.logLevel, flags.logFormat)
   const logger = useLogger().useGlobalConfig()
 
-  const config = parseEnvToConfig(process.env, logger)
+  const config = parseEnvToConfig(import.meta.env, logger)
 
   await initDb(logger, config, flags)
 
@@ -97,8 +97,8 @@ async function bootstrap() {
 
   const app = configureServer(logger, flags, config)
 
-  const port = process.env.PORT ? Number(process.env.PORT) : 3000
-  const hostname = process.env.HOST || '0.0.0.0'
+  const port = import.meta.env.PORT ? Number(import.meta.env.PORT) : 3000
+  const hostname = import.meta.env.HOST || '0.0.0.0'
 
   const server = serve(app, {
     port,

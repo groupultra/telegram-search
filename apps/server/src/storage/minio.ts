@@ -53,12 +53,12 @@ function buildObjectKey(descriptor: MediaBinaryDescriptor): string {
 }
 
 export async function registerMinioMediaStorage(logger: Logger) {
-  const bucket = process.env.MINIO_BUCKET || 'telegram-media'
-  const endpoint = process.env.MINIO_ENDPOINT || ''
-  const port = process.env.MINIO_PORT ? Number.parseInt(process.env.MINIO_PORT, 10) : undefined
-  const accessKey = process.env.MINIO_ACCESS_KEY || ''
-  const secretKey = process.env.MINIO_SECRET_KEY || ''
-  const useSSL = process.env.MINIO_USE_SSL === 'true'
+  const bucket = import.meta.env.MINIO_BUCKET || 'telegram-media'
+  const endpoint = import.meta.env.MINIO_ENDPOINT || ''
+  const port = import.meta.env.MINIO_PORT ? Number.parseInt(import.meta.env.MINIO_PORT, 10) : undefined
+  const accessKey = import.meta.env.MINIO_ACCESS_KEY || ''
+  const secretKey = import.meta.env.MINIO_SECRET_KEY || ''
+  const useSSL = import.meta.env.MINIO_USE_SSL === 'true'
 
   const client = getMinioClient({
     endpoint,

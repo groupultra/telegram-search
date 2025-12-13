@@ -50,7 +50,7 @@ const processedMedia = computed<ProcessedMedia>(() => {
   }
 
   switch (mediaItem.type) {
-    case 'webpage': {
+    case 'webpage':
       return {
         // TODO: fix the preview image
         src: mediaItem.displayUrl,
@@ -63,21 +63,15 @@ const processedMedia = computed<ProcessedMedia>(() => {
           displayUrl: mediaItem.displayUrl,
         },
       } satisfies ProcessedMedia
-    }
-    case 'photo': {
+
+    case 'photo':
+    case 'sticker':
       return {
         src: mediaItem.blobUrl,
         type: mediaItem.type,
         mimeType: mediaItem.mimeType,
       } satisfies ProcessedMedia
-    }
-    case 'sticker': {
-      return {
-        src: mediaItem.blobUrl,
-        type: mediaItem.type,
-        mimeType: mediaItem.mimeType,
-      } satisfies ProcessedMedia
-    }
+
     default:
       return {
         src: undefined,

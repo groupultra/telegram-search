@@ -1,6 +1,6 @@
 import { defineConfig } from '@moeru/eslint-config'
 
-export default defineConfig({
+const config = defineConfig({
   masknet: false,
   preferArrow: false,
   perfectionist: false,
@@ -20,8 +20,6 @@ export default defineConfig({
 }, {
   rules: {
     'antfu/import-dedupe': 'error',
-    // TODO: remove this
-    'depend/ban-dependencies': 'warn',
     'import/order': 'off',
     'no-console': ['error', { allow: ['warn', 'error', 'info'] }],
     'perfectionist/sort-imports': [
@@ -61,3 +59,5 @@ export default defineConfig({
     // '@typescript-eslint/no-explicit-any': 'warn',
   },
 })
+
+export default config

@@ -12,6 +12,8 @@ export interface AvatarEntry {
   expiresAt?: number
 }
 
+type ID = string | number
+
 const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 /**
@@ -33,7 +35,7 @@ export const useAvatarStore = defineStore('avatar', () => {
   const inflightUserPrefillIds = ref<Set<string>>(new Set())
 
   // Normalize id to a non-empty string key
-  function toKey(id: string | number | undefined) {
+  function toKey(id: ID) {
     if (!id)
       return undefined
     const s = String(id)
@@ -41,7 +43,7 @@ export const useAvatarStore = defineStore('avatar', () => {
   }
 
   // Unified getter with TTL check and blobUrl revoke on expiration
-  function getField(map: typeof userAvatars | typeof chatAvatars, id: string | number | undefined, field: keyof AvatarEntry) {
+  function getField(map: typeof userAvatars | typeof chatAvatars, id: ID, field: keyof AvatarEntry) {
     const key = toKey(id)
     if (!key)
       return undefined
@@ -75,7 +77,7 @@ export const useAvatarStore = defineStore('avatar', () => {
   }
 
   // Unified validity check: TTL + optional fileId consistency
-  function hasValid(map: typeof userAvatars | typeof chatAvatars, id: string | number | undefined, expectedFileId?: string) {
+  function hasValid(map: typeof userAvatars | typeof chatAvatars, id: ID, expectedFileId?: string) {
     const key = toKey(id)
     if (!key)
       return false
@@ -94,7 +96,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Get cached avatar blob URL for a user.
    * Returns undefined if missing or expired.
    */
-  function getUserAvatarUrl(userId: string | number | undefined): string | undefined {
+  function getUserAvatarUrl(userId: ID): string | undefined {
     return getField(userAvatars, userId, 'blobUrl') as string | undefined
   }
 
@@ -102,7 +104,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Get cached avatar fileId for a user.
    * Returns undefined if missing or expired.
    */
-  function getUserAvatarFileId(userId: string | number | undefined): string | undefined {
+  function getUserAvatarFileId(userId: ID): string | undefined {
     return getField(userAvatars, userId, 'fileId') as string | undefined
   }
 
@@ -110,7 +112,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Get cached avatar blob URL for a chat.
    * Returns undefined if missing or expired.
    */
-  function getChatAvatarUrl(chatId: string | number | undefined): string | undefined {
+  function getChatAvatarUrl(chatId: ID): string | undefined {
     return getField(chatAvatars, chatId, 'blobUrl') as string | undefined
   }
 
@@ -118,7 +120,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Get cached avatar fileId for a chat.
    * Returns undefined if missing or expired.
    */
-  function getChatAvatarFileId(chatId: string | number | undefined): string | undefined {
+  function getChatAvatarFileId(chatId: ID): string | undefined {
     return getField(chatAvatars, chatId, 'fileId') as string | undefined
   }
 
@@ -144,11 +146,11 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Check whether a chat avatar is present and non-expired in the in-memory cache.
    * Optionally validates that the cached `fileId` matches the given `expectedFileId`.
    */
-  function hasValidChatAvatar(chatId: string | number | undefined, expectedFileId?: string): boolean {
+  function hasValidChatAvatar(chatId: ID, expectedFileId?: string): boolean {
     return hasValid(chatAvatars, chatId, expectedFileId)
   }
 
-  function hasValidUserAvatar(userId: string | number | undefined, expectedFileId?: string): boolean {
+  function hasValidUserAvatar(userId: ID, expectedFileId?: string): boolean {
     return hasValid(userAvatars, userId, expectedFileId)
   }
 
@@ -161,7 +163,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Otherwise, mark in-flight and send 'entity:avatar:fetch'.
    * Optional fileId allows core to validate cache before fetching.
    */
-  function ensureUserAvatar(userId: string | number | undefined, fileId?: string, forceRefresh?: boolean) {
+  function ensureUserAvatar(userId: ID, fileId?: string, forceRefresh?: boolean) {
     if (!userId)
       return
 
@@ -187,7 +189,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Check whether a user avatar fetch is currently in-flight.
    * Helps components avoid re-sending while waiting for data.
    */
-  function isUserFetchInflight(userId: string | number | undefined): boolean {
+  function isUserFetchInflight(userId: ID): boolean {
     if (!userId)
       return false
     return inflightUserFetchIds.value.has(String(userId))
@@ -197,7 +199,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Mark a user avatar fetch as completed.
    * Should be called after 'entity:avatar:data' is handled or on error.
    */
-  function markUserFetchCompleted(userId: string | number | undefined): void {
+  function markUserFetchCompleted(userId: ID): void {
     if (!userId)
       return
     inflightUserFetchIds.value.delete(String(userId))
@@ -207,7 +209,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Ensure a chat's avatar is available in cache.
    * If missing or expired, triggers prioritized fetch via 'dialog:avatar:fetch'.
    */
-  function ensureChatAvatar(chatId: string | number | undefined, expectedFileId?: string) {
+  function ensureChatAvatar(chatId: ID, expectedFileId?: string) {
     if (!chatId)
       return
     const key = String(chatId)
@@ -230,7 +232,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Check whether a prioritized chat avatar fetch is currently in-flight.
    * Helps components avoid re-sending the same request while waiting.
    */
-  function isChatFetchInflight(chatId: string | number | undefined): boolean {
+  function isChatFetchInflight(chatId: ID): boolean {
     if (!chatId)
       return false
     return inflightChatFetchIds.value.has(String(chatId))
@@ -240,7 +242,7 @@ export const useAvatarStore = defineStore('avatar', () => {
    * Mark a prioritized chat avatar fetch as completed.
    * Should be called once a 'dialog:avatar:data' arrives or on error.
    */
-  function markChatFetchCompleted(chatId: string | number | undefined): void {
+  function markChatFetchCompleted(chatId: ID): void {
     if (!chatId)
       return
     inflightChatFetchIds.value.delete(String(chatId))

@@ -63,15 +63,8 @@ export function parseProxyUrl(proxyUrl: string): ProxyConfig | null {
         break
 
       case 'socks5':
+      case 'http': // Default to SOCKS5 for HTTP proxy
         config.socksType = SocksType.SOCKS5
-        if (url.username)
-          config.username = decodeURIComponent(url.username)
-        if (url.password)
-          config.password = decodeURIComponent(url.password)
-        break
-
-      case 'http':
-        config.socksType = SocksType.SOCKS5 // Default to SOCKS5 for HTTP proxy
         if (url.username)
           config.username = decodeURIComponent(url.username)
         if (url.password)

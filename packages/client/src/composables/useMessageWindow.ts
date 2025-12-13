@@ -90,16 +90,9 @@ export class MessageWindow {
         removedIds.push(id)
       })
     }
-    else if (direction === 'newer') {
-      // When loading newer messages, remove the oldest (lowest ID) messages
-      const idsToRemove = sortedIds.slice(0, excessCount)
-      idsToRemove.forEach((id) => {
-        this.cleanupMessage(id)
-        removedIds.push(id)
-      })
-    }
     else {
-      // For initial load, keep the most recent messages (default behavior)
+      // For initial load and loading newer messages, keep the most recent messages
+      // Remove the oldest (lowest ID) messages
       const idsToRemove = sortedIds.slice(0, excessCount)
       idsToRemove.forEach((id) => {
         this.cleanupMessage(id)

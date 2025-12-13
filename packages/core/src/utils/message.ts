@@ -1,6 +1,6 @@
 import type { Result } from '@unbird/result'
 
-import type { CoreMessageMediaFromServer } from '../types/media'
+import type { CoreMessageMedia } from '../types/media'
 import type { CoreMessage, CoreMessageForward, CoreMessageReply } from '../types/message'
 
 import bigInt from 'big-integer'
@@ -67,13 +67,13 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
   }
 
   // Waiting for media resolver to fetch media (no raw Telegram types attached)
-  const media: CoreMessageMediaFromServer[] = []
+  const media: CoreMessageMedia[] = []
   if (message.media) {
     media.push({
       messageUUID,
       type: parseMediaType(message.media),
       platformId: parseMediaId(message.media),
-    } as CoreMessageMediaFromServer)
+    } as CoreMessageMedia)
   }
 
   return Ok(

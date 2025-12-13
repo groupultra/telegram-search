@@ -4,6 +4,7 @@ import { prefillChatAvatarIntoStore, prefillUserAvatarIntoStore, useAvatarStore,
 import { onMounted, unref, watch } from 'vue'
 
 type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
+type ID = string | number
 
 /**
  * Ensure a user's avatar is available when the component mounts.
@@ -13,12 +14,12 @@ type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
  * - Re-runs when `userId` changes.
  */
 async function ensureCore(
-  idRaw: string | number | undefined,
+  idRaw: ID,
   opts: {
     hasValid: (id: string, expectedFileId?: string) => boolean
     inflightPrefillIds?: Set<string>
     prefill: (id: string) => Promise<boolean>
-    getFileId: (id: string | number | undefined) => string | undefined
+    getFileId: (id: ID) => string | undefined
     primeCache: (id: string, fileId: string) => void
     ensureFetch: (id: string, expectedFileId?: string) => void
     expectedFileId?: string
@@ -61,14 +62,14 @@ interface AvatarStrategy {
   hasValid: (id: string, expectedFileId?: string) => boolean
   inflightPrefillIds?: Set<string>
   prefill: (id: string) => Promise<boolean>
-  getFileId: (id: string | number | undefined) => string | undefined
+  getFileId: (id: ID) => string | undefined
   primeCache: (id: string, fileId: string) => void
   ensureFetch: (id: string, expectedFileId?: string) => void
 }
 async function ensureAvatarCore(
   kind: 'user' | 'chat',
-  idRaw: string | number | undefined,
-  fileIdRaw?: string | number | undefined,
+  idRaw: ID,
+  fileIdRaw?: ID,
 ): Promise<void> {
   const avatarStore = useAvatarStore()
   const bridgeStore = useBridgeStore()
@@ -78,14 +79,14 @@ async function ensureAvatarCore(
       hasValid: (id: string, _exp?: string) => avatarStore.hasValidUserAvatar(id),
       inflightPrefillIds: avatarStore.inflightUserPrefillIds,
       prefill: (id: string) => prefillUserAvatarIntoStore(id),
-      getFileId: (id: string | number | undefined) => avatarStore.getUserAvatarFileId(id),
+      getFileId: (id: ID) => avatarStore.getUserAvatarFileId(id),
       primeCache: (id: string, fileId: string) => bridgeStore.sendEvent('entity:avatar:prime-cache', { userId: id, fileId }),
       ensureFetch: (id: string, exp?: string) => avatarStore.ensureUserAvatar(id, exp),
     },
     chat: {
       hasValid: (id: string, exp?: string) => avatarStore.hasValidChatAvatar(id, exp),
       prefill: (id: string) => prefillChatAvatarIntoStore(id),
-      getFileId: (id: string | number | undefined) => avatarStore.getChatAvatarFileId(id),
+      getFileId: (id: ID) => avatarStore.getChatAvatarFileId(id),
       primeCache: (id: string, fileId: string) => bridgeStore.sendEvent('entity:chat-avatar:prime-cache', { chatId: id, fileId }),
       ensureFetch: (id: string, exp?: string) => avatarStore.ensureChatAvatar(id, exp),
     },
@@ -102,11 +103,11 @@ async function ensureAvatarCore(
   })
 }
 
-async function ensureUserAvatarCore(userIdRaw: string | number | undefined): Promise<void> {
+async function ensureUserAvatarCore(userIdRaw: ID): Promise<void> {
   await ensureAvatarCore('user', userIdRaw)
 }
 
-export function useEnsureUserAvatar(userId: MaybeRef<string | number | undefined>): void {
+export function useEnsureUserAvatar(userId: MaybeRef<ID>): void {
   async function ensure() {
     await ensureUserAvatarCore(unref(userId))
   }
@@ -114,11 +115,11 @@ export function useEnsureUserAvatar(userId: MaybeRef<string | number | undefined
   watch(() => unref(userId), ensure)
 }
 
-async function ensureChatAvatarCore(chatIdRaw: string | number | undefined, fileIdRaw?: string | number | undefined): Promise<void> {
+async function ensureChatAvatarCore(chatIdRaw: ID, fileIdRaw?: ID): Promise<void> {
   await ensureAvatarCore('chat', chatIdRaw, fileIdRaw)
 }
 
-export function useEnsureChatAvatar(chatId: MaybeRef<string | number | undefined>, fileId?: MaybeRef<string | number | undefined>): void {
+export function useEnsureChatAvatar(chatId: MaybeRef<ID>, fileId?: MaybeRef<ID>): void {
   async function ensure() {
     await ensureChatAvatarCore(unref(chatId), unref(fileId))
   }
@@ -130,7 +131,7 @@ export function useEnsureChatAvatar(chatId: MaybeRef<string | number | undefined
  * Ensure a user's avatar immediately without lifecycle hooks.
  * Use when you need to trigger avatar availability from watchers or events.
  */
-export async function ensureUserAvatarImmediate(userId: string | number | undefined): Promise<void> {
+export async function ensureUserAvatarImmediate(userId: ID): Promise<void> {
   await ensureUserAvatarCore(userId)
 }
 
@@ -138,6 +139,6 @@ export async function ensureUserAvatarImmediate(userId: string | number | undefi
  * Ensure a chat's avatar immediately without lifecycle hooks.
  * Safe to call outside of setup() contexts.
  */
-export async function ensureChatAvatarImmediate(chatId: string | number | undefined, fileId?: string | number | undefined): Promise<void> {
+export async function ensureChatAvatarImmediate(chatId: ID, fileId?: ID): Promise<void> {
   await ensureChatAvatarCore(chatId, fileId)
 }
