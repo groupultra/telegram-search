@@ -50,7 +50,7 @@ services:
         condition: service_healthy
     volumes:
       - app_data:/app/data
-    restart: none
+    restart: unless-stopped
     environment:
       DATABASE_TYPE: postgres
       DATABASE_URL: 'postgresql://postgres:123456@pgvector:5432/postgres'
@@ -58,14 +58,25 @@ services:
       MINIO_PORT: 9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://loki:3100/otlp/v1/logs
     healthcheck:
-      test: [CMD-SHELL, 'curl -f http://localhost/health || exit 1']
+      test: [CMD-SHELL, 'curl -f http://localhost:3333/api/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - '3100:3100'
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+    restart: unless-stopped
+
 volumes:
   pgvector_data:
   app_data:
   minio_data:
+  loki_data:

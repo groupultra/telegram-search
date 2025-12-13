@@ -65,6 +65,19 @@ export function parseEnvToConfig(env: Environment, logger?: Logger): Config {
         },
       },
     },
+    minio: {
+      bucket: readEnvValue('MINIO_BUCKET', env),
+      endpoint: readEnvValue('MINIO_ENDPOINT', env),
+      port: readIntegerEnv('MINIO_PORT', env),
+      accessKey: readEnvValue('MINIO_ACCESS_KEY', env),
+      secretKey: readEnvValue('MINIO_SECRET_KEY', env),
+      useSSL: readBooleanEnv('MINIO_USE_SSL', env),
+    },
+    otel: {
+      endpoint: readEnvValue('OTEL_EXPORTER_OTLP_ENDPOINT', env),
+      serviceName: readEnvValue('OTEL_SERVICE_NAME', env),
+      serviceVersion: readEnvValue('OTEL_SERVICE_VERSION', env),
+    },
   }
 
   const parsedConfig = safeParse(configSchema, partialConfig)

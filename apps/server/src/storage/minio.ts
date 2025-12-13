@@ -1,4 +1,5 @@
 import type { Logger } from '@guiiai/logg'
+import type { MinioConfig } from '@tg-search/common'
 import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
 import type { Result } from '@unbird/result'
 import type { ClientOptions } from 'minio'
@@ -109,22 +110,21 @@ export async function registerMinioMediaStorage(logger: Logger, options: ClientO
  * incomplete or MinIO is unavailable we log a warning and gracefully
  * fall back to storing media bytes in the database.
  */
-export async function initMinioMediaStorage(logger: Logger): Promise<MediaBinaryProvider | undefined> {
+export async function initMinioMediaStorage(logger: Logger, config: MinioConfig): Promise<MediaBinaryProvider | undefined> {
   try {
-    const bucket = import.meta.env.MINIO_BUCKET || 'telegram-media'
-    const options: ClientOptions = {
-      endPoint: import.meta.env.MINIO_ENDPOINT || '',
-      port: import.meta.env.MINIO_PORT ? Number.parseInt(import.meta.env.MINIO_PORT, 10) : undefined,
-      accessKey: import.meta.env.MINIO_ACCESS_KEY || '',
-      secretKey: import.meta.env.MINIO_SECRET_KEY || '',
-      useSSL: import.meta.env.MINIO_USE_SSL === 'true',
-    }
-
-    if (!options.endPoint || !options.accessKey || !options.secretKey) {
+    if (!config.endpoint || !config.accessKey || !config.secretKey) {
       return undefined
     }
 
-    minioMediaStorage = await registerMinioMediaStorage(logger, options, bucket)
+    const options: ClientOptions = {
+      endPoint: config.endpoint,
+      port: config.port,
+      accessKey: config.accessKey,
+      secretKey: config.secretKey,
+      useSSL: config.useSSL,
+    }
+
+    minioMediaStorage = await registerMinioMediaStorage(logger, options, config.bucket)
     return minioMediaStorage
   }
   catch (error) {

@@ -18,6 +18,7 @@ These variables can be set when starting the Docker container or during runtime:
 | `PORT` | `3000` | Backend HTTP/WebSocket port inside the container |
 | `HOST` | `0.0.0.0` | Backend listen host inside the container |
 | `BACKEND_URL` | `http://127.0.0.1:3000` | Nginx upstream URL for `/api` and `/ws` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | - | OpenTelemetry OTLP endpoint for sending logs to Loki (e.g., `http://localhost:3100/otlp/v1/logs`) |
 
 > [!IMPORTANT]
 > AI Embedding & LLM settings are now configured **per account inside the app** (Settings → API).  
@@ -100,6 +101,15 @@ docker run -d --name telegram-search \
   -p 3333:3333 \
   -v telegram-search-data:/app/data \
   -e PROXY_URL=socks5://myuser:mypass@proxy.example.com:1080 \
+  ghcr.io/groupultra/telegram-search:latest
+```
+
+### With OpenTelemetry Logging to Loki
+```bash
+docker run -d --name telegram-search \
+  -p 3333:3333 \
+  -v telegram-search-data:/app/data \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://loki-host:3100/otlp/v1/logs \
   ghcr.io/groupultra/telegram-search:latest
 ```
 
@@ -187,8 +197,49 @@ pnpm run server:dev
 pnpm run web:dev
 ```
 
+## OpenTelemetry Logging with Loki
+
+The application supports sending logs to Loki (or any OTLP-compatible backend) using OpenTelemetry. This is optional and disabled by default.
+
+### Setup
+
+1. **Deploy Loki** with OTLP receiver enabled. Example docker-compose.yml snippet:
+
+```yaml
+version: "3.8"
+services:
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+```
+
+2. **Configure the application** to send logs to Loki:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:3100/otlp/v1/logs
+```
+
+3. **Restart the server**. Logs will now be exported to Loki via OTLP HTTP protocol.
+
+### Viewing Logs
+
+Use Grafana with Loki as a data source to view and query logs. The logs will include:
+- Service name and version as resource attributes
+- Log level (severity)
+- Log message (body)
+- Additional context fields
+
+### Troubleshooting
+
+- If logs don't appear in Loki, check the server console for initialization messages
+- Ensure the OTLP endpoint URL is correct and accessible from the server
+- Verify that Loki is configured to accept OTLP logs (requires Loki 2.9+)
+
 ## Notes
 
 - **Default Telegram API credentials** are provided for convenience but have rate limits. Get your own from [my.telegram.org](https://my.telegram.org/apps) for better performance.
 - **PGlite mode** runs entirely in the browser with no server needed.
 - **PostgreSQL mode** requires a PostgreSQL instance with pgvector extension.
+- **OpenTelemetry logging** is optional and only available in server mode.

@@ -1,10 +1,12 @@
-import type { Config, RuntimeFlags } from '@tg-search/common'
+import type { Log } from '@guiiai/logg'
+import type { Config, OtelConfig, RuntimeFlags } from '@tg-search/common'
 
 import process from 'node:process'
 
 import figlet from 'figlet'
 
-import { initLogger, useLogger } from '@guiiai/logg'
+// @ts-expect-error - TODO: setGlobalAfterLog
+import { initLogger, setGlobalAfterLog, useLogger } from '@guiiai/logg'
 import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
 import { models } from '@tg-search/core'
 import { plugin as wsPlugin } from 'crossws/server'
@@ -14,6 +16,7 @@ import { collectDefaultMetrics, register } from 'prom-client'
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
+import { emitOtelLog, initOtelLogger, shutdownOtelLogger } from './libs/otel-logger'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
@@ -65,7 +68,7 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
     return Response.json({ success: true })
   }))
 
-  collectDefaultMetrics()
+  collectDefaultMetrics({ prefix: 'telegram_search_' })
   app.get('/metrics', defineEventHandler(async () => {
     const metrics = await register.metrics()
     return new Response(metrics, {
@@ -73,6 +76,8 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
       headers: { 'Content-Type': register.contentType },
     })
   }))
+
+  logger.withFields({ endpoint: '/metrics' }).log('Metrics endpoint mounted')
 
   app.mount('/v1', v1api(getDB(), models, getMinioMediaStorage()))
 
@@ -87,23 +92,44 @@ async function bootstrap() {
     console.log(`\n${result}\nv${pkg.version}\n`)
   })
 
-  Object.assign(import.meta.env, process.env)
-  const flags = parseEnvFlags(import.meta.env)
+  const flags = parseEnvFlags(process.env)
   initLogger(flags.logLevel, flags.logFormat)
   const logger = useLogger().useGlobalConfig()
 
-  const config = parseEnvToConfig(import.meta.env, logger)
+  const config = parseEnvToConfig(process.env, logger)
+
+  // Initialize OpenTelemetry logger if configured
+  if (config.otel?.endpoint) {
+    const options: OtelConfig = {
+      endpoint: config.otel.endpoint,
+      serviceName: config.otel.serviceName || 'telegram-search',
+      serviceVersion: config.otel.serviceVersion || pkg.version,
+      headers: config.otel.headers,
+    }
+
+    initOtelLogger(options)
+
+    setGlobalAfterLog((log: Log) => {
+      emitOtelLog(log.level, log.fields.context || 'unknown', log.message, log.fields)
+    })
+
+    logger.withFields({
+      endpoint: options.endpoint,
+      service_name: options.serviceName,
+      service_version: options.serviceVersion,
+    }).log('OpenTelemetry logger initialized')
+  }
 
   await initDrizzle(logger, config, flags)
 
-  await initMinioMediaStorage(logger)
+  await initMinioMediaStorage(logger, config.minio)
 
   setupErrorHandlers(logger)
 
   const app = configureServer(logger, flags, config)
 
-  const port = import.meta.env.PORT ? Number(import.meta.env.PORT) : 3000
-  const hostname = import.meta.env.HOST || '0.0.0.0'
+  const port = process.env.PORT ? Number(process.env.PORT) : 3000
+  const hostname = process.env.HOST || '0.0.0.0'
 
   const server = serve(app, {
     port,
@@ -121,8 +147,9 @@ async function bootstrap() {
 
   logger.withFields({ port, hostname }).log('Server started')
 
-  const shutdown = () => {
+  const shutdown = async () => {
     logger.log('Shutting down server gracefully...')
+    await shutdownOtelLogger()
     server.close()
     process.exit(0)
   }

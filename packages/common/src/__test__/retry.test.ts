@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { sleep, toRetriable } from './retry'
+import { sleep, toRetriable } from '../retry'
 
 describe('retry', () => {
   describe('sleep', () => {

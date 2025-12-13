@@ -1,3 +1,4 @@
+import type { MinioConfig } from '@tg-search/common'
 import type { MediaBinaryDescriptor, MediaBinaryLocation } from '@tg-search/core'
 
 // eslint-disable-next-line unicorn/prefer-node-protocol
@@ -28,6 +29,15 @@ vi.mock('minio', () => {
   }
 })
 
+const config: MinioConfig = {
+  endpoint: 'localhost',
+  port: 9000,
+  accessKey: 'access',
+  secretKey: 'secret',
+  useSSL: false,
+  bucket: 'telegram-media-test',
+}
+
 describe('storage/minio - initMinioMediaStorage', () => {
   const logger = {
     log: vi.fn(),
@@ -43,13 +53,6 @@ describe('storage/minio - initMinioMediaStorage', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
-
-    import.meta.env.MINIO_ENDPOINT = 'localhost'
-    import.meta.env.MINIO_PORT = '9000'
-    import.meta.env.MINIO_ACCESS_KEY = 'access'
-    import.meta.env.MINIO_SECRET_KEY = 'secret'
-    import.meta.env.MINIO_USE_SSL = 'false'
-    import.meta.env.MINIO_BUCKET = 'telegram-media-test'
   })
 
   it('registers a MediaBinaryProvider that writes and reads objects via MinIO', async () => {
@@ -64,7 +67,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
       },
     })
 
-    await initMinioMediaStorage(logger)
+    await initMinioMediaStorage(logger, config)
 
     expect(bucketExists).toHaveBeenCalledWith('telegram-media-test')
 
@@ -107,7 +110,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
     bucketExists.mockResolvedValue(true)
     getObject.mockRejectedValue(new Error('boom'))
 
-    await initMinioMediaStorage(logger)
+    await initMinioMediaStorage(logger, config)
 
     const provider = getMinioMediaStorage()
     expect(provider).toBeDefined()

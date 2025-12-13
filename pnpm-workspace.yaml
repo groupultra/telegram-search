@@ -3,6 +3,9 @@ packages:
   - libs/*
   - apps/*
 
+patchedDependencies:
+  '@guiiai/logg': patches/@guiiai__logg.patch
+
 catalog:
   '@guiiai/logg': ^1.2.6
   '@unbird/result': ^1.1.1
