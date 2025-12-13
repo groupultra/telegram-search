@@ -305,3 +305,11 @@ export async function retrieveMessages(
     return retrievalMessages
   })
 }
+
+export const chatMessageModels = {
+  recordMessages,
+  fetchMessages,
+  fetchMessagesWithPhotos,
+  fetchMessageContextWithPhotos,
+  retrieveMessages,
+}

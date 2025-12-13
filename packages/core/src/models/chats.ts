@@ -116,3 +116,10 @@ export async function isChatAccessibleByAccount(db: CoreDB, accountId: string, c
     return rows.length > 0
   })
 }
+
+export const chatModels = {
+  recordChats,
+  fetchChats,
+  fetchChatsByAccountId,
+  isChatAccessibleByAccount,
+}

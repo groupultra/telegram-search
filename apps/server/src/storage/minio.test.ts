@@ -1,4 +1,3 @@
-import type { Logger } from '@guiiai/logg'
 import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
 
 // eslint-disable-next-line unicorn/prefer-node-protocol
@@ -48,7 +47,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
     withError() {
       return this
     },
-  } as unknown as Logger
+  } as any
 
   beforeEach(() => {
     vi.resetAllMocks()

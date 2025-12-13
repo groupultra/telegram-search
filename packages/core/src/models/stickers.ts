@@ -119,3 +119,10 @@ export async function getStickerQueryIdByFileIdWithMimeType(db: CoreDB, fileId: 
     return must0(stickers)
   })
 }
+
+export const stickerModels = {
+  recordStickers,
+  findStickerByFileId,
+  findStickerByQueryId,
+  getStickerQueryIdByFileIdWithMimeType,
+}

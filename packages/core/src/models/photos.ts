@@ -141,3 +141,12 @@ export async function findPhotosByMessageIds(db: CoreDB, messageUUIDs: string[])
     .where(inArray(photosTable.message_id, messageUUIDs)),
   )
 }
+
+export const photoModels = {
+  recordPhotos,
+  findPhotoByFileId,
+  findPhotoByFileIdWithMimeType,
+  findPhotoByQueryId,
+  findPhotosByMessageId,
+  findPhotosByMessageIds,
+}

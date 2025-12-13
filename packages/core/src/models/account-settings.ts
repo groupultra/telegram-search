@@ -56,3 +56,8 @@ export async function fetchSettingsByAccountId(db: CoreDB, accountId: string): P
     return generateDefaultAccountSettings()
   })
 }
+
+export const accountSettingsModels = {
+  updateAccountSettings,
+  fetchSettingsByAccountId,
+}

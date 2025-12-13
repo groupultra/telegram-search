@@ -61,3 +61,9 @@ export async function findUserByUUID(db: CoreDB, uuid: string): PromiseResult<DB
     return must0(rows)
   })
 }
+
+export const userModels = {
+  recordUser,
+  findUserByPlatformId,
+  findUserByUUID,
+}

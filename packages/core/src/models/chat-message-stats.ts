@@ -96,3 +96,8 @@ export async function getChatMessageStatsByChatId(db: CoreDB, accountId: string,
     return must0(rows)
   })
 }
+
+export const chatMessageStatsModels = {
+  getChatMessagesStats,
+  getChatMessageStatsByChatId,
+}

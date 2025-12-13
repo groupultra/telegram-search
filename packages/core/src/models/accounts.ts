@@ -60,3 +60,9 @@ export async function findAccountByUUID(db: CoreDB, uuid: string): PromiseResult
     return must0(rows)
   })
 }
+
+export const accountModels = {
+  recordAccount,
+  findAccountByPlatformId,
+  findAccountByUUID,
+}

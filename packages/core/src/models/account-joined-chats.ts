@@ -55,3 +55,9 @@ export async function findAccountIdsByJoinedChatId(db: CoreDB, joinedChatId: str
     return results.map(r => r.account_id)
   })
 }
+
+export const accountJoinedChatModels = {
+  linkAccountToJoinedChat,
+  findJoinedChatIdsByAccountId,
+  findAccountIdsByJoinedChatId,
+}
