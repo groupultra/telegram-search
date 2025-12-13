@@ -68,6 +68,12 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
     })
 
     emitter.on('message:reprocess', async ({ chatId, messageIds, resolvers }) => {
+      // Validate input
+      if (messageIds.length === 0) {
+        logger.withFields({ chatId }).warn('Re-process called with empty messageIds array')
+        return
+      }
+
       logger.withFields({ chatId, messageIds: messageIds.length, resolvers }).verbose('Re-processing messages')
 
       try {

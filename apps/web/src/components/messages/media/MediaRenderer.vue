@@ -26,6 +26,11 @@ const isReprocessing = ref(false)
 
 // Delay before allowing another reprocess attempt for the same media
 const REPROCESS_RETRY_DELAY_MS = 5000
+// Timeout for checking media availability (prevent hanging on slow servers)
+const MEDIA_CHECK_TIMEOUT_MS = 5000
+
+// Track timeout IDs for cleanup on unmount
+let reprocessRetryTimer: ReturnType<typeof setTimeout> | null = null
 
 export interface WebpageData {
   title: string
@@ -151,6 +156,12 @@ onMounted(() => {
 onUnmounted(() => {
   if (animation)
     animation.destroy()
+
+  // Clean up any pending timers
+  if (reprocessRetryTimer) {
+    clearTimeout(reprocessRetryTimer)
+    reprocessRetryTimer = null
+  }
 })
 
 async function handleMediaError(_event: Event, mediaType: 'Image' | 'Sticker') {
@@ -161,7 +172,16 @@ async function handleMediaError(_event: Event, mediaType: 'Image' | 'Sticker') {
   }
 
   try {
-    const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
+    // Use AbortController to add timeout to fetch
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), MEDIA_CHECK_TIMEOUT_MS)
+
+    const response = await fetch(processedMedia.value.src, {
+      method: 'HEAD',
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
 
     // Only proceed with reprocessing if it's a 404 error and we have required data
     if (response.status !== 404) {
@@ -199,8 +219,14 @@ async function handleMediaError(_event: Event, mediaType: 'Image' | 'Sticker') {
     })
 
     // Reset reprocessing flag after a delay to allow retry
-    setTimeout(() => {
+    // Clear any existing timer first
+    if (reprocessRetryTimer) {
+      clearTimeout(reprocessRetryTimer)
+    }
+
+    reprocessRetryTimer = setTimeout(() => {
       isReprocessing.value = false
+      reprocessRetryTimer = null
     }, REPROCESS_RETRY_DELAY_MS)
   }
   catch (error) {
