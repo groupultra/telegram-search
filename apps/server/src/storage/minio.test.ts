@@ -96,7 +96,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
     })
 
     expect(putObject).toHaveBeenCalledTimes(1)
-    const [bucket, objectName, buffer, _size, meta] = putObject.mock.calls[0]
+    const [bucket, objectName, buffer,, meta] = putObject.mock.calls[0]
     expect(bucket).toBe('telegram-media-test')
     expect(objectName).toBe(`photo/${uuid}`)
     expect(Buffer.isBuffer(buffer)).toBe(true)
