@@ -6,7 +6,7 @@ import type { AnimationItem } from 'lottie-web'
 import lottie from 'lottie-web'
 import pako from 'pako'
 
-import { getMediaBinaryProvider, hydrateMediaBlobWithCore, useSettingsStore } from '@tg-search/client'
+import { getMediaBinaryProvider, hydrateMediaBlobWithCore, useBridgeStore, useSettingsStore } from '@tg-search/client'
 import { models } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -21,6 +21,8 @@ const props = defineProps<{
 
 const runtimeError = ref<string>()
 const { debugMode } = storeToRefs(useSettingsStore())
+const bridgeStore = useBridgeStore()
+const isReprocessing = ref(false)
 
 export interface WebpageData {
   title: string
@@ -147,6 +149,78 @@ onUnmounted(() => {
   if (animation)
     animation.destroy()
 })
+
+async function handleImageError(event: Event) {
+  const target = event.target as HTMLImageElement
+
+  // Check if this is a 404 error by trying to fetch the image
+  if (processedMedia.value.src) {
+    try {
+      const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
+      if (response.status === 404 && props.message.chatId && props.message.id && !isReprocessing.value) {
+        // Image not found in storage, trigger re-processing
+        isReprocessing.value = true
+        runtimeError.value = 'Image not found, re-downloading...'
+
+        bridgeStore.sendEvent('message:reprocess', {
+          chatId: props.message.chatId,
+          messageIds: [props.message.id],
+          resolvers: ['media'],
+        })
+
+        // Reset reprocessing flag after a delay to allow retry
+        setTimeout(() => {
+          isReprocessing.value = false
+        }, 5000)
+      }
+      else {
+        runtimeError.value = 'Image failed to load'
+      }
+    }
+    catch (error) {
+      runtimeError.value = 'Image failed to load'
+    }
+  }
+  else {
+    runtimeError.value = 'Image failed to load'
+  }
+}
+
+async function handleStickerError(event: Event) {
+  const target = event.target as HTMLVideoElement
+
+  // Check if this is a 404 error by trying to fetch the sticker
+  if (processedMedia.value.src) {
+    try {
+      const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
+      if (response.status === 404 && props.message.chatId && props.message.id && !isReprocessing.value) {
+        // Sticker not found in storage, trigger re-processing
+        isReprocessing.value = true
+        runtimeError.value = 'Sticker not found, re-downloading...'
+
+        bridgeStore.sendEvent('message:reprocess', {
+          chatId: props.message.chatId,
+          messageIds: [props.message.id],
+          resolvers: ['media'],
+        })
+
+        // Reset reprocessing flag after a delay to allow retry
+        setTimeout(() => {
+          isReprocessing.value = false
+        }, 5000)
+      }
+      else {
+        runtimeError.value = 'Sticker failed to load'
+      }
+    }
+    catch (error) {
+      runtimeError.value = 'Sticker failed to load'
+    }
+  }
+  else {
+    runtimeError.value = 'Sticker failed to load'
+  }
+}
 </script>
 
 <template>
@@ -191,7 +265,7 @@ onUnmounted(() => {
           ? { aspectRatio: `${processedMedia.width} / ${processedMedia.height}` }
           : {}"
         alt="Image"
-        @error="runtimeError = 'Image failed to load'"
+        @error="handleImageError"
       >
 
       <video
@@ -200,7 +274,7 @@ onUnmounted(() => {
         class="h-auto max-w-[12rem] rounded-lg"
         alt="Video"
         autoplay loop muted playsinline
-        @error="runtimeError = 'Sticker failed to load'"
+        @error="handleStickerError"
       />
 
       <div

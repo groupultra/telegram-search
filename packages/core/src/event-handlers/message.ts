@@ -66,5 +66,27 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
         }
       })
     })
+
+    emitter.on('message:reprocess', async ({ chatId, messageIds, resolvers }) => {
+      logger.withFields({ chatId, messageIds: messageIds.length, resolvers }).verbose('Re-processing messages')
+
+      try {
+        // Fetch specific messages by their IDs from Telegram
+        const messages = await messageService.fetchSpecificMessages(chatId, messageIds)
+
+        if (messages.length > 0) {
+          logger.withFields({ count: messages.length, resolvers }).verbose('Fetched messages for re-processing')
+          // TODO: Pass resolvers filter to message:process to run only specific resolvers
+          emitter.emit('message:process', { messages })
+        }
+        else {
+          logger.withFields({ chatId, messageIds }).warn('No messages found for re-processing')
+        }
+      }
+      catch (error) {
+        logger.withError(error as Error).warn('Failed to re-process messages')
+        ctx.withError(error as Error, 'Failed to re-process messages')
+      }
+    })
   }
 }
