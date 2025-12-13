@@ -150,21 +150,19 @@ onUnmounted(() => {
     animation.destroy()
 })
 
-async function handleImageError(event: Event) {
-  const target = event.target as HTMLImageElement
-
+async function handleImageError(_event: Event) {
   // Check if this is a 404 error by trying to fetch the image
   if (processedMedia.value.src) {
     try {
       const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
-      if (response.status === 404 && props.message.chatId && props.message.id && !isReprocessing.value) {
+      if (response.status === 404 && props.message.chatId && props.message.platformMessageId && !isReprocessing.value) {
         // Image not found in storage, trigger re-processing
         isReprocessing.value = true
         runtimeError.value = 'Image not found, re-downloading...'
 
         bridgeStore.sendEvent('message:reprocess', {
           chatId: props.message.chatId,
-          messageIds: [props.message.id],
+          messageIds: [Number.parseInt(props.message.platformMessageId, 10)],
           resolvers: ['media'],
         })
 
@@ -178,6 +176,7 @@ async function handleImageError(event: Event) {
       }
     }
     catch (error) {
+      console.error('Failed to check image availability', error)
       runtimeError.value = 'Image failed to load'
     }
   }
@@ -186,21 +185,19 @@ async function handleImageError(event: Event) {
   }
 }
 
-async function handleStickerError(event: Event) {
-  const target = event.target as HTMLVideoElement
-
+async function handleStickerError(_event: Event) {
   // Check if this is a 404 error by trying to fetch the sticker
   if (processedMedia.value.src) {
     try {
       const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
-      if (response.status === 404 && props.message.chatId && props.message.id && !isReprocessing.value) {
+      if (response.status === 404 && props.message.chatId && props.message.platformMessageId && !isReprocessing.value) {
         // Sticker not found in storage, trigger re-processing
         isReprocessing.value = true
         runtimeError.value = 'Sticker not found, re-downloading...'
 
         bridgeStore.sendEvent('message:reprocess', {
           chatId: props.message.chatId,
-          messageIds: [props.message.id],
+          messageIds: [Number.parseInt(props.message.platformMessageId, 10)],
           resolvers: ['media'],
         })
 
@@ -214,6 +211,7 @@ async function handleStickerError(event: Event) {
       }
     }
     catch (error) {
+      console.error('Failed to check sticker availability', error)
       runtimeError.value = 'Sticker failed to load'
     }
   }
