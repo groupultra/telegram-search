@@ -1,24 +1,23 @@
-import type { CoreMessageMediaFromBlob, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
+import type { CoreMessageMediaFromBlob, MediaBinaryLocation, MediaBinaryProvider, PhotoModels, StickerModels } from '@tg-search/core'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getMockEmptyDB } from '../mock'
+import { hydrateMediaBlobWithCore } from './core-media'
+
 const mockFindPhotoByQueryId = vi.fn()
 const mockFindStickerByQueryId = vi.fn()
-const mockGetMediaBinaryProvider = vi.fn()
 
-vi.mock('@tg-search/core', () => {
-  return {
-    findPhotoByQueryId: (...args: any[]) => mockFindPhotoByQueryId(...args),
-    findStickerByQueryId: (...args: any[]) => mockFindStickerByQueryId(...args),
-    getMediaBinaryProvider: () => mockGetMediaBinaryProvider(),
-  }
-})
-
-const mockGetDB = vi.fn()
+const mockPhotoModels = {
+  findPhotoByQueryId: mockFindPhotoByQueryId,
+} as unknown as PhotoModels
+const mockStickerModels = {
+  findStickerByQueryId: mockFindStickerByQueryId,
+} as unknown as StickerModels
 
 vi.mock('./core-db', () => {
   return {
-    getDB: () => mockGetDB(),
+    getDB: () => getMockEmptyDB(),
   }
 })
 
@@ -34,15 +33,9 @@ vi.mock('@guiiai/logg', () => {
   }
 })
 
-// Import under test after mocks
-// eslint-disable-next-line import/first
-import { hydrateMediaBlobWithCore } from './core-media'
-
 describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-
-    mockGetDB.mockReturnValue({})
 
     // Stub URL.createObjectURL so we can assert on the produced blob URL.
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-url')
@@ -50,7 +43,6 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
 
   it('hydrates photo blob via MediaBinaryProvider when image_path is present', async () => {
     const bytes = new Uint8Array([1, 2, 3])
-
     const provider: MediaBinaryProvider = {
       async save() {
         throw new Error('not used in this test')
@@ -64,7 +56,6 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
       },
     }
 
-    mockGetMediaBinaryProvider.mockReturnValue(provider)
     mockFindPhotoByQueryId.mockResolvedValue({
       orUndefined: () => ({
         image_path: 'photo/file-1',
@@ -80,7 +71,7 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
       queryId: 'photo-query',
     }
 
-    await hydrateMediaBlobWithCore(media)
+    await hydrateMediaBlobWithCore(media, mockPhotoModels, mockStickerModels, provider)
 
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
     expect(media.blobUrl).toBe('blob:test-url')
@@ -89,7 +80,6 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
   it('falls back to image_bytes when provider is unavailable', async () => {
     const bytes = new Uint8Array([9, 9, 9, 9])
 
-    mockGetMediaBinaryProvider.mockReturnValue(undefined)
     mockFindPhotoByQueryId.mockResolvedValue({
       orUndefined: () => ({
         image_path: null,
@@ -105,7 +95,7 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
       queryId: 'photo-query-2',
     }
 
-    await hydrateMediaBlobWithCore(media)
+    await hydrateMediaBlobWithCore(media, mockPhotoModels, mockStickerModels, undefined)
 
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
     expect(media.blobUrl).toBe('blob:test-url')
@@ -127,7 +117,6 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
       },
     }
 
-    mockGetMediaBinaryProvider.mockReturnValue(provider)
     mockFindStickerByQueryId.mockResolvedValue({
       orUndefined: () => ({
         sticker_path: 'sticker/file-3',
@@ -143,7 +132,7 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
       queryId: 'sticker-query',
     }
 
-    await hydrateMediaBlobWithCore(media)
+    await hydrateMediaBlobWithCore(media, mockPhotoModels, mockStickerModels, provider)
 
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
     expect(media.blobUrl).toBe('blob:test-url')

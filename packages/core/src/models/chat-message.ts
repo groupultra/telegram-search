@@ -8,6 +8,7 @@ import type { EmbeddingDimension } from '../types/account-settings'
 import type { StorageMessageContextParams } from '../types/events'
 import type { CoreMessage } from '../types/message'
 import type { PromiseResult } from '../utils/result'
+import type { PhotoModels } from './photos'
 import type { DBRetrievalMessages } from './utils/message'
 import type { DBInsertMessage, DBSelectMessage } from './utils/types'
 
@@ -17,7 +18,6 @@ import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm'
 import { chatMessagesTable } from '../schemas/chat-messages'
 import { joinedChatsTable } from '../schemas/joined-chats'
 import { withResult } from '../utils/result'
-import { findPhotosByMessageIds } from './photos'
 import { convertToCoreMessageFromDB, convertToDBInsertMessage } from './utils/message'
 import { convertDBPhotoToCoreMessageMedia } from './utils/photos'
 import { retrieveJieba } from './utils/retrieve-jieba'
@@ -27,7 +27,7 @@ import { retrieveVector } from './utils/retrieve-vector'
  * Upsert messages for a specific account.
  * NOTE: Without result wrapper, because it's insert operation, maybe outer don't receive any error, just throw error directly.
  */
-export async function recordMessages(
+async function recordMessages(
   tx: CoreTransaction | CoreDB,
   accountId: string,
   messages: CoreMessage[],
@@ -108,7 +108,7 @@ export async function recordMessages(
 /**
  * Fetch messages for a specific account.
  */
-export async function fetchMessages(
+async function fetchMessages(
   db: CoreDB,
   accountId: string,
   chatId: string,
@@ -145,8 +145,9 @@ export async function fetchMessages(
 /**
  * Fetch messages with photos for a specific account.
  */
-export async function fetchMessagesWithPhotos(
+async function fetchMessagesWithPhotos(
   db: CoreDB,
+  photoModel: PhotoModels,
   accountId: string,
   chatId: string,
   pagination: CorePagination,
@@ -156,7 +157,7 @@ export async function fetchMessagesWithPhotos(
 
     // Fetch photos for all messages in batch
     const messageIds = dbMessagesResults.map(msg => msg.id)
-    const photos = (await findPhotosByMessageIds(db, messageIds)).expect('Failed to fetch photos')
+    const photos = (await photoModel.findPhotosByMessageIds(db, messageIds)).expect('Failed to fetch photos')
 
     // Group photos by message_id
     const photosByMessage = Object.groupBy(
@@ -176,8 +177,9 @@ export async function fetchMessagesWithPhotos(
 /**
  * Fetch message context with photos for a specific account.
  */
-export async function fetchMessageContextWithPhotos(
+async function fetchMessageContextWithPhotos(
   db: CoreDB,
+  photoModel: PhotoModels,
   accountId: string,
   { chatId, messageId, before, after }: Required<StorageMessageContextParams>,
 ): PromiseResult<CoreMessage[]> {
@@ -253,7 +255,7 @@ export async function fetchMessageContextWithPhotos(
       return []
 
     const messageIds = combinedDbMessages.map(msg => msg.id)
-    const photos = (await findPhotosByMessageIds(db, messageIds)).expect('Failed to fetch photos')
+    const photos = (await photoModel.findPhotosByMessageIds(db, messageIds)).expect('Failed to fetch photos')
     const photosByMessage = Object.groupBy(
       photos.filter(photo => photo.message_id),
       photo => photo.message_id!,
@@ -270,7 +272,7 @@ export async function fetchMessageContextWithPhotos(
 /**
  * Retrieve messages for a specific account.
  */
-export async function retrieveMessages(
+async function retrieveMessages(
   db: CoreDB,
   accountId: string,
   chatId: string | undefined,
@@ -305,3 +307,13 @@ export async function retrieveMessages(
     return retrievalMessages
   })
 }
+
+export const chatMessageModels = {
+  recordMessages,
+  fetchMessages,
+  fetchMessagesWithPhotos,
+  fetchMessageContextWithPhotos,
+  retrieveMessages,
+}
+
+export type ChatMessageModels = typeof chatMessageModels

@@ -15,7 +15,7 @@ import { must0 } from './utils/must'
 /**
  * Update settings for a specific account
  */
-export async function updateAccountSettings(
+async function updateAccountSettings(
   db: CoreDB,
   accountId: string,
   settings: Partial<AccountSettings>,
@@ -38,7 +38,7 @@ export async function updateAccountSettings(
 /**
  * Fetch settings by accountId
  */
-export async function fetchSettingsByAccountId(db: CoreDB, accountId: string): PromiseResult<AccountSettings> {
+async function fetchSettingsByAccountId(db: CoreDB, accountId: string): PromiseResult<AccountSettings> {
   return withResult(async () => {
     const result = await db
       .select({ settings: accountsTable.settings })
@@ -56,3 +56,10 @@ export async function fetchSettingsByAccountId(db: CoreDB, accountId: string): P
     return generateDefaultAccountSettings()
   })
 }
+
+export const accountSettingsModels = {
+  updateAccountSettings,
+  fetchSettingsByAccountId,
+}
+
+export type AccountSettingsModels = typeof accountSettingsModels

@@ -17,7 +17,7 @@ import { must0 } from './utils/must'
  * - For group/channel chats, messages are shared across accounts and the count
  *   is global (owner_account_id is NULL by design).
  */
-export async function getChatMessagesStats(db: CoreDB, accountId: string): PromiseResult<DBSelectChatMessageStats[]> {
+async function getChatMessagesStats(db: CoreDB, accountId: string): PromiseResult<DBSelectChatMessageStats[]> {
   return withResult(() => db
     .select({
       platform: joinedChatsTable.platform,
@@ -54,7 +54,7 @@ export async function getChatMessagesStats(db: CoreDB, accountId: string): Promi
 /**
  * Get per-chat message stats for a specific chat.
  */
-export async function getChatMessageStatsByChatId(db: CoreDB, accountId: string, chatId: string): PromiseResult<DBSelectChatMessageStats> {
+async function getChatMessageStatsByChatId(db: CoreDB, accountId: string, chatId: string): PromiseResult<DBSelectChatMessageStats> {
   return withResult(async () => {
     const rows = await db
       .select({
@@ -96,3 +96,10 @@ export async function getChatMessageStatsByChatId(db: CoreDB, accountId: string,
     return must0(rows)
   })
 }
+
+export const chatMessageStatsModels = {
+  getChatMessagesStats,
+  getChatMessageStatsByChatId,
+}
+
+export type ChatMessageStatsModels = typeof chatMessageStatsModels

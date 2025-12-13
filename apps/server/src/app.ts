@@ -6,6 +6,7 @@ import figlet from 'figlet'
 
 import { initLogger, useLogger } from '@guiiai/logg'
 import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
+import { models } from '@tg-search/core'
 import { plugin as wsPlugin } from 'crossws/server'
 import { defineEventHandler, H3, serve } from 'h3'
 import { collectDefaultMetrics, register } from 'prom-client'
@@ -13,8 +14,8 @@ import { collectDefaultMetrics, register } from 'prom-client'
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
-import { initDrizzle } from './storage/drizzle'
-import { initMinioMediaStorage } from './storage/minio'
+import { getDB, initDrizzle } from './storage/drizzle'
+import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
@@ -73,7 +74,7 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
     })
   }))
 
-  app.mount('/v1', v1api())
+  app.mount('/v1', v1api(getDB(), models, getMinioMediaStorage()))
 
   setupWsRoutes(app, config)
 

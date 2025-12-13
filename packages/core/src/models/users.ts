@@ -13,7 +13,7 @@ import { convertCoreEntityToDBUser } from './utils/users'
 /**
  * Record or update a user in the database
  */
-export async function recordUser(db: CoreDB, user: CoreEntity): Promise<DBSelectUser> {
+async function recordUser(db: CoreDB, user: CoreEntity): Promise<DBSelectUser> {
   const rows = await db
     .insert(usersTable)
     .values(convertCoreEntityToDBUser(user))
@@ -34,7 +34,7 @@ export async function recordUser(db: CoreDB, user: CoreEntity): Promise<DBSelect
 /**
  * Find a user by platform and platform_user_id
  */
-export async function findUserByPlatformId(db: CoreDB, platform: string, platformUserId: string): PromiseResult<DBSelectUser> {
+async function findUserByPlatformId(db: CoreDB, platform: string, platformUserId: string): PromiseResult<DBSelectUser> {
   return withResult(async () => {
     const rows = await db
       .select()
@@ -51,7 +51,7 @@ export async function findUserByPlatformId(db: CoreDB, platform: string, platfor
 /**
  * Find a user by UUID
  */
-export async function findUserByUUID(db: CoreDB, uuid: string): PromiseResult<DBSelectUser> {
+async function findUserByUUID(db: CoreDB, uuid: string): PromiseResult<DBSelectUser> {
   return withResult(async () => {
     const rows = await db
       .select()
@@ -61,3 +61,11 @@ export async function findUserByUUID(db: CoreDB, uuid: string): PromiseResult<DB
     return must0(rows)
   })
 }
+
+export const userModels = {
+  recordUser,
+  findUserByPlatformId,
+  findUserByUUID,
+}
+
+export type UserModels = typeof userModels

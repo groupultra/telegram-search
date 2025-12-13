@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import { mockDB } from '../../db/mock'
 import { usersTable } from '../../schemas/users'
-import { findUserByPlatformId, findUserByUUID, recordUser } from '../users'
+import { userModels } from '../users'
 import { convertCoreEntityToDBUser, convertDBUserToCoreEntity } from '../utils/users'
 
 async function setupDb() {
@@ -24,7 +24,7 @@ describe('models/users', () => {
       username: 'alice',
     }
 
-    const result = await recordUser(db, coreUser)
+    const result = await userModels.recordUser(db, coreUser)
     const user = result
 
     expect(user.platform).toBe('telegram')
@@ -47,7 +47,7 @@ describe('models/users', () => {
       username: 'alice',
     }
 
-    const first = await recordUser(db, coreUser)
+    const first = await userModels.recordUser(db, coreUser)
 
     const updatedUser: CoreEntity = {
       ...coreUser,
@@ -55,7 +55,7 @@ describe('models/users', () => {
       username: 'alice_new',
     }
 
-    const second = await recordUser(db, updatedUser)
+    const second = await userModels.recordUser(db, updatedUser)
 
     expect(second.id).toBe(first.id)
     expect(second.name).toBe('Alice Updated')
@@ -72,12 +72,12 @@ describe('models/users', () => {
       username: 'alice',
     }
 
-    const created = await recordUser(db, coreUser)
+    const created = await userModels.recordUser(db, coreUser)
 
-    const byPlatform = (await findUserByPlatformId(db, 'telegram', '123')).unwrap()
+    const byPlatform = (await userModels.findUserByPlatformId(db, 'telegram', '123')).unwrap()
     expect(byPlatform?.id).toBe(created.id)
 
-    const byUuid = (await findUserByUUID(db, created.id)).unwrap()
+    const byUuid = (await userModels.findUserByUUID(db, created.id)).unwrap()
     expect(byUuid?.id).toBe(created.id)
   })
 

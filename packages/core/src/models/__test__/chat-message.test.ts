@@ -14,12 +14,8 @@ import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { photosTable } from '../../schemas/photos'
 import { usersTable } from '../../schemas/users'
-import {
-  fetchMessageContextWithPhotos,
-  fetchMessages,
-  fetchMessagesWithPhotos,
-  recordMessages,
-} from '../chat-message'
+import { chatMessageModels } from '../chat-message'
+import { photoModels } from '../photos'
 
 async function setupDb() {
   return mockDB({
@@ -89,7 +85,7 @@ describe('models/chat-message', () => {
       }),
     ]
 
-    const result = await recordMessages(db, account.id, messages)
+    const result = await chatMessageModels.recordMessages(db, account.id, messages)
     const affectedRows = result
     expect(affectedRows).toHaveLength(2)
 
@@ -181,7 +177,7 @@ describe('models/chat-message', () => {
 
     const pagination: CorePagination = { limit: 10, offset: 0 }
 
-    const result = await fetchMessages(db, account.id, chat.chat_id, pagination)
+    const result = await chatMessageModels.fetchMessages(db, account.id, chat.chat_id, pagination)
     const { dbMessagesResults, coreMessages } = result.unwrap()
 
     // Should only see 2 messages due to ACL
@@ -218,7 +214,7 @@ describe('models/chat-message', () => {
       }),
     ]
 
-    await recordMessages(db, account.id, messages)
+    await chatMessageModels.recordMessages(db, account.id, messages)
 
     const [dbMessage] = await db.select().from(chatMessagesTable)
 
@@ -232,7 +228,7 @@ describe('models/chat-message', () => {
 
     const pagination: CorePagination = { limit: 10, offset: 0 }
 
-    const result = await fetchMessagesWithPhotos(db, account.id, chat.chat_id, pagination)
+    const result = await chatMessageModels.fetchMessagesWithPhotos(db, photoModels, account.id, chat.chat_id, pagination)
     const messagesWithPhotos = result.unwrap()
 
     expect(messagesWithPhotos).toHaveLength(1)
@@ -282,7 +278,7 @@ describe('models/chat-message', () => {
       }),
     ]
 
-    await recordMessages(db, account.id, coreMessages)
+    await chatMessageModels.recordMessages(db, account.id, coreMessages)
 
     const dbMessages = await db
       .select()
@@ -300,7 +296,7 @@ describe('models/chat-message', () => {
       })
     }
 
-    const context = (await fetchMessageContextWithPhotos(db, account.id, {
+    const context = (await chatMessageModels.fetchMessageContextWithPhotos(db, photoModels, account.id, {
       chatId: chat.chat_id,
       messageId: '2',
       before: 1,

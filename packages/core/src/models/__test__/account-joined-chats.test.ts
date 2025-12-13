@@ -4,11 +4,7 @@ import { mockDB } from '../../db/mock'
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { accountsTable } from '../../schemas/accounts'
 import { joinedChatsTable } from '../../schemas/joined-chats'
-import {
-  findAccountIdsByJoinedChatId,
-  findJoinedChatIdsByAccountId,
-  linkAccountToJoinedChat,
-} from '../account-joined-chats'
+import { accountJoinedChatModels } from '../account-joined-chats'
 
 async function setupDb() {
   return mockDB({
@@ -34,8 +30,7 @@ describe('models/account-joined-chats', () => {
       chat_type: 'user',
     }).returning()
 
-    const result = await linkAccountToJoinedChat(db, account.id, chat.id)
-    const rows = result
+    const rows = await accountJoinedChatModels.linkAccountToJoinedChat(db, account.id, chat.id)
 
     expect(rows).toBeDefined()
     expect(rows.account_id).toBe(account.id)
@@ -60,8 +55,8 @@ describe('models/account-joined-chats', () => {
       chat_type: 'user',
     }).returning()
 
-    await linkAccountToJoinedChat(db, account.id, chat.id)
-    await linkAccountToJoinedChat(db, account.id, chat.id)
+    await accountJoinedChatModels.linkAccountToJoinedChat(db, account.id, chat.id)
+    await accountJoinedChatModels.linkAccountToJoinedChat(db, account.id, chat.id)
 
     const linksInDb = await db.select().from(accountJoinedChatsTable)
     expect(linksInDb).toHaveLength(1)
@@ -89,10 +84,10 @@ describe('models/account-joined-chats', () => {
       chat_type: 'group',
     }).returning()
 
-    await linkAccountToJoinedChat(db, account.id, chat1.id)
-    await linkAccountToJoinedChat(db, account.id, chat2.id)
+    await accountJoinedChatModels.linkAccountToJoinedChat(db, account.id, chat1.id)
+    await accountJoinedChatModels.linkAccountToJoinedChat(db, account.id, chat2.id)
 
-    const result = await findJoinedChatIdsByAccountId(db, account.id)
+    const result = await accountJoinedChatModels.findJoinedChatIdsByAccountId(db, account.id)
     const joinedChatIds = result.unwrap()
 
     expect(new Set(joinedChatIds)).toEqual(new Set([chat1.id, chat2.id]))
@@ -118,10 +113,10 @@ describe('models/account-joined-chats', () => {
       chat_type: 'group',
     }).returning()
 
-    await linkAccountToJoinedChat(db, account1.id, chat.id)
-    await linkAccountToJoinedChat(db, account2.id, chat.id)
+    await accountJoinedChatModels.linkAccountToJoinedChat(db, account1.id, chat.id)
+    await accountJoinedChatModels.linkAccountToJoinedChat(db, account2.id, chat.id)
 
-    const result = await findAccountIdsByJoinedChatId(db, chat.id)
+    const result = await accountJoinedChatModels.findAccountIdsByJoinedChatId(db, chat.id)
     const accountIds = result.unwrap()
 
     expect(new Set(accountIds)).toEqual(new Set([account1.id, account2.id]))

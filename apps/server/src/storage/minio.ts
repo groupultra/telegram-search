@@ -6,11 +6,11 @@ import type { ClientOptions } from 'minio'
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
 
-import { setMediaBinaryProvider } from '@tg-search/core'
 import { Err, Ok } from '@unbird/result'
 import { Client as MinioClient } from 'minio'
 
 let minioClient: MinioClient | undefined
+let minioMediaStorage: MediaBinaryProvider | undefined
 
 function getMinioClient(options: ClientOptions): Result<MinioClient> {
   if (minioClient) {
@@ -100,8 +100,8 @@ export async function registerMinioMediaStorage(logger: Logger, options: ClientO
     },
   }
 
-  setMediaBinaryProvider(provider)
   logger.withFields({ bucket }).log('MinIO media storage provider registered')
+  return provider
 }
 
 /**
@@ -109,7 +109,7 @@ export async function registerMinioMediaStorage(logger: Logger, options: ClientO
  * incomplete or MinIO is unavailable we log a warning and gracefully
  * fall back to storing media bytes in the database.
  */
-export async function initMinioMediaStorage(logger: Logger) {
+export async function initMinioMediaStorage(logger: Logger): Promise<MediaBinaryProvider | undefined> {
   try {
     const bucket = import.meta.env.MINIO_BUCKET || 'telegram-media'
     const options: ClientOptions = {
@@ -121,12 +121,17 @@ export async function initMinioMediaStorage(logger: Logger) {
     }
 
     if (!options.endPoint || !options.accessKey || !options.secretKey) {
-      return
+      return undefined
     }
 
-    return await registerMinioMediaStorage(logger, options, bucket)
+    minioMediaStorage = await registerMinioMediaStorage(logger, options, bucket)
+    return minioMediaStorage
   }
   catch (error) {
     logger.withError(error).warn('Failed to register MinIO media storage; falling back to DB bytea')
   }
+}
+
+export function getMinioMediaStorage(): MediaBinaryProvider | undefined {
+  return minioMediaStorage
 }

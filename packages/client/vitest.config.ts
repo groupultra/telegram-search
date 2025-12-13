@@ -6,5 +6,8 @@ export default defineConfig({
       'src/**/*.test.ts',
       'src/**/*.spec.ts',
     ],
+    setupFiles: [
+      './src/mock/setupTest.ts',
+    ],
   },
 })

@@ -25,7 +25,7 @@ type StickerMediaForRecord = CoreMessageMediaSticker & {
   storagePath?: string
 }
 
-export async function recordStickers(db: CoreDB, stickers: StickerMediaForRecord[]): Promise<DBInsertSticker[]> {
+async function recordStickers(db: CoreDB, stickers: StickerMediaForRecord[]): Promise<DBInsertSticker[]> {
   if (stickers.length === 0) {
     return []
   }
@@ -76,7 +76,7 @@ export async function recordStickers(db: CoreDB, stickers: StickerMediaForRecord
 /**
  * Find a sticker by file_id
  */
-export async function findStickerByFileId(db: CoreDB, fileId: string): PromiseResult<DBSelectSticker> {
+async function findStickerByFileId(db: CoreDB, fileId: string): PromiseResult<DBSelectSticker> {
   return withResult(async () => {
     const sticker = await db
       .select()
@@ -91,7 +91,7 @@ export async function findStickerByFileId(db: CoreDB, fileId: string): PromiseRe
 /**
  * Find a sticker by query_id
  */
-export async function findStickerByQueryId(db: CoreDB, queryId: string): PromiseResult<DBSelectSticker> {
+async function findStickerByQueryId(db: CoreDB, queryId: string): PromiseResult<DBSelectSticker> {
   return withResult(async () => {
     const stickers = await db
       .select()
@@ -105,7 +105,7 @@ export async function findStickerByQueryId(db: CoreDB, queryId: string): Promise
 /**
  * Get the query_id for a sticker by file_id
  */
-export async function getStickerQueryIdByFileIdWithMimeType(db: CoreDB, fileId: string): PromiseResult<{ id: string, mimeType: string }> {
+async function getStickerQueryIdByFileIdWithMimeType(db: CoreDB, fileId: string): PromiseResult<{ id: string, mimeType: string }> {
   return withResult(async () => {
     const stickers = await db
       .select({
@@ -119,3 +119,12 @@ export async function getStickerQueryIdByFileIdWithMimeType(db: CoreDB, fileId: 
     return must0(stickers)
   })
 }
+
+export const stickerModels = {
+  recordStickers,
+  findStickerByFileId,
+  findStickerByQueryId,
+  getStickerQueryIdByFileIdWithMimeType,
+}
+
+export type StickerModels = typeof stickerModels

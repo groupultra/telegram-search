@@ -1,17 +1,19 @@
+import type { Models } from '../../models'
 import type { CoreTaskData, CoreTaskType } from '../../types/task'
 
 import { describe, expect, it, vi } from 'vitest'
 
+import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
 import { registerTakeoutEventHandlers } from '../takeout'
 
 const mockGetChatMessageStatsByChatId = vi.fn()
 
-vi.mock('../../models', () => {
-  return {
-    getChatMessageStatsByChatId: (...args: any[]) => mockGetChatMessageStatsByChatId(...args),
-  }
-})
+const models = {
+  chatMessageStatsModels: {
+    getChatMessageStatsByChatId: mockGetChatMessageStatsByChatId,
+  },
+} as unknown as Models
 
 interface MockTask {
   state: CoreTaskData<CoreTaskType>
@@ -68,7 +70,7 @@ describe('takeout event handlers', () => {
       unwrap: () => undefined,
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     const takeoutMessages = async function* () {
@@ -77,7 +79,7 @@ describe('takeout event handlers', () => {
       }
     }
 
-    registerTakeoutEventHandlers(ctx)(makeTakeoutService({ takeoutMessages }))
+    registerTakeoutEventHandlers(ctx, models.chatMessageStatsModels)(makeTakeoutService({ takeoutMessages }))
 
     const batches: Array<{ messages: any[], isTakeout: boolean, syncOptions: any }> = []
     const done = new Promise<void>((resolve) => {
@@ -120,7 +122,7 @@ describe('takeout event handlers', () => {
 
     mockGetChatMessageStatsByChatId.mockResolvedValue({ unwrap: () => undefined })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     const takeoutMessages = async function* (_chatId: string, opts: any) {
@@ -133,7 +135,7 @@ describe('takeout event handlers', () => {
       }
     }
 
-    registerTakeoutEventHandlers(ctx)(makeTakeoutService({ takeoutMessages }))
+    registerTakeoutEventHandlers(ctx, models.chatMessageStatsModels)(makeTakeoutService({ takeoutMessages }))
 
     ctx.emitter.emit('takeout:run', {
       chatIds: ['123'],
@@ -168,10 +170,10 @@ describe('takeout event handlers', () => {
       }),
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
-    registerTakeoutEventHandlers(ctx)(
+    registerTakeoutEventHandlers(ctx, models.chatMessageStatsModels)(
       makeTakeoutService({
         getTotalMessageCount: async () => 120,
       }),
@@ -206,10 +208,10 @@ describe('takeout event handlers', () => {
       throw new Error('boom')
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
-    registerTakeoutEventHandlers(ctx)(
+    registerTakeoutEventHandlers(ctx, models.chatMessageStatsModels)(
       makeTakeoutService({
         getTotalMessageCount: async () => 0,
       }),
@@ -240,7 +242,7 @@ describe('takeout event handlers', () => {
       unwrap: () => statsRow,
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     const calls: any[] = []
@@ -267,7 +269,7 @@ describe('takeout event handlers', () => {
       takeoutMessages,
     })
 
-    registerTakeoutEventHandlers(ctx)(service)
+    registerTakeoutEventHandlers(ctx, models.chatMessageStatsModels)(service)
 
     const processed = new Promise<any>((resolve) => {
       ctx.emitter.on('message:process', payload => resolve(payload))
@@ -313,7 +315,7 @@ describe('takeout event handlers', () => {
       unwrap: () => undefined,
     })
 
-    const ctx = createCoreContext()
+    const ctx = createCoreContext({ db: getMockEmptyDB(), models })
     ctx.setCurrentAccountId('acc-1')
 
     const calls: any[] = []
@@ -323,7 +325,7 @@ describe('takeout event handlers', () => {
       yield ({ id: 2 })
     }
 
-    registerTakeoutEventHandlers(ctx)(makeTakeoutService({ takeoutMessages }))
+    registerTakeoutEventHandlers(ctx, models.chatMessageStatsModels)(makeTakeoutService({ takeoutMessages }))
 
     const processed = new Promise<any>((resolve) => {
       ctx.emitter.on('message:process', payload => resolve(payload))

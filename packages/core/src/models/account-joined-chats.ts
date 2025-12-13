@@ -11,7 +11,7 @@ import { must0 } from './utils/must'
 /**
  * Link an account to a joined chat
  */
-export async function linkAccountToJoinedChat(db: CoreDB, accountId: string, joinedChatId: string): Promise<DBSelectAccountJoinedChat> {
+async function linkAccountToJoinedChat(db: CoreDB, accountId: string, joinedChatId: string): Promise<DBSelectAccountJoinedChat> {
   const rows = await db
     .insert(accountJoinedChatsTable)
     .values({
@@ -27,7 +27,7 @@ export async function linkAccountToJoinedChat(db: CoreDB, accountId: string, joi
 /**
  * Find all joined_chat_ids for a given account
  */
-export async function findJoinedChatIdsByAccountId(db: CoreDB, accountId: string): PromiseResult<string[]> {
+async function findJoinedChatIdsByAccountId(db: CoreDB, accountId: string): PromiseResult<string[]> {
   return withResult(async () => {
     const results = await db
       .select({
@@ -43,7 +43,7 @@ export async function findJoinedChatIdsByAccountId(db: CoreDB, accountId: string
 /**
  * Find all account_ids for a given joined_chat
  */
-export async function findAccountIdsByJoinedChatId(db: CoreDB, joinedChatId: string): PromiseResult<string[]> {
+async function findAccountIdsByJoinedChatId(db: CoreDB, joinedChatId: string): PromiseResult<string[]> {
   return withResult(async () => {
     const results = await db
       .select({
@@ -55,3 +55,11 @@ export async function findAccountIdsByJoinedChatId(db: CoreDB, joinedChatId: str
     return results.map(r => r.account_id)
   })
 }
+
+export const accountJoinedChatModels = {
+  linkAccountToJoinedChat,
+  findJoinedChatIdsByAccountId,
+  findAccountIdsByJoinedChatId,
+}
+
+export type AccountJoinedChatModels = typeof accountJoinedChatModels

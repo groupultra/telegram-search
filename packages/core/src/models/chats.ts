@@ -15,7 +15,7 @@ import { parseDate } from './utils/time'
 /**
  * Record chats for a specific account
  */
-export async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): Promise<DBSelectChat[]> {
+async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): Promise<DBSelectChat[]> {
   // Use a single transaction so joined_chats and account_joined_chats are consistent
   return db.transaction(async (tx) => {
     // Insert or update joined_chats
@@ -57,7 +57,7 @@ export async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: st
 /**
  * Fetch all chats
  */
-export async function fetchChats(db: CoreDB): PromiseResult<DBSelectChat[]> {
+async function fetchChats(db: CoreDB): PromiseResult<DBSelectChat[]> {
   return withResult(() => db.select()
     .from(joinedChatsTable)
     .where(eq(joinedChatsTable.platform, 'telegram'))
@@ -68,7 +68,7 @@ export async function fetchChats(db: CoreDB): PromiseResult<DBSelectChat[]> {
 /**
  * Fetch chats for a specific account
  */
-export async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResult<DBSelectChat[]> {
+async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResult<DBSelectChat[]> {
   return withResult(() => db
     .select({
       id: joinedChatsTable.id,
@@ -96,7 +96,7 @@ export async function fetchChatsByAccountId(db: CoreDB, accountId: string): Prom
  * This is used by higher-level handlers to enforce that message-level access
  * never exceeds the dialogs visible to the account.
  */
-export async function isChatAccessibleByAccount(db: CoreDB, accountId: string, chatId: string): PromiseResult<boolean> {
+async function isChatAccessibleByAccount(db: CoreDB, accountId: string, chatId: string): PromiseResult<boolean> {
   return withResult(async () => {
     const rows = await db
       .select({
@@ -116,3 +116,12 @@ export async function isChatAccessibleByAccount(db: CoreDB, accountId: string, c
     return rows.length > 0
   })
 }
+
+export const chatModels = {
+  recordChats,
+  fetchChats,
+  fetchChatsByAccountId,
+  isChatAccessibleByAccount,
+}
+
+export type ChatModels = typeof chatModels

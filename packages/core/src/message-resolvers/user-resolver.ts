@@ -2,15 +2,15 @@ import type { Entity } from 'telegram/define'
 
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
+import type { UserModels } from '../models/users'
 import type { DBSelectUser } from '../models/utils/types'
 
 import { useLogger } from '@guiiai/logg'
 import { Ok } from '@unbird/result'
 
-import { findUserByPlatformId, recordUser } from '../models/users'
 import { resolveEntity } from '../utils/entity'
 
-export function createUserResolver(ctx: CoreContext): MessageResolver {
+export function createUserResolver(ctx: CoreContext, userModels: UserModels): MessageResolver {
   const logger = useLogger('core:resolver:user')
 
   // In-memory cache for entities fetched from Telegram API during this session
@@ -34,7 +34,7 @@ export function createUserResolver(ctx: CoreContext): MessageResolver {
 
         if (!dbUser) {
           // Check database
-          const dbUserOrNull = (await findUserByPlatformId(ctx.getDB(), 'telegram', message.fromId)).orUndefined()
+          const dbUserOrNull = (await userModels.findUserByPlatformId(ctx.getDB(), 'telegram', message.fromId)).orUndefined()
 
           if (dbUserOrNull) {
             dbUser = dbUserOrNull
@@ -70,7 +70,7 @@ export function createUserResolver(ctx: CoreContext): MessageResolver {
           }
 
           // Save to database
-          const recordedUser = await recordUser(ctx.getDB(), coreEntity)
+          const recordedUser = await userModels.recordUser(ctx.getDB(), coreEntity)
           dbUser = recordedUser
           userCache.set(cacheKey, dbUser)
           logger.withFields({ userId: dbUser.id, fromId: message.fromId }).debug('User saved to database')

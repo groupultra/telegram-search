@@ -2,14 +2,21 @@ import type { Config, CoreMetrics } from '@tg-search/common'
 
 import type { CoreContext } from './context'
 import type { CoreDB } from './db'
+import type { MediaBinaryProvider } from './types'
 
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, basicEventHandler, useEventHandler } from './event-handler'
+import { models } from './models'
 
-export function createCoreInstance(db: () => CoreDB, config: Config, metrics?: CoreMetrics): CoreContext {
-  const ctx = createCoreContext(db, metrics)
+export function createCoreInstance(
+  db: () => CoreDB,
+  config: Config,
+  mediaBinaryProvider: MediaBinaryProvider | undefined,
+  metrics?: CoreMetrics,
+): CoreContext {
+  const ctx = createCoreContext({ db, metrics, models })
 
-  const { register: registerEventHandler } = useEventHandler(ctx, config)
+  const { register: registerEventHandler } = useEventHandler(ctx, config, mediaBinaryProvider)
   registerEventHandler(basicEventHandler)
   registerEventHandler(afterConnectedEventHandler)
 

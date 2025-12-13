@@ -1,5 +1,4 @@
-import type { Logger } from '@guiiai/logg'
-import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
+import type { MediaBinaryDescriptor, MediaBinaryLocation } from '@tg-search/core'
 
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
@@ -7,15 +6,7 @@ import { Buffer } from 'buffer'
 import { v4 as uuidv4 } from 'uuid'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { initMinioMediaStorage } from './minio'
-
-const mockSetMediaBinaryProvider = vi.fn<(provider: MediaBinaryProvider) => void>()
-
-vi.mock('@tg-search/core', () => {
-  return {
-    setMediaBinaryProvider: (provider: MediaBinaryProvider) => mockSetMediaBinaryProvider(provider),
-  }
-})
+import { getMinioMediaStorage, initMinioMediaStorage } from './minio'
 
 const bucketExists = vi.fn()
 const makeBucket = vi.fn()
@@ -48,7 +39,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
     withError() {
       return this
     },
-  } as unknown as Logger
+  } as any
 
   beforeEach(() => {
     vi.resetAllMocks()
@@ -76,9 +67,9 @@ describe('storage/minio - initMinioMediaStorage', () => {
     await initMinioMediaStorage(logger)
 
     expect(bucketExists).toHaveBeenCalledWith('telegram-media-test')
-    expect(mockSetMediaBinaryProvider).toHaveBeenCalledTimes(1)
 
-    const provider = mockSetMediaBinaryProvider.mock.calls[0][0] as MediaBinaryProvider
+    const provider = getMinioMediaStorage()
+    expect(provider).toBeDefined()
 
     const uuid = uuidv4()
     const descriptor: MediaBinaryDescriptor = {
@@ -88,7 +79,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
 
     const bytes = new Uint8Array([1, 2, 3])
 
-    const location: MediaBinaryLocation = await provider.save(descriptor, bytes, 'image/jpeg')
+    const location: MediaBinaryLocation = await provider!.save(descriptor, bytes, 'image/jpeg')
 
     expect(location).toEqual({
       kind: 'photo',
@@ -107,7 +98,7 @@ describe('storage/minio - initMinioMediaStorage', () => {
     // Simulate persisted object for load().
     chunks.push(Buffer.from(bytes))
 
-    const loaded = await provider.load(location)
+    const loaded = await provider!.load(location)
     expect(loaded).toBeInstanceOf(Uint8Array)
     expect(Array.from(loaded ?? [])).toEqual(Array.from(bytes))
   })
@@ -118,14 +109,15 @@ describe('storage/minio - initMinioMediaStorage', () => {
 
     await initMinioMediaStorage(logger)
 
-    const provider = mockSetMediaBinaryProvider.mock.calls[0][0] as MediaBinaryProvider
+    const provider = getMinioMediaStorage()
+    expect(provider).toBeDefined()
 
     const location: MediaBinaryLocation = {
       kind: 'photo',
       path: 'photo/missing',
     }
 
-    const result = await provider.load(location)
+    const result = await provider!.load(location)
     expect(result).toBeNull()
     expect(logger.warn).toHaveBeenCalled()
   })

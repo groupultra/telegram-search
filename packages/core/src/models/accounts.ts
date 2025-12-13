@@ -11,7 +11,7 @@ import { must0 } from './utils/must'
 /**
  * Record or update an account in the database
  */
-export async function recordAccount(db: CoreDB, platform: string, platformUserId: string): Promise<DBSelectAccount> {
+async function recordAccount(db: CoreDB, platform: string, platformUserId: string): Promise<DBSelectAccount> {
   const rows = await db
     .insert(accountsTable)
     .values({
@@ -32,7 +32,7 @@ export async function recordAccount(db: CoreDB, platform: string, platformUserId
 /**
  * Find an account by platform and platform_user_id
  */
-export async function findAccountByPlatformId(db: CoreDB, platform: string, platformUserId: string): PromiseResult<DBSelectAccount> {
+async function findAccountByPlatformId(db: CoreDB, platform: string, platformUserId: string): PromiseResult<DBSelectAccount> {
   return withResult(async () => {
     const rows = await db
       .select()
@@ -49,7 +49,7 @@ export async function findAccountByPlatformId(db: CoreDB, platform: string, plat
 /**
  * Find an account by UUID
  */
-export async function findAccountByUUID(db: CoreDB, uuid: string): PromiseResult<DBSelectAccount> {
+async function findAccountByUUID(db: CoreDB, uuid: string): PromiseResult<DBSelectAccount> {
   return withResult(async () => {
     const rows = await db
       .select()
@@ -60,3 +60,11 @@ export async function findAccountByUUID(db: CoreDB, uuid: string): PromiseResult
     return must0(rows)
   })
 }
+
+export const accountModels = {
+  recordAccount,
+  findAccountByPlatformId,
+  findAccountByUUID,
+}
+
+export type AccountModels = typeof accountModels

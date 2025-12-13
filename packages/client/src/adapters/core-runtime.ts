@@ -5,6 +5,7 @@ import type { Ref } from 'vue'
 import { createCoreInstance, destroyCoreInstance } from '@tg-search/core'
 
 import { getDB } from './core-db'
+import { getMediaBinaryProvider } from './core-media-opfs'
 
 interface CoreRuntimeLogger {
   withError?: (error: unknown) => { error: (message: string) => void }
@@ -51,7 +52,7 @@ export function createCoreRuntime(
         throw new Error('Core runtime is not initialized')
 
       // In browser runtime we do not wire metrics; pass undefined.
-      ctx = createCoreInstance(getDB, configRef.value)
+      ctx = createCoreInstance(getDB, configRef.value, getMediaBinaryProvider())
     }
 
     return ctx
