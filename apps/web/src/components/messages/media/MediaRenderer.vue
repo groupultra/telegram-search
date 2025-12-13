@@ -162,8 +162,21 @@ async function handleMediaError(_event: Event, mediaType: 'Image' | 'Sticker') {
 
   try {
     const response = await fetch(processedMedia.value.src, { method: 'HEAD' })
-    if (response.status !== 404 || !props.message.chatId || !props.message.platformMessageId || isReprocessing.value) {
+
+    // Only proceed with reprocessing if it's a 404 error and we have required data
+    if (response.status !== 404) {
       runtimeError.value = `${mediaType} failed to load`
+      return
+    }
+
+    if (!props.message.chatId || !props.message.platformMessageId) {
+      console.error('Missing chatId or platformMessageId for reprocessing')
+      runtimeError.value = `${mediaType} failed to load`
+      return
+    }
+
+    if (isReprocessing.value) {
+      // Already reprocessing, don't trigger again
       return
     }
 

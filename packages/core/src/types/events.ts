@@ -322,9 +322,13 @@ export interface MessageResolverEventToCore {
   /**
    * Re-processes specific messages to regenerate resolver outputs (e.g., media downloads).
    * Used when media files are missing from storage (404) or when resolver outputs need refreshing.
+   *
    * @param chatId - Chat ID containing the messages
    * @param messageIds - Array of message IDs to re-process
-   * @param resolvers - Optional array of resolver names to run. If omitted, runs all enabled resolvers.
+   * @param resolvers - Optional array of resolver names to run. **Note:** Currently not implemented;
+   *                    all enabled resolvers will run regardless of this parameter. This parameter
+   *                    is reserved for future enhancement to support selective resolver execution.
+   *                    If omitted or provided, runs all enabled resolvers (not disabled in account settings).
    */
   'message:reprocess': (data: { chatId: string, messageIds: number[], resolvers?: string[] }) => void
 }
