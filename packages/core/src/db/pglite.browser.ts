@@ -11,7 +11,7 @@ import { migrations } from '@tg-search/schema'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/pglite'
 
-import { Conn } from '../ws'
+import { Conn } from '../libs/ws'
 
 type PgliteDB = ReturnType<typeof drizzlePglite>
 

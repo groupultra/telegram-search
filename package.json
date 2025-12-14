@@ -45,6 +45,7 @@
     "@moeru/eslint-config": "0.1.0-beta.13",
     "@types/node": "^24.10.2",
     "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/ui": "4.0.15",
     "bumpp": "^10.3.2",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.8",

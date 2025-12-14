@@ -9,5 +9,14 @@ export default defineConfig({
       'apps/server',
       'apps/web',
     ],
+    coverage: {
+      include: [
+        'packages/**/src/**/*.ts',
+      ],
+      exclude: [
+        'packages/**/src/**/*.test.ts',
+        'packages/**/src/**/*.spec.ts',
+      ],
+    },
   },
 })

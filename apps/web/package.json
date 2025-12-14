@@ -29,6 +29,7 @@
     "nprogress": "^0.2.0",
     "pako": "^2.1.0",
     "pinia": "^3.0.4",
+    "posthog-js": "^1.306.1",
     "telegram": "2.26.21",
     "valibot": "^1.2.0",
     "virtua": "^0.48.2",

@@ -20,6 +20,9 @@ import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
 
+// eslint-disable-next-line no-control-regex, sonarjs/no-control-regex
+const ANSI_COLOR_REGEX = /\x1B\[[0-9;]*m/g
+
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
   const handleError = (error: unknown, type: string) => {
     logger.withError(error).error(type)
@@ -75,7 +78,6 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
       headers: { 'Content-Type': register.contentType },
     })
   }))
-
   logger.withFields({ endpoint: '/metrics' }).log('Metrics endpoint mounted')
 
   app.mount('/v1', v1api(getDB(), models, getMinioMediaStorage()))
@@ -108,8 +110,31 @@ async function bootstrap() {
 
     initOtelLogger(options)
 
-    setGlobalAfterLog((log: Log) => {
-      emitOtelLog(log.level, log.fields.context || 'unknown', log.message, log.fields)
+    setGlobalAfterLog((log: Log, raw?: string) => {
+      // Convert fields to snake_case before emitting
+      function toSnakeCaseFields(obj: Record<string, any>): Record<string, any> {
+        const result: Record<string, any> = {}
+        for (const key in obj) {
+          if (!Object.prototype.hasOwnProperty.call(obj, key))
+            continue
+          const snakeKey = key.replace(/([A-Z])/g, '_$1').replace(/-/g, '_').toLowerCase()
+          result[snakeKey] = obj[key]
+        }
+        return result
+      }
+
+      // Clean up ANSI color sequences
+      const stripAnsi = (str: string) => str.replace(ANSI_COLOR_REGEX, '')
+      const rawNoColor = stripAnsi(raw || '')
+      const rawFields = rawNoColor.split(log.message)[1]?.trim()
+
+      const fieldsSnake = log.fields ? toSnakeCaseFields(log.fields) : {}
+      emitOtelLog(
+        log.level,
+        fieldsSnake.context || 'unknown',
+        log.message,
+        { ...fieldsSnake, raw_fields: rawFields },
+      )
     })
 
     logger.withFields({

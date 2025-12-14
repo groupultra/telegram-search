@@ -236,7 +236,9 @@ describe('models/chat-message', () => {
     expect(message.media).toBeDefined()
     expect(message.media?.length).toBe(1)
     expect(message.media?.[0].type).toBe('photo')
-    expect(message.media?.[0].messageUUID).toBe(messageUuid)
+
+    // DO NOT USE messageUUID for photos, it's not the message UUID
+    expect(message.media?.[0].messageUUID).not.toEqual(messageUuid)
   })
 
   it('fetchMessageContextWithPhotos returns surrounding messages with media attached', async () => {
