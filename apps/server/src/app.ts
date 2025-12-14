@@ -54,8 +54,6 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
         status,
         error: error instanceof Error ? error.message : 'Unknown error',
       }).error('Request failed')
-
-      return error
     },
   })
 

@@ -14,7 +14,7 @@ export function v1api(db: CoreDB, models: Models, mediaBinaryProvider: MediaBina
     const queryId = getRouterParam(event, 'queryId')
 
     if (!queryId) {
-      throw new HTTPError('Query ID is required', { status: 400 })
+      return new HTTPError('Query ID is required', { status: 400 })
     }
 
     try {
@@ -39,7 +39,7 @@ export function v1api(db: CoreDB, models: Models, mediaBinaryProvider: MediaBina
       }
 
       if (!bytes || bytes.length === 0) {
-        throw new HTTPError('Photo not found', { status: 404 })
+        return new HTTPError('Photo not found', { status: 404 })
       }
 
       const fileType = photo.image_mime_type
@@ -55,7 +55,7 @@ export function v1api(db: CoreDB, models: Models, mediaBinaryProvider: MediaBina
     }
     catch (error) {
       useLogger('v1api:photos').withError(error).error('Failed to find photo')
-      throw new HTTPError('Failed to find photo', { status: 500, cause: error })
+      return new HTTPError('Failed to find photo', { status: 500, cause: error })
     }
   }))
 
@@ -63,7 +63,7 @@ export function v1api(db: CoreDB, models: Models, mediaBinaryProvider: MediaBina
     const queryId = getRouterParam(event, 'queryId')
 
     if (!queryId) {
-      throw new HTTPError('Query ID is required', { status: 400 })
+      return new HTTPError('Query ID is required', { status: 400 })
     }
 
     try {
@@ -88,7 +88,7 @@ export function v1api(db: CoreDB, models: Models, mediaBinaryProvider: MediaBina
       }
 
       if (!bytes || bytes.length === 0) {
-        throw new HTTPError('Sticker not found', { status: 404 })
+        return new HTTPError('Sticker not found', { status: 404 })
       }
 
       const fileType = sticker.sticker_mime_type
@@ -104,7 +104,7 @@ export function v1api(db: CoreDB, models: Models, mediaBinaryProvider: MediaBina
     }
     catch (error) {
       useLogger('v1api:stickers').withError(error).error('Failed to find sticker')
-      throw new HTTPError('Failed to find sticker', { status: 500, cause: error })
+      return new HTTPError('Failed to find sticker', { status: 500, cause: error })
     }
   }))
 
