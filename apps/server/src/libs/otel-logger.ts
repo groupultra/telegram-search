@@ -1,7 +1,7 @@
 import type { Log } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
 
-import { setGlobalAfterLog, useLogger } from '@guiiai/logg'
+import { setGlobalHookPostLog, useLogger } from '@guiiai/logg'
 import { logs, SeverityNumber } from '@opentelemetry/api-logs'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
 import { resourceFromAttributes } from '@opentelemetry/resources'
@@ -10,7 +10,7 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic
 
 import pkg from '../../package.json' with { type: 'json' }
 
-import { toSnakeCaseFields } from '../utils/fields'
+import { removeHyperLinks, toSnakeCaseFields } from '../utils/fields'
 
 let loggerProvider: LoggerProvider | null = null
 let isInitialized = false
@@ -163,16 +163,13 @@ export function initOtel(config: Config) {
 
     initOtelLogger(options)
 
-    setGlobalAfterLog((log: Log, raw: string = '') => {
-      const rawFields = raw.split(log.message)[1]?.trim()
+    setGlobalHookPostLog((log: Log, formattedOutput: string) => {
+      const rawContext = removeHyperLinks(log.context)
+      const rawFields = formattedOutput?.split(log.message)[1]?.trim()
       const fieldsSnake = toSnakeCaseFields(log.fields)
+      const message = `[${rawContext}] ${log.message} ${rawFields}`
 
-      emitOtelLog(
-        log.level,
-        fieldsSnake.context || 'unknown',
-        `${log.message} ${rawFields}`,
-        fieldsSnake,
-      )
+      emitOtelLog(log.level, rawContext, message, fieldsSnake)
     })
 
     useLogger().withFields({

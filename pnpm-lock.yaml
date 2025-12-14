@@ -7,8 +7,8 @@ settings:
 catalogs:
   default:
     '@guiiai/logg':
-      specifier: ^1.2.7
-      version: 1.2.7
+      specifier: ^1.2.10
+      version: 1.2.10
     '@unbird/result':
       specifier: ^1.1.1
       version: 1.1.1
@@ -37,7 +37,7 @@ importers:
         version: 1.51.1
       '@guiiai/logg':
         specifier: 'catalog:'
-        version: 1.2.7
+        version: 1.2.10
     devDependencies:
       '@moeru/eslint-config':
         specifier: 0.1.0-beta.13
@@ -83,7 +83,7 @@ importers:
         version: 0.3.14
       '@guiiai/logg':
         specifier: 'catalog:'
-        version: 1.2.7
+        version: 1.2.10
       '@node-rs/jieba':
         specifier: ^2.0.1
         version: 2.0.1
@@ -347,7 +347,7 @@ importers:
     dependencies:
       '@guiiai/logg':
         specifier: 'catalog:'
-        version: 1.2.7
+        version: 1.2.10
       '@vueuse/core':
         specifier: ^14.1.0
         version: 14.1.0(vue@3.5.25(typescript@5.9.3))
@@ -368,7 +368,7 @@ importers:
         version: 0.3.14
       '@guiiai/logg':
         specifier: 'catalog:'
-        version: 1.2.7
+        version: 1.2.10
       '@henrygd/queue':
         specifier: ^1.2.0
         version: 1.2.0
@@ -1530,8 +1530,8 @@ packages:
   '@formkit/auto-animate@0.9.0':
     resolution: {integrity: sha512-VhP4zEAacXS3dfTpJpJ88QdLqMTcabMg0jwpOSxZ/VzfQVfl3GkZSCZThhGC5uhq/TxPHPzW0dzr4H9Bb1OgKA==}
 
-  '@guiiai/logg@1.2.7':
-    resolution: {integrity: sha512-yAe/4JXeq7w8roV0cZH8UB8widrnBaejhb2PZw+b55WhquZZ4GN5xnaqDIKoKBV/mAJHjaIGpzliA3sMKtB8Hw==}
+  '@guiiai/logg@1.2.10':
+    resolution: {integrity: sha512-CFlEeipWcTRBGo0bsOLXAgeoIehcAM6nNimv9TWNAweTkfEUEBGOd65qzEoJcMXFQt+BGeldoERCp23nUtWMpA==}
 
   '@henrygd/queue@1.2.0':
     resolution: {integrity: sha512-jW/BLSTpcvExDhqJGxtIPgGr2O0IFF8XUNDwEbfCfhrXT8a4xztQ9Lv6U/vbYzYC0xVWn+3zv6YnLUh3bEFUKA==}
@@ -7527,7 +7527,7 @@ snapshots:
 
   '@formkit/auto-animate@0.9.0': {}
 
-  '@guiiai/logg@1.2.7':
+  '@guiiai/logg@1.2.10':
     dependencies:
       error-stack-parser: 2.1.4
       pathe: 2.0.3
@@ -7855,7 +7855,7 @@ snapshots:
 
   '@proj-airi/drizzle-orm-browser-migrator@0.1.4(drizzle-orm@0.45.0(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(postgres@3.4.7))':
     dependencies:
-      '@guiiai/logg': 1.2.7
+      '@guiiai/logg': 1.2.10
       drizzle-orm: 0.45.0(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(postgres@3.4.7)
 
   '@proj-airi/unocss-preset-chromatic@1.0.2': {}
