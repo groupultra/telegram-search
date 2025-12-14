@@ -54,7 +54,7 @@ export function createWsMessage<T extends keyof WsEventToClient>(
     // ensure args[0] can be stringified
     const stringifiedData = JSON.stringify(data)
     if (stringifiedData.length > 1024 * 1024) {
-      useLogger().withFields({ type, length: stringifiedData.length }).warn('Dropped event data')
+      useLogger().withFields({ type, size: stringifiedData.length }).warn('Dropped event data')
       wsSendFailTotal.inc({ reason: 'payload_too_large' })
       return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
     }

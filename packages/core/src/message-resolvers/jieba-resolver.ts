@@ -39,7 +39,7 @@ export function createJiebaResolver(): MessageResolver {
         }
       })
 
-      logger.withFields({ messages: jiebaMessages.length }).verbose('Processed jieba messages')
+      logger.withFields({ count: jiebaMessages.length }).verbose('Processed jieba messages')
 
       return Ok(jiebaMessages)
     },

@@ -17,9 +17,21 @@ export function createMessageResolverService(ctx: CoreContext) {
     const { emitter } = ctx
 
     // TODO: worker_threads?
-    async function processMessages(messages: Api.Message[], options: { takeout?: boolean, syncOptions?: SyncOptions, forceRefetch?: boolean } = {}) {
+    async function processMessages(
+      messages: Api.Message[],
+      options: {
+        takeout?: boolean
+        syncOptions?: SyncOptions
+        forceRefetch?: boolean
+      } = {},
+    ) {
       const start = performance.now()
-      logger.withFields({ count: messages.length }).verbose('Process messages')
+      logger.withFields({
+        count: messages.length,
+        takeout: options.takeout,
+        syncOptions: options.syncOptions,
+        forceRefetch: options.forceRefetch,
+      }).verbose('Process messages')
 
       // Sort by message ID in reverse order to process in reverse.
       messages = messages.sort((a, b) => Number(b.id) - Number(a.id))
@@ -50,16 +62,23 @@ export function createMessageResolverService(ctx: CoreContext) {
         .map(([name, resolver]) => (async () => {
           logger.withFields({ name }).verbose('Process messages with resolver')
 
+          const opts = {
+            messages: coreMessages,
+            rawMessages: messages,
+            syncOptions: options.syncOptions,
+            forceRefetch: options.forceRefetch,
+          }
+
           try {
             if (resolver.run) {
-              const result = (await resolver.run({ messages: coreMessages, rawMessages: messages, syncOptions: options.syncOptions, forceRefetch: options.forceRefetch })).unwrap()
+              const result = (await resolver.run(opts)).unwrap()
 
               if (result.length > 0) {
                 emitter.emit('storage:record:messages', { messages: result })
               }
             }
             else if (resolver.stream) {
-              for await (const message of resolver.stream({ messages: coreMessages, rawMessages: messages, syncOptions: options.syncOptions, forceRefetch: options.forceRefetch })) {
+              for await (const message of resolver.stream(opts)) {
                 if (!options.takeout) {
                   emitter.emit('message:data', { messages: [message] })
                 }

@@ -67,7 +67,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, dbModels: Models)
       .filter(id => !Number.isNaN(id))
 
     if (messageIdsToFetch.length > 0) {
-      logger.withFields({ messageIds: messageIdsToFetch.length }).verbose('Fetching messages from Telegram to check for missing media')
+      logger.withFields({ chatId, count: messageIdsToFetch.length }).verbose('Fetching messages from Telegram to check for missing media')
 
       // Fetch these specific messages from Telegram which will download any missing media
       // This is done asynchronously and will update the messages once media is downloaded
@@ -83,7 +83,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, dbModels: Models)
 
     await dbModels.chatMessageModels.recordMessages(ctx.getDB(), accountId, messages)
 
-    logger.withFields({ messages: messages.length, accountId }).verbose('Messages recorded')
+    logger.withFields({ count: messages.length, accountId }).verbose('Messages recorded')
   })
 
   ctx.emitter.on('storage:fetch:dialogs', async (data) => {
@@ -94,7 +94,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, dbModels: Models)
     const dbChats = (await dbModels.chatModels.fetchChatsByAccountId(ctx.getDB(), accountId))?.unwrap()
     const chatsMessageStats = (await dbModels.chatMessageStatsModels.getChatMessagesStats(ctx.getDB(), accountId))?.unwrap()
 
-    logger.withFields({ accountId, dbChatsSize: dbChats.length, chatsMessageStatsSize: chatsMessageStats.length }).verbose('Fetched dialogs for account')
+    logger.withFields({ accountId, count: dbChats.length, chatsMessageStatsCount: chatsMessageStats.length }).verbose('Fetched dialogs for account')
 
     const dialogs = dbChats.map((chat) => {
       const chatMessageStats = chatsMessageStats.find(stats => stats.chat_id === chat.chat_id)
@@ -124,7 +124,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, dbModels: Models)
     }
 
     const result = await dbModels.chatModels.recordChats(ctx.getDB(), dialogs, accountId)
-    logger.withFields({ recorded: result.length }).verbose('Successfully recorded dialogs')
+    logger.withFields({ count: result.length, accountId }).verbose('Successfully recorded dialogs')
   })
 
   ctx.emitter.on('storage:search:messages', async (params) => {
@@ -166,7 +166,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, dbModels: Models)
       dbMessages = (await dbModels.chatMessageModels.retrieveMessages(ctx.getDB(), accountId, params.chatId, embeddingDimension, { text: params.content }, params.pagination, filters)).expect('Failed to retrieve messages')
     }
 
-    logger.withFields({ messages: dbMessages.length }).verbose('Retrieved messages')
+    logger.withFields({ count: dbMessages.length, accountId }).verbose('Retrieved messages')
     logger.withFields(dbMessages).debug('Retrieved messages')
 
     const coreMessages = convertToCoreRetrievalMessages(dbMessages)

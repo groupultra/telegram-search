@@ -82,7 +82,7 @@ export function createMessageService(ctx: CoreContext) {
     }
 
     try {
-      logger.withFields({ chatId, messageIds: messageIds.length }).debug('Fetching specific messages from Telegram')
+      logger.withFields({ chatId, count: messageIds.length }).debug('Fetching specific messages from Telegram')
 
       // Telegram API getMessages can accept an array of message IDs
       const messages = await getClient().getMessages(chatId, {

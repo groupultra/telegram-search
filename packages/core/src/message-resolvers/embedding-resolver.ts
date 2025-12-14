@@ -31,11 +31,11 @@ export function createEmbeddingResolver(ctx: CoreContext): MessageResolver {
       if (messages.length === 0)
         return Err('No messages to embed')
 
-      logger.withFields({ messages: messages.length }).verbose('Embedding messages')
+      logger.withFields({ count: messages.length }).verbose('Embedding messages')
 
       const { embeddings, usage, dimension } = (await embedContents(messages.map(message => message.content), embeddingSettings)).expect('Failed to embed messages')
 
-      logger.withFields({ embeddings: embeddings.length, usage }).verbose('Embedding messages done')
+      logger.withFields({ count: embeddings.length, usage }).verbose('Embedding messages done')
 
       for (const [index, message] of messages.entries()) {
         message.vectors = {

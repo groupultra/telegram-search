@@ -14,10 +14,12 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext) {
     const queue = newQueue(MESSAGE_RESOLVER_QUEUE_SIZE)
 
     // TODO: debounce, background tasks
-    emitter.on('message:process', ({ messages, isTakeout = false, syncOptions }) => {
+    emitter.on('message:process', ({ messages, isTakeout = false, syncOptions, forceRefetch }) => {
+      logger.withFields({ count: messages.length, isTakeout, syncOptions, forceRefetch }).verbose('Processing messages')
+
       if (!isTakeout) {
-        messageResolverService.processMessages(messages, { takeout: isTakeout, syncOptions }).catch((error) => {
-          logger.withError(error).warn('Failed to process messages')
+        messageResolverService.processMessages(messages, { takeout: isTakeout, syncOptions, forceRefetch }).catch((error) => {
+          logger.withError(error).warn('Failed to process realtime messages')
         })
 
         return
@@ -25,8 +27,8 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext) {
 
       // Only use queue for takeout mode to avoid overwhelming the system.
       void queue.add(async () => {
-        messageResolverService.processMessages(messages, { takeout: isTakeout, syncOptions }).catch((error) => {
-          logger.withError(error).warn('Failed to process messages')
+        messageResolverService.processMessages(messages, { takeout: isTakeout, syncOptions, forceRefetch }).catch((error) => {
+          logger.withError(error).warn('Failed to process takeout messages')
         })
       })
     })

@@ -294,13 +294,13 @@ async function retrieveMessages(
 
     if (content.text) {
       const relevantMessages = await retrieveJieba(db, accountId, chatId, content.text, pagination, filters)
-      logger.withFields({ relevantMessages: relevantMessages.length }).verbose('Retrieved jieba messages')
+      logger.withFields({ count: relevantMessages.length }).verbose('Retrieved jieba messages')
       retrievalMessages.push(...relevantMessages)
     }
 
     if (content.embedding && content.embedding.length !== 0) {
       const relevantMessages = await retrieveVector(db, accountId, chatId, content.embedding, embeddingDimension, pagination, filters)
-      logger.withFields({ relevantMessages: relevantMessages.length }).verbose('Retrieved vector messages')
+      logger.withFields({ count: relevantMessages.length }).verbose('Retrieved vector messages')
       retrievalMessages.push(...relevantMessages)
     }
 
