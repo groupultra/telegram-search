@@ -37,7 +37,7 @@ describe('message event handlers', () => {
 
     // Set up listener for message:process to capture forceRefetch flag
     let capturedForceRefetch: boolean | undefined
-    ctx.emitter.on('message:process', ({ messages, forceRefetch }) => {
+    ctx.emitter.on('message:process', ({ forceRefetch }) => {
       capturedForceRefetch = forceRefetch
     })
 
