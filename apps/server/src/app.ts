@@ -1,11 +1,10 @@
-import type { Log } from '@guiiai/logg'
-import type { Config, OtelConfig, RuntimeFlags } from '@tg-search/common'
+import type { Config, RuntimeFlags } from '@tg-search/common'
 
 import process from 'node:process'
 
 import figlet from 'figlet'
 
-import { initLogger, setGlobalAfterLog, useLogger } from '@guiiai/logg'
+import { initLogger, useLogger } from '@guiiai/logg'
 import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
 import { models } from '@tg-search/core'
 import { plugin as wsPlugin } from 'crossws/server'
@@ -15,13 +14,10 @@ import { collectDefaultMetrics, register } from 'prom-client'
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
-import { emitOtelLog, initOtelLogger, shutdownOtelLogger } from './libs/otel-logger'
+import { initOtel, shutdownOtelLogger } from './libs/otel-logger'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
-
-// eslint-disable-next-line no-control-regex, sonarjs/no-control-regex
-const ANSI_COLOR_REGEX = /\x1B\[[0-9;]*m/g
 
 function setupErrorHandlers(logger: ReturnType<typeof useLogger>): void {
   const handleError = (error: unknown, type: string) => {
@@ -59,10 +55,7 @@ function configureServer(logger: ReturnType<typeof useLogger>, flags: RuntimeFla
         error: error instanceof Error ? error.message : 'Unknown error',
       }).error('Request failed')
 
-      return Response.json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
+      return error
     },
   })
 
@@ -99,50 +92,7 @@ async function bootstrap() {
 
   const config = parseEnvToConfig(process.env, logger)
 
-  // Initialize OpenTelemetry logger if configured
-  if (config.otel?.endpoint) {
-    const options: OtelConfig = {
-      endpoint: config.otel.endpoint,
-      serviceName: config.otel.serviceName || 'telegram-search',
-      serviceVersion: config.otel.serviceVersion || pkg.version,
-      headers: config.otel.headers,
-    }
-
-    initOtelLogger(options)
-
-    setGlobalAfterLog((log: Log, raw?: string) => {
-      // Convert fields to snake_case before emitting
-      function toSnakeCaseFields(obj: Record<string, any>): Record<string, any> {
-        const result: Record<string, any> = {}
-        for (const key in obj) {
-          if (!Object.prototype.hasOwnProperty.call(obj, key))
-            continue
-          const snakeKey = key.replace(/([A-Z])/g, '_$1').replace(/-/g, '_').toLowerCase()
-          result[snakeKey] = obj[key]
-        }
-        return result
-      }
-
-      // Clean up ANSI color sequences
-      const stripAnsi = (str: string) => str.replace(ANSI_COLOR_REGEX, '')
-      const rawNoColor = stripAnsi(raw || '')
-      const rawFields = rawNoColor.split(log.message)[1]?.trim()
-
-      const fieldsSnake = log.fields ? toSnakeCaseFields(log.fields) : {}
-      emitOtelLog(
-        log.level,
-        fieldsSnake.context || 'unknown',
-        log.message,
-        { ...fieldsSnake, raw_fields: rawFields },
-      )
-    })
-
-    logger.withFields({
-      endpoint: options.endpoint,
-      service_name: options.serviceName,
-      service_version: options.serviceVersion,
-    }).log('OpenTelemetry logger initialized')
-  }
+  initOtel(config)
 
   await initDrizzle(logger, config, flags)
 

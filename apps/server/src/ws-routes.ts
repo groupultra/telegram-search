@@ -39,7 +39,7 @@ import type { WsMessageToServer } from './ws-events'
 
 import { useLogger } from '@guiiai/logg'
 import { createCoreInstance, destroyCoreInstance } from '@tg-search/core'
-import { defineWebSocketHandler } from 'h3'
+import { defineWebSocketHandler, HTTPError } from 'h3'
 import { Counter, Gauge, Histogram } from 'prom-client'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -245,7 +245,7 @@ export function setupWsRoutes(app: H3, config: Config) {
       const urlSessionId = url.searchParams.get('sessionId')
 
       if (!urlSessionId || urlSessionId === '') {
-        return Response.json({ success: false, error: 'Session ID is required' }, { status: 400 })
+        throw new HTTPError('Session ID is required', { status: 400 })
       }
     },
 

@@ -1,3 +1,7 @@
+import type { Log } from '@guiiai/logg'
+import type { Config } from '@tg-search/common'
+
+import { setGlobalAfterLog, useLogger } from '@guiiai/logg'
 import { logs, SeverityNumber } from '@opentelemetry/api-logs'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
 import { resourceFromAttributes } from '@opentelemetry/resources'
@@ -5,6 +9,8 @@ import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
 
 import pkg from '../../package.json' with { type: 'json' }
+
+import { toSnakeCaseFields } from '../utils/fields'
 
 let loggerProvider: LoggerProvider | null = null
 let isInitialized = false
@@ -143,4 +149,36 @@ export function emitOtelLog(level: string, context: string, message: string, att
     body: message,
     attributes: attributes || {},
   })
+}
+
+export function initOtel(config: Config) {
+  // Initialize OpenTelemetry logger if configured
+  if (config.otel?.endpoint) {
+    const options: OtelConfig = {
+      endpoint: config.otel.endpoint,
+      serviceName: config.otel.serviceName || 'telegram-search',
+      serviceVersion: config.otel.serviceVersion || pkg.version,
+      headers: config.otel.headers,
+    }
+
+    initOtelLogger(options)
+
+    setGlobalAfterLog((log: Log, raw: string = '') => {
+      const rawFields = raw.split(log.message)[1]?.trim()
+      const fieldsSnake = toSnakeCaseFields(log.fields)
+
+      emitOtelLog(
+        log.level,
+        fieldsSnake.context || 'unknown',
+        `${log.message} ${rawFields}`,
+        fieldsSnake,
+      )
+    })
+
+    useLogger().withFields({
+      endpoint: options.endpoint,
+      service_name: options.serviceName,
+      service_version: options.serviceVersion,
+    }).log('OpenTelemetry logger initialized')
+  }
 }
