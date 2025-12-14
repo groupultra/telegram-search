@@ -74,7 +74,7 @@ export function registerMessageEventHandlers(ctx: CoreContext) {
         return
       }
 
-      logger.withFields({ chatId, messageIds: messageIds.length, resolvers }).verbose('Re-processing messages')
+      logger.withFields({ chatId, messageIds, resolvers }).verbose('Re-processing messages')
 
       try {
         // Fetch specific messages by their IDs from Telegram
