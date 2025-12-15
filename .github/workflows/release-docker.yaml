@@ -6,9 +6,10 @@ permissions:
 
 on:
   workflow_dispatch:
+  schedule:
+    # Run nightly at 00:00 UTC every day
+    - cron: '0 0 * * *'
   push:
-    branches:
-      - main
     tags:
       - 'v*'
     paths-ignore:
@@ -59,7 +60,6 @@ jobs:
           IMAGE_REPO="ghcr.io/${{ github.repository }}"
 
           # If the current commit is tagged, treat it as a release.
-          # This prevents "push main" from always overriding release tags with nightly.
           EXACT_TAG="$(git describe --tags --exact-match 2>/dev/null || true)"
 
           TAGS=()
@@ -68,8 +68,9 @@ jobs:
           if [[ -n "$EXACT_TAG" ]]; then
             IMAGE_VERSION="${EXACT_TAG#v}"
             IS_VERSIONED_RELEASE="true"
-          # Nightly build: push to main (when current commit is NOT tagged)
-          elif [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
+          # Nightly build: scheduled daily build (and workflow_dispatch when not on a tagged commit)
+          elif [[ "${GITHUB_EVENT_NAME}" == "schedule" ]] || \
+               [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -z "$EXACT_TAG" ]]; then
             SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
             TAGS+=("$IMAGE_REPO:nightly")
             TAGS+=("$IMAGE_REPO:nightly-$SHORT_SHA")
