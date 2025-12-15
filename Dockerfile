@@ -1,7 +1,7 @@
 # ---------------------------------
 # --------- Builder Stage ---------
 # ---------------------------------
-FROM node:24-bookworm-slim AS builder
+FROM node:24.12.0-bookworm-slim AS builder
 WORKDIR /app
 
 # Enable pnpm
@@ -40,7 +40,7 @@ RUN pnpm run server:build
 # ---------------------------------
 # --------- Nginx Stage -----------
 # ---------------------------------
-FROM nginx:1.27-bookworm AS web
+FROM nginx:1.29-bookworm AS web
 
 # Copy built frontend
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
@@ -53,7 +53,7 @@ EXPOSE 3333
 # ---------------------------------
 # --------- Runtime Stage ---------
 # ---------------------------------
-FROM node:24-bookworm-slim
+FROM node:24.12.0-bookworm-slim
 
 WORKDIR /app
 

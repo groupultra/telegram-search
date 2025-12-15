@@ -4,13 +4,13 @@ packages:
   - apps/*
 
 catalog:
-  '@guiiai/logg': ^1.2.10
+  '@guiiai/logg': ^1.2.11
   '@unbird/result': ^1.1.1
   '@xsai-ext/providers-cloud': ^0.4.0-beta.10
   '@xsai-ext/providers-local': ^0.4.0-beta.10
   '@xsai/embed': ^0.4.0-beta.10
   '@xsai/tool': ^0.4.0-beta.10
-  tsdown: ^0.17.0
+  tsdown: ^0.18.0
   vue-sonner: ^2.0.9
   xsai: ^0.4.0-beta.10
 
