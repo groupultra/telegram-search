@@ -7,8 +7,8 @@ permissions:
 on:
   workflow_dispatch:
   schedule:
-    # Run nightly at 00:00 UTC every day
-    - cron: '0 0 * * *'
+    # Run nightly at 08:00 UTC every day
+    - cron: '0 8 * * *'
   push:
     tags:
       - 'v*'
