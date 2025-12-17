@@ -9,8 +9,9 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
-import { Button } from '../components/ui/Button'
 import Dialog from '../components/ui/Dialog.vue'
+
+import { Button } from '../components/ui/Button'
 import { useAIChatLogic } from '../composables/useAIChat'
 
 const { t } = useI18n()
@@ -577,11 +578,11 @@ onMounted(() => {
           variant="ghost"
           size="sm"
           icon="i-lucide-x"
-          class="-mr-2 h-8 w-8 rounded-full"
+          class="h-8 w-8 rounded-full -mr-2"
           @click="isScopeSelectorOpen = false"
         />
       </div>
-      
+
       <div class="min-h-0 flex-1">
         <ChatSelector
           v-model:selected-chats="selectedChatIds"
