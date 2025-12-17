@@ -294,6 +294,7 @@ async function retrieveMessages(
   filters?: {
     fromUserId?: string
     timeRange?: { start?: number, end?: number }
+    chatIds?: string[]
   },
 ): PromiseResult<DBRetrievalMessages[]> {
   logger = logger.withContext('models:chat-message:retrieveMessages')

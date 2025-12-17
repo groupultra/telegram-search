@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
-import { useAccountStore, useAIChatStore, useBridgeStore } from '@tg-search/client'
+import { useAccountStore, useAIChatStore, useBridgeStore, useChatStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
+import ChatSelector from '../components/ChatSelector.vue'
 import { Button } from '../components/ui/Button'
+import Dialog from '../components/ui/Dialog.vue'
 import { useAIChatLogic } from '../composables/useAIChat'
 
 const { t } = useI18n()
@@ -23,6 +25,15 @@ const { accountSettings } = storeToRefs(useAccountStore())
 
 const messageInput = ref('')
 const messagesContainer = ref<HTMLElement>()
+
+const chatStore = useChatStore()
+const { chats } = storeToRefs(chatStore)
+
+const isScopeSelectorOpen = ref(false)
+const selectedChatIds = ref<number[]>([])
+const activeChatId = ref<number | null>(null)
+
+const filteredChatsCount = computed(() => selectedChatIds.value.length)
 
 // Use the AI chat logic composable
 const aiChatLogic = useAIChatLogic()
@@ -86,6 +97,10 @@ async function sendMessage() {
           },
           fromUserId: params.fromUserId,
           timeRange: params.timeRange,
+          // Inject UI-selected chat scope
+          chatIds: selectedChatIds.value.length > 0
+            ? selectedChatIds.value.map(id => id.toString())
+            : undefined,
         })
       })
     }
@@ -509,6 +524,21 @@ onMounted(() => {
     <div class="border-t bg-card/50 p-4 backdrop-blur-sm">
       <div class="mx-auto max-w-4xl">
         <div class="flex items-end gap-2">
+          <!-- Chat Scope Selector Trigger -->
+          <Button
+            variant="outline"
+            icon=""
+            class="h-12 w-12 flex-shrink-0 px-0"
+            @click="isScopeSelectorOpen = true"
+          >
+            <div class="flex items-center justify-center gap-1">
+              <span class="i-lucide-filter h-4 w-4" />
+              <span v-if="filteredChatsCount > 0" class="text-sm font-medium">
+                {{ filteredChatsCount }}
+              </span>
+            </div>
+          </Button>
+
           <textarea
             v-model="messageInput"
             :placeholder="t('aiChat.typeYourMessage')"
@@ -527,4 +557,56 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- Chat Scope Selector Dialog -->
+  <Dialog
+    v-model="isScopeSelectorOpen"
+    class="sm:max-w-md"
+  >
+    <div class="h-[60vh] flex flex-col">
+      <div class="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold">
+            {{ t('aiChat.selectScope') }}
+          </h2>
+          <p class="text-sm text-muted-foreground">
+            {{ t('aiChat.selectScopeDescription') }}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-x"
+          class="-mr-2 h-8 w-8 rounded-full"
+          @click="isScopeSelectorOpen = false"
+        />
+      </div>
+      
+      <div class="min-h-0 flex-1">
+        <ChatSelector
+          v-model:selected-chats="selectedChatIds"
+          v-model:active-chat-id="activeChatId"
+          :chats="chats"
+        />
+      </div>
+
+      <div class="mt-4 flex justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-x"
+          @click="selectedChatIds = []"
+        >
+          {{ t('aiChat.cancelFilter') }}
+        </Button>
+        <Button
+          size="sm"
+          icon="i-lucide-check"
+          @click="isScopeSelectorOpen = false"
+        >
+          {{ t('aiChat.confirmFilter') }}
+        </Button>
+      </div>
+    </div>
+  </Dialog>
 </template>

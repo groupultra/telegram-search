@@ -4,7 +4,7 @@ import type { CoreDB } from '../../db'
 import type { EmbeddingDimension } from '../../types/account-settings'
 import type { DBRetrievalMessages } from './message'
 
-import { and, desc, eq, gt, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { chatMessagesTable } from '../../schemas/chat-messages'
@@ -14,13 +14,14 @@ import { getSimilaritySql } from './similarity'
 export async function retrieveVector(
   db: CoreDB,
   accountId: string,
-  chatId: string | undefined,
+  chatId: string | undefined, // Legacy support
   embedding: number[],
   dimension: EmbeddingDimension,
   pagination?: CorePagination,
   filters?: {
     fromUserId?: string
     timeRange?: { start?: number, end?: number }
+    chatIds?: string[]
   },
 ): Promise<DBRetrievalMessages[]> {
   const similarity = getSimilaritySql(
@@ -34,7 +35,9 @@ export async function retrieveVector(
   // Build where conditions
   const whereConditions = [
     eq(chatMessagesTable.platform, 'telegram'),
-    chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined,
+    filters?.chatIds?.length
+      ? inArray(chatMessagesTable.in_chat_id, filters.chatIds)
+      : (chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined),
     gt(similarity, 0.5),
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
     filters?.timeRange?.start ? sql`${chatMessagesTable.platform_timestamp} >= ${filters.timeRange.start}` : undefined,

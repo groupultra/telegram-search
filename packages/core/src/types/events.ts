@@ -211,6 +211,7 @@ export interface CoreMessageSearchParams {
   pagination?: CorePagination
 
   // Additional filters for RAG
+  chatIds?: string[] // Filter by specific chats
   fromUserId?: string // Filter by user who sent the message
   timeRange?: {
     start?: number // Unix timestamp in seconds

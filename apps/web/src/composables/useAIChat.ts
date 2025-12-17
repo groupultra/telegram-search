@@ -42,6 +42,7 @@ interface SearchMessagesParams {
   limit: number
   fromUserId?: string | null
   timeRange?: { start?: number | null, end?: number | null } | null
+  chatIds?: string[] | null
 }
 
 interface RetrieveContextParams {
@@ -75,6 +76,10 @@ export function useAIChatLogic() {
         v.number(),
         v.description('Maximum number of messages to retrieve (recommended: 5-10)'),
       ),
+      chatIds: v.optional(v.pipe(
+        v.array(v.string()),
+        v.description('List of chat IDs to restrict search to. If provided, only messages from these chats will be returned.'),
+      )),
     })
 
     return await tool({
@@ -90,11 +95,11 @@ Parameters:
         const startTime = Date.now()
         logger.withFields({ params }).log('searchMessages tool called')
 
-        // Call executor with required params only (filters removed)
         const results = await executor({
           ...params,
           fromUserId: undefined,
           timeRange: undefined,
+          chatIds: params.chatIds || undefined,
         })
         const duration = Date.now() - startTime
 

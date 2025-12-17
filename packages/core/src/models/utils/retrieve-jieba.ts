@@ -4,7 +4,7 @@ import type { CorePagination } from '@tg-search/common'
 import type { CoreDB } from '../../db'
 import type { DBRetrievalMessages } from './message'
 
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 
 import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { chatMessagesTable } from '../../schemas/chat-messages'
@@ -15,12 +15,13 @@ export async function retrieveJieba(
   db: CoreDB,
   logger: Logger,
   accountId: string,
-  chatId: string | undefined,
+  chatId: string | undefined, // Legacy support
   content: string,
   pagination?: CorePagination,
   filters?: {
     fromUserId?: string
     timeRange?: { start?: number, end?: number }
+    chatIds?: string[]
   },
 ): Promise<DBRetrievalMessages[]> {
   logger = logger.withContext('models:retrieve-jieba')
@@ -40,7 +41,10 @@ export async function retrieveJieba(
   // Build where conditions
   const whereConditions = [
     eq(chatMessagesTable.platform, 'telegram'),
-    chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined,
+    filters?.chatIds?.length
+      ? inArray(chatMessagesTable.in_chat_id, filters.chatIds)
+      : (chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined),
+
     sql`${chatMessagesTable.jieba_tokens} @> ${JSON.stringify(jiebaTokens)}::jsonb`,
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
     filters?.timeRange?.start ? sql`${chatMessagesTable.platform_timestamp} >= ${filters.timeRange.start}` : undefined,

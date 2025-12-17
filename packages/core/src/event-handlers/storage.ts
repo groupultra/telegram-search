@@ -148,6 +148,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     const filters = {
       fromUserId: params.fromUserId,
       timeRange: params.timeRange,
+      chatIds: params.chatIds,
     }
 
     const embeddingSettings = (await ctx.getAccountSettings()).embedding
