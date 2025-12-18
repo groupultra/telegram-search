@@ -117,16 +117,26 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
         return []
       }
 
-      // Limit to 50 for summary context
-      const limit = Math.min(unreadCount, 50)
+      // Calculate start of today (00:00:00)
+      const now = new Date()
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const startOfTodayTimestamp = Math.floor(startOfToday.getTime() / 1000)
 
-      logger.withFields({ chatId, unreadCount, limit }).debug('Fetching unread messages')
+      logger.withFields({ chatId, unreadCount, startOfTodayTimestamp }).debug('Fetching unread messages for today')
 
-      const messages = await ctx.getClient().getMessages(chatId, {
-        limit,
-      })
+      const messages: Api.Message[] = []
 
-      return messages.filter((m: any) => !(m instanceof Api.MessageEmpty))
+      // Fetch unread messages, stop if we see messages older than today
+      for await (const message of ctx.getClient().iterMessages(chatId, { limit: unreadCount })) {
+        if (message.date < startOfTodayTimestamp) {
+          break
+        }
+        if (!(message instanceof Api.MessageEmpty)) {
+          messages.push(message)
+        }
+      }
+
+      return messages
     }
     catch (error) {
       ctx.withError(error, 'Fetch unread messages failed')
