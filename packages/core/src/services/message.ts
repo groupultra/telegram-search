@@ -115,11 +115,12 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
 
     try {
       // 1. Get dialog
+      // TODO: need access hash
       const dialogs = await ctx.getClient().getDialogs({
         limit: 100,
         offsetPeer: chatId,
       })
-      const dialog = dialogs.find((dialog) => dialog.entity && dialog.entity.id && dialog.entity.id.toString() === chatId)
+      const dialog = dialogs.find(dialog => dialog.entity && dialog.entity.id && dialog.entity.id.toString() === chatId)
       if (!dialog) {
         logger.withFields({ chatId }).warn('Dialog not found for unread fetch')
         return []
@@ -162,7 +163,11 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
         }),
       )
 
-      return searchResult.messages
+      if (searchResult instanceof Api.messages.Messages) {
+        return searchResult.messages.filter(message => !(message instanceof Api.MessageEmpty)) as Api.Message[]
+      }
+
+      return []
     }
     catch (error) {
       ctx.withError(error, 'Fetch unread messages failed')
@@ -178,6 +183,7 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
     if (!await ctx.getClient().isUserAuthorized()) {
       return
     }
+
     if (!accessHash) {
       logger.error('accessHash required for markAsRead')
       return
@@ -189,28 +195,33 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
         userId: bigInt(chatId),
         accessHash: bigInt(accessHash),
       })
+
       // 2. If no lastMessageId is given, fetch dialogs to resolve to current topMessage.
       let maxId = lastMessageId
       if (!maxId) {
-        const dialogsResult: Api.messages.Dialogs = await ctx.getClient().invoke(new Api.messages.GetDialogs({
-          hash: bigInt(0),
-          offsetPeer: new Api.InputPeerEmpty(),
-          offsetId: 0,
-          limit: 100,
-          offsetDate: 0,
-        })) as Api.messages.Dialogs
-        const dialog = dialogsResult.dialogs.find(d =>
-          d instanceof Api.Dialog
-          && d.peer instanceof Api.PeerUser
-          && d.peer.userId.toString() === chatId,
-        ) as Api.Dialog | undefined
-        maxId = dialog?.topMessage
+        const dialogsResult = await ctx.getClient().invoke(
+          new Api.messages.GetDialogs({
+            hash: bigInt(0),
+            offsetPeer: new Api.InputPeerEmpty(),
+            offsetId: 0,
+            limit: 100,
+            offsetDate: 0,
+          }),
+        )
+
+        if (dialogsResult instanceof Api.messages.Dialogs) {
+          const dialog = dialogsResult.dialogs.find(d => d instanceof Api.Dialog && d.peer instanceof Api.PeerUser && d.peer.userId.toString() === chatId)
+          maxId = dialog?.topMessage
+        }
+
+        await ctx.getClient().invoke(
+          new Api.messages.ReadHistory({
+            peer,
+            maxId: maxId ?? 0,
+          }),
+        )
+        logger.withFields({ chatId, maxId }).debug('Marked as read')
       }
-      await ctx.getClient().invoke(new Api.messages.ReadHistory({
-        peer,
-        maxId: maxId ?? 0,
-      }))
-      logger.withFields({ chatId, maxId }).debug('Marked as read')
     }
     catch (error) {
       ctx.withError(error, 'Mark as read failed')
