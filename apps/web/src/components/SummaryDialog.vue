@@ -32,9 +32,9 @@ async function open() {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfTodayTimestamp = Math.floor(startOfToday.getTime() / 1000)
 
-  bridge.sendEvent('message:fetch:unread', { 
+  bridge.sendEvent('message:fetch:unread', {
     chatId: props.chatId,
-    startTime: startOfTodayTimestamp
+    startTime: startOfTodayTimestamp,
   })
 
   try {

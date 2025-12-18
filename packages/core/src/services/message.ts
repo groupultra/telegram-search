@@ -133,7 +133,7 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
         if (opts?.startTime && message.date < opts.startTime) {
           break
         }
-        
+
         if (!(message instanceof Api.MessageEmpty)) {
           messages.push(message)
         }
