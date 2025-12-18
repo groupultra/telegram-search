@@ -128,10 +128,10 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.emitter.on('message:fetch:unread', async ({ chatId }) => {
-      logger.withFields({ chatId }).verbose('Fetching unread messages')
+    ctx.emitter.on('message:fetch:unread', async ({ chatId, limit, startTime }) => {
+      logger.withFields({ chatId, limit, startTime }).verbose('Fetching unread messages')
       try {
-        const messages = await messageService.fetchUnreadMessages(chatId)
+        const messages = await messageService.fetchUnreadMessages(chatId, { limit, startTime })
         // Reverse to have chronological order (oldest first) which is better for LLM summary
         // getMessages usually returns newest first.
         messages.reverse()

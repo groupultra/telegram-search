@@ -27,7 +27,15 @@ async function open() {
   unreadMessages.value = []
   isLoading.value = true
 
-  bridge.sendEvent('message:fetch:unread', { chatId: props.chatId })
+  // Calculate start of today (00:00:00)
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfTodayTimestamp = Math.floor(startOfToday.getTime() / 1000)
+
+  bridge.sendEvent('message:fetch:unread', { 
+    chatId: props.chatId,
+    startTime: startOfTodayTimestamp
+  })
 
   try {
     const data = await bridge.waitForEvent('message:unread-data')

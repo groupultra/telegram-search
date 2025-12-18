@@ -97,7 +97,7 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
     }
   }
 
-  async function fetchUnreadMessages(chatId: string): Promise<Api.Message[]> {
+  async function fetchUnreadMessages(chatId: string, opts?: { limit?: number, startTime?: number }): Promise<Api.Message[]> {
     if (!await ctx.getClient().isUserAuthorized()) {
       logger.error('User not authorized')
       return []
@@ -117,20 +117,23 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
         return []
       }
 
-      // Calculate start of today (00:00:00)
-      const now = new Date()
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const startOfTodayTimestamp = Math.floor(startOfToday.getTime() / 1000)
+      // Determine limit: min of unreadCount and opts.limit (if provided)
+      // If opts.limit is not provided, we try to fetch all unread messages (up to a reasonable safety cap if needed, but 'all' is the request)
+      // However, iterating ALL messages might be heavy. Let's rely on iterMessages to handle paging.
+      // If opts.limit is provided, use it. If not, use unreadCount.
+      const limit = opts?.limit ? Math.min(unreadCount, opts.limit) : unreadCount
 
-      logger.withFields({ chatId, unreadCount, startOfTodayTimestamp }).debug('Fetching unread messages for today')
+      logger.withFields({ chatId, unreadCount, limit, startTime: opts?.startTime }).debug('Fetching unread messages')
 
       const messages: Api.Message[] = []
 
-      // Fetch unread messages, stop if we see messages older than today
-      for await (const message of ctx.getClient().iterMessages(chatId, { limit: unreadCount })) {
-        if (message.date < startOfTodayTimestamp) {
+      // Fetch unread messages
+      for await (const message of ctx.getClient().iterMessages(chatId, { limit })) {
+        // If startTime is provided, stop if we see messages older than startTime
+        if (opts?.startTime && message.date < opts.startTime) {
           break
         }
+        
         if (!(message instanceof Api.MessageEmpty)) {
           messages.push(message)
         }

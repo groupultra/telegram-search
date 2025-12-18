@@ -81,9 +81,15 @@ export interface MessageEventToCore {
   'message:fetch': (data: FetchMessageOpts) => void
   'message:fetch:abort': (data: { taskId: string }) => void
   'message:fetch:specific': (data: { chatId: string, messageIds: number[] }) => void
-  'message:fetch:unread': (data: { chatId: string }) => void
+  'message:fetch:unread': (data: FetchUnreadMessageOpts) => void
   'message:send': (data: { chatId: string, content: string }) => void
   'message:read': (data: { chatId: string }) => void
+}
+
+export interface FetchUnreadMessageOpts {
+  chatId: string
+  limit?: number
+  startTime?: number
 }
 
 export interface MessageEventFromCore {
