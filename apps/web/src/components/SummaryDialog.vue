@@ -2,9 +2,9 @@
 import type { CoreMessage } from '@tg-search/core'
 
 import { useAccountStore, useBridgeStore } from '@tg-search/client'
+import { streamText } from '@xsai/stream-text'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
-import { XSAI } from 'xsai'
 
 import Dialog from './ui/Dialog.vue'
 
@@ -74,11 +74,8 @@ async function generateSummary(messages: CoreMessage[]) {
     return
   }
 
-  // Initialize xsai
-  const xsai = new XSAI({
-    apiKey,
-    baseURL: settings?.apiBase || 'https://api.openai.com/v1',
-  })
+  const baseURL = settings?.apiBase || 'https://api.openai.com/v1'
+  const model = settings?.model || 'gpt-4o-mini'
 
   const content = messages.map((m) => {
     const name = m.fromName || (m.fromId ? `User ${m.fromId}` : 'Unknown')
@@ -86,18 +83,19 @@ async function generateSummary(messages: CoreMessage[]) {
   }).join('\n')
 
   try {
-    const stream = await xsai.chat.completions.create({
+    // Use xsAI streaming API (streamText)
+    const { textStream } = await streamText({
+      apiKey,
+      baseURL,
       messages: [
         { role: 'system', content: 'You are a helpful assistant. Summarize the following telegram messages concisely.' },
         { role: 'user', content },
       ],
-      model: settings?.model || 'gpt-4o-mini',
-      stream: true,
+      model,
     })
 
     isLoading.value = false
-    for await (const chunk of stream) {
-      const text = chunk.choices[0]?.delta?.content || ''
+    for await (const text of textStream) {
       summary.value += text
     }
   }

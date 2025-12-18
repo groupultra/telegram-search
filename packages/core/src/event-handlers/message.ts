@@ -7,6 +7,7 @@ import { Api } from 'telegram/tl'
 import { v4 as uuidv4 } from 'uuid'
 
 import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
+import { convertToCoreMessage } from '../utils/message'
 
 export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
   logger = logger.withContext('core:message:event')
@@ -136,21 +137,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         // getMessages usually returns newest first.
         messages.reverse()
 
-        const coreMessages = messages.map((m) => {
-          const fromId = m.fromId ? (m.fromId as any).userId?.toString() : ''
-          return {
-            uuid: uuidv4(),
-            platform: 'telegram' as const,
-            platformMessageId: m.id.toString(),
-            chatId,
-            fromId,
-            fromName: '',
-            content: m.message,
-            reply: { isReply: !!m.replyTo, replyToId: m.replyTo?.replyToMsgId?.toString() },
-            forward: { isForward: !!m.fwdFrom },
-            platformTimestamp: m.date,
-          }
-        })
+        const coreMessages = messages.map(convertToCoreMessage).map(result => result.unwrap())
         ctx.emitter.emit('message:unread-data', { messages: coreMessages })
       }
       catch (e) {
