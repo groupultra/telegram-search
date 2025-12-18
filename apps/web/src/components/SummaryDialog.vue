@@ -2,9 +2,9 @@
 import type { CoreMessage } from '@tg-search/core'
 
 import { useAccountStore, useBridgeStore } from '@tg-search/client'
-import { streamText } from '@xsai/stream-text'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
+import { streamText } from 'xsai'
 
 import Dialog from './ui/Dialog.vue'
 
@@ -84,11 +84,11 @@ async function generateSummary(messages: CoreMessage[]) {
 
   try {
     // Use xsAI streaming API (streamText)
-    const { textStream } = await streamText({
+    const { textStream } = streamText({
       apiKey,
       baseURL,
       messages: [
-        { role: 'system', content: 'You are a helpful assistant. Summarize the following telegram messages concisely.' },
+        { role: 'system', content: 'You are a helpful assistant. Summarize the following telegram messages concisely with Chinese.' },
         { role: 'user', content },
       ],
       model,

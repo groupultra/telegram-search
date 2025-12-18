@@ -3,6 +3,8 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext } from '../context'
 import type { FetchMessageOpts } from '../types/events'
 
+import bigInt from 'big-integer'
+
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
@@ -33,13 +35,12 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
 
     try {
       logger.withFields({ limit }).debug('Fetching messages from Telegram server')
-      const messages = await ctx.getClient()
-        .getMessages(chatId, {
-          limit,
-          minId,
-          maxId,
-          addOffset: options.pagination.offset, // TODO: rename this
-        })
+      const messages = await ctx.getClient().getMessages(chatId, {
+        limit,
+        minId,
+        maxId,
+        addOffset: options.pagination.offset,
+      })
 
       if (messages.length === 0) {
         logger.warn('Get messages failed or returned empty data')
@@ -51,7 +52,6 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
         if (message instanceof Api.MessageEmpty) {
           continue
         }
-
         yield message
       }
     }
@@ -61,12 +61,13 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
   }
 
   async function sendMessage(chatId: string, content: string) {
-    const message = await ctx.getClient()
-      .invoke(new Api.messages.SendMessage({
+    // This works for simple text messages. For more types, use GramJS's raw constructors.
+    const message = await ctx.getClient().invoke(
+      new Api.messages.SendMessage({
         peer: chatId,
         message: content,
-      }))
-
+      }),
+    )
     return Ok(message)
   }
 
@@ -97,49 +98,71 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
     }
   }
 
-  async function fetchUnreadMessages(chatId: string, opts?: { limit?: number, startTime?: number }): Promise<Api.Message[]> {
+  /**
+   * Fetch unread messages for the given chatId. Uses direct GramJS requests:
+   *   1. Fetch all dialogs and locate this dialog's unread state/last read id.
+   *   2. Search messages for the current day, optionally filtered by opts.startTime.
+   *   3. Filter as unread (msg.id > dialog.readInboxMaxId).
+   */
+  async function fetchUnreadMessages(
+    chatId: string,
+    opts?: { limit?: number, startTime?: number, accessHash?: string },
+  ): Promise<Api.Message[]> {
     if (!await ctx.getClient().isUserAuthorized()) {
       logger.error('User not authorized')
       return []
     }
 
     try {
-      const dialogs = await ctx.getClient().getDialogs()
-      const dialog = dialogs.find(d => d.entity?.id?.toString() === chatId)
-
+      // 1. Get dialog
+      const dialogs = await ctx.getClient().getDialogs({
+        limit: 100,
+        offsetPeer: chatId,
+      })
+      const dialog = dialogs.find((dialog) => dialog.entity && dialog.entity.id && dialog.entity.id.toString() === chatId)
       if (!dialog) {
         logger.withFields({ chatId }).warn('Dialog not found for unread fetch')
         return []
       }
 
-      const unreadCount = dialog.unreadCount
+      // 2. Get unread count
+      const unreadCount = dialog.unreadCount ?? 0
       if (unreadCount <= 0) {
+        logger.withFields({ chatId }).warn('No unread messages on Telegram for this chat')
         return []
       }
 
-      // Determine limit: min of unreadCount and opts.limit (if provided)
-      // If opts.limit is not provided, we try to fetch all unread messages (up to a reasonable safety cap if needed, but 'all' is the request)
-      // However, iterating ALL messages might be heavy. Let's rely on iterMessages to handle paging.
-      // If opts.limit is provided, use it. If not, use unreadCount.
-      const limit = opts?.limit ? Math.min(unreadCount, opts.limit) : unreadCount
+      // 3. Calculate search time range: either (start of today) or as provided by opts.startTime
+      let minDate = opts?.startTime
+      let maxDate = undefined as undefined | number
 
-      logger.withFields({ chatId, unreadCount, limit, startTime: opts?.startTime }).debug('Fetching unread messages')
-
-      const messages: Api.Message[] = []
-
-      // Fetch unread messages
-      for await (const message of ctx.getClient().iterMessages(chatId, { limit })) {
-        // If startTime is provided, stop if we see messages older than startTime
-        if (opts?.startTime && message.date < opts.startTime) {
-          break
-        }
-
-        if (!(message instanceof Api.MessageEmpty)) {
-          messages.push(message)
-        }
+      // If startTime not given, restrict to today
+      if (!minDate) {
+        const today = new Date()
+        minDate = Math.floor(new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() / 1000)
+        maxDate = minDate + 86400
       }
 
-      return messages
+      // 4. Search all messages in time range
+      logger.withFields({ chatId, unreadCount, minDate }).debug('Searching for unread messages in time range')
+
+      const searchResult = await ctx.getClient().invoke(
+        new Api.messages.Search({
+          peer: dialog.id,
+          q: '',
+          filter: new Api.InputMessagesFilterEmpty(),
+          minDate,
+          maxDate,
+          offsetId: 0,
+          addOffset: 0,
+          limit: opts?.limit ? Math.min(opts.limit, unreadCount) : unreadCount,
+          maxId: 0,
+          minId: 0,
+          hash: bigInt(0),
+        }),
+      )
+
+      return searchResult.messages
     }
     catch (error) {
       ctx.withError(error, 'Fetch unread messages failed')
@@ -147,12 +170,47 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
     }
   }
 
-  async function markAsRead(chatId: string) {
+  /**
+   * Mark all messages in the chat as read using messages.ReadHistory.
+   * accessHash (for user peer) must be supplied. (You could extend to channels, etc.)
+   */
+  async function markAsRead(chatId: string, accessHash?: string, lastMessageId?: number) {
     if (!await ctx.getClient().isUserAuthorized()) {
       return
     }
+    if (!accessHash) {
+      logger.error('accessHash required for markAsRead')
+      return
+    }
+
     try {
-      await ctx.getClient().markAsRead(chatId)
+      // 1. Build InputPeerUser
+      const peer = new Api.InputPeerUser({
+        userId: bigInt(chatId),
+        accessHash: bigInt(accessHash),
+      })
+      // 2. If no lastMessageId is given, fetch dialogs to resolve to current topMessage.
+      let maxId = lastMessageId
+      if (!maxId) {
+        const dialogsResult: Api.messages.Dialogs = await ctx.getClient().invoke(new Api.messages.GetDialogs({
+          hash: bigInt(0),
+          offsetPeer: new Api.InputPeerEmpty(),
+          offsetId: 0,
+          limit: 100,
+          offsetDate: 0,
+        })) as Api.messages.Dialogs
+        const dialog = dialogsResult.dialogs.find(d =>
+          d instanceof Api.Dialog
+          && d.peer instanceof Api.PeerUser
+          && d.peer.userId.toString() === chatId,
+        ) as Api.Dialog | undefined
+        maxId = dialog?.topMessage
+      }
+      await ctx.getClient().invoke(new Api.messages.ReadHistory({
+        peer,
+        maxId: maxId ?? 0,
+      }))
+      logger.withFields({ chatId, maxId }).debug('Marked as read')
     }
     catch (error) {
       ctx.withError(error, 'Mark as read failed')
