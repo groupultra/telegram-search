@@ -1,5 +1,6 @@
-import { useLogger } from '@guiiai/logg'
 import type { ClientRegisterEventHandler } from '.'
+
+import { useLogger } from '@guiiai/logg'
 
 import { useBridgeStore } from '../composables/useBridge'
 import { useAvatarStore } from '../stores/useAvatar'

@@ -81,12 +81,15 @@ export interface MessageEventToCore {
   'message:fetch': (data: FetchMessageOpts) => void
   'message:fetch:abort': (data: { taskId: string }) => void
   'message:fetch:specific': (data: { chatId: string, messageIds: number[] }) => void
+  'message:fetch:unread': (data: { chatId: string }) => void
   'message:send': (data: { chatId: string, content: string }) => void
+  'message:read': (data: { chatId: string }) => void
 }
 
 export interface MessageEventFromCore {
   'message:fetch:progress': (data: { taskId: string, progress: number }) => void
   'message:data': (data: { messages: CoreMessage[] }) => void
+  'message:unread-data': (data: { messages: CoreMessage[] }) => void
 }
 
 export interface FetchMessageOpts {

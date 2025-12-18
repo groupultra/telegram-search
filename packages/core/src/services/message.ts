@@ -97,9 +97,60 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
     }
   }
 
+  async function fetchUnreadMessages(chatId: string): Promise<Api.Message[]> {
+    if (!await ctx.getClient().isUserAuthorized()) {
+      logger.error('User not authorized')
+      return []
+    }
+
+    try {
+      const dialogs = await ctx.getClient().getDialogs()
+      const dialog = dialogs.find(d => d.entity?.id?.toString() === chatId)
+
+      if (!dialog) {
+        logger.withFields({ chatId }).warn('Dialog not found for unread fetch')
+        return []
+      }
+
+      const unreadCount = dialog.unreadCount
+      if (unreadCount <= 0) {
+        return []
+      }
+
+      // Limit to 50 for summary context
+      const limit = Math.min(unreadCount, 50)
+
+      logger.withFields({ chatId, unreadCount, limit }).debug('Fetching unread messages')
+
+      const messages = await ctx.getClient().getMessages(chatId, {
+        limit,
+      })
+
+      return messages.filter((m: any) => !(m instanceof Api.MessageEmpty))
+    }
+    catch (error) {
+      ctx.withError(error, 'Fetch unread messages failed')
+      return []
+    }
+  }
+
+  async function markAsRead(chatId: string) {
+    if (!await ctx.getClient().isUserAuthorized()) {
+      return
+    }
+    try {
+      await ctx.getClient().markAsRead(chatId)
+    }
+    catch (error) {
+      ctx.withError(error, 'Mark as read failed')
+    }
+  }
+
   return {
     fetchMessages,
     sendMessage,
     fetchSpecificMessages,
+    fetchUnreadMessages,
+    markAsRead,
   }
 }

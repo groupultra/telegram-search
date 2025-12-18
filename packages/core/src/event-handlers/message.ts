@@ -127,5 +127,40 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         ctx.withError(error as Error, 'Failed to re-process messages')
       }
     })
+
+    ctx.emitter.on('message:fetch:unread', async ({ chatId }) => {
+      logger.withFields({ chatId }).verbose('Fetching unread messages')
+      try {
+        const messages = await messageService.fetchUnreadMessages(chatId)
+        // Reverse to have chronological order (oldest first) which is better for LLM summary
+        // getMessages usually returns newest first.
+        messages.reverse()
+
+        const coreMessages = messages.map((m) => {
+          const fromId = m.fromId ? (m.fromId as any).userId?.toString() : ''
+          return {
+            uuid: uuidv4(),
+            platform: 'telegram' as const,
+            platformMessageId: m.id.toString(),
+            chatId,
+            fromId,
+            fromName: '',
+            content: m.message,
+            reply: { isReply: !!m.replyTo, replyToId: m.replyTo?.replyToMsgId?.toString() },
+            forward: { isForward: !!m.fwdFrom },
+            platformTimestamp: m.date,
+          }
+        })
+        ctx.emitter.emit('message:unread-data', { messages: coreMessages })
+      }
+      catch (e) {
+        ctx.withError(e, 'Failed to fetch unread messages')
+      }
+    })
+
+    ctx.emitter.on('message:read', async ({ chatId }) => {
+      logger.withFields({ chatId }).verbose('Marking messages as read')
+      await messageService.markAsRead(chatId)
+    })
   }
 }

@@ -11,6 +11,7 @@ import { toast } from 'vue-sonner'
 
 import EntityAvatar from '../../components/avatar/EntityAvatar.vue'
 import SearchDialog from '../../components/SearchDialog.vue'
+import SummaryDialog from '../../components/SummaryDialog.vue'
 import VirtualMessageList from '../../components/VirtualMessageList.vue'
 
 import { Button } from '../../components/ui/Button'
@@ -288,15 +289,29 @@ watch(
           </p>
         </div>
       </div>
-      <Button
-        icon="i-lucide-search"
-        variant="ghost"
-        size="sm"
-        data-search-button
-        @click="isGlobalSearchOpen = !isGlobalSearchOpen"
-      >
-        {{ t('chat.search') }}
-      </Button>
+      <div class="flex items-center gap-2">
+        <SummaryDialog :chat-id="id.toString()">
+          <template #default="{ open }">
+            <Button
+              icon="i-lucide-sparkles"
+              variant="ghost"
+              size="sm"
+              @click="open"
+            >
+              {{ t('chat.summarize') }}
+            </Button>
+          </template>
+        </SummaryDialog>
+        <Button
+          icon="i-lucide-search"
+          variant="ghost"
+          size="sm"
+          data-search-button
+          @click="isGlobalSearchOpen = !isGlobalSearchOpen"
+        >
+          {{ t('chat.search') }}
+        </Button>
+      </div>
     </div>
 
     <!-- Messages Area with Virtual List -->

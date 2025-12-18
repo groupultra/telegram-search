@@ -1,8 +1,8 @@
+import { useLogger } from '@guiiai/logg'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { useBridgeStore } from '../composables/useBridge'
-import { useLogger } from '@guiiai/logg'
 
 export interface AvatarEntry {
   id: string
