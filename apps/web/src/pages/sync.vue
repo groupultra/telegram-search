@@ -7,7 +7,6 @@ import { getErrorMessage, useAuthStore, useBridgeStore, useChatStore, useSyncTas
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
@@ -19,7 +18,6 @@ import { Button } from '../components/ui/Button'
 import { Progress } from '../components/ui/Progress'
 
 const { t } = useI18n()
-const router = useRouter()
 
 const selectedChats = ref<number[]>([])
 const syncOptions = ref<SyncOptions>({
@@ -294,37 +292,7 @@ watch(activeChatId, (chatId) => {
       </div>
     </header>
 
-    <!-- Login prompt banner -->
-    <div
-      v-if="!isLoggedIn"
-      class="flex items-center justify-center px-6 py-8"
-    >
-      <div
-        class="max-w-2xl w-full border border-primary/20 rounded-2xl bg-primary/5 p-6 transition-all"
-      >
-        <div class="flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
-          <div class="flex items-center gap-4">
-            <div class="h-12 w-12 flex shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <div class="i-lucide-lock-keyhole h-6 w-6 text-primary" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-sm text-foreground font-semibold">{{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
-              <span class="text-xs text-muted-foreground">{{ t('loginPromptBanner.subtitle') }}</span>
-            </div>
-          </div>
-          <Button
-            size="md"
-            icon="i-lucide-log-in"
-            class="shrink-0"
-            @click="router.push({ path: '/login', query: { redirect: '/sync' } })"
-          >
-            {{ t('loginPromptBanner.login') }}
-          </Button>
-        </div>
-      </div>
-    </div>
-
-    <div v-else class="flex flex-1 flex-col overflow-hidden p-6">
+    <div class="flex flex-1 flex-col overflow-hidden p-6">
       <div class="mx-auto h-full max-w-6xl w-full flex flex-col space-y-6">
         <!-- Combined card: sync task status + per-chat visualization -->
         <div

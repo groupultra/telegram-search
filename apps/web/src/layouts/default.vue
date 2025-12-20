@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import buildTime from '~build/time'
 
-import { useSettingsStore } from '@tg-search/client'
+import { useAuthStore, useSettingsStore } from '@tg-search/client'
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 import { abbreviatedSha as gitShortSha } from '~build/git'
 import { version as pkgVersion } from '~build/package'
@@ -15,6 +15,8 @@ import { Button } from '../components/ui/Button'
 
 const settingsStore = useSettingsStore()
 const { theme } = storeToRefs(settingsStore)
+
+const { isLoggedIn } = storeToRefs(useAuthStore())
 
 const route = useRoute()
 
@@ -124,7 +126,39 @@ function closeMobileDrawer() {
       class="relative flex flex-1 flex-col overflow-auto bg-background"
       :class="{ 'ml-0': isMobile }"
     >
-      <RouterView :key="$route.fullPath" />
+      <!-- Login prompt banner -->
+      <div
+        v-if="!isLoggedIn && !$route.path.startsWith('/login')"
+        class="flex items-center justify-center px-6 py-8"
+      >
+        <div
+          class="max-w-2xl w-full border border-primary/20 rounded-2xl bg-primary/5 p-6 transition-all"
+        >
+          <div class="flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
+            <div class="flex items-center gap-4">
+              <div class="h-12 w-12 flex shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <div class="i-lucide-lock-keyhole h-6 w-6 text-primary" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-sm text-foreground font-semibold">{{ $t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
+                <span class="text-xs text-muted-foreground">{{ $t('loginPromptBanner.subtitle') }}</span>
+              </div>
+            </div>
+            <Button
+              size="md"
+              icon="i-lucide-log-in"
+              class="shrink-0"
+              @click="$router.push({ path: '/login', query: { redirect: $route.fullPath } })"
+            >
+              {{ $t('loginPromptBanner.login') }}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <template v-else>
+        <RouterView :key="$route.fullPath" />
+      </template>
 
       <!-- Version info -->
       <div class="pointer-events-none fixed bottom-3 right-3 z-10 flex items-center gap-2 text-xs text-muted-foreground opacity-50">
