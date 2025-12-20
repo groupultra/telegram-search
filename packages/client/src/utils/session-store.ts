@@ -1,7 +1,8 @@
 import type { Ref } from 'vue'
-import { computed } from 'vue'
 
 import type { StoredSession } from '../types/session'
+
+import { computed } from 'vue'
 
 interface SessionStoreOptions {
   generateId: () => string

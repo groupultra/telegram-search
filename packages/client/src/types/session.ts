@@ -23,4 +23,3 @@ export interface StoredSession {
 
 // Deprecated alias for backward compatibility during refactor, if needed
 export type SessionContext = Partial<Omit<StoredSession, 'uuid'>>
-

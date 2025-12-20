@@ -10,7 +10,7 @@ export function registerAccountEventHandlers(ctx: CoreContext, logger: Logger, a
   return (accountService: AccountService) => {
     let hasBootstrappedDialogs = false
 
-    ctx.emitter.on('account:me:fetch', async () => {
+    ctx.emitter.on('account:setup', async () => {
       logger.verbose('Getting me info')
       const account = (await accountService.fetchMyAccount()).expect('Failed to get me info')
 
