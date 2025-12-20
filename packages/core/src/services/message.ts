@@ -131,19 +131,23 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
       const unreadCount = dialog.unreadCount ?? 0
       if (unreadCount <= 0) {
         logger.withFields({ chatId }).warn('No unread messages on Telegram for this chat')
-        return []
       }
 
       // 3. Calculate search time range: either (start of today) or as provided by opts.startTime
       let minDate = opts?.startTime
-      let maxDate = undefined as undefined | number
 
       // If startTime not given, restrict to today
       if (!minDate) {
         const today = new Date()
         minDate = Math.floor(new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() / 1000)
-        maxDate = minDate + 86400
       }
+
+      const maxDate = Math.floor(Date.now() / 1000)
+
+      if (opts?.limit) {
+        opts.limit = 1000
+      }
+      const limit = opts?.limit ? Math.min(opts.limit, unreadCount) : unreadCount
 
       // 4. Search all messages in time range
       logger.withFields({ chatId, unreadCount, minDate }).debug('Searching for unread messages in time range')
@@ -155,11 +159,7 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
           filter: new Api.InputMessagesFilterEmpty(),
           minDate,
           maxDate,
-          offsetId: 0,
-          addOffset: 0,
-          limit: opts?.limit ? Math.min(opts.limit, unreadCount) : unreadCount,
-          maxId: 0,
-          minId: 0,
+          limit,
           hash: bigInt(0),
         }),
       )
