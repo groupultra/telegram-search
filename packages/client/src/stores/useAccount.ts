@@ -1,6 +1,6 @@
 import { useLogger } from '@guiiai/logg'
 import { generateDefaultAccountSettings } from '@tg-search/core'
-import { acceptHMRUpdate, defineStore } from 'pinia'
+import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
@@ -26,10 +26,9 @@ export const useAccountStore = defineStore('account', () => {
   const accountSettings = ref(generateDefaultAccountSettings())
   const isReady = ref(false)
 
-  // --- Computed ---
-  const activeSessionComputed = computed(() => bridgeStore.activeSession)
+  const { activeSession } = storeToRefs(bridgeStore)
   // isLoggedIn is true if the session exists and is marked ready (authenticated)
-  const isLoggedInComputed = computed(() => activeSessionComputed.value?.isReady)
+  const isLoggedInComputed = computed(() => activeSession.value?.isReady)
 
   // --- Actions: Auth ---
 
@@ -37,9 +36,9 @@ export const useAccountStore = defineStore('account', () => {
    * Best-effort auto-login using stored Telegram session string.
    */
   const attemptLogin = async () => {
-    const activeSession = bridgeStore.activeSession
+    const session = activeSession.value
 
-    if (activeSession?.isReady || !activeSession?.session) {
+    if (session?.isReady || !session?.session) {
       logger.log('No need to login')
       return
     }
@@ -47,13 +46,13 @@ export const useAccountStore = defineStore('account', () => {
     resetReady()
     logger.log('Attempting login')
     bridgeStore.sendEvent('auth:login', {
-      session: activeSession.session,
+      session: session.session,
     })
   }
 
   function handleAuth() {
     function login(phoneNumber: string) {
-      const session = bridgeStore.activeSession
+      const session = activeSession.value
 
       bridgeStore.sendEvent('auth:login', {
         phoneNumber,
@@ -117,9 +116,9 @@ export const useAccountStore = defineStore('account', () => {
    * Watch the active session's readiness status and handle reconnection logic.
    */
   watch(
-    () => activeSessionComputed.value?.isReady,
+    () => activeSession.value?.isReady,
     (isReadyState, prevReady) => {
-      const hasSession = !!activeSessionComputed.value?.session
+      const hasSession = !!activeSession.value?.session
 
       if (isReadyState) {
         // Successful (re)connection: clear any pending reconnects and reset attempts.
@@ -166,7 +165,7 @@ export const useAccountStore = defineStore('account', () => {
     accountSettings,
     isReady: computed(() => isReady.value),
     isLoggedIn: isLoggedInComputed,
-    activeSession: activeSessionComputed,
+    activeSession,
 
     // Actions
     init,
