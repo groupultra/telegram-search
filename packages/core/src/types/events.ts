@@ -53,7 +53,7 @@ export interface SessionEventFromCore {
 // ============================================================================
 
 export interface AccountEventToCore {
-  'account:me:fetch': () => void
+  'account:setup': () => void
 }
 
 export interface AccountEventFromCore {

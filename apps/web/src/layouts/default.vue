@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import buildTime from '~build/time'
 
-import { useAuthStore, useSettingsStore } from '@tg-search/client'
+import { useAccountStore, useSettingsStore } from '@tg-search/client'
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 import { abbreviatedSha as gitShortSha } from '~build/git'
 import { version as pkgVersion } from '~build/package'
@@ -16,7 +16,7 @@ import { Button } from '../components/ui/Button'
 const settingsStore = useSettingsStore()
 const { theme } = storeToRefs(settingsStore)
 
-const { isLoggedIn } = storeToRefs(useAuthStore())
+const { isLoggedIn } = storeToRefs(useAccountStore())
 
 const route = useRoute()
 

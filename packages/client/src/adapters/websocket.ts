@@ -8,44 +8,44 @@ import type {
 } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { StoredSession } from '../types/session'
 
 import { useLogger } from '@guiiai/logg'
-import { useLocalStorage, useWebSocket } from '@vueuse/core'
-import { acceptHMRUpdate, defineStore } from 'pinia'
+import { useWebSocket } from '@vueuse/core'
+import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref, watch } from 'vue'
 
 import { WS_API_BASE } from '../../constants'
 import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
+import { useSessionStore } from '../stores/useSession'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
-import { createSessionStore } from '../utils/session-store'
 
 export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
 
 export const useWebsocketStore = defineStore('websocket', () => {
-  const storageSessions = useLocalStorage<StoredSession[]>('websocket/sessions', [])
-  // active-session-slot: index into storageSessions array
-  const storageActiveSessionSlot = useLocalStorage<number>('websocket/active-session-slot', 0)
-  const logger = useLogger('WebSocket')
+  const sessionStore = useSessionStore()
+  const {
+    sessions: storageSessions,
+    activeSessionSlot: storageActiveSessionSlot,
+    activeSession,
+  } = storeToRefs(sessionStore)
+
   const {
     ensureSessionInvariants,
-    getActiveSession,
-    updateActiveSessionMetadata,
-    updateSessionMetadataById,
+    updateSession,
     addNewAccount,
     removeCurrentAccount,
     cleanup,
-  } = createSessionStore(storageSessions, storageActiveSessionSlot, { generateId: () => uuidv4() })
+  } = sessionStore
+
+  const logger = useLogger('WebSocket')
 
   ensureSessionInvariants()
 
   const activeSessionId = computed(() => {
-    const slot = storageActiveSessionSlot.value
-    const session = storageSessions.value[slot]
-    return session?.uuid || uuidv4()
+    return activeSession.value?.uuid || uuidv4()
   })
 
   /**
@@ -107,10 +107,10 @@ export const useWebsocketStore = defineStore('websocket', () => {
     if (index !== -1) {
       // When switching to an existing account, pessimistically mark its
       // connection state as disconnected. AuthStore's auto-login watcher
-      // will see { hasSession, !isConnected } for the new active slot and
+      // will see { hasSession, !isReady } for the new active slot and
       // can drive reconnection logic uniformly across websocket and
       // core-bridge modes.
-      updateSessionMetadataById(sessionId, { isConnected: false })
+      updateSession(sessionId, s => ({ ...s, isReady: false }))
 
       storageActiveSessionSlot.value = index
       logger.withFields({ sessionId }).log('Switched to account')
@@ -126,7 +126,12 @@ export const useWebsocketStore = defineStore('websocket', () => {
    * responsible for selecting the correct active slot beforehand.
    */
   const applySessionUpdate = (session: string) => {
-    updateActiveSessionMetadata({ session })
+    if (activeSession.value) {
+      activeSession.value = {
+        ...activeSession.value,
+        session,
+      }
+    }
   }
 
   const logoutCurrentAccount = async () => {
@@ -204,9 +209,8 @@ export const useWebsocketStore = defineStore('websocket', () => {
 
     sessions: storageSessions,
     activeSessionId,
-    getActiveSession,
-    updateActiveSessionMetadata,
-    updateSessionMetadataById,
+    activeSession,
+    updateSession,
     switchAccount,
     addNewAccount,
     applySessionUpdate,

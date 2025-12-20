@@ -33,7 +33,7 @@ export function useEntityAvatar(props: Readonly<Props>): { src: ComputedRef<stri
   if (props.ensureOnMount) {
     if (isSelf) {
       const trigger = () => {
-        const connected = bridgeStore.getActiveSession()?.isConnected
+        const connected = bridgeStore.activeSession?.isReady
         if (!connected)
           return
         const current = avatarStore.getUserAvatarFileId(props.id)
@@ -44,7 +44,7 @@ export function useEntityAvatar(props: Readonly<Props>): { src: ComputedRef<stri
           void ensureUserAvatarImmediate(props.id)
       }
       onMounted(trigger)
-      watch(() => bridgeStore.getActiveSession()?.isConnected, (c) => {
+      watch(() => bridgeStore.activeSession?.isReady, (c) => {
         if (c)
           trigger()
       })

@@ -19,7 +19,7 @@ export function registerEntityEventHandlers(
     const bridgeStore = useBridgeStore()
     const bootstrapStore = useBootstrapStore()
 
-    const activeSession = bridgeStore.getActiveSession()
+    const activeSession = bridgeStore.activeSession
     if (activeSession)
       activeSession.me = data
 

@@ -87,7 +87,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     registerAccountEventHandlers(ctx, logger, accountModels)(accountService)
 
     // Ensure current account ID is established before any dialog/storage access.
-    ctx.emitter.emit('account:me:fetch')
+    ctx.emitter.emit('account:setup')
   })
 
   ctx.emitter.once('account:ready', ({ accountId }) => {
@@ -105,7 +105,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     registerTakeoutEventHandlers(ctx, logger, chatMessageStatsModels)(takeoutService)
     registerGramEventsEventHandlers(ctx, logger)(gramEventsService)
 
-    // Dialog bootstrap is now triggered from account:me:fetch handler once
+    // Dialog bootstrap is now triggered from account:setup handler once
     // currentAccountId has been established, to avoid races where dialog or
     // storage handlers read account context too early.
     gramEventsService.registerGramEvents()

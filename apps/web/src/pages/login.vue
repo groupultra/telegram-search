@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore, useAvatarStore, useBridgeStore } from '@tg-search/client'
+import { useAccountStore, useAvatarStore, useBridgeStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -14,10 +14,10 @@ type LoginStep = 'phone' | 'code' | 'password' | 'complete'
 const router = useRouter()
 const route = useRoute()
 
-const authStore = useAuthStore()
+const accountStore = useAccountStore()
 const websocketStore = useBridgeStore()
 const avatarStore = useAvatarStore()
-const { isLoggedIn } = storeToRefs(authStore)
+const { isLoggedIn } = storeToRefs(accountStore)
 
 const state = ref({
   currentStep: 'phone' as LoginStep,
@@ -26,38 +26,38 @@ const state = ref({
   verificationCode: '',
   twoFactorPassword: '',
 })
-authStore.auth.needCode = false
-authStore.auth.needPassword = false
-authStore.auth.isLoading = false
+accountStore.auth.needCode = false
+accountStore.auth.needPassword = false
+accountStore.auth.isLoading = false
 
 const {
   login,
   submitCode,
   submitPassword,
-} = authStore.handleAuth()
+} = accountStore.handleAuth()
 
-watch(() => authStore.auth.needCode, (value) => {
+watch(() => accountStore.auth.needCode, (value) => {
   if (value) {
-    authStore.auth.isLoading = false
+    accountStore.auth.isLoading = false
     state.value.currentStep = 'code'
   }
 })
 
-watch(() => authStore.auth.needPassword, (value) => {
+watch(() => accountStore.auth.needPassword, (value) => {
   if (value) {
-    authStore.auth.isLoading = false
+    accountStore.auth.isLoading = false
     state.value.currentStep = 'password'
   }
 })
 
 watch(isLoggedIn, (value) => {
   if (value) {
-    authStore.auth.isLoading = false
+    accountStore.auth.isLoading = false
     state.value.currentStep = 'complete'
 
     // High-priority fetch for self avatar to avoid being queued behind chat list
-    const me = websocketStore.getActiveSession()?.me
-    if (me?.id) {
+    const me = websocketStore.activeSession?.me
+    if (me && me.id) {
       // Force refresh to always get the latest avatar on login
       avatarStore.ensureUserAvatar(me.id, undefined, true)
     }
@@ -78,7 +78,7 @@ function redirectRoot() {
 }
 
 async function handleLogin() {
-  authStore.auth.isLoading = true
+  accountStore.auth.isLoading = true
 
   try {
     switch (state.value.currentStep) {
@@ -121,16 +121,16 @@ async function handleLogin() {
             :placeholder="t('login.phoneNumberPlaceholder')"
             class="w-full border rounded-xl bg-background px-5 py-4 text-xl transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring"
             required
-            :disabled="authStore.auth.isLoading"
+            :disabled="accountStore.auth.isLoading"
           >
         </div>
         <button
           type="submit"
           class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-primary-foreground font-bold transition disabled:cursor-not-allowed hover:bg-primary/90 disabled:opacity-50"
-          :disabled="authStore.auth.isLoading"
+          :disabled="accountStore.auth.isLoading"
         >
-          <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
-          {{ authStore.auth.isLoading ? t('login.processing') : t('login.login') }}
+          <span v-if="accountStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
+          {{ accountStore.auth.isLoading ? t('login.processing') : t('login.login') }}
         </button>
       </form>
 
@@ -144,16 +144,16 @@ async function handleLogin() {
             type="text"
             class="w-full border rounded-xl bg-background px-5 py-4 text-xl transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring"
             required
-            :disabled="authStore.auth.isLoading"
+            :disabled="accountStore.auth.isLoading"
           >
         </div>
         <button
           type="submit"
           class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-primary-foreground font-bold transition disabled:cursor-not-allowed hover:bg-primary/90 disabled:opacity-50"
-          :disabled="authStore.auth.isLoading"
+          :disabled="accountStore.auth.isLoading"
         >
-          <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
-          {{ authStore.auth.isLoading ? t('login.processing') : t('login.verify') }}
+          <span v-if="accountStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
+          {{ accountStore.auth.isLoading ? t('login.processing') : t('login.verify') }}
         </button>
       </form>
 
@@ -167,16 +167,16 @@ async function handleLogin() {
             type="password"
             class="w-full border rounded-xl bg-background px-5 py-4 text-xl transition disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring"
             required
-            :disabled="authStore.auth.isLoading"
+            :disabled="accountStore.auth.isLoading"
           >
         </div>
         <button
           type="submit"
           class="w-full flex items-center justify-center rounded-xl bg-primary py-4 text-lg text-primary-foreground font-bold transition disabled:cursor-not-allowed hover:bg-primary/90 disabled:opacity-50"
-          :disabled="authStore.auth.isLoading"
+          :disabled="accountStore.auth.isLoading"
         >
-          <span v-if="authStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
-          {{ authStore.auth.isLoading ? t('login.processing') : t('login.login') }}
+          <span v-if="accountStore.auth.isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
+          {{ accountStore.auth.isLoading ? t('login.processing') : t('login.login') }}
         </button>
       </form>
 

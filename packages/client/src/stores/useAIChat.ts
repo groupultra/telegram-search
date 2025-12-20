@@ -1,6 +1,6 @@
 import type { CoreRetrievalMessages } from '@tg-search/core'
 
-import { defineStore } from 'pinia'
+import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export interface ToolCall {
@@ -132,3 +132,7 @@ export const useAIChatStore = defineStore('ai-chat', () => {
     clearError,
   }
 })
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useAIChatStore, import.meta.hot))
+}

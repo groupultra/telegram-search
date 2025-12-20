@@ -1,6 +1,5 @@
 export * from './useAccount'
 export * from './useAIChat'
-export * from './useAuth'
 export * from './useAvatar'
 export * from './useBootstrap'
 export * from './useChat'
