@@ -43,6 +43,7 @@
     "forceLoadNewer": "Force load newer messages",
     "forceLoadOlder": "Force load older messages",
     "messageSent": "Message sent",
+    "summarize": "Summarize",
     "search": "Search",
     "searchContent": "Search content",
     "send": "Send",
@@ -218,6 +219,19 @@
     "timeRange": "Time Range",
     "totalMessages": "Total Messages",
     "unsyncedMessages": "Unsynced Messages"
+  },
+  "summaryDialog": {
+    "title": "Unread Summary",
+    "noUnreadMessages": "No unread messages",
+    "noUnreadMessagesDescription": "No unread messages found.",
+    "fetchFailed": "Failed to fetch messages",
+    "noApiKey": "No LLM API Key found in settings",
+    "configureApiKey": "Please configure LLM API Key in Settings.",
+    "summaryFailed": "Summary generation failed",
+    "summaryFailedNote": "(Generation failed)",
+    "messagesMarkedRead": "Messages marked as read",
+    "close": "Close",
+    "markAsRead": "Mark as Read"
   },
   "virtualMessageList": {
     "scrolling": "Loading..."

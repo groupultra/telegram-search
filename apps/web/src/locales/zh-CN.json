@@ -43,6 +43,7 @@
     "forceLoadNewer": "强制加载更新的消息",
     "forceLoadOlder": "强制加载更早的消息",
     "messageSent": "消息已发送",
+    "summarize": "生成摘要",
     "search": "搜索",
     "searchContent": "搜索内容",
     "send": "发送",
@@ -218,6 +219,19 @@
     "timeRange": "时间范围",
     "totalMessages": "总消息数",
     "unsyncedMessages": "未同步消息"
+  },
+  "summaryDialog": {
+    "title": "未读消息摘要",
+    "noUnreadMessages": "没有未读消息",
+    "noUnreadMessagesDescription": "没有找到未读消息。",
+    "fetchFailed": "获取消息失败",
+    "noApiKey": "未在设置中找到 LLM API Key",
+    "configureApiKey": "请在设置中配置 LLM API Key。",
+    "summaryFailed": "生成摘要失败",
+    "summaryFailedNote": "（生成失败）",
+    "messagesMarkedRead": "消息已标记为已读",
+    "close": "关闭",
+    "markAsRead": "标记为已读"
   },
   "virtualMessageList": {
     "scrolling": "加载中"

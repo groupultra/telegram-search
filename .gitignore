@@ -19,3 +19,4 @@ tsconfig.tsbuildinfo
 coverage/
 *.heapsnapshot
 *.cpuprofile
+*.local
