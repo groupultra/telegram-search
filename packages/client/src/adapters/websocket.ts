@@ -18,7 +18,7 @@ import { computed, ref, watch } from 'vue'
 import { WS_API_BASE } from '../../constants'
 import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
-import { useSessionStore } from '../stores/session'
+import { useSessionStore } from '../stores/useSession'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 
 export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
@@ -107,10 +107,10 @@ export const useWebsocketStore = defineStore('websocket', () => {
     if (index !== -1) {
       // When switching to an existing account, pessimistically mark its
       // connection state as disconnected. AuthStore's auto-login watcher
-      // will see { hasSession, !isConnected } for the new active slot and
+      // will see { hasSession, !isReady } for the new active slot and
       // can drive reconnection logic uniformly across websocket and
       // core-bridge modes.
-      updateSession(sessionId, s => ({ ...s, isConnected: false }))
+      updateSession(sessionId, s => ({ ...s, isReady: false }))
 
       storageActiveSessionSlot.value = index
       logger.withFields({ sessionId }).log('Switched to account')

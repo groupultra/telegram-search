@@ -3,7 +3,7 @@ import type { SyncOptions } from '@tg-search/core'
 
 import NProgress from 'nprogress'
 
-import { getErrorMessage, useAuthStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
+import { getErrorMessage, useAccountStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -25,8 +25,8 @@ const syncOptions = ref<SyncOptions>({
   maxMediaSize: 0,
 })
 
-const sessionStore = useAuthStore()
-const { isLoggedIn } = storeToRefs(sessionStore)
+const accountStore = useAccountStore()
+const { isLoggedIn } = storeToRefs(accountStore)
 const websocketStore = useBridgeStore()
 
 const chatsStore = useChatStore()

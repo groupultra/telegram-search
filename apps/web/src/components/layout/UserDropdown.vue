@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useAuthStore, useBridgeStore } from '@tg-search/client'
+import { useAccountStore, useBridgeStore } from '@tg-search/client'
 import { onClickOutside } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, useTemplateRef } from 'vue'
@@ -12,8 +12,8 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const authStore = useAuthStore()
-const { isLoggedIn, activeSessionComputed } = storeToRefs(authStore)
+const accountStore = useAccountStore()
+const { isLoggedIn, activeSession } = storeToRefs(accountStore)
 const { activeSessionId } = storeToRefs(useBridgeStore())
 
 const isOpen = defineModel<boolean>('open')
@@ -26,7 +26,7 @@ onClickOutside(dropdownRef, () => {
 
 function handleLoginLogout() {
   if (isLoggedIn.value) {
-    authStore.handleAuth().logout()
+    accountStore.handleAuth().logout()
   }
   else {
     router.push({
@@ -38,7 +38,7 @@ function handleLoginLogout() {
 
 function handleAddAccount() {
   isOpen.value = false
-  authStore.handleAuth().addNewAccount()
+  accountStore.handleAuth().addNewAccount()
   router.push({
     path: '/login',
     query: { redirect: route.fullPath },
@@ -46,20 +46,20 @@ function handleAddAccount() {
 }
 
 function handleSwitchAccount(sessionId: string) {
-  authStore.handleAuth().switchAccount(sessionId)
+  accountStore.handleAuth().switchAccount(sessionId)
   isOpen.value = false
 }
 
 function handleLogoutCurrentAccount() {
-  authStore.handleAuth().logout()
+  accountStore.handleAuth().logout()
   isOpen.value = false
 }
 
-const username = computed(() => activeSessionComputed.value?.me?.username)
-const userId = computed(() => activeSessionComputed.value?.me?.id)
-const allAccounts = computed(() => authStore.handleAuth().getAllAccounts())
+const username = computed(() => activeSession.value?.me?.username)
+const userId = computed(() => activeSession.value?.me?.id)
+const allAccounts = computed(() => accountStore.handleAuth().getAllAccounts())
 const otherAccounts = computed(() => {
-  return allAccounts.value.filter(account => (account.uuid !== activeSessionId.value) && account.metadata)
+  return allAccounts.value.filter(account => (account.uuid !== activeSessionId.value) && account)
 })
 </script>
 
@@ -102,21 +102,21 @@ const otherAccounts = computed(() => {
           class="w-full flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-neutral-100 dark:hover:bg-gray-700"
           @click="handleSwitchAccount(account.uuid)"
         >
-          <template v-if="account.metadata">
+          <template v-if="account">
             <EntityAvatar
-              v-if="account.metadata?.me"
-              :id="account.metadata.me.id"
+              v-if="account.me"
+              :id="account.me.id"
               entity="self"
               entity-type="user"
-              :name="account.metadata.me?.username"
+              :name="account.me?.username"
               size="sm"
             />
             <div class="flex flex-1 flex-col overflow-hidden">
               <span class="truncate text-sm text-gray-900 font-medium dark:text-gray-100">
-                {{ account.metadata.me?.username || (account.metadata.me?.id ? `ID: ${account.metadata.me.id}` : t('settings.notLoggedIn')) }}
+                {{ account.me?.username || (account.me?.id ? `ID: ${account.me.id}` : t('settings.notLoggedIn')) }}
               </span>
-              <span v-if="account.metadata.me" class="truncate text-xs text-gray-600 dark:text-gray-400">
-                ID: {{ account.metadata.me.id }}
+              <span v-if="account.me" class="truncate text-xs text-gray-600 dark:text-gray-400">
+                ID: {{ account.me.id }}
               </span>
             </div>
           </template>

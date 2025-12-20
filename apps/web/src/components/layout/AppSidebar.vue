@@ -76,17 +76,17 @@ const userDropdownOpen = ref(false)
         >
           <div class="h-8 w-8 flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
             <EntityAvatar
-              v-if="websocketStore.getActiveSession()?.me?.id != null"
-              :id="websocketStore.getActiveSession()?.me?.id!"
+              v-if="websocketStore.activeSession?.me?.id != null"
+              :id="websocketStore.activeSession?.me?.id!"
               entity="self"
               entity-type="user"
-              :name="websocketStore.getActiveSession()?.me?.name"
+              :name="websocketStore.activeSession?.me?.name"
               size="sm"
             />
           </div>
           <div class="min-w-0 flex flex-1 flex-col">
-            <span class="truncate text-sm font-medium">{{ websocketStore.getActiveSession()?.me?.name }}</span>
-            <span class="truncate text-xs text-muted-foreground">{{ websocketStore.getActiveSession()?.isConnected ? t('settings.connected') : t('settings.disconnected') }}</span>
+            <span class="truncate text-sm font-medium">{{ websocketStore.activeSession?.me?.name }}</span>
+            <span class="truncate text-xs text-muted-foreground">{{ websocketStore.activeSession?.isReady ? t('settings.connected') : t('settings.disconnected') }}</span>
           </div>
           <div class="i-lucide-chevron-up h-4 w-4 flex-shrink-0 text-muted-foreground" />
         </div>

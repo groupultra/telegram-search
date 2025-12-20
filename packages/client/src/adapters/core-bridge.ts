@@ -13,7 +13,7 @@ import { computed, ref, watch } from 'vue'
 import { useSetupPGliteDevtools } from '../devtools/pglite-devtools'
 import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
-import { useSessionStore } from '../stores/session'
+import { useSessionStore } from '../stores/useSession'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { initDB } from './core-db'
 import { createCoreRuntime } from './core-runtime'
@@ -78,10 +78,10 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     if (index !== -1) {
       // When switching to an existing account, optimistically mark its
       // connection state as disconnected. AuthStore's auto-login watcher
-      // will observe the combination of { hasSession, !isConnected } for
+      // will observe the combination of { hasSession, !isReady } for
       // the new active slot and trigger a fresh login using the stored
       // session string.
-      updateSession(sessionId, s => ({ ...s, isConnected: false }))
+      updateSession(sessionId, s => ({ ...s, isReady: false }))
 
       storageActiveSessionSlot.value = index
       logger.withFields({ sessionId }).verbose('Switched to account')

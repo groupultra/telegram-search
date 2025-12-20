@@ -4,23 +4,23 @@ import { useLogger } from '@guiiai/logg'
 import { toast } from 'vue-sonner'
 
 import { useBridgeStore } from '../composables/useBridge'
-import { useAuthStore } from '../stores/useAuth'
+import { useAccountStore } from '../stores/useAccount'
 
 export function registerBasicEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
   registerEventHandler('auth:code:needed', () => {
-    useAuthStore().auth.needCode = true
+    useAccountStore().auth.needCode = true
   })
 
   registerEventHandler('auth:password:needed', () => {
-    useAuthStore().auth.needPassword = true
+    useAccountStore().auth.needPassword = true
   })
 
   registerEventHandler('auth:connected', () => {
     const store = useBridgeStore()
     if (store.activeSession) {
-      store.activeSession = { ...store.activeSession, isConnected: true }
+      store.activeSession = { ...store.activeSession, isReady: true }
     }
   })
 
@@ -28,7 +28,7 @@ export function registerBasicEventHandlers(
     useLogger('Auth').log('Auth disconnected, cleaning up session metadata')
     const store = useBridgeStore()
     if (store.activeSession) {
-      store.activeSession = { ...store.activeSession, isConnected: false, session: undefined }
+      store.activeSession = { ...store.activeSession, isReady: false, session: undefined }
     }
   })
 
@@ -47,6 +47,6 @@ export function registerBasicEventHandlers(
   registerEventHandler('auth:error', ({ error }) => {
     // TODO better toast error message
     toast.error(String(error))
-    useAuthStore().auth.isLoading = false
+    useAccountStore().auth.isLoading = false
   })
 }

@@ -8,9 +8,9 @@ export interface StoredSession {
   uuid: string
 
   /**
-   * @deprecated Use account store's isReady instead
+   * Indicates if the session is fully authenticated and ready to use.
    */
-  isConnected?: boolean
+  isReady?: boolean
 
   me?: CoreUserEntity
 
