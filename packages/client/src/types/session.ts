@@ -19,6 +19,12 @@ export interface StoredSession {
    * Core never persists this; it only forwards updated values.
    */
   session?: string
+
+  /**
+   * Type of the session (websocket or core-bridge).
+   * Used to distinguish between sessions in different modes.
+   */
+  type?: 'websocket' | 'core-bridge'
 }
 
 // Deprecated alias for backward compatibility during refactor, if needed

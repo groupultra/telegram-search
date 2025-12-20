@@ -6,6 +6,7 @@ import { computed } from 'vue'
 
 interface SessionStoreOptions {
   generateId: () => string
+  createSession?: (uuid: string) => StoredSession
 }
 
 /**
@@ -17,16 +18,20 @@ export function createSessionStore(
   activeSlot: Ref<number>,
   options: SessionStoreOptions,
 ) {
-  const { generateId } = options
+  const { generateId, createSession } = options
+
+  const _createSession = (uuid: string): StoredSession => {
+    if (createSession)
+      return createSession(uuid)
+    return { uuid }
+  }
 
   const ensureSessionInvariants = () => {
     if (!Array.isArray(sessions.value))
       sessions.value = []
 
     if (sessions.value.length === 0) {
-      sessions.value = [{
-        uuid: generateId(),
-      }]
+      sessions.value = [_createSession(generateId())]
       activeSlot.value = 0
       return
     }
@@ -79,9 +84,7 @@ export function createSessionStore(
    */
   const addNewAccount = () => {
     const newId = generateId()
-    const sessionsCopy = [...sessions.value, {
-      uuid: newId,
-    } satisfies StoredSession]
+    const sessionsCopy = [...sessions.value, _createSession(newId)]
 
     sessions.value = sessionsCopy
     activeSlot.value = sessionsCopy.length - 1
