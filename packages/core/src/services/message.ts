@@ -116,10 +116,11 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
     try {
       // 1. Get dialog
       // TODO: need access hash
-      const dialogs = await ctx.getClient().getDialogs({
-        limit: 100,
-        offsetPeer: chatId,
-      })
+      // const dialogs = await ctx.getClient().getDialogs({
+      //   limit: 100,
+      //   offsetPeer: chatId,
+      // })
+      const dialogs = await ctx.getClient().getDialogs()
       const dialog = dialogs.find(dialog => dialog.entity && dialog.entity.id && dialog.entity.id.toString() === chatId)
       if (!dialog) {
         logger.withFields({ chatId }).warn('Dialog not found for unread fetch')
