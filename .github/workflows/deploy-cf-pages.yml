@@ -16,9 +16,10 @@ on:
 
 jobs:
   deploy-preview:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Trigger Preview deployment when main branch is pushed or any PR is created
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    name: Deploy Preview (main branch)
+    name: Deploy Preview (main branch or PR)
     permissions:
       contents: read
       deployments: write
@@ -52,12 +53,16 @@ jobs:
           env-id: ${{ secrets.POSTHOG_CLI_ENV_ID }}
           cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
 
-      - name: Deploy to Cloudflare Pages (preview branch)
+      - name: Deploy to Cloudflare Pages (preview branch/PR)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/web/dist --project-name=telegramsearch --branch=preview
+
+          # PR automatically creates a preview branch named 'pr-<number>'
+          command: >
+            pages deploy apps/web/dist --project-name=telegramsearch
+            --branch=${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'preview' }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
   deploy-release:
