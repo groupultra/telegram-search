@@ -4,13 +4,16 @@ import type { CoreMessage } from '@tg-search/core'
 import type { LLMMessage } from '../composables/useAIChat'
 
 import { useAccountStore, useBridgeStore } from '@tg-search/client'
-import { ref } from 'vue'
+import { useDateFormat } from '@vueuse/core'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import Dialog from './ui/Dialog.vue'
 
 import { useAIChatLogic } from '../composables/useAIChat'
+import { useSummarizeStore } from '../stores/summarize'
 import { Button } from './ui/Button'
 
 const props = defineProps<{
@@ -18,20 +21,29 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const router = useRouter()
 
 const isOpen = ref(false)
-const isLoading = ref(false)
-const summary = ref('')
-const unreadMessages = ref<CoreMessage[]>([])
 const bridge = useBridgeStore()
 const account = useAccountStore()
 const aiChatLogic = useAIChatLogic()
+const summarizeStore = useSummarizeStore()
+
+const session = computed(() => summarizeStore.getSession(props.chatId))
 
 async function open() {
   isOpen.value = true
-  summary.value = ''
-  unreadMessages.value = []
-  isLoading.value = true
+
+  // If we already have a summary, don't auto-fetch unless empty
+  if (session.value.content || session.value.sourceMessages.length > 0)
+    return
+
+  await fetchUnreadAndGenerate()
+}
+
+async function fetchUnreadAndGenerate() {
+  summarizeStore.setLoading(props.chatId, true)
+  summarizeStore.setSummary(props.chatId, '', [])
 
   // Calculate start of today (00:00:00)
   const now = new Date()
@@ -45,17 +57,12 @@ async function open() {
 
   try {
     const data = await bridge.waitForEvent('message:unread-data')
-    // The event listener returns { messages: ... }
-    // But bridge.waitForEvent returns data directly (WsEventToClientData)
-    // which is { messages: CoreMessage[] }
-    unreadMessages.value = data.messages
+    summarizeStore.setSourceMessages(props.chatId, data.messages)
 
     if (data.messages.length === 0) {
       toast.info(t('summaryDialog.noUnreadMessages'))
-      isLoading.value = false
-      // Keep dialog open to show "No unread messages" state or close?
-      // User might expect to see that.
-      summary.value = t('summaryDialog.noUnreadMessagesDescription')
+      summarizeStore.setLoading(props.chatId, false)
+      summarizeStore.setSummary(props.chatId, t('summaryDialog.noUnreadMessagesDescription'), [])
       return
     }
 
@@ -63,7 +70,7 @@ async function open() {
   }
   catch (e) {
     toast.error(t('summaryDialog.fetchFailed'))
-    isLoading.value = false
+    summarizeStore.setLoading(props.chatId, false)
     console.error(e)
   }
 }
@@ -75,8 +82,8 @@ async function generateSummary(messages: CoreMessage[]) {
 
   if (!apiKey) {
     toast.error(t('summaryDialog.noApiKey'))
-    summary.value = t('summaryDialog.configureApiKey')
-    isLoading.value = false
+    summarizeStore.setSummary(props.chatId, t('summaryDialog.configureApiKey'), messages)
+    summarizeStore.setLoading(props.chatId, false)
     return
   }
 
@@ -108,16 +115,18 @@ async function generateSummary(messages: CoreMessage[]) {
   ]
 
   try {
-    isLoading.value = false
+    summarizeStore.setLoading(props.chatId, false)
+    // Clear content before streaming
+    summarizeStore.setSummary(props.chatId, '', messages)
     await aiChatLogic.streamSimpleText(llmConfig, llmMessages, (delta) => {
-      summary.value += delta
+      summarizeStore.appendSummary(props.chatId, delta)
     })
   }
   catch (e) {
     console.error(e)
     toast.error(t('summaryDialog.summaryFailed'))
-    summary.value += `\n${t('summaryDialog.summaryFailedNote')}`
-    isLoading.value = false
+    summarizeStore.appendSummary(props.chatId, `\n${t('summaryDialog.summaryFailedNote')}`)
+    summarizeStore.setLoading(props.chatId, false)
   }
 }
 
@@ -126,6 +135,28 @@ async function markRead() {
   toast.success(t('summaryDialog.messagesMarkedRead'))
   isOpen.value = false
 }
+
+function goToMessage(msg: CoreMessage) {
+  isOpen.value = false
+  router.push({
+    path: `/chat/${props.chatId}`,
+    query: { messageId: msg.platformMessageId },
+  })
+}
+
+function formatTime(timestamp: number) {
+  return useDateFormat(timestamp * 1000, 'HH:mm').value
+}
+
+const canMarkRead = computed(() => {
+  if (session.value.isLoading)
+    return false
+  if (!session.value.content)
+    return false
+  if (session.value.content === t('summaryDialog.noUnreadMessagesDescription'))
+    return false
+  return true
+})
 </script>
 
 <template>
@@ -133,20 +164,65 @@ async function markRead() {
 
   <Dialog
     v-model="isOpen"
-    max-width="48rem"
+    max-width="64rem"
   >
-    <div class="space-y-4">
-      <h2 class="text-lg font-bold">
-        {{ t('summaryDialog.title') }}
-      </h2>
-      <div v-if="isLoading" class="animate-pulse space-y-3">
-        <div class="h-4 w-3/4 rounded bg-muted" />
-        <div class="h-4 w-1/2 rounded bg-muted" />
-        <div class="h-4 w-5/6 rounded bg-muted" />
+    <div class="h-[70vh] flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold">
+          {{ t('summaryDialog.title') }}
+        </h2>
+        <Button
+          v-if="!session.isLoading"
+          icon="i-lucide-refresh-cw"
+          variant="ghost"
+          size="sm"
+          @click="fetchUnreadAndGenerate"
+        >
+          {{ t('summaryDialog.regenerate') }}
+        </Button>
       </div>
 
-      <div v-else class="prose dark:prose-invert max-h-[60vh] max-w-none overflow-y-auto whitespace-pre-wrap rounded-lg bg-muted/30 p-4">
-        {{ summary }}
+      <div class="min-h-0 flex flex-1 flex-col gap-4 md:flex-row">
+        <!-- Summary Section -->
+        <div class="flex flex-1 flex-col overflow-hidden rounded-lg bg-muted/30 p-4">
+          <h3 class="mb-2 text-muted-foreground font-medium">
+            {{ t('summaryDialog.summary') || 'Summary' }}
+          </h3>
+          <div v-if="session.isLoading" class="animate-pulse space-y-3">
+            <div class="h-4 w-3/4 rounded bg-muted" />
+            <div class="h-4 w-1/2 rounded bg-muted" />
+            <div class="h-4 w-5/6 rounded bg-muted" />
+          </div>
+          <div v-else class="prose dark:prose-invert max-w-none overflow-y-auto whitespace-pre-wrap">
+            {{ session.content }}
+          </div>
+        </div>
+
+        <!-- Sources Section -->
+        <div class="w-full flex flex-col overflow-hidden border rounded-lg bg-background md:w-80">
+          <div class="border-b bg-muted/30 px-4 py-2 text-sm text-muted-foreground font-medium">
+            {{ t('summaryDialog.sources') || 'Sources' }} ({{ session.sourceMessages.length }})
+          </div>
+          <div class="flex-1 overflow-y-auto p-2">
+            <div v-if="session.sourceMessages.length === 0" class="py-8 text-center text-sm text-muted-foreground">
+              {{ t('summaryDialog.noSources') || 'No messages' }}
+            </div>
+            <div
+              v-for="msg in session.sourceMessages"
+              :key="msg.uuid"
+              class="cursor-pointer rounded p-2 text-sm hover:bg-muted/50"
+              @click="goToMessage(msg)"
+            >
+              <div class="flex justify-between text-xs text-muted-foreground">
+                <span class="text-foreground font-medium">{{ msg.fromName || msg.fromId }}</span>
+                <span>{{ formatTime(msg.platformTimestamp) }}</span>
+              </div>
+              <div class="line-clamp-2 mt-1 text-muted-foreground">
+                {{ msg.content }}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="flex justify-end gap-2 pt-2">
@@ -161,10 +237,10 @@ async function markRead() {
         <Button
           icon="i-lucide-check"
           size="sm"
-          :disabled="isLoading || !summary || summary === t('summaryDialog.noUnreadMessagesDescription')"
+          :disabled="!canMarkRead"
           @click="markRead"
         >
-          {{ t('summaryDialog.markAsRead') }}
+          {{ t('summaryDialog.markAsRead', { count: session.sourceMessages.length }) }}
         </Button>
       </div>
     </div>

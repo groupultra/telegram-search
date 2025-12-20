@@ -231,7 +231,11 @@
     "summaryFailedNote": "（生成失败）",
     "messagesMarkedRead": "消息已标记为已读",
     "close": "关闭",
-    "markAsRead": "标记为已读"
+    "markAsRead": "标记为已读",
+    "regenerate": "重新生成",
+    "summary": "摘要",
+    "sources": "来源",
+    "noSources": "没有来源"
   },
   "virtualMessageList": {
     "scrolling": "加载中"

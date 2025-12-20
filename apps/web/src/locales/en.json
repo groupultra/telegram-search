@@ -231,7 +231,11 @@
     "summaryFailedNote": "(Generation failed)",
     "messagesMarkedRead": "Messages marked as read",
     "close": "Close",
-    "markAsRead": "Mark as Read"
+    "markAsRead": "Mark as Read ({count})",
+    "regenerate": "Regenerate",
+    "summary": "Summary",
+    "sources": "Sources",
+    "noSources": "No messages"
   },
   "virtualMessageList": {
     "scrolling": "Loading..."
