@@ -136,10 +136,20 @@ async function markRead() {
       </div>
 
       <div class="flex justify-end gap-2 pt-2">
-        <Button variant="outline" @click="isOpen = false">
+        <Button
+          icon="i-lucide-x"
+          variant="outline"
+          size="sm"
+          @click="isOpen = false"
+        >
           Close
         </Button>
-        <Button :disabled="isLoading || !summary || summary === 'No unread messages found.'" @click="markRead">
+        <Button
+          icon="i-lucide-check"
+          size="sm"
+          :disabled="isLoading || !summary || summary === 'No unread messages found.'"
+          @click="markRead"
+        >
           Mark as Read
         </Button>
       </div>
