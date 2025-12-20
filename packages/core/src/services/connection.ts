@@ -105,12 +105,12 @@ export function createConnectionService(ctx: CoreContext, logger: Logger) {
 
         const isAuthorized = await client.isUserAuthorized()
         if (!isAuthorized) {
-          const error = ctx.withError('User is not authorized')
+          const errorMessage = ctx.withError('User is not authorized').message
           // Surface this as an auth-specific error so the frontend can fall
           // back to manual login and optionally clear the stored session.
-          ctx.emitter.emit('auth:error', { error })
+          ctx.emitter.emit('auth:error', { error: errorMessage })
           ctx.emitter.emit('auth:disconnected')
-          return Err(error)
+          return Err(errorMessage)
         }
 
         // NOTE: The client will return string session, so forward it to frontend
@@ -133,8 +133,9 @@ export function createConnectionService(ctx: CoreContext, logger: Logger) {
         return Ok(client)
       }
       catch (error) {
-        ctx.emitter.emit('auth:error', { error })
-        return Err(ctx.withError(error, 'Failed to connect to Telegram'))
+        const errorMessage = ctx.withError(error, 'Failed to connect to Telegram').message
+        ctx.emitter.emit('auth:error', { error: errorMessage })
+        return Err(errorMessage)
       }
     }
 
@@ -177,8 +178,9 @@ export function createConnectionService(ctx: CoreContext, logger: Logger) {
         return Ok(client)
       }
       catch (error) {
-        ctx.emitter.emit('auth:error', { error })
-        return Err(ctx.withError(error, 'Failed to connect to Telegram'))
+        const errorMessage = ctx.withError(error, 'Failed to connect to Telegram').message
+        ctx.emitter.emit('auth:error', { error: errorMessage })
+        return Err(errorMessage)
       }
     }
 
@@ -204,8 +206,9 @@ export function createConnectionService(ctx: CoreContext, logger: Logger) {
             return password
           },
           onError: (error) => {
-            ctx.emitter.emit('auth:error', { error })
-            reject(ctx.withError(error, 'Failed to sign in to Telegram'))
+            const errorMessage = ctx.withError(error, 'Failed to sign in to Telegram').message
+            ctx.emitter.emit('auth:error', { error: errorMessage })
+            reject(errorMessage)
           },
         })
 

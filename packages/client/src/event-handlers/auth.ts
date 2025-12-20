@@ -44,7 +44,9 @@ export function registerBasicEventHandlers(
 
   registerEventHandler('auth:error', ({ error }) => {
     // TODO better toast error message
-    toast.error(String(error))
+    if (error) {
+      toast.error(error)
+    }
     useAccountStore().auth.isLoading = false
   })
 }
