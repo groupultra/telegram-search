@@ -1,18 +1,23 @@
 <script setup lang="ts">
 import type { CoreMessage } from '@tg-search/core'
 
+import type { LLMMessage } from '../composables/useAIChat'
+
 import { useAccountStore, useBridgeStore } from '@tg-search/client'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { streamText } from 'xsai'
 
 import Dialog from './ui/Dialog.vue'
 
+import { useAIChatLogic } from '../composables/useAIChat'
 import { Button } from './ui/Button'
 
 const props = defineProps<{
   chatId: string
 }>()
+
+const { t } = useI18n()
 
 const isOpen = ref(false)
 const isLoading = ref(false)
@@ -20,6 +25,7 @@ const summary = ref('')
 const unreadMessages = ref<CoreMessage[]>([])
 const bridge = useBridgeStore()
 const account = useAccountStore()
+const aiChatLogic = useAIChatLogic()
 
 async function open() {
   isOpen.value = true
@@ -45,18 +51,18 @@ async function open() {
     unreadMessages.value = data.messages
 
     if (data.messages.length === 0) {
-      toast.info('No unread messages')
+      toast.info(t('summaryDialog.noUnreadMessages'))
       isLoading.value = false
       // Keep dialog open to show "No unread messages" state or close?
       // User might expect to see that.
-      summary.value = 'No unread messages found.'
+      summary.value = t('summaryDialog.noUnreadMessagesDescription')
       return
     }
 
     await generateSummary(data.messages)
   }
   catch (e) {
-    toast.error('Failed to fetch messages')
+    toast.error(t('summaryDialog.fetchFailed'))
     isLoading.value = false
     console.error(e)
   }
@@ -68,8 +74,8 @@ async function generateSummary(messages: CoreMessage[]) {
   const apiKey = settings?.apiKey
 
   if (!apiKey) {
-    toast.error('No LLM API Key found in settings')
-    summary.value = 'Please configure LLM API Key in Settings.'
+    toast.error(t('summaryDialog.noApiKey'))
+    summary.value = t('summaryDialog.configureApiKey')
     isLoading.value = false
     return
   }
@@ -82,34 +88,42 @@ async function generateSummary(messages: CoreMessage[]) {
     return `${name}: ${m.content}`
   }).join('\n')
 
-  try {
-    // Use xsAI streaming API (streamText)
-    const { textStream } = streamText({
-      apiKey,
-      baseURL,
-      messages: [
-        { role: 'system', content: 'You are a helpful assistant. Summarize the following telegram messages concisely with Chinese.' },
-        { role: 'user', content },
-      ],
-      model,
-    })
+  const llmConfig = {
+    apiKey,
+    apiBase: baseURL,
+    model,
+    temperature: settings?.temperature,
+    maxTokens: settings?.maxTokens,
+  }
 
+  const llmMessages: LLMMessage[] = [
+    {
+      role: 'system',
+      content: 'You are a helpful assistant. Summarize the following telegram messages concisely with Chinese.',
+    },
+    {
+      role: 'user',
+      content,
+    },
+  ]
+
+  try {
     isLoading.value = false
-    for await (const text of textStream) {
-      summary.value += text
-    }
+    await aiChatLogic.streamSimpleText(llmConfig, llmMessages, (delta) => {
+      summary.value += delta
+    })
   }
   catch (e) {
     console.error(e)
-    toast.error('Summary generation failed')
-    summary.value += '\n(Generation failed)'
+    toast.error(t('summaryDialog.summaryFailed'))
+    summary.value += `\n${t('summaryDialog.summaryFailedNote')}`
     isLoading.value = false
   }
 }
 
 async function markRead() {
   bridge.sendEvent('message:read', { chatId: props.chatId })
-  toast.success('Messages marked as read')
+  toast.success(t('summaryDialog.messagesMarkedRead'))
   isOpen.value = false
 }
 </script>
@@ -123,7 +137,7 @@ async function markRead() {
   >
     <div class="space-y-4">
       <h2 class="text-lg font-bold">
-        Unread Summary
+        {{ t('summaryDialog.title') }}
       </h2>
       <div v-if="isLoading" class="animate-pulse space-y-3">
         <div class="h-4 w-3/4 rounded bg-muted" />
@@ -142,15 +156,15 @@ async function markRead() {
           size="sm"
           @click="isOpen = false"
         >
-          Close
+          {{ t('summaryDialog.close') }}
         </Button>
         <Button
           icon="i-lucide-check"
           size="sm"
-          :disabled="isLoading || !summary || summary === 'No unread messages found.'"
+          :disabled="isLoading || !summary || summary === t('summaryDialog.noUnreadMessagesDescription')"
           @click="markRead"
         >
-          Mark as Read
+          {{ t('summaryDialog.markAsRead') }}
         </Button>
       </div>
     </div>
