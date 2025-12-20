@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
+import { computed } from 'vue'
 
-import type { SessionContext, StoredSession } from '../types/session'
+import type { StoredSession } from '../types/session'
 
 interface SessionStoreOptions {
   generateId: () => string
@@ -24,7 +25,6 @@ export function createSessionStore(
     if (sessions.value.length === 0) {
       sessions.value = [{
         uuid: generateId(),
-        metadata: {},
       }]
       activeSlot.value = 0
       return
@@ -34,57 +34,43 @@ export function createSessionStore(
       activeSlot.value = 0
   }
 
-  const getActiveSession = () => {
-    const slot = activeSlot.value
-    return sessions.value[slot]?.metadata
-  }
+  const activeSession = computed({
+    get: () => {
+      const slot = activeSlot.value
+      // Ensure we return a valid object if slot is valid, but handle out-of-bounds gracefully
+      return sessions.value[slot]
+    },
+    set: (val) => {
+      if (!val)
+        return
+      const slot = activeSlot.value
+      if (sessions.value[slot]) {
+        const copy = [...sessions.value]
+        copy[slot] = val
+        sessions.value = copy
+      }
+    },
+  })
 
   /**
-   * Update metadata for the active session slot by shallow-merging the patch.
+   * Update a specific session identified by its uuid.
+   * Replaces the session object with a merged version if patch is partial,
+   * or fully replaces if the caller handles merging.
+   *
+   * @param sessionId - The UUID of the session to update
+   * @param updateFn - Function that takes current session and returns new session
    */
-  const updateActiveSessionMetadata = (patch: Partial<SessionContext>) => {
-    const index = activeSlot.value
-    const existing = sessions.value[index]
-    if (!existing)
-      return
-
-    const mergedMetadata: SessionContext = {
-      ...(existing.metadata ?? {}),
-      ...patch,
-    }
-
-    const sessionsCopy = [...sessions.value]
-    sessionsCopy[index] = {
-      ...existing,
-      metadata: mergedMetadata,
-    }
-    sessions.value = sessionsCopy
-  }
-
-  /**
-   * Update metadata for a specific session identified by its uuid.
-   * Does nothing if the session does not exist.
-   */
-  const updateSessionMetadataById = (sessionId: string, patch: Partial<SessionContext>) => {
-    if (!sessionId)
-      return
-
-    const index = sessions.value.findIndex(session => session.uuid === sessionId)
+  const updateSession = (sessionId: string, updateFn: (prev: StoredSession) => StoredSession) => {
+    const index = sessions.value.findIndex(s => s.uuid === sessionId)
     if (index === -1)
       return
 
-    const existing = sessions.value[index]
-    const mergedMetadata: SessionContext = {
-      ...(existing.metadata ?? {}),
-      ...patch,
-    }
+    const prev = sessions.value[index]
+    const next = updateFn(prev)
 
-    const sessionsCopy = [...sessions.value]
-    sessionsCopy[index] = {
-      ...existing,
-      metadata: mergedMetadata,
-    }
-    sessions.value = sessionsCopy
+    const copy = [...sessions.value]
+    copy[index] = next
+    sessions.value = copy
   }
 
   /**
@@ -94,7 +80,6 @@ export function createSessionStore(
     const newId = generateId()
     const sessionsCopy = [...sessions.value, {
       uuid: newId,
-      metadata: {},
     } satisfies StoredSession]
 
     sessions.value = sessionsCopy
@@ -137,9 +122,8 @@ export function createSessionStore(
 
   return {
     ensureSessionInvariants,
-    getActiveSession,
-    updateActiveSessionMetadata,
-    updateSessionMetadataById,
+    activeSession,
+    updateSession,
     addNewAccount,
     removeCurrentAccount,
     cleanup,

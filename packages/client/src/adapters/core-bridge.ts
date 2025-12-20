@@ -3,43 +3,41 @@ import type { CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
-import type { StoredSession } from '../types/session'
 
 import { useLogger } from '@guiiai/logg'
 import { deepClone, generateDefaultConfig } from '@tg-search/common'
 import { useLocalStorage } from '@vueuse/core'
-import { acceptHMRUpdate, defineStore } from 'pinia'
-import { v4 as uuidv4 } from 'uuid'
+import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
 import { useSetupPGliteDevtools } from '../devtools/pglite-devtools'
 import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
+import { useSessionStore } from '../stores/session'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
-import { createSessionStore } from '../utils/session-store'
 import { initDB } from './core-db'
 import { createCoreRuntime } from './core-runtime'
 
 export const useCoreBridgeStore = defineStore('core-bridge', () => {
-  const storageSessions = useLocalStorage<StoredSession[]>('core-bridge/sessions', [])
-  // active-session-slot: index into storageSessions array
-  const storageActiveSessionSlot = useLocalStorage<number>('core-bridge/active-session-slot', 0)
-  const logger = useLogger('CoreBridge')
+  const sessionStore = useSessionStore()
+  const {
+    sessions: storageSessions,
+    activeSessionSlot: storageActiveSessionSlot,
+    activeSession,
+  } = storeToRefs(sessionStore)
 
   const {
     ensureSessionInvariants,
-    getActiveSession,
-    updateActiveSessionMetadata,
-    updateSessionMetadataById,
+    updateSession,
     addNewAccount,
     removeCurrentAccount,
     cleanup: resetSessions,
-  } = createSessionStore(storageSessions, storageActiveSessionSlot, { generateId: () => uuidv4() })
+  } = sessionStore
+
+  const logger = useLogger('CoreBridge')
 
   const activeSessionId = computed(() => {
-    const slot = storageActiveSessionSlot.value
-    const session = storageSessions.value[slot]
-    return session?.uuid ?? ''
+    return activeSession.value?.uuid ?? ''
   })
 
   const eventHandlers: ClientEventHandlerMap = new Map()
@@ -83,7 +81,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       // will observe the combination of { hasSession, !isConnected } for
       // the new active slot and trigger a fresh login using the stored
       // session string.
-      updateSessionMetadataById(sessionId, { isConnected: false })
+      updateSession(sessionId, s => ({ ...s, isConnected: false }))
 
       storageActiveSessionSlot.value = index
       logger.withFields({ sessionId }).verbose('Switched to account')
@@ -97,7 +95,12 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
    * triggering the login flow.
    */
   const applySessionUpdate = (session: string) => {
-    updateActiveSessionMetadata({ session })
+    if (activeSession.value) {
+      activeSession.value = {
+        ...activeSession.value,
+        session,
+      }
+    }
   }
 
   const logoutCurrentAccount = async () => {
@@ -236,9 +239,8 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     sessions: storageSessions,
     activeSessionId,
-    getActiveSession,
-    updateActiveSessionMetadata,
-    updateSessionMetadataById,
+    activeSession,
+    updateSession,
     switchAccount,
     addNewAccount,
     applySessionUpdate,

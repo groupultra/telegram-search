@@ -18,12 +18,18 @@ export function registerBasicEventHandlers(
   })
 
   registerEventHandler('auth:connected', () => {
-    useBridgeStore().getActiveSession()!.isConnected = true
+    const store = useBridgeStore()
+    if (store.activeSession) {
+      store.activeSession = { ...store.activeSession, isConnected: true }
+    }
   })
 
   registerEventHandler('auth:disconnected', () => {
     useLogger('Auth').log('Auth disconnected, cleaning up session metadata')
-    useBridgeStore().updateActiveSessionMetadata({ isConnected: false, session: undefined })
+    const store = useBridgeStore()
+    if (store.activeSession) {
+      store.activeSession = { ...store.activeSession, isConnected: false, session: undefined }
+    }
   })
 
   // Core forwards updated StringSession to the client; let bridge store decide
@@ -32,7 +38,10 @@ export function registerBasicEventHandlers(
     // session:update always applies to the currently active slot. The
     // auth flow is responsible for selecting the correct active account
     // before initiating login.
-    useBridgeStore().updateActiveSessionMetadata({ session })
+    const store = useBridgeStore()
+    if (store.activeSession) {
+      store.activeSession = { ...store.activeSession, session }
+    }
   })
 
   registerEventHandler('auth:error', ({ error }) => {

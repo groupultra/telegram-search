@@ -12,7 +12,7 @@ export function registerServerEventHandlers(
     // server:connected carries the authoritative connection state for a
     // specific sessionId. We update that slot directly without creating
     // any new accounts.
-    useBridgeStore().updateSessionMetadataById(data.sessionId, { isConnected: data.accountReady })
+    useBridgeStore().updateSession(data.sessionId, s => ({ ...s, isConnected: data.accountReady }))
 
     if (data.accountReady) {
       useAccountStore().markReady()
