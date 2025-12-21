@@ -58,7 +58,6 @@ RUN CI=true pnpm install --frozen-lockfile --ignore-scripts --prod
 # Copy built artifacts
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
 COPY --from=builder /app/packages/core/dist ./packages/core/dist
-COPY --from=builder /app/packages/common/dist ./packages/common/dist
 COPY --from=builder /app/packages/schema/dist ./packages/schema/dist
 
 # Env defaults

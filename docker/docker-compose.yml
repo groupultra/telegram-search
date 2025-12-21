@@ -43,7 +43,7 @@ services:
       minio:
         condition: service_healthy
     volumes:
-      - telegram_search_data:/app/data
+      - app_data:/app/data
     restart: unless-stopped
     environment:
       DATABASE_TYPE: postgres
@@ -77,15 +77,7 @@ services:
       timeout: 10s
       retries: 3
 
-  loki:
-    image: grafana/loki:latest
-    command: -config.file=/etc/loki/local-config.yaml
-    volumes:
-      - loki_data:/loki
-    restart: unless-stopped
-
 volumes:
   pgvector_data:
-  telegram_search_data:
+  app_data:
   minio_data:
-  loki_data:

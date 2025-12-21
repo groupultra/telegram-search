@@ -34,7 +34,6 @@
   },
   "devDependencies": {
     "pathe": "^2.0.3",
-    "tsdown": "catalog:",
     "vite-node": "^5.2.0"
   }
 }

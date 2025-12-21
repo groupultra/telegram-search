@@ -43,7 +43,6 @@
     "valibot": "^1.2.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.16.0",
-    "tsdown": "catalog:"
+    "@types/pg": "^8.16.0"
   }
 }

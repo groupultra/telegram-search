@@ -51,6 +51,7 @@
     "drizzle-kit": "^0.31.8",
     "eslint": "^9.39.2",
     "taze": "^19.9.2",
+    "tsdown": "catalog:",
     "typescript": "^5.9.3",
     "vite": "npm:rolldown-vite@7.2.11",
     "vitest": "^4.0.15"

@@ -16,8 +16,5 @@
   },
   "dependencies": {
     "@vue/devtools-kit": "^8.0.5"
-  },
-  "devDependencies": {
-    "tsdown": "catalog:"
   }
 }

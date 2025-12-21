@@ -49,7 +49,7 @@ services:
       minio:
         condition: service_healthy
     volumes:
-      - telegram_search_data:/app/data
+      - app_data:/app/data
     restart: unless-stopped
     environment:
       DATABASE_TYPE: postgres
@@ -93,6 +93,6 @@ services:
 
 volumes:
   pgvector_data:
-  telegram_search_data:
+  app_data:
   minio_data:
   loki_data:
