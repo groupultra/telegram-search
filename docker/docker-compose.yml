@@ -26,7 +26,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: [CMD-SHELL, "mc ready local"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,7 +36,7 @@ services:
     build:
       context: ../
       dockerfile: apps/server/Dockerfile
-    image: ghcr.io/groupultra/telegram-search-server:latest
+    image: ghcr.io/groupultra/telegram-search-server:latest # or nightly
     depends_on:
       pgvector:
         condition: service_healthy
@@ -63,7 +63,7 @@ services:
     build:
       context: ../
       dockerfile: apps/web/Dockerfile
-    image: ghcr.io/groupultra/telegram-search-web:latest
+    image: ghcr.io/groupultra/telegram-search-web:latest # or nightly
     ports:
       - 3333:3333
     depends_on:
