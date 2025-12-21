@@ -140,13 +140,13 @@ docker run -d --name telegram-search \
 
 1. 下载 Docker Compose 文件：
 ```bash
-curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker-compose.yml -o docker-compose.yml
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
 ```
 
 2. 启动全部服务（包括数据库、MinIO 等）：
 
 ```bash
-docker compose -f docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 3. 访问 `http://localhost:3333` 打开搜索界面。
@@ -172,7 +172,7 @@ pnpm install
 
 cp .env.example .env
 
-docker compose up -d pgvector minio
+docker compose -f docker/docker-compose.dev.yml up -d pgvector minio
 
 pnpm run server:dev
 pnpm run web:dev
