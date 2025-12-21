@@ -85,7 +85,7 @@
 
 ## 🚀 快速开始
 
-默认使用 PGlite 作为消息数据库，如果需要使用更高性能的 PostgreSQL 数据库以及提供的 MinIO 作为媒体存储引擎，请参考下文自定义环境变量或者使用 `docker compose up -d` 启动全部服务。
+默认使用 PGlite 作为消息数据库，整体内存占用可能会偏高，如果需要使用更高性能的 PostgreSQL 数据库以及提供的 MinIO 作为媒体存储引擎，请参考下文自定义环境变量或者使用 `docker compose up -d` 启动全部服务。
 
 镜像提供 latest 和 nightly 版本，请自行选择。
 
@@ -138,12 +138,15 @@ docker run -d --name telegram-search \
 
 ### 使用 Docker Compose 启动
 
-1. 克隆仓库。
+1. 下载 Docker Compose 文件：
+```bash
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker-compose.yml -o docker-compose.yml
+```
 
-2. 运行 docker compose 启动包括数据库、MinIO 在内的全部服务：
+2. 启动全部服务（包括数据库、MinIO 等）：
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 3. 访问 `http://localhost:3333` 打开搜索界面。
