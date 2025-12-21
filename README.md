@@ -95,10 +95,10 @@ cd telegram-search
 ```bash
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/.env.example -o .env
-compose -f docker-compose.yml up -d
+docker compose -f docker-compose.yml up -d
 ```
 
-1. 然后打开 **http://localhost:3333** 即可使用 🎉
+3. 然后打开 **http://localhost:3333** 即可使用 🎉
 
 ### 自定义环境变量
 
