@@ -85,18 +85,20 @@
 
 ## 🚀 クイックスタート
 
-デフォルトで PGlite がメッセージデータベースとして使用されます。より高性能な PostgreSQL データベースや、メディアストレージとして MinIO を利用したい場合は、下記の環境変数をカスタマイズするか、`docker compose up -d` で全サービスを起動してください。
-
-イメージには latest と nightly のバージョンが提供されています。ご自身の用途に合わせて選択してください。
-
+1. Telegram Search 用のディレクトリを作成:
 ```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  ghcr.io/groupultra/telegram-search:latest
+mkdir telegram-search
+cd telegram-search
 ```
 
-ブラウザで **http://localhost:3333** にアクセスし、そのままご利用いただけます 🎉
+2. Docker Compose ファイルと環境ファイルをダウンロードし、全サービス（DB・MinIO等）を起動:
+```bash
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/.env.example -o .env
+docker compose -f docker-compose.yml up -d
+```
+
+3. ブラウザで **http://localhost:3333** にアクセスしてすぐ使い始められます 🎉
 
 ### 環境変数のカスタマイズ
 

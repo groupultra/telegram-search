@@ -85,18 +85,28 @@ Visit: https://search.lingogram.app
 
 ## 🚀 Quick Start
 
-By default, PGlite is used as the message database. For higher performance with PostgreSQL or to use the provided MinIO as a media storage engine, please refer to the environment variables below or start all services with `docker compose up -d`.
+### Deploy with Docker Compose
 
-Image provides latest and nightly versions, please choose one.
+The recommended way to self-host is with Docker Compose. This launches the UI, backend, database, and media storage in one step.
 
+1. Create an empty folder for your Telegram Search data and config:
 ```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  ghcr.io/groupultra/telegram-search:latest
+mkdir telegram-search
+cd telegram-search
 ```
 
-Then open **http://localhost:3333** to use it 🎉
+2. Download the Docker Compose and default environment files:
+```bash
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/.env.example -o .env
+```
+
+3. Start all containers:
+```bash
+docker compose -f docker-compose.yml up -d
+```
+
+4. Open **http://localhost:3333** in your browser to start using Telegram Search! 🎉
 
 ### Environment Variables
 
