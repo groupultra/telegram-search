@@ -1,7 +1,7 @@
 # ---------------------------------
 # --------- Builder Stage ---------
 # ---------------------------------
-FROM node:24.12.0-bookworm-slim AS builder
+FROM node:24.12.0-alpine AS builder
 WORKDIR /app
 
 # Enable pnpm
@@ -9,17 +9,13 @@ RUN corepack enable pnpm && \
     corepack prepare pnpm@10.22.0 --activate
 
 # Install build tools
-RUN apt-get update && apt-get install -y git \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache git
 
 # Copy dependency manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/core/package.json ./packages/core/package.json
 COPY packages/common/package.json ./packages/common/package.json
-COPY packages/client/package.json ./packages/client/package.json
-COPY packages/pglite-inspector/package.json ./packages/pglite-inspector/package.json
 COPY packages/schema/package.json ./packages/schema/package.json
-COPY apps/web/package.json ./apps/web/package.json
 COPY apps/server/package.json ./apps/server/package.json
 
 # Install dependencies
@@ -35,7 +31,7 @@ RUN pnpm run server:build
 # ---------------------------------
 # --------- Runtime Stage ---------
 # ---------------------------------
-FROM node:24.12.0-bookworm-slim
+FROM node:24.12.0-alpine
 
 WORKDIR /app
 
@@ -43,14 +39,16 @@ WORKDIR /app
 RUN corepack enable pnpm && \
     corepack prepare pnpm@10.22.0 --activate
 
+# Install runtime dependencies
+# libc6-compat is often needed for native modules (like @node-rs/* or prebuilds) on Alpine
+RUN apk add --no-cache libc6-compat
+
 # Copy workspace config and manifests for prod install
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=builder /app/packages/core/package.json ./packages/core/package.json
 COPY --from=builder /app/packages/common/package.json ./packages/common/package.json
-COPY --from=builder /app/packages/client/package.json ./packages/client/package.json
-COPY --from=builder /app/packages/pglite-inspector/package.json ./packages/pglite-inspector/package.json
 COPY --from=builder /app/packages/schema/package.json ./packages/schema/package.json
 COPY --from=builder /app/apps/server/package.json ./apps/server/package.json
 
@@ -61,8 +59,6 @@ RUN CI=true pnpm install --frozen-lockfile --ignore-scripts --prod
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
 COPY --from=builder /app/packages/core/dist ./packages/core/dist
 COPY --from=builder /app/packages/common/dist ./packages/common/dist
-COPY --from=builder /app/packages/client/dist ./packages/client/dist
-COPY --from=builder /app/packages/pglite-inspector/dist ./packages/pglite-inspector/dist
 COPY --from=builder /app/packages/schema/dist ./packages/schema/dist
 
 # Env defaults

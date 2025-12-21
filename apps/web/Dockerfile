@@ -1,7 +1,7 @@
 # ---------------------------------
 # --------- Builder Stage ---------
 # ---------------------------------
-FROM node:24.12.0-bookworm-slim AS builder
+FROM node:24.12.0-alpine AS builder
 WORKDIR /app
 
 # Enable pnpm
@@ -9,8 +9,7 @@ RUN corepack enable pnpm && \
     corepack prepare pnpm@10.22.0 --activate
 
 # Install build tools
-RUN apt-get update && apt-get install -y git \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache git
 
 # Copy dependency manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -35,10 +34,10 @@ RUN pnpm run web:build
 # ---------------------------------
 # --------- Nginx Stage -----------
 # ---------------------------------
-FROM nginx:1.29-bookworm
+FROM nginx:alpine
 
 # Install gettext for envsubst
-RUN apt-get update && apt-get install -y gettext && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache gettext
 
 # Copy built frontend
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
