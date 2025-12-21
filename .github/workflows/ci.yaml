@@ -107,22 +107,36 @@ jobs:
   build-docker-image:
     timeout-minutes: 15
     if: github.event_name == 'pull_request'
-    name: Build Docker Image Test
+    name: Build & Test Docker Images
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: docker/setup-buildx-action@v3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Build Docker image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build Server Docker image (test)
         uses: docker/build-push-action@v6
         with:
           context: ./
-          file: ./Dockerfile
+          file: ./apps/server/Dockerfile
           push: false
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Web Docker image (test)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ./apps/web/Dockerfile
+          push: false
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
