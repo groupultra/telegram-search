@@ -94,7 +94,7 @@ cd telegram-search
 2. Docker Compose ファイルと環境ファイルをダウンロードし、全サービス（DB・MinIO等）を起動:
 ```bash
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
-curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/.env.example -o .env
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/.env.example -o .env
 docker compose -f docker-compose.yml up -d
 ```
 
@@ -120,37 +120,6 @@ docker compose -f docker-compose.yml up -d
 | `MINIO_SECRET_KEY`            | MinIO シークレットキー                                                          | `minioadmin`                                          |
 | `MINIO_BUCKET`                | MinIO のバケット名                                                              | `telegram-media`                                      |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry OTLP ログ送信エンドポイント                                       | `http://loki:3100/otlp/v1/logs`                       |
-
-**PostgreSQL 利用例：**
-
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  -e TELEGRAM_API_ID=611335 \
-  -e TELEGRAM_API_HASH=d524b414d21f4d37f08684c1df41ac9c \
-  -e DATABASE_TYPE=postgres \
-  -e DATABASE_URL=postgresql://<postgres-host>:5432/postgres \
-  ghcr.io/groupultra/telegram-search:latest
-```
-
-**プロキシ形式サンプル：**
-- SOCKS5: `socks5://user:pass@host:port`
-- SOCKS4: `socks4://user:pass@host:port`
-- HTTP: `http://user:pass@host:port`
-- MTProxy: `mtproxy://secret@host:port`
-
-### Docker Compose での起動
-
-1. リポジトリをクローンします。
-
-2. docker compose でデータベースや MinIO 等すべてのサービス起動：
-
-```bash
-docker compose up -d
-```
-
-3. `http://localhost:3333` へアクセスし、検索画面を開きます。
 
 ## 💻 開発ガイド
 

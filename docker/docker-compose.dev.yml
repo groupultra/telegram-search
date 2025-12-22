@@ -52,10 +52,10 @@ services:
       - app_data:/app/data
     restart: unless-stopped
     env_file:
-      - ../.env.example
-      - path: ../.env
+      - .env.example
+      - path: .env
         required: false
-      - path: ../.env.local
+      - path: .env.local
         required: false
     healthcheck:
       test: [CMD-SHELL, 'curl -f http://localhost:3000/health || exit 1']

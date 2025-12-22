@@ -98,7 +98,7 @@ cd telegram-search
 2. Download the Docker Compose and default environment files:
 ```bash
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
-curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/.env.example -o .env
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/.env.example -o .env
 ```
 
 3. Start all containers:
@@ -128,35 +128,6 @@ docker compose -f docker-compose.yml up -d
 | `MINIO_SECRET_KEY`            | MinIO secret key                                             | `minioadmin`                                          |
 | `MINIO_BUCKET`                | MinIO bucket name                                            | `telegram-media`                                      |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry OTLP log endpoint                              | `http://loki:3100/otlp/v1/logs`                       |
-
-**Example for PostgreSQL:**
-
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  -e DATABASE_TYPE=postgres \
-  -e DATABASE_URL=postgresql://<host>:5432/postgres \
-  ghcr.io/groupultra/telegram-search:latest
-```
-
-**Proxy formats:**
-- SOCKS5: `socks5://user:pass@host:port`
-- SOCKS4: `socks4://user:pass@host:port`
-- HTTP:    `http://user:pass@host:port`
-- MTProxy: `mtproxy://secret@host:port`
-
-### Using Docker Compose
-
-1. Clone the repo.
-
-2. Start all services (database, MinIO, etc.):
-
-```bash
-docker compose up -d
-```
-
-3. Open `http://localhost:3333` for the UI.
 
 ## 💻 Development Guide
 

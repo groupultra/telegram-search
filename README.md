@@ -94,7 +94,7 @@ cd telegram-search
 2. 下载 Docker Compose 文件并启动全部服务（包括数据库、MinIO 等）：
 ```bash
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
-curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/.env.example -o .env
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/.env.example -o .env
 docker compose -f docker-compose.yml up -d
 ```
 
