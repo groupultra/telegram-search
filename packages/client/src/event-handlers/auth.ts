@@ -2,7 +2,6 @@ import type { ClientRegisterEventHandler } from '.'
 
 import { useLogger } from '@guiiai/logg'
 import { storeToRefs } from 'pinia'
-import { toast } from 'vue-sonner'
 
 import { useAccountStore } from '../stores/useAccount'
 
@@ -42,9 +41,7 @@ export function registerBasicEventHandlers(
     }
   })
 
-  registerEventHandler('auth:error', ({ error }) => {
-    // TODO better toast error message
-    toast.error(String(error))
+  registerEventHandler('auth:error', () => {
     useAccountStore().auth.isLoading = false
   })
 }
