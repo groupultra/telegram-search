@@ -85,23 +85,27 @@
 
 ## 🚀 快速开始
 
-默认使用 PGlite 作为消息数据库，如果需要使用更高性能的 PostgreSQL 数据库以及提供的 MinIO 作为媒体存储引擎，请参考下文自定义环境变量或者使用 `docker compose up -d` 启动全部服务。
-
-镜像提供 latest 和 nightly 版本，请自行选择。
-
+1. 新建一个空目录，用于存放 Telegram Search 的配置和数据：
 ```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  ghcr.io/groupultra/telegram-search:latest
+mkdir telegram-search
+cd telegram-search
 ```
 
-然后打开 **http://localhost:3333** 即可使用 🎉
+2. 下载 Docker Compose 文件并启动全部服务（包括数据库、MinIO 等）：
+```bash
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/.env.example -o .env
+docker compose -f docker-compose.yml up -d
+```
+
+3. 然后打开 **http://localhost:3333** 即可使用 🎉
 
 ### 自定义环境变量
 
 > [!IMPORTANT]
 > AI Embedding & LLM 设置现在在应用内**按账户**配置（设置 → API）。
+>
+> 请在修改完成 `.env` 文件后，再次执行 `docker compose -f docker-compose.yml up -d` 启动服务。
 
 | 环境变量                      | 说明                                                                         | 示例值                                                |
 | ----------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
@@ -118,35 +122,6 @@ docker run -d --name telegram-search \
 | `MINIO_SECRET_KEY`            | MinIO 访问密钥对应的密钥                                                     | `minioadmin`                                          |
 | `MINIO_BUCKET`                | MinIO 存储桶名称                                                             | `telegram-media`                                      |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry OTLP 日志采集端点                                              | `http://loki:3100/otlp/v1/logs`                       |
-
-**使用 PostgreSQL 的示例：**
-
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -v telegram-search-data:/app/data \
-  -e DATABASE_TYPE=postgres \
-  -e DATABASE_URL=postgresql://<host>:5432/postgres \
-  ghcr.io/groupultra/telegram-search:latest
-```
-
-**代理格式：**
-- SOCKS5: `socks5://user:pass@host:port`
-- SOCKS4: `socks4://user:pass@host:port`
-- HTTP: `http://user:pass@host:port`
-- MTProxy: `mtproxy://secret@host:port`
-
-### 使用 Docker Compose 启动
-
-1. 克隆仓库。
-
-2. 运行 docker compose 启动包括数据库、MinIO 在内的全部服务：
-
-```bash
-docker compose up -d
-```
-
-3. 访问 `http://localhost:3333` 打开搜索界面。
 
 ## 💻 开发指南
 
@@ -169,7 +144,7 @@ pnpm install
 
 cp .env.example .env
 
-docker compose up -d pgvector minio
+docker compose -f docker/docker-compose.dev.yml up -d pgvector minio
 
 pnpm run server:dev
 pnpm run web:dev

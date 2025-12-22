@@ -1,7 +1,7 @@
 {
   "name": "@tg-search/core",
   "type": "module",
-  "version": "1.1.39",
+  "version": "1.1.40",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -43,7 +43,6 @@
     "valibot": "^1.2.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.16.0",
-    "tsdown": "catalog:"
+    "@types/pg": "^8.16.0"
   }
 }

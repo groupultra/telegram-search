@@ -1,0 +1,62 @@
+name: telegram-search
+services:
+  pgvector:
+    image: ghcr.io/tensorchord/pgvecto-rs:pg17-v0.4.0
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DATABASE: postgres
+      POSTGRES_PASSWORD: '123456'
+    volumes:
+      - ../drizzle/sql/pgrs-init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgvector_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -d postgres -U postgres]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: [CMD-SHELL, 'mc ready local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    image: ghcr.io/groupultra/telegram-search:latest # or nightly
+    ports:
+      - 3333:3333
+    depends_on:
+      pgvector:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - app_data:/app/data
+    restart: unless-stopped
+    env_file:
+      - .env.example
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
+    healthcheck:
+      test: [CMD-SHELL, 'curl -f http://localhost:3000/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  pgvector_data:
+  app_data:
+  minio_data:

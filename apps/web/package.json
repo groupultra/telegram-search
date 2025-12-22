@@ -2,7 +2,7 @@
   "name": "@tg-search/web",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.26.0",
+  "packageManager": "pnpm@10.26.1",
   "scripts": {
     "dev": "vite --port 3333",
     "build": "vite build",
@@ -12,7 +12,7 @@
   "dependencies": {
     "@electric-sql/pglite-repl": "^0.2.32",
     "@formkit/auto-animate": "^0.9.0",
-    "@iconify-json/lucide": "^1.2.81",
+    "@iconify-json/lucide": "^1.2.82",
     "@node-rs/jieba-wasm32-wasi": "^2.0.1",
     "@tanstack/vue-query": "^5.92.1",
     "@tg-search/client": "workspace:^",
@@ -29,13 +29,13 @@
     "nprogress": "^0.2.0",
     "pako": "^2.1.0",
     "pinia": "^3.0.4",
-    "posthog-js": "^1.306.2",
+    "posthog-js": "^1.309.1",
     "telegram": "2.26.21",
     "valibot": "^1.2.0",
     "virtua": "^0.48.2",
-    "vue": "^3.5.25",
+    "vue": "^3.5.26",
     "vue-echarts": "^8.0.1",
-    "vue-i18n": "^11.2.2",
+    "vue-i18n": "^11.2.7",
     "vue-router": "^4.6.4",
     "vue-sonner": "catalog:",
     "xsai": "catalog:"
@@ -62,7 +62,7 @@
     "vite-plugin-splash-screen": "^0.2.2",
     "vite-plugin-vue-devtools": "^8.0.5",
     "vite-plugin-vue-layouts": "^0.11.0",
-    "vue-tsc": "^3.1.8",
+    "vue-tsc": "^3.2.1",
     "workbox-window": "^7.4.0"
   }
 }

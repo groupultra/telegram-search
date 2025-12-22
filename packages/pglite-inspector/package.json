@@ -1,7 +1,7 @@
 {
   "name": "@unbird/pglite-inspector",
   "type": "module",
-  "version": "1.1.39",
+  "version": "1.1.40",
   "private": true,
   "exports": {
     ".": "./src/index.ts"
@@ -16,8 +16,5 @@
   },
   "dependencies": {
     "@vue/devtools-kit": "^8.0.5"
-  },
-  "devDependencies": {
-    "tsdown": "catalog:"
   }
 }

@@ -2,7 +2,7 @@
   "name": "@tg-search/client",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.26.0",
+  "packageManager": "pnpm@10.26.1",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -19,7 +19,7 @@
     "ofetch": "^1.5.1",
     "pinia": "^3.0.4",
     "uuid": "^13.0.0",
-    "vue": "^3.5.25",
+    "vue": "^3.5.26",
     "vue-sonner": "catalog:"
   },
   "devDependencies": {

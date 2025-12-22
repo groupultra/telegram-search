@@ -95,7 +95,7 @@ describe('parseEnvToConfig', () => {
     const logger = {
       withFields: vi.fn(() => ({
         warn: warnSpy,
-        debug: vi.fn(),
+        log: vi.fn(),
       })),
     }
 

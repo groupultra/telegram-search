@@ -96,7 +96,7 @@ export function parseEnvToConfig(env: Environment, logger?: Logger): Config {
     logger?.withFields({ minio: parsedConfig.output.minio }).warn('MINIO_ENDPOINT and MINIO_PORT are deprecated, use MINIO_URL instead')
   }
 
-  logger?.withFields({ config: parsedConfig.output }).debug('Config parsed')
+  logger?.withFields({ ...parsedConfig.output }).log('Config parsed')
 
   return parsedConfig.output
 }

@@ -1,6 +1,7 @@
 import { defineConfig } from '@moeru/eslint-config'
 
 const config = defineConfig({
+  markdown: true,
   masknet: false,
   preferArrow: false,
   perfectionist: false,

@@ -1,7 +1,7 @@
 {
   "name": "@tg-search/schema",
   "type": "module",
-  "version": "1.1.39",
+  "version": "1.1.40",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -15,7 +15,6 @@
     "build": "tsdown"
   },
   "devDependencies": {
-    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.4",
-    "tsdown": "catalog:"
+    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.4"
   }
 }

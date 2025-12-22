@@ -10,6 +10,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
+import { DEV_MODE, IS_CORE_MODE, TELEGRAM_APP_HASH, TELEGRAM_APP_ID } from '../../constants'
 import { useSetupPGliteDevtools } from '../devtools/pglite-devtools'
 import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
@@ -156,8 +157,8 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     logger.verbose('Initializing core bridge')
 
-    config.value.api.telegram.apiId ||= import.meta.env.VITE_TELEGRAM_API_ID || import.meta.env.VITE_TELEGRAM_APP_ID
-    config.value.api.telegram.apiHash ||= import.meta.env.VITE_TELEGRAM_API_HASH || import.meta.env.VITE_TELEGRAM_APP_HASH
+    config.value.api.telegram.apiId ||= TELEGRAM_APP_ID
+    config.value.api.telegram.apiHash ||= TELEGRAM_APP_HASH
 
     logger.withFields({ config: config.value }).verbose('Initialized config')
 
@@ -165,7 +166,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     // In With Core (browser-only) mode, register an OPFS-based media storage
     // provider so that media bytes are kept out of the embedded database.
-    if (import.meta.env.VITE_WITH_CORE) {
+    if (IS_CORE_MODE) {
       const { registerOpfsMediaStorage } = await import('./core-media-opfs')
       try {
         await registerOpfsMediaStorage()
@@ -178,7 +179,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     // Wire up Vue DevTools plugin if the shell has registered a setup
     // callback via provide/inject (dev-only).
-    if (import.meta.env.DEV && typeof window !== 'undefined') {
+    if (DEV_MODE && typeof window !== 'undefined') {
       const setupDevtools = useSetupPGliteDevtools()
       setupDevtools?.(db.pglite)
     }

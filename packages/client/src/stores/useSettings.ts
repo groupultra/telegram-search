@@ -6,6 +6,8 @@ import { converter } from 'culori'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { DEBUG_MODE } from '../../constants'
+
 export const DEFAULT_THEME_COLORS_HUE = 220.44
 
 const convert = converter('oklch')
@@ -14,7 +16,7 @@ const getHueFrom = (color?: string) => color ? convert(color)?.h : DEFAULT_THEME
 export type ChatGroup = DialogType | ''
 
 export const useSettingsStore = defineStore('settings', () => {
-  const debugMode = ref(import.meta.env.VITE_DEBUG === 'true')
+  const debugMode = ref(DEBUG_MODE)
   const selectedGroup = useLocalStorage<ChatGroup>('settings/group-selected', 'user')
   const useCachedMessage = useLocalStorage<boolean>('settings/use-cached-message-v2', true)
 

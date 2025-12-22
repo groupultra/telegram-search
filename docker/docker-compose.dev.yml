@@ -1,4 +1,4 @@
-name: telegram-search
+name: telegram-search-dev
 services:
   pgvector:
     image: ghcr.io/tensorchord/pgvecto-rs:pg17-v0.4.0
@@ -7,7 +7,7 @@ services:
       POSTGRES_DATABASE: postgres
       POSTGRES_PASSWORD: '123456'
     volumes:
-      - ./drizzle/sql/pgrs-init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../drizzle/sql/pgrs-init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgvector_data:/var/lib/postgresql/data
     ports:
       - 5432:5432
@@ -31,16 +31,16 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: [CMD, curl, -f, http://localhost:9000/minio/health/live]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      test: [CMD-SHELL, 'mc ready local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: docker/Dockerfile
     ports:
       - 3333:3333
     depends_on:
@@ -51,24 +51,22 @@ services:
     volumes:
       - app_data:/app/data
     restart: unless-stopped
-    environment:
-      DATABASE_TYPE: postgres
-      DATABASE_URL: 'postgresql://postgres:123456@pgvector:5432/postgres'
-      MINIO_URL: 'http://minio:9000'
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://loki:3100/otlp/v1/logs
+    env_file:
+      - .env.example
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
     healthcheck:
-      test: [CMD-SHELL, 'curl -f http://localhost:3333/api/health || exit 1']
+      test: [CMD-SHELL, 'curl -f http://localhost:3000/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
 
   loki:
     image: grafana/loki:latest
     ports:
-      - '3100:3100'
+      - 3100:3100
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - loki_data:/loki

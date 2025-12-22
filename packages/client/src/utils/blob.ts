@@ -2,7 +2,7 @@ import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
 import { useLogger } from '@guiiai/logg'
 
-import { API_BASE } from '../../constants'
+import { API_BASE, IS_CORE_MODE } from '../../constants'
 
 /**
  * Create a browser-friendly media representation.
@@ -17,7 +17,7 @@ export function createMediaBlob(media: CoreMessageMediaFromBlob) {
   // In With Core mode (browser-embedded core), there is no HTTP API backend.
   // The UI is responsible for hydrating media from the embedded database when
   // it actually needs to render the image/video.
-  if (import.meta.env.VITE_WITH_CORE) {
+  if (IS_CORE_MODE) {
     logger.debug('With Core mode detected; skipping HTTP media endpoint in createMediaBlob', {
       type: media.type,
       queryId: media.queryId,

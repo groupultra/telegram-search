@@ -62,7 +62,7 @@ jobs:
           # If the current commit is tagged, treat it as a release.
           EXACT_TAG="$(git describe --tags --exact-match 2>/dev/null || true)"
 
-          TAGS=()
+          VERSIONS=()
           IS_VERSIONED_RELEASE="false"
 
           if [[ -n "$EXACT_TAG" ]]; then
@@ -72,8 +72,8 @@ jobs:
           elif [[ "${GITHUB_EVENT_NAME}" == "schedule" ]] || \
                [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -z "$EXACT_TAG" ]]; then
             SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
-            TAGS+=("$IMAGE_REPO:nightly")
-            TAGS+=("$IMAGE_REPO:nightly-$SHORT_SHA")
+            VERSIONS+=("nightly")
+            VERSIONS+=("nightly-$SHORT_SHA")
           else
             IMAGE_VERSION="${{ steps.version.outputs.version }}"
             IS_VERSIONED_RELEASE="true"
@@ -81,28 +81,33 @@ jobs:
 
           if [[ "$IS_VERSIONED_RELEASE" == "true" ]]; then
             if [[ "$IMAGE_VERSION" == *beta* ]]; then
-              TAGS+=("$IMAGE_REPO:$IMAGE_VERSION")
-              TAGS+=("$IMAGE_REPO:beta")
+              VERSIONS+=("$IMAGE_VERSION")
+              VERSIONS+=("beta")
             else
-              TAGS+=("$IMAGE_REPO:$IMAGE_VERSION")
-              TAGS+=("$IMAGE_REPO:latest")
+              VERSIONS+=("$IMAGE_VERSION")
+              VERSIONS+=("latest")
             fi
           fi
 
-          if [[ ${#TAGS[@]} -eq 0 ]]; then
+          if [[ ${#VERSIONS[@]} -eq 0 ]]; then
             echo "No image tags generated; refusing to push an untagged image." >&2
             exit 1
           fi
+
+          TAGS=()
+          for v in "${VERSIONS[@]}"; do
+            TAGS+=("$IMAGE_REPO:$v")
+          done
 
           echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           printf '%s\n' "${TAGS[@]}" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-      - name: Build and Push
+      - name: Build and Push App
         uses: docker/build-push-action@v6
         with:
           context: ./
-          file: ./Dockerfile
+          file: ./docker/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha

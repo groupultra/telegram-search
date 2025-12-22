@@ -6,6 +6,8 @@ import type { CoreDB } from '@tg-search/core'
 
 import { initDrizzle } from '@tg-search/core'
 
+import { DB_DEBUG, DB_DEBUGGER_WS_URL } from '../../constants'
+
 // Typed as any to avoid introducing a hard dependency from client to PGlite.
 let pgliteDevDb: any
 let dbInstance: CoreDB | undefined
@@ -24,8 +26,8 @@ export function getDB(): CoreDB {
 
 export async function initDB(logger: Logger, config: Config) {
   const result = await initDrizzle(logger, config, {
-    debuggerWebSocketUrl: import.meta.env.VITE_DB_DEBUGGER_WS_URL as string,
-    isDatabaseDebugMode: import.meta.env.VITE_DB_DEBUG === 'true',
+    debuggerWebSocketUrl: DB_DEBUGGER_WS_URL,
+    isDatabaseDebugMode: DB_DEBUG,
   })
 
   pgliteDevDb = result.pglite

@@ -1,0 +1,59 @@
+name: Deploy Main (Preview)
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Preview
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v3
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - run: pnpm i -g wrangler@4
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: |
+          pnpm run packages:build
+          pnpm run build
+        env:
+          VITE_TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          VITE_TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+
+      - name: Inject & upload source maps to PostHog
+        uses: PostHog/upload-source-maps@v0.4.6
+        with:
+          directory: apps/web/dist
+          env-id: ${{ secrets.POSTHOG_CLI_ENV_ID }}
+          cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/web/dist --project-name=telegramsearch --branch=preview
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

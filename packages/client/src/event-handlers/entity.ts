@@ -4,7 +4,6 @@ import { useLogger } from '@guiiai/logg'
 
 import { useBridgeStore } from '../composables/useBridge'
 import { useAvatarStore } from '../stores/useAvatar'
-import { useBootstrapStore } from '../stores/useBootstrap'
 import { persistUserAvatar } from '../utils/avatar-cache'
 import { bytesToBlob, canDecodeAvatar } from '../utils/image'
 
@@ -17,16 +16,10 @@ export function registerEntityEventHandlers(
 ) {
   registerEventHandler('entity:me:data', (data) => {
     const bridgeStore = useBridgeStore()
-    const bootstrapStore = useBootstrapStore()
 
     const activeSession = bridgeStore.activeSession
     if (activeSession)
       activeSession.me = data
-
-    // Now that core has recorded the account and set currentAccountId,
-    // signal frontend bootstrap that the account context is ready. This
-    // will perform client-side post-bootstrap work (e.g. hydrate dialogs).
-    bootstrapStore.markAccountReady()
   })
 
   // User avatar bytes -> blob url
