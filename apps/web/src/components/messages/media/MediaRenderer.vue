@@ -14,6 +14,8 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import MediaWebpage from './MediaWebpage.vue'
 
+import { IS_CORE_MODE } from '../../../constants'
+
 const props = defineProps<{
   message: CoreMessage & {
     media?: CoreMessageMediaFromBlob[]
@@ -89,7 +91,7 @@ const processedMedia = computed<ProcessedMedia>(() => {
 
 // In With Core mode, lazily hydrate media blobs from the embedded database
 // only when this component is mounted and has a media item to render.
-if (import.meta.env.VITE_WITH_CORE) {
+if (IS_CORE_MODE) {
   watch(
     () => props.message.media?.[0],
     (mediaItem) => {
