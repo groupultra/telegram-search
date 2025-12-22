@@ -120,15 +120,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./
-          file: ./Dockerfile
+          file: ./docker/Dockerfile
           push: false
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  # autocorrect:
-  #   name: Autocorrect
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - uses: huacnlee/autocorrect-action@main
