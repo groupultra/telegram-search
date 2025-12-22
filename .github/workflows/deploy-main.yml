@@ -7,6 +7,12 @@ on:
     paths-ignore:
       - '**/*.md'
 
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -51,4 +57,3 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy apps/web/dist --project-name=telegramsearch --branch=preview
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-
