@@ -57,8 +57,7 @@ jobs:
       - name: Create image tags
         id: image_tag
         run: |
-          SERVER_REPO="ghcr.io/${{ github.repository }}-server"
-          WEB_REPO="ghcr.io/${{ github.repository }}-web"
+          IMAGE_REPO="ghcr.io/${{ github.repository }}"
 
           # If the current commit is tagged, treat it as a release.
           EXACT_TAG="$(git describe --tags --exact-match 2>/dev/null || true)"
@@ -95,39 +94,22 @@ jobs:
             exit 1
           fi
 
-          SERVER_TAGS=()
-          WEB_TAGS=()
+          TAGS=()
           for v in "${VERSIONS[@]}"; do
-            SERVER_TAGS+=("$SERVER_REPO:$v")
-            WEB_TAGS+=("$WEB_REPO:$v")
+            TAGS+=("$IMAGE_REPO:$v")
           done
 
-          echo "server_tags<<EOF" >> "$GITHUB_OUTPUT"
-          printf '%s\n' "${SERVER_TAGS[@]}" >> "$GITHUB_OUTPUT"
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "${TAGS[@]}" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-          echo "web_tags<<EOF" >> "$GITHUB_OUTPUT"
-          printf '%s\n' "${WEB_TAGS[@]}" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Build and Push Server
+      - name: Build and Push App
         uses: docker/build-push-action@v6
         with:
           context: ./
-          file: ./apps/server/Dockerfile
+          file: ./docker/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: ${{ steps.image_tag.outputs.server_tags }}
-
-      - name: Build and Push Web
-        uses: docker/build-push-action@v6
-        with:
-          context: ./
-          file: ./apps/web/Dockerfile
-          push: true
-          platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: ${{ steps.image_tag.outputs.web_tags }}
+          tags: ${{ steps.image_tag.outputs.tags }}

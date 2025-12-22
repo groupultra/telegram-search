@@ -107,7 +107,7 @@ jobs:
   build-docker-image:
     timeout-minutes: 15
     if: github.event_name == 'pull_request'
-    name: Build & Test Docker Images
+    name: Build & Test Docker Image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -120,29 +120,12 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
 
-      - name: Build Server Docker image (test)
+      - name: Build App Docker image (test)
         uses: docker/build-push-action@v6
         with:
           context: ./
-          file: ./apps/server/Dockerfile
+          file: ./docker/Dockerfile
           push: false
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Build Web Docker image (test)
-        uses: docker/build-push-action@v6
-        with:
-          context: ./
-          file: ./apps/web/Dockerfile
-          push: false
-          platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # autocorrect:
-  #   name: Autocorrect
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - uses: huacnlee/autocorrect-action@main
