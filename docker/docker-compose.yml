@@ -33,9 +33,6 @@ services:
     restart: unless-stopped
 
   server:
-    build:
-      context: ../
-      dockerfile: apps/server/Dockerfile
     image: ghcr.io/groupultra/telegram-search-server:latest # or nightly
     depends_on:
       pgvector:
@@ -60,9 +57,6 @@ services:
       start_period: 40s
 
   web:
-    build:
-      context: ../
-      dockerfile: apps/web/Dockerfile
     image: ghcr.io/groupultra/telegram-search-web:latest # or nightly
     ports:
       - 3333:3333

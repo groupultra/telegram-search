@@ -61,8 +61,11 @@ COPY --from=builder /app/packages/core/dist ./packages/core/dist
 COPY --from=builder /app/packages/schema/dist ./packages/schema/dist
 
 # Env defaults
-ENV PORT=3000
-ENV HOST=0.0.0.0
+ENV DATABASE_TYPE="pglite"
+ENV TELEGRAM_API_ID="611335"
+ENV TELEGRAM_API_HASH="d524b414d21f4d37f08684c1df41ac9c"
+ENV PORT="3000"
+ENV HOST="0.0.0.0"
 
 EXPOSE 3000
 

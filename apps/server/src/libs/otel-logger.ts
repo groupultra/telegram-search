@@ -14,6 +14,7 @@ import { removeHyperLinks, toSnakeCaseFields } from '../utils/fields'
 
 let loggerProvider: LoggerProvider | null = null
 let isInitialized = false
+const logger = useLogger('otel-logger')
 
 export interface OtelConfig {
   /**
@@ -50,7 +51,7 @@ export function initOtelLogger(config: OtelConfig): void {
 
   // Prevent double initialization
   if (isInitialized) {
-    console.warn('OpenTelemetry logger is already initialized')
+    logger.warn('OpenTelemetry logger is already initialized')
     return
   }
 
@@ -86,10 +87,14 @@ export function initOtelLogger(config: OtelConfig): void {
 
     isInitialized = true
 
-    console.info(`OpenTelemetry logger initialized with endpoint: ${config.endpoint}`)
+    logger.withFields({
+      endpoint: config.endpoint,
+      service_name: config.serviceName,
+      service_version: config.serviceVersion,
+    }).log('OpenTelemetry logger initialized')
   }
   catch (error) {
-    console.error('Failed to initialize OpenTelemetry logger:', error)
+    logger.withError(error).error('Failed to initialize OpenTelemetry logger')
   }
 }
 
@@ -106,10 +111,10 @@ export async function shutdownOtelLogger(): Promise<void> {
     await loggerProvider.shutdown()
     isInitialized = false
     loggerProvider = null
-    console.info('OpenTelemetry logger shut down successfully')
+    logger.log('OpenTelemetry logger shut down successfully')
   }
   catch (error) {
-    console.error('Failed to shutdown OpenTelemetry logger:', error)
+    logger.withError(error).error('Failed to shutdown OpenTelemetry logger')
   }
 }
 
@@ -171,11 +176,5 @@ export function initOtel(config: Config) {
 
       emitOtelLog(log.level, rawContext, message, fieldsSnake)
     })
-
-    useLogger().withFields({
-      endpoint: options.endpoint,
-      service_name: options.serviceName,
-      service_version: options.serviceVersion,
-    }).log('OpenTelemetry logger initialized')
   }
 }
