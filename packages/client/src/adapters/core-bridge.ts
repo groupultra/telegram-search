@@ -1,5 +1,5 @@
 import type { Config } from '@tg-search/common'
-import type { CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
@@ -141,7 +141,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       }
       else {
         logger.withFields({ event, data }).debug('Emit event to core')
-        ctx.emitter.emit(event, deepClone(data) as CoreEventData<keyof ToCoreEvent>)
+        ctx.emitter.emit(event, deepClone(data) as ExtractData<keyof ToCoreEvent>)
       }
     }
     catch (error) {

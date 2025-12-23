@@ -165,7 +165,7 @@ export function setupWsRoutes(app: H3, config: Config) {
       const accountId = url.searchParams.get('sessionId') || uuidv4()
 
       logger.withFields({ peerId: peer.id, accountId }).log('WebSocket connection opened')
-      wsConnectionsActive.inc({ mode: WS_MODE_LABEL })
+      wsConnectionsActive.add(1, { mode: WS_MODE_LABEL })
 
       // Get or create account state (reuses existing if available)
       const account = getOrCreateAccount(accountId, config)
@@ -206,7 +206,7 @@ export function setupWsRoutes(app: H3, config: Config) {
         logger.withFields({ type: event.type, accountId, tracingId }).verbose('Message received')
 
         if (!event.type.startsWith('server:')) {
-          coreEventsInTotal.inc({ event_name: event.type })
+          coreEventsInTotal.add(1, { event_name: event.type })
         }
 
         // Emit to core context (meta.tracingId is re-bound via emitter on/once wrappers)
@@ -221,7 +221,7 @@ export function setupWsRoutes(app: H3, config: Config) {
 
     async close(peer) {
       logger.withFields({ peerId: peer.id }).log('WebSocket connection closed')
-      wsConnectionsActive.dec({ mode: WS_MODE_LABEL })
+      wsConnectionsActive.add(-1, { mode: WS_MODE_LABEL })
 
       const accountId = peerToAccountId.get(peer.id)
       if (!accountId) {

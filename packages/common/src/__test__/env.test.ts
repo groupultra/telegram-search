@@ -80,7 +80,6 @@ describe('parseEnvToConfig', () => {
     expect(config.minio?.accessKey).toBe('access')
     expect(config.minio?.secretKey).toBe('secret')
     expect(config.minio?.bucket).toBe('telegram-media')
-    expect(config.otel?.endpoint).toBe('http://localhost:4317')
   })
 
   it('sets minio.url using deprecated endPoint and port if provided, and logs a warning', () => {
@@ -130,7 +129,6 @@ describe('mergeConfigWithEnv', () => {
           apiId: 'from-config',
         },
       },
-      otel: {},
     }
 
     const env = createEnv({

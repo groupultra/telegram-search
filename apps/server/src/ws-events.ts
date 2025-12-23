@@ -53,7 +53,7 @@ export function createWsMessage<T extends keyof WsEventToClient>(
     const stringifiedData = JSON.stringify(data)
     if (stringifiedData.length > 1024 * 1024) {
       useLogger().withFields({ type, size: stringifiedData.length }).warn('Dropped event data')
-      wsSendFailTotal.inc({ reason: 'payload_too_large' })
+      wsSendFailTotal.add(1, { reason: 'payload_too_large' })
       return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
     }
 
@@ -61,7 +61,7 @@ export function createWsMessage<T extends keyof WsEventToClient>(
   }
   catch {
     useLogger().withFields({ type }).warn('Dropped event data')
-    wsSendFailTotal.inc({ reason: 'stringify_error' })
+    wsSendFailTotal.add(1, { reason: 'stringify_error' })
 
     return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
   }

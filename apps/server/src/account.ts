@@ -160,8 +160,8 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
     // Instrument core message processing for this account
     ctx.emitter.on('message:process', ({ messages, isTakeout }) => {
       const source = isTakeout ? 'takeout' : 'realtime'
-      coreMessageBatchesProcessedTotal.inc({ source })
-      coreMessagesProcessedTotal.inc({ source }, messages.length)
+      coreMessageBatchesProcessedTotal.add(1, { source })
+      coreMessagesProcessedTotal.add(messages.length, { source })
     })
 
     accountStates.set(accountId, account)

@@ -1,66 +1,78 @@
 import type { CoreCounter, CoreHistogram, CoreMetrics } from '@tg-search/common'
 
-import { Counter, Gauge, Histogram } from 'prom-client'
+import { metrics } from '@opentelemetry/api'
 
-export const wsSendFailTotal = new Counter({
-  name: 'ws_send_fail_total',
-  help: 'Total number of failed WebSocket sends from server to client',
-  labelNames: ['reason'] as const,
+const meter = metrics.getMeter('websocket-server')
+
+/**
+ * WebSocket send fail total
+ */
+export const wsSendFailTotal = meter.createCounter('ws.send.fail.total', {
+  description: 'Total number of failed WebSocket sends from server to client',
 })
 
-export const wsConnectionsActive = new Gauge({
-  name: 'ws_connections_active',
-  help: 'Number of active WebSocket connections',
-  labelNames: ['mode'] as const,
+/**
+ * WebSocket connections active gauge
+ */
+export const wsConnectionsActive = meter.createUpDownCounter('ws.connections.active', {
+  description: 'Number of active WebSocket connections',
 })
 
-export const coreEventsInTotal = new Counter({
-  name: 'core_events_in_total',
-  help: 'Total number of events sent from client to core',
-  labelNames: ['event_name'] as const,
+/**
+ * Core events in total
+ */
+export const coreEventsInTotal = meter.createCounter('core.events.in.total', {
+  description: 'Total number of events sent from client to core',
 })
 
-export const coreMessagesProcessedTotal = new Counter({
-  name: 'core_messages_processed_total',
-  help: 'Total number of messages processed by core message resolver',
-  labelNames: ['source'] as const, // realtime | takeout
+/**
+ * Core messages processed total
+ */
+export const coreMessagesProcessedTotal = meter.createCounter('core.messages.processed.total', {
+  description: 'Total number of messages processed by core message resolver',
 })
 
-export const coreMessageBatchesProcessedTotal = new Counter({
-  name: 'core_message_batches_processed_total',
-  help: 'Total number of message batches processed by core message resolver',
-  labelNames: ['source'] as const, // realtime | takeout
+/**
+ * Core message batches processed total
+ */
+export const coreMessageBatchesProcessedTotal = meter.createCounter('core.message.batches.processed.total', {
+  description: 'Total number of message batches processed by core message resolver',
 })
 
-export const coreMessageBatchDurationMs = new Histogram({
-  name: 'core_message_batch_duration_ms',
-  help: 'Duration of message processing batches in milliseconds',
-  labelNames: ['source'] as const, // realtime | takeout
-  buckets: [10, 50, 100, 250, 500, 1000, 2500, 5000, 10000],
+/**
+ * Core message batch duration histogram
+ */
+export const coreMessageBatchDurationMs = meter.createHistogram('core.message.batch.duration.ms', {
+  description: 'Duration of message processing batches in milliseconds',
+  unit: 'ms',
 })
 
-function createPromCounter(counter: Counter): CoreCounter {
+/**
+ * Create OpenTelemetry counter from CoreCounter
+ */
+function createOtelCounter(otelCounter: ReturnType<typeof meter.createCounter>): CoreCounter {
   return {
     inc(labels?: Record<string, string>, value?: number) {
-      if (labels) {
-        counter.inc(labels as any, value)
-      }
-      else {
-        counter.inc(value)
-      }
+      otelCounter.add(value ?? 1, labels)
     },
   }
 }
 
-function createPromHistogram(histogram: Histogram): CoreHistogram {
+/**
+ * Create OpenTelemetry histogram from CoreHistogram
+ */
+function createOtelHistogram(otelHistogram: ReturnType<typeof meter.createHistogram>): CoreHistogram {
   return {
     observe(labels: Record<string, string>, value: number) {
-      histogram.observe(labels as any, value)
+      otelHistogram.record(value, labels)
     },
   }
 }
 
+/**
+ * Core metrics
+ */
 export const coreMetrics: CoreMetrics = {
-  messagesProcessed: createPromCounter(coreMessagesProcessedTotal),
-  messageBatchDuration: createPromHistogram(coreMessageBatchDurationMs),
+  messagesProcessed: createOtelCounter(coreMessagesProcessedTotal),
+  messageBatchDuration: createOtelHistogram(coreMessageBatchDurationMs),
 }

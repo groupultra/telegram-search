@@ -1,15 +1,15 @@
-import type { CoreEmitter, CoreEvent, CoreEventData } from '../context'
+import type { CoreEmitter, CoreEvent, ExtractData } from '../context'
 
 export function waitForEvent<E extends keyof CoreEvent>(
   emitter: CoreEmitter,
   event: E,
-): Promise<CoreEventData<CoreEvent[E]>> {
+): Promise<ExtractData<CoreEvent[E]>> {
   return new Promise((resolve) => {
     // emitter.once(event, (data) => {
     // resolve(data)
 
     emitter.once(event, (...args) => {
-      resolve(args[0] as CoreEventData<CoreEvent[E]>)
+      resolve(args[0] as ExtractData<CoreEvent[E]>)
     })
   })
 }
