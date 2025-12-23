@@ -111,6 +111,37 @@ export const peerToAccountId = new Map<string, string>()
 // We need to track peer objects for broadcasting
 export const peerObjects = new Map<string, Peer>()
 
+function bindTracingIdToAsyncLocalStorage(emitter: CoreEmitter) {
+  // Ensure tracingId from incoming meta is bound into ALS for all core handlers
+  const originalOn = emitter.on.bind(emitter)
+  emitter.on = ((event, listener) => {
+    return originalOn(event, (...args: Parameters<typeof listener>) => {
+      const maybeData = args[0]
+      const tracingId = maybeData?.meta?.tracingId
+
+      if (!tracingId) {
+        return listener(...args)
+      }
+
+      return asyncLocalStorage.run({ tracingId }, () => listener(...args))
+    })
+  }) as CoreEmitter['on']
+
+  const originalOnce = emitter.once.bind(emitter)
+  emitter.once = ((event, listener) => {
+    return originalOnce(event, (...args: Parameters<typeof listener>) => {
+      const maybeData = args[0]
+      const tracingId = maybeData?.meta?.tracingId
+
+      if (!tracingId) {
+        return listener(...args)
+      }
+
+      return asyncLocalStorage.run({ tracingId }, () => listener(...args))
+    })
+  }) as CoreEmitter['once']
+}
+
 export function getOrCreateAccount(accountId: string, config: Config): AccountState {
   const logger = useLogger('server:account')
 
@@ -119,34 +150,7 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
 
     const ctx = createCoreInstance(getDB, config, getMinioMediaStorage(), logger, coreMetrics)
 
-    // Ensure tracingId from incoming meta is bound into ALS for all core handlers
-    const originalOn = ctx.emitter.on.bind(ctx.emitter)
-    ctx.emitter.on = ((event, listener) => {
-      return originalOn(event, (...args: Parameters<typeof listener>) => {
-        const maybeData = args[0]
-        const tracingId = maybeData?.meta?.tracingId
-
-        if (!tracingId) {
-          return listener(...args)
-        }
-
-        return asyncLocalStorage.run({ tracingId }, () => listener(...args))
-      })
-    }) as CoreEmitter['on']
-
-    const originalOnce = ctx.emitter.once.bind(ctx.emitter)
-    ctx.emitter.once = ((event, listener) => {
-      return originalOnce(event, (...args: Parameters<typeof listener>) => {
-        const maybeData = args[0]
-        const tracingId = maybeData?.meta?.tracingId
-
-        if (!tracingId) {
-          return listener(...args)
-        }
-
-        return asyncLocalStorage.run({ tracingId }, () => listener(...args))
-      })
-    }) as CoreEmitter['once']
+    bindTracingIdToAsyncLocalStorage(ctx.emitter)
 
     const account: AccountState = {
       ctx,
