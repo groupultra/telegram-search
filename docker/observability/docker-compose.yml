@@ -57,9 +57,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  pgvector_data:
-  app_data:
-  minio_data:
   loki_data:
   tempo_data:
   prometheus_data:

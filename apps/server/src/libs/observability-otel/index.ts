@@ -2,9 +2,11 @@ import { env } from 'node:process'
 
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { resourceFromAttributes } from '@opentelemetry/resources'
+import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs'
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
@@ -43,6 +45,11 @@ export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: 
     ],
     resource: resourceFromAttributes(attributes),
     traceExporter: new OTLPTraceExporter(),
+    logRecordProcessor: new BatchLogRecordProcessor(new OTLPLogExporter(), {
+      maxQueueSize: 1000,
+      maxExportBatchSize: 512,
+      scheduledDelayMillis: 1000,
+    }),
   })
 
   sdk.start()

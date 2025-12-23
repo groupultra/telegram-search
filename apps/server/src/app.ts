@@ -1,24 +1,24 @@
-import type { Logger } from '@guiiai/logg'
+import type { Log, Logger } from '@guiiai/logg'
 import type { Config, RuntimeFlags } from '@tg-search/common'
 
 import process from 'node:process'
 
 import figlet from 'figlet'
 
-import { initLogger, useLogger } from '@guiiai/logg'
+import { initLogger, setGlobalHookPostLog, useLogger } from '@guiiai/logg'
 import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
 import { models } from '@tg-search/core'
 import { plugin as wsPlugin } from 'crossws/server'
 import { defineEventHandler, H3, serve } from 'h3'
-import { collectDefaultMetrics, register } from 'prom-client'
 
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
 import { registerOtel } from './libs/observability-otel'
-import { initOtel, shutdownOtelLogger } from './libs/observability-otel/logs'
+import { emitOtelLog } from './libs/observability-otel/logs'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
+import { removeHyperLinks, toSnakeCaseFields } from './utils/fields'
 import { setupWsRoutes } from './ws-routes'
 
 function setupErrorHandlers(logger: Logger): void {
@@ -63,16 +63,6 @@ function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
     return Response.json({ success: true })
   }))
 
-  collectDefaultMetrics()
-  app.get('/metrics', defineEventHandler(async () => {
-    const metrics = await register.metrics()
-    return new Response(metrics, {
-      status: 200,
-      headers: { 'Content-Type': register.contentType },
-    })
-  }))
-  logger.withFields({ endpoint: '/metrics' }).log('Metrics endpoint mounted')
-
   app.mount('/v1', v1api(getDB(), models, getMinioMediaStorage()))
 
   setupWsRoutes(app, config)
@@ -93,7 +83,15 @@ async function bootstrap() {
   const config = parseEnvToConfig(process.env, logger)
 
   registerOtel({ version: pkg.version })
-  initOtel()
+
+  setGlobalHookPostLog((log: Log, formattedOutput: string) => {
+    const rawContext = removeHyperLinks(log.context)
+    const rawFields = formattedOutput?.split(log.message)[1]?.trim()
+    const fieldsSnake = toSnakeCaseFields(log.fields)
+    const message = `[${rawContext}] ${log.message} ${rawFields}`
+
+    emitOtelLog(log.level, rawContext, message, fieldsSnake)
+  })
 
   await initDrizzle(logger, config, flags)
 
@@ -124,7 +122,6 @@ async function bootstrap() {
 
   const shutdown = async () => {
     logger.log('Shutting down server gracefully...')
-    await shutdownOtelLogger()
     server.close()
     process.exit(0)
   }
