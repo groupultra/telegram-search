@@ -2,6 +2,12 @@ import type { CoreCounter, CoreHistogram, CoreMetrics } from '@tg-search/common'
 
 import { Counter, Gauge, Histogram } from 'prom-client'
 
+export const wsSendFailTotal = new Counter({
+  name: 'ws_send_fail_total',
+  help: 'Total number of failed WebSocket sends from server to client',
+  labelNames: ['reason'] as const,
+})
+
 export const wsConnectionsActive = new Gauge({
   name: 'ws_connections_active',
   help: 'Number of active WebSocket connections',

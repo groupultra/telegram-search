@@ -2,7 +2,8 @@ import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
-import { Counter } from 'prom-client'
+
+import { wsSendFailTotal } from './libs/observability-otel/metrics'
 
 export interface WsEventFromServer {
   'server:connected': (data: { sessionId: string, accountReady: boolean }) => void
@@ -34,12 +35,6 @@ export type WsMessageToServer = {
     }
   }
 }[keyof WsEventToServer]
-
-const wsSendFailTotal = new Counter({
-  name: 'ws_send_fail_total',
-  help: 'Total number of failed WebSocket sends from server to client',
-  labelNames: ['reason'] as const,
-})
 
 export function sendWsEvent<T extends keyof WsEventToClient>(
   peer: Peer,
