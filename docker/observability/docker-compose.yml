@@ -6,6 +6,8 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - loki_data:/loki
+    ports:
+      - 3100:3100
     restart: unless-stopped
 
   tempo:
@@ -14,6 +16,9 @@ services:
     volumes:
       - ./tempo/tempo.yaml:/etc/tempo.yaml
       - tempo_data:/var/tempo
+    ports:
+      - 4317:4317
+      - 4318:4318
     command: ['-config.file=/etc/tempo.yaml']
 
   prometheus:
@@ -28,6 +33,8 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
+    ports:
+      - 9090:9090
     restart: unless-stopped
 
   grafana:

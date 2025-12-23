@@ -92,7 +92,7 @@ async function bootstrap() {
 
   const config = parseEnvToConfig(process.env, logger)
 
-  registerOtel({ version: pkg.version, debug: true })
+  registerOtel({ version: pkg.version })
   initOtel()
 
   await initDrizzle(logger, config, flags)

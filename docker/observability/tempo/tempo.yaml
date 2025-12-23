@@ -19,9 +19,9 @@ distributor:
     otlp:
       protocols:
         grpc:
-          endpoint: 127.0.0.1:14317
+          endpoint: 127.0.0.1:4317
         http:
-          endpoint: 127.0.0.1:14318
+          endpoint: 127.0.0.1:4318
 
 ingester:
   max_block_duration: 5m # cut the headblock when this much time passes. this is being set for demo purposes and should probably be left alone normally
