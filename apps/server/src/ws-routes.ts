@@ -30,10 +30,12 @@
  * See PR #434 for detailed discussion and review comments
  */
 
+import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
 import type { ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { H3 } from 'h3'
 
+import type { AccountState } from './account'
 import type { WsMessageToServer } from './ws-events'
 
 import { useLogger } from '@guiiai/logg'
@@ -46,6 +48,104 @@ import { coreEventsInTotal, wsConnectionsActive } from './libs/observability-ote
 import { sendWsEvent } from './ws-events'
 
 const WS_MODE_LABEL = 'server' as const
+
+export function registerCoreEventListeners(logger: Logger, account: AccountState, accountId: string, eventName: keyof FromCoreEvent) {
+  if (eventName.startsWith('server:')) {
+    return
+  }
+
+  /**
+   * Register core event listener (shared, only once per account)
+   *
+   * Critical for memory leak prevention:
+   * - Listener is registered ONCE per account, not per WebSocket connection
+   * - Multiple browser tabs share the same listener
+   * - Listener broadcasts to ALL active peers (multi-tab sync)
+   *
+   * Why this prevents memory leaks:
+   * - Old approach: Each WebSocket connection added a new listener
+   *   -> 10 reconnections = 10 duplicate listeners = memory leak
+   * - New approach: First connection adds listener, others reuse it
+   *   -> 10 reconnections = still 1 listener = no leak
+   *
+   * Cleanup:
+   * - Listener removed when account is destroyed (on logout)
+   * - See destroyCoreInstance() -> ctx.cleanup() -> emitter.removeAllListeners()
+   */
+  if (!account.coreEventListeners.has(eventName)) {
+    const listener = (...args: any[]) => {
+      const data = args[0] // Extract data from event emitter args
+
+      /**
+       * Broadcast to ALL active peers of this account
+       *
+       * Why broadcast to all?
+       * - User has 3 browser tabs open for same account
+       * - New message arrives from Telegram
+       * - All 3 tabs should show the new message (multi-tab sync)
+       *
+       * This is intentional behavior, not a bug
+       * See PR comment: "Broadcasting events to all peers"
+       */
+      account.activePeers.forEach((peerId) => {
+        const targetPeer = peerObjects.get(peerId)
+        if (targetPeer) {
+          sendWsEvent(targetPeer, eventName, data)
+        }
+      })
+    }
+
+    account.ctx.emitter.on(eventName, listener as any)
+    account.coreEventListeners.set(eventName, listener as any)
+
+    logger.withFields({ eventName, accountId }).debug('Registered shared core event listener')
+  }
+}
+
+export async function updateAccountState(logger: Logger, account: AccountState, accountId: string, eventName: keyof ToCoreEvent) {
+  // Update account state based on events
+  switch (eventName) {
+    case 'auth:login':
+      account.ctx.emitter.once('account:ready', () => {
+        account.accountReady = true
+      })
+      break
+    case 'auth:logout':
+      account.accountReady = false
+
+      /**
+       * Explicit logout: The ONLY time we destroy an account
+       *
+       * What happens:
+       * 1. Emit 'core:cleanup' event -> Services clean up (e.g., Telegram event handlers)
+       * 2. Wait 100ms for async cleanup to complete
+       * 3. Disconnect Telegram Client
+       * 4. Call ctx.cleanup() -> Remove all event listeners
+       * 5. Delete account from accountStates map
+       * 6. Close all WebSocket connections for this account
+       *
+       * Why only on explicit logout?
+       * - Closing browser tabs should NOT destroy account (supports background tasks)
+       * - Network disconnection should NOT destroy account (supports fast reconnection)
+       * - Only user's intentional "Logout" action should destroy account
+       *
+       * Memory Safety:
+       * - destroyCoreInstance() properly cleans up all resources
+       * - Event listeners removed (no leak)
+       * - Telegram Client disconnected (no hanging connection)
+       * - CoreContext released (GC can reclaim memory)
+       */
+      logger.withFields({ accountId }).log('User logged out, destroying account')
+      await destroyCoreInstance(account.ctx)
+      accountStates.delete(accountId)
+
+      // Disconnect all peers for this account
+      account.activePeers.forEach((peerId) => {
+        peerObjects.get(peerId)?.close()
+      })
+      break
+  }
+}
 
 export function setupWsRoutes(app: H3, config: Config) {
   const logger = useLogger('server:ws')
@@ -97,112 +197,22 @@ export function setupWsRoutes(app: H3, config: Config) {
 
       try {
         if (event.type === 'server:event:register') {
-          if (!event.data.event.startsWith('server:')) {
-            const eventName = event.data.event as keyof FromCoreEvent
-
-            /**
-             * Register core event listener (shared, only once per account)
-             *
-             * Critical for memory leak prevention:
-             * - Listener is registered ONCE per account, not per WebSocket connection
-             * - Multiple browser tabs share the same listener
-             * - Listener broadcasts to ALL active peers (multi-tab sync)
-             *
-             * Why this prevents memory leaks:
-             * - Old approach: Each WebSocket connection added a new listener
-             *   -> 10 reconnections = 10 duplicate listeners = memory leak
-             * - New approach: First connection adds listener, others reuse it
-             *   -> 10 reconnections = still 1 listener = no leak
-             *
-             * Cleanup:
-             * - Listener removed when account is destroyed (on logout)
-             * - See destroyCoreInstance() -> ctx.cleanup() -> emitter.removeAllListeners()
-             */
-            if (!account.coreEventListeners.has(eventName)) {
-              const listener = (...args: any[]) => {
-                const data = args[0] // Extract data from event emitter args
-
-                /**
-                 * Broadcast to ALL active peers of this account
-                 *
-                 * Why broadcast to all?
-                 * - User has 3 browser tabs open for same account
-                 * - New message arrives from Telegram
-                 * - All 3 tabs should show the new message (multi-tab sync)
-                 *
-                 * This is intentional behavior, not a bug
-                 * See PR comment: "Broadcasting events to all peers"
-                 */
-                account.activePeers.forEach((peerId) => {
-                  const targetPeer = peerObjects.get(peerId)
-                  if (targetPeer) {
-                    sendWsEvent(targetPeer, eventName, data)
-                  }
-                })
-              }
-
-              account.ctx.emitter.on(eventName, listener as any)
-              account.coreEventListeners.set(eventName, listener as any)
-
-              logger.withFields({ eventName, accountId }).debug('Registered shared core event listener')
-            }
-          }
-        }
-        else {
-          const tracingId = event.meta?.tracingId || uuidv4()
-
-          logger.withFields({ type: event.type, accountId, tracingId }).verbose('Message received')
-
-          if (!event.type.startsWith('server:')) {
-            coreEventsInTotal.inc({ event_name: event.type })
-          }
-
-          // Emit to core context (meta.tracingId is re-bound via emitter on/once wrappers)
-          account.ctx.emitter.emit(event.type, { ...event.data, meta: { tracingId } } as ExtractData<keyof ToCoreEvent>)
+          registerCoreEventListeners(logger, account, accountId, event.data.event as keyof FromCoreEvent)
+          return
         }
 
-        // Update account state based on events`
-        switch (event.type) {
-          case 'auth:login':
-            account.ctx.emitter.once('account:ready', () => {
-              account.accountReady = true
-            })
-            break
-          case 'auth:logout':
-            account.accountReady = false
+        const tracingId = event.meta?.tracingId || uuidv4()
 
-            /**
-             * Explicit logout: The ONLY time we destroy an account
-             *
-             * What happens:
-             * 1. Emit 'core:cleanup' event -> Services clean up (e.g., Telegram event handlers)
-             * 2. Wait 100ms for async cleanup to complete
-             * 3. Disconnect Telegram Client
-             * 4. Call ctx.cleanup() -> Remove all event listeners
-             * 5. Delete account from accountStates map
-             * 6. Close all WebSocket connections for this account
-             *
-             * Why only on explicit logout?
-             * - Closing browser tabs should NOT destroy account (supports background tasks)
-             * - Network disconnection should NOT destroy account (supports fast reconnection)
-             * - Only user's intentional "Logout" action should destroy account
-             *
-             * Memory Safety:
-             * - destroyCoreInstance() properly cleans up all resources
-             * - Event listeners removed (no leak)
-             * - Telegram Client disconnected (no hanging connection)
-             * - CoreContext released (GC can reclaim memory)
-             */
-            logger.withFields({ accountId }).log('User logged out, destroying account')
-            await destroyCoreInstance(account.ctx)
-            accountStates.delete(accountId)
+        logger.withFields({ type: event.type, accountId, tracingId }).verbose('Message received')
 
-            // Disconnect all peers for this account
-            account.activePeers.forEach((peerId) => {
-              peerObjects.get(peerId)?.close()
-            })
-            break
+        if (!event.type.startsWith('server:')) {
+          coreEventsInTotal.inc({ event_name: event.type })
         }
+
+        // Emit to core context (meta.tracingId is re-bound via emitter on/once wrappers)
+        account.ctx.emitter.emit(event.type, { ...event.data, meta: { tracingId } } as ExtractData<keyof ToCoreEvent>)
+
+        updateAccountState(logger, account, accountId, event.type as keyof ToCoreEvent)
       }
       catch (error) {
         logger.withError(error).error('Handle websocket message failed')
