@@ -11,7 +11,7 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
 
-export function register(options?: { debug?: true | DiagLogLevel, version?: string }) {
+export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: string }) {
   const attributes: Record<string, string> = {
     [ATTR_SERVICE_NAME]: 'telegram-search',
   }

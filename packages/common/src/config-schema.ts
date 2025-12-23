@@ -88,13 +88,6 @@ export const minioConfigSchema = object({
   useSSL: optional(boolean(), false),
 })
 
-export const otelConfigSchema = object({
-  endpoint: optional(string()),
-  serviceName: optional(string()),
-  serviceVersion: optional(string()),
-  headers: optional(object({})),
-})
-
 export const apiConfigSchema = object({
   telegram: optional(telegramConfigSchema, {}),
 })
@@ -103,14 +96,12 @@ export const configSchema = object({
   database: optional(databaseConfigSchema, {}),
   api: optional(apiConfigSchema, {}),
   minio: optional(minioConfigSchema, {}),
-  otel: optional(otelConfigSchema, {}),
 })
 
 export type Config = InferOutput<typeof configSchema>
 export type ProxyConfig = InferOutput<typeof proxyConfigSchema>
 export type DatabaseConfig = InferOutput<typeof databaseConfigSchema>
 export type MinioConfig = InferOutput<typeof minioConfigSchema>
-export type OtelConfig = InferOutput<typeof otelConfigSchema>
 
 export function generateDefaultConfig(): Config {
   const defaultConfig = safeParse(configSchema, {})

@@ -15,7 +15,8 @@ import { collectDefaultMetrics, register } from 'prom-client'
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
-import { initOtel, shutdownOtelLogger } from './libs/otel-logger'
+import { registerOtel } from './libs/observability-otel'
+import { initOtelLogger, shutdownOtelLogger } from './libs/observability-otel/logs'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
@@ -91,7 +92,8 @@ async function bootstrap() {
 
   const config = parseEnvToConfig(process.env, logger)
 
-  initOtel(config)
+  registerOtel({ version: pkg.version })
+  initOtelLogger()
 
   await initDrizzle(logger, config, flags)
 

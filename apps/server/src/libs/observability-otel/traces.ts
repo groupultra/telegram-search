@@ -1,3 +1,3 @@
-import type { Attributes } from '@opentelemetry/api'
+import { AsyncLocalStorage } from 'node:async_hooks'
 
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+export const asyncLocalStorage = new AsyncLocalStorage<{ tracingId: string }>()
