@@ -1,6 +1,5 @@
+import { trace } from '@opentelemetry/api'
 import { logs, SeverityNumber } from '@opentelemetry/api-logs'
-
-import { asyncLocalStorage } from './traces'
 
 /**
  * Helper to emit a log to OpenTelemetry
@@ -8,6 +7,8 @@ import { asyncLocalStorage } from './traces'
  */
 export function emitOtelLog(level: string, context: string, message: string, attributes?: Record<string, string | number | boolean>): void {
   const otelLogger = logs.getLogger(context)
+
+  const span = trace.getActiveSpan()
 
   // Map log level to OpenTelemetry severity
   const getSeverity = (level: string): SeverityNumber => {
@@ -28,9 +29,9 @@ export function emitOtelLog(level: string, context: string, message: string, att
     }
   }
 
-  const store = asyncLocalStorage.getStore()
-  const tracingId = store?.tracingId
-  const body = tracingId ? `${message} [tracing_id: ${tracingId}]` : message
+  const spanContext = span?.spanContext()
+  const traceId = spanContext?.traceId
+  const body = traceId ? `${message} [tracing_id: ${traceId}]` : message
 
   otelLogger.emit({
     severityNumber: getSeverity(level),
@@ -38,7 +39,8 @@ export function emitOtelLog(level: string, context: string, message: string, att
     body,
     attributes: {
       ...attributes,
-      tracing_id: store?.tracingId,
+      tracing_id: traceId,
+      span_id: spanContext?.spanId,
     },
   })
 }

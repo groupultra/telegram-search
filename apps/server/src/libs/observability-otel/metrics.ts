@@ -1,8 +1,21 @@
 import type { CoreCounter, CoreHistogram, CoreMetrics } from '@tg-search/common'
 
-import { metrics } from '@opentelemetry/api'
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
+import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 
-const meter = metrics.getMeter('websocket-server')
+const metricExporter = new OTLPMetricExporter({})
+
+// Create an instance of the metric provider
+const meterProvider = new MeterProvider({
+  readers: [
+    new PeriodicExportingMetricReader({
+      exporter: metricExporter,
+      exportIntervalMillis: 250,
+    }),
+  ],
+})
+
+const meter = meterProvider.getMeter('@tg-search/server/observability-otel')
 
 /**
  * WebSocket send fail total

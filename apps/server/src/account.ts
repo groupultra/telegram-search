@@ -2,11 +2,13 @@ import type { Config } from '@tg-search/common'
 import type { CoreContext, CoreEmitter, FromCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
+import type { WsEventMeta } from './events'
+
 import { useLogger } from '@guiiai/logg'
 import { createCoreInstance } from '@tg-search/core'
 
 import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics } from './libs/observability-otel/metrics'
-import { asyncLocalStorage } from './libs/observability-otel/traces'
+import { withSpan } from './libs/observability-otel/traces'
 import { getDB } from './storage/drizzle'
 import { getMinioMediaStorage } from './storage/minio'
 
@@ -111,33 +113,25 @@ export const peerToAccountId = new Map<string, string>()
 // We need to track peer objects for broadcasting
 export const peerObjects = new Map<string, Peer>()
 
-function bindTracingIdToAsyncLocalStorage(emitter: CoreEmitter) {
-  // Ensure tracingId from incoming meta is bound into ALS for all core handlers
+function bindTracingMetaToSpan(emitter: CoreEmitter) {
+  // Ensure tracingId from incoming meta is bound into active span for all core handlers
   const originalOn = emitter.on.bind(emitter)
   emitter.on = ((event, listener) => {
     return originalOn(event, (...args: Parameters<typeof listener>) => {
-      const maybeData = args[0]
+      const maybeData = args[0] as { meta?: WsEventMeta } | undefined
       const tracingId = maybeData?.meta?.tracingId
 
-      if (!tracingId) {
-        return listener(...args)
-      }
-
-      return asyncLocalStorage.run({ tracingId }, () => listener(...args))
+      return withSpan(String(event), tracingId, () => listener(...args))
     })
   }) as CoreEmitter['on']
 
   const originalOnce = emitter.once.bind(emitter)
   emitter.once = ((event, listener) => {
     return originalOnce(event, (...args: Parameters<typeof listener>) => {
-      const maybeData = args[0]
+      const maybeData = args[0] as { meta?: WsEventMeta } | undefined
       const tracingId = maybeData?.meta?.tracingId
 
-      if (!tracingId) {
-        return listener(...args)
-      }
-
-      return asyncLocalStorage.run({ tracingId }, () => listener(...args))
+      return withSpan(String(event), tracingId, () => listener(...args))
     })
   }) as CoreEmitter['once']
 }
@@ -150,7 +144,7 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
 
     const ctx = createCoreInstance(getDB, config, getMinioMediaStorage(), logger, coreMetrics)
 
-    bindTracingIdToAsyncLocalStorage(ctx.emitter)
+    bindTracingMetaToSpan(ctx.emitter)
 
     const account: AccountState = {
       ctx,

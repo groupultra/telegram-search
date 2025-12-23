@@ -14,12 +14,12 @@ import { defineEventHandler, H3, serve } from 'h3'
 import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
+import { setupWsRoutes } from './app'
 import { registerOtel } from './libs/observability-otel'
 import { emitOtelLog } from './libs/observability-otel/logs'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { removeHyperLinks, toSnakeCaseFields } from './utils/fields'
-import { setupWsRoutes } from './app'
 
 function setupErrorHandlers(logger: Logger): void {
   const handleError = (error: unknown, type: string) => {

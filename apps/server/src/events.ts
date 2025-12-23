@@ -5,6 +5,10 @@ import { useLogger } from '@guiiai/logg'
 
 import { wsSendFailTotal } from './libs/observability-otel/metrics'
 
+export interface WsEventMeta {
+  tracingId: string
+}
+
 export interface WsEventFromServer {
   'server:connected': (data: { sessionId: string, accountReady: boolean }) => void
 }
@@ -30,9 +34,7 @@ export type WsMessageToServer = {
   [T in keyof WsEventToServer]: {
     type: T
     data: WsEventToServerData<T>
-    meta?: {
-      tracingId: string
-    }
+    meta?: WsEventMeta
   }
 }[keyof WsEventToServer]
 

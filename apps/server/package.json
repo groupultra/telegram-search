@@ -6,10 +6,10 @@
     "./types": "./src/types.ts"
   },
   "scripts": {
-    "dev": "vite-node src/app.ts",
-    "inspect": "vite-node --inspect src/app.ts",
+    "dev": "vite-node src/index.ts",
+    "inspect": "vite-node --inspect src/index.ts",
     "build": "tsdown",
-    "start": "node dist/app.mjs",
+    "start": "node dist/index.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -19,7 +19,7 @@
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.208.0",
     "@opentelemetry/auto-instrumentations-node": "^0.67.3",
-    "@opentelemetry/context-async-hooks": "^1.9.0",
+    "@opentelemetry/context-async-hooks": "^1.30.1",
     "@opentelemetry/exporter-logs-otlp-http": "^0.208.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.208.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.208.0",
@@ -29,8 +29,8 @@
     "@opentelemetry/sdk-logs": "^0.208.0",
     "@opentelemetry/sdk-metrics": "^2.2.0",
     "@opentelemetry/sdk-node": "^0.208.0",
-    "@opentelemetry/sdk-trace-base": "^1.9.0",
-    "@opentelemetry/sdk-trace-node": "^1.9.0",
+    "@opentelemetry/sdk-trace-base": "^2.2.0",
+    "@opentelemetry/sdk-trace-node": "^2.2.0",
     "@opentelemetry/semantic-conventions": "^1.38.0",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
