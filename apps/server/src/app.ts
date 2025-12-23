@@ -16,7 +16,7 @@ import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
 import { registerOtel } from './libs/observability-otel'
-import { initOtelLogger, shutdownOtelLogger } from './libs/observability-otel/logs'
+import { initOtel, shutdownOtelLogger } from './libs/observability-otel/logs'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { setupWsRoutes } from './ws-routes'
@@ -92,8 +92,8 @@ async function bootstrap() {
 
   const config = parseEnvToConfig(process.env, logger)
 
-  registerOtel({ version: pkg.version })
-  initOtelLogger()
+  registerOtel({ version: pkg.version, debug: true })
+  initOtel()
 
   await initDrizzle(logger, config, flags)
 

@@ -4,8 +4,6 @@ import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http'
-import { PgInstrumentation } from '@opentelemetry/instrumentation-pg'
 import { resourceFromAttributes } from '@opentelemetry/resources'
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 import { NodeSDK } from '@opentelemetry/sdk-node'
@@ -25,7 +23,7 @@ export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: 
     )
   }
 
-  let metricsExporterInterval = 1000
+  let metricsExporterInterval = 250
   if (env.OTEL_METRICS_EXPORTER_INTERVAL) {
     const parsed = Number.parseInt(env.OTEL_METRICS_EXPORTER_INTERVAL, 10)
     if (!Number.isNaN(parsed)) {
@@ -35,8 +33,6 @@ export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: 
 
   const sdk = new NodeSDK({
     instrumentations: [
-      new PgInstrumentation(),
-      new HttpInstrumentation(),
       getNodeAutoInstrumentations(),
     ],
     metricReaders: [

@@ -1,12 +1,10 @@
 import type { Log } from '@guiiai/logg'
 
-import process from 'node:process'
-
 import { setGlobalHookPostLog, useLogger } from '@guiiai/logg'
 import { logs, SeverityNumber } from '@opentelemetry/api-logs'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
 import { resourceFromAttributes } from '@opentelemetry/resources'
-import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs'
+import { BatchLogRecordProcessor, ConsoleLogRecordExporter, LoggerProvider, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs'
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
 
 import pkg from '../../../package.json' with { type: 'json' }
@@ -23,10 +21,6 @@ const logger = useLogger('otel-logger')
  * This should be called once during application startup.
  */
 export function initOtelLogger(): void {
-  if (!process.env.OTEL_EXPORTER_LOGS_ENDPOINT) {
-    return
-  }
-
   // Prevent double initialization
   if (isInitialized) {
     logger.warn('OpenTelemetry logger is already initialized')
@@ -54,7 +48,12 @@ export function initOtelLogger(): void {
     // Create logger provider with resource and processor
     loggerProvider = new LoggerProvider({
       resource,
-      processors: [processor],
+      processors: [
+        processor,
+        new SimpleLogRecordProcessor(
+          new ConsoleLogRecordExporter(),
+        ),
+      ],
     })
 
     // Set as global logger provider
@@ -94,10 +93,6 @@ export async function shutdownOtelLogger(): Promise<void> {
  * This can be called manually from your code when you want to send logs to OTEL
  */
 export function emitOtelLog(level: string, context: string, message: string, attributes?: Record<string, string | number | boolean>): void {
-  if (!isInitialized) {
-    return
-  }
-
   const otelLogger = logs.getLogger(context)
 
   // Map log level to OpenTelemetry severity
