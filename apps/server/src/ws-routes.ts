@@ -30,138 +30,32 @@
  * See PR #434 for detailed discussion and review comments
  */
 
-import type { Config, CoreCounter, CoreHistogram, CoreMetrics } from '@tg-search/common'
-import type { CoreContext, CoreEmitter, ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { Config } from '@tg-search/common'
+import type { CoreEmitter, ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 import type { H3 } from 'h3'
 
+import type { AccountState } from './account'
 import type { WsMessageToServer } from './ws-events'
 
 import { useLogger } from '@guiiai/logg'
 import { createCoreInstance, destroyCoreInstance } from '@tg-search/core'
 import { defineWebSocketHandler, HTTPError } from 'h3'
-import { Counter, Gauge, Histogram } from 'prom-client'
 import { v4 as uuidv4 } from 'uuid'
 
+import {
+  coreEventsInTotal,
+  coreMessageBatchesProcessedTotal,
+  coreMessagesProcessedTotal,
+  coreMetrics,
+  wsConnectionsActive,
+} from './libs/observability-otel/metrics'
 import { asyncLocalStorage } from './libs/tracing'
 import { getDB } from './storage/drizzle'
 import { getMinioMediaStorage } from './storage/minio'
 import { sendWsEvent } from './ws-events'
 
 const WS_MODE_LABEL = 'server' as const
-
-const wsConnectionsActive = new Gauge({
-  name: 'ws_connections_active',
-  help: 'Number of active WebSocket connections',
-  labelNames: ['mode'] as const,
-})
-
-const coreEventsInTotal = new Counter({
-  name: 'core_events_in_total',
-  help: 'Total number of events sent from client to core',
-  labelNames: ['event_name'] as const,
-})
-
-const coreMessagesProcessedTotal = new Counter({
-  name: 'core_messages_processed_total',
-  help: 'Total number of messages processed by core message resolver',
-  labelNames: ['source'] as const, // realtime | takeout
-})
-
-const coreMessageBatchesProcessedTotal = new Counter({
-  name: 'core_message_batches_processed_total',
-  help: 'Total number of message batches processed by core message resolver',
-  labelNames: ['source'] as const, // realtime | takeout
-})
-
-const coreMessageBatchDurationMs = new Histogram({
-  name: 'core_message_batch_duration_ms',
-  help: 'Duration of message processing batches in milliseconds',
-  labelNames: ['source'] as const, // realtime | takeout
-  buckets: [10, 50, 100, 250, 500, 1000, 2500, 5000, 10000],
-})
-
-function createPromCounter(counter: Counter): CoreCounter {
-  return {
-    inc(labels?: Record<string, string>, value?: number) {
-      if (labels) {
-        counter.inc(labels as any, value)
-      }
-      else {
-        counter.inc(value)
-      }
-    },
-  }
-}
-
-function createPromHistogram(histogram: Histogram): CoreHistogram {
-  return {
-    observe(labels: Record<string, string>, value: number) {
-      histogram.observe(labels as any, value)
-    },
-  }
-}
-
-const coreMetrics: CoreMetrics = {
-  messagesProcessed: createPromCounter(coreMessagesProcessedTotal),
-  messageBatchDuration: createPromHistogram(coreMessageBatchDurationMs),
-}
-
-/**
- * Account state - one per Telegram account
- *
- * Architecture Decision:
- * - ONE AccountState per Telegram account (by accountId/sessionId)
- * - PERSISTS across WebSocket reconnections
- * - SHARED by multiple browser tabs/windows
- *
- * Lifecycle:
- * - Created: On first WebSocket connection with a new accountId
- * - Reused: Subsequent connections with the same accountId
- * - Destroyed: Only when user explicitly logs out (auth:logout event)
- *
- * Memory Management:
- * - Event listeners registered ONCE per account, not per WebSocket connection
- * - This prevents memory leaks from listener accumulation
- * - All listeners cleaned up on explicit logout via destroyCoreInstance()
- *
- * Benefits:
- * 1. Multiple tabs share same Telegram connection (no re-authentication)
- * 2. Background tasks continue running even when all tabs closed
- * 3. Fast reconnection (state preserved)
- * 4. No memory leaks (listeners reused, not duplicated)
- *
- * Trade-offs:
- * - Accounts persist indefinitely until explicit logout
- * - Server memory usage grows with number of unique accounts
- * - Acceptable for typical use cases (limited number of accounts per server)
- *
- * Future Enhancement:
- * - Optional TTL-based cleanup for inactive accounts
- * - Admin API to list/manage active accounts
- */
-export interface AccountState {
-  ctx: CoreContext
-
-  /**
-   * Whether the account is ready to be used
-   */
-  accountReady: boolean
-
-  /**
-   * Core event listeners (registered once, shared by all WebSocket connections)
-   */
-  coreEventListeners: Map<keyof FromCoreEvent, (data: any) => void>
-
-  /**
-   * Active WebSocket peers for this account
-   */
-  activePeers: Set<string>
-
-  createdAt: number
-
-  lastActive: number
-}
 
 export function setupWsRoutes(app: H3, config: Config) {
   const logger = useLogger('server:ws')
