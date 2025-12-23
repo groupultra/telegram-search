@@ -369,6 +369,10 @@ export type ToCoreEvent = ClientInstanceEventToCore
 
 export type CoreEvent = FromCoreEvent & ToCoreEvent
 
-export type CoreEventData<T> = T extends (data: infer D) => void ? D : never
+export type ExtractData<T> = (T extends (data: infer D) => void ? D : never)
+
+export interface CoreEventMeta {
+  tracingId: string
+}
 
 export type CoreEmitter = EventEmitter<CoreEvent>

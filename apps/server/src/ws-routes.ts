@@ -31,7 +31,7 @@
  */
 
 import type { Config, CoreCounter, CoreHistogram, CoreMetrics } from '@tg-search/common'
-import type { CoreContext, CoreEventData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { CoreContext, CoreEmitter, ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 import type { H3 } from 'h3'
 
@@ -43,6 +43,7 @@ import { defineWebSocketHandler, HTTPError } from 'h3'
 import { Counter, Gauge, Histogram } from 'prom-client'
 import { v4 as uuidv4 } from 'uuid'
 
+import { asyncLocalStorage } from './libs/tracing'
 import { getDB } from './storage/drizzle'
 import { getMinioMediaStorage } from './storage/minio'
 import { sendWsEvent } from './ws-events'
@@ -211,6 +212,36 @@ export function setupWsRoutes(app: H3, config: Config) {
       logger.withFields({ accountId }).log('Creating new account state')
 
       const ctx = createCoreInstance(getDB, config, getMinioMediaStorage(), logger, coreMetrics)
+
+      // Ensure tracingId from incoming meta is bound into ALS for all core handlers
+      const originalOn = ctx.emitter.on.bind(ctx.emitter)
+      ctx.emitter.on = ((event, listener) => {
+        return originalOn(event, (...args: Parameters<typeof listener>) => {
+          const maybeData = args[0]
+          const tracingId = maybeData?.meta?.tracingId
+
+          if (!tracingId) {
+            return listener(...args)
+          }
+
+          return asyncLocalStorage.run({ tracingId }, () => listener(...args))
+        })
+      }) as CoreEmitter['on']
+
+      const originalOnce = ctx.emitter.once.bind(ctx.emitter)
+      ctx.emitter.once = ((event, listener) => {
+        return originalOnce(event, (...args: Parameters<typeof listener>) => {
+          const maybeData = args[0]
+          const tracingId = maybeData?.meta?.tracingId
+
+          if (!tracingId) {
+            return listener(...args)
+          }
+
+          return asyncLocalStorage.run({ tracingId }, () => listener(...args))
+        })
+      }) as CoreEmitter['once']
+
       const account: AccountState = {
         ctx,
         accountReady: false,
@@ -338,17 +369,19 @@ export function setupWsRoutes(app: H3, config: Config) {
           }
         }
         else {
-          logger.withFields({ type: event.type, accountId }).verbose('Message received')
+          const tracingId = event.meta?.tracingId || uuidv4()
+
+          logger.withFields({ type: event.type, accountId, tracingId }).verbose('Message received')
 
           if (!event.type.startsWith('server:')) {
             coreEventsInTotal.inc({ event_name: event.type })
           }
 
-          // Emit to core context
-          account.ctx.emitter.emit(event.type, event.data as CoreEventData<keyof ToCoreEvent>)
+          // Emit to core context (meta.tracingId is re-bound via emitter on/once wrappers)
+          account.ctx.emitter.emit(event.type, { ...event.data, meta: { tracingId } } as ExtractData<keyof ToCoreEvent>)
         }
 
-        // Update account state based on events
+        // Update account state based on events`
         switch (event.type) {
           case 'auth:login':
             account.ctx.emitter.once('account:ready', () => {

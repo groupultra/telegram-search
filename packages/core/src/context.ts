@@ -12,7 +12,7 @@ import { EventEmitter } from 'eventemitter3'
 
 import { detectMemoryLeak } from './utils/memory-leak-detector'
 
-export type { CoreEmitter, CoreEvent, CoreEventData, FromCoreEvent, ToCoreEvent } from './types/events'
+export type { CoreEmitter, CoreEvent, ExtractData, FromCoreEvent, ToCoreEvent } from './types/events'
 
 export interface CoreContext {
   emitter: CoreEmitter

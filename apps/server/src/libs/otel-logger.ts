@@ -11,6 +11,7 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic
 import pkg from '../../package.json' with { type: 'json' }
 
 import { removeHyperLinks, toSnakeCaseFields } from '../utils/fields'
+import { asyncLocalStorage } from './tracing'
 
 let loggerProvider: LoggerProvider | null = null
 let isInitialized = false
@@ -148,11 +149,18 @@ export function emitOtelLog(level: string, context: string, message: string, att
     }
   }
 
+  const store = asyncLocalStorage.getStore()
+  const tracingId = store?.tracingId
+  const body = tracingId ? `${message} [tracing_id: ${tracingId}]` : message
+
   otelLogger.emit({
     severityNumber: getSeverity(level),
     severityText: level.toUpperCase(),
-    body: message,
-    attributes: attributes || {},
+    body,
+    attributes: {
+      ...attributes,
+      tracing_id: store?.tracingId,
+    },
   })
 }
 

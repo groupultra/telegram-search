@@ -29,6 +29,9 @@ export type WsMessageToServer = {
   [T in keyof WsEventToServer]: {
     type: T
     data: WsEventToServerData<T>
+    meta?: {
+      tracingId: string
+    }
   }
 }[keyof WsEventToServer]
 
