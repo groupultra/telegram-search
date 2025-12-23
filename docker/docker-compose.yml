@@ -1,4 +1,5 @@
 name: telegram-search
+
 services:
   pgvector:
     image: ghcr.io/tensorchord/pgvecto-rs:pg17-v0.4.0

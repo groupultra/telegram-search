@@ -1,4 +1,5 @@
 name: telegram-search-dev
+
 services:
   pgvector:
     image: ghcr.io/tensorchord/pgvecto-rs:pg17-v0.4.0
@@ -64,17 +65,8 @@ services:
       timeout: 10s
       retries: 3
 
-  loki:
-    image: grafana/loki:latest
-    ports:
-      - 3100:3100
-    command: -config.file=/etc/loki/local-config.yaml
-    volumes:
-      - loki_data:/loki
-    restart: unless-stopped
 
 volumes:
   pgvector_data:
   app_data:
   minio_data:
-  loki_data:

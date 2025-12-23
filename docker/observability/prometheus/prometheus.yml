@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'telegram-search-local'
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+    metrics_path: /metrics
+
+  - job_name: 'telegram-search-railway'
+    static_configs:
+      - targets: ['telegram-search-production.up.railway.app']
+    metrics_path: /api/metrics
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ["host.docker.internal:9187"]
