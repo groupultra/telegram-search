@@ -8,8 +8,6 @@ import { logs, SeverityNumber } from '@opentelemetry/api-logs'
 export function emitOtelLog(level: string, context: string, message: string, attributes?: Record<string, string | number | boolean>): void {
   const otelLogger = logs.getLogger(context)
 
-  const span = trace.getActiveSpan()
-
   // Map log level to OpenTelemetry severity
   const getSeverity = (level: string): SeverityNumber => {
     switch (level.toLowerCase()) {
@@ -29,18 +27,18 @@ export function emitOtelLog(level: string, context: string, message: string, att
     }
   }
 
-  const spanContext = span?.spanContext()
+  const spanContext = trace.getActiveSpan()?.spanContext()
   const traceId = spanContext?.traceId
-  const body = traceId ? `${message} [tracing_id: ${traceId}]` : message
+  const spanId = spanContext?.spanId
 
   otelLogger.emit({
     severityNumber: getSeverity(level),
     severityText: level.toUpperCase(),
-    body,
+    body: message,
     attributes: {
       ...attributes,
-      tracing_id: traceId,
-      span_id: spanContext?.spanId,
+      trace_id: traceId,
+      span_id: spanId,
     },
   })
 }

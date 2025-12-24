@@ -2,8 +2,6 @@ import type { Config } from '@tg-search/common'
 import type { CoreContext, CoreEmitter, FromCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
-import type { WsEventMeta } from './events'
-
 import { useLogger } from '@guiiai/logg'
 import { createCoreInstance } from '@tg-search/core'
 
@@ -118,20 +116,14 @@ function bindTracingMetaToSpan(emitter: CoreEmitter) {
   const originalOn = emitter.on.bind(emitter)
   emitter.on = ((event, listener) => {
     return originalOn(event, (...args: Parameters<typeof listener>) => {
-      const maybeData = args[0] as { meta?: WsEventMeta } | undefined
-      const tracingId = maybeData?.meta?.tracingId
-
-      return withSpan(String(event), tracingId, () => listener(...args))
+      return withSpan(String(event), () => listener(...args))
     })
   }) as CoreEmitter['on']
 
   const originalOnce = emitter.once.bind(emitter)
   emitter.once = ((event, listener) => {
     return originalOnce(event, (...args: Parameters<typeof listener>) => {
-      const maybeData = args[0] as { meta?: WsEventMeta } | undefined
-      const tracingId = maybeData?.meta?.tracingId
-
-      return withSpan(String(event), tracingId, () => listener(...args))
+      return withSpan(String(event), () => listener(...args))
     })
   }) as CoreEmitter['once']
 }

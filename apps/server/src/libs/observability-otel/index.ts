@@ -9,6 +9,7 @@ import { resourceFromAttributes } from '@opentelemetry/resources'
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs'
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 import { NodeSDK } from '@opentelemetry/sdk-node'
+import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node'
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
 
 export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: string }) {
@@ -45,6 +46,9 @@ export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: 
     ],
     resource: resourceFromAttributes(attributes),
     traceExporter: new OTLPTraceExporter(),
+    spanProcessors: [
+      new SimpleSpanProcessor(new OTLPTraceExporter()),
+    ],
     logRecordProcessor: new BatchLogRecordProcessor(new OTLPLogExporter(), {
       maxQueueSize: 1000,
       maxExportBatchSize: 512,

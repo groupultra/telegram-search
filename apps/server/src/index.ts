@@ -82,7 +82,8 @@ async function bootstrap() {
 
   const config = parseEnvToConfig(process.env, logger)
 
-  registerOtel({ version: pkg.version })
+  const otelDebug = process.env.OTEL_DEBUG === 'true'
+  registerOtel({ version: pkg.version, debug: otelDebug ? true : undefined })
 
   setGlobalHookPostLog((log: Log, formattedOutput: string) => {
     const rawContext = removeHyperLinks(log.context)
