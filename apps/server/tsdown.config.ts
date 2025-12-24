@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  entry: ['src/app.ts'],
+  entry: ['src/index.ts'],
   target: 'node22',
   platform: 'node',
   treeshake: true,
