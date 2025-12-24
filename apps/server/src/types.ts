@@ -1,2 +1,2 @@
-export type * from './events'
 export type * from './app'
+export type * from './events'
