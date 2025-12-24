@@ -82,17 +82,19 @@ async function bootstrap() {
 
   const config = parseEnvToConfig(process.env, logger)
 
-  const otelDebug = process.env.OTEL_DEBUG === 'true'
-  registerOtel({ version: pkg.version, debug: otelDebug ? true : undefined })
+  if (process.env.OTEL_ENABLED === 'true') {
+    const otelDebug = process.env.OTEL_DEBUG === 'true' || undefined
+    registerOtel({ version: pkg.version, debug: otelDebug })
 
-  setGlobalHookPostLog((log: Log, formattedOutput: string) => {
-    const rawContext = removeHyperLinks(log.context)
-    const rawFields = formattedOutput?.split(log.message)[1]?.trim()
-    const fieldsSnake = toSnakeCaseFields(log.fields)
-    const message = `[${rawContext}] ${log.message} ${rawFields}`
+    setGlobalHookPostLog((log: Log, formattedOutput: string) => {
+      const rawContext = removeHyperLinks(log.context)
+      const rawFields = formattedOutput?.split(log.message)[1]?.trim()
+      const fieldsSnake = toSnakeCaseFields(log.fields)
+      const message = `[${rawContext}] ${log.message} ${rawFields}`
 
-    emitOtelLog(log.level, rawContext, message, fieldsSnake)
-  })
+      emitOtelLog(log.level, rawContext, message, fieldsSnake)
+    })
+  }
 
   await initDrizzle(logger, config, flags)
 

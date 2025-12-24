@@ -127,7 +127,6 @@ docker compose -f docker-compose.yml up -d
 | `MINIO_ACCESS_KEY`            | MinIO access key                                             | `minioadmin`                                          |
 | `MINIO_SECRET_KEY`            | MinIO secret key                                             | `minioadmin`                                          |
 | `MINIO_BUCKET`                | MinIO bucket name                                            | `telegram-media`                                      |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry OTLP log endpoint                              | `http://loki:3100/otlp/v1/logs`                       |
 
 ## 💻 Development Guide
 
