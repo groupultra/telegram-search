@@ -1,2 +1,2 @@
-export type * from './ws-events'
-export type * from './ws-routes'
+export type * from './app'
+export type * from './events'

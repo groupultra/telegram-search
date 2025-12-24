@@ -2,7 +2,12 @@ import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
-import { Counter } from 'prom-client'
+
+import { wsSendFailTotal } from './libs/observability-otel/metrics'
+
+export interface WsEventMeta {
+  tracingId: string
+}
 
 export interface WsEventFromServer {
   'server:connected': (data: { sessionId: string, accountReady: boolean }) => void
@@ -29,14 +34,9 @@ export type WsMessageToServer = {
   [T in keyof WsEventToServer]: {
     type: T
     data: WsEventToServerData<T>
+    meta?: WsEventMeta
   }
 }[keyof WsEventToServer]
-
-const wsSendFailTotal = new Counter({
-  name: 'ws_send_fail_total',
-  help: 'Total number of failed WebSocket sends from server to client',
-  labelNames: ['reason'] as const,
-})
 
 export function sendWsEvent<T extends keyof WsEventToClient>(
   peer: Peer,
@@ -55,7 +55,7 @@ export function createWsMessage<T extends keyof WsEventToClient>(
     const stringifiedData = JSON.stringify(data)
     if (stringifiedData.length > 1024 * 1024) {
       useLogger().withFields({ type, size: stringifiedData.length }).warn('Dropped event data')
-      wsSendFailTotal.inc({ reason: 'payload_too_large' })
+      wsSendFailTotal.add(1, { reason: 'payload_too_large' })
       return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
     }
 
@@ -63,7 +63,7 @@ export function createWsMessage<T extends keyof WsEventToClient>(
   }
   catch {
     useLogger().withFields({ type }).warn('Dropped event data')
-    wsSendFailTotal.inc({ reason: 'stringify_error' })
+    wsSendFailTotal.add(1, { reason: 'stringify_error' })
 
     return { type, data: undefined } as Extract<WsMessageToClient, { type: T }>
   }
