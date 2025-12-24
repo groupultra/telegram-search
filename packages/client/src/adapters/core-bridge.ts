@@ -23,13 +23,12 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   const sessionStore = useSessionStore()
   const {
     sessions: storageSessions,
-    activeSessionSlot: storageActiveSessionSlot,
+    activeSessionId: storageActiveSessionId,
     activeSession,
   } = storeToRefs(sessionStore)
 
   const {
     ensureSessionInvariants,
-    updateSession,
     addNewAccount,
     removeCurrentAccount,
     cleanup: resetSessions,
@@ -75,16 +74,18 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
   }
 
   const switchAccount = (sessionId: string) => {
-    const index = storageSessions.value.findIndex(session => session.uuid === sessionId)
-    if (index !== -1) {
+    if (storageSessions.value[sessionId]) {
       // When switching to an existing account, optimistically mark its
       // connection state as disconnected. AuthStore's auto-login watcher
       // will observe the combination of { hasSession, !isReady } for
       // the new active slot and trigger a fresh login using the stored
       // session string.
-      updateSession(sessionId, s => ({ ...s, isReady: false }))
+      storageSessions.value[sessionId] = {
+        ...storageSessions.value[sessionId],
+        isReady: false,
+      }
 
-      storageActiveSessionSlot.value = index
+      storageActiveSessionId.value = sessionId
       logger.withFields({ sessionId }).verbose('Switched to account')
     }
   }
@@ -241,7 +242,6 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
     sessions: storageSessions,
     activeSessionId,
     activeSession,
-    updateSession,
     switchAccount,
     addNewAccount,
     applySessionUpdate,

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import buildTime from '~build/time'
 
-import { useAccountStore, useSettingsStore } from '@tg-search/client'
+import { useAccountStore } from '@tg-search/client'
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 import { abbreviatedSha as gitShortSha } from '~build/git'
 import { version as pkgVersion } from '~build/package'
@@ -12,9 +12,6 @@ import { RouterView, useRoute } from 'vue-router'
 import AppSidebar from '../components/layout/AppSidebar.vue'
 
 import { Button } from '../components/ui/Button'
-
-const settingsStore = useSettingsStore()
-const { theme } = storeToRefs(settingsStore)
 
 const { isLoggedIn } = storeToRefs(useAccountStore())
 
@@ -63,10 +60,6 @@ const sidebarClasses = computed(() => {
     }
   }
 })
-
-watch(theme, (newTheme) => {
-  document.documentElement.setAttribute('data-theme', newTheme)
-}, { immediate: true })
 
 // Close mobile drawer when route changes
 watch(route, () => {

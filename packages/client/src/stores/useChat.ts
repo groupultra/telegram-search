@@ -10,32 +10,36 @@ import { useBridgeStore } from '../composables/useBridge'
 
 export const useChatStore = defineStore('chat', () => {
   const bridgeStore = useBridgeStore()
-  const allChats = useLocalStorage<Record<string, CoreDialog[]>>('chat/chats', {})
+  const allChats = useLocalStorage<Record<string, CoreDialog[]>>('v2/chat/chats', {})
 
   const chats = computed({
     get: () => {
-      const sessionId = bridgeStore.activeSessionId
-      if (!sessionId)
+      const userId = bridgeStore.activeSession?.me?.id
+      if (!userId)
         return []
-      return allChats.value[sessionId] ?? []
+      return allChats.value[userId] ?? []
     },
     set: (v) => {
-      const sessionId = bridgeStore.activeSessionId
-      if (!sessionId)
+      const userId = bridgeStore.activeSession?.me?.id
+      if (!userId)
         return
 
       allChats.value = {
         ...allChats.value,
-        [sessionId]: v,
+        [userId]: v,
       }
     },
   })
 
-  const getChat = (id: string) => {
+  function getChat(id: string) {
     return chats.value.find(chat => chat.id === Number(id))
   }
 
-  const init = () => {
+  function fetchChats() {
+    bridgeStore.sendEvent('dialog:fetch')
+  }
+
+  function init() {
     useLogger('ChatStore').log('Init dialogs')
 
     if (chats.value.length === 0) {
@@ -53,6 +57,7 @@ export const useChatStore = defineStore('chat', () => {
   return {
     init,
     getChat,
+    fetchChats,
     chats,
   }
 })

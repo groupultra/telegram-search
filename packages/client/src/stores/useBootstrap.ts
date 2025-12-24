@@ -38,7 +38,7 @@ export const useBootstrapStore = defineStore('bootstrap', () => {
       return
     }
 
-    logger.debug('Starting frontend bootstrap')
+    logger.log('Starting frontend bootstrap')
 
     // Ensure transport layer (websocket or core-bridge) is initialized.
     if (typeof bridgeStore.init === 'function')
@@ -60,7 +60,7 @@ export const useBootstrapStore = defineStore('bootstrap', () => {
     if (phase.value === 'ready')
       return
 
-    logger.debug('Marking account as ready; initializing chat store')
+    logger.verbose('Marking account as ready; initializing chat store')
     phase.value = 'accountReady'
 
     // Hydrate dialogs for the active account. In core-bridge mode, core

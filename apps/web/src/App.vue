@@ -1,20 +1,14 @@
 <script setup lang="ts">
-// https://github.com/moeru-ai/airi/blob/bd497051fe7090dc021888f127ae7b0d78095210/apps/stage-web/src/App.vue
-
 import { useLogger } from '@guiiai/logg'
-import { evictExpiredOrOversized, useAvatarStore, useBootstrapStore, useSettingsStore } from '@tg-search/client'
-import { storeToRefs } from 'pinia'
+import { evictExpiredOrOversized, useAvatarStore, useBootstrapStore } from '@tg-search/client'
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
-import { onBeforeUnmount, onMounted, watch } from 'vue'
+import { onBeforeUnmount, onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { Toaster } from 'vue-sonner'
 
 import { usePWAStore } from './stores/pwa'
 
-const settings = storeToRefs(useSettingsStore())
-
 onMounted(() => {
-  useSettingsStore().init()
   usePWAStore().init()
 
   hideSplashScreen()
@@ -56,14 +50,6 @@ onBeforeUnmount(() => {
   if (avatarCleanupTimer)
     window.clearInterval(avatarCleanupTimer)
 })
-
-watch(settings.themeColorsHue, () => {
-  document.documentElement.style.setProperty('--chromatic-hue', settings.themeColorsHue.value.toString())
-}, { immediate: true })
-
-watch(settings.themeColorsHueDynamic, () => {
-  document.documentElement.classList.toggle('dynamic-hue', settings.themeColorsHueDynamic.value)
-}, { immediate: true })
 </script>
 
 <template>

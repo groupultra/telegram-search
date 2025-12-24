@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
 import { useBridgeStore } from '../composables/useBridge'
+import { useChatStore } from './useChat'
 import { useMessageStore } from './useMessage'
 
 export const useAccountStore = defineStore('account', () => {
@@ -39,7 +40,9 @@ export const useAccountStore = defineStore('account', () => {
     const session = activeSession.value
 
     if (session?.isReady || !session?.session) {
-      logger.log('No need to login')
+      logger.verbose('No need to login', { session })
+
+      useChatStore().fetchChats()
       return
     }
 
@@ -88,7 +91,7 @@ export const useAccountStore = defineStore('account', () => {
     }
 
     function getAllAccounts() {
-      return bridgeStore.sessions
+      return Object.values(bridgeStore.sessions)
     }
 
     return { login, submitCode, submitPassword, logout, switchAccount, addNewAccount, getAllAccounts }
@@ -155,6 +158,7 @@ export const useAccountStore = defineStore('account', () => {
   )
 
   function init() {
+    logger.verbose('Initializing account')
     // Try to restore connection using stored session for the active slot.
     void attemptLogin()
   }
