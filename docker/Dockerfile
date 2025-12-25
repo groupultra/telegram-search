@@ -18,6 +18,7 @@ COPY packages/common/package.json ./packages/common/package.json
 COPY packages/schema/package.json ./packages/schema/package.json
 COPY packages/client/package.json ./packages/client/package.json
 COPY packages/pglite-inspector/package.json ./packages/pglite-inspector/package.json
+COPY packages/observability/package.json ./packages/observability/package.json
 COPY apps/server/package.json ./apps/server/package.json
 COPY apps/web/package.json ./apps/web/package.json
 
@@ -55,6 +56,7 @@ COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=builder /app/packages/core/package.json ./packages/core/package.json
 COPY --from=builder /app/packages/common/package.json ./packages/common/package.json
 COPY --from=builder /app/packages/schema/package.json ./packages/schema/package.json
+COPY --from=builder /app/packages/observability/package.json ./packages/observability/package.json
 COPY --from=builder /app/apps/server/package.json ./apps/server/package.json
 # Client package is dev dependency for web build, not needed for server runtime usually,
 # but let's check if server imports it. Typically not.
@@ -66,6 +68,7 @@ RUN CI=true pnpm install --frozen-lockfile --ignore-scripts --prod
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
 COPY --from=builder /app/packages/core/dist ./packages/core/dist
 COPY --from=builder /app/packages/schema/dist ./packages/schema/dist
+COPY --from=builder /app/packages/observability/dist ./packages/observability/dist
 
 # Copy frontend assets
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
