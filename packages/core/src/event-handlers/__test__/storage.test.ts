@@ -10,6 +10,7 @@ import { createCoreContext } from '../../context'
 import { registerStorageEventHandlers } from '../storage'
 
 const logger = useLogger()
+const lastMessageDate = new Date()
 
 const fetchChatsByAccountId = vi.fn(async (_db: unknown, _accountId: string) => {
   const rows = [
@@ -19,7 +20,7 @@ const fetchChatsByAccountId = vi.fn(async (_db: unknown, _accountId: string) => 
       chat_id: '1001',
       chat_name: 'Test Chat',
       chat_type: 'user',
-      dialog_date: Date.now(),
+      dialog_date: lastMessageDate.getTime(),
       created_at: Date.now(),
       updated_at: Date.now(),
     },
@@ -98,6 +99,9 @@ describe('storage event handlers - dialogs with accounts', () => {
         name: 'Test Chat',
         type: 'user',
         messageCount: 42,
+        pinned: false,
+        accessHash: undefined,
+        lastMessageDate,
       },
     ])
   })
