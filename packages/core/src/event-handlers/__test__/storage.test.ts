@@ -97,6 +97,8 @@ describe('storage event handlers - dialogs with accounts', () => {
       {
         id: 1001,
         name: 'Test Chat',
+        isContact: undefined,
+        folderIds: [],
         type: 'user',
         messageCount: 42,
         pinned: false,
