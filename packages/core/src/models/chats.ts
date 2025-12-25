@@ -41,6 +41,10 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
 
     // If accountId is provided, automatically link to account_joined_chats
     if (accountId && joinedChats.length > 0) {
+      // Check if ANY of the input dialogs contain folder information.
+      // If none do (typical for basic getDialogs sync), we should NOT overwrite existing folder mapping in DB.
+      const hasFolderData = chats.some(c => c.folderIds !== undefined)
+
       await tx
         .insert(accountJoinedChatsTable)
         .values(joinedChats.map((chat) => {
@@ -59,7 +63,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
           set: {
             is_pinned: sql`excluded.is_pinned`,
             is_contact: sql`excluded.is_contact`,
-            folder_ids: sql`excluded.folder_ids`,
+            ...(hasFolderData ? { folder_ids: sql`excluded.folder_ids` } : {}),
             access_hash: sql`excluded.access_hash`,
           },
         })

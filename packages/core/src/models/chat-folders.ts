@@ -69,7 +69,7 @@ async function updateChatFolders(db: CoreDB, accountId: string, folders: CoreCha
             if (folder.bots)
               matches = true
           }
-          else if (info.type === 'group') {
+          else if (info.type === 'group' || info.type === 'supergroup') {
             if (folder.groups)
               matches = true
           }

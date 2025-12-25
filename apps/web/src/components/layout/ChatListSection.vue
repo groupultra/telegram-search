@@ -51,29 +51,7 @@ const activeGroupChats = computed(() => {
     const folder = folders.value.find(f => f.id === selectedFolderId.value)
     if (folder) {
       const filtered = chatsFiltered.value.filter((chat) => {
-        // 1. Explicit exclusions always win
-        if (folder.excludedChatIds.includes(chat.id))
-          return false
-
-        // 2. Explicit inclusions
-        if (folder.includedChatIds.includes(chat.id) || folder.pinnedChatIds?.includes(chat.id))
-          return true
-
-        // 3. Flag-based inclusions
-        if (chat.type === 'user') {
-          if (folder.contacts && chat.isContact)
-            return true
-          if (folder.nonContacts && !chat.isContact)
-            return true
-        }
-        if (chat.type === 'bot' && folder.bots)
-          return true
-        if (chat.type === 'group' && folder.groups)
-          return true
-        if (chat.type === 'channel' && folder.broadcasts)
-          return true
-
-        return false
+        return chat.folderIds?.includes(selectedFolderId.value!)
       })
 
       // For folders, per user request: "don't do pinning for now"

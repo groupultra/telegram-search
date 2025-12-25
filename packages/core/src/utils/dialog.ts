@@ -37,6 +37,7 @@ export function resolveDialog(dialog: Dialog): Result<{
   let accessHash: string | undefined
   let isBot = false
   let isContact = false
+  let isMegagroup = false
 
   try {
     if (dialog.entity instanceof Api.User) {
@@ -52,6 +53,7 @@ export function resolveDialog(dialog: Dialog): Result<{
         avatarFileId = (dialog.entity.photo as Api.ChatPhoto).photoId?.toString()
       }
       accessHash = dialog.entity.accessHash?.toString()
+      isMegagroup = dialog.entity.megagroup || false
     }
     else if (dialog.entity instanceof Api.Chat && dialog.entity.photo && 'photoId' in dialog.entity.photo) {
       avatarFileId = (dialog.entity.photo as Api.ChatPhoto).photoId?.toString()
@@ -60,7 +62,10 @@ export function resolveDialog(dialog: Dialog): Result<{
   catch {}
 
   let type: DialogType
-  if (isGroup) {
+  if (isMegagroup) {
+    type = 'supergroup'
+  }
+  else if (isGroup) {
     type = 'group'
   }
   else if (isChannel) {
@@ -86,23 +91,18 @@ export function resolveDialog(dialog: Dialog): Result<{
 
 /**
  * Extract a JS number ID from various Telegram Peer types.
- * Avoids 'any' by using type guards and checking for property existence.
  */
 export function getApiChatIdFromMtpPeer(peer: Api.TypeInputPeer | Api.TypePeer): number | undefined {
   if (peer instanceof Api.InputPeerUser || peer instanceof Api.PeerUser) {
-    const p = peer as Api.InputPeerUser | Api.PeerUser
-    return 'userId' in p ? p.userId.toJSNumber() : undefined
+    return peer.userId.toJSNumber()
   }
   if (peer instanceof Api.InputPeerChat || peer instanceof Api.PeerChat) {
-    const p = peer as Api.InputPeerChat | Api.PeerChat
-    return 'chatId' in p ? p.chatId.toJSNumber() : undefined
+    return peer.chatId.toJSNumber()
   }
   if (peer instanceof Api.InputPeerChannel || peer instanceof Api.PeerChannel) {
-    const p = peer as Api.InputPeerChannel | Api.PeerChannel
-    return 'channelId' in p ? p.channelId.toJSNumber() : undefined
+    return peer.channelId.toJSNumber()
   }
-  if (peer instanceof Api.InputPeerSelf) {
-    return undefined
-  }
+
+  // Api.InputPeerSelf will fall through and return undefined, which is correct.
   return undefined
 }

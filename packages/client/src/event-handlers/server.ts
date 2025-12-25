@@ -3,6 +3,7 @@ import type { ClientRegisterEventHandler } from '.'
 import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
 
+import { useBootstrapStore } from '../stores'
 import { useAccountStore } from '../stores/useAccount'
 import { useSessionStore } from '../stores/useSession'
 
@@ -20,6 +21,7 @@ export function registerServerEventHandlers(
 
     if (data.accountReady) {
       useAccountStore().markReady()
+      useBootstrapStore().markAccountReady()
     }
   })
 

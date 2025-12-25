@@ -101,7 +101,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
 
     registerEntityEventHandlers(ctx, logger)(entityService)
     registerMessageEventHandlers(ctx, logger)(messageService)
-    registerDialogEventHandlers(ctx, logger)(dialogService)
+    registerDialogEventHandlers(ctx, logger, models)(dialogService)
     registerTakeoutEventHandlers(ctx, logger, chatMessageStatsModels)(takeoutService)
     registerGramEventsEventHandlers(ctx, logger)(gramEventsService)
 

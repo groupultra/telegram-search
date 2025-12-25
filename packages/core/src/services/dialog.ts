@@ -37,7 +37,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
         if (filter instanceof Api.DialogFilter || filter instanceof Api.DialogFilterChatlist) {
           const folder: CoreChatFolder = {
             id: filter.id,
-            title: typeof filter.title === 'string' ? filter.title : filter.title.text,
+            title: filter.title.text,
             emoticon: filter.emoticon,
             includedChatIds: [],
             excludedChatIds: [],
@@ -127,13 +127,12 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
           avatarFileId: result.avatarFileId,
           avatarUpdatedAt: result.avatarUpdatedAt,
           pinned,
+          folderIds: [],
           accessHash: result.accessHash,
         })
       }
 
       logger.withFields({ count: dialogs.length }).verbose('Fetched dialogs')
-
-      ctx.emitter.emit('dialog:data', { dialogs })
 
       return Ok(dialogs)
     })

@@ -33,6 +33,7 @@ describe('models/chats updateChatFolders', () => {
       { id: '300', name: 'Channel', type: 'channel', isContact: false },
       { id: '400', name: 'Bot', type: 'bot', isContact: false },
       { id: '500', name: 'Non-Contact User', type: 'user', isContact: false },
+      { id: '600', name: 'Supergroup', type: 'supergroup', isContact: false },
     ]
 
     for (const data of chatData) {
@@ -125,6 +126,9 @@ describe('models/chats updateChatFolders', () => {
     expect(resultMap.get('500')).toContain(3)
     expect(resultMap.get('500')).toContain(5)
     expect(resultMap.get('500')).not.toContain(1)
+
+    // Chat 600: Supergroup -> Folder 2 (Groups)
+    expect(resultMap.get('600')).toContain(2)
   })
 
   it('handles empty folders list by clearing all folders', async () => {

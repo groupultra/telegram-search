@@ -1,4 +1,4 @@
-export type DialogType = 'user' | 'bot' | 'group' | 'channel'
+export type DialogType = 'user' | 'bot' | 'group' | 'channel' | 'supergroup'
 
 export interface CoreChatFolder {
   id: number

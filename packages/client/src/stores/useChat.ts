@@ -12,6 +12,7 @@ export const useChatStore = defineStore('chat', () => {
   const bridgeStore = useBridgeStore()
   const allChats = useLocalStorage<Record<string, CoreDialog[]>>('v2/chat/chats', {})
   const allFolders = useLocalStorage<Record<string, CoreChatFolder[]>>('v2/chat/folders', {})
+  const logger = useLogger('ChatStore')
 
   const chats = computed({
     get: () => {
@@ -68,29 +69,21 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function fetchChats() {
+    logger.log('Fetching chats')
     bridgeStore.sendEvent('dialog:fetch')
   }
 
   function fetchFolders() {
+    logger.log('Fetching folders')
     bridgeStore.sendEvent('dialog:folders:fetch')
   }
 
   function init() {
-    useLogger('ChatStore').log('Init dialogs')
+    logger.log('Init dialogs')
 
-    if (chats.value.length === 0) {
-      // In websocket mode, we explicitly trigger a storage fetch to hydrate
-      // dialogs from the server-side database. In core-bridge (browser-core)
-      // mode, dialogs are bootstrapped by the core pipeline itself after
-      // login, and there is no stable accountId yet when this runs, so we
-      // avoid firing storage:fetch:dialogs to prevent "Current account ID not set"
-      // noise from the core context.
-      if (!IS_CORE_MODE)
-        bridgeStore.sendEvent('storage:fetch:dialogs')
-    }
-
-    if (folders.value.length === 0)
-      fetchFolders()
+    bridgeStore.sendEvent('storage:fetch:dialogs')
+    fetchChats()
+    fetchFolders()
   }
 
   return {
