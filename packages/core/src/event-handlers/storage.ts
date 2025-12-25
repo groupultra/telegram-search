@@ -105,7 +105,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         messageCount: chatMessageStats?.message_count,
         lastMessageDate: chat.dialog_date ? new Date(chat.dialog_date) : undefined,
         pinned: !!chat.is_pinned,
-        folderIds: (chat as any).folder_ids ?? [],
+        folderIds: chat.folder_ids ?? [],
         accessHash: chat.access_hash ?? undefined,
       } satisfies CoreDialog
     })
