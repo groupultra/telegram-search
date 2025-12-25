@@ -12,11 +12,15 @@
   },
   "peerDependencies": {
     "@opentelemetry/auto-instrumentations-node": "^0.67.3",
+    "@opentelemetry/context-async-hooks": "^2.2.0",
     "@opentelemetry/sdk-node": "^0.208.0",
     "@opentelemetry/sdk-trace-node": "^2.2.0"
   },
   "peerDependenciesMeta": {
     "@opentelemetry/auto-instrumentations-node": {
+      "optional": true
+    },
+    "@opentelemetry/context-async-hooks": {
       "optional": true
     },
     "@opentelemetry/sdk-node": {
