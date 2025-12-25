@@ -68,7 +68,6 @@ RUN CI=true pnpm install --frozen-lockfile --ignore-scripts --prod
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
 COPY --from=builder /app/packages/core/dist ./packages/core/dist
 COPY --from=builder /app/packages/schema/dist ./packages/schema/dist
-COPY --from=builder /app/packages/observability/dist ./packages/observability/dist
 
 # Copy frontend assets
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
