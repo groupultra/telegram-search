@@ -1,0 +1,1 @@
+ALTER TABLE "account_joined_chats" ADD COLUMN "folder_ids" integer[] DEFAULT '{}' NOT NULL;

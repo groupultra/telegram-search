@@ -162,6 +162,13 @@
       "when": 1766662347673,
       "tag": "0022_exotic_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1766686761354,
+      "tag": "0023_yellow_stephen_strange",
+      "breakpoints": true
     }
   ]
 }
