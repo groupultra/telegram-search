@@ -6,6 +6,7 @@ import type { CoreContext } from '../context'
 import type { CoreDialog } from '../types/dialog'
 
 import { circularObject } from '@tg-search/common'
+import { withSpan } from '@tg-search/observability'
 import { Ok } from '@unbird/result'
 
 import { useAvatarHelper } from '../message-resolvers/avatar-resolver'
@@ -29,61 +30,65 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
    * Avatar bytes are downloaded in the background via `fetchDialogAvatars`.
    */
   async function fetchDialogs(): Promise<Result<CoreDialog[]>> {
-    // TODO: use invoke api
-    // TODO: use pagination
-    // Total list has a total property
-    const dialogList = await ctx.getClient().getDialogs()
-    // const dialogs = await getClient().invoke(new Api.messages.GetDialogs({})) as Api.messages.Dialogs
+    return withSpan('core:dialog:service:fetchDialogs', async () => {
+      // TODO: use invoke api
+      // TODO: use pagination
+      // Total list has a total property
+      const dialogList = await ctx.getClient().getDialogs()
+      // const dialogs = await getClient().invoke(new Api.messages.GetDialogs({})) as Api.messages.Dialogs
 
-    const dialogs: CoreDialog[] = []
-    for (const dialog of dialogList) {
-      if (!dialog.entity) {
-        continue
+      const dialogs: CoreDialog[] = []
+      for (const dialog of dialogList) {
+        if (!dialog.entity) {
+          continue
+        }
+
+        const result = resolveDialog(dialog).orUndefined()
+        if (!result) {
+          logger.withFields({ dialog: circularObject(dialog) }).warn('Failed to resolve dialog')
+          continue
+        }
+
+        let messageCount = 0
+        let lastMessage: string | undefined
+        let lastMessageDate: Date | undefined
+        const unreadCount = dialog.unreadCount
+
+        if ('participantsCount' in dialog.entity) {
+          messageCount = dialog.entity.participantsCount || 0
+        }
+
+        if (dialog.message) {
+          lastMessage = dialog.message.message
+          lastMessageDate = new Date(dialog.message.date * 1000)
+        }
+
+        dialogs.push({
+          id: result.id,
+          name: result.name,
+          type: result.type,
+          unreadCount,
+          messageCount,
+          lastMessage,
+          lastMessageDate,
+          avatarFileId: result.avatarFileId,
+          avatarUpdatedAt: result.avatarUpdatedAt,
+        })
       }
 
-      const result = resolveDialog(dialog).orUndefined()
-      if (!result) {
-        logger.withFields({ dialog: circularObject(dialog) }).warn('Failed to resolve dialog')
-        continue
-      }
+      logger.withFields({ count: dialogs.length }).verbose('Fetched dialogs')
 
-      let messageCount = 0
-      let lastMessage: string | undefined
-      let lastMessageDate: Date | undefined
-      const unreadCount = dialog.unreadCount
+      ctx.emitter.emit('dialog:data', { dialogs })
 
-      if ('participantsCount' in dialog.entity) {
-        messageCount = dialog.entity.participantsCount || 0
-      }
-
-      if (dialog.message) {
-        lastMessage = dialog.message.message
-        lastMessageDate = new Date(dialog.message.date * 1000)
-      }
-
-      dialogs.push({
-        id: result.id,
-        name: result.name,
-        type: result.type,
-        unreadCount,
-        messageCount,
-        lastMessage,
-        lastMessageDate,
-        avatarFileId: result.avatarFileId,
-        avatarUpdatedAt: result.avatarUpdatedAt,
-      })
-    }
-
-    logger.withFields({ count: dialogs.length }).verbose('Fetched dialogs')
-
-    ctx.emitter.emit('dialog:data', { dialogs })
-
-    return Ok(dialogs)
+      return Ok(dialogs)
+    })
   }
 
   async function fetchSingleDialogAvatar(chatId: string | number) {
-    // Do not pass long-lived entity overrides; rely on helper's LRU/TTL or fresh resolution
-    await avatarHelper.fetchDialogAvatar(chatId)
+    return withSpan('core:dialog:service:fetchSingleDialogAvatar', async () => {
+      // Do not pass long-lived entity overrides; rely on helper's LRU/TTL or fresh resolution
+      await avatarHelper.fetchDialogAvatar(chatId)
+    })
   }
 
   return {

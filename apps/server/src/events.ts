@@ -2,8 +2,7 @@ import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
-
-import { wsSendFailTotal } from './libs/observability-otel/metrics'
+import { wsSendFailTotal } from '@tg-search/observability'
 
 export interface WsEventMeta {
   tracingId: string

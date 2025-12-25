@@ -4,9 +4,8 @@ import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
 import { createCoreInstance } from '@tg-search/core'
+import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
 
-import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics } from './libs/observability-otel/metrics'
-import { withSpan } from './libs/observability-otel/traces'
 import { getDB } from './storage/drizzle'
 import { getMinioMediaStorage } from './storage/minio'
 

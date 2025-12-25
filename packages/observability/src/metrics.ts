@@ -15,7 +15,7 @@ const meterProvider = new MeterProvider({
   ],
 })
 
-const meter = meterProvider.getMeter('@tg-search/server/observability-otel')
+const meter = meterProvider.getMeter('@tg-search/observability')
 
 /**
  * WebSocket send fail total
