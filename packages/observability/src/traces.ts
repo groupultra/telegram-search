@@ -4,7 +4,7 @@ export async function withSpan<T>(
   spanName: string,
   fn: () => Promise<T> | T,
 ): Promise<T> {
-  const tracer = trace.getTracer('@tg-search/server/observability-otel')
+  const tracer = trace.getTracer('@tg-search/observability')
 
   return tracer.startActiveSpan(spanName, async (span) => {
     try {

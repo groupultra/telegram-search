@@ -40,12 +40,12 @@ import type { WsMessageToServer } from './events'
 
 import { useLogger } from '@guiiai/logg'
 import { destroyCoreInstance } from '@tg-search/core'
+import { coreEventsInTotal, wsConnectionsActive } from '@tg-search/observability'
 import { defineWebSocketHandler, HTTPError } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
 
 import { accountStates, getOrCreateAccount, peerObjects, peerToAccountId } from './account'
 import { sendWsEvent } from './events'
-import { coreEventsInTotal, wsConnectionsActive } from './libs/observability-otel/metrics'
 
 const WS_MODE_LABEL = 'server' as const
 

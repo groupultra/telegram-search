@@ -8,6 +8,8 @@ import figlet from 'figlet'
 import { initLogger, setGlobalHookPostLog, useLogger } from '@guiiai/logg'
 import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
 import { models } from '@tg-search/core'
+import { emitOtelLog } from '@tg-search/observability'
+import { registerOtel } from '@tg-search/observability/node'
 import { plugin as wsPlugin } from 'crossws/server'
 import { defineEventHandler, H3, serve } from 'h3'
 
@@ -15,8 +17,6 @@ import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
 import { setupWsRoutes } from './app'
-import { registerOtel } from './libs/observability-otel'
-import { emitOtelLog } from './libs/observability-otel/logs'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
 import { removeHyperLinks, toSnakeCaseFields } from './utils/fields'

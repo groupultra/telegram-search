@@ -27,6 +27,7 @@
     "@node-rs/jieba": "^2.0.1",
     "@proj-airi/drizzle-orm-browser-migrator": "^0.1.4",
     "@tg-search/common": "workspace:*",
+    "@tg-search/observability": "workspace:*",
     "@tg-search/schema": "workspace:*",
     "@unbird/result": "catalog:",
     "@xsai/embed": "catalog:",

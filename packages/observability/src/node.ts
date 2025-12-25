@@ -58,5 +58,3 @@ export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: 
 
   sdk.start()
 }
-
-export { DiagLogLevel } from '@opentelemetry/api'

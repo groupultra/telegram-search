@@ -3,6 +3,7 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext } from '../context'
 import type { FetchMessageOpts } from '../types/events'
 
+import { withSpan } from '@tg-search/observability'
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
@@ -61,41 +62,45 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
   }
 
   async function sendMessage(chatId: string, content: string) {
-    // This works for simple text messages. For more types, use GramJS's raw constructors.
-    const message = await ctx.getClient().invoke(
-      new Api.messages.SendMessage({
-        peer: chatId,
-        message: content,
-      }),
-    )
-    return Ok(message)
+    return withSpan('core:message:service:sendMessage', async () => {
+      // This works for simple text messages. For more types, use GramJS's raw constructors.
+      const message = await ctx.getClient().invoke(
+        new Api.messages.SendMessage({
+          peer: chatId,
+          message: content,
+        }),
+      )
+      return Ok(message)
+    })
   }
 
   async function fetchSpecificMessages(chatId: string, messageIds: number[]): Promise<Api.Message[]> {
-    if (!await ctx.getClient().isUserAuthorized()) {
-      logger.error('User not authorized')
-      return []
-    }
+    return withSpan('core:message:service:fetchSpecificMessages', async () => {
+      if (!await ctx.getClient().isUserAuthorized()) {
+        logger.error('User not authorized')
+        return []
+      }
 
-    if (messageIds.length === 0) {
-      return []
-    }
+      if (messageIds.length === 0) {
+        return []
+      }
 
-    try {
-      logger.withFields({ chatId, count: messageIds.length }).debug('Fetching specific messages from Telegram')
+      try {
+        logger.withFields({ chatId, count: messageIds.length }).debug('Fetching specific messages from Telegram')
 
-      // Telegram API getMessages can accept an array of message IDs
-      const messages = await ctx.getClient().getMessages(chatId, {
-        ids: messageIds,
-      })
+        // Telegram API getMessages can accept an array of message IDs
+        const messages = await ctx.getClient().getMessages(chatId, {
+          ids: messageIds,
+        })
 
-      // Filter out empty messages
-      return messages.filter((message: Api.Message) => !(message instanceof Api.MessageEmpty))
-    }
-    catch (error) {
-      logger.withError(ctx.withError(error, 'Fetch specific messages failed') as Error).error('Failed to fetch specific messages')
-      return []
-    }
+        // Filter out empty messages
+        return messages.filter((message: Api.Message) => !(message instanceof Api.MessageEmpty))
+      }
+      catch (error) {
+        logger.withError(ctx.withError(error, 'Fetch specific messages failed') as Error).error('Failed to fetch specific messages')
+        return []
+      }
+    })
   }
 
   /**
@@ -107,86 +112,88 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
     chatId: string,
     opts?: { limit?: number, startTime?: number, accessHash?: string },
   ): Promise<Api.Message[]> {
-    if (!await ctx.getClient().isUserAuthorized()) {
-      logger.error('User not authorized')
-      return []
-    }
-
-    try {
-      // 1. Resolve Peer
-      const peer = await ctx.getClient().getInputEntity(chatId)
-
-      // 2. Get dialog metadata to locate read inbox boundary
-      const peerDialogs = await ctx.getClient().invoke(
-        new Api.messages.GetPeerDialogs({
-          peers: [new Api.InputDialogPeer({ peer })],
-        }),
-      )
-
-      if (!(peerDialogs instanceof Api.messages.PeerDialogs) || peerDialogs.dialogs.length === 0) {
-        logger.withFields({ chatId }).warn('Dialog not found for unread fetch')
+    return withSpan('core:message:service:fetchUnreadMessages', async () => {
+      if (!await ctx.getClient().isUserAuthorized()) {
+        logger.error('User not authorized')
         return []
       }
 
-      const dialog = peerDialogs.dialogs[0]
-      if (!(dialog instanceof Api.Dialog)) {
-        return []
-      }
+      try {
+        // 1. Resolve Peer
+        const peer = await ctx.getClient().getInputEntity(chatId)
 
-      const readInboxMaxId = dialog.readInboxMaxId
-      const unreadCount = dialog.unreadCount
-      const topMessage = dialog.topMessage
+        // 2. Get dialog metadata to locate read inbox boundary
+        const peerDialogs = await ctx.getClient().invoke(
+          new Api.messages.GetPeerDialogs({
+            peers: [new Api.InputDialogPeer({ peer })],
+          }),
+        )
 
-      if (unreadCount <= 0) {
-        logger.withFields({ chatId }).debug('No unread messages on Telegram for this chat')
-        return []
-      }
+        if (!(peerDialogs instanceof Api.messages.PeerDialogs) || peerDialogs.dialogs.length === 0) {
+          logger.withFields({ chatId }).warn('Dialog not found for unread fetch')
+          return []
+        }
 
-      // 3. Pull history
-      // We use client.getMessages which handles pagination automatically to reach the 'limit'.
-      const limit = Math.min(opts?.limit || MAX_UNREAD_MESSAGES_LIMIT, unreadCount)
+        const dialog = peerDialogs.dialogs[0]
+        if (!(dialog instanceof Api.Dialog)) {
+          return []
+        }
 
-      logger.withFields({
-        chatId,
-        unreadCount,
-        readInboxMaxId,
-        topMessage,
-        limit,
-      }).debug('Fetching unread messages from top via getMessages')
+        const readInboxMaxId = dialog.readInboxMaxId
+        const unreadCount = dialog.unreadCount
+        const topMessage = dialog.topMessage
 
-      const messages = await ctx.getClient().getMessages(peer, {
-        limit,
-        // We don't strictly use minId in the request to avoid issues where readInboxMaxId is de-synced,
-        // instead we fetch the top N messages and filter locally.
-      }) as Api.Message[]
+        if (unreadCount <= 0) {
+          logger.withFields({ chatId }).debug('No unread messages on Telegram for this chat')
+          return []
+        }
 
-      if (messages && messages.length > 0) {
-        // Filter out empty messages (already mostly handled by getMessages but to be safe)
-        const validMessages = messages.filter(message => !(message instanceof Api.MessageEmpty))
-
-        // Optional: Filter by readInboxMaxId locally if we want to be strict,
-        // but often unreadCount is what the user expects to see.
-        const filtered = validMessages.filter(m => m.id > readInboxMaxId)
+        // 3. Pull history
+        // We use client.getMessages which handles pagination automatically to reach the 'limit'.
+        const limit = Math.min(opts?.limit || MAX_UNREAD_MESSAGES_LIMIT, unreadCount)
 
         logger.withFields({
           chatId,
-          returned: validMessages.length,
-          newerThanBoundary: filtered.length,
-          latestId: validMessages[0]?.id,
-          oldestId: validMessages[validMessages.length - 1]?.id,
-        }).debug('Unread messages fetch result')
+          unreadCount,
+          readInboxMaxId,
+          topMessage,
+          limit,
+        }).debug('Fetching unread messages from top via getMessages')
 
-        // If local filtering results in too few messages compared to unreadCount,
-        // we trust unreadCount and return the full batch.
-        return filtered.length > 0 ? filtered : validMessages
+        const messages = await ctx.getClient().getMessages(peer, {
+          limit,
+          // We don't strictly use minId in the request to avoid issues where readInboxMaxId is de-synced,
+          // instead we fetch the top N messages and filter locally.
+        }) as Api.Message[]
+
+        if (messages && messages.length > 0) {
+          // Filter out empty messages (already mostly handled by getMessages but to be safe)
+          const validMessages = messages.filter(message => !(message instanceof Api.MessageEmpty))
+
+          // Optional: Filter by readInboxMaxId locally if we want to be strict,
+          // but often unreadCount is what the user expects to see.
+          const filtered = validMessages.filter(m => m.id > readInboxMaxId)
+
+          logger.withFields({
+            chatId,
+            returned: validMessages.length,
+            newerThanBoundary: filtered.length,
+            latestId: validMessages[0]?.id,
+            oldestId: validMessages[validMessages.length - 1]?.id,
+          }).debug('Unread messages fetch result')
+
+          // If local filtering results in too few messages compared to unreadCount,
+          // we trust unreadCount and return the full batch.
+          return filtered.length > 0 ? filtered : validMessages
+        }
+
+        return []
       }
-
-      return []
-    }
-    catch (error) {
-      ctx.withError(error, 'Fetch unread messages failed')
-      return []
-    }
+      catch (error) {
+        ctx.withError(error, 'Fetch unread messages failed')
+        return []
+      }
+    })
   }
 
   /**
@@ -194,59 +201,61 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
    * Resolves the peer and its top message ID automatically if not provided.
    */
   async function markAsRead(chatId: string, _accessHash?: string, lastMessageId?: number) {
-    if (!await ctx.getClient().isUserAuthorized()) {
-      return
-    }
-
-    try {
-      // 1. Resolve Peer
-      const peer = await ctx.getClient().getInputEntity(chatId)
-
-      // 2. Resolve maxId (the latest message ID to mark as read)
-      let maxId = lastMessageId
-      if (!maxId) {
-        const peerDialogs = await ctx.getClient().invoke(
-          new Api.messages.GetPeerDialogs({
-            peers: [new Api.InputDialogPeer({ peer })],
-          }),
-        )
-
-        if (peerDialogs instanceof Api.messages.PeerDialogs && peerDialogs.dialogs.length > 0) {
-          const dialog = peerDialogs.dialogs[0]
-          if (dialog instanceof Api.Dialog) {
-            maxId = dialog.topMessage
-          }
-        }
-      }
-
-      if (!maxId) {
-        logger.withFields({ chatId }).warn('Could not determine top message for markAsRead')
+    return withSpan('core:message:service:markAsRead', async () => {
+      if (!await ctx.getClient().isUserAuthorized()) {
         return
       }
 
-      // 3. Invoke appropriate ReadHistory call
-      if (peer instanceof Api.InputPeerChannel) {
-        await ctx.getClient().invoke(
-          new Api.channels.ReadHistory({
-            channel: peer,
-            maxId,
-          }),
-        )
-      }
-      else {
-        await ctx.getClient().invoke(
-          new Api.messages.ReadHistory({
-            peer,
-            maxId,
-          }),
-        )
-      }
+      try {
+        // 1. Resolve Peer
+        const peer = await ctx.getClient().getInputEntity(chatId)
 
-      logger.withFields({ chatId, maxId }).debug('Marked as read')
-    }
-    catch (error) {
-      ctx.withError(error, 'Mark as read failed')
-    }
+        // 2. Resolve maxId (the latest message ID to mark as read)
+        let maxId = lastMessageId
+        if (!maxId) {
+          const peerDialogs = await ctx.getClient().invoke(
+            new Api.messages.GetPeerDialogs({
+              peers: [new Api.InputDialogPeer({ peer })],
+            }),
+          )
+
+          if (peerDialogs instanceof Api.messages.PeerDialogs && peerDialogs.dialogs.length > 0) {
+            const dialog = peerDialogs.dialogs[0]
+            if (dialog instanceof Api.Dialog) {
+              maxId = dialog.topMessage
+            }
+          }
+        }
+
+        if (!maxId) {
+          logger.withFields({ chatId }).warn('Could not determine top message for markAsRead')
+          return
+        }
+
+        // 3. Invoke appropriate ReadHistory call
+        if (peer instanceof Api.InputPeerChannel) {
+          await ctx.getClient().invoke(
+            new Api.channels.ReadHistory({
+              channel: peer,
+              maxId,
+            }),
+          )
+        }
+        else {
+          await ctx.getClient().invoke(
+            new Api.messages.ReadHistory({
+              peer,
+              maxId,
+            }),
+          )
+        }
+
+        logger.withFields({ chatId, maxId }).debug('Marked as read')
+      }
+      catch (error) {
+        ctx.withError(error, 'Mark as read failed')
+      }
+    })
   }
 
   return {
