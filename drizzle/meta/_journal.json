@@ -169,6 +169,13 @@
       "when": 1766686761354,
       "tag": "0023_yellow_stephen_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1766687849094,
+      "tag": "0024_neat_obadiah_stane",
+      "breakpoints": true
     }
   ]
 }

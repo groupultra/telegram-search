@@ -1,6 +1,7 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chats.ts
 
 import type { CoreDB } from '../db'
+import type { JoinedChatType } from '../schemas/joined-chats'
 import type { CoreChatFolder, CoreDialog } from '../types/dialog'
 import type { PromiseResult } from '../utils/result'
 import type { DBSelectChat, DBSelectChatWithAccount } from './utils/types'
@@ -49,6 +50,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
             account_id: accountId,
             joined_chat_id: chat.id,
             is_pinned: originalChat?.pinned || false,
+            is_contact: originalChat?.isContact || false,
             folder_ids: originalChat?.folderIds || [],
             access_hash: originalChat?.accessHash,
           }
@@ -57,6 +59,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
           target: [accountJoinedChatsTable.account_id, accountJoinedChatsTable.joined_chat_id],
           set: {
             is_pinned: sql`excluded.is_pinned`,
+            is_contact: sql`excluded.is_contact`,
             folder_ids: sql`excluded.folder_ids`,
             access_hash: sql`excluded.access_hash`,
           },
@@ -92,6 +95,7 @@ async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResu
       dialog_date: joinedChatsTable.dialog_date,
       access_hash: accountJoinedChatsTable.access_hash,
       is_pinned: accountJoinedChatsTable.is_pinned,
+      is_contact: accountJoinedChatsTable.is_contact,
       folder_ids: accountJoinedChatsTable.folder_ids,
       created_at: joinedChatsTable.created_at,
       updated_at: joinedChatsTable.updated_at,
@@ -150,6 +154,7 @@ async function updateChatFolders(db: CoreDB, accountId: string, folders: CoreCha
           id: joinedChatsTable.id,
           chat_id: joinedChatsTable.chat_id,
           chat_type: joinedChatsTable.chat_type,
+          is_contact: accountJoinedChatsTable.is_contact,
         })
         .from(joinedChatsTable)
         .innerJoin(
@@ -159,9 +164,13 @@ async function updateChatFolders(db: CoreDB, accountId: string, folders: CoreCha
         .where(eq(accountJoinedChatsTable.account_id, accountId))
 
       // 2. Map chat_id (platform string) to database id (uuid)
-      const chatMap = new Map<string, { id: string, type: string }>()
+      const chatMap = new Map<string, { id: string, type: JoinedChatType, isContact: boolean }>()
       for (const chat of chats) {
-        chatMap.set(chat.chat_id, { id: chat.id, type: chat.chat_type })
+        chatMap.set(chat.chat_id, {
+          id: chat.id,
+          type: chat.chat_type,
+          isContact: chat.is_contact || false,
+        })
       }
 
       // 3. Calculate folder IDs for each chat
@@ -186,16 +195,24 @@ async function updateChatFolders(db: CoreDB, accountId: string, folders: CoreCha
           }
 
           let matches = false
-          if (folder.contacts && info.type === 'user')
-            matches = true
-          if (folder.nonContacts && info.type === 'user')
-            matches = true
-          if (folder.groups && info.type === 'group')
-            matches = true
-          if (folder.bots && info.type === 'user')
-            matches = false
-          if (info.type === 'channel' && folder.groups)
-            matches = true
+          if (info.type === 'user') {
+            if (folder.contacts && info.isContact)
+              matches = true
+            if (folder.nonContacts && !info.isContact)
+              matches = true
+          }
+          else if (info.type === 'bot') {
+            if (folder.bots)
+              matches = true
+          }
+          else if (info.type === 'group') {
+            if (folder.groups)
+              matches = true
+          }
+          else if (info.type === 'channel') {
+            if (folder.broadcasts)
+              matches = true
+          }
 
           if (matches) {
             const existing = perChatFolders.get(chatIdStr) || []

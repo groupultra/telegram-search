@@ -102,6 +102,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         id: Number(chat.chat_id),
         name: chat.chat_name,
         type: chat.chat_type,
+        isContact: chat.is_contact ?? undefined,
         messageCount: chatMessageStats?.message_count,
         lastMessageDate: chat.dialog_date ? new Date(chat.dialog_date) : undefined,
         pinned: !!chat.is_pinned,

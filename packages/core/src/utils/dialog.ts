@@ -16,25 +16,12 @@ export function resolveDialog(dialog: Dialog): Result<{
   id: number
   name: string
   type: DialogType
+  isContact?: boolean
   avatarFileId?: string
   avatarUpdatedAt?: Date
   accessHash?: string
 }> {
   const { isGroup, isChannel, isUser } = dialog
-  let type: DialogType
-  if (isGroup) {
-    type = 'group'
-  }
-  else if (isChannel) {
-    type = 'channel'
-  }
-  else if (isUser) {
-    type = 'user'
-  }
-  else {
-    return Err('Unknown dialog')
-  }
-
   const id = dialog.entity?.id
   if (!id) {
     return Err('Unknown dialog with no id')
@@ -45,15 +32,20 @@ export function resolveDialog(dialog: Dialog): Result<{
     name = id.toString()
   }
 
-  // Extract avatar fileId if possible for cache hinting
+  // Extract avatar fileId and flags
   let avatarFileId: string | undefined
   let accessHash: string | undefined
+  let isBot = false
+  let isContact = false
+
   try {
     if (dialog.entity instanceof Api.User) {
       if (dialog.entity.photo && 'photoId' in dialog.entity.photo) {
         avatarFileId = (dialog.entity.photo as Api.UserProfilePhoto).photoId?.toString()
       }
       accessHash = dialog.entity.accessHash?.toString()
+      isBot = dialog.entity.bot || false
+      isContact = dialog.entity.contact || false
     }
     else if (dialog.entity instanceof Api.Channel) {
       if (dialog.entity.photo && 'photoId' in dialog.entity.photo) {
@@ -67,10 +59,25 @@ export function resolveDialog(dialog: Dialog): Result<{
   }
   catch {}
 
+  let type: DialogType
+  if (isGroup) {
+    type = 'group'
+  }
+  else if (isChannel) {
+    type = 'channel'
+  }
+  else if (isUser) {
+    type = isBot ? 'bot' : 'user'
+  }
+  else {
+    return Err('Unknown dialog')
+  }
+
   return Ok({
     id: id.toJSNumber(),
     name,
     type,
+    isContact,
     avatarFileId,
     avatarUpdatedAt: undefined,
     accessHash,

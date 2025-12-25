@@ -2,7 +2,7 @@
 
 import { bigint, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
-export type JoinedChatType = 'user' | 'channel' | 'group'
+export type JoinedChatType = 'user' | 'bot' | 'channel' | 'group'
 
 export const joinedChatsTable = pgTable('joined_chats', () => {
   return {

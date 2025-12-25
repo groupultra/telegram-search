@@ -119,6 +119,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
           id: result.id,
           name: result.name,
           type: result.type,
+          isContact: result.isContact,
           unreadCount,
           messageCount,
           lastMessage,

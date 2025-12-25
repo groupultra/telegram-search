@@ -1,0 +1,1 @@
+ALTER TABLE "account_joined_chats" ADD COLUMN "is_contact" boolean DEFAULT false NOT NULL;

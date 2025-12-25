@@ -3,7 +3,7 @@ import type { EventEmitter } from 'eventemitter3'
 import type { Api } from 'telegram'
 
 import type { AccountSettings } from './account-settings'
-import type { CoreDialog } from './dialog'
+import type { CoreChatFolder, CoreDialog } from './dialog'
 import type { CoreMessage } from './message'
 import type { CoreTask, CoreTaskData } from './task'
 

@@ -9,6 +9,7 @@ export const accountJoinedChatsTable = pgTable('account_joined_chats', {
   account_id: uuid().notNull().references(() => accountsTable.id, { onDelete: 'cascade' }),
   joined_chat_id: uuid().notNull().references(() => joinedChatsTable.id, { onDelete: 'cascade' }),
   is_pinned: boolean().notNull().default(false),
+  is_contact: boolean().notNull().default(false),
   folder_ids: integer('folder_ids').array().notNull().default([]),
   access_hash: text(),
   created_at: bigint({ mode: 'number' }).notNull().$defaultFn(() => Date.now()),

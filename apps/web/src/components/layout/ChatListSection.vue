@@ -37,9 +37,8 @@ const chatsFiltered = computed(() => {
 // Determine active group based on route or selection
 const activeChatGroup = computed(() => {
   if (route.params.chatId) {
-    const currentChat = chatStore.getChat(route.params.chatId.toString())
-    if (currentChat && selectedGroup.value === '') {
-      return ''
+    if (selectedGroup.value === undefined) {
+      return undefined
     }
   }
   return selectedGroup.value
@@ -61,13 +60,17 @@ const activeGroupChats = computed(() => {
           return true
 
         // 3. Flag-based inclusions
-        if (folder.contacts && chat.type === 'user')
+        if (chat.type === 'user') {
+          if (folder.contacts && chat.isContact)
+            return true
+          if (folder.nonContacts && !chat.isContact)
+            return true
+        }
+        if (chat.type === 'bot' && folder.bots)
           return true
-        if (folder.nonContacts && chat.type === 'user')
+        if (chat.type === 'group' && folder.groups)
           return true
-        if (folder.groups && chat.type === 'group')
-          return true
-        if (folder.broadcasts && chat.type === 'channel')
+        if (chat.type === 'channel' && folder.broadcasts)
           return true
 
         return false
@@ -83,11 +86,8 @@ const activeGroupChats = computed(() => {
     }
   }
 
-  // 2. Handle "All Chats" or specific types (user/group/channel)
-  let filtered = chatsFiltered.value
-  if (activeChatGroup.value !== '') {
-    filtered = filtered.filter(chat => chat.type === activeChatGroup.value)
-  }
+  // 2. Handle "All Chats"
+  const filtered = chatsFiltered.value
 
   // Use global pinning only for non-folder views (especially All Chats)
   return [...filtered].sort((a, b) => {
@@ -163,9 +163,9 @@ watch(activeGroupChats, (list) => {
       >
         <!-- All Chats (Special Folder) -->
         <button
-          :class="{ 'bg-accent text-accent-foreground': activeChatGroup === '' }"
+          :class="{ 'bg-accent text-accent-foreground': activeChatGroup === undefined }"
           class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-          @click="toggleActiveChatGroup('')"
+          @click="toggleActiveChatGroup(undefined)"
         >
           <span class="i-lucide-layers h-4 w-4" />
           <span>{{ t('chatGroups.all') }}</span>
