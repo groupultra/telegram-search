@@ -77,15 +77,22 @@ export function resolveDialog(dialog: Dialog): Result<{
   })
 }
 
+/**
+ * Extract a JS number ID from various Telegram Peer types.
+ * Avoids 'any' by using type guards and checking for property existence.
+ */
 export function getApiChatIdFromMtpPeer(peer: Api.TypeInputPeer | Api.TypePeer): number | undefined {
   if (peer instanceof Api.InputPeerUser || peer instanceof Api.PeerUser) {
-    return (peer as any).userId?.toJSNumber()
+    const p = peer as Api.InputPeerUser | Api.PeerUser
+    return 'userId' in p ? p.userId.toJSNumber() : undefined
   }
   if (peer instanceof Api.InputPeerChat || peer instanceof Api.PeerChat) {
-    return (peer as any).chatId?.toJSNumber()
+    const p = peer as Api.InputPeerChat | Api.PeerChat
+    return 'chatId' in p ? p.chatId.toJSNumber() : undefined
   }
   if (peer instanceof Api.InputPeerChannel || peer instanceof Api.PeerChannel) {
-    return (peer as any).channelId?.toJSNumber()
+    const p = peer as Api.InputPeerChannel | Api.PeerChannel
+    return 'channelId' in p ? p.channelId.toJSNumber() : undefined
   }
   if (peer instanceof Api.InputPeerSelf) {
     return undefined

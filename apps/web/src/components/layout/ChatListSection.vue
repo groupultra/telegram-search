@@ -67,7 +67,7 @@ const activeGroupChats = computed(() => {
           return true
         if (folder.groups && chat.type === 'group')
           return true
-        if (chat.type === 'channel' && folder.groups)
+        if (folder.broadcasts && chat.type === 'channel')
           return true
 
         return false

@@ -10,6 +10,7 @@ export interface CoreChatFolder {
   contacts?: boolean
   nonContacts?: boolean
   groups?: boolean
+  broadcasts?: boolean
   bots?: boolean
   excludeMuted?: boolean
   excludeRead?: boolean

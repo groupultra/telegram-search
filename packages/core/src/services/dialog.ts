@@ -48,6 +48,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
             folder.contacts = filter.contacts
             folder.nonContacts = filter.nonContacts
             folder.groups = filter.groups
+            folder.broadcasts = filter.broadcasts
             folder.bots = filter.bots
             folder.excludeMuted = filter.excludeMuted
             folder.excludeRead = filter.excludeRead
