@@ -134,7 +134,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
   ctx.emitter.on('storage:record:chat-folders', async ({ folders, accountId }) => {
     logger.withFields({ count: folders.length }).verbose('Recording chat folders mapping')
 
-    await dbModels.chatModels.updateChatFolders(ctx.getDB(), accountId, folders)
+    await dbModels.chatFolderModels.updateChatFolders(ctx.getDB(), accountId, folders)
     logger.verbose('Successfully updated chat folders mapping')
   })
 
