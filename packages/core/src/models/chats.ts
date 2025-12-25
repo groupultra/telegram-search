@@ -3,7 +3,7 @@
 import type { CoreDB } from '../db'
 import type { CoreDialog } from '../types/dialog'
 import type { PromiseResult } from '../utils/result'
-import type { DBSelectChat } from './utils/types'
+import type { DBSelectChat, DBSelectChatWithAccount } from './utils/types'
 
 import { and, desc, eq, sql } from 'drizzle-orm'
 
@@ -79,7 +79,7 @@ async function fetchChats(db: CoreDB): PromiseResult<DBSelectChat[]> {
 /**
  * Fetch chats for a specific account
  */
-async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResult<DBSelectChat[]> {
+async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResult<DBSelectChatWithAccount[]> {
   return withResult(() => db
     .select({
       id: joinedChatsTable.id,

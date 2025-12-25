@@ -28,6 +28,10 @@ export type DBSelectMessage = typeof chatMessagesTable.$inferSelect
 
 export type DBInsertChat = typeof joinedChatsTable.$inferInsert
 export type DBSelectChat = typeof joinedChatsTable.$inferSelect
+export type DBSelectChatWithAccount = DBSelectChat & {
+  is_pinned: boolean | null
+  access_hash: string | null
+}
 
 export type DBInsertPhoto = typeof photosTable.$inferInsert
 export type DBSelectPhoto = typeof photosTable.$inferSelect
