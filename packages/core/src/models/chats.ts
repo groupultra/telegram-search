@@ -1,7 +1,7 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chats.ts
 
 import type { CoreDB } from '../db'
-import type { CoreDialog } from '../types/dialog'
+import type { CoreChatFolder, CoreDialog } from '../types/dialog'
 import type { PromiseResult } from '../utils/result'
 import type { DBSelectChat, DBSelectChatWithAccount } from './utils/types'
 
@@ -49,6 +49,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
             account_id: accountId,
             joined_chat_id: chat.id,
             is_pinned: originalChat?.pinned || false,
+            folder_ids: originalChat?.folderIds || [],
             access_hash: originalChat?.accessHash,
           }
         }))
@@ -56,6 +57,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
           target: [accountJoinedChatsTable.account_id, accountJoinedChatsTable.joined_chat_id],
           set: {
             is_pinned: sql`excluded.is_pinned`,
+            folder_ids: sql`excluded.folder_ids`,
             access_hash: sql`excluded.access_hash`,
           },
         })
@@ -90,6 +92,7 @@ async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResu
       dialog_date: joinedChatsTable.dialog_date,
       access_hash: accountJoinedChatsTable.access_hash,
       is_pinned: accountJoinedChatsTable.is_pinned,
+      folder_ids: accountJoinedChatsTable.folder_ids,
       created_at: joinedChatsTable.created_at,
       updated_at: joinedChatsTable.updated_at,
     })
@@ -135,6 +138,93 @@ export const chatModels = {
   fetchChats,
   fetchChatsByAccountId,
   isChatAccessibleByAccount,
+  updateChatFolders,
+}
+
+async function updateChatFolders(db: CoreDB, accountId: string, folders: CoreChatFolder[]): PromiseResult<void> {
+  return withResult(async () => {
+    await db.transaction(async (tx) => {
+      // 1. Get all chats for this account
+      const chats = await tx
+        .select({
+          id: joinedChatsTable.id,
+          chat_id: joinedChatsTable.chat_id,
+          chat_type: joinedChatsTable.chat_type,
+        })
+        .from(joinedChatsTable)
+        .innerJoin(
+          accountJoinedChatsTable,
+          eq(joinedChatsTable.id, accountJoinedChatsTable.joined_chat_id),
+        )
+        .where(eq(accountJoinedChatsTable.account_id, accountId))
+
+      // 2. Map chat_id (platform string) to database id (uuid)
+      const chatMap = new Map<string, { id: string, type: string }>()
+      for (const chat of chats) {
+        chatMap.set(chat.chat_id, { id: chat.id, type: chat.chat_type })
+      }
+
+      // 3. Calculate folder IDs for each chat
+      const perChatFolders = new Map<string, number[]>()
+
+      for (const folder of folders) {
+        // Handle explicit inclusions
+        const allIncluded = [...(folder.includedChatIds || []), ...(folder.pinnedChatIds || [])]
+        for (const chatId of allIncluded) {
+          const chatIdStr = chatId.toString()
+          const existing = perChatFolders.get(chatIdStr) || []
+          if (!existing.includes(folder.id)) {
+            perChatFolders.set(chatIdStr, [...existing, folder.id])
+          }
+        }
+
+        // Handle flag-based inclusions (only for chats we have in DB)
+        for (const [chatIdStr, info] of chatMap.entries()) {
+          // Skip if explicitly excluded
+          if (folder.excludedChatIds?.includes(Number(chatIdStr))) {
+            continue
+          }
+
+          let matches = false
+          if (folder.contacts && info.type === 'user')
+            matches = true
+          if (folder.nonContacts && info.type === 'user')
+            matches = true
+          if (folder.groups && info.type === 'group')
+            matches = true
+          if (folder.bots && info.type === 'user')
+            matches = false
+          if (info.type === 'channel' && folder.groups)
+            matches = true
+
+          if (matches) {
+            const existing = perChatFolders.get(chatIdStr) || []
+            if (!existing.includes(folder.id)) {
+              perChatFolders.set(chatIdStr, [...existing, folder.id])
+            }
+          }
+        }
+      }
+
+      // 4. Update database
+      for (const [chatIdStr, folderIds] of perChatFolders.entries()) {
+        const info = chatMap.get(chatIdStr)
+        if (info) {
+          await tx
+            .update(accountJoinedChatsTable)
+            .set({
+              folder_ids: folderIds,
+            })
+            .where(
+              and(
+                eq(accountJoinedChatsTable.account_id, accountId),
+                eq(accountJoinedChatsTable.joined_chat_id, info.id),
+              ),
+            )
+        }
+      }
+    })
+  })
 }
 
 export type ChatModels = typeof chatModels

@@ -18,6 +18,15 @@ export function registerDialogEventHandlers(ctx: CoreContext, logger: Logger) {
       ctx.emitter.emit('storage:record:dialogs', { dialogs, accountId })
     })
 
+    ctx.emitter.on('dialog:folders:fetch', async () => {
+      logger.verbose('Fetching chat folders')
+
+      const folders = (await dialogService.fetchChatFolders()).expect('Failed to fetch chat folders')
+      const accountId = ctx.getCurrentAccountId()
+
+      ctx.emitter.emit('storage:record:chat-folders', { folders, accountId })
+    })
+
     // Prioritized single-avatar fetch for viewport-visible items
     ctx.emitter.on('dialog:avatar:fetch', async ({ chatId }) => {
       logger.withFields({ chatId }).verbose('Fetching single dialog avatar')

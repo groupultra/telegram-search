@@ -3,14 +3,15 @@ import type { Result } from '@unbird/result'
 import type { Dialog } from 'telegram/tl/custom/dialog'
 
 import type { CoreContext } from '../context'
-import type { CoreDialog } from '../types/dialog'
+import type { CoreChatFolder, CoreDialog } from '../types/dialog'
 
 import { circularObject } from '@tg-search/common'
 import { withSpan } from '@tg-search/observability'
 import { Ok } from '@unbird/result'
+import { Api } from 'telegram'
 
 import { useAvatarHelper } from '../message-resolvers/avatar-resolver'
-import { resolveDialog } from '../utils/dialog'
+import { getApiChatIdFromMtpPeer, resolveDialog } from '../utils/dialog'
 
 export type DialogService = ReturnType<typeof createDialogService>
 
@@ -22,6 +23,55 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
    * Provides shared caches and dedup across services/resolvers.
    */
   const avatarHelper = useAvatarHelper(ctx, logger)
+
+  async function fetchChatFolders(): Promise<Result<CoreChatFolder[]>> {
+    return withSpan('core:dialog:service:fetchChatFolders', async () => {
+      const result = await ctx.getClient().invoke(new Api.messages.GetDialogFilters())
+
+      if (!result || !(result instanceof Api.messages.DialogFilters)) {
+        return Ok([])
+      }
+
+      const folders: CoreChatFolder[] = []
+      for (const filter of result.filters) {
+        if (filter instanceof Api.DialogFilter || filter instanceof Api.DialogFilterChatlist) {
+          const folder: CoreChatFolder = {
+            id: filter.id,
+            title: typeof filter.title === 'string' ? filter.title : filter.title.text,
+            emoticon: filter.emoticon,
+            includedChatIds: [],
+            excludedChatIds: [],
+            pinnedChatIds: [],
+          }
+
+          if (filter instanceof Api.DialogFilter) {
+            folder.contacts = filter.contacts
+            folder.nonContacts = filter.nonContacts
+            folder.groups = filter.groups
+            folder.bots = filter.bots
+            folder.excludeMuted = filter.excludeMuted
+            folder.excludeRead = filter.excludeRead
+            folder.excludeArchived = filter.excludeArchived
+            folder.includedChatIds = filter.includePeers.map(getApiChatIdFromMtpPeer).filter((id): id is number => id !== undefined)
+            folder.excludedChatIds = filter.excludePeers.map(getApiChatIdFromMtpPeer).filter((id): id is number => id !== undefined)
+            folder.pinnedChatIds = filter.pinnedPeers.map(getApiChatIdFromMtpPeer).filter((id): id is number => id !== undefined)
+          }
+          else if (filter instanceof Api.DialogFilterChatlist) {
+            folder.includedChatIds = filter.includePeers.map(getApiChatIdFromMtpPeer).filter((id): id is number => id !== undefined)
+            folder.pinnedChatIds = filter.pinnedPeers.map(getApiChatIdFromMtpPeer).filter((id): id is number => id !== undefined)
+          }
+
+          folders.push(folder)
+        }
+      }
+
+      logger.withFields({ count: folders.length }).verbose('Fetched chat folders')
+
+      ctx.emitter.emit('dialog:folders:data', { folders })
+
+      return Ok(folders)
+    })
+  }
 
   /**
    * Fetch dialogs and emit base data. Then asynchronously fetch avatars.
@@ -96,6 +146,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
 
   return {
     fetchDialogs,
+    fetchChatFolders,
     // Delegated to AvatarHelper
     fetchDialogAvatars: async (dialogs: Dialog[]) => {
       await avatarHelper.fetchDialogAvatars(dialogs)

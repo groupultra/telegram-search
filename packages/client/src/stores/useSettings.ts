@@ -6,15 +6,17 @@ import { ref } from 'vue'
 
 import { DEBUG_MODE } from '../../constants'
 
-export type ChatGroup = DialogType | ''
+export type ChatGroup = DialogType | 'folder' | ''
 
 export const useSettingsStore = defineStore('settings', () => {
   const debugMode = ref(DEBUG_MODE)
   const selectedGroup = useLocalStorage<ChatGroup>('settings/group-selected', 'user')
+  const selectedFolderId = useLocalStorage<number | undefined>('settings/folder-selected', undefined)
   const language = useLocalStorage<string>('settings/language', 'en')
 
   return {
     selectedGroup,
+    selectedFolderId,
     debugMode,
     language,
   }

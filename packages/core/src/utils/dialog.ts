@@ -76,3 +76,19 @@ export function resolveDialog(dialog: Dialog): Result<{
     accessHash,
   })
 }
+
+export function getApiChatIdFromMtpPeer(peer: Api.TypeInputPeer | Api.TypePeer): number | undefined {
+  if (peer instanceof Api.InputPeerUser || peer instanceof Api.PeerUser) {
+    return (peer as any).userId?.toJSNumber()
+  }
+  if (peer instanceof Api.InputPeerChat || peer instanceof Api.PeerChat) {
+    return (peer as any).chatId?.toJSNumber()
+  }
+  if (peer instanceof Api.InputPeerChannel || peer instanceof Api.PeerChannel) {
+    return (peer as any).channelId?.toJSNumber()
+  }
+  if (peer instanceof Api.InputPeerSelf) {
+    return undefined
+  }
+  return undefined
+}

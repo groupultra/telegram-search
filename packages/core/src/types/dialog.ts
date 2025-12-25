@@ -1,5 +1,21 @@
 export type DialogType = 'user' | 'group' | 'channel'
 
+export interface CoreChatFolder {
+  id: number
+  title: string
+  emoticon?: string
+  pinnedChatIds?: number[]
+  includedChatIds: number[]
+  excludedChatIds: number[]
+  contacts?: boolean
+  nonContacts?: boolean
+  groups?: boolean
+  bots?: boolean
+  excludeMuted?: boolean
+  excludeRead?: boolean
+  excludeArchived?: boolean
+}
+
 export interface CoreDialog {
   id: number
   name: string
@@ -13,5 +29,6 @@ export interface CoreDialog {
   avatarUpdatedAt?: Date
   avatarBlobUrl?: string
   pinned?: boolean
+  folderIds?: number[]
   accessHash?: string
 }

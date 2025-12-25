@@ -50,6 +50,7 @@
     "typeAMessage": "Type a message..."
   },
   "chatGroups": {
+    "all": "All",
     "channel": "Channels",
     "group": "Groups",
     "user": "Users"

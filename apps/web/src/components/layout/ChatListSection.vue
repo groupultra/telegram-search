@@ -21,9 +21,11 @@ const route = useRoute()
 const router = useRouter()
 
 const chatStore = useChatStore()
-const { selectedGroup } = storeToRefs(useSettingsStore())
+const settingsStore = useSettingsStore()
+const { selectedGroup, selectedFolderId } = storeToRefs(settingsStore)
 
 const chats = computed(() => chatStore.chats)
+const folders = computed(() => chatStore.folders)
 
 // Filter based on search query
 const chatsFiltered = computed(() => {
@@ -36,20 +38,87 @@ const chatsFiltered = computed(() => {
 const activeChatGroup = computed(() => {
   if (route.params.chatId) {
     const currentChat = chatStore.getChat(route.params.chatId.toString())
-    if (currentChat) {
-      return currentChat.type
+    if (currentChat && selectedGroup.value === '') {
+      return ''
     }
   }
   return selectedGroup.value
 })
 
-// Filtered chats by active group
+// Filtered chats by active group or folder
 const activeGroupChats = computed(() => {
-  return chatsFiltered.value.filter(chat => chat.type === activeChatGroup.value)
+  // 1. Handle Folders
+  if (activeChatGroup.value === 'folder' && selectedFolderId.value !== undefined) {
+    const folder = folders.value.find(f => f.id === selectedFolderId.value)
+    if (folder) {
+      const filtered = chatsFiltered.value.filter((chat) => {
+        // 1. Explicit exclusions always win
+        if (folder.excludedChatIds.includes(chat.id))
+          return false
+
+        // 2. Explicit inclusions
+        if (folder.includedChatIds.includes(chat.id) || folder.pinnedChatIds?.includes(chat.id))
+          return true
+
+        // 3. Flag-based inclusions
+        if (folder.contacts && chat.type === 'user')
+          return true
+        if (folder.nonContacts && chat.type === 'user')
+          return true
+        if (folder.groups && chat.type === 'group')
+          return true
+        if (chat.type === 'channel' && folder.groups)
+          return true
+
+        return false
+      })
+
+      // For folders, per user request: "don't do pinning for now"
+      // Just sort by date
+      return [...filtered].sort((a, b) => {
+        const dateA = a.lastMessageDate ? new Date(a.lastMessageDate).getTime() : 0
+        const dateB = b.lastMessageDate ? new Date(b.lastMessageDate).getTime() : 0
+        return dateB - dateA
+      })
+    }
+  }
+
+  // 2. Handle "All Chats" or specific types (user/group/channel)
+  let filtered = chatsFiltered.value
+  if (activeChatGroup.value !== '') {
+    filtered = filtered.filter(chat => chat.type === activeChatGroup.value)
+  }
+
+  // Use global pinning only for non-folder views (especially All Chats)
+  return [...filtered].sort((a, b) => {
+    if (a.pinned && !b.pinned)
+      return -1
+    if (!a.pinned && b.pinned)
+      return 1
+
+    const dateA = a.lastMessageDate ? new Date(a.lastMessageDate).getTime() : 0
+    const dateB = b.lastMessageDate ? new Date(b.lastMessageDate).getTime() : 0
+    return dateB - dateA
+  })
 })
+
+function isChatPinned(chat: CoreDialog) {
+  // Only show pin icon in non-folder views
+  if (activeChatGroup.value === 'folder')
+    return false
+  return chat.pinned
+}
 
 function toggleActiveChatGroup(group: ChatGroup) {
   selectedGroup.value = group
+  if (group !== 'folder') {
+    selectedFolderId.value = undefined
+  }
+}
+
+function selectFolder(folderId: number) {
+  selectedGroup.value = 'folder'
+  selectedFolderId.value = folderId
 }
 
 /**
@@ -87,34 +156,32 @@ watch(activeGroupChats, (list) => {
 
 <template>
   <div class="min-h-0 flex flex-1 flex-col border-t">
-    <!-- Tab selector -->
-    <div class="flex items-center gap-1 border-b p-2">
-      <button
-        :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'user' }"
-        class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-        @click="toggleActiveChatGroup('user')"
+    <!-- Folder/Tab selector -->
+    <div class="flex flex-col border-b">
+      <div
+        class="no-scrollbar flex items-center gap-2 overflow-x-auto px-2 py-2"
       >
-        <span class="i-lucide-user h-4 w-4" />
-        <span>{{ t('chatGroups.user') }}</span>
-      </button>
+        <!-- All Chats (Special Folder) -->
+        <button
+          :class="{ 'bg-accent text-accent-foreground': activeChatGroup === '' }"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          @click="toggleActiveChatGroup('')"
+        >
+          <span class="i-lucide-layers h-4 w-4" />
+          <span>{{ t('chatGroups.all') }}</span>
+        </button>
 
-      <button
-        :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'group' }"
-        class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-        @click="toggleActiveChatGroup('group')"
-      >
-        <span class="i-lucide-users h-4 w-4" />
-        <span>{{ t('chatGroups.group') }}</span>
-      </button>
-
-      <button
-        :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'channel' }"
-        class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-        @click="toggleActiveChatGroup('channel')"
-      >
-        <span class="i-lucide-message-circle h-4 w-4" />
-        <span>{{ t('chatGroups.channel') }}</span>
-      </button>
+        <!-- Dynamic Folders -->
+        <button
+          v-for="folder in folders"
+          :key="folder.id"
+          :class="{ 'bg-accent text-accent-foreground': activeChatGroup === 'folder' && selectedFolderId === folder.id }"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          @click="selectFolder(folder.id)"
+        >
+          <span>{{ folder.title }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Chat list -->
@@ -144,7 +211,7 @@ watch(activeGroupChats, (list) => {
                   {{ chat.name }}
                 </span>
                 <span
-                  v-if="chat.pinned"
+                  v-if="isChatPinned(chat)"
                   class="i-lucide-pin h-3 w-3 shrink-0 rotate-45 text-muted-foreground/60"
                 />
               </div>
@@ -158,3 +225,13 @@ watch(activeGroupChats, (list) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

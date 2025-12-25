@@ -50,6 +50,7 @@
     "typeAMessage": "输入消息..."
   },
   "chatGroups": {
+    "all": "全部",
     "channel": "频道",
     "group": "群组",
     "user": "用户"

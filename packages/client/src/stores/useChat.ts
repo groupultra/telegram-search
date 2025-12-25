@@ -1,4 +1,4 @@
-import type { CoreDialog } from '@tg-search/core'
+import type { CoreChatFolder, CoreDialog } from '@tg-search/core'
 
 import { useLogger } from '@guiiai/logg'
 import { useLocalStorage } from '@vueuse/core'
@@ -11,6 +11,7 @@ import { useBridgeStore } from '../composables/useBridge'
 export const useChatStore = defineStore('chat', () => {
   const bridgeStore = useBridgeStore()
   const allChats = useLocalStorage<Record<string, CoreDialog[]>>('v2/chat/chats', {})
+  const allFolders = useLocalStorage<Record<string, CoreChatFolder[]>>('v2/chat/folders', {})
 
   const chats = computed({
     get: () => {
@@ -43,12 +44,35 @@ export const useChatStore = defineStore('chat', () => {
     },
   })
 
+  const folders = computed({
+    get: () => {
+      const userId = bridgeStore.activeSession?.me?.id
+      if (!userId)
+        return []
+      return allFolders.value[userId] ?? []
+    },
+    set: (v) => {
+      const userId = bridgeStore.activeSession?.me?.id
+      if (!userId)
+        return
+
+      allFolders.value = {
+        ...allFolders.value,
+        [userId]: v,
+      }
+    },
+  })
+
   function getChat(id: string) {
     return chats.value.find(chat => chat.id === Number(id))
   }
 
   function fetchChats() {
     bridgeStore.sendEvent('dialog:fetch')
+  }
+
+  function fetchFolders() {
+    bridgeStore.sendEvent('dialog:folders:fetch')
   }
 
   function init() {
@@ -64,13 +88,18 @@ export const useChatStore = defineStore('chat', () => {
       if (!IS_CORE_MODE)
         bridgeStore.sendEvent('storage:fetch:dialogs')
     }
+
+    if (folders.value.length === 0)
+      fetchFolders()
   }
 
   return {
     init,
     getChat,
     fetchChats,
+    fetchFolders,
     chats,
+    folders,
   }
 })
 

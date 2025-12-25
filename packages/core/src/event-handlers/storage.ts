@@ -3,7 +3,7 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext } from '../context'
 import type { Models } from '../models'
 import type { DBRetrievalMessages } from '../models/utils/message'
-import type { CoreDialog } from '../types/dialog'
+import type { CoreChatFolder, CoreDialog } from '../types/dialog'
 import type { CoreMessage } from '../types/message'
 
 import { convertToCoreRetrievalMessages } from '../models/utils/message'
@@ -105,6 +105,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         messageCount: chatMessageStats?.message_count,
         lastMessageDate: chat.dialog_date ? new Date(chat.dialog_date) : undefined,
         pinned: !!chat.is_pinned,
+        folderIds: (chat as any).folder_ids ?? [],
         accessHash: chat.access_hash ?? undefined,
       } satisfies CoreDialog
     })
@@ -127,6 +128,13 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     const result = await dbModels.chatModels.recordChats(ctx.getDB(), dialogs, accountId)
     logger.withFields({ count: result.length }).verbose('Successfully recorded dialogs')
+  })
+
+  ctx.emitter.on('storage:record:chat-folders', async ({ folders, accountId }) => {
+    logger.withFields({ count: folders.length }).verbose('Recording chat folders mapping')
+
+    await dbModels.chatModels.updateChatFolders(ctx.getDB(), accountId, folders)
+    logger.verbose('Successfully updated chat folders mapping')
   })
 
   ctx.emitter.on('storage:search:messages', async (params) => {
