@@ -5,7 +5,6 @@ import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed } from 'vue'
 
-import { IS_CORE_MODE } from '../../constants'
 import { useBridgeStore } from '../composables/useBridge'
 
 export const useChatStore = defineStore('chat', () => {
