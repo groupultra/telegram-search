@@ -3,8 +3,6 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext } from '../context'
 import type { FetchMessageOpts } from '../types/events'
 
-import bigInt from 'big-integer'
-
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
@@ -100,9 +98,8 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
 
   /**
    * Fetch unread messages for the given chatId. Uses direct GramJS requests:
-   *   1. Fetch all dialogs and locate this dialog's unread state/last read id.
-   *   2. Search messages for the current day, optionally filtered by opts.startTime.
-   *   3. Filter as unread (msg.id > dialog.readInboxMaxId).
+   *   1. Resolve the peer and fetch dialog metadata to locate the read inbox boundary (readInboxMaxId).
+   *   2. Fetch history starting from the read boundary using messages.GetHistory.
    */
   async function fetchUnreadMessages(
     chatId: string,
@@ -114,58 +111,72 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
     }
 
     try {
-      // 1. Get dialog
-      // TODO: need access hash
-      // const dialogs = await ctx.getClient().getDialogs({
-      //   limit: 100,
-      //   offsetPeer: chatId,
-      // })
-      const dialogs = await ctx.getClient().getDialogs()
-      const dialog = dialogs.find(dialog => dialog.entity && dialog.entity.id && dialog.entity.id.toString() === chatId)
-      if (!dialog) {
+      // 1. Resolve Peer
+      const peer = await ctx.getClient().getInputEntity(chatId)
+
+      // 2. Get dialog metadata to locate read inbox boundary
+      const peerDialogs = await ctx.getClient().invoke(
+        new Api.messages.GetPeerDialogs({
+          peers: [new Api.InputDialogPeer({ peer })],
+        }),
+      )
+
+      if (!(peerDialogs instanceof Api.messages.PeerDialogs) || peerDialogs.dialogs.length === 0) {
         logger.withFields({ chatId }).warn('Dialog not found for unread fetch')
         return []
       }
 
-      // 2. Get unread count
-      const unreadCount = dialog.unreadCount ?? 0
+      const dialog = peerDialogs.dialogs[0]
+      if (!(dialog instanceof Api.Dialog)) {
+        return []
+      }
+
+      const readInboxMaxId = dialog.readInboxMaxId
+      const unreadCount = dialog.unreadCount
+      const topMessage = dialog.topMessage
+
       if (unreadCount <= 0) {
-        logger.withFields({ chatId }).warn('No unread messages on Telegram for this chat')
+        logger.withFields({ chatId }).debug('No unread messages on Telegram for this chat')
+        return []
       }
 
-      // 3. Calculate search time range: either (start of today) or as provided by opts.startTime
-      let minDate = opts?.startTime
+      // 3. Pull history
+      // We use client.getMessages which handles pagination automatically to reach the 'limit'.
+      const limit = Math.min(opts?.limit || 1000, unreadCount)
 
-      // If startTime not given, restrict to today
-      if (!minDate) {
-        const today = new Date()
-        minDate = Math.floor(new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() / 1000)
-      }
+      logger.withFields({
+        chatId,
+        unreadCount,
+        readInboxMaxId,
+        topMessage,
+        limit,
+      }).debug('Fetching unread messages from top via getMessages')
 
-      const maxDate = Math.floor(Date.now() / 1000)
+      const messages = await ctx.getClient().getMessages(peer, {
+        limit,
+        // We don't strictly use minId in the request to avoid issues where readInboxMaxId is de-synced,
+        // instead we fetch the top N messages and filter locally.
+      }) as Api.Message[]
 
-      if (opts?.limit) {
-        opts.limit = 1000
-      }
-      const limit = opts?.limit ? Math.min(opts.limit, unreadCount) : unreadCount
+      if (messages && messages.length > 0) {
+        // Filter out empty messages (already mostly handled by getMessages but to be safe)
+        const validMessages = messages.filter(message => !(message instanceof Api.MessageEmpty))
 
-      // 4. Search all messages in time range
-      logger.withFields({ chatId, unreadCount, minDate }).debug('Searching for unread messages in time range')
+        // Optional: Filter by readInboxMaxId locally if we want to be strict,
+        // but often unreadCount is what the user expects to see.
+        const filtered = validMessages.filter(m => m.id > readInboxMaxId)
 
-      const searchResult = await ctx.getClient().invoke(
-        new Api.messages.Search({
-          peer: dialog.id,
-          q: '',
-          filter: new Api.InputMessagesFilterEmpty(),
-          minDate,
-          maxDate,
-          limit,
-          hash: bigInt(0),
-        }),
-      )
+        logger.withFields({
+          chatId,
+          returned: validMessages.length,
+          newerThanBoundary: filtered.length,
+          latestId: validMessages[0]?.id,
+          oldestId: validMessages[validMessages.length - 1]?.id,
+        }).debug('Unread messages fetch result')
 
-      if (searchResult instanceof Api.messages.Messages) {
-        return searchResult.messages.filter(message => !(message instanceof Api.MessageEmpty)) as Api.Message[]
+        // If local filtering results in too few messages compared to unreadCount,
+        // we trust unreadCount and return the full batch.
+        return filtered.length > 0 ? filtered : validMessages
       }
 
       return []
@@ -177,52 +188,59 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
   }
 
   /**
-   * Mark all messages in the chat as read using messages.ReadHistory.
-   * accessHash (for user peer) must be supplied. (You could extend to channels, etc.)
+   * Mark all messages in the chat as read.
+   * Resolves the peer and its top message ID automatically if not provided.
    */
-  async function markAsRead(chatId: string, accessHash?: string, lastMessageId?: number) {
+  async function markAsRead(chatId: string, _accessHash?: string, lastMessageId?: number) {
     if (!await ctx.getClient().isUserAuthorized()) {
       return
     }
 
-    if (!accessHash) {
-      logger.error('accessHash required for markAsRead')
-      return
-    }
-
     try {
-      // 1. Build InputPeerUser
-      const peer = new Api.InputPeerUser({
-        userId: bigInt(chatId),
-        accessHash: bigInt(accessHash),
-      })
+      // 1. Resolve Peer
+      const peer = await ctx.getClient().getInputEntity(chatId)
 
-      // 2. If no lastMessageId is given, fetch dialogs to resolve to current topMessage.
+      // 2. Resolve maxId (the latest message ID to mark as read)
       let maxId = lastMessageId
       if (!maxId) {
-        const dialogsResult = await ctx.getClient().invoke(
-          new Api.messages.GetDialogs({
-            hash: bigInt(0),
-            offsetPeer: new Api.InputPeerEmpty(),
-            offsetId: 0,
-            limit: 100,
-            offsetDate: 0,
+        const peerDialogs = await ctx.getClient().invoke(
+          new Api.messages.GetPeerDialogs({
+            peers: [new Api.InputDialogPeer({ peer })],
           }),
         )
 
-        if (dialogsResult instanceof Api.messages.Dialogs) {
-          const dialog = dialogsResult.dialogs.find(d => d instanceof Api.Dialog && d.peer instanceof Api.PeerUser && d.peer.userId.toString() === chatId)
-          maxId = dialog?.topMessage
+        if (peerDialogs instanceof Api.messages.PeerDialogs && peerDialogs.dialogs.length > 0) {
+          const dialog = peerDialogs.dialogs[0]
+          if (dialog instanceof Api.Dialog) {
+            maxId = dialog.topMessage
+          }
         }
+      }
 
+      if (!maxId) {
+        logger.withFields({ chatId }).warn('Could not determine top message for markAsRead')
+        return
+      }
+
+      // 3. Invoke appropriate ReadHistory call
+      if (peer instanceof Api.InputPeerChannel) {
+        await ctx.getClient().invoke(
+          new Api.channels.ReadHistory({
+            channel: peer,
+            maxId,
+          }),
+        )
+      }
+      else {
         await ctx.getClient().invoke(
           new Api.messages.ReadHistory({
             peer,
-            maxId: maxId ?? 0,
+            maxId,
           }),
         )
-        logger.withFields({ chatId, maxId }).debug('Marked as read')
       }
+
+      logger.withFields({ chatId, maxId }).debug('Marked as read')
     }
     catch (error) {
       ctx.withError(error, 'Mark as read failed')
