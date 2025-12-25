@@ -3,7 +3,7 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext } from '../context'
 import type { Models } from '../models'
 import type { DBRetrievalMessages } from '../models/utils/message'
-import type { CoreChatFolder, CoreDialog } from '../types/dialog'
+import type { CoreDialog } from '../types/dialog'
 import type { CoreMessage } from '../types/message'
 
 import { convertToCoreRetrievalMessages } from '../models/utils/message'
