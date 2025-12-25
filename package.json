@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.1.41",
   "private": true,
-  "packageManager": "pnpm@10.26.1",
+  "packageManager": "pnpm@10.26.2",
   "engines": {
     "node": ">=24.12.0"
   },
@@ -42,10 +42,10 @@
     "@guiiai/logg": "catalog:"
   },
   "devDependencies": {
-    "@moeru/eslint-config": "0.1.0-beta.13",
+    "@moeru/eslint-config": "0.1.0-beta.14",
     "@types/node": "^25.0.3",
     "@vitest/coverage-v8": "^4.0.16",
-    "@vitest/ui": "4.0.15",
+    "@vitest/ui": "4.0.16",
     "bumpp": "^10.3.2",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.8",
@@ -53,7 +53,7 @@
     "taze": "^19.9.2",
     "tsdown": "catalog:",
     "typescript": "^5.9.3",
-    "vite": "npm:rolldown-vite@7.2.11",
+    "vite": "npm:rolldown-vite@7.3.0",
     "vitest": "^4.0.16"
   }
 }
