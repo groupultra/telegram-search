@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { bigint, pgTable, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { bigint, boolean, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
 import { accountsTable } from './accounts'
 import { joinedChatsTable } from './joined-chats'
@@ -8,6 +8,8 @@ export const accountJoinedChatsTable = pgTable('account_joined_chats', {
   id: uuid().primaryKey().defaultRandom(),
   account_id: uuid().notNull().references(() => accountsTable.id, { onDelete: 'cascade' }),
   joined_chat_id: uuid().notNull().references(() => joinedChatsTable.id, { onDelete: 'cascade' }),
+  is_pinned: boolean().notNull().default(false),
+  access_hash: text(),
   created_at: bigint({ mode: 'number' }).notNull().$defaultFn(() => Date.now()),
 }, table => [
   uniqueIndex('account_joined_chats_account_joined_chat_unique_index').on(table.account_id, table.joined_chat_id),

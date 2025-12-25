@@ -17,7 +17,19 @@ export const useChatStore = defineStore('chat', () => {
       const userId = bridgeStore.activeSession?.me?.id
       if (!userId)
         return []
-      return allChats.value[userId] ?? []
+      const list = allChats.value[userId] ?? []
+      return [...list].sort((a, b) => {
+        // Pinned chats first
+        if (a.pinned && !b.pinned)
+          return -1
+        if (!a.pinned && b.pinned)
+          return 1
+
+        // Then by last message date
+        const dateA = a.lastMessageDate ? new Date(a.lastMessageDate).getTime() : 0
+        const dateB = b.lastMessageDate ? new Date(b.lastMessageDate).getTime() : 0
+        return dateB - dateA
+      })
     },
     set: (v) => {
       const userId = bridgeStore.activeSession?.me?.id

@@ -139,9 +139,15 @@ watch(activeGroupChats, (list) => {
               size="sm"
             />
             <div class="min-w-0 flex flex-1 flex-col">
-              <span class="truncate text-sm font-medium">
-                {{ chat.name }}
-              </span>
+              <div class="flex items-center gap-1.5">
+                <span class="truncate text-sm font-medium">
+                  {{ chat.name }}
+                </span>
+                <span
+                  v-if="chat.pinned"
+                  class="i-lucide-pin h-3 w-3 shrink-0 rotate-45 text-muted-foreground/60"
+                />
+              </div>
               <span class="truncate text-xs text-muted-foreground">
                 {{ chat.id }}
               </span>

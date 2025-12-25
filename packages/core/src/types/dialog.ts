@@ -12,4 +12,6 @@ export interface CoreDialog {
   avatarFileId?: string
   avatarUpdatedAt?: Date
   avatarBlobUrl?: string
+  pinned?: boolean
+  accessHash?: string
 }

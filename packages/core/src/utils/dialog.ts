@@ -18,6 +18,7 @@ export function resolveDialog(dialog: Dialog): Result<{
   type: DialogType
   avatarFileId?: string
   avatarUpdatedAt?: Date
+  accessHash?: string
 }> {
   const { isGroup, isChannel, isUser } = dialog
   let type: DialogType
@@ -46,11 +47,21 @@ export function resolveDialog(dialog: Dialog): Result<{
 
   // Extract avatar fileId if possible for cache hinting
   let avatarFileId: string | undefined
+  let accessHash: string | undefined
   try {
-    if (dialog.entity instanceof Api.User && dialog.entity.photo && 'photoId' in dialog.entity.photo) {
-      avatarFileId = (dialog.entity.photo as Api.UserProfilePhoto).photoId?.toString()
+    if (dialog.entity instanceof Api.User) {
+      if (dialog.entity.photo && 'photoId' in dialog.entity.photo) {
+        avatarFileId = (dialog.entity.photo as Api.UserProfilePhoto).photoId?.toString()
+      }
+      accessHash = dialog.entity.accessHash?.toString()
     }
-    else if ((dialog.entity instanceof Api.Chat || dialog.entity instanceof Api.Channel) && dialog.entity.photo && 'photoId' in dialog.entity.photo) {
+    else if (dialog.entity instanceof Api.Channel) {
+      if (dialog.entity.photo && 'photoId' in dialog.entity.photo) {
+        avatarFileId = (dialog.entity.photo as Api.ChatPhoto).photoId?.toString()
+      }
+      accessHash = dialog.entity.accessHash?.toString()
+    }
+    else if (dialog.entity instanceof Api.Chat && dialog.entity.photo && 'photoId' in dialog.entity.photo) {
       avatarFileId = (dialog.entity.photo as Api.ChatPhoto).photoId?.toString()
     }
   }
@@ -62,5 +73,6 @@ export function resolveDialog(dialog: Dialog): Result<{
     type,
     avatarFileId,
     avatarUpdatedAt: undefined,
+    accessHash,
   })
 }
