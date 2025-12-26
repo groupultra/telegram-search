@@ -25,11 +25,12 @@ export const useAccountStore = defineStore('account', () => {
 
   // --- Account State ---
   const accountSettings = ref(generateDefaultAccountSettings())
-  const isReady = ref(false)
 
   const { activeSession } = storeToRefs(bridgeStore)
   // isLoggedIn is true if the session exists and is marked ready (authenticated)
-  const isLoggedInComputed = computed(() => activeSession.value?.isReady)
+  // Source of truth is the SessionStore (activeSession).
+  const isReady = computed(() => !!activeSession.value?.isReady)
+  const isLoggedInComputed = computed(() => !!activeSession.value?.isReady)
 
   // --- Actions: Auth ---
 
@@ -103,7 +104,7 @@ export const useAccountStore = defineStore('account', () => {
     if (isReady.value)
       return
 
-    isReady.value = true
+    logger.verbose('Marking account as ready')
 
     if (activeSession.value) {
       activeSession.value.isReady = true
@@ -111,10 +112,15 @@ export const useAccountStore = defineStore('account', () => {
 
     logger.verbose('Fetching config for new session')
     bridgeStore.sendEvent('config:fetch')
+
+    // Trigger post-auth bootstrap (chat loading, etc)
+    useChatStore().init()
   }
 
   function resetReady() {
-    isReady.value = false
+    if (activeSession.value) {
+      activeSession.value.isReady = false
+    }
   }
 
   // --- Watchers ---
@@ -171,7 +177,7 @@ export const useAccountStore = defineStore('account', () => {
     // State
     auth: authStatus,
     accountSettings,
-    isReady: computed(() => isReady.value),
+    isReady,
     isLoggedIn: isLoggedInComputed,
     activeSession,
 

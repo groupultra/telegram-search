@@ -105,6 +105,6 @@ export function registerDialogEventHandlers(
     // Clean up ArrayBuffer references to help the GC reclaim memory
     buffer = undefined
 
-    logger.withFields({ chatId: data.chatId, fileId: data.fileId }).warn('Updated chat avatar')
+    logger.withFields({ chatId: data.chatId, fileId: data.fileId }).debug('Updated chat avatar')
   })
 }

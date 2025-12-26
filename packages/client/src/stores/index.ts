@@ -1,7 +1,6 @@
 export * from './useAccount'
 export * from './useAIChat'
 export * from './useAvatar'
-export * from './useBootstrap'
 export * from './useChat'
 export * from './useMessage'
 export * from './useSettings'
