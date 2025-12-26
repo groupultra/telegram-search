@@ -30,7 +30,7 @@
     "@unbird/result": "catalog:",
     "crossws": "^0.4.1",
     "figlet": "^1.9.4",
-    "file-type": "^21.1.1",
+    "file-type": "^21.2.0",
     "h3": "^2.0.1-rc.6",
     "minio": "^8.0.6",
     "uuid": "^13.0.0"
