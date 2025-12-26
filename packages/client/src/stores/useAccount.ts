@@ -38,19 +38,22 @@ export const useAccountStore = defineStore('account', () => {
    * Best-effort auto-login using stored Telegram session string.
    */
   const attemptLogin = async () => {
-    const session = activeSession.value
+    if (activeSession.value?.isReady) {
+      if (!activeSession.value?.session) {
+        logger.verbose('No session, skipping login')
+        return
+      }
 
-    if (session?.isReady || !session?.session) {
-      logger.verbose('No need to login', { session })
+      logger.verbose('Account is ready, fetching dialogs')
 
-      useChatStore().fetchChats()
+      useChatStore().fetchStorageDialogs()
       return
     }
 
     resetReady()
     logger.log('Attempting login')
     bridgeStore.sendEvent('auth:login', {
-      session: session.session,
+      session: activeSession.value?.session,
     })
   }
 
