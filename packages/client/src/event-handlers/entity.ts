@@ -1,9 +1,10 @@
 import type { ClientRegisterEventHandler } from '.'
 
 import { useLogger } from '@guiiai/logg'
+import { storeToRefs } from 'pinia'
 
-import { useBridgeStore } from '../composables/useBridge'
 import { useAvatarStore } from '../stores/useAvatar'
+import { useSessionStore } from '../stores/useSession'
 import { persistUserAvatar } from '../utils/avatar-cache'
 import { bytesToBlob, canDecodeAvatar } from '../utils/image'
 
@@ -15,11 +16,10 @@ export function registerEntityEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
   registerEventHandler('entity:me:data', (data) => {
-    const bridgeStore = useBridgeStore()
+    const { activeSession } = storeToRefs(useSessionStore())
 
-    const activeSession = bridgeStore.activeSession
-    if (activeSession)
-      activeSession.me = data
+    if (activeSession.value)
+      activeSession.value.me = data
   })
 
   // User avatar bytes -> blob url

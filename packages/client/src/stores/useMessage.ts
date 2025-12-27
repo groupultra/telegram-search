@@ -5,7 +5,7 @@ import { useLogger } from '@guiiai/logg'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-import { useBridgeStore } from '../composables/useBridge'
+import { useBridge } from '../composables/useBridge'
 import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
 import { determineMessageDirection } from '../utils/message'
@@ -20,7 +20,7 @@ export const useMessageStore = defineStore('message', () => {
   const currentChatId = ref<string>()
   const messageWindow = ref<MessageWindow>()
 
-  const websocketStore = useBridgeStore()
+  const bridge = useBridge()
 
   const logger = useLogger('MessageStore')
 
@@ -61,14 +61,14 @@ export const useMessageStore = defineStore('message', () => {
     const after = options.after ?? 20
     const limit = options.limit ?? Math.max(messageWindow.value?.maxSize ?? 0, before + after + 1, 50)
 
-    websocketStore.sendEvent('storage:fetch:message-context', {
+    bridge.sendEvent('storage:fetch:message-context', {
       chatId,
       messageId,
       before,
       after,
     })
 
-    const { messages } = await websocketStore.waitForEvent('storage:messages:context')
+    const { messages } = await bridge.waitForEvent('storage:messages:context')
 
     replaceMessages(messages, { chatId, limit })
 
@@ -127,10 +127,10 @@ export const useMessageStore = defineStore('message', () => {
       // Then, fetch the messages from server & update the cache
       switch (direction) {
         case 'older':
-          websocketStore.sendEvent('message:fetch', { chatId, pagination })
+          bridge.sendEvent('message:fetch', { chatId, pagination })
           break
         case 'newer':
-          websocketStore.sendEvent('message:fetch', {
+          bridge.sendEvent('message:fetch', {
             chatId,
             pagination: {
               offset: 0,
@@ -142,8 +142,8 @@ export const useMessageStore = defineStore('message', () => {
       }
 
       Promise.race([
-        websocketStore.waitForEvent('message:data'),
-        websocketStore.waitForEvent('storage:messages'),
+        bridge.waitForEvent('message:data'),
+        bridge.waitForEvent('storage:messages'),
         createContextWithTimeout(10000),
       ]).catch(() => {
         logger.warn('Message fetch timed out or failed')

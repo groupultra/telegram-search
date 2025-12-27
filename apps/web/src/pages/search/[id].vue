@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
-import { useBridgeStore } from '@tg-search/client'
+import { useBridge } from '@tg-search/client'
 import { useDebounce } from '@vueuse/core'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -20,7 +20,7 @@ const showSettings = ref(false)
 const keyword = ref<string>('')
 const keywordDebounced = useDebounce(keyword, 1000)
 
-const websocketStore = useBridgeStore()
+const bridge = useBridge()
 const searchResult = ref<CoreRetrievalMessages[]>([])
 
 // TODO: Infinite scroll
@@ -31,7 +31,7 @@ watch(keywordDebounced, (newKeyword) => {
   }
 
   isLoading.value = true
-  websocketStore.sendEvent('storage:search:messages', {
+  bridge.sendEvent('storage:search:messages', {
     chatId: id,
     content: newKeyword,
     useVector: true,
@@ -41,7 +41,7 @@ watch(keywordDebounced, (newKeyword) => {
     },
   })
 
-  websocketStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+  bridge.waitForEvent('storage:search:messages:data').then(({ messages }) => {
     searchResult.value = messages
     isLoading.value = false
   })

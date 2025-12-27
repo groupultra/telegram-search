@@ -4,14 +4,15 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
-import { useBridgeStore } from '../composables/useBridge'
+import { useBridge } from '../composables/useBridge'
 import { useChatStore } from './useChat'
 import { useMessageStore } from './useMessage'
 import { useSessionStore } from './useSession'
 
 export const useAccountStore = defineStore('account', () => {
   const logger = useLogger('AccountStore')
-  const bridgeStore = useBridgeStore()
+  const bridge = useBridge()
+  const sessionStore = useSessionStore()
 
   // --- Auth State ---
   const authStatus = ref({
@@ -36,7 +37,7 @@ export const useAccountStore = defineStore('account', () => {
    */
   const attemptLogin = async () => {
     if (isReady.value) {
-      if (!useSessionStore().activeSession?.session) {
+      if (!sessionStore.activeSession?.session) {
         logger.verbose('No session, skipping login')
         return
       }
@@ -49,47 +50,50 @@ export const useAccountStore = defineStore('account', () => {
 
     resetReady()
     logger.log('Attempting login')
-    bridgeStore.sendEvent('auth:login', { session: useSessionStore().activeSession?.session })
+    bridge.sendEvent('auth:login', { session: sessionStore.activeSession?.session })
   }
 
   function handleAuth() {
     function login(phoneNumber: string) {
       // NOTICE: session cloud be undefined, we determine it login with phone number as new login
-      const session = useSessionStore().activeSession?.session
+      const session = sessionStore.activeSession?.session
 
-      bridgeStore.sendEvent('auth:login', {
+      bridge.sendEvent('auth:login', {
         phoneNumber,
         session,
       })
     }
 
     function submitCode(code: string) {
-      bridgeStore.sendEvent('auth:code', { code })
+      bridge.sendEvent('auth:code', { code })
     }
 
     function submitPassword(password: string) {
-      bridgeStore.sendEvent('auth:password', { password })
+      bridge.sendEvent('auth:password', { password })
     }
 
     function logout() {
-      bridgeStore.logoutCurrentAccount()
+      // 1. Notify backend (while connection still alive)
+      bridge.sendEvent('auth:logout', undefined)
+      // 2. Remove local session
+      sessionStore.removeCurrentAccount()
     }
 
     function switchAccount(sessionId: string) {
       // When switching accounts, clear message window/state so that chats
       // from the previous account do not bleed into the new one.
       useMessageStore().reset()
-      bridgeStore.switchAccount(sessionId)
+      sessionStore.switchAccount(sessionId)
       resetReady()
     }
 
     function addNewAccount() {
-      useSessionStore().addNewAccount()
+      sessionStore.addNewAccount()
       resetReady()
     }
 
     function getAllAccounts() {
-      return Object.values(useSessionStore().sessions)
+      return Object.values(sessionStore.sessions)
     }
 
     return { login, submitCode, submitPassword, logout, switchAccount, addNewAccount, getAllAccounts }
@@ -103,7 +107,7 @@ export const useAccountStore = defineStore('account', () => {
 
     logger.verbose('Marking account as ready (step 1/2)')
     logger.verbose('Fetching config for new session')
-    bridgeStore.sendEvent('config:fetch')
+    bridge.sendEvent('config:fetch')
 
     // Trigger post-auth bootstrap (chat loading, etc)
     // isReady will be set to true only after critical data (dialogs) is received
@@ -134,7 +138,7 @@ export const useAccountStore = defineStore('account', () => {
   watch(
     () => isReady.value,
     (isReadyState, prevReady) => {
-      const hasSession = !!useSessionStore().activeSession?.session
+      const hasSession = !!sessionStore.activeSession?.session
 
       if (isReadyState) {
         // Successful (re)connection: clear any pending reconnects and reset attempts.

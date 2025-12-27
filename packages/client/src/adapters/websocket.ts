@@ -80,16 +80,17 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
   // Explicitly watch URL to open/close if it transitions between undefined/defined
   watch(wsUrlComputed, (url) => {
     if (url) {
-        // useWebSocket might not auto-open if it started as undefined
-        // @ts-expect-error - open exists
-        wsSocket.open()
-    } else {
-        wsSocket.close()
+      // useWebSocket might not auto-open if it started as undefined
+      wsSocket.open()
+    }
+    else {
+      wsSocket.close()
     }
   })
 
   function init() {
-    if (isInitialized.value) return
+    if (isInitialized.value)
+      return
     logger.verbose('Initializing websocket adapter')
     sessionStore.ensureSessionInvariants()
     isInitialized.value = true
@@ -106,7 +107,8 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
   }
 
   watch(wsSocket.data, (rawMessage) => {
-    if (!rawMessage) return
+    if (!rawMessage)
+      return
     try {
       const message = JSON.parse(rawMessage) as WsMessageToClient
       if (eventHandlers.has(message.type)) {
@@ -114,7 +116,10 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
       }
       if (eventHandlers.has(message.type)) {
         const fn = eventHandlers.get(message.type)
-        try { if (fn) fn(message.data) }
+        try {
+          if (fn)
+            fn(message.data)
+        }
         catch (error) { logger.withError(error).withFields({ message }).error('Error handling event') }
       }
       if (eventHandlersQueue.has(message.type)) {

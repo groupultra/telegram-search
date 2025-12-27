@@ -34,7 +34,8 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
 
   // React to session switches: Destroy old context, create new one
   watch(activeSessionId, (newId, oldId) => {
-    if (!oldId || newId === oldId) return
+    if (!oldId || newId === oldId)
+      return
 
     logger.withFields({ oldId, newId }).debug('Active session changed, destroying CoreContext')
     coreRuntime.destroy().then(() => {
@@ -128,7 +129,11 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
   function sendWsEvent(event: WsMessageToClient) {
     logger.withFields({ event }).debug('Event send to bridge')
     if (eventHandlers.has(event.type)) {
-      try { eventHandlers.get(event.type)?.(deepClone(event.data) as any) }
+      try {
+        const fn = eventHandlers.get(event.type)
+        if (fn)
+          fn(deepClone(event.data) as any)
+      }
       catch (error) { logger.withError(error).error('Failed to handle event') }
     }
     if (eventHandlersQueue.has(event.type)) {

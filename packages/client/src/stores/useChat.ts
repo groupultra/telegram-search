@@ -5,17 +5,19 @@ import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed } from 'vue'
 
-import { useBridgeStore } from '../composables/useBridge'
+import { useBridge } from '../composables/useBridge'
+import { useSessionStore } from './useSession'
 
 export const useChatStore = defineStore('chat', () => {
-  const bridgeStore = useBridgeStore()
+  const sessionStore = useSessionStore()
+  const bridge = useBridge()
   const allChats = useLocalStorage<Record<string, CoreDialog[]>>('v2/chat/chats', {})
   const allFolders = useLocalStorage<Record<string, CoreChatFolder[]>>('v2/chat/folders', {})
   const logger = useLogger('ChatStore')
 
   const chats = computed({
     get: () => {
-      const userId = bridgeStore.activeSession?.me?.id
+      const userId = sessionStore.activeSession?.me?.id
       if (!userId)
         return []
       const list = allChats.value[userId] ?? []
@@ -33,7 +35,7 @@ export const useChatStore = defineStore('chat', () => {
       })
     },
     set: (v) => {
-      const userId = bridgeStore.activeSession?.me?.id
+      const userId = sessionStore.activeSession?.me?.id
       if (!userId)
         return
 
@@ -46,13 +48,13 @@ export const useChatStore = defineStore('chat', () => {
 
   const folders = computed({
     get: () => {
-      const userId = bridgeStore.activeSession?.me?.id
+      const userId = sessionStore.activeSession?.me?.id
       if (!userId)
         return []
       return allFolders.value[userId] ?? []
     },
     set: (v) => {
-      const userId = bridgeStore.activeSession?.me?.id
+      const userId = sessionStore.activeSession?.me?.id
       if (!userId)
         return
 
@@ -69,16 +71,16 @@ export const useChatStore = defineStore('chat', () => {
 
   function fetchChats() {
     logger.log('Fetching chats')
-    bridgeStore.sendEvent('dialog:fetch')
+    bridge.sendEvent('dialog:fetch')
   }
 
   function fetchStorageDialogs() {
-    bridgeStore.sendEvent('storage:fetch:dialogs')
+    bridge.sendEvent('storage:fetch:dialogs')
   }
 
   function fetchFolders() {
     logger.log('Fetching folders')
-    bridgeStore.sendEvent('dialog:folders:fetch')
+    bridge.sendEvent('dialog:folders:fetch')
   }
 
   function init() {

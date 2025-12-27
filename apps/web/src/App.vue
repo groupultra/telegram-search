@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useLogger } from '@guiiai/logg'
-import { evictExpiredOrOversized, useAccountStore, useAvatarStore, useBridgeStore } from '@tg-search/client'
+import { evictExpiredOrOversized, useAccountStore, useAvatarStore, useBridge } from '@tg-search/client'
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
 import { onBeforeUnmount, onMounted } from 'vue'
 import { RouterView } from 'vue-router'
@@ -13,7 +13,7 @@ onMounted(async () => {
 
   hideSplashScreen()
 
-  await useBridgeStore()?.init()
+  await useBridge().init()
   useAccountStore().init()
 })
 

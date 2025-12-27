@@ -7,7 +7,7 @@ import lottie from 'lottie-web'
 import pako from 'pako'
 
 import { useLogger } from '@guiiai/logg'
-import { getMediaBinaryProvider, hydrateMediaBlobWithCore, useBridgeStore, useSettingsStore } from '@tg-search/client'
+import { getMediaBinaryProvider, hydrateMediaBlobWithCore, useBridge, useSettingsStore } from '@tg-search/client'
 import { models } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -24,7 +24,7 @@ const props = defineProps<{
 
 const runtimeError = ref<string>()
 const { debugMode } = storeToRefs(useSettingsStore())
-const bridgeStore = useBridgeStore()
+const bridge = useBridge()
 const isReprocessing = ref(false)
 const hasPermanentError = ref(false)
 const currentSrc = ref<string | undefined>(undefined)
@@ -186,7 +186,7 @@ function sendReprocessForCurrentMessage(mediaType: 'Image' | 'Sticker') {
     return
   }
 
-  bridgeStore.sendEvent('message:reprocess', {
+  bridge.sendEvent('message:reprocess', {
     chatId: props.message.chatId,
     messageIds: [messageId],
     resolvers: ['media'],

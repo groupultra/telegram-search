@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
 
-import { useBridgeStore, useChatStore, useMessageStore, useSettingsStore } from '@tg-search/client'
+import { useBridge, useChatStore, useMessageStore, useSessionStore, useSettingsStore } from '@tg-search/client'
 import { useWindowSize } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -23,9 +23,9 @@ const id = route.params.id
 
 const chatStore = useChatStore()
 const messageStore = useMessageStore()
-const websocketStore = useBridgeStore()
+const bridge = useBridge()
 const { debugMode } = storeToRefs(useSettingsStore())
-const { activeSessionId } = storeToRefs(websocketStore)
+const { activeSessionId } = storeToRefs(useSessionStore())
 
 const { sortedMessageIds, messageWindow, sortedMessageArray } = storeToRefs(messageStore)
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
@@ -164,7 +164,7 @@ function sendMessage() {
   if (!messageInput.value.trim())
     return
 
-  websocketStore.sendEvent('message:send', {
+  bridge.sendEvent('message:send', {
     chatId: id.toString(),
     content: messageInput.value,
   })

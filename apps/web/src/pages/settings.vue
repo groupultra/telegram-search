@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAccountStore, useBridgeStore } from '@tg-search/client'
+import { useAccountStore, useBridge } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button'
 
 const { t } = useI18n()
 
+const bridge = useBridge()
 const { accountSettings } = storeToRefs(useAccountStore())
 
 // Message resolvers configuration
@@ -54,11 +55,11 @@ function updateConfig() {
   if (!accountSettings.value)
     return
 
-  useBridgeStore().sendEvent('config:update', { accountSettings: accountSettings.value })
+  bridge.sendEvent('config:update', { accountSettings: accountSettings.value })
   const toastId = toast.loading(t('settings.savingSettings'))
 
   Promise.race([
-    useBridgeStore().waitForEvent('config:data'),
+    bridge.waitForEvent('config:data'),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000)),
   ])
     .then(() => toast.success(t('settings.settingsSavedSuccessfully'), { id: toastId }))

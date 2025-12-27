@@ -2,7 +2,7 @@ import { useLogger } from '@guiiai/logg'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-import { useBridgeStore } from '../composables/useBridge'
+import { useBridge } from '../composables/useBridge'
 
 export interface AvatarEntry {
   id: string
@@ -23,7 +23,7 @@ const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
  * to retrieve and ensure avatar availability via core events.
  */
 export const useAvatarStore = defineStore('avatar', () => {
-  const websocketStore = useBridgeStore()
+  const bridge = useBridge()
 
   // In-memory caches
   const userAvatars = ref<Map<string, AvatarEntry>>(new Map())
@@ -179,7 +179,7 @@ export const useAvatarStore = defineStore('avatar', () => {
 
     try {
       inflightUserFetchIds.value.add(key)
-      websocketStore.sendEvent('entity:avatar:fetch', { userId: key, fileId })
+      bridge.sendEvent('entity:avatar:fetch', { userId: key, fileId })
     }
     catch (error) {
       useLogger('avatars').withError(error).warn('ensureUserAvatar sendEvent failed')
@@ -222,7 +222,7 @@ export const useAvatarStore = defineStore('avatar', () => {
       return
     try {
       inflightChatFetchIds.value.add(key)
-      websocketStore.sendEvent('dialog:avatar:fetch', { chatId: key })
+      bridge.sendEvent('dialog:avatar:fetch', { chatId: key })
     }
     catch (error) {
       useLogger('avatars').withError(error).warn('ensureChatAvatar sendEvent failed')

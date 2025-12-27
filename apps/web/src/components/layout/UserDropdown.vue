@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useAccountStore, useBridgeStore, useSessionStore } from '@tg-search/client'
+import { useAccountStore, useSessionStore } from '@tg-search/client'
 import { onClickOutside } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, useTemplateRef } from 'vue'
@@ -14,7 +14,7 @@ const router = useRouter()
 
 const accountStore = useAccountStore()
 const { isReady } = storeToRefs(accountStore)
-const { activeSessionId } = storeToRefs(useBridgeStore())
+const { activeSessionId } = storeToRefs(useSessionStore())
 const { activeSession } = storeToRefs(useSessionStore())
 
 const isOpen = defineModel<boolean>('open')

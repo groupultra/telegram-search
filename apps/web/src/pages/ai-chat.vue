@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
-import { useAccountStore, useAIChatStore, useBridgeStore, useChatStore } from '@tg-search/client'
+import { useAccountStore, useAIChatStore, useBridge, useChatStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -20,7 +20,7 @@ const router = useRouter()
 const aiChatStore = useAIChatStore()
 const { messages, isLoading, isSearching, searchStage, error } = storeToRefs(aiChatStore)
 
-const bridgeStore = useBridgeStore()
+const bridge = useBridge()
 
 const { accountSettings } = storeToRefs(useAccountStore())
 
@@ -84,12 +84,12 @@ async function sendMessage() {
     // Create tool executors that interact with the bridge
     const searchMessagesExecutor = async (params: any) => {
       return new Promise<CoreRetrievalMessages[]>((resolve) => {
-        bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+        bridge.waitForEvent('storage:search:messages:data').then(({ messages }) => {
           allRetrievedMessages.push(...messages)
           resolve(messages)
         })
 
-        bridgeStore.sendEvent('storage:search:messages', {
+        bridge.sendEvent('storage:search:messages', {
           content: params.query,
           useVector: params.useVector,
           pagination: {
@@ -108,12 +108,12 @@ async function sendMessage() {
 
     const retrieveContextExecutor = async (params: any) => {
       return new Promise<CoreRetrievalMessages[]>((resolve) => {
-        bridgeStore.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+        bridge.waitForEvent('storage:search:messages:data').then(({ messages }) => {
           allRetrievedMessages.push(...messages)
           resolve(messages)
         })
 
-        bridgeStore.sendEvent('storage:search:messages', {
+        bridge.sendEvent('storage:search:messages', {
           chatId: params.chatId,
           content: '',
           useVector: false,
