@@ -8,8 +8,6 @@ import { useAccountStore } from '../stores/useAccount'
 export function registerBasicEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
-  const accountStore = useAccountStore()
-  const { activeSession } = storeToRefs(accountStore)
   const logger = useLogger('Auth')
 
   registerEventHandler('auth:code:needed', () => {
@@ -26,18 +24,13 @@ export function registerBasicEventHandlers(
 
   registerEventHandler('auth:disconnected', () => {
     logger.log('Auth disconnected, cleaning up session metadata')
-    if (activeSession.value) {
-      activeSession.value.isReady = false
-      activeSession.value.session = undefined
-    }
+    useAccountStore().resetReady()
   })
 
   // Core forwards updated StringSession to the client; let bridge store decide
   // whether to update current account or create a new slot (add-account flow).
   registerEventHandler('session:update', ({ session: sessionString }) => {
-    if (activeSession.value) {
-      activeSession.value.session = sessionString
-    }
+    useSessionStore().activeSession.session = sessionString
   })
 
   registerEventHandler('auth:error', () => {

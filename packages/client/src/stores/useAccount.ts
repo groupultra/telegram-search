@@ -1,12 +1,13 @@
 import { useLogger } from '@guiiai/logg'
 import { generateDefaultAccountSettings } from '@tg-search/core'
-import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { acceptHMRUpdate, defineStore } from 'pinia'
+import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
 import { useBridgeStore } from '../composables/useBridge'
 import { useChatStore } from './useChat'
 import { useMessageStore } from './useMessage'
+import { useSessionStore } from './useSession'
 
 export const useAccountStore = defineStore('account', () => {
   const logger = useLogger('AccountStore')
@@ -26,11 +27,7 @@ export const useAccountStore = defineStore('account', () => {
   // --- Account State ---
   const accountSettings = ref(generateDefaultAccountSettings())
 
-  const { activeSession } = storeToRefs(bridgeStore)
-  // isLoggedIn is true if the session exists and is marked ready (authenticated)
-  // Source of truth is the SessionStore (activeSession).
-  const isReady = computed(() => !!activeSession.value?.isReady)
-  const isLoggedInComputed = computed(() => !!activeSession.value?.isReady)
+  const isReady = ref(false)
 
   // --- Actions: Auth ---
 
@@ -38,8 +35,8 @@ export const useAccountStore = defineStore('account', () => {
    * Best-effort auto-login using stored Telegram session string.
    */
   const attemptLogin = async () => {
-    if (activeSession.value?.isReady) {
-      if (!activeSession.value?.session) {
+    if (isReady.value) {
+      if (!useSessionStore().activeSession?.session) {
         logger.verbose('No session, skipping login')
         return
       }
@@ -52,31 +49,26 @@ export const useAccountStore = defineStore('account', () => {
 
     resetReady()
     logger.log('Attempting login')
-    bridgeStore.sendEvent('auth:login', {
-      session: activeSession.value?.session,
-    })
+    bridgeStore.sendEvent('auth:login', { session: useSessionStore().activeSession?.session })
   }
 
   function handleAuth() {
     function login(phoneNumber: string) {
-      const session = activeSession.value
+      // NOTICE: session cloud be undefined, we determine it login with phone number as new login
+      const session = useSessionStore().activeSession?.session
 
       bridgeStore.sendEvent('auth:login', {
         phoneNumber,
-        session: session?.session,
+        session,
       })
     }
 
     function submitCode(code: string) {
-      bridgeStore.sendEvent('auth:code', {
-        code,
-      })
+      bridgeStore.sendEvent('auth:code', { code })
     }
 
     function submitPassword(password: string) {
-      bridgeStore.sendEvent('auth:password', {
-        password,
-      })
+      bridgeStore.sendEvent('auth:password', { password })
     }
 
     function logout() {
@@ -88,14 +80,16 @@ export const useAccountStore = defineStore('account', () => {
       // from the previous account do not bleed into the new one.
       useMessageStore().reset()
       bridgeStore.switchAccount(sessionId)
+      resetReady()
     }
 
     function addNewAccount() {
-      return bridgeStore.addNewAccount()
+      useSessionStore().addNewAccount()
+      resetReady()
     }
 
     function getAllAccounts() {
-      return Object.values(bridgeStore.sessions)
+      return Object.values(useSessionStore().sessions)
     }
 
     return { login, submitCode, submitPassword, logout, switchAccount, addNewAccount, getAllAccounts }
@@ -107,23 +101,29 @@ export const useAccountStore = defineStore('account', () => {
     if (isReady.value)
       return
 
-    logger.verbose('Marking account as ready')
-
-    if (activeSession.value) {
-      activeSession.value.isReady = true
-    }
-
+    logger.verbose('Marking account as ready (step 1/2)')
     logger.verbose('Fetching config for new session')
     bridgeStore.sendEvent('config:fetch')
 
     // Trigger post-auth bootstrap (chat loading, etc)
+    // isReady will be set to true only after critical data (dialogs) is received
     useChatStore().init()
   }
 
+  /**
+   * Called by storage event handler when critical data is loaded.
+   * Needs `dialogs` to be loaded.
+   */
+  function completeBootstrap() {
+    if (isReady.value)
+      return
+
+    logger.verbose('Bootstrap completed (step 2/2)')
+    isReady.value = true
+  }
+
   function resetReady() {
-    if (activeSession.value) {
-      activeSession.value.isReady = false
-    }
+    isReady.value = false
   }
 
   // --- Watchers ---
@@ -132,9 +132,9 @@ export const useAccountStore = defineStore('account', () => {
    * Watch the active session's readiness status and handle reconnection logic.
    */
   watch(
-    () => activeSession.value?.isReady,
+    () => isReady.value,
     (isReadyState, prevReady) => {
-      const hasSession = !!activeSession.value?.session
+      const hasSession = !!useSessionStore().activeSession?.session
 
       if (isReadyState) {
         // Successful (re)connection: clear any pending reconnects and reset attempts.
@@ -181,13 +181,12 @@ export const useAccountStore = defineStore('account', () => {
     auth: authStatus,
     accountSettings,
     isReady,
-    isLoggedIn: isLoggedInComputed,
-    activeSession,
 
     // Actions
     init,
     handleAuth,
     markReady,
+    completeBootstrap,
     resetReady,
   }
 })

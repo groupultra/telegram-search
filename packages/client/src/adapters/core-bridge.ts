@@ -82,7 +82,6 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
       // session string.
       storageSessions.value[sessionId] = {
         ...storageSessions.value[sessionId],
-        isReady: false,
       }
 
       storageActiveSessionId.value = sessionId

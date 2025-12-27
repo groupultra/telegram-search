@@ -2,6 +2,7 @@ import type { ClientRegisterEventHandler } from '.'
 
 import { useLogger } from '@guiiai/logg'
 
+import { useAccountStore } from '../stores/useAccount'
 import { useChatStore } from '../stores/useChat'
 import { useMessageStore } from '../stores/useMessage'
 import { prefillChatAvatarIntoStore } from '../utils/avatar-cache'
@@ -26,6 +27,9 @@ export function registerStorageEventHandlers(
         useLogger('storage:dialogs').withError(error).warn('Batch prefillChatAvatarIntoStore failed')
       }
     })
+
+    // Signal that critical data is loaded and the app is ready to render
+    useAccountStore().completeBootstrap()
   })
 
   registerEventHandler('storage:messages', ({ messages }) => {

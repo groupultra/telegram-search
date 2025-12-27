@@ -13,7 +13,7 @@ import AppSidebar from '../components/layout/AppSidebar.vue'
 
 import { Button } from '../components/ui/Button'
 
-const { isLoggedIn } = storeToRefs(useAccountStore())
+const { isReady } = storeToRefs(useAccountStore())
 
 const route = useRoute()
 
@@ -121,7 +121,7 @@ function closeMobileDrawer() {
     >
       <!-- Login prompt banner -->
       <div
-        v-if="!isLoggedIn && !$route.path.startsWith('/login')"
+        v-if="!isReady && !$route.path.startsWith('/login')"
         class="flex items-center justify-center px-6 py-8"
       >
         <div

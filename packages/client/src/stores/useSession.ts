@@ -1,4 +1,4 @@
-import type { StoredSession } from '../types/session'
+import type { CoreUserEntity } from '@tg-search/core'
 
 import { useLocalStorage } from '@vueuse/core'
 import { defineStore } from 'pinia'
@@ -10,6 +10,31 @@ import { IS_CORE_MODE } from '../../constants'
 const CORE_TYPE = 'core-bridge'
 const WS_TYPE = 'websocket'
 
+/**
+ * Persistent session representation in localStorage.
+ * Flattens metadata and core session info.
+ */
+export interface StoredSession {
+  uuid: string
+
+  me?: CoreUserEntity
+
+  /**
+   * Telegram StringSession managed on the client side.
+   * Core never persists this; it only forwards updated values.
+   */
+  session?: string
+
+  /**
+   * Type of the session (websocket or core-bridge).
+   * Used to distinguish between sessions in different modes.
+   */
+  type?: 'websocket' | 'core-bridge'
+}
+
+// Deprecated alias for backward compatibility during refactor, if needed
+export type SessionContext = Partial<Omit<StoredSession, 'uuid'>>
+
 export const useSessionStore = defineStore('session', () => {
   // Separate keys for core-bridge (browser) and websocket (server) modes
   // to avoid session pollution between environments.
@@ -20,8 +45,8 @@ export const useSessionStore = defineStore('session', () => {
   const sessions = useLocalStorage<Record<string, StoredSession>>(sessionKey, {})
   const activeSessionId = useLocalStorage<string | null>(activeIdKey, null)
 
-  const _createSession = (uuid: string): StoredSession => {
-    return { uuid, type: type as any }
+  const createSession = (uuid: string): StoredSession => {
+    return { uuid, type }
   }
 
   const ensureSessionInvariants = () => {
@@ -31,7 +56,7 @@ export const useSessionStore = defineStore('session', () => {
     const keys = Object.keys(sessions.value)
     if (keys.length === 0) {
       const id = uuidv4()
-      sessions.value = { [id]: _createSession(id) }
+      sessions.value = { [id]: createSession(id) }
       activeSessionId.value = id
       return
     }
@@ -66,7 +91,7 @@ export const useSessionStore = defineStore('session', () => {
     const newId = uuidv4()
     sessions.value = {
       ...sessions.value,
-      [newId]: _createSession(newId),
+      [newId]: createSession(newId),
     }
 
     activeSessionId.value = newId

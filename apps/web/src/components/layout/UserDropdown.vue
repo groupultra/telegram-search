@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useAccountStore, useBridgeStore } from '@tg-search/client'
+import { useAccountStore, useBridgeStore, useSessionStore } from '@tg-search/client'
 import { onClickOutside } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, useTemplateRef } from 'vue'
@@ -13,8 +13,9 @@ const route = useRoute()
 const router = useRouter()
 
 const accountStore = useAccountStore()
-const { isLoggedIn, activeSession } = storeToRefs(accountStore)
+const { isReady } = storeToRefs(accountStore)
 const { activeSessionId } = storeToRefs(useBridgeStore())
+const { activeSession } = storeToRefs(useSessionStore())
 
 const isOpen = defineModel<boolean>('open')
 
@@ -25,7 +26,7 @@ onClickOutside(dropdownRef, () => {
 })
 
 function handleLoginLogout() {
-  if (isLoggedIn.value) {
+  if (isReady.value) {
     accountStore.handleAuth().logout()
   }
   else {
@@ -55,8 +56,7 @@ function handleLogoutCurrentAccount() {
   isOpen.value = false
 }
 
-const username = computed(() => activeSession.value?.me?.username)
-const userId = computed(() => activeSession.value?.me?.id)
+const username = computed(() => activeSession.value?.me?.name)
 const allAccounts = computed(() => accountStore.handleAuth().getAllAccounts())
 const otherAccounts = computed(() => {
   return allAccounts.value.filter(account => (account.uuid !== activeSessionId.value) && account)
@@ -70,14 +70,14 @@ const otherAccounts = computed(() => {
     class="fixed bottom-16 left-2 z-1000 min-w-[240px] border border-border rounded-md bg-popover p-2 shadow-lg dark:border-gray-600 dark:bg-gray-800"
   >
     <!-- Current Account Section -->
-    <div v-if="isLoggedIn" class="border-b pb-2 dark:border-gray-600">
+    <div v-if="isReady" class="border-b pb-2 dark:border-gray-600">
       <div class="px-2 py-1 text-xs text-muted-foreground font-semibold">
         {{ t('settings.currentAccount') }}
       </div>
       <div class="flex items-center gap-3 p-2">
         <EntityAvatar
-          v-if="userId != null"
-          :id="userId"
+          v-if="activeSession?.me?.id != null"
+          :id="activeSession?.me?.id"
           entity="self"
           entity-type="user"
           :name="username"
@@ -85,7 +85,7 @@ const otherAccounts = computed(() => {
         />
         <div class="flex flex-1 flex-col overflow-hidden">
           <span class="truncate text-sm text-gray-900 font-medium dark:text-gray-100">{{ username }}</span>
-          <span class="truncate text-xs text-gray-600 dark:text-gray-400">ID: {{ userId }}</span>
+          <span class="truncate text-xs text-gray-600 dark:text-gray-400">ID: {{ activeSession?.me?.id }}</span>
         </div>
       </div>
     </div>

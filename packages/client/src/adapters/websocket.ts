@@ -32,16 +32,10 @@ export const useWebsocketStore = defineStore('websocket', () => {
     activeSession,
   } = storeToRefs(sessionStore)
 
-  const {
-    ensureSessionInvariants,
-    addNewAccount,
-    removeCurrentAccount,
-    cleanup,
-  } = sessionStore
 
   const logger = useLogger('WebSocket')
 
-  ensureSessionInvariants()
+  sessionStore.ensureSessionInvariants()
 
   const activeSessionId = computed(() => {
     return activeSession.value?.uuid || uuidv4()
@@ -110,7 +104,6 @@ export const useWebsocketStore = defineStore('websocket', () => {
       // core-bridge modes.
       storageSessions.value[sessionId] = {
         ...storageSessions.value[sessionId],
-        isReady: false,
       }
 
       storageActiveSessionId.value = sessionId
@@ -136,7 +129,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
   }
 
   const logoutCurrentAccount = async () => {
-    const removed = removeCurrentAccount()
+    const removed = sessionStore.removeCurrentAccount()
     if (!removed)
       return
 
@@ -152,7 +145,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
 
     logger.verbose('Initializing websocket')
 
-    ensureSessionInvariants()
+    sessionStore.ensureSessionInvariants()
     isInitialized.value = true
   }
 
@@ -214,10 +207,8 @@ export const useWebsocketStore = defineStore('websocket', () => {
     activeSessionId,
     activeSession,
     switchAccount,
-    addNewAccount,
     applySessionUpdate,
     logoutCurrentAccount,
-    cleanup,
 
     sendEvent,
     waitForEvent,
