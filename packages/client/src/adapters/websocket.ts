@@ -32,7 +32,6 @@ export const useWebsocketStore = defineStore('websocket', () => {
     activeSession,
   } = storeToRefs(sessionStore)
 
-
   const logger = useLogger('WebSocket')
 
   sessionStore.ensureSessionInvariants()
