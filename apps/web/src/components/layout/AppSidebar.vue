@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBridgeStore } from '@tg-search/client'
+import { useAccountStore, useBridgeStore } from '@tg-search/client'
 import { useDark } from '@vueuse/core'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -13,6 +13,7 @@ import UserDropdown from './UserDropdown.vue'
 import { Button } from '../ui/Button'
 
 const { t } = useI18n()
+const accountStore = useAccountStore()
 const websocketStore = useBridgeStore()
 const isDark = useDark()
 
@@ -86,7 +87,7 @@ const userDropdownOpen = ref(false)
           </div>
           <div class="min-w-0 flex flex-1 flex-col">
             <span class="truncate text-sm font-medium">{{ websocketStore.activeSession?.me?.name }}</span>
-            <span class="truncate text-xs text-muted-foreground">{{ websocketStore.activeSession?.isReady ? t('settings.connected') : t('settings.disconnected') }}</span>
+            <span class="truncate text-xs text-muted-foreground">{{ accountStore.isReady ? t('settings.connected') : t('settings.disconnected') }}</span>
           </div>
           <div class="i-lucide-chevron-up h-4 w-4 flex-shrink-0 text-muted-foreground" />
         </div>

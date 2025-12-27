@@ -1,6 +1,6 @@
 import type { ComputedRef } from 'vue'
 
-import { useAvatarStore, useBridgeStore } from '@tg-search/client'
+import { useAccountStore, useAvatarStore } from '@tg-search/client'
 import { computed, onMounted, watch } from 'vue'
 
 import { ensureUserAvatarImmediate, useEnsureChatAvatar, useEnsureUserAvatar } from './useEnsureAvatar'
@@ -18,7 +18,7 @@ interface Props {
 
 export function useEntityAvatar(props: Readonly<Props>): { src: ComputedRef<string | undefined> } {
   const avatarStore = useAvatarStore()
-  const bridgeStore = useBridgeStore()
+  const accountStore = useAccountStore()
 
   const idRef = computed(() => props.id)
   const fileIdRef = computed(() => props.fileId)
@@ -33,7 +33,7 @@ export function useEntityAvatar(props: Readonly<Props>): { src: ComputedRef<stri
   if (props.ensureOnMount) {
     if (isSelf) {
       const trigger = () => {
-        const connected = bridgeStore.activeSession?.isReady
+        const connected = accountStore.isReady
         if (!connected)
           return
         const current = avatarStore.getUserAvatarFileId(props.id)
@@ -44,7 +44,7 @@ export function useEntityAvatar(props: Readonly<Props>): { src: ComputedRef<stri
           void ensureUserAvatarImmediate(props.id)
       }
       onMounted(trigger)
-      watch(() => bridgeStore.activeSession?.isReady, (c) => {
+      watch(() => accountStore.isReady, (c) => {
         if (c)
           trigger()
       })

@@ -1,9 +1,9 @@
 import type { ClientRegisterEventHandler } from '.'
 
 import { useLogger } from '@guiiai/logg'
-import { storeToRefs } from 'pinia'
 
 import { useAccountStore } from '../stores/useAccount'
+import { useSessionStore } from '../stores/useSession'
 
 export function registerBasicEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
@@ -30,7 +30,9 @@ export function registerBasicEventHandlers(
   // Core forwards updated StringSession to the client; let bridge store decide
   // whether to update current account or create a new slot (add-account flow).
   registerEventHandler('session:update', ({ session: sessionString }) => {
-    useSessionStore().activeSession.session = sessionString
+    if (useSessionStore().activeSession) {
+      useSessionStore().activeSession!.session = sessionString
+    }
   })
 
   registerEventHandler('auth:error', () => {

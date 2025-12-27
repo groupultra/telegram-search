@@ -17,7 +17,7 @@ const route = useRoute()
 const accountStore = useAccountStore()
 const websocketStore = useBridgeStore()
 const avatarStore = useAvatarStore()
-const { isLoggedIn } = storeToRefs(accountStore)
+const { isReady } = storeToRefs(accountStore)
 
 const state = ref({
   currentStep: 'phone' as LoginStep,
@@ -50,7 +50,7 @@ watch(() => accountStore.auth.needPassword, (value) => {
   }
 })
 
-watch(isLoggedIn, (value) => {
+watch(isReady, (value) => {
   if (value) {
     accountStore.auth.isLoading = false
     state.value.currentStep = 'complete'

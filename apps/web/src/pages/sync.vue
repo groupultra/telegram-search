@@ -3,7 +3,7 @@ import type { SyncOptions } from '@tg-search/core'
 
 import NProgress from 'nprogress'
 
-import { getErrorMessage, useAccountStore, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
+import { getErrorMessage, useBridgeStore, useChatStore, useSyncTaskStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -25,8 +25,6 @@ const syncOptions = ref<SyncOptions>({
   maxMediaSize: 0,
 })
 
-const accountStore = useAccountStore()
-const { isLoggedIn } = storeToRefs(accountStore)
 const websocketStore = useBridgeStore()
 
 const chatsStore = useChatStore()
@@ -78,7 +76,7 @@ const shouldShowTaskStatus = computed(() => {
 
 // Disable buttons during sync or when no chats selected
 const isButtonDisabled = computed(() => {
-  return selectedChats.value.length === 0 || !isLoggedIn.value || isTaskInProgress.value
+  return selectedChats.value.length === 0 || isTaskInProgress.value
 })
 
 /**
@@ -86,7 +84,7 @@ const isButtonDisabled = computed(() => {
  * Disabled when: not logged in, a task is in progress, or no chats.
  */
 const isSelectAllDisabled = computed(() => {
-  return !isLoggedIn.value || isTaskInProgress.value || chats.value.length === 0
+  return isTaskInProgress.value || chats.value.length === 0
 })
 
 /**
