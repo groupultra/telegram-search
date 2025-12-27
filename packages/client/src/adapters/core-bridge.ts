@@ -3,6 +3,7 @@ import type { ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
+import type { BridgeStore } from '../types/bridge'
 
 import { useLogger } from '@guiiai/logg'
 import { deepClone, generateDefaultConfig } from '@tg-search/common'
@@ -249,7 +250,7 @@ export const useCoreBridgeStore = defineStore('core-bridge', () => {
 
     sendEvent,
     waitForEvent,
-  }
+  } satisfies BridgeStore
 })
 
 if (import.meta.hot) {

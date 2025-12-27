@@ -8,6 +8,7 @@ import type {
 } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
+import type { BridgeStore } from '../types/bridge'
 
 import { useLogger } from '@guiiai/logg'
 import { useWebSocket } from '@vueuse/core'
@@ -211,7 +212,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
 
     sendEvent,
     waitForEvent,
-  }
+  } satisfies BridgeStore
 })
 
 if (import.meta.hot) {
