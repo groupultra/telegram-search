@@ -2,6 +2,7 @@ import type { Models } from '../../models'
 import type { MessageService } from '../../services/message'
 
 import bigInt from 'big-integer'
+
 import { useLogger } from '@guiiai/logg'
 import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
@@ -31,7 +32,7 @@ describe('message:fetch:summary', () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
 
     const mockMessageService: Pick<MessageService, 'fetchUnreadMessages' | 'fetchRecentMessagesByTimeRange' | 'fetchMessages' | 'markAsRead' | 'sendMessage' | 'fetchSpecificMessages'> = {
-      fetchMessages: async function* () {},
+      async* fetchMessages() {},
       sendMessage: vi.fn(),
       fetchSpecificMessages: vi.fn(async () => []),
       markAsRead: vi.fn(async () => {}),
@@ -65,7 +66,7 @@ describe('message:fetch:summary', () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
 
     const mockMessageService: Pick<MessageService, 'fetchUnreadMessages' | 'fetchRecentMessagesByTimeRange' | 'fetchMessages' | 'markAsRead' | 'sendMessage' | 'fetchSpecificMessages'> = {
-      fetchMessages: async function* () {},
+      async* fetchMessages() {},
       sendMessage: vi.fn(),
       fetchSpecificMessages: vi.fn(async () => []),
       markAsRead: vi.fn(async () => {}),
@@ -96,4 +97,3 @@ describe('message:fetch:summary', () => {
     expect(mockMessageService.fetchRecentMessagesByTimeRange).toHaveBeenCalledOnce()
   })
 })
-

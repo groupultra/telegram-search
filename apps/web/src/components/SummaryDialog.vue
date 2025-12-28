@@ -185,9 +185,13 @@ const canMarkRead = computed(() => {
         <div class="flex items-center gap-2">
           <div class="text-xs text-muted-foreground">
             {{ t('summaryDialog.fallbackLabel') }}
-            <select v-model="fallbackWindow" class="ml-1 border rounded px-2 py-1 bg-background">
-              <option value="today">{{ t('summaryDialog.windowToday') }}</option>
-              <option value="last24h">{{ t('summaryDialog.windowLast24h') }}</option>
+            <select v-model="fallbackWindow" class="ml-1 border rounded bg-background px-2 py-1">
+              <option value="today">
+                {{ t('summaryDialog.windowToday') }}
+              </option>
+              <option value="last24h">
+                {{ t('summaryDialog.windowLast24h') }}
+              </option>
             </select>
           </div>
           <Button
