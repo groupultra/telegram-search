@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
-import { useAccountStore, useAIChatStore, useBridge, useChatStore } from '@tg-search/client'
+import MarkdownRender from 'markstream-vue'
+
+import { useAccountStore, useAIChatStore, useChatStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -308,9 +310,21 @@ onMounted(() => {
           "
         >
           <!-- Message content -->
-          <div class="whitespace-pre-wrap break-words text-sm">
+          <div
+            v-if="message.role === 'user'"
+            class="wrap-break-word whitespace-pre-wrap text-sm"
+          >
             {{ message.content }}
-            <span v-if="message.isStreaming" class="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-current" />
+          </div>
+          <div
+            v-else
+            class="assistant-message max-w-none overflow-x-auto text-sm"
+          >
+            <MarkdownRender
+              :custom-id="`ai-chat-${message.id}`"
+              :content="message.content"
+              :streaming="message.isStreaming"
+            />
           </div>
 
           <!-- Retrieved messages (only for assistant messages) -->
@@ -528,7 +542,7 @@ onMounted(() => {
           <Button
             variant="outline"
             icon=""
-            class="h-12 w-12 flex-shrink-0 px-0"
+            class="h-12 w-12 shrink-0 px-0"
             @click="isScopeSelectorOpen = true"
           >
             <div class="flex items-center justify-center gap-1">

@@ -19,6 +19,7 @@ import { createPGliteDevtoolsPlugin } from './plugins/pglite-devtools'
 import '@unocss/reset/tailwind.css'
 import 'nprogress/nprogress.css'
 import 'uno.css'
+import 'markstream-vue/index.css'
 import 'vue-sonner/style.css'
 import './styles/main.css'
 

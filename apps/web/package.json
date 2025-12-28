@@ -25,6 +25,7 @@
     "defu": "^6.1.4",
     "echarts": "^6.0.0",
     "lottie-web": "^5.13.0",
+    "markstream-vue": "0.0.4-beta.5",
     "nanoid": "^5.1.6",
     "nprogress": "^0.2.0",
     "pako": "^2.1.0",

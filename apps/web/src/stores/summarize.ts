@@ -6,6 +6,7 @@ import { ref } from 'vue'
 export interface SummarySession {
   content: string
   sourceMessages: CoreMessage[]
+  mode: 'unread' | 'today' | 'last24h' | 'none'
   isLoading: boolean
   lastUpdated: number
 }
@@ -18,6 +19,7 @@ export const useSummarizeStore = defineStore('summarize', () => {
       sessions.value[chatId] = {
         content: '',
         sourceMessages: [],
+        mode: 'none',
         isLoading: false,
         lastUpdated: 0,
       }
@@ -25,12 +27,17 @@ export const useSummarizeStore = defineStore('summarize', () => {
     return sessions.value[chatId]
   }
 
-  function setSummary(chatId: string, content: string, messages: CoreMessage[]) {
+  function setSummary(
+    chatId: string,
+    content: string,
+    messages: CoreMessage[],
+    meta?: { mode?: SummarySession['mode'] },
+  ) {
     const session = getSession(chatId)
     session.content = content
     session.sourceMessages = messages
+    session.mode = meta?.mode ?? session.mode
     session.lastUpdated = Date.now()
-    session.isLoading = false
   }
 
   function appendSummary(chatId: string, delta: string) {
@@ -38,9 +45,14 @@ export const useSummarizeStore = defineStore('summarize', () => {
     session.content += delta
   }
 
-  function setSourceMessages(chatId: string, messages: CoreMessage[]) {
+  function setSourceMessages(
+    chatId: string,
+    messages: CoreMessage[],
+    meta?: { mode?: SummarySession['mode'] },
+  ) {
     const session = getSession(chatId)
     session.sourceMessages = messages
+    session.mode = meta?.mode ?? session.mode
   }
 
   function setLoading(chatId: string, isLoading: boolean) {

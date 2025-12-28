@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useAttrs, watch } from 'vue'
+
+defineOptions({
+  inheritAttrs: false,
+})
 
 const props = defineProps<{
   modelValue: boolean
@@ -10,6 +14,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
 }>()
+
+const attrs = useAttrs()
 
 const dialogRef = ref<HTMLDialogElement | null>(null)
 const contentRef = ref<HTMLDivElement | null>(null)
@@ -107,7 +113,11 @@ onUnmounted(() => {
             v-show="isVisible"
             ref="contentRef"
             class="dialog-content relative w-full cursor-default rounded-lg bg-card p-6 shadow-2xl ring-1 ring-secondary/10 dark:bg-gray-900 dark:ring-gray-700/50"
-            :style="{ maxWidth: maxWidth || '32rem' }"
+            :class="attrs.class"
+            :style="[
+              { maxWidth: maxWidth || '32rem' },
+              attrs.style as any,
+            ]"
             @click.stop
           >
             <slot />

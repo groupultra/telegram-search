@@ -11,6 +11,13 @@
     "useDefineForClassFields": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "paths": {
+      "@tg-search/core": ["../../packages/core/src"],
+      "@tg-search/core/types": ["../../packages/core/src/types/index.ts"],
+      "@tg-search/common": ["../../packages/common/src"],
+      "@tg-search/client": ["../../packages/client/src"],
+      "@tg-search/server/types": ["../../apps/server/src/types.ts"]
+    },
     "resolveJsonModule": true,
     "types": [
       "node",
