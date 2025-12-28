@@ -2,7 +2,6 @@ import type { ClientRegisterEventHandler } from '.'
 
 import { useLogger } from '@guiiai/logg'
 
-import { useAccountStore } from '../stores/useAccount'
 import { useChatStore } from '../stores/useChat'
 import { useMessageStore } from '../stores/useMessage'
 import { prefillChatAvatarIntoStore } from '../utils/avatar-cache'
