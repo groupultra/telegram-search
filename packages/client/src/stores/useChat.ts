@@ -20,7 +20,7 @@ export const useChatStore = defineStore('chat', () => {
       const userId = sessionStore.activeSession?.me?.id
       if (!userId)
         return []
-      const list = allChats.value[userId] ?? []
+      const list = (allChats.value[userId] ?? []).filter(chat => chat?.id != null)
       return [...list].sort((a, b) => {
         // Pinned chats first
         if (a.pinned && !b.pinned)

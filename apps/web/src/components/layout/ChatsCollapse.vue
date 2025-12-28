@@ -22,7 +22,7 @@ const router = useRouter()
 const route = useRoute()
 
 function isActiveChat(chatId: string) {
-  return route.params.chatId === chatId
+  return route.params.id === chatId
 }
 
 function toggleActive() {

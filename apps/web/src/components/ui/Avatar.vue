@@ -25,16 +25,23 @@ const sizeMap = {
 
 const avatarSize = computed(() => sizeMap[props.size])
 
-const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'grapheme' })
+const segmenter = typeof Intl.Segmenter !== 'undefined'
+  ? new Intl.Segmenter('zh-CN', { granularity: 'grapheme' })
+  : null
 
 const initials = computed(() => {
   if (!props.name)
     return ''
-  const segment = segmenter.segment(props.name)[Symbol.iterator]().next().value
-  if (segment) {
-    return segment.segment.toUpperCase()
+
+  if (segmenter) {
+    const segment = segmenter.segment(props.name)[Symbol.iterator]().next().value
+    if (segment) {
+      return segment.segment.toUpperCase()
+    }
   }
-  return ''
+
+  // Fallback for browsers that don't support Intl.Segmenter
+  return props.name.trim().charAt(0).toUpperCase()
 })
 
 const backgroundColor = computed(() => {

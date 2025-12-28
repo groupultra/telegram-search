@@ -29,14 +29,16 @@ const folders = computed(() => chatStore.folders)
 
 // Filter based on search query
 const chatsFiltered = computed(() => {
+  const list = chats.value || []
   if (!props.searchQuery)
-    return chats.value
-  return chats.value.filter(chat => chat.name.toLowerCase().includes(props.searchQuery.toLowerCase()))
+    return list
+  const query = props.searchQuery.toLowerCase()
+  return list.filter(chat => (chat?.name || '').toLowerCase().includes(query))
 })
 
 // Determine active group based on route or selection
 const activeChatGroup = computed(() => {
-  if (route.params.chatId) {
+  if (route.params.id) {
     if (selectedGroup.value === undefined) {
       return undefined
     }
@@ -46,36 +48,36 @@ const activeChatGroup = computed(() => {
 
 // Filtered chats by active group or folder
 const activeGroupChats = computed(() => {
+  const filtered = chatsFiltered.value || []
+
   // 1. Handle Folders
   if (activeChatGroup.value === 'folder' && selectedFolderId.value !== undefined) {
-    const folder = folders.value.find(f => f.id === selectedFolderId.value)
+    const folder = folders.value.find(f => f?.id === selectedFolderId.value)
     if (folder) {
-      const filtered = chatsFiltered.value.filter((chat) => {
-        return chat.folderIds?.includes(selectedFolderId.value!)
+      const folderChats = filtered.filter((chat) => {
+        return chat?.folderIds?.includes(selectedFolderId.value!)
       })
 
       // For folders, per user request: "don't do pinning for now"
       // Just sort by date
-      return [...filtered].sort((a, b) => {
-        const dateA = a.lastMessageDate ? new Date(a.lastMessageDate).getTime() : 0
-        const dateB = b.lastMessageDate ? new Date(b.lastMessageDate).getTime() : 0
+      return [...folderChats].sort((a, b) => {
+        const dateA = a?.lastMessageDate ? new Date(a.lastMessageDate).getTime() : 0
+        const dateB = b?.lastMessageDate ? new Date(b.lastMessageDate).getTime() : 0
         return dateB - dateA
       })
     }
   }
 
   // 2. Handle "All Chats"
-  const filtered = chatsFiltered.value
-
   // Use global pinning only for non-folder views (especially All Chats)
   return [...filtered].sort((a, b) => {
-    if (a.pinned && !b.pinned)
+    if (a?.pinned && !b?.pinned)
       return -1
-    if (!a.pinned && b.pinned)
+    if (!a?.pinned && b?.pinned)
       return 1
 
-    const dateA = a.lastMessageDate ? new Date(a.lastMessageDate).getTime() : 0
-    const dateB = b.lastMessageDate ? new Date(b.lastMessageDate).getTime() : 0
+    const dateA = a?.lastMessageDate ? new Date(a.lastMessageDate).getTime() : 0
+    const dateB = b?.lastMessageDate ? new Date(b.lastMessageDate).getTime() : 0
     return dateB - dateA
   })
 })
@@ -105,7 +107,9 @@ function selectFolder(folderId: number) {
  * - Only warms cache; network fetch continues to be driven by server events.
  */
 async function prefillChatAvatarsParallel(list: CoreDialog[]) {
-  const tasks = list.map(chat => prefillChatAvatarIntoStore(chat.id))
+  const tasks = list
+    .filter(chat => chat?.id != null)
+    .map(chat => prefillChatAvatarIntoStore(chat.id))
   try {
     await Promise.all(tasks)
   }
@@ -165,13 +169,15 @@ watch(activeGroupChats, (list) => {
     <!-- Chat list -->
     <div class="min-h-0 flex-1 overflow-hidden">
       <VList
+        v-if="activeGroupChats.length > 0"
         :data="activeGroupChats"
         class="h-full py-2"
       >
         <template #default="{ item: chat }">
           <div
+            v-if="chat"
             :key="chat.id"
-            :class="{ 'bg-accent text-accent-foreground': route.params.chatId === chat.id.toString() }"
+            :class="{ 'bg-accent text-accent-foreground': route.params.id === chat.id.toString() }"
             class="mx-2 my-0.5 flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
             @click="router.push(`/chat/${chat.id}`)"
           >
