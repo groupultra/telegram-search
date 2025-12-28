@@ -222,9 +222,13 @@
     "unsyncedMessages": "未同步消息"
   },
   "summaryDialog": {
-    "title": "未读消息摘要",
-    "noUnreadMessages": "没有未读消息",
-    "noUnreadMessagesDescription": "没有找到未读消息。",
+    "title": "消息摘要",
+    "tabUnread": "未读消息",
+    "tabToday": "今日消息",
+    "tabLast24h": "24 小时消息",
+    "autoFallbackToLast24h": "没有未读消息，已自动切换到 24 小时消息",
+    "noMessagesToSummarize": "没有可总结的消息",
+    "noMessagesToSummarizeDescription": "没有找到最近时间窗内的消息。",
     "fetchFailed": "获取消息失败",
     "noApiKey": "未在设置中找到 LLM API Key",
     "configureApiKey": "请在设置中配置 LLM API Key。",
@@ -233,7 +237,6 @@
     "messagesMarkedRead": "消息已标记为已读",
     "close": "关闭",
     "markAsRead": "标记为已读",
-    "regenerate": "重新生成",
     "summary": "摘要",
     "sources": "来源",
     "noSources": "没有来源"

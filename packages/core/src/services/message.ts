@@ -10,9 +10,15 @@ import { Api } from 'telegram'
 export type MessageService = ReturnType<typeof createMessageService>
 
 const MAX_UNREAD_MESSAGES_LIMIT = 1000
+const MAX_SUMMARY_MESSAGES_LIMIT = 1000
+const SUMMARY_FETCH_BATCH_SIZE = 100
 
 export function createMessageService(ctx: CoreContext, logger: Logger) {
   logger = logger.withContext('core:message:service')
+
+  function isValidApiMessage(message: Api.TypeMessage): message is Api.Message {
+    return message instanceof Api.Message && !(message instanceof Api.MessageEmpty)
+  }
 
   async function* fetchMessages(
     chatId: string,
@@ -150,7 +156,7 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
 
         // 3. Pull history
         // We use client.getMessages which handles pagination automatically to reach the 'limit'.
-        const limit = Math.min(opts?.limit || MAX_UNREAD_MESSAGES_LIMIT, unreadCount)
+        const limit = Math.min(opts?.limit ?? MAX_UNREAD_MESSAGES_LIMIT, MAX_UNREAD_MESSAGES_LIMIT, unreadCount)
 
         logger.withFields({
           chatId,
@@ -172,19 +178,28 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
 
           // Optional: Filter by readInboxMaxId locally if we want to be strict,
           // but often unreadCount is what the user expects to see.
-          const filtered = validMessages.filter(m => m.id > readInboxMaxId)
+          const filteredByReadBoundary = validMessages.filter(m => m.id > readInboxMaxId)
+          const filteredByStartTime = opts?.startTime
+            ? filteredByReadBoundary.filter(m => m.date >= opts.startTime!)
+            : filteredByReadBoundary
 
           logger.withFields({
             chatId,
             returned: validMessages.length,
-            newerThanBoundary: filtered.length,
+            newerThanBoundary: filteredByReadBoundary.length,
+            newerThanStartTime: filteredByStartTime.length,
             latestId: validMessages[0]?.id,
             oldestId: validMessages[validMessages.length - 1]?.id,
           }).debug('Unread messages fetch result')
 
           // If local filtering results in too few messages compared to unreadCount,
           // we trust unreadCount and return the full batch.
-          return filtered.length > 0 ? filtered : validMessages
+          // Prefer the strictest filter, but avoid surprising empty results when Telegram metadata is inconsistent.
+          if (filteredByStartTime.length > 0)
+            return filteredByStartTime
+          if (filteredByReadBoundary.length > 0)
+            return filteredByReadBoundary
+          return validMessages
         }
 
         return []
@@ -193,6 +208,76 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
         ctx.withError(error, 'Fetch unread messages failed')
         return []
       }
+    })
+  }
+
+  /**
+   * Fetch recent messages within a unix time range (seconds).
+   * Returned list is in Telegram default order (newest first).
+   *
+   * NOTE: Telegram doesn't support "get messages by time" directly.
+   * We paginate backward from the newest message until we cross startTime or reach limit.
+   */
+  async function fetchRecentMessagesByTimeRange(
+    chatId: string,
+    opts: { startTime: number, endTime?: number, limit?: number },
+  ): Promise<Api.Message[]> {
+    return withSpan('core:message:service:fetchRecentMessagesByTimeRange', async () => {
+      if (!await ctx.getClient().isUserAuthorized()) {
+        logger.error('User not authorized')
+        return []
+      }
+
+      const startTime = opts.startTime
+      const endTime = opts.endTime
+      const limit = Math.min(opts.limit ?? MAX_SUMMARY_MESSAGES_LIMIT, MAX_SUMMARY_MESSAGES_LIMIT)
+      const batchSize = Math.min(SUMMARY_FETCH_BATCH_SIZE, limit)
+
+      const peer = await ctx.getClient().getInputEntity(chatId)
+
+      const collected: Api.Message[] = []
+      let maxId: number | undefined
+      let reachedStartBoundary = false
+
+      while (collected.length < limit && !reachedStartBoundary) {
+        const rawBatch = await ctx.getClient().getMessages(peer, {
+          limit: batchSize,
+          maxId,
+        })
+
+        const batch = rawBatch.filter(isValidApiMessage)
+        if (batch.length === 0)
+          break
+
+        for (const message of batch) {
+          // Messages are newest -> oldest in each batch.
+          if (endTime && message.date > endTime)
+            continue
+
+          if (message.date < startTime) {
+            reachedStartBoundary = true
+            break
+          }
+
+          collected.push(message)
+          if (collected.length >= limit)
+            break
+        }
+
+        const oldest = batch[batch.length - 1]
+        // Prevent infinite loops when Telegram returns stable windows.
+        maxId = Math.max(0, oldest.id - 1)
+      }
+
+      logger.withFields({
+        chatId,
+        startTime,
+        endTime,
+        limit,
+        returned: collected.length,
+      }).debug('Fetched recent messages by time range')
+
+      return collected
     })
   }
 
@@ -263,6 +348,7 @@ export function createMessageService(ctx: CoreContext, logger: Logger) {
     sendMessage,
     fetchSpecificMessages,
     fetchUnreadMessages,
+    fetchRecentMessagesByTimeRange,
     markAsRead,
   }
 }

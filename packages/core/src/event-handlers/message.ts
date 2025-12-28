@@ -2,6 +2,7 @@ import type { Logger } from '@guiiai/logg'
 
 import type { CoreContext } from '../context'
 import type { MessageService } from '../services'
+import type { CoreMessage } from '../types/message'
 
 import { Api } from 'telegram/tl'
 import { v4 as uuidv4 } from 'uuid'
@@ -13,6 +14,12 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
   logger = logger.withContext('core:message:event')
 
   return (messageService: MessageService) => {
+    function toCoreMessages(messages: Api.Message[]): CoreMessage[] {
+      return messages
+        .map(convertToCoreMessage)
+        .map(result => result.unwrap())
+    }
+
     ctx.emitter.on('message:fetch', async (opts) => {
       logger.withFields({ chatId: opts.chatId, minId: opts.minId, maxId: opts.maxId }).verbose('Fetching messages')
 
@@ -137,11 +144,44 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         // getMessages usually returns newest first.
         messages.reverse()
 
-        const coreMessages = messages.map(convertToCoreMessage).map(result => result.unwrap())
+        const coreMessages = toCoreMessages(messages)
         ctx.emitter.emit('message:unread-data', { messages: coreMessages })
       }
       catch (e) {
         ctx.withError(e, 'Failed to fetch unread messages')
+      }
+    })
+
+    ctx.emitter.on('message:fetch:summary', async ({ chatId, limit, mode }) => {
+      logger.withFields({ chatId, limit, mode }).verbose('Fetching summary messages')
+      try {
+        if (mode === 'unread') {
+          const unread = await messageService.fetchUnreadMessages(chatId, { limit })
+          unread.reverse()
+          ctx.emitter.emit('message:summary-data', {
+            messages: toCoreMessages(unread),
+            mode: 'unread',
+          })
+          return
+        }
+
+        const now = new Date()
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const startOfTodayTs = Math.floor(startOfToday.getTime() / 1000)
+        const startTime = mode === 'today'
+          ? startOfTodayTs
+          : Math.floor(Date.now() / 1000) - 24 * 60 * 60
+
+        const recent = await messageService.fetchRecentMessagesByTimeRange(chatId, { startTime, limit })
+        recent.reverse()
+
+        ctx.emitter.emit('message:summary-data', {
+          messages: toCoreMessages(recent),
+          mode,
+        })
+      }
+      catch (e) {
+        ctx.withError(e, 'Failed to fetch summary messages')
       }
     })
 

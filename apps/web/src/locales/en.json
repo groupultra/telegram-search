@@ -222,9 +222,13 @@
     "unsyncedMessages": "Unsynced Messages"
   },
   "summaryDialog": {
-    "title": "Unread Summary",
-    "noUnreadMessages": "No unread messages",
-    "noUnreadMessagesDescription": "No unread messages found.",
+    "title": "Message Summary",
+    "tabUnread": "Unread Messages",
+    "tabToday": "Today",
+    "tabLast24h": "Last 24 hours",
+    "autoFallbackToLast24h": "No unread messages. Switched to last 24 hours automatically.",
+    "noMessagesToSummarize": "No messages to summarize",
+    "noMessagesToSummarizeDescription": "No messages found in the selected time window.",
     "fetchFailed": "Failed to fetch messages",
     "noApiKey": "No LLM API Key found in settings",
     "configureApiKey": "Please configure LLM API Key in Settings.",
@@ -233,7 +237,6 @@
     "messagesMarkedRead": "Messages marked as read",
     "close": "Close",
     "markAsRead": "Mark as Read ({count})",
-    "regenerate": "Regenerate",
     "summary": "Summary",
     "sources": "Sources",
     "noSources": "No messages"
