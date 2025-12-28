@@ -88,6 +88,7 @@ export const useChatStore = defineStore('chat', () => {
   return {
     init,
     getChat,
+    fetchStorageDialogs,
     chats,
     folders,
   }

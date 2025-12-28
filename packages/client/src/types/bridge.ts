@@ -10,7 +10,10 @@ export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
 
 export interface BridgeAdapter {
-  init: (sessionId?: string) => void
+  /**
+   * Initialize the bridge adapter.
+   */
+  init: () => Promise<void>
   sendEvent: ClientSendEventFn
   waitForEvent: <T extends keyof WsEventToClient>(event: T) => Promise<WsEventToClientData<T>>
 }

@@ -12,7 +12,7 @@ import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event
 import { useLogger } from '@guiiai/logg'
 import { useWebSocket } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 
 import { WS_API_BASE } from '../../constants'
 import { getRegisterEventHandler } from '../event-handlers'
@@ -41,7 +41,6 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
 
   const eventHandlers: ClientEventHandlerMap = new Map()
   const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
-  const isInitialized = ref(false)
 
   // Explicit type to allow undefined URL to pause connection
   let wsSocket: ReturnType<typeof useWebSocket<keyof WsMessageToClient>>
@@ -85,12 +84,11 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     }
   })
 
-  function init() {
-    if (isInitialized.value)
-      return
+  async function init() {
     logger.verbose('Initializing websocket adapter')
-    sessionStore.ensureSessionInvariants()
-    isInitialized.value = true
+    return new Promise<void>((resolve) => {
+      waitForEvent('server:connected').then(() => resolve())
+    })
   }
 
   function waitForEvent<T extends keyof WsEventToClient>(event: T) {

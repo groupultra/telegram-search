@@ -113,7 +113,12 @@ export const useSessionStore = defineStore('session', () => {
     activeSessionId.value = null
   }
 
+  const init = () => {
+    ensureSessionInvariants()
+  }
+
   return {
+    init,
     sessions,
     activeSessionId,
     activeSession,

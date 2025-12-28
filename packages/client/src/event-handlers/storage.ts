@@ -27,9 +27,6 @@ export function registerStorageEventHandlers(
         useLogger('storage:dialogs').withError(error).warn('Batch prefillChatAvatarIntoStore failed')
       }
     })
-
-    // Signal that critical data is loaded and the app is ready to render
-    useAccountStore().completeBootstrap()
   })
 
   registerEventHandler('storage:messages', ({ messages }) => {

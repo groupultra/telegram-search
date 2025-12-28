@@ -109,7 +109,6 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
       setupDevtools?.(db.pglite)
     }
 
-    sessionStore.ensureSessionInvariants()
     registerAllEventHandlers(registerEventHandler)
 
     // Initial connection event

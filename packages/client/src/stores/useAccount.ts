@@ -105,25 +105,12 @@ export const useAccountStore = defineStore('account', () => {
     if (isReady.value)
       return
 
-    logger.verbose('Marking account as ready (step 1/2)')
+    logger.verbose('Marking account as ready')
     logger.verbose('Fetching config for new session')
     bridge.sendEvent('config:fetch')
 
-    // Trigger post-auth bootstrap (chat loading, etc)
-    // isReady will be set to true only after critical data (dialogs) is received
-    useChatStore().init()
-  }
-
-  /**
-   * Called by storage event handler when critical data is loaded.
-   * Needs `dialogs` to be loaded.
-   */
-  function completeBootstrap() {
-    if (isReady.value)
-      return
-
-    logger.verbose('Bootstrap completed (step 2/2)')
     isReady.value = true
+    useChatStore().init()
   }
 
   function resetReady() {
@@ -190,7 +177,6 @@ export const useAccountStore = defineStore('account', () => {
     init,
     handleAuth,
     markReady,
-    completeBootstrap,
     resetReady,
   }
 })

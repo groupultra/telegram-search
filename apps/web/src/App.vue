@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useLogger } from '@guiiai/logg'
-import { evictExpiredOrOversized, useAccountStore, useAvatarStore, useBridge } from '@tg-search/client'
+import { evictExpiredOrOversized, useAccountStore, useAvatarStore, useBridge, useSessionStore } from '@tg-search/client'
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
 import { onBeforeUnmount, onMounted } from 'vue'
 import { RouterView } from 'vue-router'
@@ -8,13 +8,15 @@ import { Toaster } from 'vue-sonner'
 
 import { usePWAStore } from './stores/pwa'
 
-onMounted(async () => {
+onMounted(() => {
   usePWAStore().init()
 
   hideSplashScreen()
 
-  await useBridge().init()
-  useAccountStore().init()
+  useSessionStore().init()
+  useBridge().init().then(() => {
+    useAccountStore().init()
+  })
 })
 
 const avatarStore = useAvatarStore()
