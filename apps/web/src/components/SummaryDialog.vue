@@ -3,6 +3,8 @@ import type { CoreMessage } from '@tg-search/core'
 
 import type { LLMMessage } from '../composables/useAIChat'
 
+import MarkdownRender from 'markstream-vue'
+
 import { useAccountStore, useBridgeStore } from '@tg-search/client'
 import { useDateFormat } from '@vueuse/core'
 import { computed, ref } from 'vue'
@@ -193,8 +195,11 @@ const canMarkRead = computed(() => {
             <div class="h-4 w-1/2 rounded bg-muted" />
             <div class="h-4 w-5/6 rounded bg-muted" />
           </div>
-          <div v-else class="prose dark:prose-invert max-w-none overflow-y-auto whitespace-pre-wrap">
-            {{ session.content }}
+          <div v-else class="max-w-none overflow-y-auto">
+            <MarkdownRender
+              :custom-id="`unread-summary-${props.chatId}`"
+              :content="session.content"
+            />
           </div>
         </div>
 
