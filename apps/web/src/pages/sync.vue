@@ -28,7 +28,7 @@ const syncOptions = ref<SyncOptions>({
 const bridge = useBridge()
 
 const chatsStore = useChatStore()
-const { chats } = storeToRefs(chatsStore)
+const { chats, folders } = storeToRefs(chatsStore)
 
 const syncTaskStore = useSyncTaskStore()
 const { currentTask, currentTaskProgress, increase, chatStats, chatStatsLoading } = storeToRefs(syncTaskStore)
@@ -383,6 +383,7 @@ watch(activeChatId, (chatId) => {
                 v-model:selected-chats="selectedChats"
                 v-model:active-chat-id="activeChatId"
                 :chats="chats"
+                :folders="folders"
               />
             </div>
 

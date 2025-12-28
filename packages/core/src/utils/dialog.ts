@@ -1,7 +1,7 @@
 import type { Result } from '@unbird/result'
 import type { Dialog } from 'telegram/tl/custom/dialog'
 
-import type { DialogType } from '../types'
+import type { DialogType } from '../types/dialog'
 
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
