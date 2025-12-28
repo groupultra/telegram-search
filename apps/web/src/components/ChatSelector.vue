@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { CoreChatFolder, CoreDialog } from '@tg-search/core/types'
 
-import { isChatInFolder } from '@tg-search/core'
 import { VList } from 'virtua/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -34,7 +33,7 @@ const filterOptions = computed(() => {
   if (props.folders) {
     for (const folder of props.folders) {
       options.push({
-        label: `${folder.emoticon ? `${folder.emoticon} ` : ''}${folder.title}`,
+        label: folder.title,
         value: `folder:${folder.id}`,
       })
     }
@@ -60,7 +59,7 @@ const filteredChats = computed(() => {
       const folderId = Number(selectedFilter.value.split(':')[1])
       const folder = props.folders?.find(f => f.id === folderId)
       if (folder) {
-        filtered = filtered.filter(chat => isChatInFolder(chat, folder))
+        filtered = filtered.filter(chat => chat.folderIds?.includes(folderId))
       }
     }
   }

@@ -1,48 +1,10 @@
 import type { Result } from '@unbird/result'
 import type { Dialog } from 'telegram/tl/custom/dialog'
 
-import type { CoreChatFolder, CoreDialog, DialogType } from '../types/dialog'
+import type { DialogType } from '../types/dialog'
 
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
-
-/**
- * Check if a chat belongs to a folder based on folder rules.
- *
- * Rules precedence:
- * 1. Excluded chats (always false)
- * 2. Included chats (always true)
- * 3. Pinned chats (always true)
- * 4. Type filters (contacts, nonContacts, groups, broadcasts, bots)
- */
-export function isChatInFolder(chat: CoreDialog, folder: CoreChatFolder): boolean {
-  if (folder.excludedChatIds.includes(chat.id))
-    return false
-
-  if (folder.includedChatIds.includes(chat.id))
-    return true
-
-  if (folder.pinnedChatIds?.includes(chat.id))
-    return true
-
-  if (folder.contacts && chat.isContact)
-    return true
-
-  // For non-contacts, we strictly check it's a user and NOT a contact
-  if (folder.nonContacts && !chat.isContact && chat.type === 'user')
-    return true
-
-  if (folder.groups && (chat.type === 'group' || chat.type === 'supergroup'))
-    return true
-
-  if (folder.broadcasts && chat.type === 'channel')
-    return true
-
-  if (folder.bots && chat.type === 'bot')
-    return true
-
-  return false
-}
 
 /**
  * Convert a Telegram `Dialog` to minimal `CoreDialog` data.

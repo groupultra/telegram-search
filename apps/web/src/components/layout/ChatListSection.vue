@@ -4,7 +4,6 @@ import type { CoreDialog } from '@tg-search/core/types'
 
 import { useLogger } from '@guiiai/logg'
 import { prefillChatAvatarIntoStore, useChatStore, useSettingsStore } from '@tg-search/client'
-import { isChatInFolder } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 import { VList } from 'virtua/vue'
 import { computed, watch } from 'vue'
@@ -52,7 +51,7 @@ const activeGroupChats = computed(() => {
     const folder = folders.value.find(f => f.id === selectedFolderId.value)
     if (folder) {
       const filtered = chatsFiltered.value.filter((chat) => {
-        return isChatInFolder(chat, folder)
+        return chat.folderIds?.includes(selectedFolderId.value!)
       })
 
       // For folders, per user request: "don't do pinning for now"
