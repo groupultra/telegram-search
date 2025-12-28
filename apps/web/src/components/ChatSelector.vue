@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CoreChatFolder, CoreDialog } from '@tg-search/core/types'
 
+import { isChatInFolder } from '@tg-search/core'
 import { VList } from 'virtua/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -22,29 +23,6 @@ const selectedChats = defineModel<number[]>('selectedChats', {
 const activeChatId = defineModel<number | null>('activeChatId', {
   default: null,
 })
-
-// Helper function to check if chat is in folder
-function isChatInFolder(chat: CoreDialog, folder: CoreChatFolder): boolean {
-  if (folder.excludedChatIds.includes(chat.id))
-    return false
-  if (folder.includedChatIds.includes(chat.id))
-    return true
-  if (folder.pinnedChatIds?.includes(chat.id))
-    return true
-
-  if (folder.contacts && chat.isContact)
-    return true
-  if (folder.nonContacts && !chat.isContact && chat.type === 'user')
-    return true
-  if (folder.groups && (chat.type === 'group' || chat.type === 'supergroup'))
-    return true
-  if (folder.broadcasts && chat.type === 'channel')
-    return true
-  if (folder.bots && chat.type === 'bot')
-    return true
-
-  return false
-}
 
 // Build filter options based on folders
 const filterOptions = computed(() => {
