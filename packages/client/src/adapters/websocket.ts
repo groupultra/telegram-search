@@ -54,9 +54,6 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     if (event !== 'server:event:register')
       logger.debug('Sending event', event, data)
 
-    if (!wsSocket || wsSocket.status.value !== 'OPEN')
-      return
-
     wsSocket.send(JSON.stringify(createWsMessage(event, data)))
   }
 
@@ -120,7 +117,9 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
           if (fn)
             fn(message.data)
         }
-        catch (error) { logger.withError(error).withFields({ message }).error('Error handling event') }
+        catch (error) {
+          logger.withError(error).withFields({ message }).error('Error handling event')
+        }
       }
       if (eventHandlersQueue.has(message.type)) {
         drainEventQueue(eventHandlersQueue, message.type, message.data, (error) => {
