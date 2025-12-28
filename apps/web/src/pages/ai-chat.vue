@@ -3,7 +3,7 @@ import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
 import MarkdownRender from 'markstream-vue'
 
-import { useAccountStore, useAIChatStore, useChatStore } from '@tg-search/client'
+import { useAccountStore, useAIChatStore, useBridge, useChatStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
