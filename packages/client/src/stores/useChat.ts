@@ -69,11 +69,6 @@ export const useChatStore = defineStore('chat', () => {
     return chats.value.find(chat => chat.id === Number(id))
   }
 
-  function fetchChats() {
-    logger.log('Fetching chats')
-    bridge.sendEvent('dialog:fetch')
-  }
-
   function fetchStorageDialogs() {
     bridge.sendEvent('storage:fetch:dialogs')
   }
@@ -87,16 +82,12 @@ export const useChatStore = defineStore('chat', () => {
     logger.log('Init dialogs')
 
     fetchStorageDialogs()
-    fetchChats()
     fetchFolders()
   }
 
   return {
     init,
     getChat,
-    fetchChats,
-    fetchStorageDialogs,
-    fetchFolders,
     chats,
     folders,
   }

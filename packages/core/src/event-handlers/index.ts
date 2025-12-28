@@ -29,10 +29,9 @@ import { createGramEventsService } from '../services/gram-events'
 import { createMessageService } from '../services/message'
 import { createMessageResolverService } from '../services/message-resolver'
 import { createTakeoutService } from '../services/takeout'
-import { registerAccountEventHandlers } from './account'
 import { registerAccountSettingsEventHandlers } from './account-settings'
 import { registerAuthEventHandlers } from './auth'
-import { registerDialogEventHandlers } from './dialog'
+import { fetchDialogs, registerDialogEventHandlers } from './dialog'
 import { registerEntityEventHandlers } from './entity'
 import { registerGramEventsEventHandlers } from './gram-events'
 import { registerMessageEventHandlers } from './message'
@@ -81,23 +80,36 @@ export function basicEventHandler(ctx: CoreContext, config: Config, mediaBinaryP
 export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
   let logger = useLogger()
 
-  ctx.emitter.once('auth:connected', () => {
-    // Register entity handlers first so we can establish currentAccountId.
-    const accountService = useService(ctx, logger, createAccountService)
-    registerAccountEventHandlers(ctx, logger, accountModels)(accountService)
+  const accountService = useService(ctx, logger, createAccountService)
+  const entityService = useService(ctx, logger, createEntityService)
+  const messageService = useService(ctx, logger, createMessageService)
+  const dialogService = useService(ctx, logger, createDialogService)
+  const takeoutService = useService(ctx, logger, createTakeoutService)
+  const gramEventsService = useService(ctx, logger, createGramEventsService)
 
-    // Ensure current account ID is established before any dialog/storage access.
-    ctx.emitter.emit('account:setup')
+  ctx.emitter.once('auth:connected', async () => {
+    // Register entity handlers first so we can establish currentAccountId.
+    logger.verbose('Getting me info')
+    const account = (await accountService.fetchMyAccount()).expect('Failed to get me info')
+
+    // Record account and set current account ID
+    logger.withFields({ userId: account.id }).verbose('Recording account for current user')
+
+    // Record account in DB
+    const dbAccount = await accountModels.recordAccount(ctx.getDB(), 'telegram', account.id)
+    ctx.setCurrentAccountId(dbAccount.id)
+    ctx.setMyUser(account)
+
+    // Fetch dialogs
+    await fetchDialogs(ctx, logger, models, dialogService)
+
+    logger.withFields({ accountId: dbAccount.id }).verbose('Set current account ID')
+
+    ctx.emitter.emit('account:ready', { accountId: dbAccount.id })
   })
 
   ctx.emitter.once('account:ready', ({ accountId }) => {
     logger = logger.withFields({ accountId })
-
-    const entityService = useService(ctx, logger, createEntityService)
-    const messageService = useService(ctx, logger, createMessageService)
-    const dialogService = useService(ctx, logger, createDialogService)
-    const takeoutService = useService(ctx, logger, createTakeoutService)
-    const gramEventsService = useService(ctx, logger, createGramEventsService)
 
     registerEntityEventHandlers(ctx, logger)(entityService)
     registerMessageEventHandlers(ctx, logger)(messageService)
