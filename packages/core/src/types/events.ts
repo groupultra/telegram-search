@@ -82,6 +82,7 @@ export interface MessageEventToCore {
   'message:fetch:abort': (data: { taskId: string }) => void
   'message:fetch:specific': (data: { chatId: string, messageIds: number[] }) => void
   'message:fetch:unread': (data: FetchUnreadMessageOpts) => void
+  'message:fetch:summary': (data: FetchSummaryMessageOpts) => void
   'message:send': (data: { chatId: string, content: string }) => void
   'message:read': (data: { chatId: string }) => void
 }
@@ -92,10 +93,32 @@ export interface FetchUnreadMessageOpts {
   startTime?: number
 }
 
+export type SummaryFallbackWindow = 'today' | 'last24h'
+
+export interface FetchSummaryMessageOpts {
+  chatId: string
+  /**
+   * Only unread messages whose timestamp >= unreadStartTime will be considered.
+   * Frontend typically passes start-of-today here to avoid summarizing stale unread.
+   */
+  unreadStartTime?: number
+  /**
+   * Used when there are no unread messages (or none match unreadStartTime).
+   */
+  fallbackWindow?: SummaryFallbackWindow
+  /**
+   * Hard cap to protect WS payload size and LLM token usage.
+   */
+  limit?: number
+}
+
+export type SummaryMessageSource = 'unread' | 'fallback'
+
 export interface MessageEventFromCore {
   'message:fetch:progress': (data: { taskId: string, progress: number }) => void
   'message:data': (data: { messages: CoreMessage[] }) => void
   'message:unread-data': (data: { messages: CoreMessage[] }) => void
+  'message:summary-data': (data: { messages: CoreMessage[], source: SummaryMessageSource, fallbackWindow?: SummaryFallbackWindow }) => void
 }
 
 export interface FetchMessageOpts {

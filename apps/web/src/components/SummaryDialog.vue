@@ -28,6 +28,7 @@ const bridge = useBridgeStore()
 const account = useAccountStore()
 const aiChatLogic = useAIChatLogic()
 const summarizeStore = useSummarizeStore()
+const fallbackWindow = ref<'today' | 'last24h'>('last24h')
 
 const session = computed(() => summarizeStore.getSession(props.chatId))
 
@@ -38,35 +39,41 @@ async function open() {
   if (session.value.content || session.value.sourceMessages.length > 0)
     return
 
-  await fetchUnreadAndGenerate()
+  await fetchSummaryAndGenerate()
 }
 
-async function fetchUnreadAndGenerate() {
+async function fetchSummaryAndGenerate() {
   summarizeStore.setLoading(props.chatId, true)
-  summarizeStore.setSummary(props.chatId, '', [])
+  summarizeStore.setSummary(props.chatId, '', [], { sourceType: 'none', fallbackWindow: undefined })
 
   // Calculate start of today (00:00:00)
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfTodayTimestamp = Math.floor(startOfToday.getTime() / 1000)
 
-  bridge.sendEvent('message:fetch:unread', {
+  bridge.sendEvent('message:fetch:summary', {
     chatId: props.chatId,
-    startTime: startOfTodayTimestamp,
+    unreadStartTime: startOfTodayTimestamp,
+    fallbackWindow: fallbackWindow.value,
+    limit: 1000,
   })
 
   try {
-    const data = await bridge.waitForEvent('message:unread-data')
-    summarizeStore.setSourceMessages(props.chatId, data.messages)
+    const data = await bridge.waitForEvent('message:summary-data')
+    summarizeStore.setSourceMessages(props.chatId, data.messages, { sourceType: data.source, fallbackWindow: data.fallbackWindow })
 
     if (data.messages.length === 0) {
-      toast.info(t('summaryDialog.noUnreadMessages'))
+      toast.info(t('summaryDialog.noMessagesToSummarize'))
       summarizeStore.setLoading(props.chatId, false)
-      summarizeStore.setSummary(props.chatId, t('summaryDialog.noUnreadMessagesDescription'), [])
+      summarizeStore.setSummary(props.chatId, t('summaryDialog.noMessagesToSummarizeDescription'), [], { sourceType: 'none' })
       return
     }
 
-    await generateSummary(data.messages)
+    if (data.source === 'fallback') {
+      toast.info(t('summaryDialog.fallbackUsed', { window: data.fallbackWindow === 'today' ? t('summaryDialog.windowToday') : t('summaryDialog.windowLast24h') }))
+    }
+
+    await generateSummary(data.messages, { sourceType: data.source, fallbackWindow: data.fallbackWindow })
   }
   catch (e) {
     toast.error(t('summaryDialog.fetchFailed'))
@@ -75,14 +82,17 @@ async function fetchUnreadAndGenerate() {
   }
 }
 
-async function generateSummary(messages: CoreMessage[]) {
+async function generateSummary(
+  messages: CoreMessage[],
+  meta?: { sourceType?: 'unread' | 'fallback', fallbackWindow?: 'today' | 'last24h' },
+) {
   // Check for API Key
   const settings = account.accountSettings?.llm
   const apiKey = settings?.apiKey
 
   if (!apiKey) {
     toast.error(t('summaryDialog.noApiKey'))
-    summarizeStore.setSummary(props.chatId, t('summaryDialog.configureApiKey'), messages)
+    summarizeStore.setSummary(props.chatId, t('summaryDialog.configureApiKey'), messages, meta)
     summarizeStore.setLoading(props.chatId, false)
     return
   }
@@ -117,7 +127,7 @@ async function generateSummary(messages: CoreMessage[]) {
   try {
     summarizeStore.setLoading(props.chatId, false)
     // Clear content before streaming
-    summarizeStore.setSummary(props.chatId, '', messages)
+    summarizeStore.setSummary(props.chatId, '', messages, meta)
     await aiChatLogic.streamSimpleText(llmConfig, llmMessages, (delta) => {
       summarizeStore.appendSummary(props.chatId, delta)
     })
@@ -153,7 +163,8 @@ const canMarkRead = computed(() => {
     return false
   if (!session.value.content)
     return false
-  if (session.value.content === t('summaryDialog.noUnreadMessagesDescription'))
+  // Only unread-summary should allow marking unread as read.
+  if (session.value.sourceType !== 'unread')
     return false
   return true
 })
@@ -171,15 +182,24 @@ const canMarkRead = computed(() => {
         <h2 class="text-lg font-bold">
           {{ t('summaryDialog.title') }}
         </h2>
-        <Button
-          v-if="!session.isLoading"
-          icon="i-lucide-refresh-cw"
-          variant="ghost"
-          size="sm"
-          @click="fetchUnreadAndGenerate"
-        >
-          {{ t('summaryDialog.regenerate') }}
-        </Button>
+        <div class="flex items-center gap-2">
+          <div class="text-xs text-muted-foreground">
+            {{ t('summaryDialog.fallbackLabel') }}
+            <select v-model="fallbackWindow" class="ml-1 border rounded px-2 py-1 bg-background">
+              <option value="today">{{ t('summaryDialog.windowToday') }}</option>
+              <option value="last24h">{{ t('summaryDialog.windowLast24h') }}</option>
+            </select>
+          </div>
+          <Button
+            v-if="!session.isLoading"
+            icon="i-lucide-refresh-cw"
+            variant="ghost"
+            size="sm"
+            @click="fetchSummaryAndGenerate"
+          >
+            {{ t('summaryDialog.regenerate') }}
+          </Button>
+        </div>
       </div>
 
       <div class="min-h-0 flex flex-1 flex-col gap-4 md:flex-row">

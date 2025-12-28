@@ -14,4 +14,8 @@ export function registerMessageEventHandlers(
   registerEventHandler('message:unread-data', ({ messages }) => {
     useLogger('message:unread-data').debug('Received unread messages', messages)
   })
+
+  registerEventHandler('message:summary-data', ({ source, fallbackWindow, messages }) => {
+    useLogger('message:summary-data').withFields({ source, fallbackWindow, count: messages.length }).debug('Received summary messages')
+  })
 }
