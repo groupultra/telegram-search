@@ -52,9 +52,7 @@ export interface SessionEventFromCore {
 // Account Events
 // ============================================================================
 
-export interface AccountEventToCore {
-  'account:setup': () => void
-}
+export interface AccountEventToCore {}
 
 export interface AccountEventFromCore {
   'account:ready': (data: { accountId: string }) => void
