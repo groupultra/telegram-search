@@ -2,7 +2,6 @@ import type { Models } from '../../models'
 import type { MessageService } from '../../services/message'
 
 import bigInt from 'big-integer'
-
 import { useLogger } from '@guiiai/logg'
 import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
@@ -28,11 +27,11 @@ function createApiMessage(id: number, date: number, content: string) {
 }
 
 describe('message:fetch:summary', () => {
-  it('should return unread messages when available', async () => {
+  it('mode=unread should use fetchUnreadMessages', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
 
     const mockMessageService: Pick<MessageService, 'fetchUnreadMessages' | 'fetchRecentMessagesByTimeRange' | 'fetchMessages' | 'markAsRead' | 'sendMessage' | 'fetchSpecificMessages'> = {
-      async* fetchMessages() {},
+      fetchMessages: async function* () {},
       sendMessage: vi.fn(),
       fetchSpecificMessages: vi.fn(async () => []),
       markAsRead: vi.fn(async () => {}),
@@ -48,25 +47,25 @@ describe('message:fetch:summary', () => {
 
     registerMessageEventHandlers(ctx, logger)(mockMessageService as unknown as MessageService)
 
-    const received: Array<{ source: 'unread' | 'fallback', count: number }> = []
-    ctx.emitter.on('message:summary-data', ({ source, messages }) => {
-      received.push({ source, count: messages.length })
+    const received: Array<{ mode: 'unread' | 'today' | 'last24h', count: number }> = []
+    ctx.emitter.on('message:summary-data', ({ mode, messages }) => {
+      received.push({ mode, count: messages.length })
     })
 
-    ctx.emitter.emit('message:fetch:summary', { chatId: '1', limit: 1000, fallbackWindow: 'last24h' })
+    ctx.emitter.emit('message:fetch:summary', { chatId: '1', limit: 1000, mode: 'unread' })
     await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(received).toHaveLength(1)
-    expect(received[0].source).toBe('unread')
+    expect(received[0].mode).toBe('unread')
     expect(received[0].count).toBe(2)
     expect(mockMessageService.fetchRecentMessagesByTimeRange).not.toHaveBeenCalled()
   })
 
-  it('should fallback to time window when unread is empty', async () => {
+  it('mode=today should use fetchRecentMessagesByTimeRange', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
 
     const mockMessageService: Pick<MessageService, 'fetchUnreadMessages' | 'fetchRecentMessagesByTimeRange' | 'fetchMessages' | 'markAsRead' | 'sendMessage' | 'fetchSpecificMessages'> = {
-      async* fetchMessages() {},
+      fetchMessages: async function* () {},
       sendMessage: vi.fn(),
       fetchSpecificMessages: vi.fn(async () => []),
       markAsRead: vi.fn(async () => {}),
@@ -82,18 +81,19 @@ describe('message:fetch:summary', () => {
 
     registerMessageEventHandlers(ctx, logger)(mockMessageService as unknown as MessageService)
 
-    const received: Array<{ source: 'unread' | 'fallback', fallbackWindow?: 'today' | 'last24h', count: number }> = []
-    ctx.emitter.on('message:summary-data', ({ source, fallbackWindow, messages }) => {
-      received.push({ source, fallbackWindow, count: messages.length })
+    const received: Array<{ mode: 'unread' | 'today' | 'last24h', count: number }> = []
+    ctx.emitter.on('message:summary-data', ({ mode, messages }) => {
+      received.push({ mode, count: messages.length })
     })
 
-    ctx.emitter.emit('message:fetch:summary', { chatId: '1', limit: 1000, fallbackWindow: 'today' })
+    ctx.emitter.emit('message:fetch:summary', { chatId: '1', limit: 1000, mode: 'today' })
     await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(received).toHaveLength(1)
-    expect(received[0].source).toBe('fallback')
-    expect(received[0].fallbackWindow).toBe('today')
+    expect(received[0].mode).toBe('today')
     expect(received[0].count).toBe(2)
     expect(mockMessageService.fetchRecentMessagesByTimeRange).toHaveBeenCalledOnce()
+    expect(mockMessageService.fetchUnreadMessages).not.toHaveBeenCalled()
   })
 })
+

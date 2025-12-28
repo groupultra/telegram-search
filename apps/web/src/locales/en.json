@@ -222,11 +222,11 @@
     "unsyncedMessages": "Unsynced Messages"
   },
   "summaryDialog": {
-    "title": "Unread Summary",
-    "fallbackLabel": "When no unread:",
-    "windowToday": "Today",
-    "windowLast24h": "Last 24 hours",
-    "fallbackUsed": "No unread messages. Summarizing {window} messages instead.",
+    "title": "Message Summary",
+    "tabUnread": "Unread Messages",
+    "tabToday": "Today",
+    "tabLast24h": "Last 24 hours",
+    "autoFallbackToLast24h": "No unread messages. Switched to last 24 hours automatically.",
     "noMessagesToSummarize": "No messages to summarize",
     "noMessagesToSummarizeDescription": "No messages found in the selected time window.",
     "fetchFailed": "Failed to fetch messages",
@@ -237,7 +237,6 @@
     "messagesMarkedRead": "Messages marked as read",
     "close": "Close",
     "markAsRead": "Mark as Read ({count})",
-    "regenerate": "Regenerate",
     "summary": "Summary",
     "sources": "Sources",
     "noSources": "No messages"

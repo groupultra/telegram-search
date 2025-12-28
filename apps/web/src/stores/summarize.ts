@@ -6,8 +6,7 @@ import { ref } from 'vue'
 export interface SummarySession {
   content: string
   sourceMessages: CoreMessage[]
-  sourceType: 'unread' | 'fallback' | 'none'
-  fallbackWindow?: 'today' | 'last24h'
+  mode: 'unread' | 'today' | 'last24h' | 'none'
   isLoading: boolean
   lastUpdated: number
 }
@@ -20,8 +19,7 @@ export const useSummarizeStore = defineStore('summarize', () => {
       sessions.value[chatId] = {
         content: '',
         sourceMessages: [],
-        sourceType: 'none',
-        fallbackWindow: undefined,
+        mode: 'none',
         isLoading: false,
         lastUpdated: 0,
       }
@@ -33,15 +31,13 @@ export const useSummarizeStore = defineStore('summarize', () => {
     chatId: string,
     content: string,
     messages: CoreMessage[],
-    meta?: { sourceType?: SummarySession['sourceType'], fallbackWindow?: SummarySession['fallbackWindow'] },
+    meta?: { mode?: SummarySession['mode'] },
   ) {
     const session = getSession(chatId)
     session.content = content
     session.sourceMessages = messages
-    session.sourceType = meta?.sourceType ?? (messages.length > 0 ? session.sourceType : 'none')
-    session.fallbackWindow = meta?.fallbackWindow ?? session.fallbackWindow
+    session.mode = meta?.mode ?? session.mode
     session.lastUpdated = Date.now()
-    session.isLoading = false
   }
 
   function appendSummary(chatId: string, delta: string) {
@@ -52,12 +48,11 @@ export const useSummarizeStore = defineStore('summarize', () => {
   function setSourceMessages(
     chatId: string,
     messages: CoreMessage[],
-    meta?: { sourceType?: SummarySession['sourceType'], fallbackWindow?: SummarySession['fallbackWindow'] },
+    meta?: { mode?: SummarySession['mode'] },
   ) {
     const session = getSession(chatId)
     session.sourceMessages = messages
-    session.sourceType = meta?.sourceType ?? session.sourceType
-    session.fallbackWindow = meta?.fallbackWindow ?? session.fallbackWindow
+    session.mode = meta?.mode ?? session.mode
   }
 
   function setLoading(chatId: string, isLoading: boolean) {

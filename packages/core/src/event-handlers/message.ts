@@ -152,26 +152,23 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.emitter.on('message:fetch:summary', async ({ chatId, limit, unreadStartTime, fallbackWindow }) => {
-      logger.withFields({ chatId, limit, unreadStartTime, fallbackWindow }).verbose('Fetching summary messages')
+    ctx.emitter.on('message:fetch:summary', async ({ chatId, limit, mode }) => {
+      logger.withFields({ chatId, limit, mode }).verbose('Fetching summary messages')
       try {
-        const now = new Date()
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        const startOfTodayTs = Math.floor(startOfToday.getTime() / 1000)
-        const effectiveUnreadStart = unreadStartTime ?? startOfTodayTs
-
-        const unread = await messageService.fetchUnreadMessages(chatId, { limit, startTime: effectiveUnreadStart })
-        if (unread.length > 0) {
+        if (mode === 'unread') {
+          const unread = await messageService.fetchUnreadMessages(chatId, { limit })
           unread.reverse()
           ctx.emitter.emit('message:summary-data', {
             messages: toCoreMessages(unread),
-            source: 'unread',
+            mode: 'unread',
           })
           return
         }
 
-        const fb = fallbackWindow ?? 'last24h'
-        const startTime = fb === 'today'
+        const now = new Date()
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const startOfTodayTs = Math.floor(startOfToday.getTime() / 1000)
+        const startTime = mode === 'today'
           ? startOfTodayTs
           : Math.floor(Date.now() / 1000) - 24 * 60 * 60
 
@@ -180,8 +177,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
 
         ctx.emitter.emit('message:summary-data', {
           messages: toCoreMessages(recent),
-          source: 'fallback',
-          fallbackWindow: fb,
+          mode,
         })
       }
       catch (e) {

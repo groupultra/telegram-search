@@ -16,6 +16,8 @@ import { useAIChatLogic } from '../composables/useAIChat'
 import { useSummarizeStore } from '../stores/summarize'
 import { Button } from './ui/Button'
 
+type SummaryMode = 'unread' | 'today' | 'last24h'
+
 const props = defineProps<{
   chatId: string
 }>()
@@ -28,7 +30,7 @@ const bridge = useBridgeStore()
 const account = useAccountStore()
 const aiChatLogic = useAIChatLogic()
 const summarizeStore = useSummarizeStore()
-const fallbackWindow = ref<'today' | 'last24h'>('last24h')
+const activeMode = ref<SummaryMode>('unread')
 
 const session = computed(() => summarizeStore.getSession(props.chatId))
 
@@ -39,41 +41,43 @@ async function open() {
   if (session.value.content || session.value.sourceMessages.length > 0)
     return
 
-  await fetchSummaryAndGenerate()
+  await triggerGenerate('unread', true)
 }
 
-async function fetchSummaryAndGenerate() {
-  summarizeStore.setLoading(props.chatId, true)
-  summarizeStore.setSummary(props.chatId, '', [], { sourceType: 'none', fallbackWindow: undefined })
+async function triggerGenerate(mode: SummaryMode, autoFallbackWhenNoUnread = false) {
+  activeMode.value = mode
+  await fetchSummaryAndGenerate(mode, autoFallbackWhenNoUnread)
+}
 
-  // Calculate start of today (00:00:00)
-  const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const startOfTodayTimestamp = Math.floor(startOfToday.getTime() / 1000)
+async function fetchSummaryAndGenerate(mode: SummaryMode, autoFallbackWhenNoUnread = false) {
+  summarizeStore.setLoading(props.chatId, true)
+  summarizeStore.setSummary(props.chatId, '', [], { mode: 'none' })
+  summarizeStore.setSourceMessages(props.chatId, [], { mode: 'none' })
 
   bridge.sendEvent('message:fetch:summary', {
     chatId: props.chatId,
-    unreadStartTime: startOfTodayTimestamp,
-    fallbackWindow: fallbackWindow.value,
+    mode,
     limit: 1000,
   })
 
   try {
     const data = await bridge.waitForEvent('message:summary-data')
-    summarizeStore.setSourceMessages(props.chatId, data.messages, { sourceType: data.source, fallbackWindow: data.fallbackWindow })
+    summarizeStore.setSourceMessages(props.chatId, data.messages, { mode: data.mode })
 
     if (data.messages.length === 0) {
+      if (autoFallbackWhenNoUnread && mode === 'unread') {
+        toast.info(t('summaryDialog.autoFallbackToLast24h'))
+        await triggerGenerate('last24h', false)
+        return
+      }
+
       toast.info(t('summaryDialog.noMessagesToSummarize'))
       summarizeStore.setLoading(props.chatId, false)
-      summarizeStore.setSummary(props.chatId, t('summaryDialog.noMessagesToSummarizeDescription'), [], { sourceType: 'none' })
+      summarizeStore.setSummary(props.chatId, t('summaryDialog.noMessagesToSummarizeDescription'), [], { mode: 'none' })
       return
     }
 
-    if (data.source === 'fallback') {
-      toast.info(t('summaryDialog.fallbackUsed', { window: data.fallbackWindow === 'today' ? t('summaryDialog.windowToday') : t('summaryDialog.windowLast24h') }))
-    }
-
-    await generateSummary(data.messages, { sourceType: data.source, fallbackWindow: data.fallbackWindow })
+    await generateSummary(data.messages, { mode: data.mode })
   }
   catch (e) {
     toast.error(t('summaryDialog.fetchFailed'))
@@ -84,7 +88,7 @@ async function fetchSummaryAndGenerate() {
 
 async function generateSummary(
   messages: CoreMessage[],
-  meta?: { sourceType?: 'unread' | 'fallback', fallbackWindow?: 'today' | 'last24h' },
+  meta?: { mode?: SummaryMode },
 ) {
   // Check for API Key
   const settings = account.accountSettings?.llm
@@ -125,12 +129,19 @@ async function generateSummary(
   ]
 
   try {
-    summarizeStore.setLoading(props.chatId, false)
-    // Clear content before streaming
+    // Clear content before streaming and keep skeleton until first token arrives.
     summarizeStore.setSummary(props.chatId, '', messages, meta)
+    summarizeStore.setLoading(props.chatId, true)
+
+    let receivedFirstDelta = false
     await aiChatLogic.streamSimpleText(llmConfig, llmMessages, (delta) => {
+      if (!receivedFirstDelta) {
+        receivedFirstDelta = true
+        summarizeStore.setLoading(props.chatId, false)
+      }
       summarizeStore.appendSummary(props.chatId, delta)
     })
+    summarizeStore.setLoading(props.chatId, false)
   }
   catch (e) {
     console.error(e)
@@ -164,7 +175,7 @@ const canMarkRead = computed(() => {
   if (!session.value.content)
     return false
   // Only unread-summary should allow marking unread as read.
-  if (session.value.sourceType !== 'unread')
+  if (session.value.mode !== 'unread')
     return false
   return true
 })
@@ -182,28 +193,37 @@ const canMarkRead = computed(() => {
         <h2 class="text-lg font-bold">
           {{ t('summaryDialog.title') }}
         </h2>
-        <div class="flex items-center gap-2">
-          <div class="text-xs text-muted-foreground">
-            {{ t('summaryDialog.fallbackLabel') }}
-            <select v-model="fallbackWindow" class="ml-1 border rounded bg-background px-2 py-1">
-              <option value="today">
-                {{ t('summaryDialog.windowToday') }}
-              </option>
-              <option value="last24h">
-                {{ t('summaryDialog.windowLast24h') }}
-              </option>
-            </select>
-          </div>
-          <Button
-            v-if="!session.isLoading"
-            icon="i-lucide-refresh-cw"
-            variant="ghost"
-            size="sm"
-            @click="fetchSummaryAndGenerate"
-          >
-            {{ t('summaryDialog.regenerate') }}
-          </Button>
-        </div>
+      </div>
+
+      <!-- Mode Tabs -->
+      <div class="flex items-center gap-2">
+        <button
+          :disabled="session.isLoading"
+          :class="{ 'bg-accent text-accent-foreground': activeMode === 'unread' }"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          @click="triggerGenerate('unread')"
+        >
+          <span class="i-lucide-mail-open h-4 w-4" />
+          <span>{{ t('summaryDialog.tabUnread') }}</span>
+        </button>
+        <button
+          :disabled="session.isLoading"
+          :class="{ 'bg-accent text-accent-foreground': activeMode === 'today' }"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          @click="triggerGenerate('today')"
+        >
+          <span class="i-lucide-calendar-days h-4 w-4" />
+          <span>{{ t('summaryDialog.tabToday') }}</span>
+        </button>
+        <button
+          :disabled="session.isLoading"
+          :class="{ 'bg-accent text-accent-foreground': activeMode === 'last24h' }"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          @click="triggerGenerate('last24h')"
+        >
+          <span class="i-lucide-clock-3 h-4 w-4" />
+          <span>{{ t('summaryDialog.tabLast24h') }}</span>
+        </button>
       </div>
 
       <div class="min-h-0 flex flex-1 flex-col gap-4 md:flex-row">
@@ -212,7 +232,7 @@ const canMarkRead = computed(() => {
           <h3 class="mb-2 text-muted-foreground font-medium">
             {{ t('summaryDialog.summary') || 'Summary' }}
           </h3>
-          <div v-if="session.isLoading" class="animate-pulse space-y-3">
+          <div v-if="session.isLoading && !session.content" class="animate-pulse space-y-3">
             <div class="h-4 w-3/4 rounded bg-muted" />
             <div class="h-4 w-1/2 rounded bg-muted" />
             <div class="h-4 w-5/6 rounded bg-muted" />
