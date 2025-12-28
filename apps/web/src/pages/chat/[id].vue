@@ -361,7 +361,7 @@ watch(
         <!-- Send button with modern design -->
         <button
           :disabled="!messageInput.trim()"
-          class="h-14 w-14 flex flex-shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed hover:bg-primary/90 disabled:opacity-50 hover:shadow-xl disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:shadow-lg"
+          class="h-14 w-14 flex shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed hover:bg-primary/90 disabled:opacity-50 hover:shadow-xl disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:shadow-lg"
           @click="sendMessage"
         >
           <span class="i-lucide-send h-5 w-5" />

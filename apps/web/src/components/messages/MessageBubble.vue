@@ -13,7 +13,7 @@ defineProps<{
 
 <template>
   <div class="group mx-3 my-1 flex items-start gap-3 rounded-xl p-3 transition-all duration-200 md:mx-4 md:gap-4 hover:bg-accent/50">
-    <div class="flex-shrink-0 pt-0.5">
+    <div class="shrink-0 pt-0.5">
       <EntityAvatar
         :id="message.fromId"
         entity="other"
@@ -25,7 +25,7 @@ defineProps<{
     <div class="min-w-0 flex-1">
       <div class="mb-1.5 flex items-baseline gap-2">
         <span class="truncate text-sm text-foreground font-semibold">{{ message.fromName }}</span>
-        <span class="flex-shrink-0 text-xs text-muted-foreground">{{ formatMessageTimestamp(message.platformTimestamp) }}</span>
+        <span class="shrink-0 text-xs text-muted-foreground">{{ formatMessageTimestamp(message.platformTimestamp) }}</span>
       </div>
 
       <div class="prose prose-sm max-w-none text-foreground/90">

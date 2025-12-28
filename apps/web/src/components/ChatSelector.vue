@@ -116,7 +116,7 @@ function toggleSelection(id: number): void {
 <template>
   <div class="h-full flex flex-col space-y-4">
     <!-- Filters -->
-    <div class="flex flex-shrink-0 flex-col items-start gap-3 md:flex-row md:items-center">
+    <div class="flex shrink-0 flex-col items-start gap-3 md:flex-row md:items-center">
       <!-- Type Selection -->
       <div class="w-full md:w-48">
         <SelectDropdown

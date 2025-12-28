@@ -76,7 +76,7 @@ const userDropdownOpen = ref(false)
           class="min-w-0 flex flex-1 cursor-pointer items-center gap-2.5 rounded-md p-1 transition-colors hover:bg-accent"
           @click="userDropdownOpen = !userDropdownOpen"
         >
-          <div class="h-8 w-8 flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+          <div class="h-8 w-8 flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
             <EntityAvatar
               v-if="activeSession?.me?.id != null"
               :id="activeSession?.me?.id!"
@@ -90,11 +90,11 @@ const userDropdownOpen = ref(false)
             <span class="truncate text-sm font-medium">{{ activeSession?.me?.name }}</span>
             <span class="truncate text-xs text-muted-foreground">{{ accountStore.isReady ? t('settings.connected') : t('settings.disconnected') }}</span>
           </div>
-          <div class="i-lucide-chevron-up h-4 w-4 flex-shrink-0 text-muted-foreground" />
+          <div class="i-lucide-chevron-up h-4 w-4 shrink-0 text-muted-foreground" />
         </div>
 
         <!-- Control buttons -->
-        <div class="flex flex-shrink-0 items-center gap-1">
+        <div class="flex shrink-0 items-center gap-1">
           <Button
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
             class="h-8 w-8 rounded-md p-0"

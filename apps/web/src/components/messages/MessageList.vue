@@ -99,7 +99,7 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
       @contextmenu="handleContextMenu($event, item)"
       @touchstart.passive="handleLongPress($event, item)"
     >
-      <div class="flex-shrink-0 pt-0.5">
+      <div class="shrink-0 pt-0.5">
         <EntityAvatar
           :id="item.fromId"
           entity="other"
@@ -113,7 +113,7 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
           <span class="truncate text-sm text-gray-900 font-semibold dark:text-gray-100">
             {{ item.fromName }}
           </span>
-          <span class="flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">
+          <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">
             {{ formatMessageTimestamp(item.platformTimestamp) }}
           </span>
         </div>
@@ -124,7 +124,7 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
         </div>
       </div>
       <button
-        class="flex-shrink-0 rounded-lg p-2 opacity-0 transition-all hover:bg-accent group-hover:opacity-100"
+        class="shrink-0 rounded-lg p-2 opacity-0 transition-all hover:bg-accent group-hover:opacity-100"
         @click.stop="handleContextMenu($event, item)"
       >
         <span class="i-lucide-more-vertical h-4 w-4" />

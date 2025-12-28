@@ -84,7 +84,7 @@ watch(keywordDebounced, (newKeyword) => {
         <div class="border-b from-background/50 to-background bg-gradient-to-b p-4 dark:border-gray-700 md:p-6">
           <div class="flex items-center gap-3">
             <button
-              class="flex flex-shrink-0 items-center justify-center rounded-full p-2 transition-colors hover:bg-accent md:hidden"
+              class="flex shrink-0 items-center justify-center rounded-full p-2 transition-colors hover:bg-accent md:hidden"
               @click="isOpen = false"
             >
               <span class="i-lucide-arrow-left h-5 w-5" />

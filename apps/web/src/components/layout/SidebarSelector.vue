@@ -25,7 +25,7 @@ const isCurrentPage = computed(() => route.path === props.path)
     <div
       class="flex cursor-pointer items-center gap-3 px-3 py-2"
     >
-      <span :class="icon" class="h-4 w-4 flex-shrink-0" />
+      <span :class="icon" class="h-4 w-4 shrink-0" />
       <span class="truncate text-sm font-medium">{{ name }}</span>
     </div>
   </div>
