@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CoreDialog } from '@tg-search/core/types'
+import type { CoreChatFolder, CoreDialog } from '@tg-search/core/types'
 
 import { VList } from 'virtua/vue'
 import { computed, ref } from 'vue'
@@ -9,6 +9,7 @@ import SelectDropdown from './ui/SelectDropdown.vue'
 
 const props = defineProps<{
   chats: CoreDialog[]
+  folders?: CoreChatFolder[]
 }>()
 
 const { t, locale } = useI18n()
@@ -22,24 +23,49 @@ const activeChatId = defineModel<number | null>('activeChatId', {
   default: null,
 })
 
-/**
- * Build chat type options localized by current language.
- * Returns localized labels with corresponding values for the dropdown.
- */
-function getLocalizedChatTypeOptions(): Array<{ label: string, value: string }> {
-  return [
-    { label: t('chatSelector.user'), value: 'user' },
-    { label: t('chatSelector.group'), value: 'group' },
-    { label: t('chatSelector.channel'), value: 'channel' },
-  ]
+// Helper function to check if chat is in folder
+function isChatInFolder(chat: CoreDialog, folder: CoreChatFolder): boolean {
+  if (folder.excludedChatIds.includes(chat.id))
+    return false
+  if (folder.includedChatIds.includes(chat.id))
+    return true
+  if (folder.pinnedChatIds?.includes(chat.id))
+    return true
+
+  if (folder.contacts && chat.isContact)
+    return true
+  if (folder.nonContacts && !chat.isContact && chat.type === 'user')
+    return true
+  if (folder.groups && (chat.type === 'group' || chat.type === 'supergroup'))
+    return true
+  if (folder.broadcasts && chat.type === 'channel')
+    return true
+  if (folder.bots && chat.type === 'bot')
+    return true
+
+  return false
 }
 
-// Use computed so options react to language changes; depend on locale explicitly.
-const chatTypeOptions = computed(() => {
-  void locale.value
-  return getLocalizedChatTypeOptions()
+// Build filter options based on folders
+const filterOptions = computed(() => {
+  void locale.value // Depend on locale
+  const options = [
+    { label: t('chatGroups.all'), value: 'all' },
+  ]
+
+  if (props.folders) {
+    for (const folder of props.folders) {
+      options.push({
+        label: `${folder.emoticon ? `${folder.emoticon} ` : ''}${folder.title}`,
+        value: `folder:${folder.id}`,
+      })
+    }
+  }
+
+  return options
 })
-const selectedType = ref<string>('user')
+
+const selectedFilter = ref<string>('all')
 const searchQuery = ref('')
 
 /**
@@ -51,8 +77,15 @@ const selectedChatsSet = computed(() => new Set(selectedChats.value))
 const filteredChats = computed(() => {
   let filtered = props.chats
 
-  if (selectedType.value)
-    filtered = filtered.filter(chat => chat.type === selectedType.value)
+  if (selectedFilter.value !== 'all') {
+    if (selectedFilter.value.startsWith('folder:')) {
+      const folderId = Number(selectedFilter.value.split(':')[1])
+      const folder = props.folders?.find(f => f.id === folderId)
+      if (folder) {
+        filtered = filtered.filter(chat => isChatInFolder(chat, folder))
+      }
+    }
+  }
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
@@ -110,8 +143,8 @@ function toggleSelection(id: number): void {
       <!-- Type Selection -->
       <div class="w-full md:w-48">
         <SelectDropdown
-          v-model="selectedType"
-          :options="chatTypeOptions"
+          v-model="selectedFilter"
+          :options="filterOptions"
         />
       </div>
 
