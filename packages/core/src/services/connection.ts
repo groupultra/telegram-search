@@ -8,6 +8,7 @@ import type { CoreContext } from '../context'
 import { isBrowser, parseProxyUrl } from '@tg-search/common'
 import { Err, Ok } from '@unbird/result'
 import { Api, TelegramClient } from 'telegram'
+import { ConnectionTCPObfuscated } from 'telegram/network'
 import { StringSession } from 'telegram/sessions'
 
 import { waitForEvent } from '../utils/promise'
@@ -90,6 +91,7 @@ export function createConnectionService(ctx: CoreContext, logger: Logger) {
           retryDelay: 10000,
           useWSS,
           proxy: isBrowser() ? undefined : proxy,
+          connection: ConnectionTCPObfuscated,
         },
       )
 
