@@ -200,7 +200,7 @@ const canMarkRead = computed(() => {
         <button
           :disabled="session.isLoading"
           :class="{ 'bg-accent text-accent-foreground': activeMode === 'unread' }"
-          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
           @click="triggerGenerate('unread')"
         >
           <span class="i-lucide-mail-open h-4 w-4" />
@@ -209,7 +209,7 @@ const canMarkRead = computed(() => {
         <button
           :disabled="session.isLoading"
           :class="{ 'bg-accent text-accent-foreground': activeMode === 'today' }"
-          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
           @click="triggerGenerate('today')"
         >
           <span class="i-lucide-calendar-days h-4 w-4" />
@@ -218,7 +218,7 @@ const canMarkRead = computed(() => {
         <button
           :disabled="session.isLoading"
           :class="{ 'bg-accent text-accent-foreground': activeMode === 'last24h' }"
-          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
           @click="triggerGenerate('last24h')"
         >
           <span class="i-lucide-clock-3 h-4 w-4" />
