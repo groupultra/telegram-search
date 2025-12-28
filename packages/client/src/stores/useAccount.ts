@@ -49,6 +49,7 @@ export const useAccountStore = defineStore('account', () => {
     }
 
     resetReady()
+    authStatus.value.isLoading = true
     logger.log('Attempting login')
     bridge.sendEvent('auth:login', { session: sessionStore.activeSession?.session })
   }
@@ -58,6 +59,7 @@ export const useAccountStore = defineStore('account', () => {
       // NOTICE: session cloud be undefined, we determine it login with phone number as new login
       const session = sessionStore.activeSession?.session
 
+      authStatus.value.isLoading = true
       bridge.sendEvent('auth:login', {
         phoneNumber,
         session,
@@ -110,11 +112,13 @@ export const useAccountStore = defineStore('account', () => {
     bridge.sendEvent('config:fetch')
 
     isReady.value = true
+    authStatus.value.isLoading = false
     useChatStore().init()
   }
 
   function resetReady() {
     isReady.value = false
+    authStatus.value.isLoading = false
   }
 
   // --- Watchers ---

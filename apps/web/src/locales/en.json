@@ -100,7 +100,9 @@
   "loginPromptBanner": {
     "login": "Login",
     "pleaseLoginToUseFullFeatures": "Please login to your Telegram account to use full features",
-    "subtitle": "Experience full features and start your Telegram search journey"
+    "subtitle": "Experience full features and start your Telegram search journey",
+    "loggingIn": "Logging in to Telegram...",
+    "loggingInSubtitle": "Loading necessary data, please wait"
   },
   "messages": {
     "copied": "Copied",

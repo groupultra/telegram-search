@@ -12,10 +12,12 @@ export function registerBasicEventHandlers(
 
   registerEventHandler('auth:code:needed', () => {
     useAccountStore().auth.needCode = true
+    useAccountStore().auth.isLoading = false
   })
 
   registerEventHandler('auth:password:needed', () => {
     useAccountStore().auth.needPassword = true
+    useAccountStore().auth.isLoading = false
   })
 
   registerEventHandler('auth:connected', () => {

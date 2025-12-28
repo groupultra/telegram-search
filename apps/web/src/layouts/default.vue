@@ -10,6 +10,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 
 import AppSidebar from '../components/layout/AppSidebar.vue'
+import LoginPromptBanner from '../components/layout/LoginPromptBanner.vue'
 
 import { Button } from '../components/ui/Button'
 
@@ -120,34 +121,7 @@ function closeMobileDrawer() {
       :class="{ 'ml-0': isMobile }"
     >
       <!-- Login prompt banner -->
-      <div
-        v-if="!isReady && !$route.path.startsWith('/login')"
-        class="flex items-center justify-center px-6 py-8"
-      >
-        <div
-          class="max-w-2xl w-full border border-primary/20 rounded-2xl bg-primary/5 p-6 transition-all"
-        >
-          <div class="flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
-            <div class="flex items-center gap-4">
-              <div class="h-12 w-12 flex shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <div class="i-lucide-lock-keyhole h-6 w-6 text-primary" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <span class="text-sm text-foreground font-semibold">{{ $t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}</span>
-                <span class="text-xs text-muted-foreground">{{ $t('loginPromptBanner.subtitle') }}</span>
-              </div>
-            </div>
-            <Button
-              size="md"
-              icon="i-lucide-log-in"
-              class="shrink-0"
-              @click="$router.push({ path: '/login', query: { redirect: $route.fullPath } })"
-            >
-              {{ $t('loginPromptBanner.login') }}
-            </Button>
-          </div>
-        </div>
-      </div>
+      <LoginPromptBanner v-if="!isReady && !$route.path.startsWith('/login')" />
 
       <template v-else>
         <RouterView :key="$route.fullPath" />
