@@ -9,5 +9,6 @@ export default defineConfig({
     setupFiles: [
       './src/mock/setup-test.ts',
     ],
+    environment: 'happy-dom',
   },
 })
