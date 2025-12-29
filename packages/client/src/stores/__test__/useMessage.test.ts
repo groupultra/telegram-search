@@ -1,4 +1,5 @@
-import type { CoreMessage, CorePagination } from '@tg-search/core'
+import type { CorePagination } from '@tg-search/common'
+import type { CoreMessage } from '@tg-search/core'
 
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,6 +21,29 @@ vi.mock('../../utils/blob', () => ({
   cleanupMediaBlobs: vi.fn(),
 }))
 
+function createTestMessage(
+  overrides: Partial<CoreMessage> & { platformMessageId: string, chatId: string, content: string, platformTimestamp: number },
+): CoreMessage {
+  // CoreMessage fields required (see core/src/types/message.ts)
+  return {
+    uuid: overrides.uuid ?? `${overrides.chatId}-${overrides.platformMessageId}`,
+    platform: 'telegram',
+    platformMessageId: overrides.platformMessageId,
+    chatId: overrides.chatId,
+    fromId: overrides.fromId ?? 'uid',
+    fromName: overrides.fromName ?? 'User',
+    content: overrides.content,
+    media: overrides.media,
+    reply: overrides.reply ?? { isReply: false },
+    forward: overrides.forward ?? { isForward: false },
+    platformTimestamp: overrides.platformTimestamp,
+    createdAt: overrides.createdAt,
+    updatedAt: overrides.updatedAt,
+    deletedAt: overrides.deletedAt,
+    fromUserUuid: overrides.fromUserUuid,
+  }
+}
+
 describe('useMessageStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -39,8 +63,8 @@ describe('useMessageStore', () => {
   it('replaces messages and initializes window', () => {
     const store = useMessageStore()
     const messages: CoreMessage[] = [
-      { platformMessageId: '1', chatId: 'chat-1', content: 'msg 1', date: 1000 },
-      { platformMessageId: '2', chatId: 'chat-1', content: 'msg 2', date: 2000 },
+      createTestMessage({ platformMessageId: '1', chatId: 'chat-1', content: 'msg 1', platformTimestamp: 1000 }),
+      createTestMessage({ platformMessageId: '2', chatId: 'chat-1', content: 'msg 2', platformTimestamp: 2000 }),
     ]
 
     store.replaceMessages(messages, { chatId: 'chat-1' })
@@ -53,7 +77,7 @@ describe('useMessageStore', () => {
   it('loads message context', async () => {
     const store = useMessageStore()
     const messages: CoreMessage[] = [
-      { platformMessageId: '10', chatId: 'chat-1', content: 'msg 10', date: 1000 },
+      createTestMessage({ platformMessageId: '10', chatId: 'chat-1', content: 'msg 10', platformTimestamp: 1000 }),
     ]
 
     waitForEventMock.mockResolvedValueOnce({ messages })
@@ -74,7 +98,7 @@ describe('useMessageStore', () => {
     store.replaceMessages([], { chatId: 'chat-1' })
 
     const newMessages: CoreMessage[] = [
-      { platformMessageId: '3', chatId: 'chat-1', content: 'msg 3', date: 3000 },
+      createTestMessage({ platformMessageId: '3', chatId: 'chat-1', content: 'msg 3', platformTimestamp: 3000 }),
     ]
 
     await store.pushMessages(newMessages)
@@ -88,7 +112,8 @@ describe('useMessageStore', () => {
 
     // Mock response promise but don't resolve immediately to check loading state
     let resolvePromise: (value: any) => void
-    const promise = new Promise(resolve => { resolvePromise = resolve })
+    // eslint-disable-next-line style/max-statements-per-line
+    const promise = new Promise((resolve) => { resolvePromise = resolve })
     waitForEventMock.mockReturnValue(promise)
 
     const pagination: CorePagination & { minId?: number } = { offset: 0, limit: 20 }
@@ -100,7 +125,7 @@ describe('useMessageStore', () => {
       pagination,
     })
 
-    // @ts-ignore
+    // @ts-expect-error intentionally resolve for test
     resolvePromise({ messages: [] })
     // Wait for promise chain
     await new Promise(process.nextTick)

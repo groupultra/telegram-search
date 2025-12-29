@@ -15,7 +15,7 @@ describe('useSessionStore', () => {
     // Reset localStorage
     localStorage.clear()
     vi.clearAllMocks()
-    
+
     // Reset uuid sequence
     uuidMock.mockReset()
     uuidMock

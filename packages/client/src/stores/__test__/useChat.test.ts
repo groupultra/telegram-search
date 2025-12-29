@@ -27,7 +27,6 @@ vi.mock('@vueuse/core', async (importOriginal) => {
       // Simple mock for useLocalStorage using a ref-like object
       let val = localStorageMock.get(key) ?? initialValue
       return {
-        value: val,
         // Setter to update mock map
         set value(v: any) {
           localStorageMock.set(key, v)
@@ -35,7 +34,7 @@ vi.mock('@vueuse/core', async (importOriginal) => {
         },
         get value() {
           return val
-        }
+        },
       }
     },
   }
@@ -75,15 +74,15 @@ describe('useChatStore', () => {
   it('gets a specific chat', () => {
     const store = useChatStore()
     const mockChats = [
-      { id: 1, title: 'Chat 1' },
-      { id: 2, title: 'Chat 2' },
+      { id: 1, name: 'Chat 1' },
+      { id: 2, name: 'Chat 2' },
     ]
     // @ts-expect-error - mock data
     store.chats = mockChats
 
     const chat = store.getChat('1')
     expect(chat).toBeDefined()
-    expect(chat?.title).toBe('Chat 1')
+    expect(chat?.name).toBe('Chat 1')
   })
 
   it('manages folders correctly', () => {

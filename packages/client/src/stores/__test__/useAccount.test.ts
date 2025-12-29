@@ -2,9 +2,6 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useAccountStore } from '../useAccount'
-import { useChatStore } from '../useChat'
-import { useMessageStore } from '../useMessage'
-import { useSessionStore } from '../useSession'
 
 // Mock dependencies with strict references
 const sendEventMock = vi.fn()
