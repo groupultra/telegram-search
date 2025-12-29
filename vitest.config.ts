@@ -10,6 +10,8 @@ export default defineConfig({
       'apps/web',
     ],
     coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
       include: [
         'packages/**/src/**/*.ts',
       ],
