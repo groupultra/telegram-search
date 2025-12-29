@@ -89,6 +89,7 @@ describe('useAccountStore', () => {
     expect(sendEventMock).toHaveBeenCalledWith('auth:code', { code: '12345' })
 
     submitPassword('password')
+    // eslint-disable-next-line sonarjs/no-hardcoded-passwords
     expect(sendEventMock).toHaveBeenCalledWith('auth:password', { password: 'password' })
 
     logout()
