@@ -29,7 +29,7 @@ export function detectMemoryLeak(emitter: CoreEmitter, logger: Logger): () => vo
 
       const totalListeners = Object.values(listenerCounts).reduce((sum, count) => sum + count, 0)
 
-      if (totalListeners > 50) {
+      if (totalListeners > 100) {
         logger.withFields({
           totalListeners,
           listenerCounts,
