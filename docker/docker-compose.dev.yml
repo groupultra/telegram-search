@@ -8,7 +8,6 @@ services:
       POSTGRES_DATABASE: postgres
       POSTGRES_PASSWORD: '123456'
     volumes:
-      - ../drizzle/sql/pgrs-init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgvector_data:/var/lib/postgresql/data
     ports:
       - 5432:5432

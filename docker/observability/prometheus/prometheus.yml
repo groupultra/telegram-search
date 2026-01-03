@@ -3,3 +3,6 @@ global:
 
 scrape_configs:
   - job_name: 'telegram-search'
+  - job_name: 'pg-exporter'
+    static_configs:
+      - targets: ['pg-exporter:9187']

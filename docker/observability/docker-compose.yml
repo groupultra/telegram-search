@@ -1,6 +1,14 @@
 name: telegram-search-infra
 
 services:
+  pg-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@host.docker.internal:5432/postgres?sslmode=disable
+    ports:
+      - 9187:9187
+    restart: unless-stopped
+
   loki:
     image: grafana/loki:latest
     command: -config.file=/etc/loki/local-config.yaml

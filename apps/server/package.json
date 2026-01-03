@@ -12,10 +12,7 @@
     "start": "node dist/index.mjs",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@electric-sql/pglite": "^0.3.14",
-    "@guiiai/logg": "catalog:",
-    "@node-rs/jieba": "^2.0.1",
+  "peerDependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.208.0",
     "@opentelemetry/auto-instrumentations-node": "^0.67.3",
@@ -24,9 +21,43 @@
     "@opentelemetry/instrumentation-pg": "^0.61.2",
     "@opentelemetry/sdk-node": "^0.208.0",
     "@opentelemetry/sdk-trace-node": "^2.2.0",
+    "@tg-search/observability": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@opentelemetry/api": {
+      "optional": true
+    },
+    "@opentelemetry/api-logs": {
+      "optional": true
+    },
+    "@opentelemetry/auto-instrumentations-node": {
+      "optional": true
+    },
+    "@opentelemetry/context-async-hooks": {
+      "optional": true
+    },
+    "@opentelemetry/instrumentation-http": {
+      "optional": true
+    },
+    "@opentelemetry/instrumentation-pg": {
+      "optional": true
+    },
+    "@opentelemetry/sdk-node": {
+      "optional": true
+    },
+    "@opentelemetry/sdk-trace-node": {
+      "optional": true
+    },
+    "@tg-search/observability": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.3.14",
+    "@guiiai/logg": "catalog:",
+    "@node-rs/jieba": "^2.0.1",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
-    "@tg-search/observability": "workspace:*",
     "@unbird/result": "catalog:",
     "crossws": "^0.4.1",
     "figlet": "^1.9.4",
