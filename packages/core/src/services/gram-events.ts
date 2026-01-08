@@ -3,6 +3,7 @@ import type { EventBuilder } from 'telegram/events/common'
 
 import type { CoreContext } from '../context'
 
+import { Api } from 'telegram'
 import { NewMessage, NewMessageEvent } from 'telegram/events'
 
 export type GramEventsService = ReturnType<typeof createGramEventsService>
@@ -26,17 +27,34 @@ export function createGramEventsService(ctx: CoreContext, logger: Logger) {
       // Is there a way to notify the service when the account settings change?
       const shouldReceive = (await ctx.getAccountSettings()).receiveMessages?.receiveAll
 
-      if (shouldReceive && event instanceof NewMessageEvent && event.message) {
-        const pts = 'originalUpdate' in event && event.originalUpdate && typeof event.originalUpdate === 'object' && 'pts' in event.originalUpdate ? (event.originalUpdate as any).pts : undefined
-        const date = event.message.date
+      if (!shouldReceive) {
+        return
+      }
+
+      if (event instanceof NewMessageEvent && event.message) {
+        const originalUpdate = event.originalUpdate
+
+        let pts: number | undefined
+        if (originalUpdate instanceof Api.UpdateNewChannelMessage) {
+          pts = originalUpdate.pts
+        }
+        else {
+          pts = 'originalUpdate' in event
+            && event.originalUpdate
+            && typeof event.originalUpdate === 'object'
+            && 'pts' in event.originalUpdate
+            ? (event.originalUpdate as any).pts
+            : undefined
+        }
 
         ctx.emitter.emit('gram:message:received', {
           message: event.message,
           pts,
-          date,
+          date: event.message.date,
         })
       }
     }
+
     eventType = new NewMessage({})
     ctx.getClient().addEventHandler(eventHandler, eventType)
     logger.debug('Registered Telegram event handler')

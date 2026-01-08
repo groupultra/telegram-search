@@ -39,6 +39,13 @@ export function createSyncService(
       // Get current server state to know the target
       const serverState = await client.invoke(new Api.updates.GetState())
 
+      logger.withFields({
+        pts: serverState.pts,
+        qts: serverState.qts,
+        seq: serverState.seq,
+        date: serverState.date,
+      }).log('Server state')
+
       // If we don't have a valid sequence date, bootstrap from current server state
       if (account.date === 0) {
         logger.log('Bootstrapping account state from Telegram (First sync)')
@@ -122,11 +129,11 @@ export function createSyncService(
             },
           })
 
-          // Faster throttle since we are skiping media
+          // Faster throttle since we are skipping media
           await new Promise(resolve => setTimeout(resolve, 20))
         }
 
-        const nextState = (difference as any).state || (difference as any).intermediateState
+        const nextState = 'state' in difference ? difference.state : 'intermediateState' in difference ? difference.intermediateState : undefined
         if (nextState) {
           if (nextState.pts === currentPts && nextState.qts === currentQts && nextState.seq === currentSeq) {
             logger.warn('Sync state stagnated, breaking loop')
@@ -167,20 +174,24 @@ export function createSyncService(
     }
   }
 
+  /**
+   * Resets the sync state to zero.
+   */
+  async function reset() {
+    const db = ctx.getDB()
+    const accountId = ctx.getCurrentAccountId()
+    await accountModels.forceUpdateAccountState(db, accountId, {
+      pts: 0,
+      qts: 0,
+      seq: 0,
+      date: 0,
+      lastSyncAt: 0,
+    })
+  }
+
   return {
     catchUp,
-    reset: async () => {
-      const db = ctx.getDB()
-      const accountId = ctx.getCurrentAccountId()
-      await accountModels.updateAccountState(db, accountId, {
-        pts: 0,
-        qts: 0,
-        seq: 0,
-        date: 0,
-        lastSyncAt: 0,
-      })
-      logger.log('Sync state has been reset to zero')
-    },
+    reset,
   }
 }
 
