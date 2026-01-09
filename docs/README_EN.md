@@ -103,6 +103,7 @@ cd telegram-search
 ```bash
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/.env.example -o .env
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/init.sql -o init.sql
 ```
 
 3. Start all containers:
@@ -163,7 +164,7 @@ pnpm run server:dev
 pnpm run web:dev
 ```
 
-📖 **More details:** [CONTRIBUTING.md](../CONTRIBUTING.md)
+📖 **More details:** [CONTRIBUTING.md](../docs/CONTRIBUTING.md)
 
 ## 🚀 Activity
 

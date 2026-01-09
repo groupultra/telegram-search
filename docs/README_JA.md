@@ -98,6 +98,7 @@ cd telegram-search
 ```bash
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/.env.example -o .env
+curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/init.sql -o init.sql
 docker compose -f docker-compose.yml up -d
 ```
 
@@ -154,7 +155,7 @@ pnpm run server:dev
 pnpm run web:dev
 ```
 
-📖 **さらに詳しい開発やアーキテクチャ情報：** [CONTRIBUTING.md](../CONTRIBUTING.md)
+📖 **さらに詳しい開発やアーキテクチャ情報：** [CONTRIBUTING.md](../docs/CONTRIBUTING.md)
 
 ## 🚀 活動状況
 
