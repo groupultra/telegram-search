@@ -8,6 +8,7 @@ export const accountJoinedChatsTable = pgTable('account_joined_chats', {
   id: uuid().primaryKey().defaultRandom(),
   account_id: uuid().notNull().references(() => accountsTable.id, { onDelete: 'cascade' }),
   joined_chat_id: uuid().notNull().references(() => joinedChatsTable.id, { onDelete: 'cascade' }),
+  pts: integer().notNull().default(0),
   is_pinned: boolean().notNull().default(false),
   is_contact: boolean().notNull().default(false),
   folder_ids: integer('folder_ids').array().notNull().default([]),

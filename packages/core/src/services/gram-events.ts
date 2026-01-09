@@ -35,22 +35,26 @@ export function createGramEventsService(ctx: CoreContext, logger: Logger) {
         const originalUpdate = event.originalUpdate
 
         let pts: number | undefined
+        let isChannel = false
+
         if (originalUpdate instanceof Api.UpdateNewChannelMessage) {
           pts = originalUpdate.pts
+          isChannel = true
         }
-        else {
-          pts = 'originalUpdate' in event
-            && event.originalUpdate
-            && typeof event.originalUpdate === 'object'
-            && 'pts' in event.originalUpdate
-            ? (event.originalUpdate as any).pts
-            : undefined
+        else if (originalUpdate instanceof Api.UpdateNewMessage) {
+          pts = originalUpdate.pts
+        }
+        else if (originalUpdate && typeof originalUpdate === 'object' && 'pts' in originalUpdate) {
+          pts = (originalUpdate as any).pts
+          // Fallback check: if message's peer is a channel, it's a channel PTS
+          isChannel = event.message.peerId instanceof Api.PeerChannel
         }
 
         ctx.emitter.emit('gram:message:received', {
           message: event.message,
           pts,
           date: event.message.date,
+          isChannel,
         })
       }
     }

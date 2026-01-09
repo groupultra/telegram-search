@@ -125,8 +125,8 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     registerEntityEventHandlers(ctx, logger)(entityService)
     registerMessageEventHandlers(ctx, logger)(messageService)
     registerDialogEventHandlers(ctx, logger, models)(dialogService)
-    registerTakeoutEventHandlers(ctx, logger, chatMessageStatsModels)(takeoutService)
-    registerGramEventsEventHandlers(ctx, logger, accountModels)(gramEventsService)
+    registerTakeoutEventHandlers(ctx, logger, models.chatModels, chatMessageStatsModels)(takeoutService)
+    registerGramEventsEventHandlers(ctx, logger, accountModels, models.chatModels)(gramEventsService)
 
     // Dialog bootstrap is now triggered from account:setup handler once
     // currentAccountId has been established, to avoid races where dialog or

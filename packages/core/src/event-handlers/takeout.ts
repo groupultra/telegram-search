@@ -2,7 +2,7 @@ import type { Logger } from '@guiiai/logg'
 import type { Api } from 'telegram'
 
 import type { CoreContext } from '../context'
-import type { ChatMessageStatsModels } from '../models/chat-message-stats'
+import type { ChatMessageStatsModels, ChatModels } from '../models'
 import type { TakeoutService } from '../services'
 
 import { usePagination } from '@tg-search/common'
@@ -10,7 +10,7 @@ import { usePagination } from '@tg-search/common'
 import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 import { createTask } from '../utils/task'
 
-export function registerTakeoutEventHandlers(ctx: CoreContext, logger: Logger, chatMessageStatsModels: ChatMessageStatsModels) {
+export function registerTakeoutEventHandlers(ctx: CoreContext, logger: Logger, chatModels: ChatModels, chatMessageStatsModels: ChatMessageStatsModels) {
   logger = logger.withContext('core:takeout:event')
 
   // Store active tasks by taskId for abort handling
@@ -19,6 +19,15 @@ export function registerTakeoutEventHandlers(ctx: CoreContext, logger: Logger, c
   return (takeoutService: TakeoutService) => {
     ctx.emitter.on('takeout:run', async ({ chatIds, increase, syncOptions }) => {
       logger.withFields({ chatIds, increase, syncOptions }).verbose('Running takeout')
+
+      // If no chatIds provided, fetch all joined chats for this account
+      if (chatIds.length === 0) {
+        const accountId = ctx.getCurrentAccountId()
+        const chats = (await chatModels.fetchChatsByAccountId(ctx.getDB(), accountId)).expect('Failed to fetch chats for takeout')
+        chatIds = chats.map(c => c.chat_id)
+        logger.withFields({ count: chatIds.length }).verbose('Auto-filled chatIds for takeout')
+      }
+
       const pagination = usePagination()
 
       // Get chat message stats for incremental sync

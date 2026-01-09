@@ -183,6 +183,13 @@
       "when": 1767164765908,
       "tag": "0025_graceful_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1767933279569,
+      "tag": "0026_foamy_nitro",
+      "breakpoints": true
     }
   ]
 }

@@ -94,7 +94,17 @@ export function createSyncService(
         }
 
         if (difference instanceof Api.updates.DifferenceTooLong) {
-          logger.warn('Sync gap too large (DifferenceTooLong). Falling back to takeout.')
+          logger.warn('Sync gap too large (DifferenceTooLong). Updating state and falling back to takeout.')
+
+          // Update state to current server state to avoid infinite loop of DifferenceTooLong
+          await accountModels.updateAccountState(db, accountId, {
+            pts: targetPts,
+            qts: serverState.qts,
+            seq: serverState.seq,
+            date: serverState.date,
+            lastSyncAt: Date.now(),
+          })
+
           ctx.emitter.emit('takeout:run', { chatIds: [], increase: true, syncOptions: {} })
           break
         }

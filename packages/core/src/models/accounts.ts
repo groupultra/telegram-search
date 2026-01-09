@@ -66,19 +66,21 @@ async function findAccountByUUID(db: CoreDB, uuid: string): PromiseResult<DBSele
  * Fields pts, qts, seq, and date are updated using GREATEST() to ensure
  * they only move forward.
  */
+export interface AccountStateUpdate {
+  pts?: number
+  qts?: number
+  seq?: number
+  date?: number
+  lastSyncAt?: number
+}
+
 async function updateAccountState(
   db: CoreDB,
   accountId: string,
-  state: {
-    pts?: number
-    qts?: number
-    seq?: number
-    date?: number
-    lastSyncAt?: number
-  },
+  state: AccountStateUpdate,
 ): PromiseResult<DBSelectAccount> {
   return withResult(async () => {
-    const updateSet: any = {
+    const updateSet: Partial<Record<keyof DBSelectAccount, any>> = {
       updated_at: Date.now(),
     }
 
@@ -109,13 +111,7 @@ async function updateAccountState(
 async function forceUpdateAccountState(
   db: CoreDB,
   accountId: string,
-  state: {
-    pts?: number
-    qts?: number
-    seq?: number
-    date?: number
-    lastSyncAt?: number
-  },
+  state: AccountStateUpdate,
 ): PromiseResult<DBSelectAccount> {
   return withResult(async () => {
     const rows = await db

@@ -339,7 +339,7 @@ export interface TakeoutOpts {
 export interface GramEventsEventToCore {}
 
 export interface GramEventsEventFromCore {
-  'gram:message:received': (data: { message: Api.Message, pts?: number, date?: number }) => void
+  'gram:message:received': (data: { message: Api.Message, pts?: number, date?: number, isChannel: boolean }) => void
 }
 
 // ============================================================================

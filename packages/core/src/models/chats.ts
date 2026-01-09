@@ -140,11 +140,40 @@ async function isChatAccessibleByAccount(db: CoreDB, accountId: string, chatId: 
   })
 }
 
+/**
+ * Update the pts for a specific chat for an account.
+ * Uses GREATEST() to ensure pts only moves forward.
+ */
+async function updateChatPts(db: CoreDB, accountId: string, chatId: string, pts: number): PromiseResult<void> {
+  return withResult(async () => {
+    // Find the joined_chat id first
+    const chat = await db
+      .select({ id: joinedChatsTable.id })
+      .from(joinedChatsTable)
+      .where(eq(joinedChatsTable.chat_id, chatId))
+      .limit(1)
+
+    if (chat.length === 0)
+      return
+
+    await db
+      .update(accountJoinedChatsTable)
+      .set({
+        pts: sql`GREATEST(${accountJoinedChatsTable.pts}, ${pts})`,
+      })
+      .where(and(
+        eq(accountJoinedChatsTable.account_id, accountId),
+        eq(accountJoinedChatsTable.joined_chat_id, chat[0].id),
+      ))
+  })
+}
+
 export const chatModels = {
   recordChats,
   fetchChats,
   fetchChatsByAccountId,
   isChatAccessibleByAccount,
+  updateChatPts,
 }
 
 export type ChatModels = typeof chatModels

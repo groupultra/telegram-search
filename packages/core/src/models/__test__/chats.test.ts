@@ -185,4 +185,38 @@ describe('models/chats', () => {
     expect(okForAccount1).toBe(true)
     expect(okForAccount2).toBe(false)
   })
+
+  it('updateChatPts updates pts for a specific chat for an account', async () => {
+    const db = await setupDb()
+
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const [chat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: '12345',
+      chat_name: 'Test Chat',
+      chat_type: 'channel',
+    }).returning()
+
+    await db.insert(accountJoinedChatsTable).values({
+      account_id: account.id,
+      joined_chat_id: chat.id,
+      pts: 1000,
+    })
+
+    // Update with larger pts
+    await chatModels.updateChatPts(db, account.id, '12345', 2000)
+
+    const [link1] = await db.select().from(accountJoinedChatsTable)
+    expect(link1.pts).toBe(2000)
+
+    // Attempt update with smaller pts
+    await chatModels.updateChatPts(db, account.id, '12345', 1500)
+
+    const [link2] = await db.select().from(accountJoinedChatsTable)
+    expect(link2.pts).toBe(2000) // Should still be 2000 due to GREATEST()
+  })
 })

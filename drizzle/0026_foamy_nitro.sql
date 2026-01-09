@@ -1,0 +1,1 @@
+ALTER TABLE "account_joined_chats" ADD COLUMN "pts" integer DEFAULT 0 NOT NULL;

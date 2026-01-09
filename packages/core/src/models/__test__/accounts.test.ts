@@ -56,4 +56,40 @@ describe('models/accounts', () => {
 
     expect(found.id).toBe(created.id)
   })
+
+  it('updateAccountState updates pts and bumps updated_at using GREATEST', async () => {
+    const db = await setupDb()
+
+    const account = await accountModels.recordAccount(db, 'telegram', 'user-1')
+
+    // Initial update
+    await accountModels.updateAccountState(db, account.id, { pts: 100, date: 500 })
+    let found = (await accountModels.findAccountByUUID(db, account.id)).unwrap()
+    expect(found.pts).toBe(100)
+    expect(found.date).toBe(500)
+
+    // Update with larger values
+    await accountModels.updateAccountState(db, account.id, { pts: 200, date: 600 })
+    found = (await accountModels.findAccountByUUID(db, account.id)).unwrap()
+    expect(found.pts).toBe(200)
+    expect(found.date).toBe(600)
+
+    // Update with smaller values
+    await accountModels.updateAccountState(db, account.id, { pts: 150, date: 550 })
+    found = (await accountModels.findAccountByUUID(db, account.id)).unwrap()
+    expect(found.pts).toBe(200) // Stays at 200
+    expect(found.date).toBe(600) // Stays at 600
+  })
+
+  it('forceUpdateAccountState updates state without GREATEST', async () => {
+    const db = await setupDb()
+
+    const account = await accountModels.recordAccount(db, 'telegram', 'user-1')
+
+    await accountModels.updateAccountState(db, account.id, { pts: 100 })
+    await accountModels.forceUpdateAccountState(db, account.id, { pts: 50 })
+
+    const found = (await accountModels.findAccountByUUID(db, account.id)).unwrap()
+    expect(found.pts).toBe(50)
+  })
 })
