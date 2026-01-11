@@ -190,6 +190,13 @@
       "when": 1767933279569,
       "tag": "0026_foamy_nitro",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1768116203768,
+      "tag": "0027_lush_lethal_legion",
+      "breakpoints": true
     }
   ]
 }

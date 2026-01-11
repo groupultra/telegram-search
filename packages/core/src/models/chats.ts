@@ -174,6 +174,80 @@ export const chatModels = {
   fetchChatsByAccountId,
   isChatAccessibleByAccount,
   updateChatPts,
+  findChatAccessHash,
+  recordChatEntity,
 }
 
 export type ChatModels = typeof chatModels
+
+/**
+ * Record a single chat entity (without dialog metadata)
+ * Requires accountId to persist access_hash in account_joined_chats.
+ */
+async function recordChatEntity(db: CoreDB, entity: { id: string, name: string, type: string, accessHash?: string }, accountId?: string): PromiseResult<void> {
+  return withResult(async () => {
+    let chatType: any = 'group'
+    if (entity.type === 'channel') {
+      chatType = 'channel'
+    }
+
+    const [chat] = await db.insert(joinedChatsTable)
+      .values({
+        platform: 'telegram',
+        chat_id: entity.id,
+        chat_name: entity.name,
+        chat_type: chatType,
+        dialog_date: 0, // Not a dialog sync, so no date
+      })
+      .onConflictDoUpdate({
+        target: joinedChatsTable.chat_id,
+        set: {
+          chat_name: sql`excluded.chat_name`,
+          updated_at: Date.now(),
+        },
+      })
+      .returning()
+
+    if (accountId && chat && entity.accessHash) {
+      await db.insert(accountJoinedChatsTable)
+        .values({
+          account_id: accountId,
+          joined_chat_id: chat.id,
+          access_hash: entity.accessHash,
+        })
+        .onConflictDoUpdate({
+          target: [accountJoinedChatsTable.account_id, accountJoinedChatsTable.joined_chat_id],
+          set: {
+            access_hash: sql`excluded.access_hash`,
+          },
+        })
+    }
+  })
+}
+
+/**
+ * Find access hash and type for a specific chat
+ */
+async function findChatAccessHash(db: CoreDB, accountId: string, chatId: string): PromiseResult<{ accessHash: string, type: string } | null> {
+  return withResult(async () => {
+    const rows = await db
+      .select({
+        access_hash: accountJoinedChatsTable.access_hash,
+        type: joinedChatsTable.chat_type,
+      })
+      .from(joinedChatsTable)
+      .innerJoin(
+        accountJoinedChatsTable,
+        and(
+          eq(accountJoinedChatsTable.joined_chat_id, joinedChatsTable.id),
+          eq(accountJoinedChatsTable.account_id, accountId),
+        ),
+      )
+      .where(eq(joinedChatsTable.chat_id, chatId))
+      .limit(1)
+
+    if (rows.length === 0)
+      return null
+    return { accessHash: rows[0].access_hash || '', type: rows[0].type }
+  })
+}

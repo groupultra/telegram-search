@@ -13,6 +13,7 @@ export function resolveEntity(entity: Entity): Result<CoreEntity> {
       id: entity.id.toString(),
       name: [entity.firstName, entity.lastName].filter(Boolean).join(' ').trim(),
       username: entity.username ?? entity.id.toString(),
+      accessHash: entity.accessHash?.toString(),
     })
   }
 
@@ -29,6 +30,7 @@ export function resolveEntity(entity: Entity): Result<CoreEntity> {
       type: 'channel',
       id: entity.id.toString(),
       name: entity.title,
+      accessHash: entity.accessHash?.toString(),
     })
   }
 

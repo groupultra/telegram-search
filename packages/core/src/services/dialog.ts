@@ -5,6 +5,8 @@ import type { Dialog } from 'telegram/tl/custom/dialog'
 import type { CoreContext } from '../context'
 import type { CoreChatFolder, CoreDialog } from '../types/dialog'
 
+import bigInt from 'big-integer'
+
 import { circularObject } from '@tg-search/common'
 import { withSpan } from '@tg-search/observability'
 import { Ok } from '@unbird/result'
@@ -145,8 +147,25 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
     })
   }
 
+  async function fetchContacts(): Promise<void> {
+    return withSpan('core:dialog:service:fetchContacts', async () => {
+      try {
+        const result = await ctx.getClient().invoke(new Api.contacts.GetContacts({ hash: bigInt(0) }))
+        if (result instanceof Api.contacts.Contacts) {
+          logger.withFields({ count: result.users.length }).verbose('Fetched contacts')
+          // Process entities to save access hashes
+          ctx.emitter.emit('entity:process', { users: result.users, chats: [] })
+        }
+      }
+      catch (err) {
+        logger.withError(err).warn('Failed to fetch contacts')
+      }
+    })
+  }
+
   return {
     fetchDialogs,
+    fetchContacts,
     fetchChatFolders,
     // Delegated to AvatarHelper
     fetchDialogAvatars: async (dialogs: Dialog[]) => {

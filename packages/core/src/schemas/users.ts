@@ -6,6 +6,7 @@ export const usersTable = pgTable('users', {
   platform_user_id: text().notNull().default(''),
   name: text().notNull().default(''),
   username: text().notNull().default(''),
+  access_hash: text(),
   type: text().notNull().default('user').$type<'user' | 'chat' | 'channel'>(),
   created_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
   updated_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),

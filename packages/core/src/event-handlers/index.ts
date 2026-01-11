@@ -83,7 +83,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
 
   const accountService = useService(ctx, logger, createAccountService)
   const entityService = useService(ctx, logger, createEntityService)
-  const messageService = useService(ctx, logger, createMessageService)
+  const messageService = useService(ctx, logger, createMessageService)(entityService)
   const dialogService = useService(ctx, logger, createDialogService)
   const takeoutService = useService(ctx, logger, createTakeoutService)
   const syncService = useService(ctx, logger, createSyncService)
@@ -113,6 +113,8 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
 
     // Fetch dialogs
     await fetchDialogs(ctx, logger, models, dialogService)
+    // Fetch contacts to ensure we have access hashes for all contacts
+    await dialogService.fetchContacts()
 
     logger.withFields({ accountId: dbAccount.id }).verbose('Set current account ID')
 

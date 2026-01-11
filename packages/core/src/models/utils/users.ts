@@ -11,6 +11,7 @@ export function convertCoreEntityToDBUser(entity: CoreEntity): DBInsertUser {
     name: entity.name,
     username: 'username' in entity ? entity.username : entity.id,
     type: entity.type,
+    access_hash: 'accessHash' in entity ? entity.accessHash : undefined,
   }
 }
 
@@ -24,6 +25,7 @@ export function convertDBUserToCoreEntity(dbUser: DBSelectUser): CoreEntity {
       id: dbUser.platform_user_id,
       name: dbUser.name,
       username: dbUser.username,
+      accessHash: dbUser.access_hash ?? undefined,
     }
   }
   else if (dbUser.type === 'chat') {
@@ -38,6 +40,7 @@ export function convertDBUserToCoreEntity(dbUser: DBSelectUser): CoreEntity {
       type: 'channel',
       id: dbUser.platform_user_id,
       name: dbUser.name,
+      accessHash: dbUser.access_hash ?? undefined,
     }
   }
 }

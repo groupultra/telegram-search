@@ -22,6 +22,7 @@ describe('models/users', () => {
       id: '123',
       name: 'Alice',
       username: 'alice',
+      accessHash: '123456789',
     }
 
     const result = await userModels.recordUser(db, coreUser)
@@ -32,9 +33,11 @@ describe('models/users', () => {
     expect(user.name).toBe('Alice')
     expect(user.username).toBe('alice')
     expect(user.type).toBe('user')
+    expect(user.access_hash).toBe('123456789')
 
     const rows = await db.select().from(usersTable)
     expect(rows).toHaveLength(1)
+    expect(rows[0].access_hash).toBe('123456789')
   })
 
   it('recordUser upserts and updates fields on conflict', async () => {
@@ -45,6 +48,7 @@ describe('models/users', () => {
       id: '123',
       name: 'Alice',
       username: 'alice',
+      accessHash: '111',
     }
 
     const first = await userModels.recordUser(db, coreUser)
@@ -53,6 +57,7 @@ describe('models/users', () => {
       ...coreUser,
       name: 'Alice Updated',
       username: 'alice_new',
+      accessHash: '222',
     }
 
     const second = await userModels.recordUser(db, updatedUser)
@@ -60,6 +65,27 @@ describe('models/users', () => {
     expect(second.id).toBe(first.id)
     expect(second.name).toBe('Alice Updated')
     expect(second.username).toBe('alice_new')
+    expect(second.access_hash).toBe('222')
+  })
+
+  it('findUserAccessHash returns the correct hash', async () => {
+    const db = await setupDb()
+
+    const coreUser: CoreEntity = {
+      type: 'user',
+      id: '999',
+      name: 'Hash User',
+      username: 'hash',
+      accessHash: '888888',
+    }
+
+    await userModels.recordUser(db, coreUser)
+
+    const hash = (await userModels.findUserAccessHash(db, '999')).unwrap()
+    expect(hash).toBe('888888')
+
+    const notFound = (await userModels.findUserAccessHash(db, '000')).unwrap()
+    expect(notFound).toBeNull()
   })
 
   it('findUserByPlatformId and findUserByUUID return the correct user', async () => {

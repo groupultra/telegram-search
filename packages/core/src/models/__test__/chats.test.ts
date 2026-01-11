@@ -31,12 +31,14 @@ describe('models/chats', () => {
         name: 'Chat 1',
         type: 'user',
         lastMessageDate: new Date('2024-01-01T00:00:00Z'),
+        accessHash: 'hash1',
       },
       {
         id: 2,
         name: 'Chat 2',
         type: 'group',
         lastMessageDate: new Date('2024-01-02T00:00:00Z'),
+        accessHash: 'hash2',
       },
     ]
 
@@ -47,10 +49,19 @@ describe('models/chats', () => {
 
     const chatsInDb = await db.select().from(joinedChatsTable)
     expect(chatsInDb.map(c => c.chat_name).sort()).toEqual(['Chat 1', 'Chat 2'])
+    // Check access_hash in joinedChatsTable - should NOT be there anymore (moved to account_joined_chats)
+    // const chat1 = chatsInDb.find(c => c.chat_name === 'Chat 1')
+    // expect(chat1?.access_hash).toBe('hash1')
 
     const links = await db.select().from(accountJoinedChatsTable)
     expect(links).toHaveLength(2)
     expect(new Set(links.map(l => l.account_id))).toEqual(new Set([account.id]))
+    
+    // Check access_hash in accountJoinedChatsTable
+    // Need to join to find which link corresponds to Chat 1
+    const chat1 = chatsInDb.find(c => c.chat_name === 'Chat 1')
+    const link1 = links.find(l => l.joined_chat_id === chat1?.id)
+    expect(link1?.access_hash).toBe('hash1')
   })
 
   it('recordChats updates chat name and dialog_date on conflict', async () => {
@@ -184,6 +195,78 @@ describe('models/chats', () => {
 
     expect(okForAccount1).toBe(true)
     expect(okForAccount2).toBe(false)
+  })
+
+  it('recordChatEntity inserts or updates chat info', async () => {
+    const db = await setupDb()
+    const accountId = '11111111-1111-1111-1111-111111111111'
+    
+    // Create account for linking
+    await db.insert(accountsTable).values({
+      id: accountId,
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    })
+
+    await chatModels.recordChatEntity(db, {
+      id: '1001',
+      name: 'Channel 1',
+      type: 'channel',
+      accessHash: 'ch_hash_1',
+    }, accountId)
+
+    const [chat] = await db.select().from(joinedChatsTable)
+    expect(chat.chat_id).toBe('1001')
+    expect(chat.chat_name).toBe('Channel 1')
+    expect(chat.chat_type).toBe('channel')
+    // expect(chat.access_hash).toBe('ch_hash_1') // access_hash removed from joined_chats
+
+    const [link] = await db.select().from(accountJoinedChatsTable)
+    expect(link).toBeDefined()
+    expect(link.access_hash).toBe('ch_hash_1')
+
+    // Update
+    await chatModels.recordChatEntity(db, {
+      id: '1001',
+      name: 'Channel 1 New',
+      type: 'channel',
+      accessHash: 'ch_hash_2',
+    }, accountId)
+
+    const [updated] = await db.select().from(joinedChatsTable)
+    expect(updated.chat_name).toBe('Channel 1 New')
+    
+    const [updatedLink] = await db.select().from(accountJoinedChatsTable)
+    expect(updatedLink.access_hash).toBe('ch_hash_2')
+  })
+
+  it('findChatAccessHash returns correct hash and type', async () => {
+    const db = await setupDb()
+
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const dialogs: CoreDialog[] = [
+      {
+        id: 555,
+        name: 'Target Chat',
+        type: 'channel',
+        lastMessageDate: new Date(),
+        accessHash: 'target_hash',
+      },
+    ]
+
+    await chatModels.recordChats(db, dialogs, account.id)
+
+    const result = (await chatModels.findChatAccessHash(db, account.id, '555')).unwrap()
+    expect(result).not.toBeNull()
+    expect(result?.accessHash).toBe('target_hash')
+    expect(result?.type).toBe('channel')
+
+    const notFound = (await chatModels.findChatAccessHash(db, account.id, '999')).unwrap()
+    expect(notFound).toBeNull()
   })
 
   it('updateChatPts updates pts for a specific chat for an account', async () => {

@@ -9,10 +9,10 @@ export function registerEntityEventHandlers(ctx: CoreContext, logger: Logger) {
   return (entityService: EntityService) => {
     ctx.emitter.on('entity:process', async ({ users, chats }) => {
       // GramJS entities are automatically handled by the client's internal entity cache
-      // when we invoke any method, but we can also manually prime them if needed.
-      // For now, we rely on the fact that these are passed to downstream message processing.
-      // If we want to persist them to DB immediately, we would call a service here.
+      // when we invoke any method, but we ALSO manually persist them to DB to ensure
+      // we have persistent accessHash for future API calls.
       logger.withFields({ users: users.length, chats: chats.length }).debug('Processing entities from sync')
+      await entityService.processEntities(users, chats)
     })
 
     ctx.emitter.on('entity:avatar:fetch', async ({ userId, fileId }) => {

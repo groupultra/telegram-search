@@ -23,6 +23,7 @@ async function recordUser(db: CoreDB, user: CoreEntity): Promise<DBSelectUser> {
         name: sql`excluded.name`,
         username: sql`excluded.username`,
         type: sql`excluded.type`,
+        access_hash: sql`excluded.access_hash`,
         updated_at: Date.now(),
       },
     })
@@ -66,6 +67,24 @@ export const userModels = {
   recordUser,
   findUserByPlatformId,
   findUserByUUID,
+  findUserAccessHash,
 }
 
 export type UserModels = typeof userModels
+
+/**
+ * Find user access hash by platform user id
+ */
+async function findUserAccessHash(db: CoreDB, platformUserId: string): PromiseResult<string | null> {
+  return withResult(async () => {
+    const rows = await db
+      .select({ access_hash: usersTable.access_hash })
+      .from(usersTable)
+      .where(eq(usersTable.platform_user_id, platformUserId))
+      .limit(1)
+
+    if (rows.length === 0)
+      return null
+    return rows[0].access_hash || null
+  })
+}
