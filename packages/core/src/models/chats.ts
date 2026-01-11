@@ -1,7 +1,9 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/models/chats.ts
 
 import type { CoreDB } from '../db'
+import type { JoinedChatType } from '../schemas/joined-chats'
 import type { CoreDialog } from '../types/dialog'
+import type { CoreEntity } from '../types/events'
 import type { PromiseResult } from '../utils/result'
 import type { DBSelectChat, DBSelectChatWithAccount } from './utils/types'
 
@@ -184,9 +186,9 @@ export type ChatModels = typeof chatModels
  * Record a single chat entity (without dialog metadata)
  * Requires accountId to persist access_hash in account_joined_chats.
  */
-async function recordChatEntity(db: CoreDB, entity: { id: string, name: string, type: string, accessHash?: string }, accountId?: string): PromiseResult<void> {
+async function recordChatEntity(db: CoreDB, entity: CoreEntity, accountId?: string): PromiseResult<void> {
   return withResult(async () => {
-    let chatType: any = 'group'
+    let chatType: JoinedChatType = 'group'
     if (entity.type === 'channel') {
       chatType = 'channel'
     }

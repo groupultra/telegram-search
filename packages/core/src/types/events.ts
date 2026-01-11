@@ -186,12 +186,12 @@ export interface EntityEventFromCore {
 export interface CoreBaseEntity {
   id: string
   name: string
+  accessHash?: string
 }
 
 export interface CoreUserEntity extends CoreBaseEntity {
   type: 'user'
   username: string
-  accessHash?: string
 }
 
 export interface CoreChatEntity extends CoreBaseEntity {
@@ -200,7 +200,6 @@ export interface CoreChatEntity extends CoreBaseEntity {
 
 export interface CoreChannelEntity extends CoreBaseEntity {
   type: 'channel'
-  accessHash?: string
 }
 
 export type CoreEntity = CoreUserEntity | CoreChatEntity | CoreChannelEntity

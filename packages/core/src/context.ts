@@ -233,6 +233,7 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
   }
 }
 
+// TODO: remove this
 export function useService<T>(ctx: CoreContext, logger: Logger, fn: Service<T>) {
   logger = logger.withContext('core:service')
 

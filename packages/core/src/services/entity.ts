@@ -111,8 +111,8 @@ export function createEntityService(ctx: CoreContext, logger: Logger) {
           const resolved = resolveEntity(user).unwrap()
           await userModels.recordUser(db, resolved)
         }
-        catch {
-          // Ignore resolution errors (e.g. unknown type)
+        catch (e) {
+          logger.withError(e).warn('Failed to resolve user entity')
         }
       }
     }
@@ -126,8 +126,8 @@ export function createEntityService(ctx: CoreContext, logger: Logger) {
             await chatModels.recordChatEntity(db, resolved, ctx.getCurrentAccountId())
           }
         }
-        catch {
-          // Ignore resolution errors
+        catch (e) {
+          logger.withError(e).warn('Failed to resolve chat entity')
         }
       }
     }
