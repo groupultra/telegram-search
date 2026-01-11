@@ -14,9 +14,6 @@ export function createJiebaResolver(logger: Logger): MessageResolver {
     run: async (opts: MessageResolverOpts) => {
       logger.verbose('Executing jieba resolver')
 
-      if (opts.messages.length === 0)
-        return Err('No messages')
-
       const messages: ProcessedCoreMessage[] = opts.messages.filter(message => message.content)
 
       if (messages.length === 0)

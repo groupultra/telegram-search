@@ -4,7 +4,7 @@ import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
 import type { ProcessedCoreMessage } from '../types/message'
 
-import { Err, Ok } from '@unbird/result'
+import { Ok } from '@unbird/result'
 
 import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
@@ -20,12 +20,9 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
 
       // Skip embedding if API key is empty
       if (!embeddingSettings.apiKey || embeddingSettings.apiKey.trim() === '') {
-        logger.verbose('Skipping embedding: API key is empty')
+        logger.debug('skipping embedding: API key is empty')
         return Ok([])
       }
-
-      if (opts.messages.length === 0)
-        return Err('No messages')
 
       const messages: ProcessedCoreMessage[] = opts.messages.filter(message => message.content)
 
