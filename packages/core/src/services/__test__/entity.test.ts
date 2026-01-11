@@ -81,7 +81,6 @@ describe('services/entity', () => {
       chat_id: '1001',
       chat_name: 'Channel',
       chat_type: 'channel',
-      access_hash: '123456789', // Big int as string
     }).returning()
 
     await db.insert(accountJoinedChatsTable).values({
