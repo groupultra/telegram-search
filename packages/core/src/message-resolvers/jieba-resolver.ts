@@ -20,7 +20,7 @@ export function createJiebaResolver(logger: Logger): MessageResolver {
       const messages: ProcessedCoreMessage[] = opts.messages.filter(message => message.content)
 
       if (messages.length === 0)
-        return Err('No messages to parse')
+        return Ok([])
 
       // Initialize jieba asynchronously
       const jieba = await ensureJieba(logger)

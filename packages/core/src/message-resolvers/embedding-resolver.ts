@@ -30,7 +30,7 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
       const messages: ProcessedCoreMessage[] = opts.messages.filter(message => message.content)
 
       if (messages.length === 0)
-        return Err('No messages to embed')
+        return Ok([])
 
       logger.withFields({ count: messages.length }).verbose('Embedding messages')
 
