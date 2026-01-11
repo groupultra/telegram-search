@@ -56,7 +56,7 @@ describe('models/chats', () => {
     const links = await db.select().from(accountJoinedChatsTable)
     expect(links).toHaveLength(2)
     expect(new Set(links.map(l => l.account_id))).toEqual(new Set([account.id]))
-    
+
     // Check access_hash in accountJoinedChatsTable
     // Need to join to find which link corresponds to Chat 1
     const chat1 = chatsInDb.find(c => c.chat_name === 'Chat 1')
@@ -200,7 +200,7 @@ describe('models/chats', () => {
   it('recordChatEntity inserts or updates chat info', async () => {
     const db = await setupDb()
     const accountId = '11111111-1111-1111-1111-111111111111'
-    
+
     // Create account for linking
     await db.insert(accountsTable).values({
       id: accountId,
@@ -235,7 +235,7 @@ describe('models/chats', () => {
 
     const [updated] = await db.select().from(joinedChatsTable)
     expect(updated.chat_name).toBe('Channel 1 New')
-    
+
     const [updatedLink] = await db.select().from(accountJoinedChatsTable)
     expect(updatedLink.access_hash).toBe('ch_hash_2')
   })
