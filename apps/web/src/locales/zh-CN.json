@@ -181,6 +181,8 @@
     "deselectAll": "取消全选",
     "dismiss": "关闭",
     "endTime": "结束时间",
+    "etaSeconds": "预计还需 {seconds} 秒",
+    "etaTime": "预计还需 {minutes} 分 {seconds} 秒",
     "getMessages": "获取消息",
     "hideAdvanced": "隐藏高级选项",
     "incrementalSync": "增量同步",

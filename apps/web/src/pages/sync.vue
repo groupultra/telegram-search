@@ -31,7 +31,7 @@ const chatsStore = useChatStore()
 const { chats, folders } = storeToRefs(chatsStore)
 
 const syncTaskStore = useSyncTaskStore()
-const { currentTask, currentTaskProgress, increase, chatStats, chatStatsLoading } = storeToRefs(syncTaskStore)
+const { currentTask, currentTaskProgress, increase, chatStats, chatStatsLoading, etaSeconds } = storeToRefs(syncTaskStore)
 
 // Currently focused chat id for status panel; independent from multi-selection
 const activeChatId = ref<number | null>(null)
@@ -45,10 +45,34 @@ const activeChat = computed(() => {
   return chats.value.find(chat => chat.id === activeChatId.value)
 })
 
+// Format ETA string
+const etaMessage = computed(() => {
+  if (etaSeconds.value === null || etaSeconds.value === undefined)
+    return ''
+
+  const minutes = Math.floor(etaSeconds.value / 60)
+  const seconds = etaSeconds.value % 60
+
+  if (minutes > 0) {
+    return t('sync.etaTime', { minutes, seconds })
+  }
+  return t('sync.etaSeconds', { seconds })
+})
+
 // Default to incremental sync
 if (increase.value === undefined || increase.value === null) {
   increase.value = true
 }
+
+// Automatically switch active visualization to the currently syncing chat
+watch(currentTask, (task) => {
+  if (task && task.metadata?.chatIds?.length === 1) {
+    const syncingChatId = Number(task.metadata.chatIds[0])
+    if (activeChatId.value !== syncingChatId) {
+      activeChatId.value = syncingChatId
+    }
+  }
+})
 
 // Task in progress status
 const isTaskInProgress = computed(() => {
@@ -316,7 +340,10 @@ watch(activeChatId, (chatId) => {
                   {{ currentTask?.lastError ? t('sync.syncFailed') : t('sync.syncing') }}
                 </span>
                 <span v-if="currentTask?.lastError" class="text-sm text-destructive">{{ errorMessage }}</span>
-                <span v-else-if="localizedTaskMessage" class="text-sm text-muted-foreground">{{ localizedTaskMessage }}</span>
+                <div v-else class="flex flex-col gap-0.5">
+                  <span v-if="localizedTaskMessage" class="text-sm text-muted-foreground">{{ localizedTaskMessage }}</span>
+                  <span v-if="etaMessage" class="text-xs text-primary/80 font-medium">{{ etaMessage }}</span>
+                </div>
               </div>
             </div>
 

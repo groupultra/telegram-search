@@ -9,6 +9,7 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
   const chatStats = ref<ChatSyncStats>()
   const chatStatsLoading = ref(false)
   const initialSyncedMessages = ref<number>(0)
+  const etaSeconds = ref<number | null>(null)
 
   const currentTaskProgress = computed(() => {
     if (!currentTask.value)
@@ -24,6 +25,7 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
     chatStats,
     chatStatsLoading,
     initialSyncedMessages,
+    etaSeconds,
   }
 })
 

@@ -181,6 +181,8 @@
     "deselectAll": "Deselect All",
     "dismiss": "Dismiss",
     "endTime": "End Time",
+    "etaSeconds": "ETA: {seconds}s",
+    "etaTime": "ETA: {minutes}m {seconds}s",
     "getMessages": "Get messages",
     "hideAdvanced": "Hide Advanced",
     "incrementalSync": "Incremental Sync",

@@ -291,7 +291,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(core_message_batch_duration_ms_bucket[5m])) by (le, source))",
+          "expr": "histogram_quantile(0.95, sum(rate(core_message_batch_duration_ms_milliseconds_bucket[5m])) by (le, source))",
           "instant": false,
           "legendFormat": "P95 {{source}} Batch Duration",
           "range": true,
@@ -385,7 +385,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(core_resolver_duration_ms_bucket[5m])) by (le, resolver))",
+          "expr": "histogram_quantile(0.95, sum(rate(core_resolver_duration_ms_milliseconds_bucket[5m])) by (le, resolver))",
           "instant": false,
           "legendFormat": "P95 {{resolver}} Duration",
           "range": true,
