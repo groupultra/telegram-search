@@ -18,4 +18,15 @@ export interface CoreMetrics {
    * - `source`: 'realtime' | 'takeout'
    */
   messageBatchDuration: CoreHistogram
+
+  /**
+   * Duration of individual resolvers in milliseconds.
+   * - `resolver`: 'embedding' | 'jieba' | 'media' | 'link' | 'user' | 'avatar'
+   */
+  resolverDuration: CoreHistogram
+
+  /**
+   * Total number of messages downloaded from Telegram via takeout.
+   */
+  takeoutDownloadTotal: CoreCounter
 }

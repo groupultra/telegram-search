@@ -92,7 +92,32 @@ export function createMediaResolver(
               }
             }
 
-            // TODO: check the media size
+            // Check media size if limit is set
+            if (opts.syncOptions?.maxMediaSize && opts.syncOptions.maxMediaSize > 0) {
+              let size: number | undefined
+              if (rawMessage.media instanceof Api.MessageMediaPhoto && rawMessage.media.photo instanceof Api.Photo) {
+                // Get the largest size
+                size = Math.max(...rawMessage.media.photo.sizes.map((s) => {
+                  if (s instanceof Api.PhotoSize || s instanceof Api.PhotoCachedSize || s instanceof Api.PhotoStrippedSize) {
+                    return 'size' in s ? (s.size as number) : 0
+                  }
+                  return 0
+                }))
+              }
+              else if (rawMessage.media instanceof Api.MessageMediaDocument && rawMessage.media.document instanceof Api.Document) {
+                size = Number(rawMessage.media.document.size)
+              }
+
+              if (size && size > opts.syncOptions.maxMediaSize * 1024 * 1024) {
+                logger.withFields({ size, limit: opts.syncOptions.maxMediaSize }).debug('Skipping media due to size limit')
+                return {
+                  messageUUID: message.uuid,
+                  type: 'unknown',
+                  platformId: media.platformId,
+                } satisfies CoreMessageMedia
+              }
+            }
+
             // Fallback: download media from Telegram using the raw Api message, then persist and return queryId.
             const apiMedia = rawMessage.media as Api.TypeMessageMedia
             const mediaFetched = await ctx.getClient().downloadMedia(apiMedia)

@@ -190,6 +190,15 @@ export function createTakeoutService(
             continue
           }
 
+          // Time range filtering
+          if (options.endTime && message.date > options.endTime.getTime() / 1000) {
+            continue
+          }
+          if (options.startTime && message.date < options.startTime.getTime() / 1000) {
+            hasMore = false
+            break
+          }
+
           processedCount++
           yield message
         }
@@ -240,29 +249,107 @@ export function createTakeoutService(
     skipId?: number,
   ) {
     let messages: Api.Message[] = []
-    let count = 0
+    let downloadCount = 0
+    let processedCount = 0
+    let batchSeq = 0
 
-    for await (const message of generator) {
-      if (task.state.abortController.signal.aborted)
-        break
-      if (skipId && message.id === skipId)
-        continue
+    const startTime = performance.now()
+    const pendingBatches = new Set<string>()
 
-      messages.push(message)
-      count++
+    // Metrics tracking
+    const totalResolverSpans: Array<{ name: string, duration: number, count: number }> = []
 
-      if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
-        if (task.state.abortController.signal.aborted)
-          break
-        ctx.emitter.emit('message:process', { messages, isTakeout: true, syncOptions })
-        messages = []
-        onProcessed?.(count)
+    const onMessageProcessed = (data: { batchId: string, count: number, resolverSpans: Array<{ name: string, duration: number, count: number }> }) => {
+      if (pendingBatches.has(data.batchId)) {
+        pendingBatches.delete(data.batchId)
+        processedCount += data.count
+
+        // Aggregate resolver spans
+        data.resolverSpans.forEach((span) => {
+          const existing = totalResolverSpans.find(s => s.name === span.name)
+          if (existing) {
+            existing.duration += span.duration
+            existing.count += span.count
+          }
+          else {
+            totalResolverSpans.push({ ...span })
+          }
+        })
+
+        const now = performance.now()
+        const elapsedSec = (now - startTime) / 1000
+        const downloadSpeed = elapsedSec > 0 ? downloadCount / elapsedSec : 0
+        const processSpeed = elapsedSec > 0 ? processedCount / elapsedSec : 0
+
+        ctx.emitter.emit('takeout:metrics', {
+          taskId: task.state.taskId,
+          downloadSpeed,
+          processSpeed,
+          processedCount,
+          totalCount: task.state.metadata?.totalMessages ?? 0,
+          resolverSpans: totalResolverSpans.map(s => ({ ...s, duration: s.duration })),
+        })
+
+        onProcessed?.(processedCount)
       }
     }
 
-    if (messages.length > 0 && !task.state.abortController.signal.aborted) {
-      ctx.emitter.emit('message:process', { messages, isTakeout: true, syncOptions })
-      onProcessed?.(count)
+    ctx.emitter.on('message:processed', onMessageProcessed)
+
+    try {
+      for await (const message of generator) {
+        if (task.state.abortController.signal.aborted)
+          break
+        if (skipId && message.id === skipId)
+          continue
+
+        messages.push(message)
+        downloadCount++
+
+        if (ctx.metrics) {
+          ctx.metrics.takeoutDownloadTotal.inc()
+        }
+
+        if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
+          if (task.state.abortController.signal.aborted)
+            break
+
+          const batchId = `${task.state.taskId}-${batchSeq++}`
+          pendingBatches.add(batchId)
+
+          ctx.emitter.emit('message:process', { messages, isTakeout: true, syncOptions, batchId })
+          messages = []
+
+          // Update metrics (even if not processed yet, for download speed visibility)
+          const now = performance.now()
+          const elapsedSec = (now - startTime) / 1000
+          const downloadSpeed = elapsedSec > 0 ? downloadCount / elapsedSec : 0
+          const processSpeed = elapsedSec > 0 ? processedCount / elapsedSec : 0
+
+          ctx.emitter.emit('takeout:metrics', {
+            taskId: task.state.taskId,
+            downloadSpeed,
+            processSpeed,
+            processedCount,
+            totalCount: task.state.metadata?.totalMessages ?? 0,
+            resolverSpans: totalResolverSpans,
+          })
+        }
+      }
+
+      if (messages.length > 0 && !task.state.abortController.signal.aborted) {
+        const batchId = `${task.state.taskId}-${batchSeq++}`
+        pendingBatches.add(batchId)
+        ctx.emitter.emit('message:process', { messages, isTakeout: true, syncOptions, batchId })
+      }
+
+      // Wait for all pending batches to complete
+      while (pendingBatches.size > 0 && !task.state.abortController.signal.aborted) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+    finally {
+      ctx.emitter.off('message:processed', onMessageProcessed)
     }
 
     return !task.state.abortController.signal.aborted
@@ -285,10 +372,16 @@ export function createTakeoutService(
 
     for (const chatId of chatIds) {
       const stats = (await chatMessageStatsModels.getChatMessageStatsByChatId(ctx.getDB(), ctx.getCurrentAccountId(), chatId))?.unwrap()
-      const task = createTask('takeout', { chatIds: [chatId] }, ctx.emitter, logger)
+      const totalCount = (await getTotalMessageCount(chatId)) ?? 0
+      const task = createTask('takeout', { chatIds: [chatId], totalMessages: totalCount }, ctx.emitter, logger)
       activeTasks.set(task.state.taskId, task)
 
       try {
+        const updateProgress = (count: number, expected: number) => {
+          const progress = expected > 0 ? Number(((count / expected) * 100).toFixed(2)) : 0
+          task.updateProgress(progress, `Processed ${count}/${expected} messages`)
+        }
+
         if (!increase || !stats || (stats.first_message_id === 0 && stats.latest_message_id === 0)) {
           const opts = {
             pagination: { ...pagination, offset: 0 },
@@ -297,22 +390,19 @@ export function createTakeoutService(
             startTime: syncOptions?.startTime,
             endTime: syncOptions?.endTime,
             skipMedia: !syncOptions?.syncMedia,
+            disableAutoProgress: true,
             task,
             syncOptions,
           }
-          await processMessageBatch(task, takeoutMessages(chatId, opts), syncOptions)
+          await processMessageBatch(task, takeoutMessages(chatId, opts), syncOptions, (c) => {
+            updateProgress(c, totalCount)
+          })
         }
         else {
-          const totalCount = (await getTotalMessageCount(chatId)) ?? 0
           const needToSyncCount = Math.max(0, totalCount - stats.message_count)
           task.updateProgress(0, 'Starting incremental sync')
 
-          let totalProcessed = 0
-          const updateProgress = (_count: number) => {
-            const progress = needToSyncCount > 0 ? Number(((totalProcessed / needToSyncCount) * 100).toFixed(2)) : 0
-            task.updateProgress(progress, `Processed ${totalProcessed}/${needToSyncCount} messages`)
-          }
-
+          let backwardProcessed = 0
           // Phase 1: Backward
           const backwardOpts = {
             pagination: { ...pagination, offset: 0 },
@@ -327,8 +417,8 @@ export function createTakeoutService(
             syncOptions,
           }
           const ok = await processMessageBatch(task, takeoutMessages(chatId, backwardOpts), syncOptions, (c) => {
-            totalProcessed += c
-            updateProgress(totalProcessed)
+            backwardProcessed = c
+            updateProgress(backwardProcessed, needToSyncCount)
           }, stats.latest_message_id ?? undefined)
 
           if (!ok)
@@ -348,8 +438,7 @@ export function createTakeoutService(
             syncOptions,
           }
           await processMessageBatch(task, takeoutMessages(chatId, forwardOpts), syncOptions, (c) => {
-            totalProcessed += c
-            updateProgress(totalProcessed)
+            updateProgress(backwardProcessed + c, needToSyncCount)
           })
 
           if (!task.state.abortController.signal.aborted) {

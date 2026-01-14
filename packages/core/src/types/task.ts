@@ -2,6 +2,7 @@ export type CoreTaskType = 'takeout' | 'getMessage' | 'embed'
 
 export interface TakeoutTaskMetadata {
   chatIds: string[]
+  totalMessages?: number
 }
 
 export interface CoreTasks {

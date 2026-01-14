@@ -300,9 +300,23 @@ export interface ChatSyncStats {
   syncedRanges: Array<{ start: number, end: number }>
 }
 
+export interface TakeoutMetrics {
+  taskId: string
+  downloadSpeed: number // messages/sec
+  processSpeed: number // messages/sec
+  processedCount: number
+  totalCount: number
+  resolverSpans: Array<{
+    name: string
+    duration: number
+    count: number
+  }>
+}
+
 export interface TakeoutEventFromCore {
   'takeout:task:progress': (data: CoreTaskData<'takeout'>) => void
   'takeout:stats:data': (data: ChatSyncStats) => void
+  'takeout:metrics': (data: TakeoutMetrics) => void
 }
 
 export interface TakeoutOpts {
@@ -353,8 +367,15 @@ export interface MessageResolverEventToCore {
    * while still recording messages to storage. Consumers should be aware that setting `isTakeout`
    * changes event side effects.
    * @param forceRefetch - If true, forces resolvers to skip database cache and re-fetch from source
+   * @param batchId - Optional unique identifier for the batch to track completion
    */
-  'message:process': (data: { messages: Api.Message[], isTakeout?: boolean, syncOptions?: SyncOptions, forceRefetch?: boolean }) => void
+  'message:process': (data: {
+    messages: Api.Message[]
+    isTakeout?: boolean
+    syncOptions?: SyncOptions
+    forceRefetch?: boolean
+    batchId?: string
+  }) => void
   /**
    * Re-processes specific messages to regenerate resolver outputs (e.g., media downloads).
    * Used when media files are missing from storage (404) or when resolver outputs need refreshing.
@@ -369,7 +390,17 @@ export interface MessageResolverEventToCore {
   'message:reprocess': (data: { chatId: string, messageIds: number[], resolvers?: string[] }) => void
 }
 
-export interface MessageResolverEventFromCore {}
+export interface MessageResolverEventFromCore {
+  'message:processed': (data: {
+    batchId: string
+    count: number
+    resolverSpans: Array<{
+      name: string
+      duration: number
+      count: number
+    }>
+  }) => void
+}
 
 // ============================================================================
 // Sync Events (PTS/QTS State Machine)

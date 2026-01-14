@@ -19,6 +19,7 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
       takeout?: boolean
       syncOptions?: SyncOptions
       forceRefetch?: boolean
+      batchId?: string
     } = {},
   ) {
     const start = performance.now()
@@ -53,19 +54,22 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
     const disabledResolvers = (await ctx.getAccountSettings()).resolvers?.disabledResolvers
 
     // Embedding or resolve messages
+    const resolverSpans: Array<{ name: string, duration: number, count: number }> = []
+
     const promises = Array.from(resolvers.registry.entries())
       .filter(([name]) => {
         if (disabledResolvers.includes(name))
           return false
-        if (options.syncOptions?.skipMedia && name === 'media')
+        if (name === 'media' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
           return false
-        if (options.syncOptions?.skipEmbedding && name === 'embedding')
+        if (name === 'embedding' && (options.syncOptions?.skipEmbedding))
           return false
-        if (options.syncOptions?.skipJieba && name === 'jieba')
+        if (name === 'jieba' && (options.syncOptions?.skipJieba))
           return false
         return true
       })
       .map(([name, resolver]) => (async () => {
+        const resolverStart = performance.now()
         logger.withFields({ name }).verbose('Process messages with resolver')
 
         const opts = {
@@ -96,9 +100,29 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
         catch (error) {
           logger.withError(error).warn('Failed to process messages')
         }
+        finally {
+          const duration = performance.now() - resolverStart
+          resolverSpans.push({
+            name,
+            duration,
+            count: coreMessages.length,
+          })
+
+          if (ctx.metrics) {
+            ctx.metrics.resolverDuration.observe({ resolver: name }, duration)
+          }
+        }
       })())
 
     await Promise.allSettled(promises)
+
+    if (options.batchId) {
+      ctx.emitter.emit('message:processed', {
+        batchId: options.batchId,
+        count: coreMessages.length,
+        resolverSpans,
+      })
+    }
 
     // Record batch duration if metrics sink is available (Node/server runtime only).
     if (ctx.metrics) {

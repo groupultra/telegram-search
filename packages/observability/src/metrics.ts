@@ -61,6 +61,21 @@ export const coreMessageBatchDurationMs = meter.createHistogram('core.message.ba
 })
 
 /**
+ * Core resolver duration histogram
+ */
+export const coreResolverDurationMs = meter.createHistogram('core.resolver.duration.ms', {
+  description: 'Duration of individual message resolvers in milliseconds',
+  unit: 'ms',
+})
+
+/**
+ * Core takeout messages downloaded total
+ */
+export const coreTakeoutDownloadedTotal = meter.createCounter('core.takeout.downloaded.total', {
+  description: 'Total number of messages downloaded from Telegram via takeout',
+})
+
+/**
  * Create OpenTelemetry counter from CoreCounter
  */
 function createOtelCounter(otelCounter: ReturnType<typeof meter.createCounter>): CoreCounter {
@@ -88,4 +103,6 @@ function createOtelHistogram(otelHistogram: ReturnType<typeof meter.createHistog
 export const coreMetrics: CoreMetrics = {
   messagesProcessed: createOtelCounter(coreMessagesProcessedTotal),
   messageBatchDuration: createOtelHistogram(coreMessageBatchDurationMs),
+  resolverDuration: createOtelHistogram(coreResolverDurationMs),
+  takeoutDownloadTotal: createOtelCounter(coreTakeoutDownloadedTotal),
 }
