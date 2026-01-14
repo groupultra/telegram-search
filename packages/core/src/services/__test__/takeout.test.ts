@@ -15,6 +15,14 @@ import { createTakeoutService } from '../takeout'
 const mockWaiter = vi.fn(async (_signal?: AbortSignal) => {})
 const logger = useLogger()
 
+const mockChatModels = {
+  fetchChatsByAccountId: vi.fn(),
+} as any
+
+const mockChatMessageStatsModels = {
+  getChatMessageStatsByChatId: vi.fn(),
+} as any
+
 vi.mock('../../utils/min-interval', () => {
   return {
     createMinIntervalWaiter: () => mockWaiter,
@@ -69,7 +77,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
     const count = await service.getTotalMessageCount('123')
 
     expect(count).toBe(123)
@@ -84,7 +92,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
     const count = await service.getTotalMessageCount('123')
 
     expect(count).toBe(0)
@@ -129,7 +137,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
     const task = createTask()
     task.updateProgress = vi.fn()
     task.updateError = vi.fn()
@@ -174,7 +182,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
     const task = createTask()
     task.updateError = vi.fn()
 
@@ -234,7 +242,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
     const task = createTask()
 
     // Abort before iteration begins so waitHistoryInterval throws.

@@ -84,7 +84,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
   const entityService = createEntityService(ctx, logger)
   const messageService = createMessageService(ctx, logger, entityService)
   const dialogService = createDialogService(ctx, logger)
-  const takeoutService = createTakeoutService(ctx, logger)
+  const takeoutService = createTakeoutService(ctx, logger, models.chatModels, chatMessageStatsModels)
   const syncService = createSyncService(ctx, logger)
   const gramEventsService = createGramEventsService(ctx, logger)
 
@@ -126,7 +126,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     registerEntityEventHandlers(ctx, logger)(entityService)
     registerMessageEventHandlers(ctx, logger)(messageService)
     registerDialogEventHandlers(ctx, logger, models)(dialogService)
-    registerTakeoutEventHandlers(ctx, logger, models.chatModels, chatMessageStatsModels)(takeoutService)
+    registerTakeoutEventHandlers(ctx, takeoutService)
     registerGramEventsEventHandlers(ctx, logger, accountModels, models.chatModels)(gramEventsService)
 
     // Dialog bootstrap is now triggered from account:setup handler once

@@ -128,6 +128,7 @@ export function createSyncService(
             progress: `${progress}%`,
           }).log('Syncing messages batch (Text only)')
 
+          // TODO: sync media, with delete at
           ctx.emitter.emit('message:process', {
             messages: validMessages,
             isTakeout: false,
