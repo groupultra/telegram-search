@@ -8,11 +8,11 @@ catalog:
   '@unbird/result': ^1.1.1
   '@xsai-ext/providers-cloud': ^0.4.0-beta.12
   '@xsai-ext/providers-local': ^0.4.0-beta.12
-  '@xsai/embed': ^0.4.0
-  '@xsai/tool': ^0.4.0
-  tsdown: ^0.18.4
+  '@xsai/embed': ^0.4.2
+  '@xsai/tool': ^0.4.2
+  tsdown: ^0.20.1
   vue-sonner: ^2.0.9
-  xsai: ^0.4.0
+  xsai: ^0.4.2
 
 onlyBuiltDependencies:
   - '@parcel/watcher'

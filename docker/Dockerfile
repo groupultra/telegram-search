@@ -1,7 +1,7 @@
 # ---------------------------------
 # --------- Builder Stage ---------
 # ---------------------------------
-FROM node:24.12.0-alpine AS builder
+FROM node:24.13.0-alpine AS builder
 WORKDIR /app
 
 # Enable pnpm
@@ -36,7 +36,7 @@ RUN pnpm run web:build
 # ---------------------------------
 # --------- Runtime Stage ---------
 # ---------------------------------
-FROM node:24.12.0-alpine
+FROM node:24.13.0-alpine
 
 WORKDIR /app
 
