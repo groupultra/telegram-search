@@ -41,8 +41,7 @@ describe('parseMinioDSN', () => {
     })
   })
 
-  // TODO: fix this
-  it.skip('correctly parses a minio DSN with https', () => {
+  it('correctly parses a minio DSN with https', () => {
     const dsn = parseMinioDSN('https://my-minio.example.com:443')
 
     expect(dsn).toEqual({
@@ -52,8 +51,24 @@ describe('parseMinioDSN', () => {
     })
   })
 
-  it('throws an error if port is missing', () => {
-    expect(() => parseMinioDSN('https://my-minio.example.com')).toThrow('Invalid Minio DSN')
+  it('correctly parses a minio DSN with https and standard port', () => {
+    const dsn = parseMinioDSN('https://my-minio.example.com')
+
+    expect(dsn).toEqual({
+      endPoint: 'my-minio.example.com',
+      port: 443,
+      useSSL: true,
+    })
+  })
+
+  it('correctly parses a minio DSN with http and standard port', () => {
+    const dsn = parseMinioDSN('http://my-minio.example.com')
+
+    expect(dsn).toEqual({
+      endPoint: 'my-minio.example.com',
+      port: 80,
+      useSSL: false,
+    })
   })
 
   it('throws an error if hostname is missing', () => {

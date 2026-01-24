@@ -11,19 +11,24 @@ interface MinioConnectionOptions {
 }
 
 export function parseMinioDSN(dsn: string): MinioConnectionOptions {
+  const HTTPS_DEFAULT_PORT = 443
+  const HTTP_DEFAULT_PORT = 80
+
   const url = new URL(dsn)
 
   const endPoint = url.hostname
-  const port = Number(url.port)
   const useSSL = url.protocol === 'https:'
 
-  if (!port || !endPoint) {
+  let port = Number(url.port)
+
+  // Cannot obtain port (0 or NaN), fill with default port of protocol
+  if (port === 0) {
+    port = useSSL ? HTTPS_DEFAULT_PORT : HTTP_DEFAULT_PORT
+  }
+
+  if (!endPoint) {
     throw new Error('Invalid Minio DSN')
   }
 
-  return {
-    endPoint,
-    port,
-    useSSL,
-  }
+  return { endPoint, port, useSSL }
 }
