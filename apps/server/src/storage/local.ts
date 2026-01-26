@@ -33,7 +33,7 @@ export async function initLocalMediaStorage(logger: Logger, config?: MediaConfig
     await mkdir(baseDir, { recursive: true })
   }
   catch (error) {
-    logger.withError(error).warn('Failed to ensure local media directory; falling back to DB bytea')
+    logger.withError(error).warn('Failed to ensure local media directory; falling back to database storage for media')
     return undefined
   }
 
