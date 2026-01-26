@@ -129,6 +129,9 @@ describe('mergeConfigWithEnv', () => {
           apiId: 'from-config',
         },
       },
+      media: {
+        dir: 'data/media',
+      },
     }
 
     const env = createEnv({
