@@ -115,6 +115,8 @@ docker compose -f docker-compose.yml up -d
 
 ### Deploy with Docker Image
 
+If MinIO is not configured, media files will be stored in the local `data/media` directory.
+
 ```bash
 docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
 ```

@@ -7,7 +7,7 @@ import { createCoreInstance } from '@tg-search/core'
 import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
 
 import { getDB } from './storage/drizzle'
-import { getMinioMediaStorage } from './storage/minio'
+import { getMediaStorage } from './storage/media'
 
 /**
  * Account state - one per Telegram account
@@ -133,7 +133,7 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
   if (!accountStates.has(accountId)) {
     logger.withFields({ accountId }).log('Creating new account state')
 
-    const ctx = createCoreInstance(getDB, config, getMinioMediaStorage(), logger, coreMetrics)
+    const ctx = createCoreInstance(getDB, config, getMediaStorage(), logger, coreMetrics)
 
     bindTracingMetaToSpan(ctx.emitter)
 

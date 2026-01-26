@@ -88,6 +88,10 @@ export const minioConfigSchema = object({
   useSSL: optional(boolean(), false),
 })
 
+export const mediaConfigSchema = object({
+  dir: optional(string()),
+})
+
 export const apiConfigSchema = object({
   telegram: optional(telegramConfigSchema, {}),
 })
@@ -96,12 +100,14 @@ export const configSchema = object({
   database: optional(databaseConfigSchema, {}),
   api: optional(apiConfigSchema, {}),
   minio: optional(minioConfigSchema, {}),
+  media: optional(mediaConfigSchema, {}),
 })
 
 export type Config = InferOutput<typeof configSchema>
 export type ProxyConfig = InferOutput<typeof proxyConfigSchema>
 export type DatabaseConfig = InferOutput<typeof databaseConfigSchema>
 export type MinioConfig = InferOutput<typeof minioConfigSchema>
+export type MediaConfig = InferOutput<typeof mediaConfigSchema>
 
 export function generateDefaultConfig(): Config {
   const defaultConfig = safeParse(configSchema, {})

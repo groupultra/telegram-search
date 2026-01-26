@@ -60,7 +60,7 @@ export async function registerMinioMediaStorage(logger: Logger, dsn: string, acc
     }
   }
   catch (error) {
-    logger.withError(error).warn('Failed to ensure MinIO bucket; falling back to DB bytea for media')
+    logger.withError(error).warn('Failed to ensure MinIO bucket; falling back to local media storage')
     return
   }
 
@@ -110,7 +110,7 @@ export async function registerMinioMediaStorage(logger: Logger, dsn: string, acc
 /**
  * Attempt to register MinIO-based media storage. When configuration is
  * incomplete or MinIO is unavailable we log a warning and gracefully
- * fall back to storing media bytes in the database.
+ * fall back to storing media bytes on local disk.
  */
 export async function initMinioMediaStorage(logger: Logger, config: MinioConfig): Promise<MediaBinaryProvider | undefined> {
   try {
@@ -122,7 +122,7 @@ export async function initMinioMediaStorage(logger: Logger, config: MinioConfig)
     return minioMediaStorage
   }
   catch (error) {
-    logger.withError(error).warn('Failed to register MinIO media storage; falling back to DB bytea')
+    logger.withError(error).warn('Failed to register MinIO media storage; falling back to local media storage')
   }
 }
 

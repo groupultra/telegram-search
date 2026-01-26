@@ -18,7 +18,7 @@ import pkg from '../package.json' with { type: 'json' }
 import { v1api } from './apis/v1'
 import { setupWsRoutes } from './app'
 import { getDB, initDrizzle } from './storage/drizzle'
-import { getMinioMediaStorage, initMinioMediaStorage } from './storage/minio'
+import { getMediaStorage, initMediaStorage } from './storage/media'
 import { removeHyperLinks, toSnakeCaseFields } from './utils/fields'
 
 function setupErrorHandlers(logger: Logger): void {
@@ -63,7 +63,7 @@ function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
     return Response.json({ success: true })
   }))
 
-  app.mount('/v1', v1api(getDB(), models, getMinioMediaStorage()))
+  app.mount('/v1', v1api(getDB(), models, getMediaStorage()))
 
   setupWsRoutes(app, config)
 
@@ -106,7 +106,7 @@ async function bootstrap() {
 
   await initDrizzle(logger, config, flags)
 
-  await initMinioMediaStorage(logger, config.minio)
+  await initMediaStorage(logger, config)
 
   setupErrorHandlers(logger)
 

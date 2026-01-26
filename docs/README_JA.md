@@ -106,6 +106,8 @@ docker compose -f docker-compose.yml up -d
 
 ### Docker Image を使用してデプロイ
 
+MinIO の関連パラメータが未設定の場合、メディアファイルはデフォルトでローカルの `data/media` ディレクトリに保存されます。
+
 ```bash
 docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
 ```

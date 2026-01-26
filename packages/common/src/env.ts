@@ -78,6 +78,9 @@ export function parseEnvToConfig(env: Environment, logger?: Logger): Config {
       port: readIntegerEnv('MINIO_PORT', env),
       useSSL: readBooleanEnv('MINIO_USE_SSL', env),
     },
+    media: {
+      dir: readStringEnv(['MEDIA_DIR', 'MEDIA_PATH'], env),
+    },
   }
 
   const parsedConfig = safeParse(configSchema, partialConfig)
