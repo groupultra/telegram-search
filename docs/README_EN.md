@@ -125,8 +125,6 @@ docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-se
 
 > [!IMPORTANT]
 > AI Embedding & LLM settings are now **per-account** in-app (Settings → API).
-> 
-> PGLite will be deprecated in the future due to performance reasons. PostgreSQL is recommended.
 >
 > Please restart the service after modifying the `.env` file by running `docker compose -f docker-compose.yml up -d`.
 

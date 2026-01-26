@@ -116,8 +116,6 @@ docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-se
 
 > [!IMPORTANT]
 > AI 埋め込み & LLM の設定は現在「アカウントごとに」アプリ内で設定します（設定 → API）。
-> 
-> PGLite は性能の問題で将来廃止される予定です。PostgreSQL を推奨します。
 >
 > 変更が完了した `.env` ファイルを再度 `docker compose -f docker-compose.yml up -d` で起動してください。
 
