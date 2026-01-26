@@ -50,7 +50,7 @@
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.8",
     "eslint": "^9.39.2",
-    "happy-dom": "^20.3.7",
+    "happy-dom": "^20.3.9",
     "taze": "^19.9.2",
     "tsdown": "catalog:",
     "typescript": "^5.9.3",
