@@ -205,4 +205,40 @@ describe('models/chat-message-stats', () => {
     expect(stat.first_message_at).toBe(1000)
     expect(stat.latest_message_at).toBe(3000)
   })
+
+  it('normalizes stringly-typed aggregate values returned by DB drivers', async () => {
+    const rows = [{
+      platform: 'telegram',
+      chat_id: 'chat-1',
+      chat_name: 'Chat 1',
+      message_count: '2',
+      first_message_id: '561',
+      first_message_at: '1000',
+      latest_message_id: '3894496',
+      latest_message_at: '3000',
+    }]
+
+    // Minimal drizzle-like chain stub that returns string values.
+    const db = {
+      select: () => ({
+        from: () => ({
+          leftJoin: () => ({
+            where: () => ({
+              groupBy: () => ({
+                limit: async () => rows,
+              }),
+            }),
+          }),
+        }),
+      }),
+    } as any
+
+    const stat = (await chatMessageStatsModels.getChatMessageStatsByChatId(db, 'acc-1', 'chat-1')).unwrap()
+
+    expect(stat.message_count).toBe(2)
+    expect(stat.first_message_id).toBe(561)
+    expect(stat.latest_message_id).toBe(3894496)
+    expect(stat.first_message_at).toBe(1000)
+    expect(stat.latest_message_at).toBe(3000)
+  })
 })

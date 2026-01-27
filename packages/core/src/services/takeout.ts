@@ -34,6 +34,23 @@ export function createTakeoutService(
   // Abortable min-interval waiter shared within this service
   const waitHistoryInterval = createMinIntervalWaiter(TELEGRAM_HISTORY_INTERVAL_MS)
 
+  /**
+   * Normalize potentially stringly-typed IDs coming from DB drivers or external inputs.
+   * GramJS expects JS numbers for offsetId/minId/maxId.
+   */
+  function normalizeId(value: unknown, fallback = 0): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+    return fallback
+  }
+
   async function initTakeout() {
     const fileMaxSize = bigInt(1024 * 1024 * 1024) // 1GB
 
@@ -98,13 +115,13 @@ export function createTakeoutService(
 
     task.updateProgress(0, 'Init takeout session')
 
-    let offsetId = options.pagination.offset
+    let offsetId = normalizeId(options.pagination.offset, 0)
     let hasMore = true
     let processedCount = 0
 
     const limit = options.pagination.limit
-    const minId = options.minId
-    const maxId = options.maxId
+    const minId = normalizeId(options.minId, 0)
+    const maxId = normalizeId(options.maxId, 0)
 
     let takeoutSession: Api.account.Takeout
 
@@ -204,7 +221,7 @@ export function createTakeoutService(
           yield message
         }
 
-        offsetId = messages[messages.length - 1].id
+        offsetId = normalizeId(messages[messages.length - 1]?.id, offsetId)
 
         // Only emit progress if auto-progress is enabled
         if (!options.disableAutoProgress) {
@@ -386,8 +403,8 @@ export function createTakeoutService(
         if (!increase || !stats || (stats.first_message_id === 0 && stats.latest_message_id === 0)) {
           const opts = {
             pagination: { ...pagination, offset: 0 },
-            minId: syncOptions?.minMessageId ?? 0,
-            maxId: syncOptions?.maxMessageId ?? 0,
+            minId: normalizeId(syncOptions?.minMessageId, 0),
+            maxId: normalizeId(syncOptions?.maxMessageId, 0),
             startTime: syncOptions?.startTime,
             endTime: syncOptions?.endTime,
             skipMedia: !syncOptions?.syncMedia,
@@ -403,12 +420,13 @@ export function createTakeoutService(
           const needToSyncCount = Math.max(0, totalCount - stats.message_count)
           task.updateProgress(0, 'Starting incremental sync')
 
+          const latestMessageId = normalizeId(stats.latest_message_id, 0)
           let backwardProcessed = 0
           // Phase 1: Backward
           const backwardOpts = {
             pagination: { ...pagination, offset: 0 },
-            minId: syncOptions?.minMessageId ?? stats.latest_message_id ?? 0,
-            maxId: syncOptions?.maxMessageId ?? 0,
+            minId: normalizeId(syncOptions?.minMessageId ?? latestMessageId, 0),
+            maxId: normalizeId(syncOptions?.maxMessageId, 0),
             startTime: syncOptions?.startTime,
             endTime: syncOptions?.endTime,
             skipMedia: !syncOptions?.syncMedia,
@@ -420,16 +438,16 @@ export function createTakeoutService(
           const ok = await processMessageBatch(task, takeoutMessages(chatId, backwardOpts), syncOptions, (c) => {
             backwardProcessed = c
             updateProgress(backwardProcessed, needToSyncCount)
-          }, stats.latest_message_id ?? undefined)
+          }, latestMessageId > 0 ? latestMessageId : undefined)
 
           if (!ok)
             continue
 
           // Phase 2: Forward
           const forwardOpts = {
-            pagination: { ...pagination, offset: stats.first_message_id ?? 0 },
-            minId: syncOptions?.minMessageId ?? 0,
-            maxId: syncOptions?.maxMessageId ?? 0,
+            pagination: { ...pagination, offset: normalizeId(stats.first_message_id, 0) },
+            minId: normalizeId(syncOptions?.minMessageId, 0),
+            maxId: normalizeId(syncOptions?.maxMessageId, 0),
             startTime: syncOptions?.startTime,
             endTime: syncOptions?.endTime,
             skipMedia: !syncOptions?.syncMedia,

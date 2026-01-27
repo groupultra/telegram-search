@@ -9,6 +9,7 @@ import { useLogger } from '@guiiai/logg'
 import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
 
+import { CoreEventType } from '../../types/events'
 import { createTask as createCoreTask } from '../../utils/task'
 import { createTakeoutService } from '../takeout'
 
@@ -32,8 +33,24 @@ vi.mock('../../utils/min-interval', () => {
 function createMockCtx(client: any) {
   const withError = vi.fn((error: unknown) => (error instanceof Error ? error : new Error(String(error))))
 
+  // Minimal event emitter stub for processMessageBatch/runTakeout flows.
+  const handlers = new Map<string, Set<(...args: any[]) => void>>()
+  const emitter = {
+    on: vi.fn((event: string, handler: (...args: any[]) => void) => {
+      const set = handlers.get(event) ?? new Set()
+      set.add(handler)
+      handlers.set(event, set)
+    }),
+    off: vi.fn((event: string, handler: (...args: any[]) => void) => {
+      handlers.get(event)?.delete(handler)
+    }),
+    emit: vi.fn((event: string, payload: any) => {
+      handlers.get(event)?.forEach(fn => fn(payload))
+    }),
+  } as unknown as CoreEmitter
+
   const ctx: CoreContext = {
-    emitter: {} as unknown as CoreEmitter,
+    emitter,
     toCoreEvents: new Set<keyof ToCoreEvent>(),
     fromCoreEvents: new Set<keyof FromCoreEvent>(),
     wrapEmitterEmit: () => {},
@@ -268,5 +285,87 @@ describe('takeout service', () => {
     const finished = calls.find(q => q instanceof Api.InvokeWithTakeout && (q).query instanceof Api.account.FinishTakeoutSession)
     expect(finished).toBeTruthy()
     expect((finished).query.success).toBe(true)
+  })
+
+  it('runTakeout should normalize string IDs from stats/syncOptions to numbers', async () => {
+    const historyCalls: Api.messages.GetHistory[] = []
+
+    mockChatModels.fetchChatsByAccountId.mockReset()
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockReset()
+
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockResolvedValue({
+      unwrap: () => ({
+        message_count: 5,
+        // Simulate bigint/text coming back as strings from DB driver.
+        first_message_id: '561',
+        latest_message_id: '3894496',
+      }),
+    })
+
+    const client = {
+      getInputEntity: vi.fn(async (_chatId: string) => ({})),
+      invoke: vi.fn(async (query: any) => {
+        // Count query (not wrapped in takeout).
+        if (query instanceof Api.messages.GetHistory) {
+          return { count: 10, messages: [] }
+        }
+
+        if (query instanceof Api.account.InitTakeoutSession) {
+          return { id: bigInt(1) }
+        }
+
+        if (query instanceof Api.InvokeWithTakeout) {
+          const inner = (query).query
+          if (inner instanceof Api.messages.GetHistory) {
+            historyCalls.push(inner)
+
+            // Return one message for the first backward page, then end.
+            if ((inner).offsetId === 0) {
+              return { messages: [{ id: 3894497 }] }
+            }
+            return { messages: [] }
+          }
+
+          if (inner instanceof Api.account.FinishTakeoutSession) {
+            return {}
+          }
+        }
+
+        throw new Error('unexpected query')
+      }),
+    }
+
+    const { ctx } = createMockCtx(client)
+
+    // Auto-complete message processing batches to avoid hanging on pendingBatches.
+    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, batchId }) => {
+      ctx.emitter.emit(CoreEventType.MessageProcessed, {
+        batchId: batchId ?? 'batch-id',
+        count: messages.length,
+        resolverSpans: [],
+      })
+    })
+
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
+
+    await service.runTakeout({
+      chatIds: ['123'],
+      increase: true,
+      // Simulate sync options coming in as stringly typed IDs.
+      syncOptions: {
+        minMessageId: '3894496' as unknown as number,
+        maxMessageId: '0' as unknown as number,
+      },
+    })
+
+    // Ensure we made at least one takeout history call.
+    expect(historyCalls.length).toBeGreaterThan(0)
+
+    // All history queries should have numeric IDs after normalization.
+    for (const call of historyCalls) {
+      expect(typeof call.minId).toBe('number')
+      expect(typeof call.maxId).toBe('number')
+      expect(typeof call.offsetId).toBe('number')
+    }
   })
 })
