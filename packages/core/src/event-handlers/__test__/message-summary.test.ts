@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
+import { CoreEventType } from '../../types/events'
 import { registerMessageEventHandlers } from '../message'
 
 const models = {} as unknown as Models
@@ -27,7 +28,7 @@ function createApiMessage(id: number, date: number, content: string) {
   } as unknown as Api.Message
 }
 
-describe('message:fetch:summary', () => {
+describe(CoreEventType.MessageFetchSummary, () => {
   it('mode=unread should use fetchUnreadMessages', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
 
@@ -49,11 +50,11 @@ describe('message:fetch:summary', () => {
     registerMessageEventHandlers(ctx, logger)(mockMessageService as unknown as MessageService)
 
     const received: Array<{ mode: 'unread' | 'today' | 'last24h', count: number }> = []
-    ctx.emitter.on('message:summary-data', ({ mode, messages }) => {
+    ctx.emitter.on(CoreEventType.MessageSummaryData, ({ mode, messages }) => {
       received.push({ mode, count: messages.length })
     })
 
-    ctx.emitter.emit('message:fetch:summary', { chatId: '1', limit: 1000, mode: 'unread' })
+    ctx.emitter.emit(CoreEventType.MessageFetchSummary, { chatId: '1', limit: 1000, mode: 'unread' })
     await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(received).toHaveLength(1)
@@ -83,11 +84,11 @@ describe('message:fetch:summary', () => {
     registerMessageEventHandlers(ctx, logger)(mockMessageService as unknown as MessageService)
 
     const received: Array<{ mode: 'unread' | 'today' | 'last24h', count: number }> = []
-    ctx.emitter.on('message:summary-data', ({ mode, messages }) => {
+    ctx.emitter.on(CoreEventType.MessageSummaryData, ({ mode, messages }) => {
       received.push({ mode, count: messages.length })
     })
 
-    ctx.emitter.emit('message:fetch:summary', { chatId: '1', limit: 1000, mode: 'today' })
+    ctx.emitter.emit(CoreEventType.MessageFetchSummary, { chatId: '1', limit: 1000, mode: 'today' })
     await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(received).toHaveLength(1)

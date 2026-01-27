@@ -4,6 +4,7 @@ import type { CoreRetrievalMessages } from '@tg-search/core/types'
 import MarkdownRender from 'markstream-vue'
 
 import { useAccountStore, useAIChatStore, useBridge, useChatStore } from '@tg-search/client'
+import { CoreEventType } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -86,12 +87,12 @@ async function sendMessage() {
     // Create tool executors that interact with the bridge
     const searchMessagesExecutor = async (params: any) => {
       return new Promise<CoreRetrievalMessages[]>((resolve) => {
-        bridge.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+        bridge.waitForEvent(CoreEventType.StorageSearchMessagesData).then(({ messages }) => {
           allRetrievedMessages.push(...messages)
           resolve(messages)
         })
 
-        bridge.sendEvent('storage:search:messages', {
+        bridge.sendEvent(CoreEventType.StorageSearchMessages, {
           content: params.query,
           useVector: params.useVector,
           pagination: {
@@ -110,12 +111,12 @@ async function sendMessage() {
 
     const retrieveContextExecutor = async (params: any) => {
       return new Promise<CoreRetrievalMessages[]>((resolve) => {
-        bridge.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+        bridge.waitForEvent(CoreEventType.StorageSearchMessagesData).then(({ messages }) => {
           allRetrievedMessages.push(...messages)
           resolve(messages)
         })
 
-        bridge.sendEvent('storage:search:messages', {
+        bridge.sendEvent(CoreEventType.StorageSearchMessages, {
           chatId: params.chatId,
           content: '',
           useVector: false,

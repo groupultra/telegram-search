@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAccountStore, useBridge } from '@tg-search/client'
+import { CoreEventType } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -55,11 +56,11 @@ function updateConfig() {
   if (!accountSettings.value)
     return
 
-  bridge.sendEvent('config:update', { accountSettings: accountSettings.value })
+  bridge.sendEvent(CoreEventType.ConfigUpdate, { accountSettings: accountSettings.value })
   const toastId = toast.loading(t('settings.savingSettings'))
 
   Promise.race([
-    bridge.waitForEvent('config:data'),
+    bridge.waitForEvent(CoreEventType.ConfigData),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000)),
   ])
     .then(() => toast.success(t('settings.settingsSavedSuccessfully'), { id: toastId }))

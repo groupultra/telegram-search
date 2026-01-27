@@ -7,16 +7,92 @@ import type { CoreChatFolder, CoreDialog } from './dialog'
 import type { CoreMessage } from './message'
 import type { CoreTask, CoreTaskData } from './task'
 
+export enum CoreEventType {
+  CoreCleanup = 'core:cleanup',
+  CoreError = 'core:error',
+
+  AuthLogin = 'auth:login',
+  AuthLogout = 'auth:logout',
+  AuthCode = 'auth:code',
+  AuthPassword = 'auth:password',
+  AuthCodeNeeded = 'auth:code:needed',
+  AuthPasswordNeeded = 'auth:password:needed',
+  AuthConnected = 'auth:connected',
+  AuthDisconnected = 'auth:disconnected',
+  AuthError = 'auth:error',
+
+  SessionUpdate = 'session:update',
+  AccountReady = 'account:ready',
+
+  ConfigFetch = 'config:fetch',
+  ConfigUpdate = 'config:update',
+  ConfigData = 'config:data',
+
+  MessageFetch = 'message:fetch',
+  MessageFetchAbort = 'message:fetch:abort',
+  MessageFetchSpecific = 'message:fetch:specific',
+  MessageFetchUnread = 'message:fetch:unread',
+  MessageFetchSummary = 'message:fetch:summary',
+  MessageSend = 'message:send',
+  MessageRead = 'message:read',
+  MessageFetchProgress = 'message:fetch:progress',
+  MessageData = 'message:data',
+  MessageUnreadData = 'message:unread-data',
+  MessageSummaryData = 'message:summary-data',
+  MessageProcess = 'message:process',
+  MessageReprocess = 'message:reprocess',
+  MessageProcessed = 'message:processed',
+
+  DialogFetch = 'dialog:fetch',
+  DialogFoldersFetch = 'dialog:folders:fetch',
+  DialogAvatarFetch = 'dialog:avatar:fetch',
+  DialogData = 'dialog:data',
+  DialogFoldersData = 'dialog:folders:data',
+  DialogAvatarData = 'dialog:avatar:data',
+
+  EntityProcess = 'entity:process',
+  EntityAvatarFetch = 'entity:avatar:fetch',
+  EntityAvatarPrimeCache = 'entity:avatar:prime-cache',
+  EntityChatAvatarPrimeCache = 'entity:chat-avatar:prime-cache',
+  EntityMeData = 'entity:me:data',
+  EntityAvatarData = 'entity:avatar:data',
+
+  StorageFetchMessages = 'storage:fetch:messages',
+  StorageRecordMessages = 'storage:record:messages',
+  StorageFetchDialogs = 'storage:fetch:dialogs',
+  StorageRecordDialogs = 'storage:record:dialogs',
+  StorageRecordChatFolders = 'storage:record:chat-folders',
+  StorageSearchMessages = 'storage:search:messages',
+  StorageFetchMessageContext = 'storage:fetch:message-context',
+  StorageMessages = 'storage:messages',
+  StorageDialogs = 'storage:dialogs',
+  StorageSearchMessagesData = 'storage:search:messages:data',
+  StorageMessagesContext = 'storage:messages:context',
+
+  TakeoutRun = 'takeout:run',
+  TakeoutTaskAbort = 'takeout:task:abort',
+  TakeoutStatsFetch = 'takeout:stats:fetch',
+  TakeoutTaskProgress = 'takeout:task:progress',
+  TakeoutStatsData = 'takeout:stats:data',
+  TakeoutMetrics = 'takeout:metrics',
+
+  GramMessageReceived = 'gram:message:received',
+
+  SyncCatchUp = 'sync:catch-up',
+  SyncReset = 'sync:reset',
+  SyncStatus = 'sync:status',
+}
+
 // ============================================================================
 // Instance Events
 // ============================================================================
 
 export interface ClientInstanceEventToCore {
-  'core:cleanup': () => void
+  [CoreEventType.CoreCleanup]: () => void
 }
 
 export interface ClientInstanceEventFromCore {
-  'core:error': (data: { error: string, description?: string }) => void
+  [CoreEventType.CoreError]: (data: { error: string, description?: string }) => void
 }
 
 // ============================================================================
@@ -24,18 +100,18 @@ export interface ClientInstanceEventFromCore {
 // ============================================================================
 
 export interface ConnectionEventToCore {
-  'auth:login': (data: { phoneNumber?: string, session?: string }) => void
-  'auth:logout': () => void
-  'auth:code': (data: { code: string }) => void
-  'auth:password': (data: { password: string }) => void
+  [CoreEventType.AuthLogin]: (data: { phoneNumber?: string, session?: string }) => void
+  [CoreEventType.AuthLogout]: () => void
+  [CoreEventType.AuthCode]: (data: { code: string }) => void
+  [CoreEventType.AuthPassword]: (data: { password: string }) => void
 }
 
 export interface ConnectionEventFromCore {
-  'auth:code:needed': () => void
-  'auth:password:needed': () => void
-  'auth:connected': () => void
-  'auth:disconnected': () => void
-  'auth:error': () => void
+  [CoreEventType.AuthCodeNeeded]: () => void
+  [CoreEventType.AuthPasswordNeeded]: () => void
+  [CoreEventType.AuthConnected]: () => void
+  [CoreEventType.AuthDisconnected]: () => void
+  [CoreEventType.AuthError]: () => void
 }
 
 // ============================================================================
@@ -45,7 +121,7 @@ export interface ConnectionEventFromCore {
 export interface SessionEventToCore {}
 
 export interface SessionEventFromCore {
-  'session:update': (data: { session: string }) => void
+  [CoreEventType.SessionUpdate]: (data: { session: string }) => void
 }
 
 // ============================================================================
@@ -55,7 +131,7 @@ export interface SessionEventFromCore {
 export interface AccountEventToCore {}
 
 export interface AccountEventFromCore {
-  'account:ready': (data: { accountId: string }) => void
+  [CoreEventType.AccountReady]: (data: { accountId: string }) => void
 }
 
 // ============================================================================
@@ -63,12 +139,12 @@ export interface AccountEventFromCore {
 // ============================================================================
 
 export interface AccountSettingsEventToCore {
-  'config:fetch': () => void
-  'config:update': (data: { accountSettings: AccountSettings }) => void
+  [CoreEventType.ConfigFetch]: () => void
+  [CoreEventType.ConfigUpdate]: (data: { accountSettings: AccountSettings }) => void
 }
 
 export interface AccountSettingsEventFromCore {
-  'config:data': (data: { accountSettings: AccountSettings }) => void
+  [CoreEventType.ConfigData]: (data: { accountSettings: AccountSettings }) => void
 }
 
 // ============================================================================
@@ -76,13 +152,13 @@ export interface AccountSettingsEventFromCore {
 // ============================================================================
 
 export interface MessageEventToCore {
-  'message:fetch': (data: FetchMessageOpts) => void
-  'message:fetch:abort': (data: { taskId: string }) => void
-  'message:fetch:specific': (data: { chatId: string, messageIds: number[] }) => void
-  'message:fetch:unread': (data: FetchUnreadMessageOpts) => void
-  'message:fetch:summary': (data: FetchSummaryMessageOpts) => void
-  'message:send': (data: { chatId: string, content: string }) => void
-  'message:read': (data: { chatId: string }) => void
+  [CoreEventType.MessageFetch]: (data: FetchMessageOpts) => void
+  [CoreEventType.MessageFetchAbort]: (data: { taskId: string }) => void
+  [CoreEventType.MessageFetchSpecific]: (data: { chatId: string, messageIds: number[] }) => void
+  [CoreEventType.MessageFetchUnread]: (data: FetchUnreadMessageOpts) => void
+  [CoreEventType.MessageFetchSummary]: (data: FetchSummaryMessageOpts) => void
+  [CoreEventType.MessageSend]: (data: { chatId: string, content: string }) => void
+  [CoreEventType.MessageRead]: (data: { chatId: string }) => void
 }
 
 export interface FetchUnreadMessageOpts {
@@ -103,10 +179,10 @@ export interface FetchSummaryMessageOpts {
 }
 
 export interface MessageEventFromCore {
-  'message:fetch:progress': (data: { taskId: string, progress: number }) => void
-  'message:data': (data: { messages: CoreMessage[] }) => void
-  'message:unread-data': (data: { messages: CoreMessage[] }) => void
-  'message:summary-data': (data: { messages: CoreMessage[], mode: SummaryMode }) => void
+  [CoreEventType.MessageFetchProgress]: (data: { taskId: string, progress: number }) => void
+  [CoreEventType.MessageData]: (data: { messages: CoreMessage[] }) => void
+  [CoreEventType.MessageUnreadData]: (data: { messages: CoreMessage[] }) => void
+  [CoreEventType.MessageSummaryData]: (data: { messages: CoreMessage[], mode: SummaryMode }) => void
 }
 
 export interface FetchMessageOpts {
@@ -130,23 +206,23 @@ export interface FetchMessageOpts {
 // ============================================================================
 
 export interface DialogEventToCore {
-  'dialog:fetch': () => void
-  'dialog:folders:fetch': () => void
+  [CoreEventType.DialogFetch]: () => void
+  [CoreEventType.DialogFoldersFetch]: () => void
   /**
    * Request fetching a single dialog's avatar immediately.
    * Used by frontend to prioritize avatars within viewport.
    */
-  'dialog:avatar:fetch': (data: { chatId: number | string }) => void
+  [CoreEventType.DialogAvatarFetch]: (data: { chatId: number | string }) => void
 }
 
 export interface DialogEventFromCore {
-  'dialog:data': (data: { dialogs: CoreDialog[] }) => void
-  'dialog:folders:data': (data: { folders: CoreChatFolder[] }) => void
+  [CoreEventType.DialogData]: (data: { dialogs: CoreDialog[] }) => void
+  [CoreEventType.DialogFoldersData]: (data: { folders: CoreChatFolder[] }) => void
   /**
    * Emit avatar bytes for a single dialog. Frontend should convert bytes to blobUrl
    * and attach it to the corresponding chat. This event is incremental and small-sized.
    */
-  'dialog:avatar:data': (data: { chatId: number, byte: Uint8Array | { data: number[] }, mimeType: string, fileId?: string }) => void
+  [CoreEventType.DialogAvatarData]: (data: { chatId: number, byte: Uint8Array | { data: number[] }, mimeType: string, fileId?: string }) => void
 }
 
 // ============================================================================
@@ -157,30 +233,30 @@ export interface EntityEventToCore {
   /**
    * Internal event to process multiple users/chats and save them to cache/DB.
    */
-  'entity:process': (data: { users: Api.TypeUser[], chats: Api.TypeChat[] }) => void
+  [CoreEventType.EntityProcess]: (data: { users: Api.TypeUser[], chats: Api.TypeChat[] }) => void
   /**
-   * Lazy fetch of a user's avatar by userId. Core should respond with 'entity:avatar:data'.
+   * Lazy fetch of a user's avatar by userId. Core should respond with CoreEventType.EntityAvatarData.
    * Optional fileId allows core to check cache before fetching.
    */
-  'entity:avatar:fetch': (data: { userId: string, fileId?: string }) => void
+  [CoreEventType.EntityAvatarFetch]: (data: { userId: string, fileId?: string }) => void
   /**
    * Prime the core LRU cache with fileId information from frontend IndexedDB.
    * This allows fileId-based cache validation without requiring entity fetch.
    */
-  'entity:avatar:prime-cache': (data: { userId: string, fileId: string }) => void
+  [CoreEventType.EntityAvatarPrimeCache]: (data: { userId: string, fileId: string }) => void
   /**
    * Prime the core LRU cache with chat avatar fileId information from frontend IndexedDB.
    * This allows fileId-based cache validation without requiring entity fetch.
    */
-  'entity:chat-avatar:prime-cache': (data: { chatId: string, fileId: string }) => void
+  [CoreEventType.EntityChatAvatarPrimeCache]: (data: { chatId: string, fileId: string }) => void
 }
 
 export interface EntityEventFromCore {
-  'entity:me:data': (data: CoreUserEntity) => void
+  [CoreEventType.EntityMeData]: (data: CoreUserEntity) => void
   /**
    * Emit avatar bytes for a single user. Frontend converts to blobUrl and caches.
    */
-  'entity:avatar:data': (data: { userId: string, byte: Uint8Array | { data: number[] }, mimeType: string, fileId?: string }) => void
+  [CoreEventType.EntityAvatarData]: (data: { userId: string, byte: Uint8Array | { data: number[] }, mimeType: string, fileId?: string }) => void
 }
 
 export interface CoreBaseEntity {
@@ -209,26 +285,26 @@ export type CoreEntity = CoreUserEntity | CoreChatEntity | CoreChannelEntity
 // ============================================================================
 
 export interface StorageEventToCore {
-  'storage:fetch:messages': (data: { chatId: string, pagination: CorePagination }) => void
-  'storage:record:messages': (data: { messages: CoreMessage[] }) => void
+  [CoreEventType.StorageFetchMessages]: (data: { chatId: string, pagination: CorePagination }) => void
+  [CoreEventType.StorageRecordMessages]: (data: { messages: CoreMessage[] }) => void
 
-  'storage:fetch:dialogs': (data: { accountId: string }) => void
-  'storage:record:dialogs': (data: { dialogs: CoreDialog[], accountId: string }) => void
-  'storage:record:chat-folders': (data: { folders: CoreChatFolder[], accountId: string }) => void
+  [CoreEventType.StorageFetchDialogs]: (data: { accountId: string }) => void
+  [CoreEventType.StorageRecordDialogs]: (data: { dialogs: CoreDialog[], accountId: string }) => void
+  [CoreEventType.StorageRecordChatFolders]: (data: { folders: CoreChatFolder[], accountId: string }) => void
 
-  'storage:search:messages': (data: CoreMessageSearchParams) => void
+  [CoreEventType.StorageSearchMessages]: (data: CoreMessageSearchParams) => void
 
-  'storage:fetch:message-context': (data: StorageMessageContextParams) => void
+  [CoreEventType.StorageFetchMessageContext]: (data: StorageMessageContextParams) => void
 }
 
 export interface StorageEventFromCore {
-  'storage:messages': (data: { messages: CoreMessage[] }) => void
+  [CoreEventType.StorageMessages]: (data: { messages: CoreMessage[] }) => void
 
-  'storage:dialogs': (data: { dialogs: CoreDialog[] }) => void
+  [CoreEventType.StorageDialogs]: (data: { dialogs: CoreDialog[] }) => void
 
-  'storage:search:messages:data': (data: { messages: CoreRetrievalMessages[] }) => void
+  [CoreEventType.StorageSearchMessagesData]: (data: { messages: CoreRetrievalMessages[] }) => void
 
-  'storage:messages:context': (data: { messages: CoreMessage[] } & StorageMessageContextParams) => void
+  [CoreEventType.StorageMessagesContext]: (data: { messages: CoreMessage[] } & StorageMessageContextParams) => void
 }
 
 export interface CoreMessageSearchParams {
@@ -284,9 +360,9 @@ export interface SyncOptions {
 }
 
 export interface TakeoutEventToCore {
-  'takeout:run': (data: { chatIds: string[], increase?: boolean, syncOptions?: SyncOptions }) => void
-  'takeout:task:abort': (data: { taskId: string }) => void
-  'takeout:stats:fetch': (data: { chatId: string }) => void
+  [CoreEventType.TakeoutRun]: (data: { chatIds: string[], increase?: boolean, syncOptions?: SyncOptions }) => void
+  [CoreEventType.TakeoutTaskAbort]: (data: { taskId: string }) => void
+  [CoreEventType.TakeoutStatsFetch]: (data: { chatId: string }) => void
 }
 
 export interface ChatSyncStats {
@@ -314,9 +390,9 @@ export interface TakeoutMetrics {
 }
 
 export interface TakeoutEventFromCore {
-  'takeout:task:progress': (data: CoreTaskData<'takeout'>) => void
-  'takeout:stats:data': (data: ChatSyncStats) => void
-  'takeout:metrics': (data: TakeoutMetrics) => void
+  [CoreEventType.TakeoutTaskProgress]: (data: CoreTaskData<'takeout'>) => void
+  [CoreEventType.TakeoutStatsData]: (data: ChatSyncStats) => void
+  [CoreEventType.TakeoutMetrics]: (data: TakeoutMetrics) => void
 }
 
 export interface TakeoutOpts {
@@ -354,7 +430,7 @@ export interface TakeoutOpts {
 export interface GramEventsEventToCore {}
 
 export interface GramEventsEventFromCore {
-  'gram:message:received': (data: { message: Api.Message, pts?: number, date?: number, isChannel: boolean }) => void
+  [CoreEventType.GramMessageReceived]: (data: { message: Api.Message, pts?: number, date?: number, isChannel: boolean }) => void
 }
 
 // ============================================================================
@@ -363,13 +439,13 @@ export interface GramEventsEventFromCore {
 
 export interface MessageResolverEventToCore {
   /**
-   * Processes messages. If `isTakeout` is true, suppresses 'message:data' emissions (browser-facing)
+   * Processes messages. If `isTakeout` is true, suppresses CoreEventType.MessageData emissions (browser-facing)
    * while still recording messages to storage. Consumers should be aware that setting `isTakeout`
    * changes event side effects.
    * @param forceRefetch - If true, forces resolvers to skip database cache and re-fetch from source
    * @param batchId - Optional unique identifier for the batch to track completion
    */
-  'message:process': (data: {
+  [CoreEventType.MessageProcess]: (data: {
     messages: Api.Message[]
     isTakeout?: boolean
     syncOptions?: SyncOptions
@@ -387,11 +463,11 @@ export interface MessageResolverEventToCore {
    *                    is reserved for future enhancement to support selective resolver execution.
    *                    If omitted or provided, runs all enabled resolvers (not disabled in account settings).
    */
-  'message:reprocess': (data: { chatId: string, messageIds: number[], resolvers?: string[] }) => void
+  [CoreEventType.MessageReprocess]: (data: { chatId: string, messageIds: number[], resolvers?: string[] }) => void
 }
 
 export interface MessageResolverEventFromCore {
-  'message:processed': (data: {
+  [CoreEventType.MessageProcessed]: (data: {
     batchId: string
     count: number
     resolverSpans: Array<{
@@ -407,12 +483,12 @@ export interface MessageResolverEventFromCore {
 // ============================================================================
 
 export interface SyncEventToCore {
-  'sync:catch-up': () => void
-  'sync:reset': () => void
+  [CoreEventType.SyncCatchUp]: () => void
+  [CoreEventType.SyncReset]: () => void
 }
 
 export interface SyncEventFromCore {
-  'sync:status': (data: { status: 'idle' | 'syncing' | 'error', progress?: number }) => void
+  [CoreEventType.SyncStatus]: (data: { status: 'idle' | 'syncing' | 'error', progress?: number }) => void
 }
 
 // ============================================================================

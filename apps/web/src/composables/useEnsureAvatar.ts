@@ -2,6 +2,7 @@ import type { ComputedRef, Ref } from 'vue'
 
 import { useLogger } from '@guiiai/logg'
 import { prefillChatAvatarIntoStore, prefillUserAvatarIntoStore, useAvatarStore, useBridge } from '@tg-search/client'
+import { CoreEventType } from '@tg-search/core'
 import { onMounted, unref, watch } from 'vue'
 
 type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
@@ -81,14 +82,14 @@ async function ensureAvatarCore(
       inflightPrefillIds: avatarStore.inflightUserPrefillIds,
       prefill: (id: string) => prefillUserAvatarIntoStore(id),
       getFileId: (id: ID) => avatarStore.getUserAvatarFileId(id),
-      primeCache: (id: string, fileId: string) => bridge.sendEvent('entity:avatar:prime-cache', { userId: id, fileId }),
+      primeCache: (id: string, fileId: string) => bridge.sendEvent(CoreEventType.EntityAvatarPrimeCache, { userId: id, fileId }),
       ensureFetch: (id: string, exp?: string) => avatarStore.ensureUserAvatar(id, exp),
     },
     chat: {
       hasValid: (id: string, exp?: string) => avatarStore.hasValidChatAvatar(id, exp),
       prefill: (id: string) => prefillChatAvatarIntoStore(id),
       getFileId: (id: ID) => avatarStore.getChatAvatarFileId(id),
-      primeCache: (id: string, fileId: string) => bridge.sendEvent('entity:chat-avatar:prime-cache', { chatId: id, fileId }),
+      primeCache: (id: string, fileId: string) => bridge.sendEvent(CoreEventType.EntityChatAvatarPrimeCache, { chatId: id, fileId }),
       ensureFetch: (id: string, exp?: string) => avatarStore.ensureChatAvatar(id, exp),
     },
   }

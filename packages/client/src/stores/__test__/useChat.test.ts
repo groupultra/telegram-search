@@ -1,3 +1,4 @@
+import { CoreEventType } from '@tg-search/core'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -51,8 +52,8 @@ describe('useChatStore', () => {
     const store = useChatStore()
     store.init()
 
-    expect(sendEventMock).toHaveBeenCalledWith('storage:fetch:dialogs')
-    expect(sendEventMock).toHaveBeenCalledWith('dialog:folders:fetch')
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.StorageFetchDialogs)
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.DialogFoldersFetch)
   })
 
   it('manages chats correctly', () => {

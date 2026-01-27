@@ -1,22 +1,24 @@
 import type { ClientRegisterEventHandler } from '.'
 
+import { CoreEventType } from '@tg-search/core'
+
 import { useSyncTaskStore } from '../stores/useSyncTask'
 
 export function registerTakeoutEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
-  registerEventHandler('takeout:task:progress', (data) => {
+  registerEventHandler(CoreEventType.TakeoutTaskProgress, (data) => {
     useSyncTaskStore().currentTask = data
   })
 
-  registerEventHandler('takeout:stats:data', (data) => {
+  registerEventHandler(CoreEventType.TakeoutStatsData, (data) => {
     const store = useSyncTaskStore()
     store.chatStats = data
     store.chatStatsLoading = false
     store.initialSyncedMessages = data.syncedMessages
   })
 
-  registerEventHandler('takeout:metrics', (data) => {
+  registerEventHandler(CoreEventType.TakeoutMetrics, (data) => {
     const store = useSyncTaskStore()
     if (store.currentTask && store.currentTask.taskId === data.taskId) {
       if (store.chatStats && store.currentTask.metadata.chatIds.includes(store.chatStats.chatId)) {

@@ -1,6 +1,7 @@
 import type { ClientRegisterEventHandler } from '.'
 
 import { useLogger } from '@guiiai/logg'
+import { CoreEventType } from '@tg-search/core'
 
 import { useChatStore } from '../stores/useChat'
 import { useMessageStore } from '../stores/useMessage'
@@ -13,7 +14,7 @@ import { prefillChatAvatarIntoStore } from '../utils/avatar-cache'
 export function registerStorageEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
-  registerEventHandler('storage:dialogs', (data) => {
+  registerEventHandler(CoreEventType.StorageDialogs, (data) => {
     const chatStore = useChatStore()
     chatStore.chats = data.dialogs
     // Prefill avatars from persistent cache concurrently for better initial UX
@@ -28,11 +29,11 @@ export function registerStorageEventHandlers(
     })
   })
 
-  registerEventHandler('storage:messages', ({ messages }) => {
+  registerEventHandler(CoreEventType.StorageMessages, ({ messages }) => {
     useMessageStore().pushMessages(messages)
   })
 
   // Wait for result event
-  registerEventHandler('storage:search:messages:data', (_) => {})
-  registerEventHandler('storage:messages:context', (_) => {})
+  registerEventHandler(CoreEventType.StorageSearchMessagesData, (_) => {})
+  registerEventHandler(CoreEventType.StorageMessagesContext, (_) => {})
 }

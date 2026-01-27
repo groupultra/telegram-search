@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
+import { CoreEventType } from '../../types/events'
 import { registerTakeoutEventHandlers } from '../takeout'
 
 const logger = useLogger()
@@ -20,7 +21,7 @@ describe('takeout event handlers', () => {
     registerTakeoutEventHandlers(ctx, takeoutService)
 
     const params = { chatIds: ['123'], increase: false, syncOptions: {} }
-    ctx.emitter.emit('takeout:run', params)
+    ctx.emitter.emit(CoreEventType.TakeoutRun, params)
 
     expect(runTakeout).toHaveBeenCalledWith(params)
   })
@@ -32,7 +33,7 @@ describe('takeout event handlers', () => {
 
     registerTakeoutEventHandlers(ctx, takeoutService)
 
-    ctx.emitter.emit('takeout:task:abort', { taskId: 'task-1' })
+    ctx.emitter.emit(CoreEventType.TakeoutTaskAbort, { taskId: 'task-1' })
 
     expect(abortTask).toHaveBeenCalledWith('task-1')
   })
@@ -44,7 +45,7 @@ describe('takeout event handlers', () => {
 
     registerTakeoutEventHandlers(ctx, takeoutService)
 
-    ctx.emitter.emit('takeout:stats:fetch', { chatId: '123' })
+    ctx.emitter.emit(CoreEventType.TakeoutStatsFetch, { chatId: '123' })
 
     expect(fetchChatSyncStats).toHaveBeenCalledWith('123')
   })

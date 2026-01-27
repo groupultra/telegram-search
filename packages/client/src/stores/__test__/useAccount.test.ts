@@ -1,3 +1,4 @@
+import { CoreEventType } from '@tg-search/core'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -62,7 +63,7 @@ describe('useAccountStore', () => {
   it('attempts login when session exists', async () => {
     const store = useAccountStore()
     await store.init()
-    expect(sendEventMock).toHaveBeenCalledWith('auth:login', { session: 'mock-session' })
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.AuthLogin, { session: 'mock-session' })
     expect(store.auth.isLoading).toBe(true)
   })
 
@@ -72,7 +73,7 @@ describe('useAccountStore', () => {
 
     const store = useAccountStore()
     await store.init()
-    expect(sendEventMock).not.toHaveBeenCalledWith('auth:login', expect.anything())
+    expect(sendEventMock).not.toHaveBeenCalledWith(CoreEventType.AuthLogin, expect.anything())
   })
 
   it('handleAuth actions send correct events', () => {
@@ -80,20 +81,20 @@ describe('useAccountStore', () => {
     const { login, submitCode, submitPassword, logout } = store.handleAuth()
 
     login('1234567890')
-    expect(sendEventMock).toHaveBeenCalledWith('auth:login', {
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.AuthLogin, {
       phoneNumber: '1234567890',
       session: 'mock-session',
     })
 
     submitCode('12345')
-    expect(sendEventMock).toHaveBeenCalledWith('auth:code', { code: '12345' })
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.AuthCode, { code: '12345' })
 
     submitPassword('password')
     // eslint-disable-next-line sonarjs/no-hardcoded-passwords
-    expect(sendEventMock).toHaveBeenCalledWith('auth:password', { password: 'password' })
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.AuthPassword, { password: 'password' })
 
     logout()
-    expect(sendEventMock).toHaveBeenCalledWith('auth:logout', undefined)
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.AuthLogout, undefined)
     expect(sessionActions.removeCurrentAccount).toHaveBeenCalled()
   })
 
@@ -103,7 +104,7 @@ describe('useAccountStore', () => {
 
     expect(store.isReady).toBe(true)
     expect(store.auth.isLoading).toBe(false)
-    expect(sendEventMock).toHaveBeenCalledWith('config:fetch')
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.ConfigFetch)
     expect(chatActions.init).toHaveBeenCalled()
   })
 

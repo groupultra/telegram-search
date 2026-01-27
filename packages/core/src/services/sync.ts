@@ -5,6 +5,7 @@ import type { CoreContext } from '../context'
 import { Api } from 'telegram'
 
 import { accountModels } from '../models/accounts'
+import { CoreEventType } from '../types/events'
 
 export function createSyncService(
   ctx: CoreContext,
@@ -72,7 +73,7 @@ export function createSyncService(
         gap: targetPts - account.pts,
       }).log('Starting catch-up sync')
 
-      ctx.emitter.emit('sync:status', { status: 'syncing' })
+      ctx.emitter.emit(CoreEventType.SyncStatus, { status: 'syncing' })
 
       let currentPts = account.pts
       let currentQts = account.qts
@@ -105,7 +106,7 @@ export function createSyncService(
             lastSyncAt: Date.now(),
           })
 
-          ctx.emitter.emit('takeout:run', { chatIds: [], increase: true, syncOptions: {} })
+          ctx.emitter.emit(CoreEventType.TakeoutRun, { chatIds: [], increase: true, syncOptions: {} })
           break
         }
 
@@ -113,7 +114,7 @@ export function createSyncService(
         const users = 'users' in difference ? difference.users : []
         const chats = 'chats' in difference ? difference.chats : []
         if (users.length > 0 || chats.length > 0) {
-          ctx.emitter.emit('entity:process', { users, chats })
+          ctx.emitter.emit(CoreEventType.EntityProcess, { users, chats })
         }
 
         // Handle messages
@@ -129,7 +130,7 @@ export function createSyncService(
           }).log('Syncing messages batch (Text only)')
 
           // TODO: sync media, with delete at
-          ctx.emitter.emit('message:process', {
+          ctx.emitter.emit(CoreEventType.MessageProcess, {
             messages: validMessages,
             isTakeout: false,
             // Skip expensive side-effects during massive catch-up to avoid bans
@@ -173,12 +174,12 @@ export function createSyncService(
         }
       }
 
-      ctx.emitter.emit('sync:status', { status: 'idle' })
+      ctx.emitter.emit(CoreEventType.SyncStatus, { status: 'idle' })
       logger.log('Sync process finished', { finalPts: currentPts })
     }
     catch (error) {
       ctx.withError(error, 'Catch-up sync failed')
-      ctx.emitter.emit('sync:status', { status: 'error' })
+      ctx.emitter.emit(CoreEventType.SyncStatus, { status: 'error' })
     }
     finally {
       isSyncing = false

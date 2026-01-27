@@ -7,6 +7,7 @@ import type { CoreDialog } from '../types/dialog'
 import type { CoreMessage } from '../types/message'
 
 import { convertToCoreRetrievalMessages } from '../models/utils/message'
+import { CoreEventType } from '../types/events'
 import { embedContents } from '../utils/embed'
 
 /**
@@ -19,7 +20,7 @@ function hasNoMedia(message: CoreMessage): boolean {
 export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, dbModels: Models) {
   logger = logger.withContext('core:storage:event')
 
-  ctx.emitter.on('storage:fetch:messages', async ({ chatId, pagination }) => {
+  ctx.emitter.on(CoreEventType.StorageFetchMessages, async ({ chatId, pagination }) => {
     logger.withFields({ chatId, pagination }).verbose('Fetching messages')
 
     const accountId = ctx.getCurrentAccountId()
@@ -31,10 +32,10 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     }
 
     const messages = (await dbModels.chatMessageModels.fetchMessagesWithPhotos(ctx.getDB(), dbModels.photoModels, accountId, chatId, pagination)).unwrap()
-    ctx.emitter.emit('storage:messages', { messages })
+    ctx.emitter.emit(CoreEventType.StorageMessages, { messages })
   })
 
-  ctx.emitter.on('storage:fetch:message-context', async ({ chatId, messageId, before = 20, after = 20 }) => {
+  ctx.emitter.on(CoreEventType.StorageFetchMessageContext, async ({ chatId, messageId, before = 20, after = 20 }) => {
     const safeBefore = Math.max(0, before)
     const safeAfter = Math.max(0, after)
 
@@ -55,7 +56,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       { chatId, messageId, before: safeBefore, after: safeAfter },
     )).unwrap()
 
-    ctx.emitter.emit('storage:messages:context', { chatId, messageId, messages })
+    ctx.emitter.emit(CoreEventType.StorageMessagesContext, { chatId, messageId, messages })
 
     // After emitting the initial messages, identify messages that might be missing media
     // and trigger a fetch from Telegram to download them
@@ -71,14 +72,14 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
       // Fetch these specific messages from Telegram which will download any missing media
       // This is done asynchronously and will update the messages once media is downloaded
-      ctx.emitter.emit('message:fetch:specific', {
+      ctx.emitter.emit(CoreEventType.MessageFetchSpecific, {
         chatId,
         messageIds: messageIdsToFetch,
       })
     }
   })
 
-  ctx.emitter.on('storage:record:messages', async ({ messages }) => {
+  ctx.emitter.on(CoreEventType.StorageRecordMessages, async ({ messages }) => {
     const accountId = ctx.getCurrentAccountId()
 
     await dbModels.chatMessageModels.recordMessages(ctx.getDB(), accountId, messages)
@@ -86,7 +87,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     logger.withFields({ count: messages.length }).verbose('Messages recorded')
   })
 
-  ctx.emitter.on('storage:fetch:dialogs', async (data) => {
+  ctx.emitter.on(CoreEventType.StorageFetchDialogs, async (data) => {
     logger.verbose('Fetching dialogs')
 
     const accountId = data?.accountId || ctx.getCurrentAccountId()
@@ -111,10 +112,10 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       } satisfies CoreDialog
     })
 
-    ctx.emitter.emit('storage:dialogs', { dialogs })
+    ctx.emitter.emit(CoreEventType.StorageDialogs, { dialogs })
   })
 
-  ctx.emitter.on('storage:record:dialogs', async ({ dialogs, accountId }) => {
+  ctx.emitter.on(CoreEventType.StorageRecordDialogs, async ({ dialogs, accountId }) => {
     logger.withFields({
       size: dialogs.length,
       users: dialogs.filter(d => d.type === 'user').length,
@@ -131,14 +132,14 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     logger.withFields({ count: result.length }).verbose('Successfully recorded dialogs')
   })
 
-  ctx.emitter.on('storage:record:chat-folders', async ({ folders, accountId }) => {
+  ctx.emitter.on(CoreEventType.StorageRecordChatFolders, async ({ folders, accountId }) => {
     logger.withFields({ count: folders.length }).verbose('Recording chat folders mapping')
 
     await dbModels.chatFolderModels.updateChatFolders(ctx.getDB(), accountId, folders)
     logger.verbose('Successfully updated chat folders mapping')
   })
 
-  ctx.emitter.on('storage:search:messages', async (params) => {
+  ctx.emitter.on(CoreEventType.StorageSearchMessages, async (params) => {
     logger.withFields({ params }).verbose('Searching messages')
 
     const accountId = ctx.getCurrentAccountId()
@@ -183,6 +184,6 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     const coreMessages = convertToCoreRetrievalMessages(dbMessages)
 
-    ctx.emitter.emit('storage:search:messages:data', { messages: coreMessages })
+    ctx.emitter.emit(CoreEventType.StorageSearchMessagesData, { messages: coreMessages })
   })
 }

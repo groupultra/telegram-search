@@ -10,6 +10,7 @@ import { useLogger } from '@guiiai/logg'
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, basicEventHandler, useEventHandler } from './event-handlers'
 import { models } from './models'
+import { CoreEventType } from './types/events'
 
 export function createCoreInstance(
   db: () => CoreDB,
@@ -36,9 +37,9 @@ export function createCoreInstance(
  * It ensures complete cleanup of all resources to prevent memory leaks.
  *
  * Cleanup Sequence:
- * 1. Emit 'core:cleanup' event
+ * 1. Emit CoreEventType.CoreCleanup event
  *    - Notifies all services to clean up (e.g., gram-events removes Telegram event handlers)
- *    - Services listen via: emitter.once('core:cleanup', cleanup)
+ *    - Services listen via: emitter.once(CoreEventType.CoreCleanup, cleanup)
  *    - Event is emitted synchronously, all listeners execute immediately
  *
  * 2. Wait 100ms for async cleanup
@@ -69,7 +70,7 @@ export function createCoreInstance(
  */
 export async function destroyCoreInstance(ctx: CoreContext) {
   // Emit cleanup event to notify all services
-  ctx.emitter.emit('core:cleanup')
+  ctx.emitter.emit(CoreEventType.CoreCleanup)
 
   // Give services time to cleanup
   // TODO: use Promise.allSettled to wait for all services to cleanup

@@ -6,6 +6,7 @@ import type { MessageResolverService } from '../services/message-resolver'
 import { newQueue } from '@henrygd/queue'
 
 import { MESSAGE_RESOLVER_QUEUE_SIZE } from '../constants'
+import { CoreEventType } from '../types/events'
 
 export function registerMessageResolverEventHandlers(ctx: CoreContext, logger: Logger) {
   logger = logger.withContext('core:message-resolver:event')
@@ -14,7 +15,7 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext, logger: L
     const queue = newQueue(MESSAGE_RESOLVER_QUEUE_SIZE)
 
     // TODO: debounce, background tasks
-    ctx.emitter.on('message:process', ({ messages, isTakeout = false, syncOptions = {}, forceRefetch = false, batchId }) => {
+    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, isTakeout = false, syncOptions = {}, forceRefetch = false, batchId }) => {
       logger.withFields({ count: messages.length, isTakeout, syncOptions, forceRefetch, batchId }).verbose('Processing messages')
 
       if (!isTakeout) {

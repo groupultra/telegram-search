@@ -7,14 +7,16 @@ import type { GramEventsService } from '../services/gram-events'
 
 import { Api } from 'telegram'
 
+import { CoreEventType } from '../types/events'
+
 export function registerGramEventsEventHandlers(ctx: CoreContext, logger: Logger, accountModels: AccountModels, chatModels: ChatModels) {
   logger = logger.withContext('core:gram:event')
 
   return (_: GramEventsService) => {
-    ctx.emitter.on('gram:message:received', async ({ message, pts, date, isChannel }) => {
+    ctx.emitter.on(CoreEventType.GramMessageReceived, async ({ message, pts, date, isChannel }) => {
       logger.withFields({ message: message.id, fromId: message.fromId, content: message.text, pts, isChannel }).debug('Message received')
 
-      ctx.emitter.emit('message:process', { messages: [message] })
+      ctx.emitter.emit(CoreEventType.MessageProcess, { messages: [message] })
 
       if (!pts)
         return

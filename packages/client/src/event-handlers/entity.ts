@@ -1,6 +1,7 @@
 import type { ClientRegisterEventHandler } from '.'
 
 import { useLogger } from '@guiiai/logg'
+import { CoreEventType } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 
 import { useAvatarStore } from '../stores/useAvatar'
@@ -15,7 +16,7 @@ import { bytesToBlob, canDecodeAvatar } from '../utils/image'
 export function registerEntityEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
-  registerEventHandler('entity:me:data', (data) => {
+  registerEventHandler(CoreEventType.EntityMeData, (data) => {
     const { activeSession } = storeToRefs(useSessionStore())
 
     if (activeSession.value)
@@ -23,7 +24,7 @@ export function registerEntityEventHandlers(
   })
 
   // User avatar bytes -> blob url
-  registerEventHandler('entity:avatar:data', async (data: { userId: string, byte: Uint8Array | { data: number[] }, mimeType: string, fileId?: string }) => {
+  registerEventHandler(CoreEventType.EntityAvatarData, async (data: { userId: string, byte: Uint8Array | { data: number[] }, mimeType: string, fileId?: string }) => {
     const avatarStore = useAvatarStore()
 
     let buffer: Uint8Array | undefined

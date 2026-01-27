@@ -4,6 +4,7 @@ import type { SyncOptions } from '@tg-search/core'
 import NProgress from 'nprogress'
 
 import { getErrorMessage, useBridge, useChatStore, useSyncTaskStore } from '@tg-search/client'
+import { CoreEventType } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -206,7 +207,7 @@ const localizedTaskMessage = computed(() => {
 
 function handleSync() {
   increase.value = true
-  bridge.sendEvent('takeout:run', {
+  bridge.sendEvent(CoreEventType.TakeoutRun, {
     chatIds: selectedChats.value.map(id => id.toString()),
     increase: true,
     syncOptions: syncOptions.value,
@@ -217,7 +218,7 @@ function handleSync() {
 
 function handleResync() {
   increase.value = false
-  bridge.sendEvent('takeout:run', {
+  bridge.sendEvent(CoreEventType.TakeoutRun, {
     chatIds: selectedChats.value.map(id => id.toString()),
     increase: false,
     syncOptions: syncOptions.value,
@@ -228,7 +229,7 @@ function handleResync() {
 
 function handleAbort() {
   if (currentTask.value) {
-    bridge.sendEvent('takeout:task:abort', {
+    bridge.sendEvent(CoreEventType.TakeoutTaskAbort, {
       taskId: currentTask.value.taskId,
     })
   }
@@ -269,7 +270,7 @@ watch(activeChatId, (chatId) => {
   }
 
   chatStatsLoading.value = true
-  bridge.sendEvent('takeout:stats:fetch', {
+  bridge.sendEvent(CoreEventType.TakeoutStatsFetch, {
     chatId: chatId.toString(),
   })
 })

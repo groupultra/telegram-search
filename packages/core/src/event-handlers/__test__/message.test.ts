@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
+import { CoreEventType } from '../../types/events'
 import { registerMessageEventHandlers } from '../message'
 
 const models = {} as unknown as Models
@@ -39,12 +40,12 @@ describe('message event handlers', () => {
 
     // Set up listener for message:process to capture forceRefetch flag
     let capturedForceRefetch: boolean | undefined
-    ctx.emitter.on('message:process', ({ forceRefetch }) => {
+    ctx.emitter.on(CoreEventType.MessageProcess, ({ forceRefetch }) => {
       capturedForceRefetch = forceRefetch
     })
 
     // Emit message:reprocess event
-    ctx.emitter.emit('message:reprocess', {
+    ctx.emitter.emit(CoreEventType.MessageReprocess, {
       chatId: '789',
       messageIds: [123],
       resolvers: ['media'],
@@ -74,12 +75,12 @@ describe('message event handlers', () => {
 
     // Set up listener for core:error
     const errors: any[] = []
-    ctx.emitter.on('core:error', (error) => {
+    ctx.emitter.on(CoreEventType.CoreError, (error) => {
       errors.push(error)
     })
 
     // Emit message:reprocess event
-    ctx.emitter.emit('message:reprocess', {
+    ctx.emitter.emit(CoreEventType.MessageReprocess, {
       chatId: '789',
       messageIds: [123],
       resolvers: ['media'],
@@ -110,12 +111,12 @@ describe('message event handlers', () => {
 
     // Set up listener for message:process
     const processedMessages: Api.Message[] = []
-    ctx.emitter.on('message:process', ({ messages }) => {
+    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages }) => {
       processedMessages.push(...messages)
     })
 
     // Emit message:reprocess event
-    ctx.emitter.emit('message:reprocess', {
+    ctx.emitter.emit(CoreEventType.MessageReprocess, {
       chatId: '789',
       messageIds: [123],
       resolvers: ['media'],

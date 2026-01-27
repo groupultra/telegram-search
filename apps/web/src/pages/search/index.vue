@@ -2,6 +2,7 @@
 import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
 import { useBridge } from '@tg-search/client'
+import { CoreEventType } from '@tg-search/core'
 import { useDebounce } from '@vueuse/core'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -26,7 +27,7 @@ watch(keywordDebounced, (newKeyword) => {
   }
 
   isLoading.value = true
-  bridge.sendEvent('storage:search:messages', {
+  bridge.sendEvent(CoreEventType.StorageSearchMessages, {
     content: newKeyword,
     useVector: true,
     pagination: {
@@ -35,7 +36,7 @@ watch(keywordDebounced, (newKeyword) => {
     },
   })
 
-  bridge.waitForEvent('storage:search:messages:data').then(({ messages }) => {
+  bridge.waitForEvent(CoreEventType.StorageSearchMessagesData).then(({ messages }) => {
     searchResult.value = messages
     isLoading.value = false
   })

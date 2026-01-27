@@ -8,7 +8,7 @@ import pako from 'pako'
 
 import { useLogger } from '@guiiai/logg'
 import { getMediaBinaryProvider, hydrateMediaBlobWithCore, useBridge, useSettingsStore } from '@tg-search/client'
-import { models } from '@tg-search/core'
+import { CoreEventType, models } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
@@ -186,7 +186,7 @@ function sendReprocessForCurrentMessage(mediaType: 'Image' | 'Sticker') {
     return
   }
 
-  bridge.sendEvent('message:reprocess', {
+  bridge.sendEvent(CoreEventType.MessageReprocess, {
     chatId: props.message.chatId,
     messageIds: [messageId],
     resolvers: ['media'],

@@ -39,7 +39,7 @@ import type { AccountState } from './account'
 import type { WsMessageToServer } from './events'
 
 import { useLogger } from '@guiiai/logg'
-import { destroyCoreInstance } from '@tg-search/core'
+import { CoreEventType, destroyCoreInstance } from '@tg-search/core'
 import { coreEventsInTotal, wsConnectionsActive } from '@tg-search/observability'
 import { defineWebSocketHandler, HTTPError } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
@@ -105,19 +105,19 @@ export function registerCoreEventListeners(logger: Logger, account: AccountState
 export async function updateAccountState(logger: Logger, account: AccountState, accountId: string, eventName: keyof ToCoreEvent) {
   // Update account state based on events
   switch (eventName) {
-    case 'auth:login':
-      account.ctx.emitter.once('account:ready', () => {
+    case CoreEventType.AuthLogin:
+      account.ctx.emitter.once(CoreEventType.AccountReady, () => {
         account.accountReady = true
       })
       break
-    case 'auth:logout':
+    case CoreEventType.AuthLogout:
       account.accountReady = false
 
       /**
        * Explicit logout: The ONLY time we destroy an account
        *
        * What happens:
-       * 1. Emit 'core:cleanup' event -> Services clean up (e.g., Telegram event handlers)
+       * 1. Emit CoreEventType.CoreCleanup event -> Services clean up (e.g., Telegram event handlers)
        * 2. Wait 100ms for async cleanup to complete
        * 3. Disconnect Telegram Client
        * 4. Call ctx.cleanup() -> Remove all event listeners

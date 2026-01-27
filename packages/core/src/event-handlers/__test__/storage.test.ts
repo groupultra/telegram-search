@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
+import { CoreEventType } from '../../types/events'
 import { registerStorageEventHandlers } from '../storage'
 
 const logger = useLogger()
@@ -79,12 +80,12 @@ describe('storage event handlers - dialogs with accounts', () => {
     const ACCOUNT_ID = 'account-xyz'
 
     const dialogsPromise = new Promise<CoreDialog[]>((resolve) => {
-      ctx.emitter.on('storage:dialogs', ({ dialogs }) => {
+      ctx.emitter.on(CoreEventType.StorageDialogs, ({ dialogs }) => {
         resolve(dialogs)
       })
     })
 
-    ctx.emitter.emit('storage:fetch:dialogs', { accountId: ACCOUNT_ID })
+    ctx.emitter.emit(CoreEventType.StorageFetchDialogs, { accountId: ACCOUNT_ID })
 
     const dialogs = await dialogsPromise
 
@@ -122,7 +123,7 @@ describe('storage event handlers - dialogs with accounts', () => {
       },
     ]
 
-    ctx.emitter.emit('storage:record:dialogs', { dialogs, accountId: ACCOUNT_ID })
+    ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs, accountId: ACCOUNT_ID })
 
     expect(recordChats).toHaveBeenCalledTimes(1)
     expect(recordChats).toHaveBeenCalledWith(expect.anything(), dialogs, ACCOUNT_ID)
@@ -143,12 +144,12 @@ describe('storage event handlers - message access control', () => {
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<string>((resolve) => {
-      ctx.emitter.on('core:error', ({ error }) => {
+      ctx.emitter.on(CoreEventType.CoreError, ({ error }) => {
         resolve(error)
       })
     })
 
-    ctx.emitter.emit('storage:fetch:messages', {
+    ctx.emitter.emit(CoreEventType.StorageFetchMessages, {
       chatId: CHAT_ID,
       pagination: { limit: 20, offset: 0 },
     })
@@ -173,12 +174,12 @@ describe('storage event handlers - message access control', () => {
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<string>((resolve) => {
-      ctx.emitter.on('core:error', ({ error }) => {
+      ctx.emitter.on(CoreEventType.CoreError, ({ error }) => {
         resolve(error)
       })
     })
 
-    ctx.emitter.emit('storage:search:messages', {
+    ctx.emitter.emit(CoreEventType.StorageSearchMessages, {
       chatId: CHAT_ID,
       content: 'test search',
       useVector: false,

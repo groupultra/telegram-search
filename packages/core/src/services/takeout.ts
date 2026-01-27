@@ -13,6 +13,7 @@ import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
 import { MESSAGE_PROCESS_BATCH_SIZE, TELEGRAM_HISTORY_INTERVAL_MS } from '../constants'
+import { CoreEventType } from '../types/events'
 import { createMinIntervalWaiter } from '../utils/min-interval'
 import { createTask } from '../utils/task'
 
@@ -281,7 +282,7 @@ export function createTakeoutService(
         const downloadSpeed = elapsedSec > 0 ? downloadCount / elapsedSec : 0
         const processSpeed = elapsedSec > 0 ? processedCount / elapsedSec : 0
 
-        ctx.emitter.emit('takeout:metrics', {
+        ctx.emitter.emit(CoreEventType.TakeoutMetrics, {
           taskId: task.state.taskId,
           downloadSpeed,
           processSpeed,
@@ -294,7 +295,7 @@ export function createTakeoutService(
       }
     }
 
-    ctx.emitter.on('message:processed', onMessageProcessed)
+    ctx.emitter.on(CoreEventType.MessageProcessed, onMessageProcessed)
 
     try {
       for await (const message of generator) {
@@ -317,7 +318,7 @@ export function createTakeoutService(
           const batchId = `${task.state.taskId}-${batchSeq++}`
           pendingBatches.add(batchId)
 
-          ctx.emitter.emit('message:process', { messages, isTakeout: true, syncOptions, batchId })
+          ctx.emitter.emit(CoreEventType.MessageProcess, { messages, isTakeout: true, syncOptions, batchId })
           messages = []
 
           // Update metrics (even if not processed yet, for download speed visibility)
@@ -326,7 +327,7 @@ export function createTakeoutService(
           const downloadSpeed = elapsedSec > 0 ? downloadCount / elapsedSec : 0
           const processSpeed = elapsedSec > 0 ? processedCount / elapsedSec : 0
 
-          ctx.emitter.emit('takeout:metrics', {
+          ctx.emitter.emit(CoreEventType.TakeoutMetrics, {
             taskId: task.state.taskId,
             downloadSpeed,
             processSpeed,
@@ -340,7 +341,7 @@ export function createTakeoutService(
       if (messages.length > 0 && !task.state.abortController.signal.aborted) {
         const batchId = `${task.state.taskId}-${batchSeq++}`
         pendingBatches.add(batchId)
-        ctx.emitter.emit('message:process', { messages, isTakeout: true, syncOptions, batchId })
+        ctx.emitter.emit(CoreEventType.MessageProcess, { messages, isTakeout: true, syncOptions, batchId })
       }
 
       // Wait for all pending batches to complete
@@ -349,7 +350,7 @@ export function createTakeoutService(
       }
     }
     finally {
-      ctx.emitter.off('message:processed', onMessageProcessed)
+      ctx.emitter.off(CoreEventType.MessageProcessed, onMessageProcessed)
     }
 
     return !task.state.abortController.signal.aborted
@@ -501,7 +502,7 @@ export function createTakeoutService(
         syncedRanges,
       }
 
-      ctx.emitter.emit('takeout:stats:data', chatSyncStats)
+      ctx.emitter.emit(CoreEventType.TakeoutStatsData, chatSyncStats)
     }
     catch (error) {
       logger.withError(error).error('Failed to fetch chat sync stats')

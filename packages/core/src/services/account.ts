@@ -7,6 +7,7 @@ import type { CoreUserEntity } from '../types/events'
 import { withSpan } from '@tg-search/observability'
 import { Ok } from '@unbird/result'
 
+import { CoreEventType } from '../types/events'
 import { resolveEntity } from '../utils/entity'
 
 export type AccountService = ReturnType<typeof createAccountService>
@@ -20,7 +21,7 @@ export function createAccountService(ctx: CoreContext, logger: Logger) {
 
       const apiUser = await ctx.getClient().getMe()
       const result = resolveEntity(apiUser).expect('Failed to resolve entity') as CoreUserEntity
-      ctx.emitter.emit('entity:me:data', result)
+      ctx.emitter.emit(CoreEventType.EntityMeData, result)
       return Ok(result)
     })
   }

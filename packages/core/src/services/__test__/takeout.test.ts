@@ -1,7 +1,7 @@
 import type { CoreContext, CoreEmitter } from '../../context'
 import type { CoreDB } from '../../db'
 import type { AccountSettings } from '../../types/account-settings'
-import type { CoreUserEntity } from '../../types/events'
+import type { CoreUserEntity, FromCoreEvent, ToCoreEvent } from '../../types/events'
 
 import bigInt from 'big-integer'
 
@@ -34,8 +34,8 @@ function createMockCtx(client: any) {
 
   const ctx: CoreContext = {
     emitter: {} as unknown as CoreEmitter,
-    toCoreEvents: new Set(),
-    fromCoreEvents: new Set(),
+    toCoreEvents: new Set<keyof ToCoreEvent>(),
+    fromCoreEvents: new Set<keyof FromCoreEvent>(),
     wrapEmitterEmit: () => {},
     wrapEmitterOn: () => {},
     setClient: () => {},

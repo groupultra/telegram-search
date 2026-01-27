@@ -2,6 +2,7 @@ import type { CorePagination } from '@tg-search/common'
 import type { CoreMessage } from '@tg-search/core'
 
 import { useLogger } from '@guiiai/logg'
+import { CoreEventType } from '@tg-search/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
@@ -61,14 +62,14 @@ export const useMessageStore = defineStore('message', () => {
     const after = options.after ?? 20
     const limit = options.limit ?? Math.max(messageWindow.value?.maxSize ?? 0, before + after + 1, 50)
 
-    bridge.sendEvent('storage:fetch:message-context', {
+    bridge.sendEvent(CoreEventType.StorageFetchMessageContext, {
       chatId,
       messageId,
       before,
       after,
     })
 
-    const { messages } = await bridge.waitForEvent('storage:messages:context')
+    const { messages } = await bridge.waitForEvent(CoreEventType.StorageMessagesContext)
 
     replaceMessages(messages, { chatId, limit })
 
@@ -127,10 +128,10 @@ export const useMessageStore = defineStore('message', () => {
       // Then, fetch the messages from server & update the cache
       switch (direction) {
         case 'older':
-          bridge.sendEvent('message:fetch', { chatId, pagination })
+          bridge.sendEvent(CoreEventType.MessageFetch, { chatId, pagination })
           break
         case 'newer':
-          bridge.sendEvent('message:fetch', {
+          bridge.sendEvent(CoreEventType.MessageFetch, {
             chatId,
             pagination: {
               offset: 0,
@@ -142,8 +143,8 @@ export const useMessageStore = defineStore('message', () => {
       }
 
       Promise.race([
-        bridge.waitForEvent('message:data'),
-        bridge.waitForEvent('storage:messages'),
+        bridge.waitForEvent(CoreEventType.MessageData),
+        bridge.waitForEvent(CoreEventType.StorageMessages),
         createContextWithTimeout(10000),
       ]).catch(() => {
         logger.warn('Message fetch timed out or failed')

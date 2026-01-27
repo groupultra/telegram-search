@@ -29,6 +29,7 @@ import { createMessageService } from '../services/message'
 import { createMessageResolverService } from '../services/message-resolver'
 import { createSyncService } from '../services/sync'
 import { createTakeoutService } from '../services/takeout'
+import { CoreEventType } from '../types/events'
 import { registerAccountSettingsEventHandlers } from './account-settings'
 import { registerAuthEventHandlers } from './auth'
 import { fetchDialogs, registerDialogEventHandlers } from './dialog'
@@ -88,7 +89,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
   const syncService = createSyncService(ctx, logger)
   const gramEventsService = createGramEventsService(ctx, logger)
 
-  ctx.emitter.once('auth:connected', async () => {
+  ctx.emitter.once(CoreEventType.AuthConnected, async () => {
     // Register entity handlers first so we can establish currentAccountId.
     logger.verbose('Getting me info')
     const account = (await accountService.fetchMyAccount()).expect('Failed to get me info')
@@ -101,10 +102,10 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     ctx.setCurrentAccountId(dbAccount.id)
 
     // Trigger sync catch-up in background after account is identified
-    ctx.emitter.on('sync:catch-up', async () => {
+    ctx.emitter.on(CoreEventType.SyncCatchUp, async () => {
       await syncService.catchUp()
     })
-    ctx.emitter.on('sync:reset', async () => {
+    ctx.emitter.on(CoreEventType.SyncReset, async () => {
       await syncService.reset()
     })
     void syncService.catchUp()
@@ -117,10 +118,10 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
 
     logger.withFields({ accountId: dbAccount.id }).verbose('Set current account ID')
 
-    ctx.emitter.emit('account:ready', { accountId: dbAccount.id })
+    ctx.emitter.emit(CoreEventType.AccountReady, { accountId: dbAccount.id })
   })
 
-  ctx.emitter.once('account:ready', ({ accountId }) => {
+  ctx.emitter.once(CoreEventType.AccountReady, ({ accountId }) => {
     logger = logger.withFields({ accountId })
 
     registerEntityEventHandlers(ctx, logger)(entityService)

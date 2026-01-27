@@ -1,5 +1,5 @@
 import { useLogger } from '@guiiai/logg'
-import { generateDefaultAccountSettings } from '@tg-search/core'
+import { CoreEventType, generateDefaultAccountSettings } from '@tg-search/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -52,7 +52,7 @@ export const useAccountStore = defineStore('account', () => {
     resetReady()
     authStatus.value.isLoading = true
     logger.log('Attempting login')
-    bridge.sendEvent('auth:login', { session: sessionStore.activeSession?.session })
+    bridge.sendEvent(CoreEventType.AuthLogin, { session: sessionStore.activeSession?.session })
   }
 
   function handleAuth() {
@@ -61,23 +61,23 @@ export const useAccountStore = defineStore('account', () => {
       const session = sessionStore.activeSession?.session
 
       authStatus.value.isLoading = true
-      bridge.sendEvent('auth:login', {
+      bridge.sendEvent(CoreEventType.AuthLogin, {
         phoneNumber,
         session,
       })
     }
 
     function submitCode(code: string) {
-      bridge.sendEvent('auth:code', { code })
+      bridge.sendEvent(CoreEventType.AuthCode, { code })
     }
 
     function submitPassword(password: string) {
-      bridge.sendEvent('auth:password', { password })
+      bridge.sendEvent(CoreEventType.AuthPassword, { password })
     }
 
     function logout() {
       // 1. Notify backend (while connection still alive)
-      bridge.sendEvent('auth:logout', undefined)
+      bridge.sendEvent(CoreEventType.AuthLogout, undefined)
       // 2. Remove local session
       sessionStore.removeCurrentAccount()
     }
@@ -110,7 +110,7 @@ export const useAccountStore = defineStore('account', () => {
 
     logger.verbose('Marking account as ready')
     logger.verbose('Fetching config for new session')
-    bridge.sendEvent('config:fetch')
+    bridge.sendEvent(CoreEventType.ConfigFetch)
 
     isReady.value = true
     authStatus.value.isLoading = false

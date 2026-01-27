@@ -1,4 +1,5 @@
 import { useLogger } from '@guiiai/logg'
+import { CoreEventType } from '@tg-search/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
@@ -179,7 +180,7 @@ export const useAvatarStore = defineStore('avatar', () => {
 
     try {
       inflightUserFetchIds.value.add(key)
-      bridge.sendEvent('entity:avatar:fetch', { userId: key, fileId })
+      bridge.sendEvent(CoreEventType.EntityAvatarFetch, { userId: key, fileId })
     }
     catch (error) {
       useLogger('avatars').withError(error).warn('ensureUserAvatar sendEvent failed')
@@ -222,7 +223,7 @@ export const useAvatarStore = defineStore('avatar', () => {
       return
     try {
       inflightChatFetchIds.value.add(key)
-      bridge.sendEvent('dialog:avatar:fetch', { chatId: key })
+      bridge.sendEvent(CoreEventType.DialogAvatarFetch, { chatId: key })
     }
     catch (error) {
       useLogger('avatars').withError(error).warn('ensureChatAvatar sendEvent failed')

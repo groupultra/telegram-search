@@ -5,6 +5,7 @@ import type { CoreContext } from '../context'
 import type { MessageResolverRegistryFn } from '../message-resolvers'
 import type { SyncOptions } from '../types/events'
 
+import { CoreEventType } from '../types/events'
 import { convertToCoreMessage } from '../utils/message'
 
 export type MessageResolverService = ReturnType<typeof createMessageResolverService>
@@ -43,11 +44,11 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
 
     // Return the messages to client first.
     if (!options.takeout) {
-      ctx.emitter.emit('message:data', { messages: coreMessages })
+      ctx.emitter.emit(CoreEventType.MessageData, { messages: coreMessages })
     }
 
     // Storage the messages first
-    ctx.emitter.emit('storage:record:messages', { messages: coreMessages })
+    ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: coreMessages })
 
     // Avatar resolver is disabled by default (configured in generateDefaultConfig).
     // Current strategy: client-driven, on-demand avatar loading via entity:avatar:fetch.
@@ -84,16 +85,16 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
             const result = (await resolver.run(opts)).unwrap()
 
             if (result.length > 0) {
-              ctx.emitter.emit('storage:record:messages', { messages: result })
+              ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: result })
             }
           }
           else if (resolver.stream) {
             for await (const message of resolver.stream(opts)) {
               if (!options.takeout) {
-                ctx.emitter.emit('message:data', { messages: [message] })
+                ctx.emitter.emit(CoreEventType.MessageData, { messages: [message] })
               }
 
-              ctx.emitter.emit('storage:record:messages', { messages: [message] })
+              ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: [message] })
             }
           }
         }
@@ -117,7 +118,7 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
     await Promise.allSettled(promises)
 
     if (options.batchId) {
-      ctx.emitter.emit('message:processed', {
+      ctx.emitter.emit(CoreEventType.MessageProcessed, {
         batchId: options.batchId,
         count: coreMessages.length,
         resolverSpans,

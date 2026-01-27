@@ -2,6 +2,7 @@
 import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
 
 import { useBridge, useChatStore, useMessageStore, useSessionStore, useSettingsStore } from '@tg-search/client'
+import { CoreEventType } from '@tg-search/core'
 import { useWindowSize } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -164,7 +165,7 @@ function sendMessage() {
   if (!messageInput.value.trim())
     return
 
-  bridge.sendEvent('message:send', {
+  bridge.sendEvent(CoreEventType.MessageSend, {
     chatId: id.toString(),
     content: messageInput.value,
   })

@@ -5,6 +5,8 @@ import type { CoreTask, CoreTaskData, CoreTasks, CoreTaskType } from '../types/t
 
 import { v4 as uuidv4 } from 'uuid'
 
+import { CoreEventType } from '../types/events'
+
 /**
  * Create a task that manages its own state
  */
@@ -30,7 +32,7 @@ export function createTask<T extends CoreTaskType>(
 
   const emitUpdate = () => {
     if (type === 'takeout') {
-      emitter.emit('takeout:task:progress', task.toJSON() as any)
+      emitter.emit(CoreEventType.TakeoutTaskProgress, task.toJSON() as any)
     }
   }
 

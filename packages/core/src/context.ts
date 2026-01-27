@@ -10,6 +10,7 @@ import type { CoreEmitter, CoreEvent, CoreUserEntity, FromCoreEvent, ToCoreEvent
 import { useLogger } from '@guiiai/logg'
 import { EventEmitter } from 'eventemitter3'
 
+import { CoreEventType } from './types/events'
 import { detectMemoryLeak } from './utils/memory-leak-detector'
 
 export type { CoreEmitter, CoreEvent, ExtractData, FromCoreEvent, ToCoreEvent } from './types/events'
@@ -50,7 +51,7 @@ function createErrorHandler(emitter: CoreEmitter, logger: Logger) {
     }
 
     // Emit raw error for frontend to handle (i18n, UI, etc.)
-    emitter.emit('core:error', { error: error instanceof Error ? error.message : String(error), description })
+    emitter.emit(CoreEventType.CoreError, { error: error instanceof Error ? error.message : String(error), description })
 
     // Log error details
     if (error instanceof Error) {

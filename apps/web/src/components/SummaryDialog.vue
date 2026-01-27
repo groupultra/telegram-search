@@ -6,6 +6,7 @@ import type { LLMMessage } from '../composables/useAIChat'
 import MarkdownRender from 'markstream-vue'
 
 import { useAccountStore, useBridge } from '@tg-search/client'
+import { CoreEventType } from '@tg-search/core'
 import { useDateFormat } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -56,14 +57,14 @@ async function fetchSummaryAndGenerate(mode: SummaryMode, autoFallbackWhenNoUnre
   summarizeStore.setSummary(props.chatId, '', [], { mode: 'none' })
   summarizeStore.setSourceMessages(props.chatId, [], { mode: 'none' })
 
-  bridge.sendEvent('message:fetch:summary', {
+  bridge.sendEvent(CoreEventType.MessageFetchSummary, {
     chatId: props.chatId,
     mode,
     limit: 1000,
   })
 
   try {
-    const data = await bridge.waitForEvent('message:summary-data')
+    const data = await bridge.waitForEvent(CoreEventType.MessageSummaryData)
     summarizeStore.setSourceMessages(props.chatId, data.messages, { mode: data.mode })
 
     if (data.messages.length === 0) {
@@ -154,7 +155,7 @@ async function generateSummary(
 }
 
 async function markRead() {
-  bridge.sendEvent('message:read', { chatId: props.chatId })
+  bridge.sendEvent(CoreEventType.MessageRead, { chatId: props.chatId })
   toast.success(t('summaryDialog.messagesMarkedRead'))
   isOpen.value = false
 }

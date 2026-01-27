@@ -3,7 +3,7 @@ import type { CoreContext, CoreEmitter, FromCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
-import { createCoreInstance } from '@tg-search/core'
+import { CoreEventType, createCoreInstance } from '@tg-search/core'
 import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
 
 import { getDB } from './storage/drizzle'
@@ -147,7 +147,7 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
     }
 
     // Instrument core message processing for this account
-    ctx.emitter.on('message:process', ({ messages, isTakeout }) => {
+    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, isTakeout }) => {
       const source = isTakeout ? 'takeout' : 'realtime'
       coreMessageBatchesProcessedTotal.add(1, { source })
       coreMessagesProcessedTotal.add(messages.length, { source })

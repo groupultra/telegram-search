@@ -1,6 +1,7 @@
 import type { CoreChatFolder, CoreDialog } from '@tg-search/core'
 
 import { useLogger } from '@guiiai/logg'
+import { CoreEventType } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed } from 'vue'
@@ -70,12 +71,12 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function fetchStorageDialogs() {
-    bridge.sendEvent('storage:fetch:dialogs')
+    bridge.sendEvent(CoreEventType.StorageFetchDialogs)
   }
 
   function fetchFolders() {
     logger.log('Fetching folders')
-    bridge.sendEvent('dialog:folders:fetch')
+    bridge.sendEvent(CoreEventType.DialogFoldersFetch)
   }
 
   function init() {

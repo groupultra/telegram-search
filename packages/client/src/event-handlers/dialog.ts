@@ -1,6 +1,7 @@
 import type { ClientRegisterEventHandlerFn } from '.'
 
 import { useLogger } from '@guiiai/logg'
+import { CoreEventType } from '@tg-search/core'
 
 import { useAvatarStore } from '../stores/useAvatar'
 import { useChatStore } from '../stores/useChat'
@@ -17,12 +18,12 @@ export function registerDialogEventHandlers(
   const logger = useLogger('avatars')
 
   // Base dialog list
-  registerEventHandler('dialog:data', (data) => {
+  registerEventHandler(CoreEventType.DialogData, (data) => {
     useChatStore().chats = data.dialogs
   })
 
   // Chat folders
-  registerEventHandler('dialog:folders:data', (data) => {
+  registerEventHandler(CoreEventType.DialogFoldersData, (data) => {
     useChatStore().folders = data.folders
   })
 
@@ -33,7 +34,7 @@ export function registerDialogEventHandlers(
    * - Before decoding/optimizing, check in-memory cache validity (TTL + fileId match).
    *   If valid, skip override and persistence to reduce unnecessary work.
    */
-  registerEventHandler('dialog:avatar:data', async (data) => {
+  registerEventHandler(CoreEventType.DialogAvatarData, async (data) => {
     const chatStore = useChatStore()
     const avatarStore = useAvatarStore()
 

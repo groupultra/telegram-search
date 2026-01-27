@@ -1,6 +1,7 @@
 import type { CorePagination } from '@tg-search/common'
 import type { CoreMessage } from '@tg-search/core'
 
+import { CoreEventType } from '@tg-search/core'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -84,7 +85,7 @@ describe('useMessageStore', () => {
 
     await store.loadMessageContext('chat-1', '10')
 
-    expect(sendEventMock).toHaveBeenCalledWith('storage:fetch:message-context', expect.objectContaining({
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.StorageFetchMessageContext, expect.objectContaining({
       chatId: 'chat-1',
       messageId: '10',
     }))
@@ -120,7 +121,7 @@ describe('useMessageStore', () => {
     fetchMessages(pagination, 'older')
 
     expect(isLoading.value).toBe(true)
-    expect(sendEventMock).toHaveBeenCalledWith('message:fetch', {
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.MessageFetch, {
       chatId: 'chat-1',
       pagination,
     })
