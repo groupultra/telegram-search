@@ -19,6 +19,9 @@ import { Button } from '../../components/ui/Button'
 
 const { t } = useI18n()
 
+const WINDOW_HALF = 25
+const WINDOW_SIZE = WINDOW_HALF * 2 + 1
+
 const route = useRoute('/chat/:id')
 const id = route.params.id
 
@@ -31,9 +34,10 @@ const { activeSessionId } = storeToRefs(useSessionStore())
 const { sortedMessageIds, messageWindow, sortedMessageArray } = storeToRefs(messageStore)
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
 
-const messageLimit = ref(100)
-const messageOffset = ref(0)
-const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString(), messageLimit.value)
+const windowOffset = ref(0)
+const pendingScrollDelta = ref(0)
+const isConsumingScrollDelta = ref(false)
+const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString(), WINDOW_SIZE)
 
 const { height: windowHeight } = useWindowSize()
 
@@ -74,7 +78,7 @@ onMounted(async () => {
 
   // Only load if there are no messages yet and we are not in context mode
   if (!isContextMode.value && sortedMessageIds.value.length === 0) {
-    await loadOlderMessages()
+    await primeMessageWindow()
   }
 })
 
@@ -90,42 +94,85 @@ watch(
 
     isContextMode.value = false
     resetPagination()
-    messageStore.replaceMessages([], { chatId: id.toString(), limit: messageLimit.value })
-    await loadOlderMessages()
+    messageStore.replaceMessages([], { chatId: id.toString(), limit: WINDOW_SIZE })
+    await primeMessageWindow()
   },
 )
 
-// Load older messages when scrolling to top
-async function loadOlderMessages() {
+function enqueueScrollDelta(delta: number) {
+  if (delta === 0)
+    return
+  pendingScrollDelta.value += delta
+  void consumeScrollDelta()
+}
+
+async function consumeScrollDelta() {
+  if (isConsumingScrollDelta.value)
+    return
+  isConsumingScrollDelta.value = true
+  try {
+    while (pendingScrollDelta.value !== 0) {
+      if (isLoadingOlder.value || isLoadingNewer.value || isLoadingMessages.value)
+        return
+
+      const delta = Math.max(-WINDOW_HALF, Math.min(WINDOW_HALF, pendingScrollDelta.value))
+      pendingScrollDelta.value -= delta
+
+      if (delta < 0)
+        await loadOlderMessages(-delta)
+      else
+        await loadNewerMessages(delta)
+    }
+  }
+  finally {
+    isConsumingScrollDelta.value = false
+  }
+}
+
+// Load older messages based on scroll delta
+async function loadOlderMessages(count: number = WINDOW_HALF) {
   if (isContextMode.value)
     return
   if (isLoadingOlder.value || isLoadingMessages.value)
+    return
+  if (count <= 0)
     return
 
   isLoadingOlder.value = true
 
   try {
-    fetchMessages({
-      offset: messageOffset.value,
-      limit: messageLimit.value,
+    const currentMinId = messageWindow.value?.minId
+    if (Number.isFinite(currentMinId)) {
+      const maxId = Math.max(0, currentMinId - 1)
+      await fetchMessages({
+        offset: 0,
+        limit: count,
+      }, 'older', { maxId })
+      return
+    }
+
+    await fetchMessages({
+      offset: 0,
+      limit: count,
     }, 'older')
-    messageOffset.value += messageLimit.value
   }
   finally {
     isLoadingOlder.value = false
   }
 }
 
-// Load newer messages when scrolling to bottom
-async function loadNewerMessages() {
+// Load newer messages based on scroll delta
+async function loadNewerMessages(count: number = WINDOW_HALF) {
   if (isContextMode.value)
     return
   if (isLoadingNewer.value || isLoadingMessages.value)
     return
+  if (count <= 0)
+    return
 
   // Get the current max message ID to fetch messages after it
   const currentMaxId = messageWindow.value?.maxId
-  if (!currentMaxId || currentMaxId === -Infinity) {
+  if (!Number.isFinite(currentMaxId)) {
     console.warn('No messages loaded yet, cannot fetch newer messages')
     return
   }
@@ -133,14 +180,14 @@ async function loadNewerMessages() {
   isLoadingNewer.value = true
 
   try {
-    // Use a separate fetch function for newer messages with minId
-    fetchMessages(
+    // Telegram minId is exclusive, duplicates are filtered by window map.
+    await fetchMessages(
       {
         offset: 0,
-        limit: messageLimit.value,
-        minId: currentMaxId,
+        limit: count,
       },
       'newer',
+      { minId: currentMaxId },
     )
   }
   finally {
@@ -149,16 +196,14 @@ async function loadNewerMessages() {
 }
 
 // Handle virtual list scroll events
-function handleVirtualListScroll({ isAtTop, isAtBottom }: { scrollTop: number, isAtTop: boolean, isAtBottom: boolean }) {
-  // Load older messages when scrolled to top
-  if (isAtTop && !isLoadingOlder.value && !isLoadingMessages.value) {
-    loadOlderMessages()
-  }
+function handleVirtualListScroll({ scrollDelta }: { scrollTop: number, scrollIndex: number, scrollDelta: number, isAtTop: boolean, isAtBottom: boolean }) {
+  if (isContextMode.value)
+    return
+  if (scrollDelta === 0)
+    return
 
-  // Load newer messages when scrolled to bottom
-  if (isAtBottom && !isLoadingNewer.value && !isLoadingMessages.value) {
-    loadNewerMessages()
-  }
+  windowOffset.value = Math.max(0, windowOffset.value - scrollDelta)
+  enqueueScrollDelta(scrollDelta)
 }
 
 function sendMessage() {
@@ -175,7 +220,8 @@ function sendMessage() {
 }
 
 function resetPagination() {
-  messageOffset.value = 0
+  windowOffset.value = 0
+  pendingScrollDelta.value = 0
 }
 
 async function openMessageContext(messageId: string, messageUuid?: string) {
@@ -188,9 +234,9 @@ async function openMessageContext(messageId: string, messageUuid?: string) {
 
   try {
     const messages = await messageStore.loadMessageContext(id.toString(), messageId, {
-      before: 40,
-      after: 40,
-      limit: messageLimit.value,
+      before: WINDOW_HALF,
+      after: WINDOW_HALF,
+      limit: WINDOW_SIZE,
     })
 
     if (messages.length === 0) {
@@ -227,11 +273,21 @@ watch(
     else if (oldMessageId) {
       isContextMode.value = false
       resetPagination()
-      messageStore.replaceMessages([], { chatId: id.toString(), limit: messageLimit.value })
-      await loadOlderMessages()
+      messageStore.replaceMessages([], { chatId: id.toString(), limit: WINDOW_SIZE })
+      await primeMessageWindow()
     }
   },
 )
+
+watch([isLoadingMessages, isLoadingOlder, isLoadingNewer], ([loadingMessages, loadingOlder, loadingNewer]) => {
+  if (!loadingMessages && !loadingOlder && !loadingNewer && pendingScrollDelta.value !== 0)
+    void consumeScrollDelta()
+})
+
+async function primeMessageWindow() {
+  await loadOlderMessages(WINDOW_HALF)
+  await loadNewerMessages(WINDOW_HALF)
+}
 </script>
 
 <template>
@@ -251,7 +307,7 @@ watch(
         Loading: {{ isLoadingMessages }} / Older: {{ isLoadingOlder }} / Newer: {{ isLoadingNewer }}
       </span>
       <span>
-        Offset: {{ messageOffset }}
+        WindowOffset: {{ windowOffset }} / Pending: {{ pendingScrollDelta }}
       </span>
       <button
         class="rounded bg-blue-500 px-2 py-1 text-xs text-white"
@@ -320,8 +376,6 @@ watch(
       <VirtualMessageList
         ref="virtualListRef"
         :messages="sortedMessageArray"
-        :on-scroll-to-top="loadOlderMessages"
-        :on-scroll-to-bottom="loadNewerMessages"
         :auto-scroll-to-bottom="!isContextMode"
         @scroll="handleVirtualListScroll"
       />

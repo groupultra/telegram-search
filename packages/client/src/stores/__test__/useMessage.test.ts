@@ -118,7 +118,7 @@ describe('useMessageStore', () => {
     waitForEventMock.mockReturnValue(promise)
 
     const pagination: CorePagination & { minId?: number } = { offset: 0, limit: 20 }
-    fetchMessages(pagination, 'older')
+    void fetchMessages(pagination, 'older')
 
     expect(isLoading.value).toBe(true)
     expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.MessageFetch, {

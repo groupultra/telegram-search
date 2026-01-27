@@ -116,19 +116,28 @@ export const useMessageStore = defineStore('message', () => {
     const isLoading = ref(false)
 
     function fetchMessages(
-      pagination: CorePagination & {
-        minId?: number
-      },
+      pagination: CorePagination,
       direction: 'older' | 'newer' = 'older',
-    ) {
+      bounds?: { minId?: number, maxId?: number },
+    ): Promise<void> {
       isLoading.value = true
 
-      logger.log(`Fetching messages for chat ${chatId}`, pagination.offset)
+      logger.log(`Fetching messages for chat ${chatId}`, {
+        direction,
+        offset: pagination.offset,
+        limit: pagination.limit,
+        minId: bounds?.minId,
+        maxId: bounds?.maxId,
+      })
 
       // Then, fetch the messages from server & update the cache
       switch (direction) {
         case 'older':
-          bridge.sendEvent(CoreEventType.MessageFetch, { chatId, pagination })
+          bridge.sendEvent(CoreEventType.MessageFetch, {
+            chatId,
+            pagination,
+            maxId: bounds?.maxId,
+          })
           break
         case 'newer':
           bridge.sendEvent(CoreEventType.MessageFetch, {
@@ -137,16 +146,16 @@ export const useMessageStore = defineStore('message', () => {
               offset: 0,
               limit: pagination.limit,
             },
-            minId: pagination.minId,
+            minId: bounds?.minId,
           })
           break
       }
 
-      Promise.race([
+      return Promise.race([
         bridge.waitForEvent(CoreEventType.MessageData),
         bridge.waitForEvent(CoreEventType.StorageMessages),
         createContextWithTimeout(10000),
-      ]).catch(() => {
+      ]).then(() => undefined).catch(() => {
         logger.warn('Message fetch timed out or failed')
       }).finally(() => {
         isLoading.value = false

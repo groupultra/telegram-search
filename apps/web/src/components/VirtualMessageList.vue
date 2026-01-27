@@ -20,18 +20,29 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  scroll: [{ scrollTop: number, isAtTop: boolean, isAtBottom: boolean }]
+  scroll: [{
+    scrollTop: number
+    scrollIndex: number
+    scrollDelta: number
+    isAtTop: boolean
+    isAtBottom: boolean
+  }]
 }>()
 
 const { t } = useI18n()
 
 const { height: windowHeight } = useWindowSize()
 const vListRef = ref<InstanceType<typeof VList>>()
+const ITEM_SIZE = 120
 
 // Track scroll state
 const isScrolling = ref(false)
 const scrollTop = ref(0)
+const lastScrollIndex = ref(0)
+const suppressNextDelta = ref(false)
+const isProgrammaticScroll = ref(false)
 let scrollTimer: ReturnType<typeof setTimeout> | null = null
+let programmaticResetTimer: ReturnType<typeof setTimeout> | null = null
 
 // Container height calculation
 const containerHeight = computed(() => Math.max(windowHeight.value - 200, 400))
@@ -45,6 +56,8 @@ let lastMessageCount = 0
 watch(() => props.messages, async (newMessages, oldMessages) => {
   const newMessageCount = newMessages.length
   const oldMessageCount = oldMessages?.length ?? 0
+  if (newMessageCount !== oldMessageCount)
+    suppressNextDelta.value = true
   const hasNewMessages = newMessageCount > lastMessageCount
 
   // If messages were added at the top (loading older messages)
@@ -61,6 +74,22 @@ watch(() => props.messages, async (newMessages, oldMessages) => {
 
   lastMessageCount = newMessageCount
 }, { flush: 'post' })
+
+async function runProgrammaticScroll(action: () => Promise<void> | void) {
+  isProgrammaticScroll.value = true
+  if (programmaticResetTimer) {
+    clearTimeout(programmaticResetTimer)
+    programmaticResetTimer = null
+  }
+
+  await action()
+  await nextTick()
+
+  programmaticResetTimer = setTimeout(() => {
+    isProgrammaticScroll.value = false
+    programmaticResetTimer = null
+  }, 0)
+}
 
 // Handle scroll events and emit status
 function onScroll(offset: number) {
@@ -88,6 +117,13 @@ function onScroll(offset: number) {
   const wasAtBottom = isAtBottom.value
   const wasAtTop = isAtTop.value
 
+  const currentIndex = Math.max(0, Math.floor(offset / ITEM_SIZE))
+  const shouldSuppressDelta = suppressNextDelta.value || isProgrammaticScroll.value
+  const scrollDelta = shouldSuppressDelta ? 0 : currentIndex - lastScrollIndex.value
+  if (suppressNextDelta.value)
+    suppressNextDelta.value = false
+  lastScrollIndex.value = currentIndex
+
   isAtBottom.value = offset >= maxScroll - threshold
   const isAtTopValue = offset <= threshold
   isAtTop.value = isAtTopValue
@@ -103,6 +139,8 @@ function onScroll(offset: number) {
 
   emit('scroll', {
     scrollTop: offset,
+    scrollIndex: currentIndex,
+    scrollDelta,
     isAtTop: isAtTopValue,
     isAtBottom: isAtBottom.value,
   })
@@ -110,11 +148,13 @@ function onScroll(offset: number) {
 
 // Scroll to bottom method (exposed to parent)
 async function scrollToBottom() {
-  await nextTick()
-  if (vListRef.value) {
-    vListRef.value.scrollToIndex(props.messages.length - 1, { align: 'end' })
-    isAtBottom.value = true
-  }
+  await runProgrammaticScroll(async () => {
+    await nextTick()
+    if (vListRef.value) {
+      vListRef.value.scrollToIndex(props.messages.length - 1, { align: 'end' })
+      isAtBottom.value = true
+    }
+  })
 }
 
 async function scrollToMessage(messageId: string | number) {
@@ -122,8 +162,10 @@ async function scrollToMessage(messageId: string | number) {
   if (targetIndex === -1 || !vListRef.value)
     return
 
-  await nextTick()
-  vListRef.value.scrollToIndex(targetIndex, { align: 'center' })
+  await runProgrammaticScroll(async () => {
+    await nextTick()
+    vListRef.value?.scrollToIndex(targetIndex, { align: 'center' })
+  })
 }
 
 // Get scroll offset for maintaining position
@@ -140,19 +182,23 @@ function getScrollOffset(anchorId: string | number): { anchorIndex: number, offs
 
 // Restore scroll position using anchor
 async function restoreScrollPosition(anchor: { anchorIndex: number, offset: number }) {
-  await nextTick()
-  if (!vListRef.value)
-    return
+  await runProgrammaticScroll(async () => {
+    await nextTick()
+    if (!vListRef.value)
+      return
 
-  vListRef.value.scrollToIndex(anchor.anchorIndex)
+    vListRef.value.scrollToIndex(anchor.anchorIndex)
+  })
 }
 
 defineExpose({
   scrollToBottom,
   scrollToTop: () => {
-    if (vListRef.value) {
-      vListRef.value.scrollToIndex(0)
-    }
+    void runProgrammaticScroll(() => {
+      if (vListRef.value) {
+        vListRef.value.scrollToIndex(0)
+      }
+    })
   },
   getScrollOffset,
   restoreScrollPosition,
@@ -166,7 +212,7 @@ defineExpose({
       ref="vListRef"
       :data="messages"
       :style="{ height: `${containerHeight}px` }"
-      :item-size="120"
+      :item-size="ITEM_SIZE"
       shift
       @scroll="onScroll"
       @scroll-end="() => (isScrolling = false)"
