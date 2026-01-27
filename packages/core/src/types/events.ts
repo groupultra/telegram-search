@@ -189,8 +189,10 @@ export interface FetchMessageOpts {
   chatId: string
   pagination: CorePagination
 
-  startTime?: Date
-  endTime?: Date
+  // Unix timestamp in milliseconds
+  startTime?: number
+  // Unix timestamp in milliseconds
+  endTime?: number
 
   // Filter
   skipMedia?: boolean
@@ -346,9 +348,9 @@ export interface SyncOptions {
   syncMedia?: boolean
   // Maximum size for media files in MB (0 = unlimited)
   maxMediaSize?: number
-  // Time range for sync
-  startTime?: Date
-  endTime?: Date
+  // Time range for sync (unix timestamp in milliseconds)
+  startTime?: number
+  endTime?: number
   // Message ID range for sync
   minMessageId?: number
   maxMessageId?: number
@@ -399,8 +401,10 @@ export interface TakeoutOpts {
   chatId: string
   pagination: CorePagination
 
-  startTime?: Date
-  endTime?: Date
+  // Unix timestamp in milliseconds
+  startTime?: number
+  // Unix timestamp in milliseconds
+  endTime?: number
 
   // Filter
   skipMedia?: boolean

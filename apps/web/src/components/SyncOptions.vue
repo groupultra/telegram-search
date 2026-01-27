@@ -1,9 +1,33 @@
 <script setup lang="ts">
 import type { SyncOptions } from '@tg-search/core'
+import type { DateRange } from 'reka-ui'
 
-import { format, parse } from 'date-fns'
-import { ref, watch } from 'vue'
+import {
+  DateRangePickerCalendar,
+  DateRangePickerCell,
+  DateRangePickerCellTrigger,
+  DateRangePickerContent,
+  DateRangePickerGrid,
+  DateRangePickerGridBody,
+  DateRangePickerGridHead,
+  DateRangePickerGridRow,
+  DateRangePickerHeadCell,
+  DateRangePickerHeader,
+  DateRangePickerHeading,
+  DateRangePickerNext,
+  DateRangePickerPrev,
+  DateRangePickerRoot,
+  DateRangePickerTrigger,
+} from 'reka-ui'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+
+import {
+  formatRangeLabel,
+  sameRange,
+  toDateRange,
+  toTimestampMs,
+} from '../utils/date-range'
 
 const syncOptions = defineModel<SyncOptions>({ default: () => ({ syncMedia: true, maxMediaSize: 0 }) })
 
@@ -12,34 +36,30 @@ const { t } = useI18n()
 // Local state
 const syncMedia = ref(syncOptions.value.syncMedia ?? true)
 const maxMediaSize = ref(syncOptions.value.maxMediaSize ?? 0)
-const startTime = ref(syncOptions.value.startTime ? formatDateTime(syncOptions.value.startTime) : '')
-const endTime = ref(syncOptions.value.endTime ? formatDateTime(syncOptions.value.endTime) : '')
 const minMessageId = ref(syncOptions.value.minMessageId ?? undefined)
 const maxMessageId = ref(syncOptions.value.maxMessageId ?? undefined)
+const timeRange = shallowRef<DateRange>(toDateRange(syncOptions.value.startTime, syncOptions.value.endTime))
 
-function formatDateTime(date: Date): string {
-  // Format as YYYY-MM-DDTHH:mm for datetime-local input
-  return format(date, 'yyyy-MM-dd\'T\'HH:mm')
-}
+const formattedRangeLabel = computed(() => {
+  return formatRangeLabel(timeRange.value)
+})
 
-function parseDateTime(str: string): Date | undefined {
-  if (!str)
-    return undefined
-  try {
-    return parse(str, 'yyyy-MM-dd\'T\'HH:mm', new Date())
-  }
-  catch {
-    return undefined
-  }
-}
+watch(
+  () => [syncOptions.value.startTime, syncOptions.value.endTime] as const,
+  ([start, end]) => {
+    const nextRange = toDateRange(start, end)
+    if (!sameRange(nextRange, timeRange.value))
+      timeRange.value = nextRange
+  },
+)
 
 // Update model when local state changes
-watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId], () => {
+watch([syncMedia, maxMediaSize, timeRange, minMessageId, maxMessageId], () => {
   syncOptions.value = {
     syncMedia: syncMedia.value,
     maxMediaSize: maxMediaSize.value,
-    startTime: parseDateTime(startTime.value),
-    endTime: parseDateTime(endTime.value),
+    startTime: toTimestampMs(timeRange.value.start),
+    endTime: toTimestampMs(timeRange.value.end),
     minMessageId: minMessageId.value,
     maxMessageId: maxMessageId.value,
   }
@@ -109,30 +129,83 @@ watch([syncMedia, maxMediaSize, startTime, endTime, minMessageId, maxMessageId],
           <label class="block text-sm text-foreground font-medium">
             {{ t('sync.timeRange') }}
           </label>
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label for="start-time" class="mb-1 block text-xs text-muted-foreground">
-                {{ t('sync.startTime') }}
-              </label>
-              <input
-                id="start-time"
-                v-model="startTime"
-                type="datetime-local"
-                class="block w-full border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+          <DateRangePickerRoot
+            v-model="timeRange"
+            :number-of-months="2"
+            :close-on-select="false"
+            granularity="minute"
+          >
+            <DateRangePickerTrigger as-child>
+              <button
+                type="button"
+                class="w-full flex items-center justify-between gap-3 border border-input rounded-md bg-background px-3 py-2 text-left text-sm ring-offset-background transition-colors hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
               >
-            </div>
-            <div>
-              <label for="end-time" class="mb-1 block text-xs text-muted-foreground">
-                {{ t('sync.endTime') }}
-              </label>
-              <input
-                id="end-time"
-                v-model="endTime"
-                type="datetime-local"
-                class="block w-full border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-              >
-            </div>
-          </div>
+                <div class="flex flex-col">
+                  <span class="text-xs text-muted-foreground">
+                    {{ t('sync.startTime') }} / {{ t('sync.endTime') }}
+                  </span>
+                  <span class="text-sm text-foreground font-medium">
+                    {{ formattedRangeLabel }}
+                  </span>
+                </div>
+                <span class="i-lucide-calendar h-4 w-4 text-muted-foreground" />
+              </button>
+            </DateRangePickerTrigger>
+
+            <DateRangePickerContent
+              align="start"
+              class="z-[210] max-w-[95vw] w-[640px] border rounded-lg bg-popover p-3 text-popover-foreground shadow-lg"
+            >
+              <DateRangePickerCalendar v-slot="{ weekDays, grid }">
+                <div class="space-y-3">
+                  <DateRangePickerHeader class="flex items-center justify-between">
+                    <DateRangePickerPrev class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent">
+                      <span class="i-lucide-chevron-left h-4 w-4" />
+                    </DateRangePickerPrev>
+                    <DateRangePickerHeading class="text-sm font-medium" />
+                    <DateRangePickerNext class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent">
+                      <span class="i-lucide-chevron-right h-4 w-4" />
+                    </DateRangePickerNext>
+                  </DateRangePickerHeader>
+
+                  <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <DateRangePickerGrid
+                      v-for="month in grid"
+                      :key="month.value.toString()"
+                      class="w-full border-separate border-spacing-1"
+                    >
+                      <DateRangePickerGridHead>
+                        <DateRangePickerGridRow>
+                          <DateRangePickerHeadCell
+                            v-for="day in weekDays"
+                            :key="day"
+                            class="h-8 w-9 text-center text-xs text-muted-foreground font-medium"
+                          >
+                            {{ day }}
+                          </DateRangePickerHeadCell>
+                        </DateRangePickerGridRow>
+                      </DateRangePickerGridHead>
+                      <DateRangePickerGridBody>
+                        <DateRangePickerGridRow v-for="(week, wi) in month.rows" :key="`week-${wi}`">
+                          <DateRangePickerCell
+                            v-for="dateValue in week"
+                            :key="dateValue.toString()"
+                            :date="dateValue"
+                          >
+                            <DateRangePickerCellTrigger
+                              :day="dateValue"
+                              :month="month.value"
+                              class="h-9 w-9 flex items-center justify-center rounded-md text-sm outline-none transition-colors data-[highlighted]:bg-primary/15 data-[selected]:bg-primary data-[selection-end]:bg-primary data-[selection-start]:bg-primary hover:bg-accent/60 data-[outside-view]:text-muted-foreground data-[selected]:text-primary-foreground data-[selection-end]:text-primary-foreground data-[selection-start]:text-primary-foreground data-[disabled]:opacity-40"
+                            />
+                          </DateRangePickerCell>
+                        </DateRangePickerGridRow>
+                      </DateRangePickerGridBody>
+                    </DateRangePickerGrid>
+                  </div>
+                </div>
+              </DateRangePickerCalendar>
+            </DateRangePickerContent>
+          </DateRangePickerRoot>
         </div>
 
         <!-- Message ID Range -->

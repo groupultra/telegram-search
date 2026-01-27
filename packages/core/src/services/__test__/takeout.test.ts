@@ -186,6 +186,67 @@ describe('takeout service', () => {
     expect((finished).query.success).toBe(true)
   })
 
+  it('takeoutMessages should accept millisecond startTime and filter correctly', async () => {
+    const startSec = 1_577_836_800 // 2020-01-01T00:00:00Z
+    const startMs = startSec * 1000
+
+    const client = {
+      getInputEntity: vi.fn(async (_chatId: string) => ({})),
+      invoke: vi.fn(async (query: any) => {
+        if (query instanceof Api.account.InitTakeoutSession) {
+          return { id: bigInt(1) }
+        }
+
+        if (query instanceof Api.InvokeWithTakeout) {
+          const inner = (query).query
+          if (inner instanceof Api.messages.GetHistory) {
+            if ((inner).offsetId === 0) {
+              return {
+                messages: [
+                  { id: 30, date: startSec + 100 },
+                  { id: 29, date: startSec },
+                  { id: 28, date: startSec - 100 },
+                ],
+              }
+            }
+            return { messages: [] }
+          }
+
+          if (inner instanceof Api.account.FinishTakeoutSession) {
+            return {}
+          }
+        }
+
+        throw new Error('unexpected query')
+      }),
+    }
+
+    const { ctx } = createMockCtx(client)
+
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
+    const task = createTask()
+    task.updateProgress = vi.fn()
+    task.updateError = vi.fn()
+
+    const yielded: any[] = []
+    for await (const m of service.takeoutMessages('123', {
+      pagination: { limit: 100, offset: 0 },
+      minId: 0,
+      maxId: 0,
+      startTime: startMs,
+      skipMedia: true,
+      task,
+      expectedCount: 3,
+      disableAutoProgress: true,
+      syncOptions: undefined,
+    })) {
+      yielded.push(m)
+    }
+
+    expect(yielded.map(m => m.id)).toEqual([30, 29])
+    expect(task.updateError).not.toHaveBeenCalled()
+  })
+
   it('takeoutMessages should updateError and stop when initTakeout fails', async () => {
     const client = {
       getInputEntity: vi.fn(async () => ({})),

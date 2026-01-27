@@ -209,10 +209,10 @@ export function createTakeoutService(
           }
 
           // Time range filtering
-          if (options.endTime && message.date > options.endTime.getTime() / 1000) {
+          if (options.endTime && message.date > options.endTime / 1000) {
             continue
           }
-          if (options.startTime && message.date < options.startTime.getTime() / 1000) {
+          if (options.startTime && message.date < options.startTime / 1000) {
             hasMore = false
             break
           }
