@@ -6,6 +6,8 @@ import { useLogger } from '@guiiai/logg'
 import { CoreEventType, createCoreInstance } from '@tg-search/core'
 import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
 
+import { getBotManager } from './bot'
+import { bridgeBotToAccount } from './bot/bridge'
 import { getDB } from './storage/drizzle'
 import { getMediaStorage } from './storage/media'
 
@@ -152,6 +154,12 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
       coreMessageBatchesProcessedTotal.add(1, { source })
       coreMessagesProcessedTotal.add(messages.length, { source })
     })
+
+    // Bridge bot events to BotManager (if bot is enabled)
+    const botManager = getBotManager()
+    if (botManager) {
+      bridgeBotToAccount(botManager, account, accountId, logger)
+    }
 
     accountStates.set(accountId, account)
     return account

@@ -78,6 +78,9 @@ export enum CoreEventType {
 
   GramMessageReceived = 'gram:message:received',
 
+  BotSendMessage = 'bot:send:message',
+  BotStatus = 'bot:status',
+
   SyncCatchUp = 'sync:catch-up',
   SyncReset = 'sync:reset',
   SyncStatus = 'sync:status',
@@ -483,6 +486,25 @@ export interface MessageResolverEventFromCore {
 }
 
 // ============================================================================
+// Bot Events (Grammy Bot API bridge)
+// ============================================================================
+
+export interface BotEventToCore {
+  [CoreEventType.BotSendMessage]: (data: {
+    chatId: string
+    content: string
+    parseMode?: 'HTML' | 'MarkdownV2'
+  }) => void
+}
+
+export interface BotEventFromCore {
+  [CoreEventType.BotStatus]: (data: {
+    status: 'connected' | 'disconnected' | 'error'
+    botUsername?: string
+  }) => void
+}
+
+// ============================================================================
 // Sync Events (PTS/QTS State Machine)
 // ============================================================================
 
@@ -512,6 +534,7 @@ export type FromCoreEvent = ClientInstanceEventFromCore
   & GramEventsEventFromCore
   & MessageResolverEventFromCore
   & SyncEventFromCore
+  & BotEventFromCore
 
 export type ToCoreEvent = ClientInstanceEventToCore
   & MessageEventToCore
@@ -525,6 +548,7 @@ export type ToCoreEvent = ClientInstanceEventToCore
   & GramEventsEventToCore
   & MessageResolverEventToCore
   & SyncEventToCore
+  & BotEventToCore
 
 export type CoreEvent = FromCoreEvent & ToCoreEvent
 

@@ -37,12 +37,19 @@ export const syncConfigSchema = object({
   maxMediaSize: optional(number(), 0),
 })
 
+export const botConfigSchema = object({
+  enabled: optional(boolean(), false),
+  token: optional(string()),
+  notifyChatId: optional(string()),
+})
+
 export const accountSettingsSchema = object({
   embedding: optional(embeddingConfigSchema, {}),
   llm: optional(llmConfigSchema, {}),
   resolvers: optional(resolversConfigSchema, {}),
   receiveMessages: optional(receiveMessagesConfigSchema, {}),
   sync: optional(syncConfigSchema, {}),
+  bot: optional(botConfigSchema, {}),
 })
 
 export type EmbeddingConfig = InferOutput<typeof embeddingConfigSchema>

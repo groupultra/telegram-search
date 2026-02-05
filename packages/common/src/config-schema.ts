@@ -66,6 +66,7 @@ export const telegramConfigSchema = object({
   apiId: optional(string()),
   apiHash: optional(string()),
   proxy: optional(proxyConfigSchema),
+  botToken: optional(string()),
 })
 
 export const minioConfigSchema = object({

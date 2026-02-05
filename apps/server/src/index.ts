@@ -17,6 +17,7 @@ import pkg from '../package.json' with { type: 'json' }
 
 import { v1api } from './apis/v1'
 import { setupWsRoutes } from './app'
+import { createBotManager, setBotManagerInstance } from './bot'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMediaStorage, initMediaStorage } from './storage/media'
 import { removeHyperLinks, toSnakeCaseFields } from './utils/fields'
@@ -110,6 +111,11 @@ async function bootstrap() {
 
   setupErrorHandlers(logger)
 
+  // Initialize Grammy bot (non-blocking, no-op if TELEGRAM_BOT_TOKEN not set)
+  const botManager = createBotManager(config, getDB, logger)
+  setBotManagerInstance(botManager)
+  await botManager.start()
+
   const app = configureServer(logger, flags, config)
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000
@@ -133,6 +139,7 @@ async function bootstrap() {
 
   const shutdown = async () => {
     logger.log('Shutting down server gracefully...')
+    await botManager.stop()
     server.close()
     process.exit(0)
   }

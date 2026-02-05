@@ -63,6 +63,7 @@ export function parseEnvToConfig(env: Environment, logger?: Logger): Config {
           MTProxy: readBooleanEnv('PROXY_MT_PROXY', env),
           proxyUrl: readEnvValue('PROXY_URL', env),
         },
+        botToken: readStringEnv(['TELEGRAM_BOT_TOKEN'], env),
       },
     },
     minio: {
