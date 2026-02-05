@@ -9,7 +9,6 @@ import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 
-import GlobalSyncProgress from '../components/GlobalSyncProgress.vue'
 import AppSidebar from '../components/layout/AppSidebar.vue'
 import LoginPromptBanner from '../components/layout/LoginPromptBanner.vue'
 
@@ -125,7 +124,6 @@ function closeMobileDrawer() {
       <LoginPromptBanner v-if="!isReady && !$route.path.startsWith('/login')" />
 
       <template v-else>
-        <GlobalSyncProgress />
         <RouterView :key="$route.fullPath" />
       </template>
 

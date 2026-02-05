@@ -2,7 +2,7 @@
 import type { CoreChatFolder, CoreDialog } from '@tg-search/core/types'
 
 import { VList } from 'virtua/vue'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import SelectDropdown from './ui/SelectDropdown.vue'
@@ -44,41 +44,6 @@ const filterOptions = computed(() => {
 
 const selectedFilter = ref<string>('all')
 const searchQuery = ref('')
-
-const columnCount = ref(1)
-let smQuery: MediaQueryList | null = null
-let xlQuery: MediaQueryList | null = null
-
-function updateColumnCount() {
-  if (!smQuery || !xlQuery) {
-    columnCount.value = 1
-    return
-  }
-  if (xlQuery.matches) {
-    columnCount.value = 3
-    return
-  }
-  if (smQuery.matches) {
-    columnCount.value = 2
-    return
-  }
-  columnCount.value = 1
-}
-
-onMounted(() => {
-  if (typeof window === 'undefined')
-    return
-  smQuery = window.matchMedia('(min-width: 640px)')
-  xlQuery = window.matchMedia('(min-width: 1280px)')
-  updateColumnCount()
-  smQuery.addEventListener('change', updateColumnCount)
-  xlQuery.addEventListener('change', updateColumnCount)
-})
-
-onBeforeUnmount(() => {
-  smQuery?.removeEventListener('change', updateColumnCount)
-  xlQuery?.removeEventListener('change', updateColumnCount)
-})
 
 /**
  * Performance optimization: Use Set for O(1) lookup instead of O(N) array.includes()
@@ -122,15 +87,6 @@ const filteredChats = computed(() => {
       return 1
     return 0
   })
-})
-
-const chatRows = computed(() => {
-  const cols = columnCount.value
-  const rows: Array<typeof filteredChats.value> = []
-  for (let i = 0; i < filteredChats.value.length; i += cols) {
-    rows.push(filteredChats.value.slice(i, i + cols))
-  }
-  return rows
 })
 
 /**
@@ -196,38 +152,32 @@ function toggleSelection(id: number): void {
       <!-- Virtual Chat List -->
       <VList
         v-else
-        :data="chatRows"
+        :data="filteredChats"
         class="h-full"
       >
-        <template #default="{ item: row, index }">
-          <div
-            :key="index"
-            class="grid gap-3 border-b px-3 py-3 sm:grid-cols-2 xl:grid-cols-3 last:border-b-0"
+        <template #default="{ item: chat }">
+          <label
+            :key="chat.id"
+            class="group flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-accent"
+            :class="{
+              'bg-primary/5': isSelected(chat.id),
+            }"
           >
-            <label
-              v-for="chat in row"
-              :key="chat.id"
-              class="group flex cursor-pointer items-center gap-3 border rounded-lg bg-background/60 px-3 py-3 transition-colors hover:bg-accent"
-              :class="{
-                'border-primary/40 bg-primary/5': isSelected(chat.id),
-              }"
+            <input
+              type="checkbox"
+              :checked="isSelected(chat.id)"
+              class="h-4 w-4 cursor-pointer border-2 rounded text-primary transition-all focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+              @change="toggleSelection(chat.id)"
             >
-              <input
-                type="checkbox"
-                :checked="isSelected(chat.id)"
-                class="h-4 w-4 cursor-pointer border-2 rounded text-primary transition-all focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-                @change="toggleSelection(chat.id)"
-              >
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm text-foreground font-medium">
-                  {{ chat.title }}
-                </p>
-                <p class="truncate text-xs text-muted-foreground">
-                  {{ chat.subtitle }}
-                </p>
-              </div>
-            </label>
-          </div>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm text-foreground font-medium">
+                {{ chat.title }}
+              </p>
+              <p class="truncate text-xs text-muted-foreground">
+                {{ chat.subtitle }}
+              </p>
+            </div>
+          </label>
         </template>
       </VList>
     </div>

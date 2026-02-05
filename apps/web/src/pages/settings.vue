@@ -2,8 +2,7 @@
 import { useAccountStore, useBridge } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
-import { NumberFieldInput, NumberFieldRoot, SwitchRoot, SwitchThumb } from 'reka-ui'
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
@@ -13,16 +12,6 @@ const { t } = useI18n()
 
 const bridge = useBridge()
 const { accountSettings } = storeToRefs(useAccountStore())
-
-watch(
-  () => accountSettings.value,
-  (next) => {
-    if (!next)
-      return
-    next.sync ??= { syncMedia: true, maxMediaSize: 0 }
-  },
-  { immediate: true },
-)
 
 // Message resolvers configuration
 const messageResolvers = [
@@ -226,63 +215,16 @@ function updateConfig() {
               <label class="text-sm text-muted-foreground font-medium">
                 {{ t('settings.receiveAll') }}
               </label>
-              <SwitchRoot
-                id="settings-receive-all"
-                v-model="accountSettings.receiveMessages.receiveAll"
-                class="h-6 w-11 inline-flex items-center rounded-full bg-muted transition-colors data-[state=checked]:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <SwitchThumb class="h-5 w-5 translate-x-0.5 rounded-full bg-background shadow-sm transition-transform data-[state=checked]:translate-x-5" />
-              </SwitchRoot>
+              <label class="relative inline-flex cursor-pointer items-center">
+                <input
+                  :checked="accountSettings.receiveMessages.receiveAll"
+                  type="checkbox"
+                  class="peer sr-only"
+                  @change="accountSettings.receiveMessages.receiveAll = ($event.target as HTMLInputElement).checked"
+                >
+                <div class="peer h-6 w-11 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:border after:rounded-full after:bg-background peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+              </label>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Sync media settings -->
-      <div class="border rounded-lg bg-card p-6 shadow-sm">
-        <h2 class="mb-4 text-xl font-semibold">
-          {{ t('sync.syncOptions') }}
-        </h2>
-        <div class="space-y-4">
-          <div class="flex items-start gap-3">
-            <SwitchRoot
-              id="settings-sync-media"
-              v-model="accountSettings.sync.syncMedia"
-              class="mt-1 h-5 w-9 inline-flex items-center rounded-full bg-muted transition-colors data-[state=checked]:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <SwitchThumb class="h-4 w-4 translate-x-0.5 rounded-full bg-background shadow-sm transition-transform data-[state=checked]:translate-x-4" />
-            </SwitchRoot>
-            <label for="settings-sync-media" class="flex-1 cursor-pointer">
-              <div class="text-sm text-foreground font-medium">
-                {{ t('sync.syncMedia') }}
-              </div>
-              <div class="text-xs text-muted-foreground">
-                {{ t('sync.syncMediaDescription') }}
-              </div>
-            </label>
-          </div>
-
-          <div v-if="accountSettings.sync.syncMedia" class="ml-7 space-y-2">
-            <label class="block text-sm text-foreground font-medium">
-              {{ t('sync.maxMediaSize') }}
-            </label>
-            <div class="flex items-center gap-2">
-              <NumberFieldRoot
-                v-model="accountSettings.sync.maxMediaSize"
-                :min="0"
-                :step="1"
-                class="w-32"
-              >
-                <NumberFieldInput
-                  class="block w-full border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-                  placeholder="0"
-                />
-              </NumberFieldRoot>
-              <span class="text-sm text-muted-foreground">MB ({{ t('sync.noLimit') }})</span>
-            </div>
-            <p class="text-xs text-muted-foreground">
-              {{ t('sync.maxMediaSizeDescription') }}
-            </p>
           </div>
         </div>
       </div>
@@ -301,14 +243,15 @@ function updateConfig() {
               <label class="text-sm text-muted-foreground font-medium">
                 {{ t(`settings.${resolver.key}Resolver`) }}
               </label>
-              <SwitchRoot
-                :id="`settings-resolver-${resolver.key}`"
-                :model-value="isResolverEnabled(resolver.key)"
-                class="h-6 w-11 inline-flex items-center rounded-full bg-muted transition-colors data-[state=checked]:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                @update:model-value="(value) => toggleMessageResolver(resolver.key, value)"
-              >
-                <SwitchThumb class="h-5 w-5 translate-x-0.5 rounded-full bg-background shadow-sm transition-transform data-[state=checked]:translate-x-5" />
-              </SwitchRoot>
+              <label class="relative inline-flex cursor-pointer items-center">
+                <input
+                  :checked="isResolverEnabled(resolver.key)"
+                  type="checkbox"
+                  class="peer sr-only"
+                  @change="toggleMessageResolver(resolver.key, ($event.target as HTMLInputElement).checked)"
+                >
+                <div class="peer h-6 w-11 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:border after:rounded-full after:bg-background peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+              </label>
             </div>
           </div>
         </div>

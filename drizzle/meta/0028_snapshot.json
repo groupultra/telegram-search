@@ -1,9 +1,180 @@
 {
-  "id": "25c21fa6-fba0-4bcf-aaaa-13cd87331f31",
+  "id": "6268c86f-bc42-4c31-a956-0bead60dcd0b",
   "prevId": "1b1018f8-c7b4-4a95-bc0b-3ba7b3fd1ba1",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.account_chat_folders": {
+      "name": "account_chat_folders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "folder_id": {
+          "name": "folder_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "emoticon": {
+          "name": "emoticon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pinned_chat_ids": {
+          "name": "pinned_chat_ids",
+          "type": "bigint[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "included_chat_ids": {
+          "name": "included_chat_ids",
+          "type": "bigint[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "excluded_chat_ids": {
+          "name": "excluded_chat_ids",
+          "type": "bigint[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "contacts": {
+          "name": "contacts",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "non_contacts": {
+          "name": "non_contacts",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "groups": {
+          "name": "groups",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "broadcasts": {
+          "name": "broadcasts",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "bots": {
+          "name": "bots",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "exclude_muted": {
+          "name": "exclude_muted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "exclude_read": {
+          "name": "exclude_read",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "exclude_archived": {
+          "name": "exclude_archived",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "account_chat_folders_account_folder_unique": {
+          "name": "account_chat_folders_account_folder_unique",
+          "columns": [
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "folder_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "account_chat_folders_account_id_accounts_id_fk": {
+          "name": "account_chat_folders_account_id_accounts_id_fk",
+          "tableFrom": "account_chat_folders",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.account_joined_chats": {
       "name": "account_joined_chats",
       "schema": "",
@@ -155,7 +326,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"embedding\":{\"model\":\"text-embedding-3-small\",\"dimension\":1536,\"apiKey\":\"\",\"apiBase\":\"\"},\"llm\":{\"model\":\"gpt-4o-mini\",\"apiKey\":\"\",\"apiBase\":\"https://api.openai.com/v1\",\"temperature\":0.7,\"maxTokens\":2000},\"resolvers\":{\"disabledResolvers\":[\"avatar\"]},\"receiveMessages\":{\"receiveAll\":true},\"sync\":{\"syncMedia\":true,\"maxMediaSize\":0},\"bot\":{\"enabled\":false}}'::jsonb"
+          "default": "'{\"embedding\":{\"model\":\"text-embedding-3-small\",\"dimension\":1536,\"apiKey\":\"\",\"apiBase\":\"\"},\"llm\":{\"model\":\"gpt-4o-mini\",\"apiKey\":\"\",\"apiBase\":\"https://api.openai.com/v1\",\"temperature\":0.7,\"maxTokens\":2000},\"resolvers\":{\"disabledResolvers\":[\"avatar\"]},\"receiveMessages\":{\"receiveAll\":true}}'::jsonb"
         },
         "pts": {
           "name": "pts",
@@ -229,90 +400,6 @@
         }
       },
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.bot_scheduled_tasks": {
-      "name": "bot_scheduled_tasks",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "account_id": {
-          "name": "account_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "task_type": {
-          "name": "task_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "schedule": {
-          "name": "schedule",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "config": {
-          "name": "config",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'::jsonb"
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "last_run_at": {
-          "name": "last_run_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "bot_scheduled_tasks_account_id_accounts_id_fk": {
-          "name": "bot_scheduled_tasks_account_id_accounts_id_fk",
-          "tableFrom": "bot_scheduled_tasks",
-          "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

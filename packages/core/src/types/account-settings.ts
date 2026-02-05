@@ -32,11 +32,6 @@ export const receiveMessagesConfigSchema = object({
   receiveAll: optional(boolean(), true),
 })
 
-export const syncConfigSchema = object({
-  syncMedia: optional(boolean(), true),
-  maxMediaSize: optional(number(), 0),
-})
-
 export const botConfigSchema = object({
   enabled: optional(boolean(), false),
   token: optional(string()),
@@ -49,7 +44,6 @@ export const accountSettingsSchema = object({
   llm: optional(llmConfigSchema, {}),
   resolvers: optional(resolversConfigSchema, {}),
   receiveMessages: optional(receiveMessagesConfigSchema, {}),
-  sync: optional(syncConfigSchema, {}),
   bot: optional(botConfigSchema, {}),
 })
 
