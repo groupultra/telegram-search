@@ -2,7 +2,7 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreDB, DBSelectBotScheduledTask } from '@tg-search/core'
 import type { Bot } from 'grammy'
 
-import { models } from '@tg-search/core'
+import { EmbeddingDimension, models } from '@tg-search/core'
 import { Cron } from 'croner'
 
 export interface Scheduler {
@@ -55,7 +55,7 @@ export function createScheduler(
     }
 
     if (task.task_type === 'summary') {
-      await executeSummaryTask(task, accountData.id, notifyChatId)
+      await executeSummaryTask(task, accountData.id, notifyChatId, settings?.embedding?.dimension)
     }
     else {
       logger.withFields({ taskType: task.task_type }).warn('Unknown task type')
@@ -66,6 +66,7 @@ export function createScheduler(
     task: DBSelectBotScheduledTask,
     accountId: string,
     notifyChatId: string,
+    embeddingDimension = EmbeddingDimension.DIMENSION_1536,
   ) {
     const db = getDB()
     const config = task.config || {}
@@ -79,7 +80,7 @@ export function createScheduler(
       logger,
       accountId,
       undefined,
-      0 as any,
+      embeddingDimension,
       { text: undefined },
       { limit: 100, offset: 0 },
       {
@@ -93,7 +94,6 @@ export function createScheduler(
       throw new Error('No messages found for the scheduled summary period.')
     }
 
-    // Group by chat
     const chatGroups = new Map<string, { name: string, count: number }>()
     for (const msg of messages) {
       const chatId = msg.in_chat_id || 'unknown'

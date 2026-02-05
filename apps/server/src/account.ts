@@ -3,11 +3,10 @@ import type { CoreContext, CoreEmitter, FromCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
+import { attachBotToContext, getBotRegistry } from '@tg-search/bot'
 import { CoreEventType, createCoreInstance } from '@tg-search/core'
 import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
 
-import { getBotManager } from './bot'
-import { bridgeBotToAccount } from './bot/bridge'
 import { getDB } from './storage/drizzle'
 import { getMediaStorage } from './storage/media'
 
@@ -155,10 +154,10 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
       coreMessagesProcessedTotal.add(messages.length, { source })
     })
 
-    // Bridge bot events to BotManager (if bot is enabled)
-    const botManager = getBotManager()
-    if (botManager) {
-      bridgeBotToAccount(botManager, account, accountId, logger)
+    // Bridge bot events to shared bot registry (if bot is enabled)
+    const botRegistry = getBotRegistry()
+    if (botRegistry) {
+      attachBotToContext(botRegistry, account.ctx, accountId, logger)
     }
 
     accountStates.set(accountId, account)

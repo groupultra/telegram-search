@@ -2,6 +2,8 @@ import type { Bot } from 'grammy'
 
 import type { BotCommandContext } from '.'
 
+import { EmbeddingDimension } from '@tg-search/core'
+
 export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
   const logger = ctx.logger.withContext('bot:command:summary')
 
@@ -23,14 +25,13 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
     try {
       const db = ctx.getDB()
 
-      // Fetch recent messages from the last 24 hours across all chats
       const oneDayAgo = Math.floor(Date.now() / 1000) - 86400
       const result = await ctx.models.chatMessageModels.retrieveMessages(
         db,
         logger,
         account.id,
         undefined,
-        0 as any,
+        EmbeddingDimension.DIMENSION_1536,
         { text: undefined },
         { limit: 50, offset: 0 },
         { timeRange: { start: oneDayAgo } },
@@ -42,7 +43,6 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
         return
       }
 
-      // Group by chat and provide a basic count summary
       const chatGroups = new Map<string, { name: string, count: number }>()
       for (const msg of messages) {
         const chatId = msg.in_chat_id || 'unknown'

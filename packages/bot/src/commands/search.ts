@@ -2,8 +2,9 @@ import type { Bot } from 'grammy'
 
 import type { BotCommandContext } from '.'
 
-// EmbeddingDimension.DIMENSION_1536 = 1536
-const DEFAULT_EMBEDDING_DIMENSION = 1536
+import { EmbeddingDimension } from '@tg-search/core'
+
+const DEFAULT_EMBEDDING_DIMENSION = EmbeddingDimension.DIMENSION_1536
 
 export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
   const logger = ctx.logger.withContext('bot:command:search')
@@ -36,7 +37,7 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
         logger,
         account.id,
         undefined,
-        DEFAULT_EMBEDDING_DIMENSION as any,
+        DEFAULT_EMBEDDING_DIMENSION,
         { text: query },
         { limit: 10, offset: 0 },
       )
@@ -47,14 +48,14 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
         return
       }
 
-      const lines = messages.map((msg: any, i: number) => {
+      const lines = messages.map((msg, index) => {
         const from = msg.from_name || msg.from_id || 'Unknown'
         const chat = msg.chat_name || msg.in_chat_id || 'Unknown chat'
-        const content = (msg.content || '').slice(0, 200)
+        const content = (msg.content ?? '').slice(0, 200)
         const time = msg.platform_timestamp
           ? new Date(msg.platform_timestamp * 1000).toLocaleString()
           : 'Unknown time'
-        return `${i + 1}. [${chat}] ${from} (${time}):\n${content}`
+        return `${index + 1}. [${chat}] ${from} (${time}):\n${content}`
       })
 
       const header = `Found ${messages.length} result(s) for "${query}":\n\n`

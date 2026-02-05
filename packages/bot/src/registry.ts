@@ -1,45 +1,60 @@
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
 import type { CoreDB } from '@tg-search/core'
+import type { Bot } from 'grammy'
+
+import type { BotCommandAccount } from './commands'
 
 import { useLogger } from '@guiiai/logg'
 import { models } from '@tg-search/core'
-import { Bot } from 'grammy'
+import { Bot as GrammyBot } from 'grammy'
 
 import { registerCommands } from './commands'
 import { createScheduler } from './scheduler'
 
-export interface BotManager {
+export type BotParseMode = 'HTML' | 'MarkdownV2'
+
+export interface BotRegistry {
   start: () => Promise<void>
   stop: () => Promise<void>
-  sendMessage: (chatId: string | number, text: string, parseMode?: 'HTML' | 'MarkdownV2') => Promise<void>
+  sendMessage: (chatId: string | number, text: string, parseMode?: BotParseMode) => Promise<void>
   getBot: () => Bot | undefined
 }
 
-export function createBotManager(
-  config: Config,
-  getDB: () => CoreDB,
-  logger?: Logger,
-): BotManager {
-  logger = (logger ?? useLogger()).withContext('server:bot')
+export interface BotRegistryOptions {
+  config: Config
+  getDB: () => CoreDB
+  logger?: Logger
+}
 
-  const token = config.api.telegram.botToken
+export function createBotRegistry(options: BotRegistryOptions): BotRegistry {
+  const logger = (options.logger ?? useLogger()).withContext('server:bot')
+
+  const token = options.config.api.telegram.botToken
   if (!token) {
     logger.warn('TELEGRAM_BOT_TOKEN not set, bot features disabled')
-    return createNullBotManager()
+    return createNullBotRegistry()
   }
 
-  const bot = new Bot(token)
-  const scheduler = createScheduler(getDB, bot, logger)
+  const bot = new GrammyBot(token)
+  const scheduler = createScheduler(options.getDB, bot, logger)
 
-  async function resolveAccountByTelegramUserId(userId: number) {
-    const db = getDB()
+  const resolveAccountByTelegramUserId = async (userId: number): Promise<BotCommandAccount | undefined> => {
+    const db = options.getDB()
     const result = await models.accountModels.findAccountByPlatformId(db, 'telegram', String(userId))
-    return result.unwrap()
+    const account = result.orUndefined()
+    if (!account) {
+      return undefined
+    }
+
+    return {
+      id: account.id,
+      platform_user_id: account.platform_user_id,
+    }
   }
 
   registerCommands(bot, {
-    getDB,
+    getDB: options.getDB,
     models,
     resolveAccountByTelegramUserId,
     logger,
@@ -49,10 +64,8 @@ export function createBotManager(
     async start() {
       logger.log('Starting Grammy bot...')
 
-      // Load scheduled tasks from DB
       await scheduler.loadTasks()
 
-      // Start long-polling (non-blocking)
       bot.start({
         onStart: (info) => {
           logger.withFields({ username: info.username }).log('Bot started')
@@ -79,7 +92,7 @@ export function createBotManager(
   }
 }
 
-function createNullBotManager(): BotManager {
+function createNullBotRegistry(): BotRegistry {
   return {
     async start() {},
     async stop() {},
@@ -90,13 +103,12 @@ function createNullBotManager(): BotManager {
   }
 }
 
-// Module-level singleton for access from account.ts
-let _botManager: BotManager | undefined
+let _botRegistry: BotRegistry | undefined
 
-export function setBotManagerInstance(manager: BotManager) {
-  _botManager = manager
+export function setBotRegistryInstance(registry: BotRegistry) {
+  _botRegistry = registry
 }
 
-export function getBotManager(): BotManager | undefined {
-  return _botManager
+export function getBotRegistry(): BotRegistry | undefined {
+  return _botRegistry
 }

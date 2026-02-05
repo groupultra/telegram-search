@@ -6,10 +6,15 @@ import { registerSearchCommand } from './search'
 import { registerStartCommand } from './start'
 import { registerSummaryCommand } from './summary'
 
+export interface BotCommandAccount {
+  id: string
+  platform_user_id: string
+}
+
 export interface BotCommandContext {
   getDB: () => CoreDB
   models: Models
-  resolveAccountByTelegramUserId: (userId: number) => Promise<{ id: string, platform_user_id: string } | undefined>
+  resolveAccountByTelegramUserId: (userId: number) => Promise<BotCommandAccount | undefined>
   logger: Logger
 }
 
@@ -18,7 +23,6 @@ export function registerCommands(bot: Bot, ctx: BotCommandContext) {
   registerSearchCommand(bot, ctx)
   registerSummaryCommand(bot, ctx)
 
-  // Catch unhandled messages
   bot.on('message:text', async (gramCtx) => {
     const text = gramCtx.message.text
     if (!text.startsWith('/')) {

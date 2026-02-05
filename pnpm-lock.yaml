@@ -117,6 +117,9 @@ importers:
       '@opentelemetry/sdk-trace-node':
         specifier: ^2.5.0
         version: 2.5.0(@opentelemetry/api@1.9.0)
+      '@tg-search/bot':
+        specifier: workspace:*
+        version: link:../../packages/bot
       '@tg-search/common':
         specifier: workspace:*
         version: link:../../packages/common
@@ -129,9 +132,6 @@ importers:
       '@unbird/result':
         specifier: 'catalog:'
         version: 1.1.1
-      croner:
-        specifier: ^10.0.1
-        version: 10.0.1
       crossws:
         specifier: ^0.4.3
         version: 0.4.3(srvx@0.10.1)
@@ -141,9 +141,6 @@ importers:
       file-type:
         specifier: ^21.3.0
         version: 21.3.0
-      grammy:
-        specifier: ^1.39.3
-        version: 1.39.3
       h3:
         specifier: ^2.0.1-rc.11
         version: 2.0.1-rc.11(crossws@0.4.3(srvx@0.10.1))
@@ -329,6 +326,24 @@ importers:
       workbox-window:
         specifier: ^7.4.0
         version: 7.4.0
+
+  packages/bot:
+    dependencies:
+      '@guiiai/logg':
+        specifier: 'catalog:'
+        version: 1.2.11
+      '@tg-search/common':
+        specifier: workspace:*
+        version: link:../common
+      '@tg-search/core':
+        specifier: workspace:*
+        version: link:../core
+      croner:
+        specifier: ^10.0.1
+        version: 10.0.1
+      grammy:
+        specifier: ^1.39.3
+        version: 1.39.3
 
   packages/client:
     dependencies:
