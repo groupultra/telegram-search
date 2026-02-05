@@ -123,6 +123,7 @@
   },
   "settings": {
     "addAccount": "Add Account",
+    "accountSettings": "Account Settings",
     "apiBaseUrl": "API Base URL",
     "apiKey": "API Key",
     "apiSettings": "API Settings",
@@ -149,6 +150,7 @@
     "login": "Login",
     "logout": "Logout",
     "logoutCurrentAccount": "Logout Current Account",
+    "messageProcessing": "Message Processing",
     "maxTokens": "Max Tokens",
     "mediaResolver": "Media Resolver",
     "model": "Model",
@@ -156,6 +158,7 @@
     "notLoggedIn": "Not logged in",
     "open": "Open",
     "receiveAll": "Receive all new messages",
+    "receiveMessagesDownloadMedia": "Download media for new messages",
     "receiveMessagesDescription": "Configure the behavior of receiving new messages",
     "receiveMessagesSettings": "New Messages Behavior",
     "resolversDescription": "Control which message resolvers are enabled. Disabled resolvers will not process messages.",

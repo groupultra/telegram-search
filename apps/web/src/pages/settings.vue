@@ -2,7 +2,7 @@
 import { useAccountStore, useBridge } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
@@ -23,11 +23,40 @@ const messageResolvers = [
 
 const embeddingDimensions = Object.values([1536, 1024, 768])
 
+function buildDefaultMessageProcessing() {
+  return {
+    receiveMessages: { receiveAll: true, downloadMedia: true },
+    resolvers: { disabledResolvers: ['avatar'] },
+    defaults: { syncMedia: true, maxMediaSize: 0 },
+  }
+}
+
+watch(
+  () => accountSettings.value,
+  (settings) => {
+    if (!settings) {
+      return
+    }
+
+    settings.messageProcessing ??= buildDefaultMessageProcessing()
+    settings.messageProcessing.receiveMessages ??= { receiveAll: true, downloadMedia: true }
+    settings.messageProcessing.resolvers ??= { disabledResolvers: ['avatar'] }
+    settings.messageProcessing.resolvers.disabledResolvers ??= ['avatar']
+    settings.messageProcessing.defaults ??= { syncMedia: true, maxMediaSize: 0 }
+  },
+  { immediate: true },
+)
+
+const messageProcessing = computed(() => {
+  return accountSettings.value?.messageProcessing ?? buildDefaultMessageProcessing()
+})
+
 // Computed properties for message resolver switches
 const isResolverEnabled = computed(() => (resolverKey: string) => {
-  if (!accountSettings.value?.resolvers?.disabledResolvers)
+  const disabledResolvers = messageProcessing.value.resolvers.disabledResolvers
+  if (!disabledResolvers)
     return true
-  return !accountSettings.value.resolvers.disabledResolvers.includes(resolverKey)
+  return !disabledResolvers.includes(resolverKey)
 })
 
 function toggleMessageResolver(resolverKey: string, enabled: boolean) {
@@ -35,11 +64,8 @@ function toggleMessageResolver(resolverKey: string, enabled: boolean) {
     return
   }
 
-  // Ensure resolvers and disabledResolvers are initialized.
-  accountSettings.value.resolvers ??= { disabledResolvers: [] }
-  accountSettings.value.resolvers.disabledResolvers ??= []
-
-  const disabledResolvers = accountSettings.value.resolvers.disabledResolvers
+  // Ensure messageProcessing and resolvers are initialized.
+  const disabledResolvers = messageProcessing.value.resolvers.disabledResolvers
   const index = disabledResolvers.indexOf(resolverKey)
 
   if (enabled && index !== -1) {
@@ -198,60 +224,106 @@ function updateConfig() {
         </div>
       </div>
 
-      <!-- Receive messages settings -->
-      <div
-        v-if="accountSettings.receiveMessages"
-        class="border rounded-lg bg-card p-6 shadow-sm"
-      >
-        <h2 class="mb-4 text-xl font-semibold">
-          {{ t('settings.receiveMessagesSettings') }}
-        </h2>
-        <div class="space-y-4">
-          <p class="text-sm text-muted-foreground">
-            {{ t('settings.receiveMessagesDescription') }}
-          </p>
-          <div class="grid gap-4 md:grid-cols-2">
-            <div class="flex items-center justify-between">
-              <label class="text-sm text-muted-foreground font-medium">
-                {{ t('settings.receiveAll') }}
-              </label>
-              <label class="relative inline-flex cursor-pointer items-center">
-                <input
-                  :checked="accountSettings.receiveMessages.receiveAll"
-                  type="checkbox"
-                  class="peer sr-only"
-                  @change="accountSettings.receiveMessages.receiveAll = ($event.target as HTMLInputElement).checked"
-                >
-                <div class="peer h-6 w-11 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:border after:rounded-full after:bg-background peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resolvers settings -->
+      <!-- Message processing settings -->
       <div class="border rounded-lg bg-card p-6 shadow-sm">
         <h2 class="mb-4 text-xl font-semibold">
-          {{ t('settings.resolversSettings') }}
+          {{ t('settings.messageProcessing') }}
         </h2>
-        <div class="space-y-4">
-          <p class="text-sm text-muted-foreground">
-            {{ t('settings.resolversDescription') }}
-          </p>
-          <div class="grid gap-4 md:grid-cols-2">
-            <div v-for="resolver in messageResolvers" :key="resolver.key" class="flex items-center justify-between">
-              <label class="text-sm text-muted-foreground font-medium">
-                {{ t(`settings.${resolver.key}Resolver`) }}
+        <div class="space-y-6">
+          <div class="space-y-4">
+            <p class="text-sm text-muted-foreground">
+              {{ t('settings.receiveMessagesDescription') }}
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="flex items-center justify-between">
+                <label class="text-sm text-muted-foreground font-medium">
+                  {{ t('settings.receiveAll') }}
+                </label>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input
+                    :checked="messageProcessing.receiveMessages.receiveAll"
+                    type="checkbox"
+                    class="peer sr-only"
+                    @change="messageProcessing.receiveMessages.receiveAll = ($event.target as HTMLInputElement).checked"
+                  >
+                  <div class="peer h-6 w-11 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:border after:rounded-full after:bg-background peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+                </label>
+              </div>
+              <div class="flex items-center justify-between">
+                <label class="text-sm text-muted-foreground font-medium">
+                  {{ t('settings.receiveMessagesDownloadMedia') }}
+                </label>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input
+                    :checked="messageProcessing.receiveMessages.downloadMedia"
+                    type="checkbox"
+                    class="peer sr-only"
+                    @change="messageProcessing.receiveMessages.downloadMedia = ($event.target as HTMLInputElement).checked"
+                  >
+                  <div class="peer h-6 w-11 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:border after:rounded-full after:bg-background peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t pt-4 space-y-3">
+            <div class="flex items-start gap-3">
+              <input
+                id="account-sync-media"
+                v-model="messageProcessing.defaults.syncMedia"
+                type="checkbox"
+                class="mt-1 h-4 w-4 cursor-pointer border-gray-300 rounded text-primary focus:ring-2 focus:ring-primary"
+              >
+              <label for="account-sync-media" class="flex-1 cursor-pointer">
+                <div class="text-sm text-foreground font-medium">
+                  {{ t('sync.syncMedia') }}
+                </div>
+                <div class="text-xs text-muted-foreground">
+                  {{ t('sync.syncMediaDescription') }}
+                </div>
               </label>
-              <label class="relative inline-flex cursor-pointer items-center">
+            </div>
+
+            <div v-if="messageProcessing.defaults.syncMedia" class="ml-7 space-y-2">
+              <label class="block text-sm text-foreground font-medium">
+                {{ t('sync.maxMediaSize') }}
+              </label>
+              <div class="flex items-center gap-2">
                 <input
-                  :checked="isResolverEnabled(resolver.key)"
-                  type="checkbox"
-                  class="peer sr-only"
-                  @change="toggleMessageResolver(resolver.key, ($event.target as HTMLInputElement).checked)"
+                  v-model.number="messageProcessing.defaults.maxMediaSize"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="block w-32 border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+                  placeholder="0"
                 >
-                <div class="peer h-6 w-11 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:border after:rounded-full after:bg-background peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
-              </label>
+                <span class="text-sm text-muted-foreground">MB ({{ t('sync.noLimit') }})</span>
+              </div>
+              <p class="text-xs text-muted-foreground">
+                {{ t('sync.maxMediaSizeDescription') }}
+              </p>
+            </div>
+          </div>
+
+          <div class="border-t pt-4 space-y-4">
+            <p class="text-sm text-muted-foreground">
+              {{ t('settings.resolversDescription') }}
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div v-for="resolver in messageResolvers" :key="resolver.key" class="flex items-center justify-between">
+                <label class="text-sm text-muted-foreground font-medium">
+                  {{ t(`settings.${resolver.key}Resolver`) }}
+                </label>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input
+                    :checked="isResolverEnabled(resolver.key)"
+                    type="checkbox"
+                    class="peer sr-only"
+                    @change="toggleMessageResolver(resolver.key, ($event.target as HTMLInputElement).checked)"
+                  >
+                  <div class="peer h-6 w-11 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:border after:rounded-full after:bg-background peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+                </label>
+              </div>
             </div>
           </div>
         </div>

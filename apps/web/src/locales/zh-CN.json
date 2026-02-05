@@ -123,6 +123,7 @@
   },
   "settings": {
     "addAccount": "添加账号",
+    "accountSettings": "账号设置",
     "apiBaseUrl": "API 基础 URL",
     "apiKey": "API 密钥",
     "apiSettings": "API 设置",
@@ -149,6 +150,7 @@
     "login": "登录",
     "logout": "退出登录",
     "logoutCurrentAccount": "退出当前账号",
+    "messageProcessing": "消息处理",
     "maxTokens": "最大令牌数",
     "mediaResolver": "媒体解析器",
     "model": "模型",
@@ -156,6 +158,7 @@
     "notLoggedIn": "未登录",
     "open": "开启",
     "receiveAll": "接收所有新消息",
+    "receiveMessagesDownloadMedia": "接收新消息时下载媒体",
     "receiveMessagesDescription": "配置获取新消息的行为",
     "receiveMessagesSettings": "新消息行为",
     "resolversDescription": "控制哪些消息解析器已启用。禁用的解析器将不会处理消息。",

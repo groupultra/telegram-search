@@ -14,9 +14,23 @@ export function registerGramEventsEventHandlers(ctx: CoreContext, logger: Logger
 
   return (_: GramEventsService) => {
     ctx.emitter.on(CoreEventType.GramMessageReceived, async ({ message, pts, date, isChannel }) => {
+      const accountSettings = await ctx.getAccountSettings()
+      const receiveSettings = accountSettings.messageProcessing?.receiveMessages
+
+      if (!receiveSettings?.receiveAll) {
+        return
+      }
+
+      const defaults = accountSettings.messageProcessing?.defaults
+      const downloadMedia = receiveSettings.downloadMedia ?? true
+      const syncOptions = {
+        ...defaults,
+        syncMedia: downloadMedia,
+      }
+
       logger.withFields({ message: message.id, fromId: message.fromId, content: message.text, pts, isChannel }).debug('Message received')
 
-      ctx.emitter.emit(CoreEventType.MessageProcess, { messages: [message] })
+      ctx.emitter.emit(CoreEventType.MessageProcess, { messages: [message], syncOptions })
 
       if (!pts)
         return

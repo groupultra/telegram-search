@@ -25,14 +25,6 @@ export function createGramEventsService(ctx: CoreContext, logger: Logger) {
     }
 
     eventHandler = async (event: EventBuilder) => {
-      // TODO: should we store the account settings into ctx, to avoid fetching it from db every time?
-      // Is there a way to notify the service when the account settings change?
-      const shouldReceive = (await ctx.getAccountSettings()).receiveMessages?.receiveAll
-
-      if (!shouldReceive) {
-        return
-      }
-
       if (event instanceof NewMessageEvent && event.message) {
         const originalUpdate = event.originalUpdate
 

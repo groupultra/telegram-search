@@ -52,7 +52,7 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
 
     // Avatar resolver is disabled by default (configured in generateDefaultConfig).
     // Current strategy: client-driven, on-demand avatar loading via entity:avatar:fetch.
-    const disabledResolvers = (await ctx.getAccountSettings()).resolvers?.disabledResolvers
+    const disabledResolvers = (await ctx.getAccountSettings()).messageProcessing?.resolvers?.disabledResolvers
 
     // Embedding or resolve messages
     const resolverSpans: Array<{ name: string, duration: number, count: number }> = []
