@@ -49,7 +49,7 @@ export function createBotRegistry(options: BotRegistryOptions): BotRegistry {
 
     return {
       id: account.id,
-      platform_user_id: account.platform_user_id,
+      platformUserId: account.platform_user_id,
     }
   }
 

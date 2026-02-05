@@ -8,7 +8,7 @@ import { registerSummaryCommand } from './summary'
 
 export interface BotCommandAccount {
   id: string
-  platform_user_id: string
+  platformUserId: string
 }
 
 export interface BotCommandContext {
