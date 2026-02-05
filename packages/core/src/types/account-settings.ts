@@ -41,6 +41,7 @@ export const botConfigSchema = object({
   enabled: optional(boolean(), false),
   token: optional(string()),
   notifyChatId: optional(string()),
+  lastSearchChatId: optional(string()), // Remember last selected chat for search
 })
 
 export const accountSettingsSchema = object({

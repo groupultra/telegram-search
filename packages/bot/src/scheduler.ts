@@ -2,7 +2,7 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreDB, DBSelectBotScheduledTask } from '@tg-search/core'
 import type { Bot } from 'grammy'
 
-import { EmbeddingDimension, models } from '@tg-search/core'
+import { models } from '@tg-search/core'
 import { Cron } from 'croner'
 
 export interface Scheduler {
@@ -66,7 +66,7 @@ export function createScheduler(
     task: DBSelectBotScheduledTask,
     accountId: string,
     notifyChatId: string,
-    embeddingDimension = EmbeddingDimension.DIMENSION_1536,
+    embeddingDimension = 1536,
   ) {
     const db = getDB()
     const config = task.config || {}

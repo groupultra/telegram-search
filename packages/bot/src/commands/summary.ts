@@ -2,8 +2,6 @@ import type { Bot } from 'grammy'
 
 import type { BotCommandContext } from '.'
 
-import { EmbeddingDimension } from '@tg-search/core'
-
 export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
   const logger = ctx.logger.withContext('bot:command:summary')
 
@@ -31,7 +29,7 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
         logger,
         account.id,
         undefined,
-        EmbeddingDimension.DIMENSION_1536,
+        1536,
         { text: undefined },
         { limit: 50, offset: 0 },
         { timeRange: { start: oneDayAgo } },
