@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { boolean, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { bigint, boolean, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
 import { accountsTable } from './accounts'
 
@@ -9,9 +9,9 @@ export const accountChatFoldersTable = pgTable('account_chat_folders', {
   folderId: integer('folder_id').notNull(), // Telegram folder ID
   title: text('title').notNull(),
   emoticon: text('emoticon'),
-  pinnedChatIds: integer('pinned_chat_ids').array().default([]),
-  includedChatIds: integer('included_chat_ids').array().default([]),
-  excludedChatIds: integer('excluded_chat_ids').array().default([]),
+  pinnedChatIds: bigint('pinned_chat_ids', { mode: 'number' }).array().default([]),
+  includedChatIds: bigint('included_chat_ids', { mode: 'number' }).array().default([]),
+  excludedChatIds: bigint('excluded_chat_ids', { mode: 'number' }).array().default([]),
   contacts: boolean('contacts').default(false),
   nonContacts: boolean('non_contacts').default(false),
   groups: boolean('groups').default(false),

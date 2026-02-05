@@ -211,6 +211,13 @@
       "when": 1770307249188,
       "tag": "0029_motionless_shooting_star",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1770312603679,
+      "tag": "0030_lonely_exodus",
+      "breakpoints": true
     }
   ]
 }
