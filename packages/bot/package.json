@@ -14,6 +14,7 @@
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "croner": "^10.0.1",
-    "grammy": "^1.39.3"
+    "grammy": "^1.39.3",
+    "xsai": "catalog:"
   }
 }

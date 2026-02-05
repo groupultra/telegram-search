@@ -75,21 +75,40 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
         return
       }
 
-      // 3. Generate summary
-      await gramCtx.editMessageText(
-        `📝 Generating summary for ${messages.length} messages...`,
-      )
-
-      const summary = await generateSummary(messages, llmConfig)
-
-      // 4. Format and send summary
+      // 3. Generate summary with streaming
       const modeLabel = {
         unread: 'Unread Messages',
         today: 'Today\'s Messages',
         last24h: 'Last 24 Hours',
       }[mode]
 
-      const summaryText = `📊 **${modeLabel} Summary**\n\n${summary}\n\n---\n_Based on ${messages.length} message(s)_`
+      let accumulatedText = ''
+      let lastUpdateTime = 0
+      const UPDATE_INTERVAL = 500 // Update every 500ms
+
+      await generateSummary(messages, llmConfig, async (delta) => {
+        accumulatedText += delta
+        const now = Date.now()
+
+        // Update message periodically to show streaming progress
+        if (now - lastUpdateTime > UPDATE_INTERVAL) {
+          lastUpdateTime = now
+          const summaryText = `📊 **${modeLabel} Summary**\n\n${accumulatedText}\n\n---\n_Generating... (${messages.length} messages)_`
+
+          try {
+            await gramCtx.editMessageText(summaryText, { parse_mode: 'Markdown' })
+          }
+          catch (err) {
+            // Ignore rate limit errors during streaming
+            if (!(err instanceof Error) || !err.message.includes('Too Many Requests')) {
+              throw err
+            }
+          }
+        }
+      })
+
+      // 4. Final update with complete summary
+      const summaryText = `📊 **${modeLabel} Summary**\n\n${accumulatedText}\n\n---\n_Based on ${messages.length} message(s)_`
 
       await gramCtx.editMessageText(
         summaryText,
@@ -165,12 +184,15 @@ async function fetchMessagesForSummary(
 }
 
 /**
- * Generate summary using OpenAI API
+ * Generate summary using xsai streaming
  */
 async function generateSummary(
   messages: Array<{ fromName?: string, fromId?: string, content: string }>,
   llmConfig: { apiKey: string, apiBase?: string, model?: string, temperature?: number, maxTokens?: number },
-): Promise<string> {
+  onDelta: (delta: string) => void | Promise<void>,
+): Promise<void> {
+  const { streamText } = await import('xsai')
+
   // Build message content
   const content = messages
     .map((m) => {
@@ -179,35 +201,27 @@ async function generateSummary(
     })
     .join('\n')
 
-  // Call OpenAI API
-  const response = await fetch(`${llmConfig.apiBase || 'https://api.openai.com/v1'}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${llmConfig.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: llmConfig.model || 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant. Summarize the following Telegram messages concisely in Chinese. Focus on key points, important discussions, and action items.',
-        },
-        {
-          role: 'user',
-          content,
-        },
-      ],
-      temperature: llmConfig.temperature || 0.7,
-      max_tokens: llmConfig.maxTokens || 2000,
-    }),
+  // Stream from LLM
+  const { textStream } = streamText({
+    baseURL: llmConfig.apiBase || 'https://api.openai.com/v1',
+    model: llmConfig.model || 'gpt-4o-mini',
+    apiKey: llmConfig.apiKey,
+    messages: [
+      {
+        role: 'system',
+        content: 'You are a helpful assistant. Summarize the following Telegram messages concisely in Chinese. Focus on key topics, important information, and main discussion points.',
+      },
+      {
+        role: 'user',
+        content,
+      },
+    ],
+    temperature: llmConfig.temperature ?? 0.7,
+    maxTokens: llmConfig.maxTokens ?? 2000,
   })
 
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`OpenAI API error: ${response.status} ${error}`)
+  const iterable = textStream as unknown as AsyncIterable<string>
+  for await (const text of iterable) {
+    await onDelta(text)
   }
-
-  const data = await response.json()
-  return data.choices[0].message.content
 }
