@@ -6,12 +6,7 @@ export interface ChatOption {
   id: string
   name: string
   type: string
-}
-
-interface ChatResult {
-  chat_id: string
-  chat_name: string | null
-  chat_type: string | null
+  folderIds?: number[]
 }
 
 /**
@@ -21,9 +16,10 @@ export async function getAccountChats(db: CoreDB, accountId: string): Promise<Ch
   const result = await models.chatModels.fetchChatsByAccountId(db, accountId)
   const chats = result.expect('Failed to get chats')
 
-  return chats.map((chat: ChatResult) => ({
+  return chats.map(chat => ({
     id: chat.chat_id,
     name: chat.chat_name || chat.chat_id,
     type: chat.chat_type || 'unknown',
+    folderIds: chat.folder_ids || [],
   }))
 }

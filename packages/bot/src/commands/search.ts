@@ -7,13 +7,24 @@ import { InlineKeyboard } from 'grammy'
 import { getAccountChats } from './helpers'
 
 const DEFAULT_EMBEDDING_DIMENSION = 1536
+const CHATS_PER_PAGE = 8
 
-// In-memory store for pending searches (userId -> chatId)
-const pendingSearches = new Map<number, string>()
+// User search state management
+interface UserSearchState {
+  mode: 'idle' | 'selecting_folder' | 'selecting_chat' | 'searching' | 'text_search_chat'
+  folderId?: number // Selected folder ID (undefined = all chats)
+  chatId?: string // Selected chat ID
+  query?: string // Current search query
+  chatListPage?: number // Chat list page number
+  resultPage?: number // Result page number
+}
+
+const userStates = new Map<number, UserSearchState>()
 
 export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
   const logger = ctx.logger.withContext('bot:command:search')
 
+  // /search command - show folder selection
   bot.command('search', async (gramCtx) => {
     const userId = gramCtx.from?.id
     if (!userId) {
@@ -30,78 +41,31 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
     try {
       const db = ctx.getDB()
 
-      // Get account settings to retrieve last search chat
-      const accountResult = await ctx.models.accountModels.findAccountByUUID(db, account.id)
-      const accountData = accountResult.expect('Account not found')
-      const lastSearchChatId = (accountData.settings?.bot as any)?.lastSearchChatId as string | undefined
+      // Get folders from database
+      const foldersResult = await ctx.models.accountChatFolderModels.findFoldersByAccountId(db, account.id)
+      const folders = foldersResult.expect('Failed to get folders')
 
-      // Get user's chats for scope selection
-      const chats = await getAccountChats(db, account.id)
+      // Initialize user state
+      userStates.set(userId, {
+        mode: 'selecting_folder',
+        chatListPage: 0,
+      })
 
-      if (chats.length === 0) {
-        await gramCtx.reply('You have no chats yet. Please sync your messages first.')
-        return
-      }
-
-      // Build inline keyboard with chat options
+      // Build folder selection keyboard
       const keyboard = new InlineKeyboard()
 
-      // Helper to sanitize button text (remove problematic characters)
-      const sanitizeText = (text: string): string => {
-        // Remove any non-UTF-8 characters (i.e., keep only valid Unicode scalar values)
-        // Here we match any invalid surrogate pairs and ASCII control characters except \t and \n
-        // Most JS strings are UTF-16, but to restrict to good Unicode text:
-        return text
-          // Remove ASCII control characters except tab and line feed
-          .replace(/[\u0000-\u0008\v\f\u000E-\u001F\u007F]/g, '')
-          // Remove invalid surrogate code units (lone surrogates)
-          .replace(/[\uD800-\uDFFF]/g, '')
-          .trim()
-      }
-
-      // Add "Last Used" option if available
-      if (lastSearchChatId) {
-        const lastChat = chats.find(c => c.id === lastSearchChatId)
-        if (lastChat) {
-          const rawName = lastChat.name.length > 25 ? `${lastChat.name.slice(0, 25)}...` : lastChat.name
-          const displayName = sanitizeText(rawName)
-          if (displayName) {
-            keyboard.text(
-              `⭐ Last: ${displayName}`,
-              `selectchat:${lastChat.id}`,
-            ).row()
-          }
-        }
-      }
-
       // Add "All Chats" option
-      keyboard.text('🌐 All Chats', 'selectchat:all').row()
+      keyboard.text('🌐 All Chats', 'folder:all').row()
 
-      // Add individual chat options (limit to 7 to make room for "last used")
-      const maxChats = lastSearchChatId ? 7 : 8
-      const otherChats = lastSearchChatId
-        ? chats.filter(c => c.id !== lastSearchChatId).slice(0, maxChats)
-        : chats.slice(0, maxChats)
-
-      for (const chat of otherChats) {
-        const rawName = chat.name.length > 30 ? `${chat.name.slice(0, 30)}...` : chat.name
-        const displayName = sanitizeText(rawName)
-
-        // Skip chats with empty names after sanitization
-        if (!displayName) {
-          continue
-        }
-
-        keyboard.text(
-          `${displayName}`,
-          `selectchat:${chat.id}`,
-        ).row()
+      // Add folder options
+      for (const folder of folders) {
+        const icon = folder.emoticon || '📁'
+        const name = folder.title
+        keyboard.text(`${icon} ${name}`, `folder:${folder.id}`).row()
       }
 
-      const totalOtherChats = lastSearchChatId ? chats.length - 1 : chats.length
-      if (totalOtherChats > maxChats) {
-        keyboard.text(`... and ${totalOtherChats - maxChats} more`, 'selectchat:noop').row()
-      }
+      // Add "Search Chat" button
+      keyboard.text('🔍 Search Chat by Name', 'action:search_chat').row()
 
       await gramCtx.reply(
         '🔍 Select where to search:',
@@ -114,10 +78,11 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
     }
   })
 
-  // Handle chat selection
-  bot.callbackQuery(/^selectchat:/, async (gramCtx) => {
+  // Handle folder selection
+  bot.callbackQuery(/^folder:/, async (gramCtx) => {
     const userId = gramCtx.from.id
     const data = gramCtx.callbackQuery.data
+    const folderIdStr = data.replace('folder:', '')
 
     const account = await ctx.resolveAccountByTelegramUserId(userId)
     if (!account) {
@@ -125,27 +90,253 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
       return
     }
 
-    const chatId = data.replace('selectchat:', '')
+    try {
+      const db = ctx.getDB()
+      const chats = await getAccountChats(db, account.id)
 
-    // Handle noop
-    if (chatId === 'noop') {
-      await gramCtx.answerCallbackQuery('Please select a chat from the list above.')
+      // Filter chats by folder
+      let filteredChats = chats
+      if (folderIdStr !== 'all') {
+        const folderId = Number.parseInt(folderIdStr, 10)
+        filteredChats = chats.filter(chat => chat.folderIds?.includes(folderId))
+      }
+
+      if (filteredChats.length === 0) {
+        await gramCtx.answerCallbackQuery('No chats in this folder.')
+        return
+      }
+
+      // Update user state
+      const state = userStates.get(userId) || { mode: 'idle' }
+      state.mode = 'selecting_chat'
+      state.folderId = folderIdStr === 'all' ? undefined : Number.parseInt(folderIdStr, 10)
+      state.chatListPage = 0
+      userStates.set(userId, state)
+
+      await gramCtx.answerCallbackQuery()
+      await showChatList(gramCtx, filteredChats, 0, 'Select a chat to search in:')
+    }
+    catch (error) {
+      logger.withError(error).error('Folder selection failed')
+      await gramCtx.answerCallbackQuery('An error occurred.')
+    }
+  })
+
+  // Handle chat selection
+  bot.callbackQuery(/^chat:/, async (gramCtx) => {
+    const userId = gramCtx.from.id
+    const data = gramCtx.callbackQuery.data
+    const chatId = data.replace('chat:', '')
+
+    const account = await ctx.resolveAccountByTelegramUserId(userId)
+    if (!account) {
+      await gramCtx.answerCallbackQuery('Account not linked.')
       return
     }
 
-    // Store pending search
-    pendingSearches.set(userId, chatId)
+    try {
+      const db = ctx.getDB()
+      const chats = await getAccountChats(db, account.id)
+      const selectedChat = chats.find(c => c.id === chatId)
+      const chatName = selectedChat ? selectedChat.name : 'Selected chat'
 
-    // Get chat name for confirmation
-    const db = ctx.getDB()
-    const chats = await getAccountChats(db, account.id)
-    const selectedChat = chatId === 'all' ? null : chats.find(c => c.id === chatId)
-    const chatName = selectedChat ? selectedChat.name : 'All Chats'
+      // Update user state
+      const state = userStates.get(userId) || { mode: 'idle' }
+      state.mode = 'searching'
+      state.chatId = chatId
+      userStates.set(userId, state)
+
+      await gramCtx.answerCallbackQuery()
+      await gramCtx.editMessageText(
+        `✅ Selected: ${chatName}\n\n💬 Now send me your search query:`,
+      )
+    }
+    catch (error) {
+      logger.withError(error).error('Chat selection failed')
+      await gramCtx.answerCallbackQuery('An error occurred.')
+    }
+  })
+
+  // Handle chat list pagination
+  bot.callbackQuery(/^chatpage:/, async (gramCtx) => {
+    const userId = gramCtx.from.id
+    const data = gramCtx.callbackQuery.data
+    const page = Number.parseInt(data.replace('chatpage:', ''), 10)
+
+    const account = await ctx.resolveAccountByTelegramUserId(userId)
+    if (!account) {
+      await gramCtx.answerCallbackQuery('Account not linked.')
+      return
+    }
+
+    try {
+      const state = userStates.get(userId)
+      if (!state) {
+        await gramCtx.answerCallbackQuery('Session expired.')
+        return
+      }
+
+      const db = ctx.getDB()
+      const chats = await getAccountChats(db, account.id)
+
+      // Filter chats by folder
+      let filteredChats = chats
+      if (state.folderId !== undefined) {
+        filteredChats = chats.filter(chat => chat.folderIds?.includes(state.folderId!))
+      }
+
+      state.chatListPage = page
+      userStates.set(userId, state)
+
+      await gramCtx.answerCallbackQuery()
+      await showChatList(gramCtx, filteredChats, page, 'Select a chat to search in:')
+    }
+    catch (error) {
+      logger.withError(error).error('Chat page navigation failed')
+      await gramCtx.answerCallbackQuery('An error occurred.')
+    }
+  })
+
+  // Handle search chat by name
+  bot.callbackQuery(/^action:search_chat$/, async (gramCtx) => {
+    const userId = gramCtx.from.id
+
+    const state = userStates.get(userId) || { mode: 'idle' }
+    state.mode = 'text_search_chat'
+    userStates.set(userId, state)
 
     await gramCtx.answerCallbackQuery()
     await gramCtx.editMessageText(
-      `✅ Selected: ${chatName}\n\n💬 Now send me your search query:`,
+      '🔍 Type the chat name to search:\n\n(Partial match supported)',
     )
+  })
+
+  // Handle back to folder selection
+  bot.callbackQuery(/^action:back_folder$/, async (gramCtx) => {
+    const userId = gramCtx.from.id
+
+    const account = await ctx.resolveAccountByTelegramUserId(userId)
+    if (!account) {
+      await gramCtx.answerCallbackQuery('Account not linked.')
+      return
+    }
+
+    try {
+      const db = ctx.getDB()
+
+      // Get folders from database
+      const foldersResult = await ctx.models.accountChatFolderModels.findFoldersByAccountId(db, account.id)
+      const folders = foldersResult.expect('Failed to get folders')
+
+      // Reset user state
+      const state = userStates.get(userId) || { mode: 'idle' }
+      state.mode = 'selecting_folder'
+      state.folderId = undefined
+      state.chatId = undefined
+      state.chatListPage = 0
+      userStates.set(userId, state)
+
+      // Show folder selection again
+      const keyboard = new InlineKeyboard()
+      keyboard.text('🌐 All Chats', 'folder:all').row()
+
+      for (const folder of folders) {
+        const icon = folder.emoticon || '📁'
+        const name = folder.title
+        keyboard.text(`${icon} ${name}`, `folder:${folder.id}`).row()
+      }
+
+      keyboard.text('🔍 Search Chat by Name', 'action:search_chat').row()
+
+      await gramCtx.answerCallbackQuery()
+      await gramCtx.editMessageText(
+        '🔍 Select where to search:',
+        { reply_markup: keyboard },
+      )
+    }
+    catch (error) {
+      logger.withError(error).error('Back to folder failed')
+      await gramCtx.answerCallbackQuery('An error occurred.')
+    }
+  })
+
+  // Handle continue search
+  bot.callbackQuery(/^action:continue_search$/, async (gramCtx) => {
+    const userId = gramCtx.from.id
+
+    const state = userStates.get(userId)
+    if (!state || !state.chatId) {
+      await gramCtx.answerCallbackQuery('Session expired. Please /search again.')
+      return
+    }
+
+    state.mode = 'searching'
+    userStates.set(userId, state)
+
+    await gramCtx.answerCallbackQuery()
+    await gramCtx.reply('💬 Send me a new search query:')
+  })
+
+  // Handle end search
+  bot.callbackQuery(/^action:end_search$/, async (gramCtx) => {
+    const userId = gramCtx.from.id
+
+    userStates.delete(userId)
+
+    await gramCtx.answerCallbackQuery('Search ended.')
+    await gramCtx.reply('Search session ended. Type /search to start a new search.')
+  })
+
+  // Handle result page navigation
+  bot.callbackQuery(/^resultpage:/, async (gramCtx) => {
+    const userId = gramCtx.from.id
+    const data = gramCtx.callbackQuery.data
+    const page = Number.parseInt(data.replace('resultpage:', ''), 10)
+
+    const account = await ctx.resolveAccountByTelegramUserId(userId)
+    if (!account) {
+      await gramCtx.answerCallbackQuery('Account not linked.')
+      return
+    }
+
+    try {
+      const state = userStates.get(userId)
+      if (!state || !state.chatId || !state.query) {
+        await gramCtx.answerCallbackQuery('Session expired. Please /search again.')
+        return
+      }
+
+      const searchResult = await executeSearchWithPagination(ctx, account.id, state.query, state.chatId, page)
+
+      // Update page in state
+      state.resultPage = page
+      userStates.set(userId, state)
+
+      // Build keyboard with pagination
+      const keyboard = new InlineKeyboard()
+
+      const navButtons = []
+      if (page > 0) {
+        navButtons.push({ text: '⬅️ Prev Page', callback_data: `resultpage:${page - 1}` })
+      }
+      if (searchResult.hasMore) {
+        navButtons.push({ text: '➡️ Next Page', callback_data: `resultpage:${page + 1}` })
+      }
+      if (navButtons.length > 0) {
+        keyboard.row(...navButtons)
+      }
+
+      keyboard.text('🔄 Switch Chat', 'action:back_folder')
+      keyboard.text('🔍 New Query', 'action:continue_search').row()
+      keyboard.text('❌ End Search', 'action:end_search').row()
+
+      await gramCtx.answerCallbackQuery()
+      await gramCtx.editMessageText(searchResult.text, { reply_markup: keyboard })
+    }
+    catch (error) {
+      logger.withError(error).error('Result page navigation failed')
+      await gramCtx.answerCallbackQuery('An error occurred.')
+    }
   })
 
   // Handle search query input
@@ -162,14 +353,10 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
       return
     }
 
-    // Check if user has pending search
-    const chatId = pendingSearches.get(userId)
-    if (!chatId) {
+    const state = userStates.get(userId)
+    if (!state) {
       return
     }
-
-    // Clear pending search
-    pendingSearches.delete(userId)
 
     const account = await ctx.resolveAccountByTelegramUserId(userId)
     if (!account) {
@@ -177,15 +364,55 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
       return
     }
 
-    await gramCtx.reply('🔍 Searching...')
-
     try {
-      const searchChatId = chatId === 'all' ? undefined : chatId
-      const resultText = await executeSearch(ctx, account.id, text, searchChatId)
+      const db = ctx.getDB()
 
-      // Save last search chat ID (if not "all")
-      if (searchChatId) {
-        const db = ctx.getDB()
+      // Handle text search for chat
+      if (state.mode === 'text_search_chat') {
+        const chats = await getAccountChats(db, account.id)
+        const query = text.toLowerCase()
+
+        // Fuzzy match chat names
+        const matches = chats.filter(chat =>
+          chat.name.toLowerCase().includes(query),
+        ).slice(0, 10)
+
+        if (matches.length === 0) {
+          await gramCtx.reply('No chats found matching your query. Try again or type /search to start over.')
+          return
+        }
+
+        // Show matched chats
+        const keyboard = new InlineKeyboard()
+        for (const chat of matches) {
+          const icon = chat.type === 'group' ? '👥' : chat.type === 'channel' ? '📢' : '💬'
+          const displayName = sanitizeText(chat.name).slice(0, 40)
+          if (displayName) {
+            keyboard.text(`${icon} ${displayName}`, `chat:${chat.id}`).row()
+          }
+        }
+
+        keyboard.text('🔙 Back to Folders', 'action:back_folder').row()
+
+        await gramCtx.reply(
+          `Found ${matches.length} matching chat(s):`,
+          { reply_markup: keyboard },
+        )
+        return
+      }
+
+      // Handle search query
+      if (state.mode === 'searching' && state.chatId) {
+        await gramCtx.reply('🔍 Searching...')
+
+        const searchChatId = state.chatId
+        const searchResult = await executeSearchWithPagination(ctx, account.id, text, searchChatId, 0)
+
+        // Save query and last search chat ID
+        state.query = text
+        state.resultPage = 0
+        userStates.set(userId, state)
+
         const accountResult = await ctx.models.accountModels.findAccountByUUID(db, account.id)
         const accountData = accountResult.expect('Account not found')
 
@@ -198,9 +425,25 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
         }
 
         await ctx.models.accountSettingsModels.updateAccountSettings(db, account.id, updatedSettings)
-      }
 
-      await gramCtx.reply(resultText)
+        // Show result with action buttons
+        const keyboard = new InlineKeyboard()
+
+        // Add pagination buttons if needed
+        const navButtons = []
+        if (searchResult.hasMore) {
+          navButtons.push({ text: '➡️ Next Page', callback_data: 'resultpage:1' })
+        }
+        if (navButtons.length > 0) {
+          keyboard.row(...navButtons)
+        }
+
+        keyboard.text('🔄 Switch Chat', 'action:back_folder')
+        keyboard.text('🔍 New Query', 'action:continue_search').row()
+        keyboard.text('❌ End Search', 'action:end_search').row()
+
+        await gramCtx.reply(searchResult.text, { reply_markup: keyboard })
+      }
     }
     catch (error) {
       logger.withError(error).error('Search execution failed')
@@ -210,16 +453,90 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
 }
 
 /**
- * Execute search and return formatted results
+ * Display paginated chat list
  */
-export async function executeSearch(
+async function showChatList(
+  gramCtx: any,
+  chats: any[],
+  page: number,
+  message: string,
+) {
+  const keyboard = new InlineKeyboard()
+
+  const startIdx = page * CHATS_PER_PAGE
+  const endIdx = startIdx + CHATS_PER_PAGE
+  const pageChats = chats.slice(startIdx, endIdx)
+  const totalPages = Math.ceil(chats.length / CHATS_PER_PAGE)
+
+  for (const chat of pageChats) {
+    const icon = chat.type === 'group' ? '👥' : chat.type === 'channel' ? '📢' : '💬'
+    const displayName = sanitizeText(chat.name).slice(0, 40)
+
+    if (!displayName) {
+      continue
+    }
+
+    keyboard.text(`${icon} ${displayName}`, `chat:${chat.id}`).row()
+  }
+
+  // Add pagination buttons
+  if (totalPages > 1) {
+    const navButtons = []
+    if (page > 0) {
+      navButtons.push({ text: '⬅️ Prev', callback_data: `chatpage:${page - 1}` })
+    }
+    if (page < totalPages - 1) {
+      navButtons.push({ text: '➡️ Next', callback_data: `chatpage:${page + 1}` })
+    }
+    if (navButtons.length > 0) {
+      keyboard.row(...navButtons)
+    }
+  }
+
+  // Add back button
+  keyboard.text('🔙 Back to Folders', 'action:back_folder').row()
+
+  const pageInfo = totalPages > 1 ? ` (Page ${page + 1}/${totalPages})` : ''
+  await gramCtx.editMessageText(
+    `${message}${pageInfo}`,
+    { reply_markup: keyboard },
+  )
+}
+
+/**
+ * Helper to sanitize button text (remove problematic characters)
+ */
+function sanitizeText(text: string): string {
+  return text
+    // eslint-disable-next-line sonarjs/no-control-regex, no-control-regex
+    .replace(/[\u0000-\u0008\v\f\u000E-\u001F\u007F]/g, '')
+    .replace(/[\uD800-\uDFFF]/g, '')
+    .trim()
+}
+
+/**
+ * Execute search with pagination support
+ *
+ * Note: Vector search doesn't support offset, so we fetch (page+1)*limit results
+ * and slice in application layer
+ */
+async function executeSearchWithPagination(
   ctx: BotCommandContext,
   accountId: string,
   query: string,
-  chatId?: string,
-) {
+  chatId: string,
+  page: number = 0,
+): Promise<{ text: string, hasMore: boolean }> {
   const logger = ctx.logger.withContext('bot:search:execute')
   const db = ctx.getDB()
+
+  const limit = 10
+  const startIdx = page * limit
+  const endIdx = startIdx + limit
+
+  // Fetch enough results to cover this page + check if there's more
+  // Vector search doesn't support offset, so we fetch from start and slice
+  const fetchLimit = endIdx + 1
 
   const result = await ctx.models.chatMessageModels.retrieveMessages(
     db,
@@ -228,14 +545,23 @@ export async function executeSearch(
     undefined,
     DEFAULT_EMBEDDING_DIMENSION,
     { text: query },
-    { limit: 10, offset: 0 },
-    chatId ? { chatIds: [chatId] } : undefined,
+    { limit: fetchLimit, offset: 0 },
+    { chatIds: [chatId] },
   )
 
-  const messages = result.expect('Failed to search messages')
+  const allMessages = result.expect('Failed to search messages')
+
+  // Slice to get current page
+  const hasMore = allMessages.length > endIdx
+  const messages = allMessages.slice(startIdx, endIdx)
 
   if (messages.length === 0) {
-    return `No results found for "${query}"${chatId ? ' in selected chat' : ''}.`
+    return {
+      text: page === 0
+        ? `No results found for "${query}" in selected chat.`
+        : `No more results for "${query}".`,
+      hasMore: false,
+    }
   }
 
   const lines = messages.map((msg, index) => {
@@ -245,10 +571,28 @@ export async function executeSearch(
     const time = msg.platform_timestamp
       ? new Date(msg.platform_timestamp * 1000).toLocaleString()
       : 'Unknown time'
-    return `${index + 1}. [${chat}] ${from} (${time}):\n${content}`
+    return `${startIdx + index + 1}. [${chat}] ${from} (${time}):\n${content}`
   })
 
-  const scope = chatId ? 'in selected chat' : 'across all chats'
-  const header = `Found ${messages.length} result(s) for "${query}" ${scope}:\n\n`
-  return header + lines.join('\n\n')
+  const pageInfo = page > 0 ? ` (Page ${page + 1})` : ''
+  const header = `Found results for "${query}"${pageInfo}:\n\n`
+
+  return {
+    text: header + lines.join('\n\n'),
+    hasMore,
+  }
+}
+
+/**
+ * Execute search and return formatted results (backward compatibility for inline mode)
+ */
+export async function executeSearch(
+  ctx: BotCommandContext,
+  accountId: string,
+  query: string,
+  chatId: string,
+  page: number = 0,
+) {
+  const result = await executeSearchWithPagination(ctx, accountId, query, chatId, page)
+  return result.text
 }

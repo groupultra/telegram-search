@@ -133,10 +133,17 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
   })
 
   ctx.emitter.on(CoreEventType.StorageRecordChatFolders, async ({ folders, accountId }) => {
-    logger.withFields({ count: folders.length }).verbose('Recording chat folders mapping')
+    logger.withFields({ count: folders.length }).verbose('Recording chat folders')
 
-    await dbModels.chatFolderModels.updateChatFolders(ctx.getDB(), accountId, folders)
+    const db = ctx.getDB()
+
+    // Update folder mapping in account_joined_chats
+    await dbModels.chatFolderModels.updateChatFolders(db, accountId, folders)
     logger.verbose('Successfully updated chat folders mapping')
+
+    // Store folder metadata in account_chat_folders table
+    await dbModels.accountChatFolderModels.upsertFolders(db, accountId, folders)
+    logger.verbose('Successfully stored folder metadata')
   })
 
   ctx.emitter.on(CoreEventType.StorageSearchMessages, async (params) => {

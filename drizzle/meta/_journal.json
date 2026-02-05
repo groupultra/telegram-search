@@ -204,6 +204,13 @@
       "when": 1770285539790,
       "tag": "0028_naive_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1770307249188,
+      "tag": "0029_motionless_shooting_star",
+      "breakpoints": true
     }
   ]
 }
