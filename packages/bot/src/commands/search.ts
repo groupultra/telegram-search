@@ -135,10 +135,19 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
     }
 
     try {
-      const db = ctx.getDB()
-      const chats = await getAccountChats(db, account.id)
-      const selectedChat = chats.find(c => c.id === chatId)
-      const chatName = selectedChat ? selectedChat.name : 'Selected chat'
+      // Determine chat name
+      let chatName = 'Selected chat'
+      if (chatId === '__ALL__') {
+        chatName = 'All Chats'
+      }
+      else {
+        const db = ctx.getDB()
+        const chats = await getAccountChats(db, account.id)
+        const selectedChat = chats.find(c => c.id === chatId)
+        if (selectedChat) {
+          chatName = selectedChat.name
+        }
+      }
 
       // Update user state
       const state = userStates.get(userId) || { mode: 'idle' }
@@ -463,6 +472,11 @@ async function showChatList(
 ) {
   const keyboard = new InlineKeyboard()
 
+  // Add "Search All Chats" option at the top (only on first page)
+  if (page === 0) {
+    keyboard.text('🌐 Search All Chats', 'chat:__ALL__').row()
+  }
+
   const startIdx = page * CHATS_PER_PAGE
   const endIdx = startIdx + CHATS_PER_PAGE
   const pageChats = chats.slice(startIdx, endIdx)
@@ -538,6 +552,11 @@ async function executeSearchWithPagination(
   // Vector search doesn't support offset, so we fetch from start and slice
   const fetchLimit = endIdx + 1
 
+  // Build filters - if chatId is __ALL__, search all chats
+  const filters = chatId === '__ALL__'
+    ? {} // No chat filter - search all chats
+    : { chatIds: [chatId] }
+
   const result = await ctx.models.chatMessageModels.retrieveMessages(
     db,
     logger,
@@ -546,7 +565,7 @@ async function executeSearchWithPagination(
     DEFAULT_EMBEDDING_DIMENSION,
     { text: query },
     { limit: fetchLimit, offset: 0 },
-    { chatIds: [chatId] },
+    filters,
   )
 
   const allMessages = result.expect('Failed to search messages')
