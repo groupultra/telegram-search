@@ -1,6 +1,6 @@
 {
-  "id": "9f1950f2-d96f-403d-be35-dc89d3006d50",
-  "prevId": "25c21fa6-fba0-4bcf-aaaa-13cd87331f31",
+  "id": "f79d792a-5143-49dd-9110-c6a2f47f5c09",
+  "prevId": "6268c86f-bc42-4c31-a956-0bead60dcd0b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -41,21 +41,21 @@
         },
         "pinned_chat_ids": {
           "name": "pinned_chat_ids",
-          "type": "integer[]",
+          "type": "bigint[]",
           "primaryKey": false,
           "notNull": false,
           "default": "'{}'"
         },
         "included_chat_ids": {
           "name": "included_chat_ids",
-          "type": "integer[]",
+          "type": "bigint[]",
           "primaryKey": false,
           "notNull": false,
           "default": "'{}'"
         },
         "excluded_chat_ids": {
           "name": "excluded_chat_ids",
-          "type": "integer[]",
+          "type": "bigint[]",
           "primaryKey": false,
           "notNull": false,
           "default": "'{}'"
@@ -326,7 +326,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"embedding\":{\"model\":\"text-embedding-3-small\",\"dimension\":1536,\"apiKey\":\"\",\"apiBase\":\"\"},\"llm\":{\"model\":\"gpt-4o-mini\",\"apiKey\":\"\",\"apiBase\":\"https://api.openai.com/v1\",\"temperature\":0.7,\"maxTokens\":2000},\"resolvers\":{\"disabledResolvers\":[\"avatar\"]},\"receiveMessages\":{\"receiveAll\":true},\"sync\":{\"syncMedia\":true,\"maxMediaSize\":0},\"bot\":{\"enabled\":false}}'::jsonb"
+          "default": "'{\"embedding\":{\"model\":\"text-embedding-3-small\",\"dimension\":1536,\"apiKey\":\"\",\"apiBase\":\"\"},\"llm\":{\"model\":\"gpt-4o-mini\",\"apiKey\":\"\",\"apiBase\":\"https://api.openai.com/v1\",\"temperature\":0.7,\"maxTokens\":2000},\"resolvers\":{\"disabledResolvers\":[\"avatar\"]},\"receiveMessages\":{\"receiveAll\":true},\"bot\":{\"enabled\":false}}'::jsonb"
         },
         "pts": {
           "name": "pts",
