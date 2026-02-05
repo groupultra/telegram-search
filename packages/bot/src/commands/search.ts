@@ -42,7 +42,7 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
       const db = ctx.getDB()
 
       // Get folders from database
-      const foldersResult = await ctx.models.accountChatFolderModels.findFoldersByAccountId(db, account.id)
+      const foldersResult = await ctx.models.chatFolderModels.findFoldersByAccountId(db, account.id)
       const folders = foldersResult.expect('Failed to get folders')
 
       // Initialize user state
@@ -225,7 +225,7 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
       const db = ctx.getDB()
 
       // Get folders from database
-      const foldersResult = await ctx.models.accountChatFolderModels.findFoldersByAccountId(db, account.id)
+      const foldersResult = await ctx.models.chatFolderModels.findFoldersByAccountId(db, account.id)
       const folders = foldersResult.expect('Failed to get folders')
 
       // Reset user state

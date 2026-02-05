@@ -1,4 +1,3 @@
-import type { AccountChatFolderModels } from './account-chat-folders'
 import type { AccountJoinedChatModels } from './account-joined-chats'
 import type { AccountSettingsModels } from './account-settings'
 import type { AccountModels } from './accounts'
@@ -11,7 +10,6 @@ import type { PhotoModels } from './photos'
 import type { StickerModels } from './stickers'
 import type { UserModels } from './users'
 
-import { accountChatFolderModels } from './account-chat-folders'
 import { accountJoinedChatModels } from './account-joined-chats'
 import { accountSettingsModels } from './account-settings'
 import { accountModels } from './accounts'
@@ -29,7 +27,6 @@ export const models = {
   chatMessageStatsModels,
   chatModels,
   chatFolderModels,
-  accountChatFolderModels,
   photoModels,
   stickerModels,
   userModels,
@@ -42,7 +39,6 @@ export const models = {
 export type Models = typeof models
 export type { DBSelectBotScheduledTask } from './bot-scheduled-tasks'
 export type {
-  AccountChatFolderModels,
   AccountJoinedChatModels,
   AccountModels,
   AccountSettingsModels,

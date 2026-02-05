@@ -142,7 +142,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     logger.verbose('Successfully updated chat folders mapping')
 
     // Store folder metadata in account_chat_folders table
-    await dbModels.accountChatFolderModels.upsertFolders(db, accountId, folders)
+    await dbModels.chatFolderModels.upsertFolders(db, accountId, folders)
     logger.verbose('Successfully stored folder metadata')
   })
 
