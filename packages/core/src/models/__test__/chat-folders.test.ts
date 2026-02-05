@@ -93,8 +93,7 @@ describe('models/chats updateChatFolders', () => {
     ]
 
     // 3. Act
-    const updateResult = await chatFolderModels.updateChatFolders(db, account.id, folders)
-    updateResult.unwrap()
+    await chatFolderModels.updateChatFolders(db, account.id, folders)
 
     // 4. Assert
     const results = await db

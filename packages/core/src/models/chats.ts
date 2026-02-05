@@ -146,28 +146,26 @@ async function isChatAccessibleByAccount(db: CoreDB, accountId: string, chatId: 
  * Update the pts for a specific chat for an account.
  * Uses GREATEST() to ensure pts only moves forward.
  */
-async function updateChatPts(db: CoreDB, accountId: string, chatId: string, pts: number): PromiseResult<void> {
-  return withResult(async () => {
-    // Find the joined_chat id first
-    const chat = await db
-      .select({ id: joinedChatsTable.id })
-      .from(joinedChatsTable)
-      .where(eq(joinedChatsTable.chat_id, chatId))
-      .limit(1)
+async function updateChatPts(db: CoreDB, accountId: string, chatId: string, pts: number): Promise<void> {
+  // Find the joined_chat id first
+  const chat = await db
+    .select({ id: joinedChatsTable.id })
+    .from(joinedChatsTable)
+    .where(eq(joinedChatsTable.chat_id, chatId))
+    .limit(1)
 
-    if (chat.length === 0)
-      return
+  if (chat.length === 0)
+    return
 
-    await db
-      .update(accountJoinedChatsTable)
-      .set({
-        pts: sql`GREATEST(${accountJoinedChatsTable.pts}, ${pts})`,
-      })
-      .where(and(
-        eq(accountJoinedChatsTable.account_id, accountId),
-        eq(accountJoinedChatsTable.joined_chat_id, chat[0].id),
-      ))
-  })
+  await db
+    .update(accountJoinedChatsTable)
+    .set({
+      pts: sql`GREATEST(${accountJoinedChatsTable.pts}, ${pts})`,
+    })
+    .where(and(
+      eq(accountJoinedChatsTable.account_id, accountId),
+      eq(accountJoinedChatsTable.joined_chat_id, chat[0].id),
+    ))
 }
 
 export const chatModels = {
@@ -186,45 +184,43 @@ export type ChatModels = typeof chatModels
  * Record a single chat entity (without dialog metadata)
  * Requires accountId to persist access_hash in account_joined_chats.
  */
-async function recordChatEntity(db: CoreDB, entity: CoreEntity, accountId?: string): PromiseResult<void> {
-  return withResult(async () => {
-    let chatType: JoinedChatType = 'group'
-    if (entity.type === 'channel') {
-      chatType = 'channel'
-    }
+async function recordChatEntity(db: CoreDB, entity: CoreEntity, accountId?: string): Promise<void> {
+  let chatType: JoinedChatType = 'group'
+  if (entity.type === 'channel') {
+    chatType = 'channel'
+  }
 
-    const [chat] = await db.insert(joinedChatsTable)
+  const [chat] = await db.insert(joinedChatsTable)
+    .values({
+      platform: 'telegram',
+      chat_id: entity.id,
+      chat_name: entity.name,
+      chat_type: chatType,
+      dialog_date: 0, // Not a dialog sync, so no date
+    })
+    .onConflictDoUpdate({
+      target: joinedChatsTable.chat_id,
+      set: {
+        chat_name: sql`excluded.chat_name`,
+        updated_at: Date.now(),
+      },
+    })
+    .returning()
+
+  if (accountId && chat && entity.accessHash) {
+    await db.insert(accountJoinedChatsTable)
       .values({
-        platform: 'telegram',
-        chat_id: entity.id,
-        chat_name: entity.name,
-        chat_type: chatType,
-        dialog_date: 0, // Not a dialog sync, so no date
+        account_id: accountId,
+        joined_chat_id: chat.id,
+        access_hash: entity.accessHash,
       })
       .onConflictDoUpdate({
-        target: joinedChatsTable.chat_id,
+        target: [accountJoinedChatsTable.account_id, accountJoinedChatsTable.joined_chat_id],
         set: {
-          chat_name: sql`excluded.chat_name`,
-          updated_at: Date.now(),
+          access_hash: sql`excluded.access_hash`,
         },
       })
-      .returning()
-
-    if (accountId && chat && entity.accessHash) {
-      await db.insert(accountJoinedChatsTable)
-        .values({
-          account_id: accountId,
-          joined_chat_id: chat.id,
-          access_hash: entity.accessHash,
-        })
-        .onConflictDoUpdate({
-          target: [accountJoinedChatsTable.account_id, accountJoinedChatsTable.joined_chat_id],
-          set: {
-            access_hash: sql`excluded.access_hash`,
-          },
-        })
-    }
-  })
+  }
 }
 
 /**
