@@ -197,20 +197,14 @@ async function fetchMessagesForSummary(
       break
   }
 
-  const filters: { chatIds?: string[], timeRange: { start: number, end: number } } = {
-    timeRange: { start: startTime, end: now },
-  }
-  if (chatId)
-    filters.chatIds = [chatId]
+  const chatIds = chatId ? [chatId] : undefined
 
-  const result = await ctx.models.chatMessageModels.retrieveMessages(
+  const result = await ctx.models.chatMessageModels.fetchMessagesByTimeRange(
     db,
-    ctx.logger,
     accountId,
-    1536,
-    { text: '' },
+    { start: startTime, end: now },
+    chatIds,
     { limit: 1000, offset: 0 },
-    filters,
   )
 
   const allMessages = result.expect('Failed to fetch messages')

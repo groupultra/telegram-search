@@ -13,7 +13,7 @@ import type { PhotoModels } from './photos'
 import type { DBRetrievalMessages } from './utils/message'
 import type { DBInsertMessage, DBSelectMessage } from './utils/types'
 
-import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 
 import { chatMessagesTable } from '../schemas/chat-messages'
 import { joinedChatsTable } from '../schemas/joined-chats'
@@ -115,6 +115,7 @@ async function recordMessages(
 
 /**
  * Fetch messages for a specific account.
+ * @deprecated Use fetchMessagesByTimeRange instead.
  */
 async function fetchMessages(
   db: CoreDB,
@@ -278,6 +279,46 @@ async function fetchMessageContextWithPhotos(
 }
 
 /**
+ * Fetch messages within a time range, optionally filtered by chat IDs.
+ * Used for summary generation where we need all messages regardless of content.
+ */
+async function fetchMessagesByTimeRange(
+  db: CoreDB,
+  accountId: string,
+  timeRange: { start: number, end: number },
+  chatIds?: string[],
+  pagination?: CorePagination,
+): PromiseResult<DBSelectMessage[]> {
+  return withResult(async () => {
+    const conditions = [
+      gte(chatMessagesTable.platform_timestamp, timeRange.start),
+      lte(chatMessagesTable.platform_timestamp, timeRange.end),
+      // ACL: same pattern as fetchMessages
+      sql`(
+        ${joinedChatsTable.chat_type} != 'user'
+        OR ${chatMessagesTable.owner_account_id} = ${accountId}
+        OR ${chatMessagesTable.owner_account_id} IS NULL
+      )`,
+    ]
+
+    if (chatIds && chatIds.length > 0) {
+      conditions.push(inArray(chatMessagesTable.in_chat_id, chatIds))
+    }
+
+    const results = await db
+      .select({ chat_messages: chatMessagesTable })
+      .from(chatMessagesTable)
+      .innerJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
+      .where(and(...conditions))
+      .orderBy(asc(chatMessagesTable.platform_timestamp))
+      .limit(pagination?.limit ?? 1000)
+      .offset(pagination?.offset ?? 0)
+
+    return results.map(row => row.chat_messages)
+  })
+}
+
+/**
  * Retrieve messages for a specific account.
  */
 async function retrieveMessages(
@@ -320,6 +361,7 @@ async function retrieveMessages(
 export const chatMessageModels = {
   recordMessages,
   fetchMessages,
+  fetchMessagesByTimeRange,
   fetchMessagesWithPhotos,
   fetchMessageContextWithPhotos,
   retrieveMessages,
