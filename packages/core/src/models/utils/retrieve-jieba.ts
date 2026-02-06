@@ -15,7 +15,6 @@ export async function retrieveJieba(
   db: CoreDB,
   logger: Logger,
   accountId: string,
-  chatId: string | undefined, // Legacy support
   content: string,
   pagination?: CorePagination,
   filters?: {
@@ -33,7 +32,7 @@ export async function retrieveJieba(
   }
 
   logger.withFields({
-    chatId,
+    chatIds: filters?.chatIds,
     content,
     jiebaTokens,
   }).debug('Retrieving jieba tokens')
@@ -43,7 +42,7 @@ export async function retrieveJieba(
     eq(chatMessagesTable.platform, 'telegram'),
     filters?.chatIds?.length
       ? inArray(chatMessagesTable.in_chat_id, filters.chatIds)
-      : (chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined),
+      : undefined,
 
     sql`${chatMessagesTable.jieba_tokens} @> ${JSON.stringify(jiebaTokens)}::jsonb`,
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,

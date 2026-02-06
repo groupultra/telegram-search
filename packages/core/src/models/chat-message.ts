@@ -284,7 +284,6 @@ async function retrieveMessages(
   db: CoreDB,
   logger: Logger,
   accountId: string,
-  chatId: string | undefined,
   embeddingDimension: EmbeddingDimension,
   content: {
     text?: string
@@ -303,13 +302,13 @@ async function retrieveMessages(
     const retrievalMessages: DBRetrievalMessages[] = []
 
     if (content.text) {
-      const relevantMessages = await retrieveJieba(db, logger, accountId, chatId, content.text, pagination, filters)
+      const relevantMessages = await retrieveJieba(db, logger, accountId, content.text, pagination, filters)
       logger.withFields({ count: relevantMessages.length }).verbose('Retrieved jieba messages')
       retrievalMessages.push(...relevantMessages)
     }
 
     if (content.embedding && content.embedding.length !== 0) {
-      const relevantMessages = await retrieveVector(db, accountId, chatId, content.embedding, embeddingDimension, pagination, filters)
+      const relevantMessages = await retrieveVector(db, accountId, content.embedding, embeddingDimension, pagination, filters)
       logger.withFields({ count: relevantMessages.length }).verbose('Retrieved vector messages')
       retrievalMessages.push(...relevantMessages)
     }

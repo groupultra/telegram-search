@@ -14,7 +14,6 @@ import { getSimilaritySql } from './similarity'
 export async function retrieveVector(
   db: CoreDB,
   accountId: string,
-  chatId: string | undefined, // Legacy support
   embedding: number[],
   dimension: EmbeddingDimension,
   pagination?: CorePagination,
@@ -35,9 +34,7 @@ export async function retrieveVector(
   // Build where conditions
   const whereConditions = [
     eq(chatMessagesTable.platform, 'telegram'),
-    filters?.chatIds?.length
-      ? inArray(chatMessagesTable.in_chat_id, filters.chatIds)
-      : (chatId ? eq(chatMessagesTable.in_chat_id, chatId) : undefined),
+    filters?.chatIds?.length ? inArray(chatMessagesTable.in_chat_id, filters.chatIds) : undefined,
     gt(similarity, 0.5),
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
     filters?.timeRange?.start ? sql`${chatMessagesTable.platform_timestamp} >= ${filters.timeRange.start}` : undefined,

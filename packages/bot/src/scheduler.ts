@@ -79,7 +79,6 @@ export function createScheduler(
       db,
       logger,
       accountId,
-      undefined,
       embeddingDimension,
       { text: undefined },
       { limit: 100, offset: 0 },

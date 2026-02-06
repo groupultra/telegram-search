@@ -180,10 +180,26 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       if (embeddingResult)
         embedding = embeddingResult.embeddings[0]
 
-      dbMessages = (await dbModels.chatMessageModels.retrieveMessages(ctx.getDB(), logger, accountId, params.chatId, embeddingDimension, { embedding, text: params.content }, params.pagination, filters)).expect('Failed to retrieve messages')
+      dbMessages = (await dbModels.chatMessageModels.retrieveMessages(
+        ctx.getDB(),
+        logger,
+        accountId,
+        embeddingDimension,
+        { embedding, text: params.content },
+        params.pagination,
+        filters,
+      )).expect('Failed to retrieve messages')
     }
     else {
-      dbMessages = (await dbModels.chatMessageModels.retrieveMessages(ctx.getDB(), logger, accountId, params.chatId, embeddingDimension, { text: params.content }, params.pagination, filters)).expect('Failed to retrieve messages')
+      dbMessages = (await dbModels.chatMessageModels.retrieveMessages(
+        ctx.getDB(),
+        logger,
+        accountId,
+        embeddingDimension,
+        { text: params.content },
+        params.pagination,
+        filters,
+      )).expect('Failed to retrieve messages')
     }
 
     logger.withFields({ count: dbMessages.length }).verbose('Retrieved messages')

@@ -54,7 +54,7 @@ const isChatAccessibleByAccount = vi.fn(async (_db: unknown, _accountId: string,
 const fetchMessageContextWithPhotos = vi.fn()
 const fetchMessagesWithPhotos = vi.fn(async (_db: unknown, _accountId: string, _chatId: string, _pagination: unknown) => Ok([] as unknown[]))
 const recordMessagesWithMedia = vi.fn()
-const retrieveMessages = vi.fn(async (_db: unknown, _accountId: string, _chatId: string | undefined, _dimension: unknown, _content: unknown, _pagination: unknown, _filters: unknown) => Ok([] as unknown[]))
+const retrieveMessages = vi.fn(async (_db: unknown, _accountId: string, _dimension: unknown, _content: unknown, _pagination: unknown, _filters: unknown) => Ok([] as unknown[]))
 
 const models = {
   chatModels: {
