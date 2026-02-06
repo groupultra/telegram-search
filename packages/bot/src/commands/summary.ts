@@ -139,8 +139,10 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
         if (now - lastUpdateTime > UPDATE_INTERVAL) {
           lastUpdateTime = now
           try {
+            const safeChatName = escapeMarkdown(state.chatName)
+            const safeProgressText = escapeMarkdown(accumulatedText)
             await gramCtx.editMessageText(
-              `📊 **${state.chatName} - ${modeLabel}**\n\n${accumulatedText}\n\n---\n_Generating... (${messages.length} messages)_`,
+              `📊 **${safeChatName} - ${modeLabel}**\n\n${safeProgressText}\n\n---\n_Generating... (${messages.length} messages)_`,
               { parse_mode: 'Markdown' },
             )
           }
@@ -154,8 +156,9 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
 
       // Final update with source links
       const summaryWithLinks = addSourceLinks(accumulatedText, messages)
+      const safeChatName = escapeMarkdown(state.chatName)
       await gramCtx.editMessageText(
-        `📊 **${state.chatName} - ${modeLabel}**\n\n${summaryWithLinks}\n\n---\n_Based on ${messages.length} message(s)_`,
+        `📊 **${safeChatName} - ${modeLabel}**\n\n${summaryWithLinks}\n\n---\n_Based on ${messages.length} message(s)_`,
         { parse_mode: 'Markdown' },
       )
 
@@ -271,7 +274,11 @@ Format your summary as bullet points, each point should reference at least one s
  * Replace [n] reference markers with clickable deep links
  */
 function addSourceLinks(summaryText: string, messages: MessageWithMeta[]): string {
-  return summaryText.replace(/\[(\d+)\]/g, (match, num) => {
+  const refToken = 'REFMARKER'
+  const withTokens = summaryText.replace(/\[(\d+)\]/g, (_match, num) => `${refToken}${num}${refToken}`)
+  const escaped = escapeMarkdown(withTokens)
+
+  return escaped.replace(new RegExp(`${refToken}(\\d+)${refToken}`, 'g'), (match, num) => {
     const idx = Number.parseInt(num, 10) - 1
     if (idx < 0 || idx >= messages.length)
       return match
@@ -284,4 +291,8 @@ function addSourceLinks(summaryText: string, messages: MessageWithMeta[]): strin
 
     return linkResult.url ? `[→](${linkResult.url})` : match
   })
+}
+
+function escapeMarkdown(text: string): string {
+  return text.replace(/([_*[\]()])/g, '\\$1')
 }
