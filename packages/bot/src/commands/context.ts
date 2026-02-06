@@ -5,6 +5,7 @@ import type { BotCommandContext } from '.'
 import { InlineKeyboard } from 'grammy'
 
 import { generateMessageLink } from '../utils/deep-link'
+import { sanitizeText } from './helpers'
 
 const CONTEXT_MESSAGES_COUNT = 5 // Messages before/after
 
@@ -285,15 +286,4 @@ async function showMessageContext(
 
   await gramCtx.answerCallbackQuery()
   await gramCtx.editMessageText(header + lines.join('\n\n'), { reply_markup: keyboard })
-}
-
-/**
- * Helper to sanitize text (remove problematic characters)
- */
-function sanitizeText(text: string): string {
-  return text
-    // eslint-disable-next-line sonarjs/no-control-regex, no-control-regex
-    .replace(/[\u0000-\u0008\v\f\u000E-\u001F\u007F]/g, '')
-    .replace(/[\uD800-\uDFFF]/g, '')
-    .trim()
 }

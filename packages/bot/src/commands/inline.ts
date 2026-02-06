@@ -115,7 +115,6 @@ export function registerInlineQueryHandler(bot: Bot, ctx: BotCommandContext) {
         db,
         logger,
         account.id,
-        undefined,
         DEFAULT_EMBEDDING_DIMENSION,
         { text: query },
         { limit: 10, offset: 0 },

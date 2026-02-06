@@ -3,8 +3,10 @@ import type { Bot } from 'grammy'
 import type { BotCommandContext } from '.'
 
 import { InlineKeyboard } from 'grammy'
+import { streamText } from 'xsai'
 
 import { generateMessageLink } from '../utils/deep-link'
+import { createChatPicker } from './chat-picker'
 
 type SummaryMode = 'unread' | 'today' | 'last24h'
 
@@ -18,10 +20,43 @@ interface MessageWithMeta {
   chatUsername?: string | null
 }
 
+interface UserSummaryState {
+  chatId: string
+  chatName: string
+}
+
+const userStates = new Map<number, UserSummaryState>()
+
 export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
   const logger = ctx.logger.withContext('bot:command:summary')
 
-  // /summary - show mode selection
+  const picker = createChatPicker(bot, ctx, {
+    prefix: 'M',
+    folderHeader: '📊 Select chats to summarize:',
+    chatListHeader: '📊 Select a chat to summarize:',
+    allOptionLabel: '🌐 Summarize All Chats',
+    onSelected: async (gramCtx, userId, chatId, chatName) => {
+      userStates.set(userId, { chatId, chatName })
+
+      const keyboard = new InlineKeyboard()
+        .text('📬 Unread (7 days)', 'summode:unread')
+        .row()
+        .text('📅 Today', 'summode:today')
+        .text('🕐 Last 24h', 'summode:last24h')
+        .row()
+        .text('🔙 Back', picker.backCallbackData)
+
+      await gramCtx.editMessageText(
+        `📊 Summarize: ${chatName}\n\nChoose time range:`,
+        { reply_markup: keyboard },
+      )
+    },
+    onReset: (userId) => {
+      userStates.delete(userId)
+    },
+  })
+
+  // /summary - kick off the picker flow
   bot.command('summary', async (gramCtx) => {
     const userId = gramCtx.from?.id
     if (!userId) {
@@ -36,13 +71,7 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
     }
 
     try {
-      const keyboard = new InlineKeyboard()
-        .text('📬 Unread', 'sum:unread')
-        .text('📅 Today', 'sum:today')
-        .row()
-        .text('🕐 Last 24h', 'sum:last24h')
-
-      await gramCtx.reply('Choose what to summarize:', { reply_markup: keyboard })
+      await picker.showFolders(gramCtx, userId)
     }
     catch (error) {
       logger.withError(error).error('Summary command failed')
@@ -50,14 +79,20 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
     }
   })
 
-  // Handle summary mode selection
-  bot.callbackQuery(/^sum:/, async (gramCtx) => {
+  // Handle time range selection → generate summary
+  bot.callbackQuery(/^summode:/, async (gramCtx) => {
     const userId = gramCtx.from.id
-    const mode = gramCtx.callbackQuery.data.split(':')[1] as SummaryMode
+    const mode = gramCtx.callbackQuery.data.replace('summode:', '') as SummaryMode
 
     const account = await ctx.resolveAccountByTelegramUserId(userId)
     if (!account) {
       await gramCtx.answerCallbackQuery('Account not linked.')
+      return
+    }
+
+    const state = userStates.get(userId)
+    if (!state) {
+      await gramCtx.answerCallbackQuery('Session expired. Please /summary again.')
       return
     }
 
@@ -66,16 +101,15 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
       await gramCtx.editMessageText('📝 Fetching messages...')
 
       const db = ctx.getDB()
-
-      // 1. Fetch messages
-      const messages = await fetchMessagesForSummary(ctx, account.id, mode)
+      const chatId = state.chatId === '__ALL__' ? undefined : state.chatId
+      const messages = await fetchMessagesForSummary(ctx, account.id, mode, chatId)
 
       if (messages.length === 0) {
-        await gramCtx.editMessageText(`No ${mode} messages to summarize.`)
+        await gramCtx.editMessageText(`No ${mode} messages to summarize in ${state.chatName}.`)
         return
       }
 
-      // 2. Get LLM config
+      // Get LLM config
       const accountResult = await ctx.models.accountModels.findAccountByUUID(db, account.id)
       const accountData = accountResult.expect('Account not found')
       const llmConfig = accountData.settings?.llm
@@ -87,46 +121,46 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
         return
       }
 
-      // 3. Generate summary with streaming
       const modeLabel = {
         unread: 'Unread Messages',
         today: 'Today\'s Messages',
         last24h: 'Last 24 Hours',
       }[mode]
 
+      // Stream summary generation
       let accumulatedText = ''
       let lastUpdateTime = 0
-      const UPDATE_INTERVAL = 500 // Update every 500ms
+      const UPDATE_INTERVAL = 500
 
       await generateSummary(messages, llmConfig, async (delta) => {
         accumulatedText += delta
         const now = Date.now()
 
-        // Update message periodically to show streaming progress
         if (now - lastUpdateTime > UPDATE_INTERVAL) {
           lastUpdateTime = now
-          const summaryText = `📊 **${modeLabel} Summary**\n\n${accumulatedText}\n\n---\n_Generating... (${messages.length} messages)_`
-
           try {
-            await gramCtx.editMessageText(summaryText, { parse_mode: 'Markdown' })
+            await gramCtx.editMessageText(
+              `📊 **${state.chatName} - ${modeLabel}**\n\n${accumulatedText}\n\n---\n_Generating... (${messages.length} messages)_`,
+              { parse_mode: 'Markdown' },
+            )
           }
           catch (err) {
-            // Ignore rate limit errors during streaming
-            if (!(err instanceof Error) || !err.message.includes('Too Many Requests')) {
+            // Ignore Telegram rate limit during streaming
+            if (!(err instanceof Error) || !err.message.includes('Too Many Requests'))
               throw err
-            }
           }
         }
       })
 
-      // 4. Final update with complete summary and source links
+      // Final update with source links
       const summaryWithLinks = addSourceLinks(accumulatedText, messages)
-      const summaryText = `📊 **${modeLabel} Summary**\n\n${summaryWithLinks}\n\n---\n_Based on ${messages.length} message(s)_`
-
       await gramCtx.editMessageText(
-        summaryText,
+        `📊 **${state.chatName} - ${modeLabel}**\n\n${summaryWithLinks}\n\n---\n_Based on ${messages.length} message(s)_`,
         { parse_mode: 'Markdown' },
       )
+
+      userStates.delete(userId)
+      picker.clearState(userId)
     }
     catch (error) {
       logger.withError(error).error('Summary generation failed')
@@ -136,64 +170,56 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
 }
 
 /**
- * Fetch messages based on summary mode
+ * Fetch messages for the given time range and optional chat filter
  */
 async function fetchMessagesForSummary(
   ctx: BotCommandContext,
   accountId: string,
   mode: SummaryMode,
+  chatId?: string,
 ): Promise<MessageWithMeta[]> {
   const db = ctx.getDB()
   const now = Math.floor(Date.now() / 1000)
 
   let startTime: number
-  const endTime = now
-
   switch (mode) {
-    case 'unread': {
-      // Fetch unread messages (simplified - get messages from last 7 days)
+    case 'unread':
       startTime = now - 7 * 24 * 60 * 60
       break
-    }
     case 'today': {
-      // Today's messages (00:00 to now)
       const todayStart = new Date()
       todayStart.setHours(0, 0, 0, 0)
       startTime = Math.floor(todayStart.getTime() / 1000)
       break
     }
-    case 'last24h': {
-      // Last 24 hours
+    case 'last24h':
       startTime = now - 24 * 60 * 60
       break
-    }
   }
 
-  // Query messages
+  const filters: { chatIds?: string[], timeRange: { start: number, end: number } } = {
+    timeRange: { start: startTime, end: now },
+  }
+  if (chatId)
+    filters.chatIds = [chatId]
+
   const result = await ctx.models.chatMessageModels.retrieveMessages(
     db,
     ctx.logger,
     accountId,
-    undefined,
-    1536, // embedding dimension
-    { text: '' }, // empty query to get all messages
+    1536,
+    { text: '' },
     { limit: 1000, offset: 0 },
-    {
-      timeRange: {
-        start: startTime,
-        end: endTime,
-      },
-    },
+    filters,
   )
 
   const allMessages = result.expect('Failed to fetch messages')
 
-  // Get chat info for link generation
+  // Build chat lookup for link generation
   const chatsResult = await ctx.models.chatModels.fetchChatsByAccountId(db, accountId)
   const chats = chatsResult.expect('Failed to get chats')
   const chatMap = new Map(chats.map(c => [c.chat_id, c]))
 
-  // Map to format with metadata
   return allMessages.map((msg) => {
     const chat = chatMap.get(msg.in_chat_id)
     return {
@@ -209,16 +235,13 @@ async function fetchMessagesForSummary(
 }
 
 /**
- * Generate summary using xsai streaming
+ * Stream LLM summary generation
  */
 async function generateSummary(
   messages: MessageWithMeta[],
   llmConfig: { apiKey: string, apiBase?: string, model?: string, temperature?: number, maxTokens?: number },
   onDelta: (delta: string) => void | Promise<void>,
 ): Promise<void> {
-  const { streamText } = await import('xsai')
-
-  // Build message content with reference markers
   const content = messages
     .map((m, idx) => {
       const name = m.fromName || (m.fromId ? `User ${m.fromId}` : 'Unknown')
@@ -226,7 +249,6 @@ async function generateSummary(
     })
     .join('\n')
 
-  // Stream from LLM
   const { textStream } = streamText({
     baseURL: llmConfig.apiBase || 'https://api.openai.com/v1',
     model: llmConfig.model || 'gpt-4o-mini',
@@ -239,10 +261,7 @@ Focus on key topics, important information, and main discussion points.
 Each message has a reference number [n] at the beginning. When mentioning specific information, include the reference number in your summary like this: "某某讨论了新功能 [3]".
 Format your summary as bullet points, each point should reference at least one source message.`,
       },
-      {
-        role: 'user',
-        content,
-      },
+      { role: 'user', content },
     ],
     temperature: llmConfig.temperature ?? 0.7,
     maxTokens: llmConfig.maxTokens ?? 2000,
@@ -255,15 +274,13 @@ Format your summary as bullet points, each point should reference at least one s
 }
 
 /**
- * Replace reference markers [n] with clickable links
+ * Replace [n] reference markers with clickable deep links
  */
 function addSourceLinks(summaryText: string, messages: MessageWithMeta[]): string {
-  // Replace [n] references with links where possible
   return summaryText.replace(/\[(\d+)\]/g, (match, num) => {
     const idx = Number.parseInt(num, 10) - 1
-    if (idx < 0 || idx >= messages.length) {
-      return match // Keep original if out of range
-    }
+    if (idx < 0 || idx >= messages.length)
+      return match
 
     const msg = messages[idx]
     const linkResult = generateMessageLink(
@@ -271,9 +288,6 @@ function addSourceLinks(summaryText: string, messages: MessageWithMeta[]): strin
       msg.messageId,
     )
 
-    if (linkResult.url) {
-      return `[→](${linkResult.url})`
-    }
-    return match // Keep original if no link available
+    return linkResult.url ? `[→](${linkResult.url})` : match
   })
 }
