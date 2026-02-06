@@ -20,6 +20,7 @@ export function resolveDialog(dialog: Dialog): Result<{
   avatarFileId?: string
   avatarUpdatedAt?: Date
   accessHash?: string
+  username?: string
 }> {
   const { isGroup, isChannel, isUser } = dialog
   const id = dialog.entity?.id
@@ -35,6 +36,7 @@ export function resolveDialog(dialog: Dialog): Result<{
   // Extract avatar fileId and flags
   let avatarFileId: string | undefined
   let accessHash: string | undefined
+  let username: string | undefined
   let isBot = false
   let isContact = false
   let isMegagroup = false
@@ -54,6 +56,7 @@ export function resolveDialog(dialog: Dialog): Result<{
       }
       accessHash = dialog.entity.accessHash?.toString()
       isMegagroup = dialog.entity.megagroup || false
+      username = dialog.entity.username || undefined
     }
     else if (dialog.entity instanceof Api.Chat && dialog.entity.photo && 'photoId' in dialog.entity.photo) {
       avatarFileId = (dialog.entity.photo as Api.ChatPhoto).photoId?.toString()
@@ -86,6 +89,7 @@ export function resolveDialog(dialog: Dialog): Result<{
     avatarFileId,
     avatarUpdatedAt: undefined,
     accessHash,
+    username,
   })
 }
 

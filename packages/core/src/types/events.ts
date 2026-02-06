@@ -281,6 +281,7 @@ export interface CoreChatEntity extends CoreBaseEntity {
 
 export interface CoreChannelEntity extends CoreBaseEntity {
   type: 'channel'
+  username?: string
 }
 
 export type CoreEntity = CoreUserEntity | CoreChatEntity | CoreChannelEntity

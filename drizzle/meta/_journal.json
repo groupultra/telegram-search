@@ -211,6 +211,13 @@
       "when": 1770313894997,
       "tag": "0029_wandering_eternity",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1770359128993,
+      "tag": "0030_open_ricochet",
+      "breakpoints": true
     }
   ]
 }

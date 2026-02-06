@@ -321,8 +321,18 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
       state.resultPage = page
       userStates.set(userId, state)
 
-      // Build keyboard with pagination
+      // Build keyboard with context buttons and pagination
       const keyboard = new InlineKeyboard()
+
+      // Add context buttons for first 5 results (limit to avoid button overflow)
+      const contextMsgs = searchResult.messages.slice(0, 5)
+      for (let i = 0; i < contextMsgs.length; i += 3) {
+        const row = contextMsgs.slice(i, i + 3)
+        for (const [idx, msg] of row.entries()) {
+          keyboard.text(`#${i + idx + 1} 📖`, `ctx:${msg.chatId}:${msg.messageId}`)
+        }
+        keyboard.row()
+      }
 
       const navButtons = []
       if (page > 0) {
@@ -438,6 +448,16 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
         // Show result with action buttons
         const keyboard = new InlineKeyboard()
 
+        // Add context buttons for first 5 results (limit to avoid button overflow)
+        const contextMsgs = searchResult.messages.slice(0, 5)
+        for (let i = 0; i < contextMsgs.length; i += 3) {
+          const row = contextMsgs.slice(i, i + 3)
+          for (const [idx, msg] of row.entries()) {
+            keyboard.text(`#${i + idx + 1} 📖`, `ctx:${msg.chatId}:${msg.messageId}`)
+          }
+          keyboard.row()
+        }
+
         // Add pagination buttons if needed
         const navButtons = []
         if (searchResult.hasMore) {
@@ -528,6 +548,17 @@ function sanitizeText(text: string): string {
     .trim()
 }
 
+interface SearchResultMessage {
+  chatId: string
+  messageId: string
+}
+
+interface SearchResult {
+  text: string
+  hasMore: boolean
+  messages: SearchResultMessage[]
+}
+
 /**
  * Execute search with pagination support
  *
@@ -540,7 +571,7 @@ async function executeSearchWithPagination(
   query: string,
   chatId: string,
   page: number = 0,
-): Promise<{ text: string, hasMore: boolean }> {
+): Promise<SearchResult> {
   const logger = ctx.logger.withContext('bot:search:execute')
   const db = ctx.getDB()
 
@@ -580,6 +611,7 @@ async function executeSearchWithPagination(
         ? `No results found for "${query}" in selected chat.`
         : `No more results for "${query}".`,
       hasMore: false,
+      messages: [],
     }
   }
 
@@ -599,6 +631,10 @@ async function executeSearchWithPagination(
   return {
     text: header + lines.join('\n\n'),
     hasMore,
+    messages: messages.map(msg => ({
+      chatId: msg.in_chat_id,
+      messageId: msg.platform_message_id,
+    })),
   }
 }
 

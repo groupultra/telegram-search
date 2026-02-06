@@ -2,6 +2,7 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreDB, Models } from '@tg-search/core'
 import type { Bot } from 'grammy'
 
+import { registerContextCallbacks } from './context'
 import { registerInlineQueryHandler } from './inline'
 import { registerSearchCommand } from './search'
 import { registerStartCommand } from './start'
@@ -24,4 +25,5 @@ export function registerCommands(bot: Bot, ctx: BotCommandContext) {
   registerSearchCommand(bot, ctx)
   registerSummaryCommand(bot, ctx)
   registerInlineQueryHandler(bot, ctx)
+  registerContextCallbacks(bot, ctx)
 }

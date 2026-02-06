@@ -28,6 +28,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
         chat_id: chat.id.toString(),
         chat_name: chat.name,
         chat_type: chat.type,
+        chat_username: chat.username || null,
         dialog_date: parseDate(chat.lastMessageDate),
       })))
       .onConflictDoUpdate({
@@ -35,6 +36,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
         set: {
           chat_name: sql`excluded.chat_name`,
           chat_type: sql`excluded.chat_type`,
+          chat_username: sql`COALESCE(excluded.chat_username, ${joinedChatsTable.chat_username})`,
           dialog_date: sql`excluded.dialog_date`,
           updated_at: Date.now(),
         },
@@ -97,6 +99,7 @@ async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResu
       chat_id: joinedChatsTable.chat_id,
       chat_name: joinedChatsTable.chat_name,
       chat_type: joinedChatsTable.chat_type,
+      chat_username: joinedChatsTable.chat_username,
       dialog_date: joinedChatsTable.dialog_date,
       access_hash: accountJoinedChatsTable.access_hash,
       is_pinned: accountJoinedChatsTable.is_pinned,
@@ -186,8 +189,10 @@ export type ChatModels = typeof chatModels
  */
 async function recordChatEntity(db: CoreDB, entity: CoreEntity, accountId?: string): Promise<void> {
   let chatType: JoinedChatType = 'group'
+  let chatUsername: string | null = null
   if (entity.type === 'channel') {
     chatType = 'channel'
+    chatUsername = entity.username || null
   }
 
   const [chat] = await db.insert(joinedChatsTable)
@@ -196,12 +201,14 @@ async function recordChatEntity(db: CoreDB, entity: CoreEntity, accountId?: stri
       chat_id: entity.id,
       chat_name: entity.name,
       chat_type: chatType,
+      chat_username: chatUsername,
       dialog_date: 0, // Not a dialog sync, so no date
     })
     .onConflictDoUpdate({
       target: joinedChatsTable.chat_id,
       set: {
         chat_name: sql`excluded.chat_name`,
+        chat_username: sql`COALESCE(excluded.chat_username, ${joinedChatsTable.chat_username})`,
         updated_at: Date.now(),
       },
     })

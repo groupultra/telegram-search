@@ -4,7 +4,19 @@ import type { BotCommandContext } from '.'
 
 import { InlineKeyboard } from 'grammy'
 
+import { generateMessageLink } from '../utils/deep-link'
+
 type SummaryMode = 'unread' | 'today' | 'last24h'
+
+interface MessageWithMeta {
+  fromName?: string
+  fromId?: string
+  content: string
+  chatId: string
+  messageId: string
+  chatType: string
+  chatUsername?: string | null
+}
 
 export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
   const logger = ctx.logger.withContext('bot:command:summary')
@@ -107,8 +119,9 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
         }
       })
 
-      // 4. Final update with complete summary
-      const summaryText = `📊 **${modeLabel} Summary**\n\n${accumulatedText}\n\n---\n_Based on ${messages.length} message(s)_`
+      // 4. Final update with complete summary and source links
+      const summaryWithLinks = addSourceLinks(accumulatedText, messages)
+      const summaryText = `📊 **${modeLabel} Summary**\n\n${summaryWithLinks}\n\n---\n_Based on ${messages.length} message(s)_`
 
       await gramCtx.editMessageText(
         summaryText,
@@ -129,7 +142,7 @@ async function fetchMessagesForSummary(
   ctx: BotCommandContext,
   accountId: string,
   mode: SummaryMode,
-): Promise<Array<{ fromName?: string, fromId?: string, content: string }>> {
+): Promise<MessageWithMeta[]> {
   const db = ctx.getDB()
   const now = Math.floor(Date.now() / 1000)
 
@@ -175,29 +188,41 @@ async function fetchMessagesForSummary(
 
   const allMessages = result.expect('Failed to fetch messages')
 
-  // Map to simple format
-  return allMessages.map(msg => ({
-    fromName: msg.from_name,
-    fromId: msg.from_id,
-    content: msg.content || '',
-  }))
+  // Get chat info for link generation
+  const chatsResult = await ctx.models.chatModels.fetchChatsByAccountId(db, accountId)
+  const chats = chatsResult.expect('Failed to get chats')
+  const chatMap = new Map(chats.map(c => [c.chat_id, c]))
+
+  // Map to format with metadata
+  return allMessages.map((msg) => {
+    const chat = chatMap.get(msg.in_chat_id)
+    return {
+      fromName: msg.from_name,
+      fromId: msg.from_id,
+      content: msg.content || '',
+      chatId: msg.in_chat_id,
+      messageId: msg.platform_message_id,
+      chatType: chat?.chat_type || 'unknown',
+      chatUsername: chat?.chat_username,
+    }
+  })
 }
 
 /**
  * Generate summary using xsai streaming
  */
 async function generateSummary(
-  messages: Array<{ fromName?: string, fromId?: string, content: string }>,
+  messages: MessageWithMeta[],
   llmConfig: { apiKey: string, apiBase?: string, model?: string, temperature?: number, maxTokens?: number },
   onDelta: (delta: string) => void | Promise<void>,
 ): Promise<void> {
   const { streamText } = await import('xsai')
 
-  // Build message content
+  // Build message content with reference markers
   const content = messages
-    .map((m) => {
+    .map((m, idx) => {
       const name = m.fromName || (m.fromId ? `User ${m.fromId}` : 'Unknown')
-      return `${name}: ${m.content}`
+      return `[${idx + 1}] ${name}: ${m.content}`
     })
     .join('\n')
 
@@ -209,7 +234,10 @@ async function generateSummary(
     messages: [
       {
         role: 'system',
-        content: 'You are a helpful assistant. Summarize the following Telegram messages concisely in Chinese. Focus on key topics, important information, and main discussion points.',
+        content: `You are a helpful assistant. Summarize the following Telegram messages concisely in Chinese.
+Focus on key topics, important information, and main discussion points.
+Each message has a reference number [n] at the beginning. When mentioning specific information, include the reference number in your summary like this: "某某讨论了新功能 [3]".
+Format your summary as bullet points, each point should reference at least one source message.`,
       },
       {
         role: 'user',
@@ -224,4 +252,28 @@ async function generateSummary(
   for await (const text of iterable) {
     await onDelta(text)
   }
+}
+
+/**
+ * Replace reference markers [n] with clickable links
+ */
+function addSourceLinks(summaryText: string, messages: MessageWithMeta[]): string {
+  // Replace [n] references with links where possible
+  return summaryText.replace(/\[(\d+)\]/g, (match, num) => {
+    const idx = Number.parseInt(num, 10) - 1
+    if (idx < 0 || idx >= messages.length) {
+      return match // Keep original if out of range
+    }
+
+    const msg = messages[idx]
+    const linkResult = generateMessageLink(
+      { chatId: msg.chatId, chatType: msg.chatType, chatUsername: msg.chatUsername },
+      msg.messageId,
+    )
+
+    if (linkResult.url) {
+      return `[→](${linkResult.url})`
+    }
+    return match // Keep original if no link available
+  })
 }

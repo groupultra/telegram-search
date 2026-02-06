@@ -64,6 +64,13 @@ export function createBotRegistry(options: BotRegistryOptions): BotRegistry {
     async start() {
       logger.log('Starting Grammy bot...')
 
+      // Set bot commands for autocomplete in chat input
+      await bot.api.setMyCommands([
+        { command: 'start', description: 'Start the bot and show welcome message' },
+        { command: 'search', description: 'Search messages in your chats' },
+        { command: 'summary', description: 'Generate AI summary of recent messages' },
+      ])
+
       await scheduler.loadTasks()
 
       bot.start({

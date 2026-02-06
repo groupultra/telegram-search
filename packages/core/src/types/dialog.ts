@@ -33,4 +33,5 @@ export interface CoreDialog {
   pinned?: boolean
   folderIds?: number[]
   accessHash?: string
+  username?: string // Public username for channels/supergroups
 }
