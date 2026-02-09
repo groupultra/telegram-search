@@ -227,7 +227,7 @@ async function sendMessage() {
 }
 
 function handleKeyPress(event: KeyboardEvent) {
-  if (event.key === 'Enter' && !event.shiftKey) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
     event.preventDefault()
     sendMessage()
   }
