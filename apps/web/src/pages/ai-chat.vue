@@ -562,6 +562,7 @@ onMounted(() => {
           />
           <Button
             icon="i-lucide-send"
+            class="h-12 w-16  shrink-0 px-0"
             :disabled="!messageInput.trim() || isLoading"
             @click="sendMessage"
           >
