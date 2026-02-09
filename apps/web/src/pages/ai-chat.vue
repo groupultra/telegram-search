@@ -497,7 +497,7 @@ onMounted(() => {
             </Button>
             <Button
               icon="i-lucide-trash-2"
-              class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
+              class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100 hover:text-red"
               @click=""
             >
               <!-- {{ t('aiChat.copy') }} -->
