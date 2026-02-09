@@ -74,7 +74,7 @@ async function generateMessage(message: string, assistantId?: string) {
     return
   }
   // Add user message to chat
-  if(message.trim()) {
+  if (message.trim()) {
     aiChatStore.addUserMessage(message)
   }
   aiChatStore.setLoading(true)
@@ -154,7 +154,7 @@ async function generateMessage(message: string, assistantId?: string) {
       { role: 'system' as const, content: systemPrompt },
       ...conversationHistory,
     ]
-    if(message.trim()) {
+    if (message.trim()) {
       llmMessages.push({ role: 'user' as const, content: message })
     }
 
@@ -260,8 +260,8 @@ function copyMessage(content: string) {
 
 function regenerateMessage(id: string) {
   // aiChatStore.regenerateMessage(id)
-  aiChatStore.updateAssistantMessage(id,"",[],undefined,true)
-  generateMessage("", id)
+  aiChatStore.updateAssistantMessage(id, '', [], undefined, true)
+  generateMessage('', id)
   toast.success(t('aiChat.regeneratedMessage'))
 }
 
@@ -338,19 +338,19 @@ onMounted(() => {
             v-else
             class="assistant-message max-w-none overflow-x-auto text-sm"
           >
-          <!-- Thinking animation -->
-          <div v-if="isSearching && message.isStreaming" class="space-y-2 animate-pulse">
-            <div class="flex items-center gap-2 text-sm text-muted-foreground">
-              <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
-              <span class="font-medium">{{ searchStage || t('aiChat.searchingContext') }}</span>
+            <!-- Thinking animation -->
+            <div v-if="isSearching && message.isStreaming" class="animate-pulse space-y-2">
+              <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
+                <span class="font-medium">{{ searchStage || t('aiChat.searchingContext') }}</span>
+              </div>
             </div>
-          </div>
-          <div v-else-if="isLoading && message.isStreaming" class="space-y-2 animate-pulse">
-            <div class="flex items-center gap-2 text-sm text-muted-foreground">
-              <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
-              <span class="font-medium">{{ t('aiChat.aiThinking') }}</span>
+            <div v-else-if="isLoading && message.isStreaming" class="animate-pulse space-y-2">
+              <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
+                <span class="font-medium">{{ t('aiChat.aiThinking') }}</span>
+              </div>
             </div>
-          </div>
             <MarkdownRender
               :custom-id="`ai-chat-${message.id}`"
               :content="message.content"
@@ -497,24 +497,24 @@ onMounted(() => {
           </div>
 
           <!-- Tool bar -->
-          <div class="flex gap-2 justify-end" v-if="message.role === 'assistant' && message.content.length !== 0">
+          <div v-if="message.role === 'assistant' && message.content.length !== 0" class="flex justify-end gap-2">
             <Button
               icon="i-lucide-copy"
-              class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
+              class="h-4 w-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
               @click="copyMessage(message.content)"
             >
               <!-- {{ t('aiChat.copy') }} -->
             </Button>
             <Button
               icon="i-lucide-rotate-ccw"
-              class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
+              class="h-4 w-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
               @click="regenerateMessage(message.id)"
             >
               <!-- {{ t('aiChat.copy') }} -->
             </Button>
             <Button
               icon="i-lucide-trash-2"
-              class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100 hover:text-red"
+              class="h-4 w-4 shrink-0 px-0 opacity-50 transition-opacity hover:text-red hover:opacity-100"
               @click="deleteMessage(message.id)"
             >
               <!-- {{ t('aiChat.copy') }} -->
@@ -548,8 +548,8 @@ onMounted(() => {
             class="h-12 w-12 shrink-0 px-0"
             @click="isScopeSelectorOpen = true"
           >
-            <div class="flex items-center justify-center gap-1" v-if="filteredChatsCount > 0">
-              <span  class="text-sm font-medium">
+            <div v-if="filteredChatsCount > 0" class="flex items-center justify-center gap-1">
+              <span class="text-sm font-medium">
                 {{ filteredChatsCount }}
               </span>
             </div>
@@ -564,7 +564,7 @@ onMounted(() => {
           />
           <Button
             icon="i-lucide-send"
-            class="h-12 w-16  shrink-0 px-0"
+            class="h-12 w-16 shrink-0 px-0"
             :disabled="!messageInput.trim() || isLoading"
             @click="sendMessage"
           >
