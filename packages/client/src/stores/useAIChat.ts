@@ -71,7 +71,14 @@ export const useAIChatStore = defineStore('ai-chat', () => {
     return id
   }
 
-  function updateAssistantMessage(id: string, content: string, retrievedMessages?: CoreRetrievalMessages[], debugInfo?: RAGDebugInfo) {
+  function regenerateMessage(id: string) {
+    const message = messages.value.find(msg => msg.id === id)
+    if (message) {
+      message.content = ''
+    }
+  }
+
+  function updateAssistantMessage(id: string, content: string, retrievedMessages?: CoreRetrievalMessages[], debugInfo?: RAGDebugInfo, isStreaming?: boolean) {
     const message = messages.value.find(msg => msg.id === id)
     if (message) {
       message.content = content
@@ -80,6 +87,9 @@ export const useAIChatStore = defineStore('ai-chat', () => {
       }
       if (debugInfo) {
         message.debugInfo = debugInfo
+      }
+      if (isStreaming) {
+        message.isStreaming = isStreaming
       }
     }
   }

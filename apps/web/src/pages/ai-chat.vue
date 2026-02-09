@@ -60,20 +60,23 @@ function scrollToBottom() {
 }
 
 async function sendMessage() {
-  if (!messageInput.value.trim())
+  if (!messageInput.value.trim()) {
     return
-
+  }
+  const message = messageInput.value.trim()
+  messageInput.value = ''
+  await generateMessage(message)
+}
+async function generateMessage(message: string, assistantId?: string) {
   if (!isApiConfigured.value) {
     toast.error(t('aiChat.configureApi'))
     router.push('/settings')
     return
   }
-
-  const message = messageInput.value.trim()
-  messageInput.value = ''
-
   // Add user message to chat
-  aiChatStore.addUserMessage(message)
+  if(message.trim()) {
+    aiChatStore.addUserMessage(message)
+  }
   aiChatStore.setLoading(true)
   aiChatStore.clearError()
 
@@ -150,11 +153,13 @@ async function sendMessage() {
     const llmMessages = [
       { role: 'system' as const, content: systemPrompt },
       ...conversationHistory,
-      { role: 'user' as const, content: message },
     ]
+    if(message.trim()) {
+      llmMessages.push({ role: 'user' as const, content: message })
+    }
 
     // Call LLM with tools
-    const assistantId = aiChatStore.addAssistantMessage()
+    const currentAssistantId = assistantId || aiChatStore.addAssistantMessage()
     let accumulatedContent = ''
 
     await aiChatLogic.callLLMWithTools(
@@ -190,7 +195,7 @@ async function sendMessage() {
           searchQuery: '',
           toolCalls,
         }
-        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, allRetrievedMessages, debugInfo)
+        aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo)
         // Auto-scroll as content updates
         nextTick().then(scrollToBottom)
       },
@@ -210,8 +215,8 @@ async function sendMessage() {
             },
           ],
         }
-        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, allRetrievedMessages, debugInfo)
-        aiChatStore.completeAssistantMessage(assistantId)
+        aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo)
+        aiChatStore.completeAssistantMessage(currentAssistantId)
       },
     )
   }
@@ -251,6 +256,18 @@ function viewMessageInChat(chatId: string, platformMessageId: string) {
 function copyMessage(content: string) {
   navigator.clipboard.writeText(content)
   toast.success(t('aiChat.copiedToClipboard'))
+}
+
+function regenerateMessage(id: string) {
+  // aiChatStore.regenerateMessage(id)
+  aiChatStore.updateAssistantMessage(id,"",[],undefined,true)
+  generateMessage("", id)
+  toast.success(t('aiChat.regeneratedMessage'))
+}
+
+function deleteMessage(id: string) {
+  // aiChatStore.deleteMessageById(id)
+  toast.success(t('aiChat.deletedMessage'))
 }
 
 onMounted(() => {
@@ -491,14 +508,14 @@ onMounted(() => {
             <Button
               icon="i-lucide-rotate-ccw"
               class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
-              @click=""
+              @click="regenerateMessage(message.id)"
             >
               <!-- {{ t('aiChat.copy') }} -->
             </Button>
             <Button
               icon="i-lucide-trash-2"
               class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100 hover:text-red"
-              @click=""
+              @click="deleteMessage(message.id)"
             >
               <!-- {{ t('aiChat.copy') }} -->
             </Button>
