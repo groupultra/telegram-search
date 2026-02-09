@@ -374,6 +374,7 @@ EXAMPLES:
 - "How are you?" -> Respond directly, NO tool calling
 - "What did we discuss?" -> Use searchMessages with query="discuss", useVector=true, limit=5
 - "What do I like to eat" -> Use searchMessages with query="like eat", useVector=true, limit=5
+- "Who said 'hello'?" -> Use searchMessages with query="hello", useVector=false, limit=5
 
 Remember: Only use tools when necessary. For greetings or general questions, respond directly without calling any tools.`
   }

@@ -542,13 +542,12 @@ onMounted(() => {
           <!-- Chat Scope Selector Trigger -->
           <Button
             variant="outline"
-            icon=""
+            icon="i-lucide-filter"
             class="h-12 w-12 shrink-0 px-0"
             @click="isScopeSelectorOpen = true"
           >
-            <div class="flex items-center justify-center gap-1">
-              <span class="i-lucide-filter h-4 w-4" />
-              <span v-if="filteredChatsCount > 0" class="text-sm font-medium">
+            <div class="flex items-center justify-center gap-1" v-if="filteredChatsCount > 0">
+              <span  class="text-sm font-medium">
                 {{ filteredChatsCount }}
               </span>
             </div>
