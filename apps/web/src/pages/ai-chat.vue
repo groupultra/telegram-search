@@ -321,6 +321,19 @@ onMounted(() => {
             v-else
             class="assistant-message max-w-none overflow-x-auto text-sm"
           >
+          <!-- Thinking animation -->
+          <div v-if="isSearching && message.isStreaming" class="space-y-2 animate-pulse">
+            <div class="flex items-center gap-2 text-sm text-muted-foreground">
+              <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
+              <span class="font-medium">{{ searchStage || t('aiChat.searchingContext') }}</span>
+            </div>
+          </div>
+          <div v-else-if="isLoading && message.isStreaming" class="space-y-2 animate-pulse">
+            <div class="flex items-center gap-2 text-sm text-muted-foreground">
+              <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
+              <span class="font-medium">{{ t('aiChat.aiThinking') }}</span>
+            </div>
+          </div>
             <MarkdownRender
               :custom-id="`ai-chat-${message.id}`"
               :content="message.content"
@@ -466,57 +479,29 @@ onMounted(() => {
             </details>
           </div>
 
-          <!-- Copy button -->
-          <div class="flex justify-end">
-            <button
-              class="opacity-50 transition-opacity hover:opacity-100"
+          <!-- Tool bar -->
+          <div class="flex gap-2 justify-end" v-if="message.role === 'assistant' && message.content.length !== 0">
+            <Button
+              icon="i-lucide-copy"
+              class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
               @click="copyMessage(message.content)"
             >
-              <span class="i-lucide-copy h-3 w-3" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Loading/Searching indicator -->
-      <div
-        v-if="isSearching || isLoading"
-        class="flex justify-start"
-      >
-        <div class="max-w-[80%] border rounded-lg bg-card px-4 py-3 space-y-3">
-          <!-- Search animation with stage info -->
-          <div v-if="isSearching" class="space-y-2">
-            <div class="flex items-center gap-2 text-sm text-muted-foreground">
-              <span class="i-lucide-search h-4 w-4 animate-pulse" />
-              <span class="font-medium">{{ searchStage || t('aiChat.searchingContext') }}</span>
-            </div>
-
-            <!-- Skeleton loading animation -->
-            <div class="space-y-2">
-              <div class="h-3 w-full animate-pulse rounded bg-muted/50" />
-              <div class="h-3 w-4/5 animate-pulse rounded bg-muted/50" style="animation-delay: 0.1s" />
-              <div class="h-3 w-3/4 animate-pulse rounded bg-muted/50" style="animation-delay: 0.2s" />
-            </div>
-
-            <div class="flex items-center gap-1 text-xs opacity-60">
-              <span class="i-lucide-sparkles h-3 w-3 animate-pulse" />
-              <span>Processing your query with AI...</span>
-            </div>
-          </div>
-
-          <!-- Thinking animation -->
-          <div v-else-if="isLoading" class="space-y-2">
-            <div class="flex items-center gap-2 text-sm text-muted-foreground">
-              <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
-              <span class="font-medium">{{ t('aiChat.aiThinking') }}</span>
-            </div>
-
-            <!-- Skeleton loading animation for thinking -->
-            <div class="space-y-2">
-              <div class="h-3 w-full animate-pulse rounded bg-muted/50" />
-              <div class="h-3 w-5/6 animate-pulse rounded bg-muted/50" style="animation-delay: 0.15s" />
-              <div class="h-3 w-2/3 animate-pulse rounded bg-muted/50" style="animation-delay: 0.3s" />
-            </div>
+              <!-- {{ t('aiChat.copy') }} -->
+            </Button>
+            <Button
+              icon="i-lucide-rotate-ccw"
+              class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
+              @click=""
+            >
+              <!-- {{ t('aiChat.copy') }} -->
+            </Button>
+            <Button
+              icon="i-lucide-trash-2"
+              class="w-4 h-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
+              @click=""
+            >
+              <!-- {{ t('aiChat.copy') }} -->
+            </Button>
           </div>
         </div>
       </div>
