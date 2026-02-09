@@ -266,7 +266,7 @@ function regenerateMessage(id: string) {
 }
 
 function deleteMessage(id: string) {
-  // aiChatStore.deleteMessageById(id)
+  aiChatStore.deleteAssistantMessage(id)
   toast.success(t('aiChat.deletedMessage'))
 }
 

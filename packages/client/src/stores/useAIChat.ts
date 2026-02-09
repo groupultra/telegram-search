@@ -71,11 +71,8 @@ export const useAIChatStore = defineStore('ai-chat', () => {
     return id
   }
 
-  function regenerateMessage(id: string) {
-    const message = messages.value.find(msg => msg.id === id)
-    if (message) {
-      message.content = ''
-    }
+  function deleteAssistantMessage(id: string) {
+    messages.value = messages.value.filter(msg => msg.id !== id)
   }
 
   function updateAssistantMessage(id: string, content: string, retrievedMessages?: CoreRetrievalMessages[], debugInfo?: RAGDebugInfo, isStreaming?: boolean) {
@@ -133,6 +130,7 @@ export const useAIChatStore = defineStore('ai-chat', () => {
     error,
     addUserMessage,
     addAssistantMessage,
+    deleteAssistantMessage,
     updateAssistantMessage,
     completeAssistantMessage,
     setError,
