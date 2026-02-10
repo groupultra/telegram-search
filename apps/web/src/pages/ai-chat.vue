@@ -565,8 +565,8 @@ onMounted(() => {
           <Button
             icon="i-lucide-send"
             :disabled="!messageInput.trim() || isLoading"
-            @click="sendMessage"
             class="h-12 w-16 shrink-0 px-0"
+            @click="sendMessage"
           >
             {{ t('aiChat.send') }}
           </Button>

@@ -107,7 +107,7 @@
     "loggingInSubtitle": "正在加载必要的数据，请稍候"
   },
   "messages": {
-    "copied": "已复制",
+    "copied": "已复制到剪贴板",
     "copyMessageLink": "复制消息链接",
     "openInChat": "在聊天中打开"
   },

@@ -2,13 +2,28 @@
 import type { CoreMessage } from '@tg-search/core/types'
 
 import { formatMessageTimestamp } from '@tg-search/client'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 
 import EntityAvatar from '../avatar/EntityAvatar.vue'
+import Button from '../ui/Button/Button.vue'
 import MediaRenderer from './media/MediaRenderer.vue'
 
 defineProps<{
   message: CoreMessage
 }>()
+
+const { t } = useI18n()
+
+function copyMessageLink(message: CoreMessage) {
+  navigator.clipboard.writeText(`https://t.me/c/${message.chatId}/${message.platformMessageId}`)
+  toast.success(t('messages.copied'))
+}
+
+function copyMessageText(message: CoreMessage) {
+  navigator.clipboard.writeText(message.content)
+  toast.success(t('messages.copied'))
+}
 </script>
 
 <template>
@@ -33,11 +48,23 @@ defineProps<{
       </div>
 
       <!-- Message ID badge (hidden by default, shown on hover) -->
-      <div class="mt-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+      <div class="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
         <span class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
           <span class="i-lucide-hash mr-1 h-3 w-3" />
           {{ message.platformMessageId }}
         </span>
+        <Button
+          icon="i-lucide-copy"
+          size="sm"
+          class="h-3 w-3 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
+          @click="copyMessageText(message)"
+        />
+        <Button
+          icon="i-lucide-link"
+          size="sm"
+          class="h-3 w-3 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
+          @click="copyMessageLink(message)"
+        />
       </div>
     </div>
   </div>
