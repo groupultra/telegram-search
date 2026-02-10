@@ -20,6 +20,11 @@ function copyMessageLink(message: CoreMessage) {
   toast.success(t('messages.copied'))
 }
 
+function copyMessageDeepLink(message: CoreMessage) {
+  navigator.clipboard.writeText(`tg://privatepost?channel=${message.chatId}&post=${message.platformMessageId}`)
+  toast.success(t('messages.copied'))
+}
+
 function copyMessageText(message: CoreMessage) {
   navigator.clipboard.writeText(message.content)
   toast.success(t('messages.copied'))
@@ -64,6 +69,13 @@ function copyMessageText(message: CoreMessage) {
           size="sm"
           class="h-3 w-3 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
           @click="copyMessageLink(message)"
+        />
+        <Button
+          v-if="message.fromId.startsWith('-100')"
+          icon="i-lucide-external-link"
+          size="sm"
+          class="h-3 w-3 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
+          @click="copyMessageDeepLink(message)"
         />
       </div>
     </div>
