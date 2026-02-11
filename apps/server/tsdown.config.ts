@@ -19,8 +19,6 @@ export default defineConfig({
     '@tg-search/core',
     '@tg-search/common',
     '@tg-search/common/node',
-    '@tg-search/observability',
-    '@tg-search/observability/node',
     '@tg-search/bot',
     /^telegram\//,
   ],

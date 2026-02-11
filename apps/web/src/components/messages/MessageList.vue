@@ -3,48 +3,18 @@ import type { CoreMessage } from '@tg-search/core/types'
 
 import { formatMessageTimestamp } from '@tg-search/client'
 import { useClipboard } from '@vueuse/core'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
 
 import EntityAvatar from '../avatar/EntityAvatar.vue'
-import ContextMenu from '../ui/ContextMenu.vue'
 
 const props = defineProps<{
   messages: CoreMessage[]
   keyword: string
 }>()
-const { t } = useI18n()
 const router = useRouter()
 const hoveredMessage = ref<CoreMessage | null>(null)
 const { copy } = useClipboard()
-
-const contextMenuOpen = ref(false)
-const contextMenuX = ref(0)
-const contextMenuY = ref(0)
-const contextMenuMessage = ref<CoreMessage | null>(null)
-
-const contextMenuItems = computed(() => [
-  {
-    label: t('messages.copyMessageLink'),
-    icon: 'i-lucide-link',
-    action: () => {
-      if (contextMenuMessage.value) {
-        copyMessageLink(contextMenuMessage.value)
-        toast.success(t('messages.copied'))
-      }
-    },
-  },
-  {
-    label: t('messages.openInChat'),
-    icon: 'i-lucide-external-link',
-    action: () => {
-      if (contextMenuMessage.value)
-        navigateToMessage(contextMenuMessage.value)
-    },
-  },
-])
 
 function highlightKeyword(text: string, keyword: string) {
   if (!keyword)
@@ -66,23 +36,6 @@ function navigateToMessage(message: CoreMessage) {
     },
   })
 }
-
-function handleContextMenu(event: MouseEvent, message: CoreMessage) {
-  event.preventDefault()
-  contextMenuMessage.value = message
-  contextMenuX.value = event.clientX
-  contextMenuY.value = event.clientY
-  contextMenuOpen.value = true
-}
-
-function handleLongPress(event: TouchEvent, message: CoreMessage) {
-  event.preventDefault()
-  const touch = event.touches[0]
-  contextMenuMessage.value = message
-  contextMenuX.value = touch.clientX
-  contextMenuY.value = touch.clientY
-  contextMenuOpen.value = true
-}
 </script>
 
 <template>
@@ -96,8 +49,6 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
       @mouseleave="hoveredMessage = null"
       @keydown.enter="copyMessageLink(item)"
       @click="navigateToMessage(item)"
-      @contextmenu="handleContextMenu($event, item)"
-      @touchstart.passive="handleLongPress($event, item)"
     >
       <div class="shrink-0 pt-0.5">
         <EntityAvatar
@@ -123,19 +74,6 @@ function handleLongPress(event: TouchEvent, message: CoreMessage) {
           <span>{{ item.platformMessageId }}</span>
         </div>
       </div>
-      <button
-        class="shrink-0 rounded-lg p-2 opacity-0 transition-all hover:bg-accent group-hover:opacity-100"
-        @click.stop="handleContextMenu($event, item)"
-      >
-        <span class="i-lucide-more-vertical h-4 w-4" />
-      </button>
     </li>
   </ul>
-
-  <ContextMenu
-    v-model:open="contextMenuOpen"
-    :items="contextMenuItems"
-    :x="contextMenuX"
-    :y="contextMenuY"
-  />
 </template>

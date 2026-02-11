@@ -131,7 +131,7 @@ function toggleSelection(id: number): void {
         <input
           v-model="searchQuery"
           type="text"
-          class="h-10 w-full border rounded-lg bg-background px-3 pl-10 text-sm transition-all duration-200 focus:border-primary placeholder:text-muted-foreground focus:outline-none"
+          class="h-12 w-full border rounded-lg bg-background px-3 pl-10 text-sm transition-all duration-200 focus:border-primary placeholder:text-muted-foreground focus:outline-none"
           :placeholder="t('chatSelector.search')"
         >
       </div>

@@ -1,0 +1,1 @@
+ALTER TABLE "joined_chats" ADD COLUMN "chat_username" text;

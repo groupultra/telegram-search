@@ -100,6 +100,7 @@ async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResu
       chat_name: joinedChatsTable.chat_name,
       chat_type: joinedChatsTable.chat_type,
       chat_username: joinedChatsTable.chat_username,
+      note: joinedChatsTable.note,
       dialog_date: joinedChatsTable.dialog_date,
       access_hash: accountJoinedChatsTable.access_hash,
       is_pinned: accountJoinedChatsTable.is_pinned,
@@ -179,6 +180,7 @@ export const chatModels = {
   updateChatPts,
   findChatAccessHash,
   recordChatEntity,
+  getOrModifyChatNote,
 }
 
 export type ChatModels = typeof chatModels
@@ -255,4 +257,34 @@ async function findChatAccessHash(db: CoreDB, accountId: string, chatId: string)
       return null
     return { accessHash: rows[0].access_hash || '', type: rows[0].type }
   })
+}
+
+async function getOrModifyChatNote(db: CoreDB, accountId: string, chatId: string, note: string, modify: boolean): Promise<string | null> {
+  // Resolve joined_chats row for this account + chat_id (ensure account has access)
+  const rows = await db
+    .select({ id: joinedChatsTable.id, note: joinedChatsTable.note })
+    .from(joinedChatsTable)
+    .innerJoin(
+      accountJoinedChatsTable,
+      eq(joinedChatsTable.id, accountJoinedChatsTable.joined_chat_id),
+    )
+    .where(and(
+      eq(joinedChatsTable.chat_id, chatId),
+      eq(accountJoinedChatsTable.account_id, accountId),
+    ))
+    .limit(1)
+
+  if (rows.length === 0)
+    return null
+
+  if (!modify)
+    return rows[0].note ?? null
+
+  const result = await db
+    .update(joinedChatsTable)
+    .set({ note })
+    .where(eq(joinedChatsTable.id, rows[0].id))
+    .returning()
+
+  return result[0]?.note ?? null
 }

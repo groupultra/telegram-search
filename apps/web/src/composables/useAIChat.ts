@@ -1,4 +1,4 @@
-import type { CoreRetrievalMessages } from '@tg-search/core/types'
+import type { CoreDialog, CoreRetrievalMessages } from '@tg-search/core/types'
 import type { InferInput } from 'valibot'
 
 import { useLogger } from '@guiiai/logg'
@@ -50,6 +50,15 @@ interface RetrieveContextParams {
   chatId: string
   targetTimestamp: number
   limit: number
+}
+
+interface GetDialogsParams {
+}
+
+interface ChatNoteParams {
+  chatId: string
+  note: string
+  modify: boolean
 }
 
 /**
@@ -180,6 +189,74 @@ Parameters:
   }
 
   /**
+   * Create get chats tool
+   */
+  async function createGetDialogsTool(
+    executor: (params: GetDialogsParams) => Promise<CoreDialog[]>,
+  ) {
+    logger.log('Creating getDialogs tool')
+    const getDialogsSchema = v.strictObject({})
+    return await tool({
+      name: 'getDialogs',
+      description: `Get a list of chats the user has access to. Use this when the user asks about their chats, conversations list, or what chats they have.`,
+      parameters: getDialogsSchema,
+      execute: async (params: InferInput<typeof getDialogsSchema>) => {
+        const startTime = Date.now()
+        logger.withFields({ params }).log('getDialogs tool called')
+        const results = await executor(params)
+        const duration = Date.now() - startTime
+        logger.withFields({
+          duration,
+          dialogsCount: results.length,
+        }).log('getDialogs completed')
+        return JSON.stringify({
+          success: true,
+          dialogsCount: results.length,
+          dialogs: results,
+        })
+      },
+    })
+  }
+
+  async function createChatNoteTool(
+    executor: (params: ChatNoteParams) => Promise<string>,
+  ) {
+    logger.log('Creating chatNote tool')
+    const chatNoteSchema = v.strictObject({
+      chatId: v.pipe(
+        v.string(),
+        v.description('Chat ID to add or modify a note for'),
+      ),
+      note: v.pipe(
+        v.string(),
+        v.description('Note to add or modify for the chat'),
+      ),
+      modify: v.pipe(
+        v.boolean(),
+        v.description('Whether to modify the note or add a new one, if you need to get the note, set modify to false'),
+      ),
+    })
+    return await tool({
+      name: 'chatNote',
+      description: 'Add or modify a note for a chat. Use this when the user asks to add or modify a note for a chat. If you need to get the note, set modify to false',
+      parameters: chatNoteSchema,
+      execute: async (params: InferInput<typeof chatNoteSchema>) => {
+        const startTime = Date.now()
+        logger.withFields({ params }).log('chatNote tool called')
+        const result = await executor(params)
+        const duration = Date.now() - startTime
+        logger.withFields({
+          duration,
+          result,
+        }).log('chatNote completed')
+        return JSON.stringify({
+          success: true,
+          result,
+        })
+      },
+    })
+  }
+  /**
    * Call LLM with tool calling support
    */
   async function callLLMWithTools(
@@ -204,6 +281,7 @@ Parameters:
     const timeoutId = setTimeout(() => {
       logger.error('Request timed out after 60s')
       abortController.abort()
+      onComplete({ promptTokens: 0, completionTokens: 0, totalTokens: 0 })
     }, 60000)
 
     try {
@@ -217,101 +295,38 @@ Parameters:
           apiKey: llmConfig.apiKey,
           messages: currentMessages,
           tools,
+          maxSteps: 5,
           temperature: llmConfig.temperature ?? 0.7,
           abortSignal: abortController.signal,
         })
-
+        logger.withFields({ result }).log('generateText result')
+        for (const completionStep of result.steps) {
+          // Call onToolCall for each tool call in this step
+          for (const toolCall of completionStep.toolCalls) {
+            const toolDef = tools.find((t: any) => t.function?.name === toolCall.toolName)
+            onToolCall({
+              name: toolCall.toolName,
+              description: toolDef?.function?.description ?? toolCall.toolName,
+              input: toolCall.args,
+              timestamp: Date.now(),
+            })
+          }
+          // Call onToolResult for each tool result in this step
+          for (const toolResult of completionStep.toolResults) {
+            onToolResult(toolResult.toolName, JSON.stringify(toolResult.result), Date.now())
+          }
+        }
         // Accumulate usage
         if (result.usage) {
           totalUsage.promptTokens += result.usage.prompt_tokens || 0
           totalUsage.completionTokens += result.usage.completion_tokens || 0
           totalUsage.totalTokens += result.usage.total_tokens || 0
         }
-
-        // Check for tool calls in the result
-        // xsai's generateText returns toolCalls in the last step
-        const toolCalls = (result.steps[result.steps.length - 1] as any)?.toolCalls
-
-        if (toolCalls && toolCalls.length > 0) {
-          logger.withFields({ toolCallsCount: toolCalls.length }).log('Tool calls detected')
-
-          // Add assistant's tool call message to history
-          currentMessages.push({
-            role: 'assistant',
-            content: result.text || '',
-            tool_calls: toolCalls.map((tc: any) => ({
-              id: tc.id,
-              type: 'function',
-              function: {
-                name: tc.name,
-                arguments: JSON.stringify(tc.arguments),
-              },
-            })),
-          })
-
-          // Execute each tool call
-          for (const tc of toolCalls) {
-            const startTime = Date.now()
-            const toolDef = tools.find(t => t.function.name === tc.name)
-
-            onToolCall({
-              name: tc.name,
-              description: toolDef?.function.description || '',
-              input: tc.arguments,
-              timestamp: startTime,
-            })
-
-            if (!toolDef) {
-              const errorResult = JSON.stringify({ error: `Tool ${tc.name} not found` })
-              onToolResult(tc.name, errorResult, 0)
-              currentMessages.push({
-                role: 'tool',
-                tool_call_id: tc.id,
-                content: errorResult,
-              })
-              continue
-            }
-
-            try {
-              const output = await toolDef.execute(tc.arguments)
-              const duration = Date.now() - startTime
-
-              onToolResult(tc.name, output, duration)
-
-              currentMessages.push({
-                role: 'tool',
-                tool_call_id: tc.id,
-                content: output,
-              })
-            }
-            catch (error) {
-              const errorResult = JSON.stringify({ error: error instanceof Error ? error.message : String(error) })
-              onToolResult(tc.name, errorResult, Date.now() - startTime)
-              currentMessages.push({
-                role: 'tool',
-                tool_call_id: tc.id,
-                content: errorResult,
-              })
-            }
-          }
-
-          // Continue the loop to get the response after tool results
-        }
-        else {
-          // No tool calls, we are ready for the final response
-          // If we are at step 0 and there were no tool calls, result.text might already have the answer,
-          // but we want it to be streamed, so we call streamSimpleText anyway.
-
-          logger.log('No more tool calls, starting final streaming response')
-          await streamSimpleText(llmConfig, currentMessages, onTextDelta)
-
-          clearTimeout(timeoutId)
-          onComplete(totalUsage)
-          return
+        if (result.finishReason === 'stop') {
+          onTextDelta(result.text || '')
+          break
         }
       }
-
-      logger.warn('Maximum tool calling steps reached')
       onComplete(totalUsage)
     }
     catch (error) {
@@ -323,10 +338,6 @@ Parameters:
     }
   }
 
-  /**
-   * Simple streaming text generation without tool calling.
-   * Used by lightweight features like unread summary generation.
-   */
   async function streamSimpleText(
     llmConfig: LLMConfig,
     messages: LLMMessage[],
@@ -368,12 +379,17 @@ IMPORTANT INSTRUCTIONS:
 4. If a search result contains ambiguous references (like "this", "that", "it"), use retrieveContext to get surrounding messages
 5. Always cite specific messages when answering (mention date, sender, chat name if available)
 6. Be concise and direct in your responses
+7. If the user asks about their chats, conversations list, or what chats they have, use the getDialogs tool
+8. If the user asks to add or modify a note for a chat, use the chatNote tool
 
 EXAMPLES:
 - "Hello" -> Respond directly with a greeting, NO tool calling
 - "How are you?" -> Respond directly, NO tool calling
 - "What did we discuss?" -> Use searchMessages with query="discuss", useVector=true, limit=5
 - "What do I like to eat" -> Use searchMessages with query="like eat", useVector=true, limit=5
+- "Who said 'hello'?" -> Use searchMessages with query="hello", useVector=false, limit=5
+- “Add a note for this chat” -> Use chatNote with chatId=currentChatId, note="This is a note for this chat", modify=true
+- "Get the note for this chat" -> Use chatNote with chatId=currentChatId, note="", modify=false
 
 Remember: Only use tools when necessary. For greetings or general questions, respond directly without calling any tools.`
   }
@@ -381,8 +397,10 @@ Remember: Only use tools when necessary. For greetings or general questions, res
   return {
     createSearchMessagesTool,
     createRetrieveContextTool,
+    createGetDialogsTool,
+    createChatNoteTool,
     callLLMWithTools,
-    buildSystemPrompt,
     streamSimpleText,
+    buildSystemPrompt,
   }
 }

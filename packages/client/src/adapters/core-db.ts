@@ -6,7 +6,7 @@ import type { CoreDB } from '@tg-search/core'
 
 import { initDrizzle } from '@tg-search/core'
 
-import { DB_DEBUG, DB_DEBUGGER_WS_URL } from '../../constants'
+import { DB_DEBUG, DB_DEBUGGER_WS_URL } from '../constants'
 
 // Typed as any to avoid introducing a hard dependency from client to PGlite.
 let pgliteDevDb: any

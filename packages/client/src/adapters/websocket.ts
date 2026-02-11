@@ -14,7 +14,7 @@ import { useWebSocket } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { computed, watch } from 'vue'
 
-import { WS_API_BASE } from '../../constants'
+import { WS_API_BASE } from '../constants'
 import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
 import { useSessionStore } from '../stores/useSession'

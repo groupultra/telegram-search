@@ -5,7 +5,7 @@ import type { BotCommandContext } from '.'
 import { InlineKeyboard } from 'grammy'
 
 import { createChatPicker } from './chat-picker'
-import { getAccountChats, getChatTypeIcon, sanitizeText } from './helpers'
+import { buildTelegramMessageLinks, getAccountChats, getChatTypeIcon, sanitizeText } from './helpers'
 
 const DEFAULT_EMBEDDING_DIMENSION = 1536
 
@@ -187,7 +187,6 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
         await ctx.models.accountSettingsModels.updateAccountSettings(db, account.id, {
           ...accountData.settings,
           bot: {
-            enabled: false,
             ...accountData.settings?.bot,
             lastSearchChatId: state.chatId,
           },
@@ -303,7 +302,13 @@ async function executeSearchWithPagination(
     const time = msg.platform_timestamp
       ? new Date(msg.platform_timestamp * 1000).toLocaleString()
       : 'Unknown time'
-    return `${startIdx + index + 1}. [${chat}] ${from} (${time}):\n${content}`
+    const links = buildTelegramMessageLinks({
+      chatId: msg.in_chat_id,
+      messageId: msg.platform_message_id,
+      chatType: msg.in_chat_type,
+    })
+    const linkLine = links.length ? `\n🔗 ${links.join(' | ')}` : ''
+    return `${startIdx + index + 1}. [${chat}] ${from} (${time}):\n${content}${linkLine}`
   })
 
   const pageInfo = page > 0 ? ` (Page ${page + 1})` : ''

@@ -2,7 +2,7 @@ import type { CoreMessageMediaFromBlob } from '@tg-search/core'
 
 import { useLogger } from '@guiiai/logg'
 
-import { API_BASE, IS_CORE_MODE } from '../../constants'
+import { API_BASE, IS_CORE_MODE } from '../constants'
 
 /**
  * Create a browser-friendly media representation.

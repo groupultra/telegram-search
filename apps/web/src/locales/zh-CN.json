@@ -19,14 +19,16 @@
     "searchingContext": "搜索相关上下文...",
     "selectScope": "搜索会话范围",
     "selectScopeDescription": "选择特定的对话进行搜索，留空则搜索所有对话。",
-    "confirmFilter": "确认筛选",
-    "cancelFilter": "取消筛选",
+    "confirmFilter": "确认",
+    "cancelFilter": "取消",
     "send": "发送",
     "timeFilter": "时间过滤",
     "totalMessages": "总消息数",
     "typeYourMessage": "输入您的消息...",
     "userFilter": "用户过滤",
-    "viewInChat": "在聊天中查看"
+    "viewInChat": "在聊天中查看",
+    "regeneratedMessage": "消息已重新生成",
+    "deletedMessage": "消息已删除"
   },
   "base": {
     "toaster": {
@@ -105,7 +107,7 @@
     "loggingInSubtitle": "正在加载必要的数据，请稍候"
   },
   "messages": {
-    "copied": "已复制",
+    "copied": "已复制到剪贴板",
     "copyMessageLink": "复制消息链接",
     "openInChat": "在聊天中打开"
   },

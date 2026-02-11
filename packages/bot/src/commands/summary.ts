@@ -11,8 +11,10 @@ import { streamText } from 'xsai'
 
 import { generateMessageLink } from '../utils/deep-link'
 import { createChatPicker } from './chat-picker'
+import { buildPaginationButtons, paginateItems, splitTextToPages } from './helpers'
 
 type SummaryMode = 'unread' | 'today' | 'last24h'
+const SUMMARY_PAGE_SIZE = 3500
 
 interface MessageWithMeta {
   fromName?: string
@@ -29,7 +31,12 @@ interface UserSummaryState {
   chatName: string
 }
 
+interface SummaryState {
+  pages: string[]
+}
+
 const userStates = new Map<number, UserSummaryState>()
+const summaryStates = new Map<number, SummaryState>()
 
 export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
   const logger = ctx.logger.withContext('bot:command:summary')
@@ -63,6 +70,7 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
     },
     onReset: (userId) => {
       userStates.delete(userId)
+      summaryStates.delete(userId)
     },
   })
 
@@ -107,6 +115,7 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
     }
 
     try {
+      summaryStates.delete(userId)
       await gramCtx.answerCallbackQuery()
       await gramCtx.editMessageText('📝 Fetching messages...')
 
@@ -167,10 +176,34 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
       // Final update with source links
       const summaryWithLinks = addSourceLinks(accumulatedText, messages)
       const safeChatName = escapeMarkdown(state.chatName)
-      await gramCtx.editMessageText(
-        `📊 **${safeChatName} - ${modeLabel}**\n\n${summaryWithLinks}\n\n---\n_Based on ${messages.length} message(s)_`,
-        { parse_mode: 'Markdown' },
-      )
+      const summaryText = `📊 **${safeChatName} - ${modeLabel}**\n\n${summaryWithLinks}\n\n---\n_Based on ${messages.length} message(s)_`
+      const pages = splitTextToPages(summaryText, SUMMARY_PAGE_SIZE)
+
+      if (pages.length <= 1) {
+        summaryStates.delete(userId)
+        await gramCtx.editMessageText(summaryText, { parse_mode: 'Markdown' })
+      }
+      else {
+        summaryStates.set(userId, { pages })
+        const { pageItems, totalPages, page: safePage } = paginateItems(pages, 0, 1)
+        const keyboard = new InlineKeyboard()
+        const navButtons = buildPaginationButtons({
+          page: safePage,
+          hasMore: safePage < totalPages - 1,
+          prefix: 'summarypage:',
+          labels: { prev: '⬅️ Prev Page', next: '➡️ Next Page' },
+        })
+
+        if (navButtons.length > 0) {
+          keyboard.row(...navButtons)
+        }
+
+        const pageText = pageItems[0] || ''
+        await gramCtx.editMessageText(
+          `${pageText}\n\n(Page ${safePage + 1}/${totalPages})`,
+          { parse_mode: 'Markdown', reply_markup: keyboard },
+        )
+      }
 
       userStates.delete(userId)
       picker.clearState(userId)
@@ -180,6 +213,37 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
       const message = error instanceof Error ? error.message : 'An error occurred while generating summary.'
       await gramCtx.reply(`❌ ${message} Please try again later.`)
     }
+  })
+
+  // Handle summary pagination
+  bot.callbackQuery(/^summarypage:/, async (gramCtx) => {
+    const userId = gramCtx.from.id
+    const page = Number.parseInt(gramCtx.callbackQuery.data.replace('summarypage:', ''), 10)
+
+    const state = summaryStates.get(userId)
+    if (!state) {
+      await gramCtx.answerCallbackQuery('Session expired. Please /summary again.')
+      return
+    }
+
+    const { pageItems, totalPages, page: safePage } = paginateItems(state.pages, page, 1)
+    const keyboard = new InlineKeyboard()
+    const navButtons = buildPaginationButtons({
+      page: safePage,
+      hasMore: safePage < totalPages - 1,
+      prefix: 'summarypage:',
+      labels: { prev: '⬅️ Prev Page', next: '➡️ Next Page' },
+    })
+
+    if (navButtons.length > 0) {
+      keyboard.row(...navButtons)
+    }
+
+    await gramCtx.answerCallbackQuery()
+    await gramCtx.editMessageText(
+      `${pageItems[0] || ''}\n\n(Page ${safePage + 1}/${totalPages})`,
+      { parse_mode: 'Markdown', reply_markup: keyboard },
+    )
   })
 }
 

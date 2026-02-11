@@ -5,7 +5,7 @@ import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { computed } from 'vue'
 
-import { IS_CORE_MODE } from '../../constants'
+import { IS_CORE_MODE } from '../constants'
 
 const CORE_TYPE = 'core-bridge'
 const WS_TYPE = 'websocket'

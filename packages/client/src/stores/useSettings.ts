@@ -2,7 +2,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import { DEBUG_MODE } from '../../constants'
+import { DEBUG_MODE } from '../constants'
 
 export type ChatGroup = 'folder' | undefined
 

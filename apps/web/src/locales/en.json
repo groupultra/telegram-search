@@ -19,14 +19,16 @@
     "searchingContext": "Searching for relevant context...",
     "selectScope": "Select Search Scope",
     "selectScopeDescription": "Choose specific chats to search within. Leave empty to search all chats.",
-    "confirmFilter": "Confirm Filter",
-    "cancelFilter": "Cancel Filter",
+    "confirmFilter": "Confirm",
+    "cancelFilter": "Cancel",
     "send": "Send",
     "timeFilter": "Time Filter",
     "totalMessages": "Total Messages",
     "typeYourMessage": "Type your message...",
     "userFilter": "User Filter",
-    "viewInChat": "View in Chat"
+    "viewInChat": "View in Chat",
+    "regeneratedMessage": "Message regenerated",
+    "deletedMessage": "Message deleted"
   },
   "base": {
     "toaster": {
@@ -105,7 +107,7 @@
     "loggingInSubtitle": "Loading necessary data, please wait"
   },
   "messages": {
-    "copied": "Copied",
+    "copied": "Copied to clipboard",
     "copyMessageLink": "Copy message link",
     "openInChat": "Open in chat"
   },

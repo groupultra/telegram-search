@@ -3,6 +3,7 @@ import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
 import MarkdownRender from 'markstream-vue'
 
+import { useLogger } from '@guiiai/logg'
 import { useAccountStore, useAIChatStore, useBridge, useChatStore } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
@@ -60,20 +61,23 @@ function scrollToBottom() {
 }
 
 async function sendMessage() {
-  if (!messageInput.value.trim())
+  if (!messageInput.value.trim()) {
     return
-
+  }
+  const message = messageInput.value.trim()
+  messageInput.value = ''
+  await generateMessage(message)
+}
+async function generateMessage(message: string, assistantId?: string) {
   if (!isApiConfigured.value) {
     toast.error(t('aiChat.configureApi'))
     router.push('/settings')
     return
   }
-
-  const message = messageInput.value.trim()
-  messageInput.value = ''
-
   // Add user message to chat
-  aiChatStore.addUserMessage(message)
+  if (message.trim()) {
+    aiChatStore.addUserMessage(message)
+  }
   aiChatStore.setLoading(true)
   aiChatStore.clearError()
 
@@ -131,9 +135,31 @@ async function sendMessage() {
       })
     }
 
+    const getDialogsExecutor = async (_: any) => {
+      return new Promise<any[]>((resolve) => {
+        bridge.waitForEvent(CoreEventType.StorageDialogs).then(({ dialogs }) => {
+          resolve(dialogs)
+        })
+
+        bridge.sendEvent(CoreEventType.StorageFetchDialogs)
+      })
+    }
+
+    const chatNoteExecutor = async (params: { chatId: string, note: string, modify: boolean }) => {
+      return new Promise<string>((resolve) => {
+        bridge.waitForEvent(CoreEventType.StorageChatNoteData).then(({ note }) => {
+          resolve(note ?? '')
+        })
+
+        bridge.sendEvent(CoreEventType.StorageChatNote, params)
+      })
+    }
+
     // Create tools
     const searchMessagesTool = await aiChatLogic.createSearchMessagesTool(searchMessagesExecutor)
     const retrieveContextTool = await aiChatLogic.createRetrieveContextTool(retrieveContextExecutor)
+    const getDialogsTool = await aiChatLogic.createGetDialogsTool(getDialogsExecutor)
+    const chatNoteTool = await aiChatLogic.createChatNoteTool(chatNoteExecutor)
 
     // Build system prompt
     const systemPrompt = aiChatLogic.buildSystemPrompt()
@@ -150,17 +176,19 @@ async function sendMessage() {
     const llmMessages = [
       { role: 'system' as const, content: systemPrompt },
       ...conversationHistory,
-      { role: 'user' as const, content: message },
     ]
+    if (message.trim()) {
+      llmMessages.push({ role: 'user' as const, content: message })
+    }
 
     // Call LLM with tools
-    const assistantId = aiChatStore.addAssistantMessage()
+    const currentAssistantId = assistantId || aiChatStore.addAssistantMessage()
     let accumulatedContent = ''
 
     await aiChatLogic.callLLMWithTools(
       llmConfig,
       llmMessages,
-      [searchMessagesTool, retrieveContextTool],
+      [searchMessagesTool, retrieveContextTool, getDialogsTool, chatNoteTool],
       // onToolCall
       (toolCall) => {
         toolCalls.push(toolCall)
@@ -171,6 +199,13 @@ async function sendMessage() {
         else if (toolCall.name === 'retrieveContext') {
           aiChatStore.setSearching(true, `Retrieving context...`)
         }
+        else if (toolCall.name === 'getDialogs') {
+          aiChatStore.setSearching(true, `Fetching dialogs...`)
+        }
+        else if (toolCall.name === 'chatNote') {
+          aiChatStore.setSearching(true, `Adding note...`)
+        }
+        useLogger('composables:ai-chat').withFields({ toolCall }).log('onToolCall')
       },
       // onToolResult
       (toolName, result, duration) => {
@@ -190,7 +225,8 @@ async function sendMessage() {
           searchQuery: '',
           toolCalls,
         }
-        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, allRetrievedMessages, debugInfo)
+        useLogger('composables:ai-chat').withFields({ toolCalls }).log('onTextDelta')
+        aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo)
         // Auto-scroll as content updates
         nextTick().then(scrollToBottom)
       },
@@ -210,8 +246,8 @@ async function sendMessage() {
             },
           ],
         }
-        aiChatStore.updateAssistantMessage(assistantId, accumulatedContent, allRetrievedMessages, debugInfo)
-        aiChatStore.completeAssistantMessage(assistantId)
+        aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo)
+        aiChatStore.completeAssistantMessage(currentAssistantId)
       },
     )
   }
@@ -227,7 +263,7 @@ async function sendMessage() {
 }
 
 function handleKeyPress(event: KeyboardEvent) {
-  if (event.key === 'Enter' && !event.shiftKey) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
     event.preventDefault()
     sendMessage()
   }
@@ -251,6 +287,18 @@ function viewMessageInChat(chatId: string, platformMessageId: string) {
 function copyMessage(content: string) {
   navigator.clipboard.writeText(content)
   toast.success(t('aiChat.copiedToClipboard'))
+}
+
+function regenerateMessage(id: string) {
+  // aiChatStore.regenerateMessage(id)
+  aiChatStore.updateAssistantMessage(id, '', [], undefined, true)
+  generateMessage('', id)
+  toast.success(t('aiChat.regeneratedMessage'))
+}
+
+function deleteMessage(id: string) {
+  aiChatStore.deleteAssistantMessage(id)
+  toast.success(t('aiChat.deletedMessage'))
 }
 
 onMounted(() => {
@@ -321,6 +369,19 @@ onMounted(() => {
             v-else
             class="assistant-message max-w-none overflow-x-auto text-sm"
           >
+            <!-- Thinking animation -->
+            <div v-if="isSearching && message.isStreaming" class="animate-pulse space-y-2">
+              <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
+                <span class="font-medium">{{ searchStage || t('aiChat.searchingContext') }}</span>
+              </div>
+            </div>
+            <div v-else-if="isLoading && message.isStreaming" class="animate-pulse space-y-2">
+              <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
+                <span class="font-medium">{{ t('aiChat.aiThinking') }}</span>
+              </div>
+            </div>
             <MarkdownRender
               :custom-id="`ai-chat-${message.id}`"
               :content="message.content"
@@ -466,57 +527,29 @@ onMounted(() => {
             </details>
           </div>
 
-          <!-- Copy button -->
-          <div class="flex justify-end">
-            <button
-              class="opacity-50 transition-opacity hover:opacity-100"
+          <!-- Tool bar -->
+          <div v-if="message.role === 'assistant' && message.content.length !== 0" class="flex justify-end gap-2">
+            <Button
+              icon="i-lucide-copy"
+              class="h-4 w-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
               @click="copyMessage(message.content)"
             >
-              <span class="i-lucide-copy h-3 w-3" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Loading/Searching indicator -->
-      <div
-        v-if="isSearching || isLoading"
-        class="flex justify-start"
-      >
-        <div class="max-w-[80%] border rounded-lg bg-card px-4 py-3 space-y-3">
-          <!-- Search animation with stage info -->
-          <div v-if="isSearching" class="space-y-2">
-            <div class="flex items-center gap-2 text-sm text-muted-foreground">
-              <span class="i-lucide-search h-4 w-4 animate-pulse" />
-              <span class="font-medium">{{ searchStage || t('aiChat.searchingContext') }}</span>
-            </div>
-
-            <!-- Skeleton loading animation -->
-            <div class="space-y-2">
-              <div class="h-3 w-full animate-pulse rounded bg-muted/50" />
-              <div class="h-3 w-4/5 animate-pulse rounded bg-muted/50" style="animation-delay: 0.1s" />
-              <div class="h-3 w-3/4 animate-pulse rounded bg-muted/50" style="animation-delay: 0.2s" />
-            </div>
-
-            <div class="flex items-center gap-1 text-xs opacity-60">
-              <span class="i-lucide-sparkles h-3 w-3 animate-pulse" />
-              <span>Processing your query with AI...</span>
-            </div>
-          </div>
-
-          <!-- Thinking animation -->
-          <div v-else-if="isLoading" class="space-y-2">
-            <div class="flex items-center gap-2 text-sm text-muted-foreground">
-              <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
-              <span class="font-medium">{{ t('aiChat.aiThinking') }}</span>
-            </div>
-
-            <!-- Skeleton loading animation for thinking -->
-            <div class="space-y-2">
-              <div class="h-3 w-full animate-pulse rounded bg-muted/50" />
-              <div class="h-3 w-5/6 animate-pulse rounded bg-muted/50" style="animation-delay: 0.15s" />
-              <div class="h-3 w-2/3 animate-pulse rounded bg-muted/50" style="animation-delay: 0.3s" />
-            </div>
+              <!-- {{ t('aiChat.copy') }} -->
+            </Button>
+            <Button
+              icon="i-lucide-rotate-ccw"
+              class="h-4 w-4 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
+              @click="regenerateMessage(message.id)"
+            >
+              <!-- {{ t('aiChat.copy') }} -->
+            </Button>
+            <Button
+              icon="i-lucide-trash-2"
+              class="h-4 w-4 shrink-0 px-0 opacity-50 transition-opacity hover:text-red hover:opacity-100"
+              @click="deleteMessage(message.id)"
+            >
+              <!-- {{ t('aiChat.copy') }} -->
+            </Button>
           </div>
         </div>
       </div>
@@ -542,13 +575,12 @@ onMounted(() => {
           <!-- Chat Scope Selector Trigger -->
           <Button
             variant="outline"
-            icon=""
+            icon="i-lucide-filter"
             class="h-12 w-12 shrink-0 px-0"
             @click="isScopeSelectorOpen = true"
           >
-            <div class="flex items-center justify-center gap-1">
-              <span class="i-lucide-filter h-4 w-4" />
-              <span v-if="filteredChatsCount > 0" class="text-sm font-medium">
+            <div v-if="filteredChatsCount > 0" class="flex items-center justify-center gap-1">
+              <span class="text-sm font-medium">
                 {{ filteredChatsCount }}
               </span>
             </div>
@@ -564,6 +596,7 @@ onMounted(() => {
           <Button
             icon="i-lucide-send"
             :disabled="!messageInput.trim() || isLoading"
+            class="h-12 w-16 shrink-0 px-0"
             @click="sendMessage"
           >
             {{ t('aiChat.send') }}
