@@ -187,6 +187,7 @@ export function registerSearchCommand(bot: Bot, ctx: BotCommandContext) {
         await ctx.models.accountSettingsModels.updateAccountSettings(db, account.id, {
           ...accountData.settings,
           bot: {
+            enabled: accountData.settings?.bot?.enabled ?? false,
             ...accountData.settings?.bot,
             lastSearchChatId: state.chatId,
           },
