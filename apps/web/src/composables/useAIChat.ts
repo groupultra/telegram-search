@@ -55,6 +55,12 @@ interface RetrieveContextParams {
 interface GetDialogsParams {
 }
 
+interface ChatNoteParams {
+  chatId: string
+  note: string
+  modify: boolean
+}
+
 /**
  * Composable for AI chat functionality with real tool calling
  */
@@ -211,6 +217,44 @@ Parameters:
       },  })
   }
 
+  async function createChatNoteTool(
+    executor: (params: ChatNoteParams) => Promise<string>,
+  ) {
+    logger.log('Creating chatNote tool')
+    const chatNoteSchema = v.strictObject({
+      chatId: v.pipe(
+        v.string(),
+        v.description('Chat ID to add or modify a note for'),
+      ),
+      note: v.pipe(
+        v.string(),
+        v.description('Note to add or modify for the chat'),
+      ),
+      modify: v.pipe(
+        v.boolean(),
+        v.description('Whether to modify the note or add a new one, if you need to get the note, set modify to false'),
+      ),
+    })
+    return await tool({
+      name: 'chatNote',
+      description: 'Add or modify a note for a chat. Use this when the user asks to add or modify a note for a chat. If you need to get the note, set modify to false',
+      parameters: chatNoteSchema,
+      execute: async (params: InferInput<typeof chatNoteSchema>) => {
+        const startTime = Date.now()
+        logger.withFields({ params }).log('chatNote tool called')
+        const result = await executor(params)
+        const duration = Date.now() - startTime
+        logger.withFields({
+          duration,
+          result,
+        }).log('chatNote completed')
+        return JSON.stringify({
+          success: true,
+          result,
+        })
+      },
+    })
+  }
   /**
    * Call LLM with tool calling support
    */
@@ -406,6 +450,7 @@ IMPORTANT INSTRUCTIONS:
 5. Always cite specific messages when answering (mention date, sender, chat name if available)
 6. Be concise and direct in your responses
 7. If the user asks about their chats, conversations list, or what chats they have, use the getDialogs tool
+8. If the user asks to add or modify a note for a chat, use the chatNote tool
 
 EXAMPLES:
 - "Hello" -> Respond directly with a greeting, NO tool calling
@@ -413,6 +458,8 @@ EXAMPLES:
 - "What did we discuss?" -> Use searchMessages with query="discuss", useVector=true, limit=5
 - "What do I like to eat" -> Use searchMessages with query="like eat", useVector=true, limit=5
 - "Who said 'hello'?" -> Use searchMessages with query="hello", useVector=false, limit=5
+- “Add a note for this chat” -> Use chatNote with chatId=currentChatId, note="This is a note for this chat", modify=true
+- "Get the note for this chat" -> Use chatNote with chatId=currentChatId, note="", modify=false
 
 Remember: Only use tools when necessary. For greetings or general questions, respond directly without calling any tools.`
   }
@@ -421,6 +468,7 @@ Remember: Only use tools when necessary. For greetings or general questions, res
     createSearchMessagesTool,
     createRetrieveContextTool,
     createGetDialogsTool,
+    createChatNoteTool,
     callLLMWithTools,
     buildSystemPrompt,
     streamSimpleText,

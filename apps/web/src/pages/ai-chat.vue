@@ -144,10 +144,21 @@ async function generateMessage(message: string, assistantId?: string) {
       })
     }
 
+    const chatNoteExecutor = async (params: { chatId: string, note: string, modify: boolean }) => {
+      return new Promise<string>((resolve) => {
+        bridge.waitForEvent(CoreEventType.StorageChatNoteData).then(({ note }) => {
+          resolve(note ?? '')
+        })
+
+        bridge.sendEvent(CoreEventType.StorageChatNote, params)
+      })
+    }
+
     // Create tools
     const searchMessagesTool = await aiChatLogic.createSearchMessagesTool(searchMessagesExecutor)
     const retrieveContextTool = await aiChatLogic.createRetrieveContextTool(retrieveContextExecutor)
     const getDialogsTool = await aiChatLogic.createGetDialogsTool(getDialogsExecutor)
+    const chatNoteTool = await aiChatLogic.createChatNoteTool(chatNoteExecutor)
 
     // Build system prompt
     const systemPrompt = aiChatLogic.buildSystemPrompt()
@@ -176,7 +187,7 @@ async function generateMessage(message: string, assistantId?: string) {
     await aiChatLogic.callLLMWithTools(
       llmConfig,
       llmMessages,
-      [searchMessagesTool, retrieveContextTool, getDialogsTool],
+      [searchMessagesTool, retrieveContextTool, getDialogsTool, chatNoteTool],
       // onToolCall
       (toolCall) => {
         toolCalls.push(toolCall)

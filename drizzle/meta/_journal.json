@@ -211,6 +211,13 @@
       "when": 1770313894997,
       "tag": "0029_wandering_eternity",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1770781322731,
+      "tag": "0030_serious_rhino",
+      "breakpoints": true
     }
   ]
 }

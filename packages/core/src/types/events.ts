@@ -49,6 +49,7 @@ export enum CoreEventType {
   DialogData = 'dialog:data',
   DialogFoldersData = 'dialog:folders:data',
   DialogAvatarData = 'dialog:avatar:data',
+  DialogNote = 'dialog:note',
 
   EntityProcess = 'entity:process',
   EntityAvatarFetch = 'entity:avatar:fetch',
@@ -68,6 +69,8 @@ export enum CoreEventType {
   StorageDialogs = 'storage:dialogs',
   StorageSearchMessagesData = 'storage:search:messages:data',
   StorageMessagesContext = 'storage:messages:context',
+  StorageChatNote = 'storage:record:dialog-note',
+  StorageChatNoteData = 'storage:dialog-note',
 
   TakeoutRun = 'takeout:run',
   TakeoutTaskAbort = 'takeout:task:abort',
@@ -300,6 +303,8 @@ export interface StorageEventToCore {
   [CoreEventType.StorageSearchMessages]: (data: CoreMessageSearchParams) => void
 
   [CoreEventType.StorageFetchMessageContext]: (data: StorageMessageContextParams) => void
+
+  [CoreEventType.StorageChatNote]: (data: { chatId: string, note: string, modify: boolean }) => void
 }
 
 export interface StorageEventFromCore {
@@ -310,6 +315,8 @@ export interface StorageEventFromCore {
   [CoreEventType.StorageSearchMessagesData]: (data: { messages: CoreRetrievalMessages[] }) => void
 
   [CoreEventType.StorageMessagesContext]: (data: { messages: CoreMessage[] } & StorageMessageContextParams) => void
+
+  [CoreEventType.StorageChatNoteData]: (data: { chatId: string, note: string }) => void
 }
 
 export interface CoreMessageSearchParams {

@@ -193,4 +193,28 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     ctx.emitter.emit(CoreEventType.StorageSearchMessagesData, { messages: coreMessages })
   })
+
+  ctx.emitter.on(CoreEventType.StorageChatNote, async ({ chatId, note, modify }) => {
+    logger.withFields({ chatId, note }).verbose('Recording chat note')
+
+    const accountId = ctx.getCurrentAccountId()
+    const hasAccess = (await dbModels.chatModels.isChatAccessibleByAccount(ctx.getDB(), accountId, chatId)).expect('Failed to check chat access')
+
+    if (!hasAccess) {
+      ctx.withError('Unauthorized chat access', 'Account does not have access to requested chat note')
+      return
+    }
+
+    const note_result = await dbModels.chatModels.getOrModifyChatNote(ctx.getDB(), accountId, chatId, note, modify)
+    if (note_result !== null) {
+      logger.verbose('Successfully recorded chat note')
+      ctx.emitter.emit(CoreEventType.StorageChatNoteData, { chatId, note: note_result })
+      return
+
+    }
+    else {
+      ctx.withError('Failed to record chat note', 'Failed to record chat note')
+      return
+    }
+  })
 }
