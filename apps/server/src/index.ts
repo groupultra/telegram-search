@@ -16,6 +16,7 @@ import { defineEventHandler, H3, serve } from 'h3'
 
 import pkg from '../package.json' with { type: 'json' }
 
+import { getAccountContext } from './account'
 import { v1api } from './apis/v1'
 import { setupWsRoutes } from './app'
 import { getDB, initDrizzle } from './storage/drizzle'
@@ -115,6 +116,7 @@ async function bootstrap() {
   const botRegistry = createBotRegistry({
     config,
     getDB,
+    getAccountContext,
     logger,
   })
   setBotRegistryInstance(botRegistry)

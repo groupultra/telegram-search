@@ -168,3 +168,7 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
   account.lastActive = Date.now()
   return account
 }
+
+export function getAccountContext(accountId: string): CoreContext | undefined {
+  return accountStates.get(accountId)?.ctx
+}

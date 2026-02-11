@@ -153,8 +153,8 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.emitter.on(CoreEventType.MessageFetchSummary, async ({ chatId, limit, mode }) => {
-      logger.withFields({ chatId, limit, mode }).verbose('Fetching summary messages')
+    ctx.emitter.on(CoreEventType.MessageFetchSummary, async ({ chatId, limit, mode, requestId }) => {
+      logger.withFields({ chatId, limit, mode, requestId }).verbose('Fetching summary messages')
       try {
         if (mode === 'unread') {
           const unread = await messageService.fetchUnreadMessages(chatId, { limit })
@@ -162,6 +162,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
           ctx.emitter.emit(CoreEventType.MessageSummaryData, {
             messages: toCoreMessages(unread),
             mode: 'unread',
+            requestId,
           })
           return
         }
@@ -179,6 +180,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         ctx.emitter.emit(CoreEventType.MessageSummaryData, {
           messages: toCoreMessages(recent),
           mode,
+          requestId,
         })
       }
       catch (e) {

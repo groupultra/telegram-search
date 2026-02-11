@@ -175,6 +175,7 @@ export type SummaryMode = 'unread' | 'today' | 'last24h'
 export interface FetchSummaryMessageOpts {
   chatId: string
   mode: SummaryMode
+  requestId?: string
   /**
    * Hard cap to protect WS payload size and LLM token usage.
    */
@@ -185,7 +186,7 @@ export interface MessageEventFromCore {
   [CoreEventType.MessageFetchProgress]: (data: { taskId: string, progress: number }) => void
   [CoreEventType.MessageData]: (data: { messages: CoreMessage[] }) => void
   [CoreEventType.MessageUnreadData]: (data: { messages: CoreMessage[] }) => void
-  [CoreEventType.MessageSummaryData]: (data: { messages: CoreMessage[], mode: SummaryMode }) => void
+  [CoreEventType.MessageSummaryData]: (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => void
 }
 
 export interface FetchMessageOpts {

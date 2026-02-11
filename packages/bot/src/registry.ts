@@ -1,6 +1,6 @@
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
-import type { CoreDB } from '@tg-search/core'
+import type { CoreContext, CoreDB } from '@tg-search/core'
 import type { Bot } from 'grammy'
 
 import type { BotCommandAccount } from './commands'
@@ -24,6 +24,7 @@ export interface BotRegistry {
 export interface BotRegistryOptions {
   config: Config
   getDB: () => CoreDB
+  getAccountContext: (accountId: string) => CoreContext | undefined
   logger?: Logger
 }
 
@@ -57,6 +58,7 @@ export function createBotRegistry(options: BotRegistryOptions): BotRegistry {
     getDB: options.getDB,
     models,
     resolveAccountByTelegramUserId,
+    getAccountContext: options.getAccountContext,
     logger,
   })
 
@@ -69,6 +71,7 @@ export function createBotRegistry(options: BotRegistryOptions): BotRegistry {
         { command: 'start', description: 'Start the bot and show welcome message' },
         { command: 'search', description: 'Search messages in your chats' },
         { command: 'summary', description: 'Generate AI summary of recent messages' },
+        { command: 'export', description: 'Export or sync messages from Telegram' },
       ])
 
       await scheduler.loadTasks()

@@ -1,7 +1,11 @@
+import type { CoreContext, CoreMessage } from '@tg-search/core'
 import type { Bot } from 'grammy'
 
 import type { BotCommandContext } from '.'
 
+import { randomUUID } from 'node:crypto'
+
+import { CoreEventType } from '@tg-search/core'
 import { InlineKeyboard } from 'grammy'
 import { streamText } from 'xsai'
 
@@ -36,10 +40,16 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
     chatListHeader: '📊 Select a chat to summarize:',
     allOptionLabel: '🌐 Summarize All Chats',
     onSelected: async (gramCtx, userId, chatId, chatName) => {
+      if (chatId === '__ALL__') {
+        await gramCtx.reply('⚠️ Direct summary only supports a single chat. Please select one.')
+        await picker.showFolders(gramCtx, userId, true)
+        return
+      }
+
       userStates.set(userId, { chatId, chatName })
 
       const keyboard = new InlineKeyboard()
-        .text('📬 Unread (7 days)', 'summode:unread')
+        .text('📬 Unread', 'summode:unread')
         .row()
         .text('📅 Today', 'summode:today')
         .text('🕐 Last 24h', 'summode:last24h')
@@ -167,7 +177,8 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
     }
     catch (error) {
       logger.withError(error).error('Summary generation failed')
-      await gramCtx.reply('❌ An error occurred while generating summary. Please try again later.')
+      const message = error instanceof Error ? error.message : 'An error occurred while generating summary.'
+      await gramCtx.reply(`❌ ${message} Please try again later.`)
     }
   })
 }
@@ -181,53 +192,78 @@ async function fetchMessagesForSummary(
   mode: SummaryMode,
   chatId?: string,
 ): Promise<MessageWithMeta[]> {
-  const db = ctx.getDB()
-  const now = Math.floor(Date.now() / 1000)
-
-  let startTime: number
-  switch (mode) {
-    case 'unread':
-      startTime = now - 7 * 24 * 60 * 60
-      break
-    case 'today': {
-      const todayStart = new Date()
-      todayStart.setHours(0, 0, 0, 0)
-      startTime = Math.floor(todayStart.getTime() / 1000)
-      break
-    }
-    case 'last24h':
-      startTime = now - 24 * 60 * 60
-      break
+  if (!chatId) {
+    throw new Error('Direct summary only supports a single chat')
   }
 
-  const chatIds = chatId ? [chatId] : undefined
+  const coreCtx = ctx.getAccountContext(accountId)
+  if (!coreCtx) {
+    throw new Error('Account session not ready. Please log in via the web interface first.')
+  }
 
-  const result = await ctx.models.chatMessageModels.fetchMessagesByTimeRange(
-    db,
-    accountId,
-    { start: startTime, end: now },
-    chatIds,
-    { limit: 1000, offset: 0 },
-  )
+  const requestId = randomUUID()
+  const summaryMessages = await waitForSummaryData(coreCtx, { chatId, mode, requestId })
 
-  const allMessages = result.expect('Failed to fetch messages')
-
-  // Build chat lookup for link generation
+  const db = ctx.getDB()
   const chatsResult = await ctx.models.chatModels.fetchChatsByAccountId(db, accountId)
   const chats = chatsResult.expect('Failed to get chats')
   const chatMap = new Map(chats.map(c => [c.chat_id, c]))
 
-  return allMessages.map((msg) => {
-    const chat = chatMap.get(msg.in_chat_id)
+  return summaryMessages.map((msg) => {
+    const chat = chatMap.get(msg.chatId)
     return {
-      fromName: msg.from_name,
-      fromId: msg.from_id,
+      fromName: msg.fromName,
+      fromId: msg.fromId,
       content: msg.content || '',
-      chatId: msg.in_chat_id,
-      messageId: msg.platform_message_id,
+      chatId: msg.chatId,
+      messageId: msg.platformMessageId,
       chatType: chat?.chat_type || 'unknown',
       chatUsername: chat?.chat_username,
     }
+  })
+}
+
+const SUMMARY_FETCH_TIMEOUT_MS = 60_000
+
+async function waitForSummaryData(
+  coreCtx: CoreContext,
+  request: { chatId: string, mode: SummaryMode, requestId: string },
+): Promise<CoreMessage[]> {
+  return new Promise((resolve, reject) => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    let settled = false
+
+    const cleanup = (listener: (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => void) => {
+      if (settled) {
+        return
+      }
+      settled = true
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+      coreCtx.emitter.off(CoreEventType.MessageSummaryData, listener)
+    }
+
+    const onSummary = (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => {
+      if (data.requestId !== request.requestId) {
+        return
+      }
+      cleanup(onSummary)
+      resolve(data.messages)
+    }
+
+    timeoutId = setTimeout(() => {
+      cleanup(onSummary)
+      reject(new Error('Summary request timed out.'))
+    }, SUMMARY_FETCH_TIMEOUT_MS)
+
+    coreCtx.emitter.on(CoreEventType.MessageSummaryData, onSummary)
+    coreCtx.emitter.emit(CoreEventType.MessageFetchSummary, {
+      chatId: request.chatId,
+      mode: request.mode,
+      limit: 1000,
+      requestId: request.requestId,
+    })
   })
 }
 
