@@ -280,6 +280,7 @@ Parameters:
     const timeoutId = setTimeout(() => {
       logger.error('Request timed out after 60s')
       abortController.abort()
+      onComplete({ promptTokens: 0, completionTokens: 0, totalTokens: 0 })
     }, 60000)
 
     try {
@@ -293,106 +294,37 @@ Parameters:
           apiKey: llmConfig.apiKey,
           messages: currentMessages,
           tools,
+          maxSteps:5,
           temperature: llmConfig.temperature ?? 0.7,
           abortSignal: abortController.signal,
         })
-
+        logger.withFields({ result }).log('generateText result')
+        for (const step of result.steps) {
+          // Call onToolCall for each tool call in this step
+          for (const toolCall of step.toolCalls) {
+            onToolCall({
+              name: toolCall.toolName,
+              description: toolCall.toolName,
+              input: toolCall.args,
+              timestamp: Date.now(),
+            })
+          }
+          // Call onToolResult for each tool result in this step
+          for (const toolResult of step.toolResults) {
+            onToolResult(toolResult.toolName, JSON.stringify(toolResult.result), Date.now())
+          }
+        }
         // Accumulate usage
         if (result.usage) {
           totalUsage.promptTokens += result.usage.prompt_tokens || 0
           totalUsage.completionTokens += result.usage.completion_tokens || 0
           totalUsage.totalTokens += result.usage.total_tokens || 0
         }
-
-        // Check for tool calls in the result
-        // xsai's generateText returns toolCalls in the last step
-        const toolCalls = (result.steps[result.steps.length - 1] as any)?.toolCalls
-
-        if (toolCalls && toolCalls.length > 0) {
-          logger.withFields({ toolCallsCount: toolCalls.length }).log('Tool calls detected')
-
-          // Add assistant's tool call message to history
-          currentMessages.push({
-            role: 'assistant',
-            content: result.text || '',
-            tool_calls: toolCalls.map((tc: any) => ({
-              id: tc.id,
-              type: 'function',
-              function: {
-                name: tc.name,
-                arguments: JSON.stringify(tc.arguments),
-              },
-            })),
-          })
-
-          // Execute each tool call
-          for (const tc of toolCalls) {
-            const startTime = Date.now()
-            const toolDef = tools.find(t => t.function.name === tc.name)
-
-            onToolCall({
-              name: tc.name,
-              description: toolDef?.function.description || '',
-              input: tc.arguments,
-              timestamp: startTime,
-            })
-
-            if (!toolDef) {
-              const errorResult = JSON.stringify({ error: `Tool ${tc.name} not found` })
-              onToolResult(tc.name, errorResult, 0)
-              currentMessages.push({
-                role: 'tool',
-                tool_call_id: tc.id,
-                content: errorResult,
-              })
-              continue
-            }
-
-            try {
-              const output = await toolDef.execute(tc.arguments)
-              const duration = Date.now() - startTime
-
-              onToolResult(tc.name, output, duration)
-
-              currentMessages.push({
-                role: 'tool',
-                tool_call_id: tc.id,
-                content: output,
-              })
-            }
-            catch (error) {
-              const errorResult = JSON.stringify({ error: error instanceof Error ? error.message : String(error) })
-              onToolResult(tc.name, errorResult, Date.now() - startTime)
-              currentMessages.push({
-                role: 'tool',
-                tool_call_id: tc.id,
-                content: errorResult,
-              })
-            }
-          }
-
-          // Continue the loop to get the response after tool results
-        }
-        else {
-          // No tool calls: use final response (from this turn or stream)
-          if (result.text?.trim()) {
-            logger.log('Using final response from generateText')
-            onTextDelta(result.text)
-          }
-          else {
-            logger.log('No more tool calls, starting final streaming response')
-            await streamSimpleText(llmConfig, currentMessages, onTextDelta)
-          }
-
-          clearTimeout(timeoutId)
-          onComplete(totalUsage)
-          return
+        if (result.finishReason === "stop") {
+          onTextDelta(result.text || '')
+          break
         }
       }
-
-      // Max steps reached: still request a final reply after tool calls
-      logger.warn('Maximum tool calling steps reached, requesting final response')
-      await streamSimpleText(llmConfig, currentMessages, onTextDelta)
       onComplete(totalUsage)
     }
     catch (error) {
@@ -401,34 +333,6 @@ Parameters:
     }
     finally {
       clearTimeout(timeoutId)
-    }
-  }
-
-  /**
-   * Simple streaming text generation without tool calling.
-   * Used by lightweight features like unread summary generation.
-   */
-  async function streamSimpleText(
-    llmConfig: LLMConfig,
-    messages: LLMMessage[],
-    onTextDelta: (delta: string) => void,
-  ): Promise<void> {
-    logger.withFields({
-      messagesCount: messages.length,
-    }).log('Starting simple LLM streaming')
-
-    const { textStream } = streamText({
-      baseURL: llmConfig.apiBase,
-      model: llmConfig.model,
-      apiKey: llmConfig.apiKey,
-      messages,
-      temperature: llmConfig.temperature ?? 0.7,
-      maxTokens: llmConfig.maxTokens,
-    })
-
-    const iterable = textStream as unknown as AsyncIterable<string>
-    for await (const text of iterable) {
-      onTextDelta(text)
     }
   }
 
@@ -471,6 +375,5 @@ Remember: Only use tools when necessary. For greetings or general questions, res
     createChatNoteTool,
     callLLMWithTools,
     buildSystemPrompt,
-    streamSimpleText,
   }
 }

@@ -16,6 +16,7 @@ import Dialog from '../components/ui/Dialog.vue'
 
 import { Button } from '../components/ui/Button'
 import { useAIChatLogic } from '../composables/useAIChat'
+import { useLogger } from '@guiiai/logg'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -200,7 +201,10 @@ async function generateMessage(message: string, assistantId?: string) {
         }
         else if (toolCall.name === 'getDialogs') {
           aiChatStore.setSearching(true, `Fetching dialogs...`)
+        }else if (toolCall.name === 'chatNote') {
+          aiChatStore.setSearching(true, `Adding note...`)
         }
+        useLogger("composables:ai-chat").withFields({ toolCall }).log("onToolCall")
       },
       // onToolResult
       (toolName, result, duration) => {
@@ -220,6 +224,7 @@ async function generateMessage(message: string, assistantId?: string) {
           searchQuery: '',
           toolCalls,
         }
+        useLogger("composables:ai-chat").withFields({ toolCalls }).log("onTextDelta")
         aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo)
         // Auto-scroll as content updates
         nextTick().then(scrollToBottom)
