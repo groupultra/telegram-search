@@ -3,6 +3,7 @@ import type { CoreRetrievalMessages } from '@tg-search/core/types'
 
 import MarkdownRender from 'markstream-vue'
 
+import { useLogger } from '@guiiai/logg'
 import { useAccountStore, useAIChatStore, useBridge, useChatStore } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
@@ -16,7 +17,6 @@ import Dialog from '../components/ui/Dialog.vue'
 
 import { Button } from '../components/ui/Button'
 import { useAIChatLogic } from '../composables/useAIChat'
-import { useLogger } from '@guiiai/logg'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -201,10 +201,11 @@ async function generateMessage(message: string, assistantId?: string) {
         }
         else if (toolCall.name === 'getDialogs') {
           aiChatStore.setSearching(true, `Fetching dialogs...`)
-        }else if (toolCall.name === 'chatNote') {
+        }
+        else if (toolCall.name === 'chatNote') {
           aiChatStore.setSearching(true, `Adding note...`)
         }
-        useLogger("composables:ai-chat").withFields({ toolCall }).log("onToolCall")
+        useLogger('composables:ai-chat').withFields({ toolCall }).log('onToolCall')
       },
       // onToolResult
       (toolName, result, duration) => {
@@ -224,7 +225,7 @@ async function generateMessage(message: string, assistantId?: string) {
           searchQuery: '',
           toolCalls,
         }
-        useLogger("composables:ai-chat").withFields({ toolCalls }).log("onTextDelta")
+        useLogger('composables:ai-chat').withFields({ toolCalls }).log('onTextDelta')
         aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo)
         // Auto-scroll as content updates
         nextTick().then(scrollToBottom)
@@ -595,8 +596,8 @@ onMounted(() => {
           <Button
             icon="i-lucide-send"
             :disabled="!messageInput.trim() || isLoading"
-            @click="sendMessage"
             class="h-12 w-16 shrink-0 px-0"
+            @click="sendMessage"
           >
             {{ t('aiChat.send') }}
           </Button>

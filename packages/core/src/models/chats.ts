@@ -252,7 +252,6 @@ async function findChatAccessHash(db: CoreDB, accountId: string, chatId: string)
   })
 }
 
-
 async function getOrModifyChatNote(db: CoreDB, accountId: string, chatId: string, note: string, modify: boolean): Promise<string | null> {
   // Resolve joined_chats row for this account + chat_id (ensure account has access)
   const rows = await db

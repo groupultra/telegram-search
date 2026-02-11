@@ -209,12 +209,9 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     if (note_result !== null) {
       logger.verbose('Successfully recorded chat note')
       ctx.emitter.emit(CoreEventType.StorageChatNoteData, { chatId, note: note_result })
-      return
-
     }
     else {
       ctx.withError('Failed to record chat note', 'Failed to record chat note')
-      return
     }
   })
 }

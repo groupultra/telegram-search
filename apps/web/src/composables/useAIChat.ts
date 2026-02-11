@@ -3,7 +3,7 @@ import type { InferInput } from 'valibot'
 
 import { useLogger } from '@guiiai/logg'
 import { tool } from '@xsai/tool'
-import { generateText, streamText } from 'xsai'
+import { generateText } from 'xsai'
 
 import * as v from 'valibot'
 
@@ -214,7 +214,8 @@ Parameters:
           dialogsCount: results.length,
           dialogs: results,
         })
-      },  })
+      },
+    })
   }
 
   async function createChatNoteTool(
@@ -294,23 +295,24 @@ Parameters:
           apiKey: llmConfig.apiKey,
           messages: currentMessages,
           tools,
-          maxSteps:5,
+          maxSteps: 5,
           temperature: llmConfig.temperature ?? 0.7,
           abortSignal: abortController.signal,
         })
         logger.withFields({ result }).log('generateText result')
-        for (const step of result.steps) {
+        for (const completionStep of result.steps) {
           // Call onToolCall for each tool call in this step
-          for (const toolCall of step.toolCalls) {
+          for (const toolCall of completionStep.toolCalls) {
+            const toolDef = tools.find((t: any) => t.function?.name === toolCall.toolName)
             onToolCall({
               name: toolCall.toolName,
-              description: toolCall.toolName,
+              description: toolDef?.function?.description ?? toolCall.toolName,
               input: toolCall.args,
               timestamp: Date.now(),
             })
           }
           // Call onToolResult for each tool result in this step
-          for (const toolResult of step.toolResults) {
+          for (const toolResult of completionStep.toolResults) {
             onToolResult(toolResult.toolName, JSON.stringify(toolResult.result), Date.now())
           }
         }
@@ -320,7 +322,7 @@ Parameters:
           totalUsage.completionTokens += result.usage.completion_tokens || 0
           totalUsage.totalTokens += result.usage.total_tokens || 0
         }
-        if (result.finishReason === "stop") {
+        if (result.finishReason === 'stop') {
           onTextDelta(result.text || '')
           break
         }
