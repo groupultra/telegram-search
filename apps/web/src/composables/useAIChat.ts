@@ -1,4 +1,4 @@
-import type { CoreRetrievalMessages } from '@tg-search/core/types'
+import type { CoreDialog, CoreRetrievalMessages } from '@tg-search/core/types'
 import type { InferInput } from 'valibot'
 
 import { useLogger } from '@guiiai/logg'
@@ -50,6 +50,9 @@ interface RetrieveContextParams {
   chatId: string
   targetTimestamp: number
   limit: number
+}
+
+interface GetDialogsParams {
 }
 
 /**
@@ -180,6 +183,35 @@ Parameters:
   }
 
   /**
+   * Create get chats tool
+   */
+  async function createGetDialogsTool(
+    executor: (params: GetDialogsParams) => Promise<CoreDialog[]>,
+  ) {
+    logger.log('Creating getDialogs tool')
+    const getDialogsSchema = v.strictObject({})
+    return await tool({
+      name: 'getDialogs',
+      description: `Get a list of chats the user has access to. Use this when the user asks about their chats, conversations list, or what chats they have.`,
+      parameters: getDialogsSchema,
+      execute: async (params: InferInput<typeof getDialogsSchema>) => {
+        const startTime = Date.now()
+        logger.withFields({ params }).log('getDialogs tool called')
+        const results = await executor(params)
+        const duration = Date.now() - startTime
+        logger.withFields({
+          duration,
+          dialogsCount: results.length,
+        }).log('getDialogs completed')
+        return JSON.stringify({
+          success: true,
+          dialogsCount: results.length,
+          dialogs: results,
+        })
+      },  })
+  }
+
+  /**
    * Call LLM with tool calling support
    */
   async function callLLMWithTools(
@@ -298,12 +330,15 @@ Parameters:
           // Continue the loop to get the response after tool results
         }
         else {
-          // No tool calls, we are ready for the final response
-          // If we are at step 0 and there were no tool calls, result.text might already have the answer,
-          // but we want it to be streamed, so we call streamSimpleText anyway.
-
-          logger.log('No more tool calls, starting final streaming response')
-          await streamSimpleText(llmConfig, currentMessages, onTextDelta)
+          // No tool calls: use final response (from this turn or stream)
+          if (result.text?.trim()) {
+            logger.log('Using final response from generateText')
+            onTextDelta(result.text)
+          }
+          else {
+            logger.log('No more tool calls, starting final streaming response')
+            await streamSimpleText(llmConfig, currentMessages, onTextDelta)
+          }
 
           clearTimeout(timeoutId)
           onComplete(totalUsage)
@@ -311,7 +346,9 @@ Parameters:
         }
       }
 
-      logger.warn('Maximum tool calling steps reached')
+      // Max steps reached: still request a final reply after tool calls
+      logger.warn('Maximum tool calling steps reached, requesting final response')
+      await streamSimpleText(llmConfig, currentMessages, onTextDelta)
       onComplete(totalUsage)
     }
     catch (error) {
@@ -368,6 +405,7 @@ IMPORTANT INSTRUCTIONS:
 4. If a search result contains ambiguous references (like "this", "that", "it"), use retrieveContext to get surrounding messages
 5. Always cite specific messages when answering (mention date, sender, chat name if available)
 6. Be concise and direct in your responses
+7. If the user asks about their chats, conversations list, or what chats they have, use the getDialogs tool
 
 EXAMPLES:
 - "Hello" -> Respond directly with a greeting, NO tool calling
@@ -382,6 +420,7 @@ Remember: Only use tools when necessary. For greetings or general questions, res
   return {
     createSearchMessagesTool,
     createRetrieveContextTool,
+    createGetDialogsTool,
     callLLMWithTools,
     buildSystemPrompt,
     streamSimpleText,
