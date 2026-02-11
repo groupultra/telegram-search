@@ -107,7 +107,7 @@
     "loggingInSubtitle": "Loading necessary data, please wait"
   },
   "messages": {
-    "copied": "Copied",
+    "copied": "Copied to clipboard",
     "copyMessageLink": "Copy message link",
     "openInChat": "Open in chat"
   },
