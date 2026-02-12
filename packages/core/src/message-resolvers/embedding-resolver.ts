@@ -19,7 +19,7 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
       logger.withFields({ embeddingSettings }).verbose('Executing embedding resolver')
 
       // Skip embedding if API key is empty
-      if (!embeddingSettings.apiKey || embeddingSettings.apiKey.trim() === '') {
+      if ((!embeddingSettings.apiKey || embeddingSettings.apiKey.trim() === '')) {
         logger.debug('skipping embedding: API key is empty')
         return Ok([])
       }
@@ -30,13 +30,40 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
         return Ok([])
 
       logger.withFields({ count: messages.length }).verbose('Embedding messages')
+      const batchSize = embeddingSettings.batchSize
 
-      const { embeddings, usage, dimension } = (await embedContents(messages.map(message => message.content), embeddingSettings)).expect('Failed to embed messages')
+      // Split messages into batches
+      const allEmbeddings: number[][] = []
+      const totalUsage = { prompt_tokens: 0, total_tokens: 0 }
+      let dimension: number | undefined
 
-      logger.withFields({ count: embeddings.length, usage }).verbose('Embedding messages done')
+      for (let i = 0; i < messages.length; i += batchSize) {
+        const batchMessages = messages.slice(i, i + batchSize)
+        const batchContents = batchMessages.map(message => message.content)
+
+        logger.withFields({
+          batch: Math.floor(i / batchSize) + 1,
+          batchSize: batchMessages.length,
+          totalBatches: Math.ceil(messages.length / batchSize),
+        }).verbose('Processing embedding batch')
+
+        const result = (await embedContents(batchContents, embeddingSettings)).expect('Failed to embed messages')
+
+        allEmbeddings.push(...result.embeddings)
+        totalUsage.prompt_tokens += result.usage.prompt_tokens
+        totalUsage.total_tokens += result.usage.total_tokens
+        dimension = result.dimension
+      }
+
+      logger.withFields({ count: allEmbeddings.length, usage: totalUsage }).verbose('Embedding messages done')
+
+      if (!dimension) {
+        throw new Error('No dimension returned from embedding')
+      }
 
       for (const [index, message] of messages.entries()) {
         message.vectors = {
+          model: embeddingSettings.model,
           vector1536: [],
           vector1024: [],
           vector768: [],
@@ -44,13 +71,13 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
 
         switch (dimension) {
           case EmbeddingDimension.DIMENSION_1536:
-            message.vectors.vector1536 = embeddings[index]
+            message.vectors.vector1536 = allEmbeddings[index]
             break
           case EmbeddingDimension.DIMENSION_1024:
-            message.vectors.vector1024 = embeddings[index]
+            message.vectors.vector1024 = allEmbeddings[index]
             break
           case EmbeddingDimension.DIMENSION_768:
-            message.vectors.vector768 = embeddings[index]
+            message.vectors.vector768 = allEmbeddings[index]
             break
           default:
             throw new Error(`Unsupported embedding dimension: ${dimension}`)

@@ -14,6 +14,7 @@ import { getSimilaritySql } from './similarity'
 export async function retrieveVector(
   db: CoreDB,
   accountId: string,
+  model: string,
   embedding: number[],
   dimension: EmbeddingDimension,
   pagination?: CorePagination,
@@ -34,6 +35,7 @@ export async function retrieveVector(
   // Build where conditions
   const whereConditions = [
     eq(chatMessagesTable.platform, 'telegram'),
+    eq(chatMessagesTable.content_vector_model, model),
     filters?.chatIds?.length ? inArray(chatMessagesTable.in_chat_id, filters.chatIds) : undefined,
     gt(similarity, 0.5),
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
@@ -67,6 +69,7 @@ export async function retrieveVector(
       deleted_at: chatMessagesTable.deleted_at,
       platform_timestamp: chatMessagesTable.platform_timestamp,
       jieba_tokens: chatMessagesTable.jieba_tokens,
+      content_vector_model: chatMessagesTable.content_vector_model,
       similarity: sql<number>`${similarity} AS "similarity"`,
       time_relevance: sql<number>`${timeRelevance} AS "time_relevance"`,
       combined_score: sql<number>`${combinedScore} AS "combined_score"`,

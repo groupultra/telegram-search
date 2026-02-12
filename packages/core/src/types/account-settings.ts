@@ -13,6 +13,7 @@ export const embeddingConfigSchema = object({
   dimension: optional(enumType(EmbeddingDimension), EmbeddingDimension.DIMENSION_1536),
   apiKey: optional(string(), ''),
   apiBase: optional(string(), ''),
+  batchSize: optional(number(), 10),
 })
 
 export const llmConfigSchema = object({

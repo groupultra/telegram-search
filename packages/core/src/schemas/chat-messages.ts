@@ -28,6 +28,7 @@ export const chatMessagesTable = pgTable('chat_messages', {
   created_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
   updated_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
   deleted_at: bigint({ mode: 'number' }).notNull().default(0),
+  content_vector_model: text().notNull().default(''),
   content_vector_1536: vector({ dimensions: 1536 }),
   content_vector_1024: vector({ dimensions: 1024 }),
   content_vector_768: vector({ dimensions: 768 }),

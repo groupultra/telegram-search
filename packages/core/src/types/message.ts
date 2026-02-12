@@ -42,6 +42,7 @@ export interface CoreMessageForward {
 }
 
 export interface CoreMessageVector {
+  model?: string
   vector1536?: number[]
   vector1024?: number[]
   vector768?: number[]

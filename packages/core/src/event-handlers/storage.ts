@@ -185,7 +185,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         logger,
         accountId,
         embeddingDimension,
-        { embedding, text: params.content },
+        { embedding, model: embeddingSettings.model, text: params.content },
         params.pagination,
         filters,
       )).expect('Failed to retrieve messages')
@@ -196,7 +196,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         logger,
         accountId,
         embeddingDimension,
-        { text: params.content },
+        { model: embeddingSettings.model, text: params.content },
         params.pagination,
         filters,
       )).expect('Failed to retrieve messages')

@@ -1,0 +1,1 @@
+ALTER TABLE "chat_messages" ADD COLUMN "content_vector_model" text DEFAULT '' NOT NULL;

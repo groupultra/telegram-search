@@ -27,6 +27,7 @@ function buildDBSelectMessage(overrides: Partial<DBSelectMessage> = {}): DBSelec
     reply_to_name: overrides.reply_to_name ?? '',
     reply_to_id: overrides.reply_to_id ?? '',
     platform_timestamp: overrides.platform_timestamp ?? 1,
+    content_vector_model: overrides.content_vector_model ?? '',
     created_at: overrides.created_at ?? 1,
     updated_at: overrides.updated_at ?? 1,
     deleted_at: overrides.deleted_at ?? 0,

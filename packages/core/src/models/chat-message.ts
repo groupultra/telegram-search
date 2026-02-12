@@ -91,6 +91,7 @@ async function recordMessages(
         from_name: sql`excluded.from_name`,
 
         // Vectors: update only if not null (vectors can be null in schema)
+        content_vector_model: sql`COALESCE(excluded.content_vector_model, ${chatMessagesTable.content_vector_model})`,
         content_vector_1024: sql`COALESCE(excluded.content_vector_1024, ${chatMessagesTable.content_vector_1024})`,
         content_vector_1536: sql`COALESCE(excluded.content_vector_1536, ${chatMessagesTable.content_vector_1536})`,
         content_vector_768: sql`COALESCE(excluded.content_vector_768, ${chatMessagesTable.content_vector_768})`,
@@ -328,6 +329,7 @@ async function retrieveMessages(
   embeddingDimension: EmbeddingDimension,
   content: {
     text?: string
+    model?: string
     embedding?: number[]
   },
   pagination?: CorePagination,
@@ -349,7 +351,7 @@ async function retrieveMessages(
     }
 
     if (content.embedding && content.embedding.length !== 0) {
-      const relevantMessages = await retrieveVector(db, accountId, content.embedding, embeddingDimension, pagination, filters)
+      const relevantMessages = await retrieveVector(db, accountId, content.model || '', content.embedding, embeddingDimension, pagination, filters)
       logger.withFields({ count: relevantMessages.length }).verbose('Retrieved vector messages')
       retrievalMessages.push(...relevantMessages)
     }

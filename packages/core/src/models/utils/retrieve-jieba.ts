@@ -76,6 +76,7 @@ export async function retrieveJieba(
       platform_timestamp: chatMessagesTable.platform_timestamp,
       jieba_tokens: chatMessagesTable.jieba_tokens,
       owner_account_id: chatMessagesTable.owner_account_id,
+      content_vector_model: chatMessagesTable.content_vector_model,
       chat_name: joinedChatsTable.chat_name,
     })
     .from(chatMessagesTable)
