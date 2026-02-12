@@ -141,6 +141,7 @@
     "disconnected": "未连接",
     "edit": "编辑",
     "embedding": "嵌入模型",
+    "batchSize": "批量大小",
     "embeddingResolver": "嵌入向量解析器",
     "english": "English",
     "jiebaResolver": "中文分词解析器",

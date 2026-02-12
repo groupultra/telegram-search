@@ -141,6 +141,7 @@
     "disconnected": "Disconnected",
     "edit": "Edit",
     "embedding": "Embedding Model",
+    "batchSize": "Batch Size",
     "embeddingResolver": "Embedding Resolver",
     "english": "English",
     "jiebaResolver": "Jieba Resolver",
