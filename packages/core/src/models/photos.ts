@@ -41,8 +41,9 @@ async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<D
         platform: 'telegram',
         file_id: media.platformId,
         message_id: media.messageUUID,
-              // Clear image_bytes if storagePath is present
-              image_bytes: media.storagePath ? null : media.byte,        image_path: media.storagePath,
+        // Clear image_bytes if storagePath is present
+        image_bytes: media.storagePath ? null : media.byte,
+        image_path: media.storagePath,
         image_mime_type: media.mimeType,
       } satisfies DBInsertPhoto
     })
