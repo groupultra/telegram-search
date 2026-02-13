@@ -26,7 +26,7 @@
     "defu": "^6.1.4",
     "echarts": "^6.0.0",
     "lottie-web": "^5.13.0",
-    "markstream-vue": "0.0.5",
+    "markstream-vue": "0.0.6",
     "nanoid": "^5.1.6",
     "nprogress": "^0.2.0",
     "pako": "^2.1.0",
@@ -35,7 +35,7 @@
     "reka-ui": "^2.7.0",
     "telegram": "2.26.21",
     "valibot": "^1.2.0",
-    "virtua": "^0.48.3",
+    "virtua": "^0.48.4",
     "vue": "^3.5.27",
     "vue-echarts": "^8.0.1",
     "vue-i18n": "^11.2.7",
@@ -65,7 +65,7 @@
     "vite-plugin-splash-screen": "^0.2.2",
     "vite-plugin-vue-devtools": "^8.0.5",
     "vite-plugin-vue-layouts": "^0.11.0",
-    "vue-tsc": "^3.2.3",
+    "vue-tsc": "^3.2.4",
     "workbox-window": "^7.4.0"
   }
 }
