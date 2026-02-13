@@ -41,9 +41,8 @@ async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<D
         platform: 'telegram',
         file_id: media.platformId,
         message_id: media.messageUUID,
-        // Always save image_bytes to database for embedding processing
-        image_bytes: media.byte,
-        image_path: media.storagePath,
+              // Clear image_bytes if storagePath is present
+              image_bytes: media.storagePath ? null : media.byte,        image_path: media.storagePath,
         image_mime_type: media.mimeType,
       } satisfies DBInsertPhoto
     })
@@ -59,8 +58,7 @@ async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<D
       target: [photosTable.platform, photosTable.file_id],
       set: {
         message_id: sql`excluded.message_id`,
-        // Only update image_bytes if new value is not null
-        image_bytes: sql`COALESCE(excluded.image_bytes, ${photosTable.image_bytes})`,
+        image_bytes: sql`excluded.image_bytes`,
         // Only update image_path if new value is not empty
         image_path: sql`CASE WHEN excluded.image_path != '' THEN excluded.image_path ELSE ${photosTable.image_path} END`,
         image_mime_type: sql`excluded.image_mime_type`,
