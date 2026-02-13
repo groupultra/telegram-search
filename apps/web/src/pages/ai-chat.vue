@@ -13,6 +13,7 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
+import PhotoSearchResults from '../components/PhotoSearchResults.vue'
 import Dialog from '../components/ui/Dialog.vue'
 
 import { Button } from '../components/ui/Button'
@@ -84,8 +85,9 @@ async function generateMessage(message: string, assistantId?: string) {
   try {
     const llmConfig = accountSettings.value!.llm!
 
-    // Track all retrieved messages and tool calls
+    // Track all retrieved messages, photos and tool calls
     const allRetrievedMessages: CoreRetrievalMessages[] = []
+    const allRetrievedPhotos: CoreRetrievalPhoto[] = []
     const toolCalls: any[] = []
 
     // Create tool executors that interact with the bridge
@@ -151,6 +153,7 @@ async function generateMessage(message: string, assistantId?: string) {
 
         bridge.waitForEvent(CoreEventType.StorageSearchPhotosData).then(({ photos }) => {
           useLogger('composables:ai-chat').withFields({ photosCount: photos.length }).log('searchPhotos received response')
+          allRetrievedPhotos.push(...photos)
           resolve(photos)
         })
 
@@ -254,7 +257,7 @@ async function generateMessage(message: string, assistantId?: string) {
           toolCalls,
         }
         useLogger('composables:ai-chat').withFields({ toolCalls }).log('onTextDelta')
-        aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo)
+        aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo, undefined, allRetrievedPhotos)
         // Auto-scroll as content updates
         nextTick().then(scrollToBottom)
       },
@@ -274,7 +277,7 @@ async function generateMessage(message: string, assistantId?: string) {
             },
           ],
         }
-        aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo)
+        aiChatStore.updateAssistantMessage(currentAssistantId, accumulatedContent, allRetrievedMessages, debugInfo, undefined, allRetrievedPhotos)
         aiChatStore.completeAssistantMessage(currentAssistantId)
       },
     )
@@ -319,7 +322,7 @@ function copyMessage(content: string) {
 
 function regenerateMessage(id: string) {
   // aiChatStore.regenerateMessage(id)
-  aiChatStore.updateAssistantMessage(id, '', [], undefined, true)
+  aiChatStore.updateAssistantMessage(id, '', [], undefined, true, [])
   generateMessage('', id)
   toast.success(t('aiChat.regeneratedMessage'))
 }
@@ -455,6 +458,19 @@ onMounted(() => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Retrieved photos (only for assistant messages) -->
+          <div
+            v-if="message.role === 'assistant' && message.retrievedPhotos && message.retrievedPhotos.length > 0"
+            class="mt-3 border-t border-border pt-3 space-y-2"
+          >
+            <div class="flex items-center gap-2 text-xs font-medium opacity-70">
+              <span class="i-lucide-image h-3 w-3" />
+              <span>{{ t('aiChat.retrievedPhotos') }} ({{ message.retrievedPhotos.length }})</span>
+            </div>
+
+            <PhotoSearchResults :photos="message.retrievedPhotos" />
           </div>
 
           <!-- Debug Info (collapsible) - only for assistant messages with debug info -->

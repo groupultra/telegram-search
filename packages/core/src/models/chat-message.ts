@@ -327,7 +327,7 @@ async function fetchMessagesByIds(
   db: CoreDB,
   accountId: string,
   messageIds: string[],
-): PromiseResult<Array<{ id: string, chat_id: string, chat_name: string | null }>> {
+): PromiseResult<Array<{ id: string, chat_id: string, chat_name: string | null, platform_message_id: string }>> {
   return withResult(async () => {
     if (messageIds.length === 0) {
       return []
@@ -338,6 +338,7 @@ async function fetchMessagesByIds(
         id: chatMessagesTable.id,
         chat_id: chatMessagesTable.in_chat_id,
         chat_name: joinedChatsTable.chat_name,
+        platform_message_id: chatMessagesTable.platform_message_id,
       })
       .from(chatMessagesTable)
       .innerJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))

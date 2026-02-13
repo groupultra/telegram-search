@@ -80,13 +80,13 @@ export function createMediaResolver(
                 if (photo) {
                   // Update message_id to ensure photo-embedding-resolver can find it
                   await photoModels.updatePhotoMessageId(db, photo.id, message.uuid)
-                  
+
                   logger.withFields({
                     photoId: photo.id,
                     messageUUID: message.uuid,
                     platformId: media.platformId,
                   }).log('Photo found in cache, updated message_id')
-                  
+
                   return {
                     messageUUID: message.uuid,
                     queryId: photo.id,

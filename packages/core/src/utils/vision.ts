@@ -22,15 +22,6 @@ export async function describeImage(
   visionConfig: VisionLLMConfig | LLMConfig,
 ): Promise<Result<DescribeImageResult>> {
   try {
-    console.log('[describeImage] Starting image description', {
-      dataType: imageData instanceof Uint8Array ? 'Uint8Array' : 'Buffer',
-      dataLength: imageData?.length,
-      firstBytes: imageData?.slice(0, 4),
-      hasApiBase: !!visionConfig.apiBase,
-      hasModel: !!visionConfig.model,
-      hasApiKey: !!visionConfig.apiKey,
-    })
-
     // 检查必需的配置
     if (!visionConfig.apiBase || !visionConfig.model) {
       return Err('Vision LLM apiBase and model are required for photo embedding')
@@ -44,18 +35,10 @@ export async function describeImage(
         .map(byte => String.fromCharCode(byte))
         .join('')
       base64Image = btoa(binaryString)
-      console.log('[describeImage] Converted Uint8Array to base64', {
-        base64Length: base64Image.length,
-        base64Preview: base64Image.substring(0, 50),
-      })
     }
     else {
       // Node.js 环境：Buffer -> base64
       base64Image = imageData.toString('base64')
-      console.log('[describeImage] Converted Buffer to base64', {
-        base64Length: base64Image.length,
-        base64Preview: base64Image.substring(0, 50),
-      })
     }
 
     // 根据文件头判断 MIME 类型
@@ -70,14 +53,8 @@ export async function describeImage(
       mimeType = 'image/webp'
     }
 
-    console.log('[describeImage] Detected MIME type', { mimeType })
-
     // 构造 data URL
     const dataUrl = `data:${mimeType};base64,${base64Image}`
-    console.log('[describeImage] Created data URL', {
-      dataUrlLength: dataUrl.length,
-      dataUrlPreview: dataUrl.substring(0, 100),
-    })
 
     // 使用 xsai 调用多模态模型
     const result = await generateText({
@@ -90,7 +67,7 @@ export async function describeImage(
           content: [
             {
               type: 'text',
-              text: 'Please describe this image in detail. Focus on the key elements, objects, people, text, colors, and overall context. Keep the description concise but informative.',
+              text: 'Describe this image in 1-2 sentences. Focus only on the main subject and key details. Be concise and specific.',
             },
             {
               type: 'image_url',

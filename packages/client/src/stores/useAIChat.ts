@@ -1,4 +1,4 @@
-import type { CoreRetrievalMessages } from '@tg-search/core'
+import type { CoreRetrievalMessages, CoreRetrievalPhoto } from '@tg-search/core'
 
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -37,6 +37,7 @@ export interface AIChatMessage {
   content: string
   timestamp: number
   retrievedMessages?: CoreRetrievalMessages[]
+  retrievedPhotos?: CoreRetrievalPhoto[]
   isStreaming?: boolean
   debugInfo?: RAGDebugInfo
 }
@@ -75,12 +76,22 @@ export const useAIChatStore = defineStore('ai-chat', () => {
     messages.value = messages.value.filter(msg => msg.id !== id)
   }
 
-  function updateAssistantMessage(id: string, content: string, retrievedMessages?: CoreRetrievalMessages[], debugInfo?: RAGDebugInfo, isStreaming?: boolean) {
+  function updateAssistantMessage(
+    id: string,
+    content: string,
+    retrievedMessages?: CoreRetrievalMessages[],
+    debugInfo?: RAGDebugInfo,
+    isStreaming?: boolean,
+    retrievedPhotos?: CoreRetrievalPhoto[],
+  ) {
     const message = messages.value.find(msg => msg.id === id)
     if (message) {
       message.content = content
       if (retrievedMessages) {
         message.retrievedMessages = retrievedMessages
+      }
+      if (retrievedPhotos) {
+        message.retrievedPhotos = retrievedPhotos
       }
       if (debugInfo) {
         message.debugInfo = debugInfo

@@ -1,4 +1,7 @@
 {
+  "common": {
+    "unknownChat": "未知对话"
+  },
   "aiChat": {
     "aiChat": "AI 对话",
     "aiThinking": "AI 思考中...",
@@ -15,18 +18,19 @@
     "ragParameters": "RAG 参数",
     "relatedMessages": "相关消息",
     "retrievedInfo": "检索到的相关信息",
+    "retrievedPhotos": "检索到的相关图片",
     "searchQuery": "搜索查询",
     "searchingContext": "搜索相关上下文...",
     "selectScope": "搜索会话范围",
     "selectScopeDescription": "选择特定的对话进行搜索，留空则搜索所有对话。",
     "confirmFilter": "确认",
     "cancelFilter": "取消",
+    "viewInChat": "在聊天中查看",
     "send": "发送",
     "timeFilter": "时间过滤",
     "totalMessages": "总消息数",
     "typeYourMessage": "输入您的消息...",
     "userFilter": "用户过滤",
-    "viewInChat": "在聊天中查看",
     "regeneratedMessage": "消息已重新生成",
     "deletedMessage": "消息已删除"
   },
@@ -118,7 +122,11 @@
     "searching": "搜索中..."
   },
   "searchDialog": {
+    "messages": "消息",
+    "photos": "图片",
     "noRelatedMessages": "没有找到相关消息",
+    "noRelatedPhotos": "没有找到相关图片",
+    "noResults": "没有找到相关结果",
     "searchMessages": "搜索消息...",
     "searching": "搜索中...",
     "startTyping": "开始输入以搜索"

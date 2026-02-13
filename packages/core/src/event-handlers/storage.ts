@@ -285,7 +285,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
       // Get chat information for photos with messages
       const messageIds = dbPhotos.filter(p => p.message_id).map(p => p.message_id!)
-      const chatInfoMap = new Map<string, { chatId: string, chatName: string }>()
+      const chatInfoMap = new Map<string, { chatId: string, chatName: string, platformMessageId: string }>()
 
       if (messageIds.length > 0) {
         logger.withFields({ messageIdsCount: messageIds.length }).verbose('Fetching chat information')
@@ -297,7 +297,11 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
         if (messages) {
           for (const msg of messages) {
-            chatInfoMap.set(msg.id, { chatId: msg.chat_id, chatName: msg.chat_name || '' })
+            chatInfoMap.set(msg.id, {
+              chatId: msg.chat_id,
+              chatName: msg.chat_name || '',
+              platformMessageId: msg.platform_message_id,
+            })
           }
         }
       }
@@ -305,9 +309,17 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       // Convert to CoreRetrievalPhoto
       const corePhotos = dbPhotos.map((photo) => {
         const chatInfo = photo.message_id ? chatInfoMap.get(photo.message_id) : undefined
+        logger.withFields({
+          photoId: photo.id,
+          messageId: photo.message_id,
+          hasChatInfo: !!chatInfo,
+          chatName: chatInfo?.chatName,
+          chatId: chatInfo?.chatId,
+        }).debug('Processing photo')
         return {
           id: photo.id,
           messageId: photo.message_id,
+          platformMessageId: chatInfo?.platformMessageId,
           chatId: chatInfo?.chatId,
           chatName: chatInfo?.chatName,
           description: photo.description,
@@ -317,7 +329,10 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         }
       })
 
-      logger.withFields({ corePhotosCount: corePhotos.length }).log('Emitting StorageSearchPhotosData event')
+      logger.withFields({
+        corePhotosCount: corePhotos.length,
+        samplePhoto: corePhotos[0],
+      }).log('Emitting StorageSearchPhotosData event')
       ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: corePhotos })
     }
     catch (error) {

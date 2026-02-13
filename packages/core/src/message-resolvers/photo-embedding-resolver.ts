@@ -66,7 +66,7 @@ export function createPhotoEmbeddingResolver(ctx: CoreContext, logger: Logger): 
       const photosToProcess = await photoModels.findPhotosByMessageUUIDs(db, messageUUIDs)
         .then(result => result.orDefault([]))
 
-      logger.withFields({ 
+      logger.withFields({
         photosCount: photosToProcess.length,
         samplePhotoIds: photosToProcess.slice(0, 3).map(p => ({ id: p.id, messageId: p.message_id })),
       }).log('Photos found in database')
@@ -113,7 +113,7 @@ export function createPhotoEmbeddingResolver(ctx: CoreContext, logger: Logger): 
             }
 
             // 生成新描述
-            logger.withFields({ 
+            logger.withFields({
               photoId: photo.id,
               imageBytesLength: photo.image_bytes.length,
               imageBytesType: photo.image_bytes.constructor?.name,

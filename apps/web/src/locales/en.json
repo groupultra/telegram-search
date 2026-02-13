@@ -1,4 +1,7 @@
 {
+  "common": {
+    "unknownChat": "Unknown Chat"
+  },
   "aiChat": {
     "aiChat": "AI Chat",
     "aiThinking": "AI is thinking...",
@@ -15,18 +18,19 @@
     "ragParameters": "RAG Parameters",
     "relatedMessages": "Related Messages",
     "retrievedInfo": "Retrieved Information",
+    "retrievedPhotos": "Retrieved Photos",
     "searchQuery": "Search Query",
     "searchingContext": "Searching for relevant context...",
     "selectScope": "Select Search Scope",
     "selectScopeDescription": "Choose specific chats to search within. Leave empty to search all chats.",
     "confirmFilter": "Confirm",
     "cancelFilter": "Cancel",
+    "viewInChat": "View in chat",
     "send": "Send",
     "timeFilter": "Time Filter",
     "totalMessages": "Total Messages",
     "typeYourMessage": "Type your message...",
     "userFilter": "User Filter",
-    "viewInChat": "View in Chat",
     "regeneratedMessage": "Message regenerated",
     "deletedMessage": "Message deleted"
   },
@@ -118,7 +122,11 @@
     "searching": "Searching..."
   },
   "searchDialog": {
+    "messages": "Messages",
+    "photos": "Photos",
     "noRelatedMessages": "No related messages found",
+    "noRelatedPhotos": "No related photos found",
+    "noResults": "No results found",
     "searchMessages": "Search messages...",
     "searching": "Searching...",
     "startTyping": "Start typing to search"

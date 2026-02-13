@@ -364,10 +364,12 @@ export type CoreRetrievalMessages = CoreMessage & {
 export interface CoreRetrievalPhoto {
   id: string
   messageId: string | null
+  platformMessageId?: string
   chatId?: string
   chatName?: string
   description: string
   mimeType: string
+  imageBytes?: Uint8Array | string
   createdAt: number
   similarity?: number
 }

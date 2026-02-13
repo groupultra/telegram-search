@@ -45,7 +45,7 @@ watch(
     settings.messageProcessing.resolvers.disabledResolvers ??= ['avatar']
     settings.messageProcessing.defaults ??= { syncMedia: true, maxMediaSize: 0 }
     settings.messageProcessing.enablePhotoEmbedding ??= false
-    
+
     // Initialize visionLLM with defaults if not present
     settings.visionLLM ??= {
       model: 'qwen-vl-max',
