@@ -1,10 +1,11 @@
 import type { Logger } from '@guiiai/logg'
+import type { TelegramClient } from 'telegram'
 
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
 import type { PhotoModels } from '../models/photos'
 import type { StickerModels } from '../models/stickers'
-import type { CoreMessageMedia, CoreMessageMediaPhoto, CoreMessageMediaSticker, CoreMessageMediaWebPage } from '../types/media'
+import type { CoreMessageMedia, CoreMessageMediaDocument, CoreMessageMediaPhoto, CoreMessageMediaSticker, CoreMessageMediaWebPage } from '../types/media'
 import type { CoreMessage } from '../types/message'
 import type { MediaBinaryProvider } from '../types/storage'
 
@@ -18,6 +19,74 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { MEDIA_DOWNLOAD_CONCURRENCY } from '../constants'
 import { must0 } from '../models/utils/must'
+
+/**
+ * Pick the largest photo size type from a photo's sizes array.
+ * Telegram stores photos in multiple resolutions; the last PhotoSize or
+ * PhotoSizeProgressive entry is typically the largest.
+ * Reference: tdl's GetPhotoSize logic.
+ */
+function getLastPhotoSizeType(sizes: Api.TypePhotoSize[]): string | undefined {
+  for (let i = sizes.length - 1; i >= 0; i--) {
+    const s = sizes[i]
+    if (s instanceof Api.PhotoSize || s instanceof Api.PhotoSizeProgressive) {
+      return s.type
+    }
+  }
+  return undefined
+}
+
+/**
+ * Download media directly by constructing InputFileLocation and calling
+ * client.downloadFile, bypassing the high-level downloadMedia wrapper.
+ *
+ * This works for channels with noForwards because Telegram's forwarding
+ * restriction only applies to forward/send APIs, not to upload.getFile
+ * which downloadFile uses under the hood.
+ *
+ * Reference: tdl's GetDocumentInfo / GetPhotoInfo.
+ */
+async function downloadMediaDirect(
+  client: TelegramClient,
+  rawMedia: Api.TypeMessageMedia,
+  logger: Logger,
+): Promise<Buffer | undefined> {
+  // Document (sticker, GIF, video, file, etc.)
+  if (rawMedia instanceof Api.MessageMediaDocument
+    && rawMedia.document instanceof Api.Document) {
+    const doc = rawMedia.document
+    const location = new Api.InputDocumentFileLocation({
+      id: doc.id,
+      accessHash: doc.accessHash,
+      fileReference: doc.fileReference,
+      thumbSize: '', // empty string = full file, not a thumbnail
+    })
+    logger.debug('Attempting direct download for Document via InputDocumentFileLocation')
+    const result = await client.downloadFile(location, { dcId: doc.dcId })
+    return result instanceof Buffer ? result : undefined
+  }
+
+  // Photo
+  if (rawMedia instanceof Api.MessageMediaPhoto
+    && rawMedia.photo instanceof Api.Photo) {
+    const photo = rawMedia.photo
+    const thumbSize = getLastPhotoSizeType(photo.sizes)
+    if (!thumbSize)
+      return undefined
+
+    const location = new Api.InputPhotoFileLocation({
+      id: photo.id,
+      accessHash: photo.accessHash,
+      fileReference: photo.fileReference,
+      thumbSize,
+    })
+    logger.debug('Attempting direct download for Photo via InputPhotoFileLocation')
+    const result = await client.downloadFile(location, { dcId: photo.dcId })
+    return result instanceof Buffer ? result : undefined
+  }
+
+  return undefined
+}
 
 export function createMediaResolver(
   ctx: CoreContext,
@@ -127,16 +196,34 @@ export function createMediaResolver(
               }
             }
 
-            // Fallback: download media from Telegram using the raw Api message, then persist and return queryId.
+            // Download media from Telegram using the raw Api message, then persist and return queryId.
             const apiMedia = rawMessage.media as Api.TypeMessageMedia
-            const mediaFetched = await ctx.getClient().downloadMedia(apiMedia)
-            const byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
+            const client = ctx.getClient()
+            let byte: Buffer | undefined
 
-            // TODO: download video by _downloadDocument
+            try {
+              const mediaFetched = await client.downloadMedia(apiMedia)
+              byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
+            }
+            catch (err) {
+              logger.withError(err as Error).debug('downloadMedia failed, trying direct download via InputFileLocation')
+            }
+
+            // When downloadMedia fails (e.g. protected/noForwards channels), construct
+            // InputFileLocation manually and use the low-level downloadFile API to bypass
+            // the forwarding restriction. upload.getFile is not subject to noForwards.
+            if (!byte) {
+              try {
+                byte = await downloadMediaDirect(client, apiMedia, logger)
+              }
+              catch (err) {
+                logger.withError(err as Error).debug('Direct download fallback also failed')
+              }
+            }
 
             let mimeType: string | undefined
             if (!byte || !(byte instanceof Buffer)) {
-              logger.warn(`Media is not a buffer, ${mediaFetched?.constructor.name}`)
+              logger.warn('Media download returned no buffer')
             }
             else {
               mimeType = (await fileTypeFromBuffer(byte))?.mime
@@ -219,6 +306,15 @@ export function createMediaResolver(
                     platformId: media.platformId,
                     mimeType,
                   } satisfies CoreMessageMediaSticker
+                }
+
+                case 'document': {
+                  return {
+                    messageUUID: message.uuid,
+                    type: media.type,
+                    platformId: media.platformId,
+                    mimeType,
+                  } satisfies CoreMessageMediaDocument
                 }
 
                 case 'webpage': {

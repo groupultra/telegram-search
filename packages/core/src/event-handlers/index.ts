@@ -88,7 +88,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
   const entityService = createEntityService(ctx, logger)
   const messageService = createMessageService(ctx, logger, entityService)
   const dialogService = createDialogService(ctx, logger)
-  const takeoutService = createTakeoutService(ctx, logger, models.chatModels, chatMessageStatsModels)
+  const takeoutService = createTakeoutService(ctx, logger, models.chatModels, chatMessageStatsModels, entityService)
   const syncService = createSyncService(ctx, logger)
   const gramEventsService = createGramEventsService(ctx, logger)
 

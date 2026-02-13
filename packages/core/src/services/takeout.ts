@@ -5,6 +5,7 @@ import type { EntityLike } from 'telegram/define'
 import type { CoreContext } from '../context'
 import type { ChatMessageStatsModels, ChatModels } from '../models'
 import type { SyncOptions, TakeoutOpts } from '../types/events'
+import type { EntityService } from './entity'
 
 import bigInt from 'big-integer'
 
@@ -25,6 +26,7 @@ export function createTakeoutService(
   logger: Logger,
   chatModels: ChatModels,
   chatMessageStatsModels: ChatMessageStatsModels,
+  entityService: EntityService,
 ) {
   logger = logger.withContext('core:takeout:service')
 
@@ -51,11 +53,14 @@ export function createTakeoutService(
     return fallback
   }
 
-  async function initTakeout() {
+  const TAKEOUT_INIT_TIMEOUT_MS = 30_000
+
+  async function initTakeout(): Promise<Api.account.Takeout> {
     const fileMaxSize = bigInt(1024 * 1024 * 1024) // 1GB
 
-    // TODO: options
-    return await ctx.getClient().invoke(new Api.account.InitTakeoutSession({
+    logger.log('Initializing takeout session...')
+
+    const invokePromise = ctx.getClient().invoke(new Api.account.InitTakeoutSession({
       contacts: true,
       messageUsers: true,
       messageChats: true,
@@ -64,6 +69,52 @@ export function createTakeoutService(
       files: true,
       fileMaxSize,
     }))
+
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    let timedOut = false
+
+    // Guard against indefinite hangs (e.g. connection overloaded by concurrent
+    // downloads, or Telegram silently ignoring the request).
+    try {
+      const result = await Promise.race([
+        invokePromise,
+        new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            timedOut = true
+            reject(new Error('Takeout session init timed out after 30s'))
+          }, TAKEOUT_INIT_TIMEOUT_MS)
+        }),
+      ])
+
+      logger.withFields({ takeoutId: result.id.toString() }).log('Takeout session initialized')
+      return result
+    }
+    catch (error) {
+      // Init timed out, but the underlying request may still resolve later.
+      // Clean up that late session so we don't leak server-side takeout sessions.
+      if (timedOut) {
+        void invokePromise
+          .then(async (lateTakeout) => {
+            logger.withFields({ takeoutId: lateTakeout.id.toString() }).warn('Takeout session initialized after timeout, finishing late session')
+            try {
+              await finishTakeout(lateTakeout, false)
+            }
+            catch (finishError) {
+              logger.withError(finishError).warn('Failed to finish late takeout session')
+            }
+          })
+          .catch((lateError) => {
+            logger.withError(lateError).debug('Late takeout init rejected after timeout')
+          })
+      }
+
+      throw error
+    }
+    finally {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle)
+      }
+    }
   }
 
   async function finishTakeout(takeout: Api.account.Takeout, success: boolean) {
@@ -77,9 +128,12 @@ export function createTakeoutService(
 
   async function getHistoryWithMessagesCount(chatId: EntityLike): Promise<Result<Api.messages.TypeMessages & { count: number }>> {
     try {
+      // Resolve peer via entityService to get the correct InputPeer type and accessHash
+      // from the DB, avoiding misidentification (e.g. channel treated as PeerUser).
+      const peer = await entityService.getInputPeer(chatId as string | number)
       const history = await ctx.getClient()
         .invoke(new Api.messages.GetHistory({
-          peer: chatId,
+          peer,
           limit: 1,
           offsetId: 0,
           offsetDate: 0,
@@ -98,8 +152,11 @@ export function createTakeoutService(
 
   async function getTotalMessageCount(chatId: string): Promise<number> {
     try {
+      logger.withFields({ chatId }).log('Fetching total message count')
       const history = (await getHistoryWithMessagesCount(chatId)).expect('Failed to get history')
-      return history.count ?? 0
+      const count = history.count ?? 0
+      logger.withFields({ chatId, count }).log('Total message count fetched')
+      return count
     }
     catch (error) {
       logger.withError(error).error('Failed to get total message count')
@@ -123,14 +180,20 @@ export function createTakeoutService(
     const minId = normalizeId(options.minId, 0)
     const maxId = normalizeId(options.maxId, 0)
 
-    let takeoutSession: Api.account.Takeout
+    // Try to initialize a takeout session. If it fails (timeout, flood-wait,
+    // or other error), fall back to regular GetHistory calls. Takeout is
+    // preferred because it avoids per-chat rate limits, but is not required.
+    let takeoutSession: Api.account.Takeout | undefined
 
     try {
       takeoutSession = await initTakeout()
     }
     catch (error) {
-      task.updateError(ctx.withError(error, 'Init takeout session failed'))
-      return
+      const errMsg = error instanceof Error ? error.message : String(error)
+      logger.withError(error).warn(`Takeout session init failed, falling back to regular GetHistory: ${errMsg}`)
+      if (!options.disableAutoProgress) {
+        task.updateProgress(0, 'Takeout unavailable, using regular sync')
+      }
     }
 
     try {
@@ -142,7 +205,7 @@ export function createTakeoutService(
       // Use provided expected count, or fetch from Telegram
       const count = options.expectedCount ?? (await getHistoryWithMessagesCount(chatId)).expect('Failed to get history').count
 
-      logger.withFields({ expectedCount: count, providedCount: options.expectedCount }).verbose('Message count for progress')
+      logger.withFields({ expectedCount: count, providedCount: options.expectedCount, useTakeout: !!takeoutSession }).log('Starting message fetch')
 
       while (hasMore && !task.state.abortController.signal.aborted) {
         // https://core.telegram.org/api/offsets#hash-generation
@@ -150,7 +213,9 @@ export function createTakeoutService(
         const hashBigInt = id ^ (id >> 21n) ^ (id << 35n) ^ (id >> 4n) + id
         const hash = bigInt(hashBigInt.toString())
 
-        const peer = await ctx.getClient().getInputEntity(chatId)
+        // Resolve peer via entityService to get the correct InputPeer type and accessHash
+        // from the DB, avoiding misidentification (e.g. channel treated as PeerUser).
+        const peer = await entityService.getInputPeer(chatId)
         const historyQuery = new Api.messages.GetHistory({
           peer,
           offsetId,
@@ -172,12 +237,16 @@ export function createTakeoutService(
           logger.verbose('Aborted during rate-limit wait')
           break
         }
-        const result = await ctx.getClient().invoke(
-          new Api.InvokeWithTakeout({
-            takeoutId: takeoutSession.id,
-            query: historyQuery,
-          }),
-        ) as unknown as Api.messages.MessagesSlice
+
+        // Wrap in takeout if available; otherwise call GetHistory directly.
+        const result = takeoutSession
+          ? await ctx.getClient().invoke(
+            new Api.InvokeWithTakeout({
+              takeoutId: takeoutSession.id,
+              query: historyQuery,
+            }),
+          ) as unknown as Api.messages.MessagesSlice
+          : await ctx.getClient().invoke(historyQuery) as unknown as Api.messages.MessagesSlice
 
         // Type safe check
         if (!('messages' in result)) {
@@ -234,7 +303,9 @@ export function createTakeoutService(
         logger.withFields({ processedCount, count }).verbose('Processed messages')
       }
 
-      await finishTakeout(takeoutSession, true)
+      if (takeoutSession) {
+        await finishTakeout(takeoutSession, true)
+      }
 
       if (task.state.abortController.signal.aborted) {
         // Task was aborted, handler layer already updated task status
@@ -246,7 +317,7 @@ export function createTakeoutService(
       if (!options.disableAutoProgress) {
         task.updateProgress(100)
       }
-      logger.withFields({ taskId: task.state.taskId }).verbose('Takeout messages finished')
+      logger.withFields({ taskId: task.state.taskId }).log('Takeout messages finished')
     }
     catch (error) {
       logger.withError(error).error('Takeout messages failed')
@@ -254,7 +325,9 @@ export function createTakeoutService(
       // Preserve the original error for better error reporting
       const errorToEmit = error instanceof Error ? error : new Error('Takeout messages failed')
 
-      await finishTakeout(takeoutSession, false)
+      if (takeoutSession) {
+        await finishTakeout(takeoutSession, false)
+      }
       task.updateError(errorToEmit)
     }
   }
@@ -391,6 +464,9 @@ export function createTakeoutService(
     for (const chatId of chatIds) {
       const stats = (await chatMessageStatsModels.getChatMessageStatsByChatId(ctx.getDB(), ctx.getCurrentAccountId(), chatId))?.unwrap()
       const totalCount = (await getTotalMessageCount(chatId)) ?? 0
+
+      logger.withFields({ chatId, totalCount, hasStats: !!stats }).log('Starting takeout for chat')
+
       const task = createTask('takeout', { chatIds: [chatId], totalMessages: totalCount }, ctx.emitter, logger)
       activeTasks.set(task.state.taskId, task)
 
@@ -408,6 +484,7 @@ export function createTakeoutService(
             startTime: syncOptions?.startTime,
             endTime: syncOptions?.endTime,
             skipMedia: !syncOptions?.syncMedia,
+            expectedCount: totalCount,
             disableAutoProgress: true,
             task,
             syncOptions,

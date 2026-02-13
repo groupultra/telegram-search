@@ -24,6 +24,10 @@ const mockChatMessageStatsModels = {
   getChatMessageStatsByChatId: vi.fn(),
 } as any
 
+const mockEntityService = {
+  getInputPeer: vi.fn(async (peerId: string | number) => ({ peerId })),
+} as any
+
 vi.mock('../../utils/min-interval', () => {
   return {
     createMinIntervalWaiter: () => mockWaiter,
@@ -94,7 +98,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
     const count = await service.getTotalMessageCount('123')
 
     expect(count).toBe(123)
@@ -109,7 +113,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
     const count = await service.getTotalMessageCount('123')
 
     expect(count).toBe(0)
@@ -154,7 +158,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
     const task = createTask()
     task.updateProgress = vi.fn()
     task.updateError = vi.fn()
@@ -223,7 +227,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
     const task = createTask()
     task.updateProgress = vi.fn()
     task.updateError = vi.fn()
@@ -247,21 +251,37 @@ describe('takeout service', () => {
     expect(task.updateError).not.toHaveBeenCalled()
   })
 
-  it('takeoutMessages should updateError and stop when initTakeout fails', async () => {
+  it('takeoutMessages should fall back to regular GetHistory when initTakeout fails', async () => {
+    // When initTakeout fails, the generator should NOT abort but instead
+    // fall back to plain GetHistory calls (without InvokeWithTakeout wrapper).
+    const calls: any[] = []
+
     const client = {
       getInputEntity: vi.fn(async () => ({})),
       invoke: vi.fn(async (query: any) => {
+        calls.push(query)
+
         if (query instanceof Api.account.InitTakeoutSession) {
           throw new TypeError('init failed')
         }
+
+        // Fallback path: plain GetHistory (not wrapped in InvokeWithTakeout)
+        if (query instanceof Api.messages.GetHistory) {
+          if ((query).offsetId === 0) {
+            return { messages: [{ id: 10 }, { id: 11 }] }
+          }
+          return { messages: [] }
+        }
+
         throw new Error('unexpected query')
       }),
     }
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
     const task = createTask()
+    task.updateProgress = vi.fn()
     task.updateError = vi.fn()
 
     const yielded: any[] = []
@@ -271,15 +291,131 @@ describe('takeout service', () => {
       maxId: 0,
       skipMedia: true,
       task,
-      expectedCount: 1,
+      expectedCount: 2,
       disableAutoProgress: false,
       syncOptions: undefined,
     })) {
       yielded.push(m)
     }
 
-    expect(yielded).toEqual([])
-    expect(task.updateError).toHaveBeenCalledTimes(1)
+    // Messages should still be yielded via regular GetHistory fallback
+    expect(yielded.map(m => m.id)).toEqual([10, 11])
+    expect(task.updateError).not.toHaveBeenCalled()
+
+    // No InvokeWithTakeout calls should have been made
+    const takeoutCalls = calls.filter(q => q instanceof Api.InvokeWithTakeout)
+    expect(takeoutCalls).toHaveLength(0)
+  })
+
+  it('takeoutMessages should finish late takeout session when init times out', async () => {
+    vi.useFakeTimers()
+    // Init can time out locally while Telegram still creates a session later.
+    // We must finish that late session to avoid leaking takeout sessions.
+    const calls: any[] = []
+    let resolveInitTakeout: ((value: { id: ReturnType<typeof bigInt> }) => void) | undefined
+
+    const client = {
+      invoke: vi.fn((query: any) => {
+        calls.push(query)
+
+        if (query instanceof Api.account.InitTakeoutSession) {
+          return new Promise((resolve) => {
+            resolveInitTakeout = resolve
+          })
+        }
+
+        if (query instanceof Api.messages.GetHistory) {
+          return { messages: [{ id: 88 }] }
+        }
+
+        if (query instanceof Api.InvokeWithTakeout) {
+          const inner = (query).query
+          if (inner instanceof Api.account.FinishTakeoutSession) {
+            return {}
+          }
+        }
+
+        throw new Error('unexpected query')
+      }),
+    }
+
+    try {
+      const { ctx } = createMockCtx(client)
+      const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+      const task = createTask()
+      task.updateProgress = vi.fn()
+      task.updateError = vi.fn()
+
+      const collectPromise = (async () => {
+        const yielded: any[] = []
+        for await (const m of service.takeoutMessages('123', {
+          pagination: { limit: 100, offset: 0 },
+          minId: 0,
+          maxId: 0,
+          skipMedia: true,
+          task,
+          expectedCount: 1,
+          disableAutoProgress: false,
+          syncOptions: undefined,
+        })) {
+          yielded.push(m)
+        }
+        return yielded
+      })()
+
+      await vi.advanceTimersByTimeAsync(30_000)
+      const yielded = await collectPromise
+
+      expect(yielded.map(m => m.id)).toEqual([88])
+      expect(task.updateError).not.toHaveBeenCalled()
+
+      // Resolve the late init after timeout and ensure cleanup finish(false) happens.
+      resolveInitTakeout?.({ id: bigInt(99) })
+      await Promise.resolve()
+      await Promise.resolve()
+
+      const lateFinishCall = calls.find(q => q instanceof Api.InvokeWithTakeout && q.takeoutId.toString() === '99')
+      expect(lateFinishCall).toBeTruthy()
+      expect((lateFinishCall).query).toBeInstanceOf(Api.account.FinishTakeoutSession)
+      expect((lateFinishCall).query.success).toBe(false)
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('takeoutMessages should not emit fallback progress when auto progress is disabled', async () => {
+    const client = {
+      invoke: vi.fn(async (query: any) => {
+        if (query instanceof Api.account.InitTakeoutSession) {
+          throw new TypeError('init failed')
+        }
+        if (query instanceof Api.messages.GetHistory) {
+          return { messages: [] }
+        }
+        throw new Error('unexpected query')
+      }),
+    }
+
+    const { ctx } = createMockCtx(client)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+    const task = createTask()
+    task.updateProgress = vi.fn()
+
+    for await (const message of service.takeoutMessages('123', {
+      pagination: { limit: 100, offset: 0 },
+      minId: 0,
+      maxId: 0,
+      skipMedia: true,
+      task,
+      expectedCount: 0,
+      disableAutoProgress: true,
+      syncOptions: undefined,
+    })) {
+      void message
+    }
+
+    expect(task.updateProgress).not.toHaveBeenCalledWith(0, 'Takeout unavailable, using regular sync')
   })
 
   it('takeoutMessages should stop when aborted during rate-limit wait', async () => {
@@ -320,7 +456,7 @@ describe('takeout service', () => {
 
     const { ctx } = createMockCtx(client)
 
-    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
     const task = createTask()
 
     // Abort before iteration begins so waitHistoryInterval throws.
@@ -407,7 +543,7 @@ describe('takeout service', () => {
       })
     })
 
-    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
 
     await service.runTakeout({
       chatIds: ['123'],
