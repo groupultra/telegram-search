@@ -38,9 +38,9 @@ export async function describeImage(
     }
     else {
       // Node.js 环境：Buffer -> base64
-      base64Image = imageData.toString('base64')
+      base64Image = (imageData as unknown as Buffer).toString('base64')
     }
-
+    
     // 根据文件头判断 MIME 类型
     let mimeType = 'image/jpeg'
     if (imageData[0] === 0x89 && imageData[1] === 0x50) {

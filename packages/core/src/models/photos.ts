@@ -8,11 +8,13 @@ import type { CoreMessageMediaPhoto } from '../types/media'
 import type { PromiseResult } from '../utils/result'
 import type { DBInsertPhoto, DBSelectPhoto } from './utils/types'
 
-import { and, cosineDistance, eq, inArray, sql } from 'drizzle-orm'
+import { and, cosineDistance, eq, gt, inArray, sql } from 'drizzle-orm'
 
 import { photosTable } from '../schemas/photos'
 import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
+import { chatMessagesTable } from '../schemas/chat-messages'
+import { joinedChatsTable } from '../schemas/joined-chats'
 
 type PhotoMediaForRecord = CoreMessageMediaPhoto & {
   uuid: string
@@ -173,19 +175,22 @@ async function findPhotosByMessageIds(db: CoreDB, messageUUIDs: string[]): Promi
 
 /**
  * Search photos by description embedding (vector similarity search)
+ * Includes message and chat information via JOIN
  */
 async function searchPhotosByVector(
   db: CoreDB,
   embedding: number[],
   dimension: 768 | 1024 | 1536,
   limit: number = 10,
-): PromiseResult<Array<DBSelectPhoto & { similarity: number }>> {
+  minSimilarity: number = 0.2,
+): PromiseResult<Array<DBSelectPhoto & { similarity: number, chat_id?: string, chat_name?: string, platform_message_id?: string }>> {
   return withResult(async () => {
     const vectorColumn = dimension === 1536
       ? photosTable.description_vector_1536
       : dimension === 1024
         ? photosTable.description_vector_1024
         : photosTable.description_vector_768
+
 
     const results = await db
       .select({
@@ -208,31 +213,69 @@ async function searchPhotosByVector(
         description_vector_1024: photosTable.description_vector_1024,
         description_vector_768: photosTable.description_vector_768,
         similarity: sql<number>`1 - (${cosineDistance(vectorColumn, embedding)})`.as('similarity'),
+        // Message and chat info
+        chat_id: chatMessagesTable.in_chat_id,
+        chat_name: joinedChatsTable.chat_name,
+        platform_message_id: chatMessagesTable.platform_message_id,
       })
       .from(photosTable)
-      .where(sql`${vectorColumn} IS NOT NULL`)
+      .leftJoin(chatMessagesTable, eq(photosTable.message_id, chatMessagesTable.id))
+      .leftJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
+      .where(and(
+        sql`${vectorColumn} IS NOT NULL`,
+        gt(sql`1 - (${cosineDistance(vectorColumn, embedding)})`, minSimilarity),
+      ))
       .orderBy(cosineDistance(vectorColumn, embedding))
       .limit(limit)
 
-    return results as Array<DBSelectPhoto & { similarity: number }>
+    return results as Array<DBSelectPhoto & { similarity: number, chat_id?: string, chat_name?: string, platform_message_id?: string }>
   })
 }
 
 /**
  * Search photos by description text (full-text search)
+ * Includes message and chat information via JOIN
  */
 async function searchPhotosByText(
   db: CoreDB,
   searchText: string,
   limit: number = 10,
-): PromiseResult<DBSelectPhoto[]> {
-  return withResult(() => db
-    .select()
-    .from(photosTable)
-    .where(sql`${photosTable.description} ILIKE ${`%${searchText}%`}`)
-    .orderBy(photosTable.created_at)
-    .limit(limit),
-  )
+): PromiseResult<Array<DBSelectPhoto & { chat_id?: string, chat_name?: string, platform_message_id?: string }>> {
+  return withResult(async () => {
+    const results = await db
+      .select({
+        id: photosTable.id,
+        platform: photosTable.platform,
+        file_id: photosTable.file_id,
+        message_id: photosTable.message_id,
+        image_bytes: photosTable.image_bytes,
+        image_thumbnail_bytes: photosTable.image_thumbnail_bytes,
+        image_path: photosTable.image_path,
+        image_thumbnail_path: photosTable.image_thumbnail_path,
+        image_mime_type: photosTable.image_mime_type,
+        image_width: photosTable.image_width,
+        image_height: photosTable.image_height,
+        caption: photosTable.caption,
+        description: photosTable.description,
+        created_at: photosTable.created_at,
+        updated_at: photosTable.updated_at,
+        description_vector_1536: photosTable.description_vector_1536,
+        description_vector_1024: photosTable.description_vector_1024,
+        description_vector_768: photosTable.description_vector_768,
+        // Message and chat info
+        chat_id: chatMessagesTable.in_chat_id,
+        chat_name: joinedChatsTable.chat_name,
+        platform_message_id: chatMessagesTable.platform_message_id,
+      })
+      .from(photosTable)
+      .leftJoin(chatMessagesTable, eq(photosTable.message_id, chatMessagesTable.id))
+      .leftJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
+      .where(sql`${photosTable.description} ILIKE ${`%${searchText}%`}`)
+      .orderBy(photosTable.created_at)
+      .limit(limit)
+
+    return results as Array<DBSelectPhoto & { chat_id?: string, chat_name?: string, platform_message_id?: string }>
+  })
 }
 
 /**

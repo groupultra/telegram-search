@@ -3,6 +3,7 @@ import type { Api } from 'telegram'
 
 import type { CoreContext } from '../context'
 import type { MessageResolverRegistryFn } from '../message-resolvers'
+import type { ChatMessageModels } from '../models/chat-message'
 import type { SyncOptions } from '../types/events'
 
 import { CoreEventType } from '../types/events'
@@ -10,7 +11,12 @@ import { convertToCoreMessage } from '../utils/message'
 
 export type MessageResolverService = ReturnType<typeof createMessageResolverService>
 
-export function createMessageResolverService(ctx: CoreContext, logger: Logger, resolvers: MessageResolverRegistryFn) {
+export function createMessageResolverService(
+  ctx: CoreContext,
+  logger: Logger,
+  resolvers: MessageResolverRegistryFn,
+  chatMessageModels: ChatMessageModels,
+) {
   logger = logger.withContext('core:message-resolver:service')
 
   // TODO: worker_threads?
@@ -47,8 +53,24 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
       ctx.emitter.emit(CoreEventType.MessageData, { messages: coreMessages })
     }
 
-    // Storage the messages first
-    ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: coreMessages })
+    // Storage the messages first and get the actual DB IDs
+    const accountId = ctx.getCurrentAccountId()
+    const recordedMessages = await chatMessageModels.recordMessages(ctx.getDB(), accountId, coreMessages)
+
+    // Update coreMessages UUIDs with the actual DB IDs
+    // Create a map for O(1) lookup: chat_id:platform_message_id -> db_uuid
+    const messageIdMap = new Map<string, string>()
+    for (const msg of recordedMessages) {
+      messageIdMap.set(`${msg.in_chat_id}:${msg.platform_message_id}`, msg.id!)
+    }
+
+    // Apply the actual DB UUIDs to the core messages
+    for (const msg of coreMessages) {
+      const dbUuid = messageIdMap.get(`${msg.chatId}:${msg.platformMessageId}`)
+      if (dbUuid) {
+        msg.uuid = dbUuid
+      }
+    }
 
     // Avatar resolver is disabled by default (configured in generateDefaultConfig).
     // Current strategy: client-driven, on-demand avatar loading via entity:avatar:fetch.

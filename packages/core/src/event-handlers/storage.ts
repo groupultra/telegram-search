@@ -214,8 +214,6 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     try {
       logger.withFields({ params }).log('StorageSearchPhotos event received')
 
-      const accountId = ctx.getCurrentAccountId()
-
       if (params.content.length === 0) {
         logger.verbose('Empty content, returning empty results')
         ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
@@ -226,7 +224,17 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       const embeddingDimension = embeddingSettings.dimension
       logger.withFields({ embeddingDimension }).verbose('Embedding settings loaded')
 
-      let dbPhotos: Array<{ id: string, message_id: string | null, description: string, image_mime_type: string, created_at: number, similarity?: number }> = []
+      let corePhotos: Array<{
+        id: string
+        messageId: string | null
+        platformMessageId?: string
+        chatId?: string
+        chatName?: string
+        description: string
+        mimeType: string
+        createdAt: number
+        similarity?: number
+      }> = []
 
       if (params.useVector) {
         // Vector search
@@ -251,12 +259,15 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
         logger.withFields({ resultsCount: results.length }).verbose('Vector search completed')
 
-        dbPhotos = results.map(photo => ({
+        corePhotos = results.map(photo => ({
           id: photo.id,
-          message_id: photo.message_id,
+          messageId: photo.message_id,
+          platformMessageId: photo.platform_message_id,
+          chatId: photo.chat_id,
+          chatName: photo.chat_name || undefined,
           description: photo.description,
-          image_mime_type: photo.image_mime_type,
-          created_at: photo.created_at,
+          mimeType: photo.image_mime_type,
+          createdAt: photo.created_at,
           similarity: photo.similarity,
         }))
       }
@@ -272,62 +283,17 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
         logger.withFields({ resultsCount: results.length }).verbose('Text search completed')
 
-        dbPhotos = results.map(photo => ({
-          id: photo.id,
-          message_id: photo.message_id,
-          description: photo.description,
-          image_mime_type: photo.image_mime_type,
-          created_at: photo.created_at,
-        }))
-      }
-
-      logger.withFields({ count: dbPhotos.length }).log('Retrieved photos from database')
-
-      // Get chat information for photos with messages
-      const messageIds = dbPhotos.filter(p => p.message_id).map(p => p.message_id!)
-      const chatInfoMap = new Map<string, { chatId: string, chatName: string, platformMessageId: string }>()
-
-      if (messageIds.length > 0) {
-        logger.withFields({ messageIdsCount: messageIds.length }).verbose('Fetching chat information')
-        const messages = (await dbModels.chatMessageModels.fetchMessagesByIds(
-          ctx.getDB(),
-          accountId,
-          messageIds,
-        )).orUndefined()
-
-        if (messages) {
-          for (const msg of messages) {
-            chatInfoMap.set(msg.id, {
-              chatId: msg.chat_id,
-              chatName: msg.chat_name || '',
-              platformMessageId: msg.platform_message_id,
-            })
-          }
-        }
-      }
-
-      // Convert to CoreRetrievalPhoto
-      const corePhotos = dbPhotos.map((photo) => {
-        const chatInfo = photo.message_id ? chatInfoMap.get(photo.message_id) : undefined
-        logger.withFields({
-          photoId: photo.id,
-          messageId: photo.message_id,
-          hasChatInfo: !!chatInfo,
-          chatName: chatInfo?.chatName,
-          chatId: chatInfo?.chatId,
-        }).debug('Processing photo')
-        return {
+        corePhotos = results.map(photo => ({
           id: photo.id,
           messageId: photo.message_id,
-          platformMessageId: chatInfo?.platformMessageId,
-          chatId: chatInfo?.chatId,
-          chatName: chatInfo?.chatName,
+          platformMessageId: photo.platform_message_id,
+          chatId: photo.chat_id,
+          chatName: photo.chat_name || undefined,
           description: photo.description,
           mimeType: photo.image_mime_type,
           createdAt: photo.created_at,
-          similarity: photo.similarity,
-        }
-      })
+        }))
+      }
 
       logger.withFields({
         corePhotosCount: corePhotos.length,

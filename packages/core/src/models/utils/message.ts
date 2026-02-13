@@ -49,7 +49,7 @@ export function convertToDBInsertMessage(
 ): DBInsertMessage {
   const msg: DBInsertMessage = {
     // Let the database generate the ID, we don't need to set it here
-    // id: message.uuid,
+    id: message.uuid,
     platform: message.platform,
     from_id: message.fromId,
     platform_message_id: message.platformMessageId,
