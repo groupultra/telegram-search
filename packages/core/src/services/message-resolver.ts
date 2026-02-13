@@ -57,7 +57,8 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
     // Embedding or resolve messages
     const resolverSpans: Array<{ name: string, duration: number, count: number }> = []
 
-    const promises = Array.from(resolvers.registry.entries())
+    // 分离出需要顺序执行的 resolvers
+    const allResolvers = Array.from(resolvers.registry.entries())
       .filter(([name]) => {
         if (disabledResolvers.includes(name))
           return false
@@ -72,6 +73,59 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
           return false
         return true
       })
+
+    // 先执行 media resolver（如果存在）
+    const mediaResolver = allResolvers.find(([name]) => name === 'media')
+    if (mediaResolver) {
+      const [name, resolver] = mediaResolver
+      const resolverStart = performance.now()
+      logger.withFields({ name }).verbose('Process messages with resolver')
+
+      const opts = {
+        messages: coreMessages,
+        rawMessages: messages,
+        syncOptions: options.syncOptions,
+        forceRefetch: options.forceRefetch,
+      }
+
+      try {
+        if (resolver.run) {
+          const result = (await resolver.run(opts)).unwrap()
+
+          if (result.length > 0) {
+            ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: result })
+          }
+        }
+        else if (resolver.stream) {
+          for await (const message of resolver.stream(opts)) {
+            if (!options.takeout) {
+              ctx.emitter.emit(CoreEventType.MessageData, { messages: [message] })
+            }
+
+            ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: [message] })
+          }
+        }
+      }
+      catch (error) {
+        logger.withError(error).warn('Failed to process messages')
+      }
+      finally {
+        const duration = performance.now() - resolverStart
+        resolverSpans.push({
+          name,
+          duration,
+          count: coreMessages.length,
+        })
+
+        if (ctx.metrics) {
+          ctx.metrics.resolverDuration.observe({ resolver: name }, duration)
+        }
+      }
+    }
+
+    // 然后并行执行其他 resolvers
+    const otherResolvers = allResolvers.filter(([name]) => name !== 'media')
+    const promises = otherResolvers
       .map(([name, resolver]) => (async () => {
         const resolverStart = performance.now()
         logger.withFields({ name }).verbose('Process messages with resolver')

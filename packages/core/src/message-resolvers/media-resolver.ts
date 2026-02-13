@@ -78,6 +78,15 @@ export function createMediaResolver(
               try {
                 const photo = (await photoModels.findPhotoByFileIdWithMimeType(db, media.platformId)).orUndefined()
                 if (photo) {
+                  // Update message_id to ensure photo-embedding-resolver can find it
+                  await photoModels.updatePhotoMessageId(db, photo.id, message.uuid)
+                  
+                  logger.withFields({
+                    photoId: photo.id,
+                    messageUUID: message.uuid,
+                    platformId: media.platformId,
+                  }).log('Photo found in cache, updated message_id')
+                  
                   return {
                     messageUUID: message.uuid,
                     queryId: photo.id,
@@ -162,6 +171,12 @@ export function createMediaResolver(
                     mimeType,
                     storagePath,
                   }])
+
+                  logger.withFields({
+                    photoId: uuid,
+                    messageUUID: message.uuid,
+                    platformId: media.platformId,
+                  }).log('Photo saved to database')
 
                   return {
                     messageUUID: message.uuid,

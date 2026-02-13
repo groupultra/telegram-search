@@ -66,8 +66,8 @@ export function basicEventHandler(ctx: CoreContext, config: Config, mediaBinaryP
   registry.register('avatar', createAvatarResolver(ctx, logger))
   registry.register('link', createLinkResolver(logger))
   // Photo embedding resolver: must run AFTER media resolver to ensure photos are downloaded
-  registry.register('photo-embedding', createPhotoEmbeddingResolver(ctx, logger, photoModels))
-  registry.register('embedding', createEmbeddingResolver (ctx, logger))
+  registry.register('photo-embedding', createPhotoEmbeddingResolver(ctx, logger))
+  registry.register('embedding', createEmbeddingResolver(ctx, logger))
   registry.register('jieba', createJiebaResolver(logger))
 
   registerStorageEventHandlers(ctx, logger, models)

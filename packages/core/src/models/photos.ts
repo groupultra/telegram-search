@@ -34,16 +34,13 @@ async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<D
   const dataToInsert = media
     .filter(media => media.byte != null || media.storagePath)
     .map((media) => {
-      const hasExternalStorage = Boolean(media.storagePath)
-
       return {
         id: media.uuid,
         platform: 'telegram',
         file_id: media.platformId,
         message_id: media.messageUUID,
-        // When an external storage provider is configured, prefer persisting
-        // the opaque storage path instead of raw bytes.
-        image_bytes: hasExternalStorage ? undefined : media.byte,
+        // Always save image_bytes to database for embedding processing
+        image_bytes: media.byte,
         image_path: media.storagePath,
         image_mime_type: media.mimeType,
       } satisfies DBInsertPhoto
@@ -59,13 +56,29 @@ async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<D
     .onConflictDoUpdate({
       target: [photosTable.platform, photosTable.file_id],
       set: {
-        image_bytes: sql`excluded.image_bytes`,
-        image_path: sql`excluded.image_path`,
+        message_id: sql`excluded.message_id`,
+        // Only update image_bytes if new value is not null
+        image_bytes: sql`COALESCE(excluded.image_bytes, ${photosTable.image_bytes})`,
+        // Only update image_path if new value is not empty
+        image_path: sql`CASE WHEN excluded.image_path != '' THEN excluded.image_path ELSE ${photosTable.image_path} END`,
         image_mime_type: sql`excluded.image_mime_type`,
         updated_at: Date.now(),
       },
     })
     .returning()
+}
+
+/**
+ * Update the message_id field for an existing photo
+ */
+async function updatePhotoMessageId(db: CoreDB, photoId: string, messageUUID: string): Promise<void> {
+  await db
+    .update(photosTable)
+    .set({
+      message_id: messageUUID,
+      updated_at: Date.now(),
+    })
+    .where(eq(photosTable.id, photoId))
 }
 
 /**
@@ -108,6 +121,22 @@ async function findPhotoByFileIdWithMimeType(db: CoreDB, fileId: string): Promis
       .limit(1)
 
     return must0(photos)
+  })
+}
+
+/**
+ * Find photos by message UUIDs (for batch processing)
+ */
+async function findPhotosByMessageUUIDs(db: CoreDB, messageUUIDs: string[]): PromiseResult<DBSelectPhoto[]> {
+  if (messageUUIDs.length === 0) {
+    return withResult(async () => [])
+  }
+
+  return withResult(async () => {
+    return db
+      .select()
+      .from(photosTable)
+      .where(inArray(photosTable.message_id, messageUUIDs))
   })
 }
 
@@ -251,8 +280,10 @@ async function updatePhotoEmbedding(
 
 export const photoModels = {
   recordPhotos,
+  updatePhotoMessageId,
   findPhotoByFileId,
   findPhotoByFileIdWithMimeType,
+  findPhotosByMessageUUIDs,
   findPhotoByQueryId,
   findPhotosByMessageId,
   findPhotosByMessageIds,

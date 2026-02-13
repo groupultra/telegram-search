@@ -45,6 +45,15 @@ watch(
     settings.messageProcessing.resolvers.disabledResolvers ??= ['avatar']
     settings.messageProcessing.defaults ??= { syncMedia: true, maxMediaSize: 0 }
     settings.messageProcessing.enablePhotoEmbedding ??= false
+    
+    // Initialize visionLLM with defaults if not present
+    settings.visionLLM ??= {
+      model: 'qwen-vl-max',
+      apiKey: '',
+      apiBase: '',
+      temperature: 0.7,
+      maxTokens: 1024,
+    }
   },
   { immediate: true },
 )
@@ -228,6 +237,68 @@ function updateConfig() {
                     step="100"
                     min="100"
                     max="32000"
+                    class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vision LLM Settings -->
+          <div>
+            <h3 class="mb-2 text-lg font-medium">
+              {{ t('settings.visionLLM') }}
+            </h3>
+            <p class="mb-4 text-sm text-muted-foreground">
+              {{ t('settings.visionLLMDescription') }}
+            </p>
+            <div class="grid gap-4">
+              <div>
+                <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.model') }}</label>
+                <input
+                  v-model="accountSettings.visionLLM.model"
+                  type="text"
+                  placeholder="qwen-vl-max"
+                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+              </div>
+              <div>
+                <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.apiKey') }}</label>
+                <input
+                  v-model="accountSettings.visionLLM.apiKey"
+                  type="password"
+                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+              </div>
+              <div>
+                <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.apiBaseUrl') }}</label>
+                <input
+                  v-model="accountSettings.visionLLM.apiBase"
+                  type="text"
+                  placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
+                  class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+              </div>
+              <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.temperature') }}</label>
+                  <input
+                    v-model.number="accountSettings.visionLLM.temperature"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                </div>
+                <div>
+                  <label class="block text-sm text-muted-foreground font-medium">{{ t('settings.maxTokens') }}</label>
+                  <input
+                    v-model.number="accountSettings.visionLLM.maxTokens"
+                    type="number"
+                    step="100"
+                    min="100"
+                    max="4000"
                     class="mt-1 block w-full border rounded-md bg-background px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                 </div>

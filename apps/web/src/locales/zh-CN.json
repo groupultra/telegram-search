@@ -150,6 +150,8 @@
     "llm": "大语言模型",
     "llmModel": "LLM 模型",
     "llmProvider": "LLM 提供商",
+    "visionLLM": "视觉大模型（多模态）",
+    "visionLLMDescription": "多模态大语言模型，用于图片理解。用于生成图片描述以支持语义搜索。",
     "login": "登录",
     "logout": "退出登录",
     "logoutCurrentAccount": "退出当前账号",

@@ -24,6 +24,14 @@ export const llmConfigSchema = object({
   maxTokens: optional(number(), 2000),
 })
 
+export const visionLLMConfigSchema = object({
+  model: optional(string(), 'qwen-vl-max'),
+  apiKey: optional(string(), ''),
+  apiBase: optional(string(), ''),
+  temperature: optional(number(), 0.7),
+  maxTokens: optional(number(), 1024),
+})
+
 export const resolversConfigSchema = object({
   // Avatar resolver is disabled by default: client-driven, on-demand fetching
   disabledResolvers: optional(array(string()), ['avatar']),
@@ -58,6 +66,7 @@ export const botConfigSchema = object({
 export const accountSettingsSchema = object({
   embedding: optional(embeddingConfigSchema, {}),
   llm: optional(llmConfigSchema, {}),
+  visionLLM: optional(visionLLMConfigSchema, {}),
   resolvers: optional(resolversConfigSchema, {}),
   receiveMessages: optional(receiveMessagesConfigSchema, {}),
   bot: optional(botConfigSchema, {}),
@@ -66,4 +75,5 @@ export const accountSettingsSchema = object({
 
 export type EmbeddingConfig = InferOutput<typeof embeddingConfigSchema>
 export type LLMConfig = InferOutput<typeof llmConfigSchema>
+export type VisionLLMConfig = InferOutput<typeof visionLLMConfigSchema>
 export type AccountSettings = InferOutput<typeof accountSettingsSchema>

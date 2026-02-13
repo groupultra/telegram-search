@@ -2,160 +2,194 @@ import type { Logger } from '@guiiai/logg'
 
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
-import type { PhotoModels } from '../models/photos'
-import type { CoreMessage } from '../types/message'
 
 import { Ok } from '@unbird/result'
 
+import { photoModels } from '../models/photos'
 import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
 import { describeImage } from '../utils/vision'
 
-export function createPhotoEmbeddingResolver(
-  ctx: CoreContext,
-  logger: Logger,
-  photoModels: PhotoModels,
-): MessageResolver {
+/**
+ * Photo Embedding Resolver
+ *
+ * 负责为照片生成描述并进行向量化：
+ * 1. 使用多模态 LLM 将照片转换为文本描述
+ * 2. 对描述进行向量化
+ * 3. 保存到数据库以支持语义图片搜索
+ *
+ * 注意：此 resolver 依赖 media-resolver 先执行完成，以确保照片已下载并保存到数据库。
+ */
+export function createPhotoEmbeddingResolver(ctx: CoreContext, logger: Logger): MessageResolver {
   logger = logger.withContext('core:resolver:photo-embedding')
 
   return {
     run: async (opts: MessageResolverOpts) => {
       const accountSettings = await ctx.getAccountSettings()
-      const { llm, embedding, messageProcessing } = accountSettings
+      const { visionLLM, embedding, messageProcessing } = accountSettings
 
-      logger.withFields({ llmSettings: llm, embeddingSettings: embedding }).verbose('Executing photo embedding resolver')
+      logger.withFields({
+        enablePhotoEmbedding: messageProcessing?.enablePhotoEmbedding,
+        hasVisionLlmApiKey: !!(visionLLM.apiKey && visionLLM.apiKey.trim() !== ''),
+        hasEmbeddingApiKey: !!(embedding.apiKey && embedding.apiKey.trim() !== ''),
+        messagesCount: opts.messages.length,
+      }).log('Photo embedding resolver started')
 
       // 检查是否启用了图片 embedding 功能
       if (!messageProcessing?.enablePhotoEmbedding) {
-        logger.debug('Photo embedding is disabled')
+        logger.warn('Photo embedding is disabled in settings. Please enable it in Settings → Message Processing → Enable Photo Embedding')
         return Ok([])
       }
 
-      // 检查 LLM API key 是否配置
-      if (!llm.apiKey || llm.apiKey.trim() === '') {
-        logger.debug('Skipping photo embedding: LLM API key is empty')
+      // 检查 Vision LLM API key 是否配置
+      if (!visionLLM.apiKey || visionLLM.apiKey.trim() === '') {
+        logger.warn('Vision LLM API key is not configured. Please configure it in Settings → API → Vision LLM')
         return Ok([])
       }
 
       // 检查 Embedding API key 是否配置
       if (!embedding.apiKey || embedding.apiKey.trim() === '') {
-        logger.debug('Skipping photo embedding: Embedding API key is empty')
+        logger.warn('Embedding API key is not configured. Please configure it in Settings → API')
         return Ok([])
       }
 
       const db = ctx.getDB()
+      const messageUUIDs = opts.messages.map(m => m.uuid)
 
-      // 筛选包含照片的消息
-      const messagesWithPhotos: CoreMessage[] = []
-      for (const message of opts.messages) {
-        if (message.media && message.media.some(media => media.type === 'photo')) {
-          messagesWithPhotos.push(message)
-        }
-      }
+      logger.withFields({ messageUUIDs: messageUUIDs.slice(0, 3), totalCount: messageUUIDs.length }).log('Looking for photos with message UUIDs')
 
-      if (messagesWithPhotos.length === 0) {
-        logger.debug('No messages with photos to process')
+      if (messageUUIDs.length === 0) {
         return Ok([])
       }
 
-      logger.withFields({ count: messagesWithPhotos.length }).verbose('Processing messages with photos')
+      // 从数据库查询照片（media resolver 已经完成，照片应该已保存）
+      const photosToProcess = await photoModels.findPhotosByMessageUUIDs(db, messageUUIDs)
+        .then(result => result.orDefault([]))
 
-      // 处理每张照片
-      for (const message of messagesWithPhotos) {
-        for (const media of message.media || []) {
-          if (media.type !== 'photo' || !media.queryId) {
-            continue
+      logger.withFields({ 
+        photosCount: photosToProcess.length,
+        samplePhotoIds: photosToProcess.slice(0, 3).map(p => ({ id: p.id, messageId: p.message_id })),
+      }).log('Photos found in database')
+
+      if (photosToProcess.length === 0) {
+        return Ok([])
+      }
+
+      // 过滤出需要处理的照片（没有 embedding 的）
+      const photosNeedProcessing = photosToProcess.filter((photo) => {
+        const hasEmbedding = photo.description_vector_1536?.length
+          || photo.description_vector_1024?.length
+          || photo.description_vector_768?.length
+
+        // 如果强制重新获取，或者没有 embedding，则需要处理
+        return opts.forceRefetch || !hasEmbedding
+      })
+
+      logger.withFields({ count: photosNeedProcessing.length }).log('Photos need embedding')
+
+      if (photosNeedProcessing.length === 0) {
+        return Ok([])
+      }
+
+      // 批量生成描述
+      const descriptionsToEmbed: Array<{ photoId: string, description: string }> = []
+
+      for (const photo of photosNeedProcessing) {
+        try {
+          const hasDescription = photo.description && photo.description.trim() !== ''
+
+          let description: string
+
+          // 如果已有描述且不强制重新获取，使用现有描述
+          if (hasDescription && !opts.forceRefetch) {
+            description = photo.description
+            logger.withFields({ photoId: photo.id }).log('Using existing description')
           }
-
-          try {
-            // 从数据库获取照片数据
-            const photoResult = await photoModels.findPhotoByQueryId(db, media.queryId)
-            const photo = photoResult.orUndefined()
-
-            if (!photo) {
-              logger.withFields({ queryId: media.queryId }).debug('Photo not found in database')
-              continue
-            }
-
-            // 如果已经有描述并且有embedding,跳过(除非是强制重新获取)
-            const hasDescription = photo.description && photo.description.trim() !== ''
-            const hasEmbedding = photo.description_vector_1536?.length
-              || photo.description_vector_1024?.length
-              || photo.description_vector_768?.length
-
-            if (hasEmbedding && !opts.forceRefetch) {
-              logger.withFields({ queryId: media.queryId }).debug('Photo already has embedding, skipping')
-              continue
-            }
-
-            // 检查是否有图片数据
+          else {
+            // 从数据库读取图片数据
             if (!photo.image_bytes) {
-              logger.withFields({ queryId: media.queryId }).debug('Photo has no image bytes')
+              logger.withFields({ photoId: photo.id }).warn('Photo has no image bytes in database, skipping')
               continue
             }
 
-            // 如果已经有描述但没有embedding,直接使用现有描述进行embedding
-            let description: string
-            if (hasDescription && !opts.forceRefetch) {
-              description = photo.description
-              logger.withFields({ queryId: media.queryId }).verbose('Using existing description for embedding')
-            }
-            else {
-              // 生成新的描述
-              logger.withFields({ queryId: media.queryId, platformMessageId: message.platformMessageId }).verbose('Generating description for photo')
+            // 生成新描述
+            logger.withFields({ 
+              photoId: photo.id,
+              imageBytesLength: photo.image_bytes.length,
+              imageBytesType: photo.image_bytes.constructor?.name,
+            }).log('Generating description for photo')
 
-              const descriptionResult = await describeImage(photo.image_bytes, llm)
-              const desc = descriptionResult.expect('Failed to generate image description')
-              description = desc.description
-              logger.withFields({ queryId: media.queryId, descriptionLength: description.length }).verbose('Generated description')
-            }
+            const descriptionResult = await describeImage(photo.image_bytes, visionLLM)
+            const desc = descriptionResult.expect('Failed to generate description')
 
-            // 2. 对描述进行 embedding
-            const embedResult = await embedContents([description], embedding)
-            const { embeddings, dimension } = embedResult.expect('Failed to embed description')
-            const vector = embeddings[0]
-
-            if (!vector) {
-              logger.warn('No embedding vector generated')
-              continue
-            }
-
-            // 验证维度
-            let validDimension: 768 | 1024 | 1536
-            switch (dimension) {
-              case EmbeddingDimension.DIMENSION_1536:
-                validDimension = 1536
-                break
-              case EmbeddingDimension.DIMENSION_1024:
-                validDimension = 1024
-                break
-              case EmbeddingDimension.DIMENSION_768:
-                validDimension = 768
-                break
-              default:
-                logger.withFields({ dimension }).warn('Unsupported embedding dimension')
-                continue
-            }
-
-            // 3. 更新数据库中的照片记录
-            const updateResult = await photoModels.updatePhotoEmbedding(db, media.queryId, {
-              description,
-              vector,
-              dimension: validDimension,
-            })
-            updateResult.expect('Failed to update photo embedding')
-
-            logger.withFields({
-              queryId: media.queryId,
-              dimension: validDimension,
-              descriptionLength: description.length,
-            }).verbose('Successfully updated photo with description and embedding')
+            description = desc.description
+            logger.withFields({ photoId: photo.id, descriptionLength: description.length }).log('Generated description')
           }
-          catch (error) {
-            logger.withError(error).warn('Failed to process photo embedding')
-          }
+
+          descriptionsToEmbed.push({ photoId: photo.id, description })
+        }
+        catch (error) {
+          logger.withFields({ photoId: photo.id }).withError(error as Error).warn('Failed to process photo')
         }
       }
+
+      if (descriptionsToEmbed.length === 0) {
+        logger.warn('No descriptions to embed')
+        return Ok([])
+      }
+
+      // 批量生成 embedding
+      logger.withFields({ count: descriptionsToEmbed.length }).log('Generating embeddings for photos')
+
+      const descriptions = descriptionsToEmbed.map(d => d.description)
+      const embedResult = await embedContents(descriptions, embedding)
+      const { embeddings, dimension } = embedResult.expect('Failed to generate embeddings')
+
+      // 验证维度
+      let validDimension: 768 | 1024 | 1536
+      switch (dimension) {
+        case EmbeddingDimension.DIMENSION_1536:
+          validDimension = 1536
+          break
+        case EmbeddingDimension.DIMENSION_1024:
+          validDimension = 1024
+          break
+        case EmbeddingDimension.DIMENSION_768:
+          validDimension = 768
+          break
+        default:
+          logger.withFields({ dimension }).warn('Unsupported embedding dimension')
+          return Ok([])
+      }
+
+      // 批量更新数据库
+      for (let i = 0; i < descriptionsToEmbed.length; i++) {
+        const { photoId, description } = descriptionsToEmbed[i]
+        const vector = embeddings[i]
+
+        if (!vector) {
+          logger.withFields({ photoId }).warn('No embedding vector generated')
+          continue
+        }
+
+        try {
+          await photoModels.updatePhotoEmbedding(db, photoId, {
+            description,
+            vector,
+            dimension: validDimension,
+          })
+
+          logger.withFields({ photoId, dimension: validDimension }).log('Updated photo embedding')
+        }
+        catch (error) {
+          logger.withFields({ photoId }).withError(error as Error).warn('Failed to update photo embedding')
+        }
+      }
+
+      logger.withFields({
+        count: descriptionsToEmbed.length,
+        dimension: validDimension,
+      }).log('Photo embedding completed')
 
       return Ok(opts.messages)
     },
