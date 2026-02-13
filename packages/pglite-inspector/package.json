@@ -12,9 +12,9 @@
   },
   "peerDependencies": {
     "@electric-sql/pglite": "*",
-    "vue": "^3.5.27"
+    "vue": "^3.5.28"
   },
   "dependencies": {
-    "@vue/devtools-kit": "^8.0.5"
+    "@vue/devtools-kit": "^8.0.6"
   }
 }
