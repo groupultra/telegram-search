@@ -45,6 +45,7 @@ export const messageProcessingSchema = object({
   receiveMessages: optional(receiveMessagesConfigSchema, {}),
   resolvers: optional(resolversConfigSchema, {}),
   defaults: optional(syncOptionsSchema, { syncMedia: true, maxMediaSize: 0 }),
+  enablePhotoEmbedding: optional(boolean(), false),
 })
 
 export const botConfigSchema = object({
@@ -64,4 +65,5 @@ export const accountSettingsSchema = object({
 })
 
 export type EmbeddingConfig = InferOutput<typeof embeddingConfigSchema>
+export type LLMConfig = InferOutput<typeof llmConfigSchema>
 export type AccountSettings = InferOutput<typeof accountSettingsSchema>

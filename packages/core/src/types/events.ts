@@ -64,10 +64,12 @@ export enum CoreEventType {
   StorageRecordDialogs = 'storage:record:dialogs',
   StorageRecordChatFolders = 'storage:record:chat-folders',
   StorageSearchMessages = 'storage:search:messages',
+  StorageSearchPhotos = 'storage:search:photos',
   StorageFetchMessageContext = 'storage:fetch:message-context',
   StorageMessages = 'storage:messages',
   StorageDialogs = 'storage:dialogs',
   StorageSearchMessagesData = 'storage:search:messages:data',
+  StorageSearchPhotosData = 'storage:search:photos:data',
   StorageMessagesContext = 'storage:messages:context',
   StorageChatNote = 'storage:record:dialog-note',
   StorageChatNoteData = 'storage:dialog-note',
@@ -303,6 +305,7 @@ export interface StorageEventToCore {
   [CoreEventType.StorageRecordChatFolders]: (data: { folders: CoreChatFolder[], accountId: string }) => void
 
   [CoreEventType.StorageSearchMessages]: (data: CoreMessageSearchParams) => void
+  [CoreEventType.StorageSearchPhotos]: (data: CorePhotoSearchParams) => void
 
   [CoreEventType.StorageFetchMessageContext]: (data: StorageMessageContextParams) => void
 
@@ -315,6 +318,7 @@ export interface StorageEventFromCore {
   [CoreEventType.StorageDialogs]: (data: { dialogs: CoreDialog[] }) => void
 
   [CoreEventType.StorageSearchMessagesData]: (data: { messages: CoreRetrievalMessages[] }) => void
+  [CoreEventType.StorageSearchPhotosData]: (data: { photos: CoreRetrievalPhoto[] }) => void
 
   [CoreEventType.StorageMessagesContext]: (data: { messages: CoreMessage[] } & StorageMessageContextParams) => void
 
@@ -337,11 +341,35 @@ export interface CoreMessageSearchParams {
   }
 }
 
+export interface CorePhotoSearchParams {
+  content: string
+  useVector: boolean
+  pagination?: CorePagination
+
+  // Additional filters
+  chatIds?: string[] // Filter by specific chats
+  timeRange?: {
+    start?: number // Unix timestamp in seconds
+    end?: number // Unix timestamp in seconds
+  }
+}
+
 export type CoreRetrievalMessages = CoreMessage & {
   similarity?: number
   timeRelevance?: number
   combinedScore?: number
   chatName?: string
+}
+
+export interface CoreRetrievalPhoto {
+  id: string
+  messageId: string | null
+  chatId?: string
+  chatName?: string
+  description: string
+  mimeType: string
+  createdAt: number
+  similarity?: number
 }
 
 export interface StorageMessageContextParams {

@@ -15,6 +15,7 @@ import type { DBInsertMessage, DBSelectMessage } from './utils/types'
 
 import { and, asc, desc, eq, gt, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 
+import { accountJoinedChatsTable } from '../schemas/account-joined-chats'
 import { chatMessagesTable } from '../schemas/chat-messages'
 import { joinedChatsTable } from '../schemas/joined-chats'
 import { withResult } from '../utils/result'
@@ -320,6 +321,37 @@ async function fetchMessagesByTimeRange(
 }
 
 /**
+ * Fetch messages by their IDs
+ */
+async function fetchMessagesByIds(
+  db: CoreDB,
+  accountId: string,
+  messageIds: string[],
+): PromiseResult<Array<{ id: string, chat_id: string, chat_name: string | null }>> {
+  return withResult(async () => {
+    if (messageIds.length === 0) {
+      return []
+    }
+
+    const results = await db
+      .select({
+        id: chatMessagesTable.id,
+        chat_id: chatMessagesTable.in_chat_id,
+        chat_name: joinedChatsTable.chat_name,
+      })
+      .from(chatMessagesTable)
+      .innerJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
+      .innerJoin(accountJoinedChatsTable, eq(joinedChatsTable.id, accountJoinedChatsTable.joined_chat_id))
+      .where(and(
+        inArray(chatMessagesTable.id, messageIds),
+        eq(accountJoinedChatsTable.account_id, accountId),
+      ))
+
+    return results
+  })
+}
+
+/**
  * Retrieve messages for a specific account.
  */
 async function retrieveMessages(
@@ -363,6 +395,7 @@ async function retrieveMessages(
 export const chatMessageModels = {
   recordMessages,
   fetchMessages,
+  fetchMessagesByIds,
   fetchMessagesByTimeRange,
   fetchMessagesWithPhotos,
   fetchMessageContextWithPhotos,

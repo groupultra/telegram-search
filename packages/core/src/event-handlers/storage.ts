@@ -210,6 +210,122 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     ctx.emitter.emit(CoreEventType.StorageSearchMessagesData, { messages: coreMessages })
   })
 
+  ctx.emitter.on(CoreEventType.StorageSearchPhotos, async (params) => {
+    try {
+      logger.withFields({ params }).log('StorageSearchPhotos event received')
+
+      const accountId = ctx.getCurrentAccountId()
+
+      if (params.content.length === 0) {
+        logger.verbose('Empty content, returning empty results')
+        ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
+        return
+      }
+
+      const embeddingSettings = (await ctx.getAccountSettings()).embedding
+      const embeddingDimension = embeddingSettings.dimension
+      logger.withFields({ embeddingDimension }).verbose('Embedding settings loaded')
+
+      let dbPhotos: Array<{ id: string, message_id: string | null, description: string, image_mime_type: string, created_at: number, similarity?: number }> = []
+
+      if (params.useVector) {
+        // Vector search
+        logger.verbose('Starting vector search for photos')
+        const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()
+        if (!embeddingResult) {
+          logger.warn('Failed to generate embedding for photo search')
+          ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
+          return
+        }
+
+        const embedding = embeddingResult.embeddings[0]
+        const limit = params.pagination?.limit || 10
+        logger.withFields({ embeddingLength: embedding.length, limit }).verbose('Embedding generated, searching database')
+
+        const results = (await dbModels.photoModels.searchPhotosByVector(
+          ctx.getDB(),
+          embedding,
+          embeddingDimension,
+          limit,
+        )).expect('Failed to search photos by vector')
+
+        logger.withFields({ resultsCount: results.length }).verbose('Vector search completed')
+
+        dbPhotos = results.map(photo => ({
+          id: photo.id,
+          message_id: photo.message_id,
+          description: photo.description,
+          image_mime_type: photo.image_mime_type,
+          created_at: photo.created_at,
+          similarity: photo.similarity,
+        }))
+      }
+      else {
+        // Text search
+        logger.verbose('Starting text search for photos')
+        const limit = params.pagination?.limit || 10
+        const results = (await dbModels.photoModels.searchPhotosByText(
+          ctx.getDB(),
+          params.content,
+          limit,
+        )).expect('Failed to search photos by text')
+
+        logger.withFields({ resultsCount: results.length }).verbose('Text search completed')
+
+        dbPhotos = results.map(photo => ({
+          id: photo.id,
+          message_id: photo.message_id,
+          description: photo.description,
+          image_mime_type: photo.image_mime_type,
+          created_at: photo.created_at,
+        }))
+      }
+
+      logger.withFields({ count: dbPhotos.length }).log('Retrieved photos from database')
+
+      // Get chat information for photos with messages
+      const messageIds = dbPhotos.filter(p => p.message_id).map(p => p.message_id!)
+      const chatInfoMap = new Map<string, { chatId: string, chatName: string }>()
+
+      if (messageIds.length > 0) {
+        logger.withFields({ messageIdsCount: messageIds.length }).verbose('Fetching chat information')
+        const messages = (await dbModels.chatMessageModels.fetchMessagesByIds(
+          ctx.getDB(),
+          accountId,
+          messageIds,
+        )).orUndefined()
+
+        if (messages) {
+          for (const msg of messages) {
+            chatInfoMap.set(msg.id, { chatId: msg.chat_id, chatName: msg.chat_name || '' })
+          }
+        }
+      }
+
+      // Convert to CoreRetrievalPhoto
+      const corePhotos = dbPhotos.map((photo) => {
+        const chatInfo = photo.message_id ? chatInfoMap.get(photo.message_id) : undefined
+        return {
+          id: photo.id,
+          messageId: photo.message_id,
+          chatId: chatInfo?.chatId,
+          chatName: chatInfo?.chatName,
+          description: photo.description,
+          mimeType: photo.image_mime_type,
+          createdAt: photo.created_at,
+          similarity: photo.similarity,
+        }
+      })
+
+      logger.withFields({ corePhotosCount: corePhotos.length }).log('Emitting StorageSearchPhotosData event')
+      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: corePhotos })
+    }
+    catch (error) {
+      logger.withError(error).error('Failed to search photos')
+      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
+    }
+  })
+
   ctx.emitter.on(CoreEventType.StorageChatNote, async ({ chatId, note, modify }) => {
     logger.withFields({ chatId, note }).verbose('Recording chat note')
 

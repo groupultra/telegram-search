@@ -176,7 +176,9 @@
     "telegramApi": "Telegram API",
     "temperature": "温度",
     "useCachedMessage": "使用数据库缓存的聊天记录",
-    "userResolver": "用户解析器"
+    "userResolver": "用户解析器",
+    "enablePhotoEmbedding": "启用图片 Embedding",
+    "enablePhotoEmbeddingDescription": "使用多模态大模型将图片转换为描述，再进行向量化以支持图片语义搜索"
   },
   "sync": {
     "cancel": "取消",

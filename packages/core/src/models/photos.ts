@@ -8,7 +8,7 @@ import type { CoreMessageMediaPhoto } from '../types/media'
 import type { PromiseResult } from '../utils/result'
 import type { DBInsertPhoto, DBSelectPhoto } from './utils/types'
 
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, cosineDistance, eq, inArray, sql } from 'drizzle-orm'
 
 import { photosTable } from '../schemas/photos'
 import { withResult } from '../utils/result'
@@ -142,6 +142,113 @@ async function findPhotosByMessageIds(db: CoreDB, messageUUIDs: string[]): Promi
   )
 }
 
+/**
+ * Search photos by description embedding (vector similarity search)
+ */
+async function searchPhotosByVector(
+  db: CoreDB,
+  embedding: number[],
+  dimension: 768 | 1024 | 1536,
+  limit: number = 10,
+): PromiseResult<Array<DBSelectPhoto & { similarity: number }>> {
+  return withResult(async () => {
+    const vectorColumn = dimension === 1536
+      ? photosTable.description_vector_1536
+      : dimension === 1024
+        ? photosTable.description_vector_1024
+        : photosTable.description_vector_768
+
+    const results = await db
+      .select({
+        id: photosTable.id,
+        platform: photosTable.platform,
+        file_id: photosTable.file_id,
+        message_id: photosTable.message_id,
+        image_bytes: photosTable.image_bytes,
+        image_thumbnail_bytes: photosTable.image_thumbnail_bytes,
+        image_path: photosTable.image_path,
+        image_thumbnail_path: photosTable.image_thumbnail_path,
+        image_mime_type: photosTable.image_mime_type,
+        image_width: photosTable.image_width,
+        image_height: photosTable.image_height,
+        caption: photosTable.caption,
+        description: photosTable.description,
+        created_at: photosTable.created_at,
+        updated_at: photosTable.updated_at,
+        description_vector_1536: photosTable.description_vector_1536,
+        description_vector_1024: photosTable.description_vector_1024,
+        description_vector_768: photosTable.description_vector_768,
+        similarity: sql<number>`1 - (${cosineDistance(vectorColumn, embedding)})`.as('similarity'),
+      })
+      .from(photosTable)
+      .where(sql`${vectorColumn} IS NOT NULL`)
+      .orderBy(cosineDistance(vectorColumn, embedding))
+      .limit(limit)
+
+    return results as Array<DBSelectPhoto & { similarity: number }>
+  })
+}
+
+/**
+ * Search photos by description text (full-text search)
+ */
+async function searchPhotosByText(
+  db: CoreDB,
+  searchText: string,
+  limit: number = 10,
+): PromiseResult<DBSelectPhoto[]> {
+  return withResult(() => db
+    .select()
+    .from(photosTable)
+    .where(sql`${photosTable.description} ILIKE ${`%${searchText}%`}`)
+    .orderBy(photosTable.created_at)
+    .limit(limit),
+  )
+}
+
+/**
+ * Update photo description and embedding vectors
+ */
+async function updatePhotoEmbedding(
+  db: CoreDB,
+  photoId: string,
+  data: {
+    description: string
+    vector: number[]
+    dimension: 768 | 1024 | 1536
+  },
+): PromiseResult<DBSelectPhoto> {
+  return withResult(async () => {
+    const updateData: Partial<DBSelectPhoto> = {
+      description: data.description,
+      updated_at: Date.now(),
+    }
+
+    // 根据向量维度设置对应的字段
+    switch (data.dimension) {
+      case 1536:
+        updateData.description_vector_1536 = data.vector
+        break
+      case 1024:
+        updateData.description_vector_1024 = data.vector
+        break
+      case 768:
+        updateData.description_vector_768 = data.vector
+        break
+      default:
+        throw new Error(`Unsupported vector dimension: ${data.dimension}`)
+    }
+
+    const result = await db
+      .update(photosTable)
+      .set(updateData)
+      .where(eq(photosTable.id, photoId))
+      .returning()
+
+    return must0(result)
+  })
+}
+
 export const photoModels = {
   recordPhotos,
   findPhotoByFileId,
@@ -149,6 +256,9 @@ export const photoModels = {
   findPhotoByQueryId,
   findPhotosByMessageId,
   findPhotosByMessageIds,
+  searchPhotosByVector,
+  searchPhotosByText,
+  updatePhotoEmbedding,
 }
 
 export type PhotoModels = typeof photoModels

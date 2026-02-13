@@ -12,6 +12,7 @@ import { createEmbeddingResolver } from '../message-resolvers/embedding-resolver
 import { createJiebaResolver } from '../message-resolvers/jieba-resolver'
 import { createLinkResolver } from '../message-resolvers/link-resolver'
 import { createMediaResolver } from '../message-resolvers/media-resolver'
+import { createPhotoEmbeddingResolver } from '../message-resolvers/photo-embedding-resolver'
 import { createUserResolver } from '../message-resolvers/user-resolver'
 import { models } from '../models'
 import { accountModels } from '../models/accounts'
@@ -64,6 +65,8 @@ export function basicEventHandler(ctx: CoreContext, config: Config, mediaBinaryP
   // server-side prefetch in the future if desired.
   registry.register('avatar', createAvatarResolver(ctx, logger))
   registry.register('link', createLinkResolver(logger))
+  // Photo embedding resolver: must run AFTER media resolver to ensure photos are downloaded
+  registry.register('photo-embedding', createPhotoEmbeddingResolver(ctx, logger, photoModels))
   registry.register('embedding', createEmbeddingResolver (ctx, logger))
   registry.register('jieba', createJiebaResolver(logger))
 

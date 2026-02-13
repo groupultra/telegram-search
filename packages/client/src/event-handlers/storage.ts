@@ -37,4 +37,5 @@ export function registerStorageEventHandlers(
   registerEventHandler(CoreEventType.StorageSearchMessagesData, (_) => {})
   registerEventHandler(CoreEventType.StorageMessagesContext, (_) => {})
   registerEventHandler(CoreEventType.StorageChatNoteData, (_) => {})
+  registerEventHandler(CoreEventType.StorageSearchPhotosData, (_) => {})
 }

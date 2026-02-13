@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CoreRetrievalMessages } from '@tg-search/core/types'
+import type { CoreRetrievalMessages, CoreRetrievalPhoto } from '@tg-search/core/types'
 
 import MarkdownRender from 'markstream-vue'
 
@@ -145,6 +145,30 @@ async function generateMessage(message: string, assistantId?: string) {
       })
     }
 
+    const searchPhotosExecutor = async (params: any) => {
+      return new Promise<CoreRetrievalPhoto[]>((resolve) => {
+        useLogger('composables:ai-chat').withFields({ params }).log('searchPhotos executor called')
+
+        bridge.waitForEvent(CoreEventType.StorageSearchPhotosData).then(({ photos }) => {
+          useLogger('composables:ai-chat').withFields({ photosCount: photos.length }).log('searchPhotos received response')
+          resolve(photos)
+        })
+
+        bridge.sendEvent(CoreEventType.StorageSearchPhotos, {
+          content: params.query,
+          useVector: params.useVector,
+          pagination: {
+            limit: params.limit,
+            offset: 0,
+          },
+          // Inject UI-selected chat scope
+          chatIds: selectedChatIds.value.length > 0
+            ? selectedChatIds.value.map(id => id.toString())
+            : undefined,
+        })
+      })
+    }
+
     const chatNoteExecutor = async (params: { chatId: string, note: string, modify: boolean }) => {
       return new Promise<string>((resolve) => {
         bridge.waitForEvent(CoreEventType.StorageChatNoteData).then(({ note }) => {
@@ -159,6 +183,7 @@ async function generateMessage(message: string, assistantId?: string) {
     const searchMessagesTool = await aiChatLogic.createSearchMessagesTool(searchMessagesExecutor)
     const retrieveContextTool = await aiChatLogic.createRetrieveContextTool(retrieveContextExecutor)
     const getDialogsTool = await aiChatLogic.createGetDialogsTool(getDialogsExecutor)
+    const searchPhotosTool = await aiChatLogic.createSearchPhotosTool(searchPhotosExecutor)
     const chatNoteTool = await aiChatLogic.createChatNoteTool(chatNoteExecutor)
 
     // Build system prompt
@@ -188,7 +213,7 @@ async function generateMessage(message: string, assistantId?: string) {
     await aiChatLogic.callLLMWithTools(
       llmConfig,
       llmMessages,
-      [searchMessagesTool, retrieveContextTool, getDialogsTool, chatNoteTool],
+      [searchMessagesTool, retrieveContextTool, getDialogsTool, searchPhotosTool, chatNoteTool],
       // onToolCall
       (toolCall) => {
         toolCalls.push(toolCall)
@@ -201,6 +226,9 @@ async function generateMessage(message: string, assistantId?: string) {
         }
         else if (toolCall.name === 'getDialogs') {
           aiChatStore.setSearching(true, `Fetching dialogs...`)
+        }
+        else if (toolCall.name === 'searchPhotos') {
+          aiChatStore.setSearching(true, `Searching photos...`)
         }
         else if (toolCall.name === 'chatNote') {
           aiChatStore.setSearching(true, `Adding note...`)

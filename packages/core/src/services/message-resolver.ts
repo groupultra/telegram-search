@@ -67,6 +67,9 @@ export function createMessageResolverService(ctx: CoreContext, logger: Logger, r
           return false
         if (name === 'jieba' && (options.syncOptions?.skipJieba))
           return false
+        // Photo embedding depends on media resolver, skip if media is disabled
+        if (name === 'photo-embedding' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
+          return false
         return true
       })
       .map(([name, resolver]) => (async () => {

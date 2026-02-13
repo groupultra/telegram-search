@@ -28,6 +28,7 @@ function buildDefaultMessageProcessing() {
     receiveMessages: { receiveAll: true, downloadMedia: true },
     resolvers: { disabledResolvers: ['avatar'] },
     defaults: { syncMedia: true, maxMediaSize: 0 },
+    enablePhotoEmbedding: false,
   }
 }
 
@@ -43,6 +44,7 @@ watch(
     settings.messageProcessing.resolvers ??= { disabledResolvers: ['avatar'] }
     settings.messageProcessing.resolvers.disabledResolvers ??= ['avatar']
     settings.messageProcessing.defaults ??= { syncMedia: true, maxMediaSize: 0 }
+    settings.messageProcessing.enablePhotoEmbedding ??= false
   },
   { immediate: true },
 )
@@ -335,6 +337,25 @@ function updateConfig() {
                   <div class="peer h-6 w-11 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:border after:rounded-full after:bg-background peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
                 </label>
               </div>
+            </div>
+          </div>
+
+          <div class="border-t pt-4 space-y-3">
+            <div class="flex items-start gap-3">
+              <input
+                id="photo-embedding-enabled"
+                v-model="messageProcessing.enablePhotoEmbedding"
+                type="checkbox"
+                class="mt-1 h-4 w-4 cursor-pointer border-gray-300 rounded text-primary focus:ring-2 focus:ring-primary"
+              >
+              <label for="photo-embedding-enabled" class="flex-1 cursor-pointer">
+                <div class="text-sm text-foreground font-medium">
+                  {{ t('settings.enablePhotoEmbedding') }}
+                </div>
+                <div class="text-xs text-muted-foreground">
+                  {{ t('settings.enablePhotoEmbeddingDescription') }}
+                </div>
+              </label>
             </div>
           </div>
         </div>
