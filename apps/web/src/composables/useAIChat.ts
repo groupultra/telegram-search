@@ -101,7 +101,7 @@ export function useAIChatLogic() {
 
     return await tool({
       name: 'searchMessages',
-      description: `Search through Telegram message history using vector similarity or text search.
+      description: `Search through Telegram message history (text content/captions only) using vector similarity or text search.
 Use this when the user asks about past conversations, messages, or specific topics discussed.
 Parameters:
 - query: Search keywords (use Chinese for Chinese queries)
@@ -455,17 +455,18 @@ IMPORTANT INSTRUCTIONS:
    - Describe the visual content you're looking for (e.g., "sunset", "people eating", "screenshot with text")
    - Set useVector=true for semantic search (recommended)
    - Set limit to 5-10 for most queries
-6. If a search result contains ambiguous references (like "this", "that", "it"), use retrieveContext to get surrounding messages
-7. Always cite specific messages when answering (mention date, sender, chat name if available)
-8. Be concise and direct in your responses
-9. If the user asks about their chats, conversations list, or what chats they have, use the getDialogs tool
-10. If the user asks to add or modify a note for a chat, use the chatNote tool
+6. If the user's query is broad or could refer to either text OR visual content (e.g., "Find that thing about cats"), use BOTH searchMessages AND searchPhotos
+7. If a search result contains ambiguous references (like "this", "that", "it"), use retrieveContext to get surrounding messages
+8. Always cite specific messages when answering (mention date, sender, chat name if available)
+9. Be concise and direct in your responses
+10. If the user asks about their chats, conversations list, or what chats they have, use the getDialogs tool
+11. If the user asks to add or modify a note for a chat, use the chatNote tool
 
 EXAMPLES:
 - "Hello" -> Respond directly with a greeting, NO tool calling
 - "How are you?" -> Respond directly, NO tool calling
 - "What did we discuss?" -> Use searchMessages with query="discuss", useVector=true, limit=5
-- "What do I like to eat" -> Use searchMessages with query="like eat", useVector=true, limit=5
+- "What do I like to eat" -> Use BOTH searchMessages (query="like eat") AND searchPhotos (query="food eating meal")
 - "Who said 'hello'?" -> Use searchMessages with query="hello", useVector=false, limit=5
 - "Show me photos of sunset" -> Use searchPhotos with query="sunset", useVector=true, limit=5
 - "Find images with food" -> Use searchPhotos with query="food eating meal", useVector=true, limit=5
