@@ -5,7 +5,7 @@ import type { Result } from '@unbird/result'
 import type { LLMConfig, VisionLLMConfig } from '../types/account-settings'
 
 import { Err, Ok } from '@unbird/result'
-import { generateText } from 'xsai'
+import { generateText } from '@xsai/generate-text'
 
 export interface DescribeImageResult {
   description: string

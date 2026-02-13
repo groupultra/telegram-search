@@ -23,6 +23,7 @@
     "@tg-search/schema": "workspace:*",
     "@unbird/result": "catalog:",
     "@xsai/embed": "catalog:",
+    "@xsai/generate-text": "^0.4.3",
     "big-integer": "^1.6.52",
     "buffer": "^6.0.3",
     "drizzle-orm": "^0.45.1",
