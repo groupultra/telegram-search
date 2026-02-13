@@ -10,11 +10,11 @@ import type { DBInsertPhoto, DBSelectPhoto } from './utils/types'
 
 import { and, cosineDistance, eq, gt, inArray, sql } from 'drizzle-orm'
 
+import { chatMessagesTable } from '../schemas/chat-messages'
+import { joinedChatsTable } from '../schemas/joined-chats'
 import { photosTable } from '../schemas/photos'
 import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
-import { chatMessagesTable } from '../schemas/chat-messages'
-import { joinedChatsTable } from '../schemas/joined-chats'
 
 type PhotoMediaForRecord = CoreMessageMediaPhoto & {
   uuid: string
@@ -190,7 +190,6 @@ async function searchPhotosByVector(
       : dimension === 1024
         ? photosTable.description_vector_1024
         : photosTable.description_vector_768
-
 
     const results = await db
       .select({

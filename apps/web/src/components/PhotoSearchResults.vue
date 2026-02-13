@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import type { CoreMessageMediaFromBlob } from '@tg-search/core/types'
-import type { CoreRetrievalPhoto } from '@tg-search/core/types'
+import type { CoreMessageMediaFromBlob, CoreRetrievalPhoto } from '@tg-search/core/types'
 
-import { getMediaBinaryProvider, formatMessageTimestamp, hydrateMediaBlobWithCore } from '@tg-search/client'
+import { formatMessageTimestamp, getMediaBinaryProvider, hydrateMediaBlobWithCore } from '@tg-search/client'
 import { models } from '@tg-search/core'
 import { onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -29,14 +28,15 @@ watch(() => props.photos, async (newPhotos) => {
 
   // Hydrate blobs for each photo
   for (const photo of processedPhotos.value) {
-    if (!photo.id) continue
+    if (!photo.id)
+      continue
 
     const mediaItem = {
       type: 'photo',
       queryId: photo.id,
       mimeType: photo.mimeType,
       // Mock required fields for TS, not used by hydration logic
-      platformId: 'mock', 
+      platformId: 'mock',
     } as CoreMessageMediaFromBlob
 
     try {
@@ -44,13 +44,14 @@ watch(() => props.photos, async (newPhotos) => {
         mediaItem,
         models.photoModels,
         models.stickerModels,
-        getMediaBinaryProvider()
+        getMediaBinaryProvider(),
       )
-      
+
       if (mediaItem.blobUrl) {
         photo.blobUrl = mediaItem.blobUrl
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to hydrate photo', e)
     }
   }
@@ -113,12 +114,12 @@ function getPhotoTimestamp(photo: CoreRetrievalPhoto) {
       >
         <!-- 左侧：聊天头像 -->
         <div class="shrink-0 pt-0.5">
-          <img 
-            v-if="photo.blobUrl" 
-            :src="photo.blobUrl" 
+          <img
+            v-if="photo.blobUrl"
+            :src="photo.blobUrl"
             class="h-10 w-10 rounded-full object-cover"
             alt="Result thumbnail"
-          />
+          >
           <EntityAvatar
             v-else-if="photo.chatId"
             :id="photo.chatId"

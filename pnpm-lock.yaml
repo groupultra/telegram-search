@@ -3722,9 +3722,6 @@ packages:
   '@xsai/generate-speech@0.4.2':
     resolution: {integrity: sha512-38fHhAQj2yWwmUcMXTPQeewkbhvsh5nZo5uKfftAtR0BtIyC54LZo4X8OkQwZ1SF+xSAPoVf2eScx0ad1uIt3Q==}
 
-  '@xsai/generate-text@0.4.2':
-    resolution: {integrity: sha512-8VyRhyQOvG8YkEo1b93mPoaXDA6Schqs9sB37ll0I92WKVSMvxcKxfehGAXLApIuC3jMe6cORwI44jgzloBoaQ==}
-
   '@xsai/generate-text@0.4.3':
     resolution: {integrity: sha512-3WWD/n8DVzI3HkdUtQYfz1/gNQfvOD4ULjG0z5mPTeWkdanWRbHODmVdlhgmL/2FU8VMJ5qydVFtPDH9WSyP6g==}
 
@@ -3734,14 +3731,8 @@ packages:
   '@xsai/model@0.4.2':
     resolution: {integrity: sha512-f4Egr+a/v2GQ/eALUEWizMhPvpuHGBiRWOrU4jcqeRhZYPyb4cpyS2KHy/HHAXgVv9SoRmk5J3iyzwT/fh/0Jg==}
 
-  '@xsai/shared-chat@0.4.2':
-    resolution: {integrity: sha512-omRPgbdOO5wLuQuvjs4H18o5OmsZL22F3Ed6D5mXN1rN7uIH8dVVaRV7A0BT3xjJKFQS5edDbRmeka4D60HzuA==}
-
   '@xsai/shared-chat@0.4.3':
     resolution: {integrity: sha512-/xXyr1inY0I6PFZ0YP47DSdAp8Qrcf8dU/FICW8XeQK3JljscAGgGziATr7EI9x0vh77bARj5G8xPR1GMlREUA==}
-
-  '@xsai/shared@0.4.2':
-    resolution: {integrity: sha512-K1rKoJ/Ge+IIvcazkph5oF6kRgfLNvLYHQ+Fcug0KbmViwTu3F/xekYN/XtX/KuvcmLoCdGMnVAkFeOMTjWBDw==}
 
   '@xsai/shared@0.4.3':
     resolution: {integrity: sha512-yrpwOigtriiGvE+gnpwVBqc9G9ZCQ6OPTow419ArROaSJ/JuMwyc5CJzKOAxpEsZmXpyN3yBCbzQlZIQjheBuQ==}
@@ -11028,15 +11019,15 @@ snapshots:
 
   '@xsai/embed@0.4.2':
     dependencies:
-      '@xsai/shared': 0.4.2
+      '@xsai/shared': 0.4.3
 
   '@xsai/generate-image@0.4.2':
     dependencies:
-      '@xsai/shared': 0.4.2
+      '@xsai/shared': 0.4.3
 
   '@xsai/generate-object@0.4.2(@valibot/to-json-schema@1.5.0(valibot@1.2.0(typescript@5.9.3)))':
     dependencies:
-      '@xsai/generate-text': 0.4.2
+      '@xsai/generate-text': 0.4.3
       xsschema: 0.4.2(@valibot/to-json-schema@1.5.0(valibot@1.2.0(typescript@5.9.3)))
     transitivePeerDependencies:
       - '@valibot/to-json-schema'
@@ -11048,12 +11039,7 @@ snapshots:
 
   '@xsai/generate-speech@0.4.2':
     dependencies:
-      '@xsai/shared': 0.4.2
-
-  '@xsai/generate-text@0.4.2':
-    dependencies:
-      '@xsai/shared': 0.4.2
-      '@xsai/shared-chat': 0.4.2
+      '@xsai/shared': 0.4.3
 
   '@xsai/generate-text@0.4.3':
     dependencies:
@@ -11062,21 +11048,15 @@ snapshots:
 
   '@xsai/generate-transcription@0.4.2':
     dependencies:
-      '@xsai/shared': 0.4.2
+      '@xsai/shared': 0.4.3
 
   '@xsai/model@0.4.2':
     dependencies:
-      '@xsai/shared': 0.4.2
-
-  '@xsai/shared-chat@0.4.2':
-    dependencies:
-      '@xsai/shared': 0.4.2
+      '@xsai/shared': 0.4.3
 
   '@xsai/shared-chat@0.4.3':
     dependencies:
       '@xsai/shared': 0.4.3
-
-  '@xsai/shared@0.4.2': {}
 
   '@xsai/shared@0.4.3': {}
 
@@ -11094,17 +11074,17 @@ snapshots:
 
   '@xsai/stream-text@0.4.2':
     dependencies:
-      '@xsai/shared': 0.4.2
-      '@xsai/shared-chat': 0.4.2
+      '@xsai/shared': 0.4.3
+      '@xsai/shared-chat': 0.4.3
 
   '@xsai/stream-transcription@0.4.2':
     dependencies:
-      '@xsai/shared': 0.4.2
+      '@xsai/shared': 0.4.3
 
   '@xsai/tool@0.4.2(@valibot/to-json-schema@1.5.0(valibot@1.2.0(typescript@5.9.3)))':
     dependencies:
-      '@xsai/shared': 0.4.2
-      '@xsai/shared-chat': 0.4.2
+      '@xsai/shared': 0.4.3
+      '@xsai/shared-chat': 0.4.3
       xsschema: 0.4.2(@valibot/to-json-schema@1.5.0(valibot@1.2.0(typescript@5.9.3)))
     transitivePeerDependencies:
       - '@valibot/to-json-schema'
@@ -11116,7 +11096,7 @@ snapshots:
 
   '@xsai/utils-chat@0.4.2':
     dependencies:
-      '@xsai/shared-chat': 0.4.2
+      '@xsai/shared-chat': 0.4.3
 
   '@xsai/utils-reasoning@0.4.2': {}
 
@@ -15144,11 +15124,11 @@ snapshots:
       '@xsai/generate-image': 0.4.2
       '@xsai/generate-object': 0.4.2(@valibot/to-json-schema@1.5.0(valibot@1.2.0(typescript@5.9.3)))
       '@xsai/generate-speech': 0.4.2
-      '@xsai/generate-text': 0.4.2
+      '@xsai/generate-text': 0.4.3
       '@xsai/generate-transcription': 0.4.2
       '@xsai/model': 0.4.2
-      '@xsai/shared': 0.4.2
-      '@xsai/shared-chat': 0.4.2
+      '@xsai/shared': 0.4.3
+      '@xsai/shared-chat': 0.4.3
       '@xsai/stream-object': 0.4.2(@valibot/to-json-schema@1.5.0(valibot@1.2.0(typescript@5.9.3)))
       '@xsai/stream-text': 0.4.2
       '@xsai/stream-transcription': 0.4.2
