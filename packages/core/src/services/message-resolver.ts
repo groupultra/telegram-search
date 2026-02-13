@@ -79,27 +79,7 @@ export function createMessageResolverService(
     // Embedding or resolve messages
     const resolverSpans: Array<{ name: string, duration: number, count: number }> = []
 
-    // 分离出需要顺序执行的 resolvers
-    const allResolvers = Array.from(resolvers.registry.entries())
-      .filter(([name]) => {
-        if (disabledResolvers.includes(name))
-          return false
-        if (name === 'media' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
-          return false
-        if (name === 'embedding' && (options.syncOptions?.skipEmbedding))
-          return false
-        if (name === 'jieba' && (options.syncOptions?.skipJieba))
-          return false
-        // Photo embedding depends on media resolver, skip if media is disabled
-        if (name === 'photo-embedding' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
-          return false
-        return true
-      })
-
-    // 先执行 media resolver（如果存在）
-    const mediaResolver = allResolvers.find(([name]) => name === 'media')
-    if (mediaResolver) {
-      const [name, resolver] = mediaResolver
+    const executeResolver = async (name: string, resolver: any) => {
       const resolverStart = performance.now()
       logger.withFields({ name }).verbose('Process messages with resolver')
 
@@ -145,54 +125,32 @@ export function createMessageResolverService(
       }
     }
 
+    // 分离出需要顺序执行的 resolvers
+    const allResolvers = Array.from(resolvers.registry.entries())
+      .filter(([name]) => {
+        if (disabledResolvers.includes(name))
+          return false
+        if (name === 'media' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
+          return false
+        if (name === 'embedding' && (options.syncOptions?.skipEmbedding))
+          return false
+        if (name === 'jieba' && (options.syncOptions?.skipJieba))
+          return false
+        // Photo embedding depends on media resolver, skip if media is disabled
+        if (name === 'photo-embedding' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
+          return false
+        return true
+      })
+
+    // 先执行 media resolver（如果存在）
+    const mediaResolver = allResolvers.find(([name]) => name === 'media')
+    if (mediaResolver) {
+      await executeResolver(mediaResolver[0], mediaResolver[1])
+    }
+
     // 然后并行执行其他 resolvers
     const otherResolvers = allResolvers.filter(([name]) => name !== 'media')
-    const promises = otherResolvers
-      .map(([name, resolver]) => (async () => {
-        const resolverStart = performance.now()
-        logger.withFields({ name }).verbose('Process messages with resolver')
-
-        const opts = {
-          messages: coreMessages,
-          rawMessages: messages,
-          syncOptions: options.syncOptions,
-          forceRefetch: options.forceRefetch,
-        }
-
-        try {
-          if (resolver.run) {
-            const result = (await resolver.run(opts)).unwrap()
-
-            if (result.length > 0) {
-              ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: result })
-            }
-          }
-          else if (resolver.stream) {
-            for await (const message of resolver.stream(opts)) {
-              if (!options.takeout) {
-                ctx.emitter.emit(CoreEventType.MessageData, { messages: [message] })
-              }
-
-              ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: [message] })
-            }
-          }
-        }
-        catch (error) {
-          logger.withError(error).warn('Failed to process messages')
-        }
-        finally {
-          const duration = performance.now() - resolverStart
-          resolverSpans.push({
-            name,
-            duration,
-            count: coreMessages.length,
-          })
-
-          if (ctx.metrics) {
-            ctx.metrics.resolverDuration.observe({ resolver: name }, duration)
-          }
-        }
-      })())
+    const promises = otherResolvers.map(([name, resolver]) => executeResolver(name, resolver))
 
     await Promise.allSettled(promises)
 
