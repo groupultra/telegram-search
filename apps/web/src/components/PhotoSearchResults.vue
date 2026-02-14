@@ -3,7 +3,7 @@ import type { CoreMessageMediaFromBlob, CoreRetrievalPhoto } from '@tg-search/co
 
 import { formatMessageTimestamp, getMediaBinaryProvider, hydrateMediaBlobWithCore } from '@tg-search/client'
 import { models } from '@tg-search/core'
-import { onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -56,7 +56,6 @@ watch(() => props.photos, async (newPhotos) => {
     }
   }
 }, { immediate: true, deep: true })
-
 
 // 跳转到图片所在的消息
 function navigateToPhoto(photo: CoreRetrievalPhoto) {

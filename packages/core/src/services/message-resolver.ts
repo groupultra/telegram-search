@@ -3,9 +3,9 @@ import type { Api } from 'telegram'
 
 import type { CoreContext } from '../context'
 import type { MessageResolverRegistryFn } from '../message-resolvers'
-import { chatMessageModels, type ChatMessageModels } from '../models/chat-message'
 import type { SyncOptions } from '../types/events'
 
+import { chatMessageModels } from '../models/chat-message'
 import { CoreEventType } from '../types/events'
 import { convertToCoreMessage } from '../utils/message'
 
