@@ -66,12 +66,6 @@ watch(keywordDebounced, (newKeyword) => {
     bridge.waitForEvent(CoreEventType.StorageSearchMessagesData),
     bridge.waitForEvent(CoreEventType.StorageSearchPhotosData),
   ]).then(([{ messages }, { photos }]) => {
-    console.info('[SearchDialog] Received search results:', {
-      messagesCount: messages.length,
-      photosCount: photos.length,
-      samplePhoto: photos[0],
-    })
-
     searchResult.value = messages
     photoResult.value = photos
     isLoading.value = false
