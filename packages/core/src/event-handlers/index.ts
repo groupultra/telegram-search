@@ -54,7 +54,7 @@ export function basicEventHandler(ctx: CoreContext, config: Config, mediaBinaryP
     proxy: config.api.telegram.proxy,
   })
   const configService = createAccountSettingsService(ctx, logger)
-  const messageResolverService = createMessageResolverService(ctx, logger, registry, models.chatMessageModels)
+  const messageResolverService = createMessageResolverService(ctx, logger, registry)
 
   registry.register('media', createMediaResolver(ctx, logger, photoModels, stickerModels, mediaBinaryProvider))
   registry.register('user', createUserResolver(ctx, logger, userModels))

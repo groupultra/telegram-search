@@ -10,16 +10,6 @@ import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
 import { describeImage } from '../utils/vision'
 
-/**
- * Photo Embedding Resolver
- *
- * 负责为照片生成描述并进行向量化：
- * 1. 使用多模态 LLM 将照片转换为文本描述
- * 2. 对描述进行向量化
- * 3. 保存到数据库以支持语义图片搜索
- *
- * 注意：此 resolver 依赖 media-resolver 先执行完成，以确保照片已下载并保存到数据库。
- */
 export function createPhotoEmbeddingResolver(ctx: CoreContext, logger: Logger): MessageResolver {
   logger = logger.withContext('core:resolver:photo-embedding')
 

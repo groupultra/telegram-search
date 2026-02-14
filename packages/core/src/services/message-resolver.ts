@@ -3,7 +3,7 @@ import type { Api } from 'telegram'
 
 import type { CoreContext } from '../context'
 import type { MessageResolverRegistryFn } from '../message-resolvers'
-import type { ChatMessageModels } from '../models/chat-message'
+import { chatMessageModels, type ChatMessageModels } from '../models/chat-message'
 import type { SyncOptions } from '../types/events'
 
 import { CoreEventType } from '../types/events'
@@ -15,7 +15,6 @@ export function createMessageResolverService(
   ctx: CoreContext,
   logger: Logger,
   resolvers: MessageResolverRegistryFn,
-  chatMessageModels: ChatMessageModels,
 ) {
   logger = logger.withContext('core:message-resolver:service')
 

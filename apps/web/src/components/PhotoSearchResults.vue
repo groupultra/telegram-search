@@ -57,31 +57,10 @@ watch(() => props.photos, async (newPhotos) => {
   }
 }, { immediate: true, deep: true })
 
-// 调试：打印接收到的照片数据
-onMounted(() => {
-  console.info('[PhotoSearchResults] Received photos:', props.photos)
-  props.photos.forEach((photo, idx) => {
-    console.info(`[PhotoSearchResults] Photo ${idx}:`, {
-      id: photo.id,
-      chatId: photo.chatId,
-      chatName: photo.chatName,
-      platformMessageId: photo.platformMessageId,
-      messageId: photo.messageId,
-      description: photo.description?.substring(0, 50),
-    })
-  })
-})
 
 // 跳转到图片所在的消息
 function navigateToPhoto(photo: CoreRetrievalPhoto) {
-  console.info('[PhotoSearchResults] Navigate to photo:', {
-    chatId: photo.chatId,
-    platformMessageId: photo.platformMessageId,
-    messageId: photo.messageId,
-  })
-
   if (!photo.chatId || !photo.platformMessageId) {
-    console.warn('[PhotoSearchResults] Missing chatId or platformMessageId:', photo)
     return
   }
 

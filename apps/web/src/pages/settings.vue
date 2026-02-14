@@ -48,7 +48,7 @@ watch(
 
     // Initialize visionLLM with defaults if not present
     settings.visionLLM ??= {
-      model: 'qwen-vl-max',
+      model: '',
       apiKey: '',
       apiBase: '',
       temperature: 0.7,

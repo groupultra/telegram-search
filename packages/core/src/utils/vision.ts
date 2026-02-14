@@ -11,12 +11,6 @@ export interface DescribeImageResult {
   description: string
 }
 
-/**
- * 使用多模态大语言模型生成图片描述
- * @param imageData 图片的二进制数据 (Buffer 或 Uint8Array)
- * @param visionConfig Vision LLM 配置(使用账户设置中的 Vision LLM 配置)
- * @returns 图片描述文本
- */
 export async function describeImage(
   imageData: Buffer | Uint8Array,
   visionConfig: VisionLLMConfig | LLMConfig,
