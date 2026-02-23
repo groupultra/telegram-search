@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import type { CoreRetrievalMessages, CoreRetrievalPhoto } from '@tg-search/core/types'
+import type { CoreDialog, CoreRetrievalMessages, CoreRetrievalPhoto } from '@tg-search/core/types'
+import type { ToolCall } from 'xsai'
+
+import type {
+  ChatNoteParams,
+  GetDialogsParams,
+  RetrieveContextParams,
+  SearchMessagesParams,
+  SearchPhotosParams,
+} from '../composables/useAIChat'
 
 import MarkdownRender from 'markstream-vue'
 
@@ -88,10 +97,10 @@ async function generateMessage(message: string, assistantId?: string) {
     // Track all retrieved messages, photos and tool calls
     const allRetrievedMessages: CoreRetrievalMessages[] = []
     const allRetrievedPhotos: CoreRetrievalPhoto[] = []
-    const toolCalls: any[] = []
+    const toolCalls: ToolCall[] = []
 
     // Create tool executors that interact with the bridge
-    const searchMessagesExecutor = async (params: any) => {
+    const searchMessagesExecutor = async (params: SearchMessagesParams) => {
       return new Promise<CoreRetrievalMessages[]>((resolve) => {
         bridge.waitForEvent(CoreEventType.StorageSearchMessagesData).then(({ messages }) => {
           allRetrievedMessages.push(...messages)
@@ -115,7 +124,7 @@ async function generateMessage(message: string, assistantId?: string) {
       })
     }
 
-    const retrieveContextExecutor = async (params: any) => {
+    const retrieveContextExecutor = async (params: RetrieveContextParams) => {
       return new Promise<CoreRetrievalMessages[]>((resolve) => {
         bridge.waitForEvent(CoreEventType.StorageSearchMessagesData).then(({ messages }) => {
           allRetrievedMessages.push(...messages)
@@ -137,8 +146,8 @@ async function generateMessage(message: string, assistantId?: string) {
       })
     }
 
-    const getDialogsExecutor = async (_: any) => {
-      return new Promise<any[]>((resolve) => {
+    const getDialogsExecutor = async (_: GetDialogsParams) => {
+      return new Promise<CoreDialog[]>((resolve) => {
         bridge.waitForEvent(CoreEventType.StorageDialogs).then(({ dialogs }) => {
           resolve(dialogs)
         })
@@ -147,7 +156,7 @@ async function generateMessage(message: string, assistantId?: string) {
       })
     }
 
-    const searchPhotosExecutor = async (params: any) => {
+    const searchPhotosExecutor = async (params: SearchPhotosParams) => {
       return new Promise<CoreRetrievalPhoto[]>((resolve) => {
         useLogger('composables:ai-chat').withFields({ params }).log('searchPhotos executor called')
 
@@ -172,7 +181,7 @@ async function generateMessage(message: string, assistantId?: string) {
       })
     }
 
-    const chatNoteExecutor = async (params: { chatId: string, note: string, modify: boolean }) => {
+    const chatNoteExecutor = async (params: ChatNoteParams) => {
       return new Promise<string>((resolve) => {
         bridge.waitForEvent(CoreEventType.StorageChatNoteData).then(({ note }) => {
           resolve(note ?? '')
@@ -244,7 +253,7 @@ async function generateMessage(message: string, assistantId?: string) {
         const toolCall = toolCalls.find(tc => tc.name === toolName && !tc.duration)
         if (toolCall) {
           toolCall.duration = duration
-          toolCall.output = JSON.parse(result)
+          toolCall.output = result
         }
       },
       // onTextDelta

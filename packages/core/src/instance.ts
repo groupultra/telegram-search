@@ -3,14 +3,25 @@ import type { Config, CoreMetrics } from '@tg-search/common'
 
 import type { CoreContext } from './context'
 import type { CoreDB } from './db'
+import type { EventHandler, EventHandlerDependencies } from './event-handlers'
 import type { MediaBinaryProvider } from './types'
 
-import { useLogger } from '@guiiai/logg'
+import { LogLevel, useLogger } from '@guiiai/logg'
+import { createLoggLogger, injeca } from 'injeca'
+import { resetContainer } from 'injeca/global'
 
 import { createCoreContext } from './context'
-import { afterConnectedEventHandler, basicEventHandler, useEventHandler } from './event-handlers'
+import { afterConnectedEventHandler, basicEventHandler, defaultEventHandlerDependencies } from './event-handlers'
 import { models } from './models'
 import { CoreEventType } from './types/events'
+
+const eventHandlerCleanupRegistry = new WeakMap<CoreContext, () => Promise<void>>()
+
+export interface CoreInstanceOptions {
+  deps?: Partial<EventHandlerDependencies>
+  dependencies?: Partial<EventHandlerDependencies>
+  eventHandlers?: EventHandler[]
+}
 
 export function createCoreInstance(
   db: () => CoreDB,
@@ -18,14 +29,69 @@ export function createCoreInstance(
   mediaBinaryProvider: MediaBinaryProvider | undefined,
   logger?: Logger,
   metrics?: CoreMetrics,
+  options: CoreInstanceOptions = {},
 ): CoreContext {
   logger ||= useLogger()
 
-  const ctx = createCoreContext(db, models, logger, metrics)
+  // Use a fresh singleton container per core instance to avoid stale provider cache.
+  resetContainer()
+  injeca.setLogger(createLoggLogger(logger.withContext('injeca').withLogLevel(LogLevel.Debug)))
 
-  const { register: registerEventHandler } = useEventHandler(ctx, config, mediaBinaryProvider, logger)
-  registerEventHandler(basicEventHandler)
-  registerEventHandler(afterConnectedEventHandler)
+  const ctx = createCoreContext(db, models, logger, metrics)
+  const mergedDeps: EventHandlerDependencies = {
+    ...defaultEventHandlerDependencies,
+    ...(options.dependencies ?? {}),
+    ...(options.deps ?? {}),
+  }
+  const eventHandlers = options.eventHandlers ?? [basicEventHandler, afterConnectedEventHandler]
+  const eventHandlerLogger = logger.withContext('core:event-handler')
+  const depsProvider = injeca.provide('core:event-handler:deps', () => mergedDeps)
+  const handlerSetupTasks: Promise<void>[] = []
+  const handlerCleanupTasks: Array<{
+    handlerName: string
+    cleanup: () => void | Promise<void>
+  }> = []
+  let registrationSeq = 0
+
+  for (const fn of eventHandlers) {
+    const handlerName = fn.name || 'anonymous'
+    const providerName = `core:event-handler:${handlerName}:${registrationSeq}`
+    registrationSeq += 1
+    eventHandlerLogger.withFields({ fn: handlerName }).log('Register event handler')
+
+    const handlerProvider = injeca.provide(providerName, {
+      dependsOn: { deps: depsProvider },
+      build: ({ dependsOn }) => {
+        const cleanup = fn(ctx, config, mediaBinaryProvider, dependsOn.deps)
+        if (typeof cleanup === 'function') {
+          handlerCleanupTasks.push({ handlerName, cleanup })
+        }
+      },
+    })
+
+    const setupTask = injeca.resolve({ _: handlerProvider })
+      .then(() => undefined)
+      .catch((error) => {
+        eventHandlerLogger.withError(error).error(`Failed to initialize event handler: ${handlerName}`)
+      })
+    handlerSetupTasks.push(setupTask)
+  }
+
+  eventHandlerCleanupRegistry.set(ctx, async () => {
+    // Ensure all providers are initialized before running cleanup hooks.
+    await Promise.allSettled(handlerSetupTasks)
+
+    for (const { handlerName, cleanup } of handlerCleanupTasks) {
+      try {
+        await cleanup()
+      }
+      catch (error) {
+        eventHandlerLogger.withError(error).error(`Failed to cleanup event handler: ${handlerName}`)
+      }
+    }
+
+    resetContainer()
+  })
 
   return ctx
 }
@@ -59,9 +125,11 @@ export async function destroyCoreInstance(ctx: CoreContext) {
   // Emit cleanup event to notify all services
   ctx.emitter.emit(CoreEventType.CoreCleanup)
 
-  // Give services time to cleanup
-  // TODO: use Promise.allSettled to wait for all services to cleanup
-  await new Promise(resolve => setTimeout(resolve, 100))
+  // Await explicit cleanup hooks registered by event handlers.
+  const cleanupEventHandlers = eventHandlerCleanupRegistry.get(ctx)
+  if (cleanupEventHandlers) {
+    await cleanupEventHandlers()
+  }
 
   // Disconnect Telegram client if connected
   try {
@@ -76,4 +144,5 @@ export async function destroyCoreInstance(ctx: CoreContext) {
 
   // Use the cleanup method from CoreContext
   ctx.cleanup()
+  eventHandlerCleanupRegistry.delete(ctx)
 }

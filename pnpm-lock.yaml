@@ -9,24 +9,9 @@ catalogs:
     '@guiiai/logg':
       specifier: ^1.2.11
       version: 1.2.11
-    '@unbird/result':
-      specifier: ^1.1.1
-      version: 1.1.1
-    '@xsai/embed':
-      specifier: ^0.4.2
-      version: 0.4.2
-    '@xsai/tool':
-      specifier: ^0.4.2
-      version: 0.4.2
     tsdown:
       specifier: ^0.20.1
       version: 0.20.1
-    vue-sonner:
-      specifier: ^2.0.9
-      version: 2.0.9
-    xsai:
-      specifier: ^0.4.2
-      version: 0.4.2
 
 importers:
 
@@ -462,6 +447,9 @@ importers:
       file-type:
         specifier: ^21.3.0
         version: 21.3.0
+      injeca:
+        specifier: ^0.1.7
+        version: 0.1.7(@guiiai/logg@1.2.11)(error-stack-parser@2.1.4)(nanoid@5.1.6)
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
@@ -5080,6 +5068,16 @@ packages:
 
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+
+  injeca@0.1.7:
+    resolution: {integrity: sha512-Nh166QCTJbshSNBTWGzdGNDkxMKvHALJfCW70zYJ9AF+4FDQLXRcjGJnaaazW7RZWLQsnWEvK5/sXMnexUjvBg==}
+    peerDependencies:
+      '@guiiai/logg': '>= 1'
+      error-stack-parser: ^2.1.4
+      nanoid: '>=5'
+    peerDependenciesMeta:
+      '@guiiai/logg':
+        optional: true
 
   internal-slot@1.1.0:
     resolution: {integrity: sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw==}
@@ -12547,6 +12545,13 @@ snapshots:
       wrappy: 1.0.2
 
   inherits@2.0.4: {}
+
+  injeca@0.1.7(@guiiai/logg@1.2.11)(error-stack-parser@2.1.4)(nanoid@5.1.6):
+    dependencies:
+      error-stack-parser: 2.1.4
+      nanoid: 5.1.6
+    optionalDependencies:
+      '@guiiai/logg': 1.2.11
 
   internal-slot@1.1.0:
     dependencies:

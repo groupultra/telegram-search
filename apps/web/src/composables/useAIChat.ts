@@ -1,5 +1,6 @@
-import type { CoreDialog, CoreRetrievalMessages } from '@tg-search/core/types'
-import type { InferInput } from 'valibot'
+import type { CoreDialog, CoreRetrievalMessages, CoreRetrievalPhoto, LLMConfig } from '@tg-search/core/types'
+import type { InferInput, InferOutput } from 'valibot'
+import type { GenerateTextResult, Message, Tool, ToolCall } from 'xsai'
 
 import { useLogger } from '@guiiai/logg'
 import { tool } from '@xsai/tool'
@@ -9,60 +10,34 @@ import * as v from 'valibot'
 
 const logger = useLogger('composables:ai-chat')
 
-interface LLMConfig {
-  model: string
-  apiKey: string
-  apiBase: string
-  temperature?: number
-  maxTokens?: number
-}
+const DEFAULT_TOOL_SEARCH_LIMIT = 10
+const DEFAULT_TOOL_USE_VECTOR = true
 
-export type LLMMessage
-  = | { role: 'system', content: string }
-    | { role: 'user', content: string }
-    | { role: 'assistant', content?: string, tool_calls?: any[] }
-    | { role: 'tool', content: string, tool_call_id: string }
-
-export interface ToolCallRecord {
-  name: string
-  description: string
-  input?: any
-  output?: any
-  timestamp: number
-  duration?: number
-  usage?: {
-    promptTokens?: number
-    completionTokens?: number
-    totalTokens?: number
-  }
-}
-
-interface SearchMessagesParams {
+export interface SearchMessagesParams {
   query: string
   useVector: boolean
   limit: number
-  fromUserId?: string | null
-  timeRange?: { start?: number | null, end?: number | null } | null
+  fromUserId?: string
+  timeRange?: { start?: number, end?: number }
   chatIds?: string[] | null
 }
 
-interface RetrieveContextParams {
+export interface RetrieveContextParams {
   chatId: string
   targetTimestamp: number
   limit: number
 }
 
-interface GetDialogsParams {
-}
+export interface GetDialogsParams {}
 
-interface SearchPhotosParams {
+export interface SearchPhotosParams {
   query: string
   useVector: boolean
   limit: number
   chatIds?: string[] | null
 }
 
-interface ChatNoteParams {
+export interface ChatNoteParams {
   chatId: string
   note: string
   modify: boolean
@@ -86,11 +61,11 @@ export function useAIChatLogic() {
         v.description('Search query - keywords or phrases to find in messages'),
       ),
       useVector: v.pipe(
-        v.boolean(),
+        v.optional(v.boolean(), DEFAULT_TOOL_USE_VECTOR),
         v.description('Whether to use vector similarity search (true) or text search (false)'),
       ),
       limit: v.pipe(
-        v.number(),
+        v.optional(v.number(), DEFAULT_TOOL_SEARCH_LIMIT),
         v.description('Maximum number of messages to retrieve (recommended: 5-10)'),
       ),
       chatIds: v.optional(v.pipe(
@@ -109,14 +84,15 @@ Parameters:
 - limit: Number of results (5-10 recommended)`,
       parameters: searchMessagesSchema,
       execute: async (params: InferInput<typeof searchMessagesSchema>) => {
+        const normalizedParams: InferOutput<typeof searchMessagesSchema> = v.parse(searchMessagesSchema, params)
         const startTime = Date.now()
-        logger.withFields({ params }).log('searchMessages tool called')
+        logger.withFields({ params: normalizedParams }).log('searchMessages tool called')
 
         const results = await executor({
-          ...params,
+          ...normalizedParams,
           fromUserId: undefined,
           timeRange: undefined,
-          chatIds: params.chatIds || undefined,
+          chatIds: normalizedParams.chatIds || undefined,
         })
         const duration = Date.now() - startTime
 
@@ -229,7 +205,7 @@ Parameters:
    * Create search photos tool
    */
   async function createSearchPhotosTool(
-    executor: (params: SearchPhotosParams) => Promise<any[]>,
+    executor: (params: SearchPhotosParams) => Promise<CoreRetrievalPhoto[]>,
   ) {
     logger.log('Creating searchPhotos tool')
 
@@ -239,11 +215,11 @@ Parameters:
         v.description('Search query - keywords or phrases to describe the photo content'),
       ),
       useVector: v.pipe(
-        v.boolean(),
+        v.optional(v.boolean(), DEFAULT_TOOL_USE_VECTOR),
         v.description('Whether to use vector similarity search (true) or text search (false)'),
       ),
       limit: v.pipe(
-        v.number(),
+        v.optional(v.number(), DEFAULT_TOOL_SEARCH_LIMIT),
         v.description('Maximum number of photos to retrieve (recommended: 5-10)'),
       ),
       chatIds: v.optional(v.pipe(
@@ -262,12 +238,13 @@ Parameters:
 - limit: Number of results (5-10 recommended)`,
       parameters: searchPhotosSchema,
       execute: async (params: InferInput<typeof searchPhotosSchema>) => {
+        const normalizedParams: InferOutput<typeof searchPhotosSchema> = v.parse(searchPhotosSchema, params)
         const startTime = Date.now()
-        logger.withFields({ params }).log('searchPhotos tool called')
+        logger.withFields({ params: normalizedParams }).log('searchPhotos tool called')
 
         const results = await executor({
-          ...params,
-          chatIds: params.chatIds || undefined,
+          ...normalizedParams,
+          chatIds: normalizedParams.chatIds || undefined,
         })
         const duration = Date.now() - startTime
 
@@ -335,10 +312,10 @@ Parameters:
    */
   async function callLLMWithTools(
     llmConfig: LLMConfig,
-    messages: LLMMessage[],
-    tools: any[],
-    onToolCall: (toolCall: ToolCallRecord) => void,
-    onToolResult: (toolName: string, result: string, duration: number) => void,
+    messages: Message[],
+    tools: Tool[],
+    onToolCall: (toolCall: ToolCall) => void,
+    onToolResult: (toolName: string, result: unknown, duration: number) => void,
     onTextDelta: (delta: string) => void,
     onComplete: (totalUsage: { promptTokens: number, completionTokens: number, totalTokens: number }) => void,
   ): Promise<void> {
@@ -348,63 +325,79 @@ Parameters:
       toolsCount: tools.length,
     }).log('LLM configuration')
 
-    const currentMessages: any[] = [...messages]
+    let completed = false
     const totalUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+
+    const emitComplete = (usage: { promptTokens: number, completionTokens: number, totalTokens: number }) => {
+      if (completed) {
+        return
+      }
+      completed = true
+      onComplete(usage)
+    }
 
     const abortController = new AbortController()
     const timeoutId = setTimeout(() => {
       logger.error('Request timed out after 60s')
       abortController.abort()
-      onComplete({ promptTokens: 0, completionTokens: 0, totalTokens: 0 })
+      emitComplete({ promptTokens: 0, completionTokens: 0, totalTokens: 0 })
     }, 60000)
 
     try {
-      // Loop for tool calling (max 5 steps)
-      for (let step = 0; step < 5; step++) {
-        logger.withFields({ step }).log('Executing LLM step')
+      const requestStartedAt = Date.now()
+      const result: GenerateTextResult = await generateText({
+        baseURL: llmConfig.apiBase,
+        model: llmConfig.model,
+        apiKey: llmConfig.apiKey,
+        messages,
+        tools,
+        maxSteps: 5,
+        temperature: llmConfig.temperature ?? 0.7,
+        abortSignal: abortController.signal,
+      })
+      const requestDuration = Date.now() - requestStartedAt
 
-        const result = await generateText({
-          baseURL: llmConfig.apiBase,
-          model: llmConfig.model,
-          apiKey: llmConfig.apiKey,
-          messages: currentMessages,
-          tools,
-          maxSteps: 5,
-          temperature: llmConfig.temperature ?? 0.7,
-          abortSignal: abortController.signal,
-        })
-        logger.withFields({ result }).log('generateText result')
-        for (const completionStep of result.steps) {
-          // Call onToolCall for each tool call in this step
-          for (const toolCall of completionStep.toolCalls) {
-            const toolDef = tools.find((t: any) => t.function?.name === toolCall.toolName)
-            onToolCall({
-              name: toolCall.toolName,
-              description: toolDef?.function?.description ?? toolCall.toolName,
-              input: toolCall.args,
-              timestamp: Date.now(),
-            })
-          }
-          // Call onToolResult for each tool result in this step
-          for (const toolResult of completionStep.toolResults) {
-            onToolResult(toolResult.toolName, JSON.stringify(toolResult.result), Date.now())
-          }
+      logger.withFields({
+        finishReason: result.finishReason,
+        stepCount: result.steps.length,
+      }).log('LLM request finished')
+
+      for (const completionStep of result.steps) {
+        for (const toolCall of completionStep.toolCalls) {
+          const toolDef = tools.find(item => item.function?.name === toolCall.toolName)
+          onToolCall({
+            name: toolCall.toolName,
+            description: toolDef?.function?.description ?? toolCall.toolName,
+            input: toolCall.args,
+            timestamp: Date.now(),
+          })
         }
-        // Accumulate usage
-        if (result.usage) {
-          totalUsage.promptTokens += result.usage.prompt_tokens || 0
-          totalUsage.completionTokens += result.usage.completion_tokens || 0
-          totalUsage.totalTokens += result.usage.total_tokens || 0
-        }
-        if (result.finishReason === 'stop') {
-          onTextDelta(result.text || '')
-          break
+
+        const perToolDuration = completionStep.toolResults.length > 0
+          ? Math.max(1, Math.round(requestDuration / completionStep.toolResults.length))
+          : requestDuration
+
+        for (const toolResult of completionStep.toolResults) {
+          onToolResult(toolResult.toolName, toolResult.result, perToolDuration)
         }
       }
-      onComplete(totalUsage)
+
+      if (result.usage) {
+        const usage = result.usage
+        totalUsage.promptTokens += usage.prompt_tokens
+        totalUsage.completionTokens += usage.completion_tokens
+        totalUsage.totalTokens += usage.total_tokens
+      }
+
+      if (result.text) {
+        onTextDelta(result.text)
+      }
+
+      emitComplete(totalUsage)
     }
     catch (error) {
       logger.withError(error).error('LLM call with tools failed')
+      emitComplete({ promptTokens: 0, completionTokens: 0, totalTokens: 0 })
       throw error
     }
     finally {
@@ -414,7 +407,7 @@ Parameters:
 
   async function streamSimpleText(
     llmConfig: LLMConfig,
-    messages: LLMMessage[],
+    messages: Message[],
     onTextDelta: (delta: string) => void,
   ): Promise<void> {
     logger.withFields({
