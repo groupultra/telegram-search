@@ -21,7 +21,7 @@ import (
 
 	"github.com/groupultra/telegram-search/internal/bot"
 	"github.com/groupultra/telegram-search/internal/config"
-	"github.com/groupultra/telegram-search/internal/db"
+	"github.com/groupultra/telegram-search/internal/datastore"
 	"github.com/groupultra/telegram-search/internal/provider/embed"
 	"github.com/groupultra/telegram-search/internal/provider/search"
 	"github.com/groupultra/telegram-search/internal/provider/takeout"
@@ -45,7 +45,7 @@ func main() {
 				}),
 
 				config.Modules(),
-				db.Modules(),
+				datastore.Modules(),
 				embed.Modules(),
 				search.Modules(),
 				tgclient.Modules(),

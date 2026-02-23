@@ -7,7 +7,7 @@
 // NOTE: The ent.Client requires generated code from `make generate`.
 // The pgxpool.Pool is always available and used by packages that need
 // raw SQL (sync, search vector ops).
-package db
+package datastore
 
 import (
 	"context"
@@ -25,15 +25,6 @@ import (
 	"github.com/groupultra/telegram-search/ent"
 	"github.com/groupultra/telegram-search/internal/config"
 )
-
-// Module provides *ent.Client and *pgxpool.Pool to the fx graph.
-func Modules() fx.Option {
-	return fx.Options(
-		fx.Provide(NewPool),
-		fx.Provide(NewEntClient),
-		fx.Invoke(migrate),
-	)
-}
 
 // NewPool creates a pgxpool.Pool configured from cfg.
 // The pool is closed when the fx lifecycle ends.
