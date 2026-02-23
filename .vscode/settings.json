@@ -110,11 +110,16 @@
   "eslint.nodePath": "",
   "eslint.runtime": "node",
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+
+  "findUnusedExports.detectCircularImports": true,
+  
   "[vue]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
-  "findUnusedExports.detectCircularImports": true,
   "[markdown]": {
     "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+  },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go"
   }
 }

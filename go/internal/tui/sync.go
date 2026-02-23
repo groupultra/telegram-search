@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	syncsvc "github.com/groupultra/telegram-search/internal/sync"
-	"github.com/groupultra/telegram-search/internal/tgclient"
+	"github.com/groupultra/telegram-search/pkg/tgclient"
 )
 
 // syncState tracks the current sync job state.

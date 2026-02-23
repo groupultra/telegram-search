@@ -20,7 +20,7 @@ import (
 
 	"github.com/groupultra/telegram-search/internal/search"
 	"github.com/groupultra/telegram-search/internal/sync"
-	"github.com/groupultra/telegram-search/internal/tgclient"
+	"github.com/groupultra/telegram-search/pkg/tgclient"
 )
 
 // tab identifies which view is active.

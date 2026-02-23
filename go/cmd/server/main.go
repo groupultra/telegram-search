@@ -26,30 +26,46 @@ import (
 	"github.com/groupultra/telegram-search/internal/search"
 	"github.com/groupultra/telegram-search/internal/server"
 	syncsvc "github.com/groupultra/telegram-search/internal/sync"
-	"github.com/groupultra/telegram-search/internal/tgclient"
+	"github.com/groupultra/telegram-search/pkg/tgclient"
+	"github.com/lmittmann/tint"
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	app := fx.New(
-		fx.Provide(newLogger),
-		fx.WithLogger(func(log *slog.Logger) fxevent.Logger {
-			return &fxevent.SlogLogger{Logger: log}
-		}),
 
-		config.Modules(),
-		db.Modules(),
-		embed.Modules(),
-		search.Modules(),
-		tgclient.Modules(),
-		syncsvc.Modules(),
-		server.Modules(),
-		bot.Modules(),
+	root := &cobra.Command{
+		Use: "backend-ng",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			slog.SetDefault(slog.New(tint.NewHandler(os.Stdout, nil)))
 
-		// Provide *tgclient.Client as tgclient.API so the sync service can be wired.
-		fx.Provide(func(c *tgclient.Client) tgclient.API { return c }),
-	)
+			app := fx.New(
+				fx.Provide(newLogger),
+				fx.WithLogger(func(log *slog.Logger) fxevent.Logger {
+					return &fxevent.SlogLogger{Logger: log}
+				}),
 
-	app.Run()
+				config.Modules(),
+				db.Modules(),
+				embed.Modules(),
+				search.Modules(),
+				tgclient.Modules(),
+				syncsvc.Modules(),
+				server.Modules(),
+				bot.Modules(),
+
+				// Provide *tgclient.Client as tgclient.API so the sync service can be wired.
+				fx.Provide(func(c *tgclient.Client) tgclient.API { return c }),
+			)
+
+			app.Run()
+			return nil
+		},
+	}
+
+	if err := root.Execute(); err != nil {
+		slog.Error("Failed to execute command", "error", err)
+	}
+
 }
 
 // newLogger builds the production JSON logger used across the entire process.

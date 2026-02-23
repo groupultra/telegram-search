@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/groupultra/telegram-search/internal/tgclient"
+	"github.com/groupultra/telegram-search/pkg/tgclient"
 )
 
 // authStep tracks which prompt we're on.

@@ -12,8 +12,10 @@ require (
 	github.com/gotd/td v0.115.0
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/labstack/echo/v4 v4.13.4
+	github.com/lmittmann/tint v1.1.3
 	github.com/pgvector/pgvector-go v0.2.2
 	github.com/sashabaranov/go-openai v1.40.1
+	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.20.1
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.27.0
@@ -44,6 +46,7 @@ require (
 	github.com/gotd/ige v0.2.2 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
 	github.com/hashicorp/hcl/v2 v2.13.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect

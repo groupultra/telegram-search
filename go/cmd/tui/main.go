@@ -27,32 +27,47 @@ import (
 	"github.com/groupultra/telegram-search/internal/embed"
 	"github.com/groupultra/telegram-search/internal/search"
 	syncsvc "github.com/groupultra/telegram-search/internal/sync"
-	"github.com/groupultra/telegram-search/internal/tgclient"
 	"github.com/groupultra/telegram-search/internal/tui"
+	"github.com/groupultra/telegram-search/pkg/tgclient"
+	"github.com/lmittmann/tint"
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	app := fx.New(
-		fx.Provide(newDevLogger),
-		fx.WithLogger(func(log *slog.Logger) fxevent.Logger {
-			return &fxevent.SlogLogger{Logger: log}
-		}),
+	root := &cobra.Command{
+		Use: "tui",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			slog.SetDefault(slog.New(tint.NewHandler(os.Stdout, nil)))
 
-		config.Modules(),
-		db.Modules(),
-		embed.Modules(),
-		search.Modules(),
-		tgclient.Modules(),
-		syncsvc.Modules(),
+			app := fx.New(
+				fx.Provide(newDevLogger),
+				fx.WithLogger(func(log *slog.Logger) fxevent.Logger {
+					return &fxevent.SlogLogger{Logger: log}
+				}),
 
-		// Provide *tgclient.Client as tgclient.API so fx can wire it.
-		fx.Provide(func(c *tgclient.Client) tgclient.API { return c }),
+				config.Modules(),
+				db.Modules(),
+				embed.Modules(),
+				search.Modules(),
+				tgclient.Modules(),
+				syncsvc.Modules(),
 
-		// Start the TUI instead of an HTTP server.
-		fx.Invoke(runTUI),
-	)
+				// Provide *tgclient.Client as tgclient.API so fx can wire it.
+				fx.Provide(func(c *tgclient.Client) tgclient.API { return c }),
 
-	app.Run()
+				// Start the TUI instead of an HTTP server.
+				fx.Invoke(runTUI),
+			)
+
+			app.Run()
+
+			return nil
+		},
+	}
+
+	if err := root.Execute(); err != nil {
+		slog.Error("Failed to execute command", "error", err)
+	}
 }
 
 // runTUI builds the TUI model and starts the Bubble Tea program.

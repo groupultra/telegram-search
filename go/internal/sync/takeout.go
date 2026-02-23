@@ -26,7 +26,7 @@ import (
 
 	"github.com/groupultra/telegram-search/internal/embed"
 	"github.com/groupultra/telegram-search/internal/search"
-	"github.com/groupultra/telegram-search/internal/tgclient"
+	"github.com/groupultra/telegram-search/pkg/tgclient"
 )
 
 // Module provides *Service to the fx graph.
