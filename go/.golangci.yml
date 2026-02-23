@@ -1,7 +1,7 @@
 # golangci-lint configuration for telegram-search Go rewrite.
 # Run: golangci-lint run ./...
 
-version: "2"
+version: '2'
 
 run:
   timeout: 5m
@@ -15,41 +15,41 @@ linters:
   default: none
   enable:
     # Correctness
-    - errcheck        # check that errors are handled
-    - govet           # vet checks (shadow, printf, ...)
-    - staticcheck     # SA*, ST*, QF* from staticcheck.io
-    - unused          # find unused code
-    - ineffassign     # detect ineffectual assignments
-    - typecheck       # compile-time type errors
+    - errcheck # check that errors are handled
+    - govet # vet checks (shadow, printf, ...)
+    - staticcheck # SA*, ST*, QF* from staticcheck.io
+    - unused # find unused code
+    - ineffassign # detect ineffectual assignments
+    - typecheck # compile-time type errors
 
     # Style
-    - gofmt           # standard formatting
-    - goimports       # import grouping and formatting
-    - misspell        # common spelling mistakes in comments
-    - revive          # a fast, configurable linter (replaces golint)
-    - godot           # check that comments end with a period
+    - gofmt # standard formatting
+    - goimports # import grouping and formatting
+    - misspell # common spelling mistakes in comments
+    - revive # a fast, configurable linter (replaces golint)
+    - godot # check that comments end with a period
 
     # Complexity / design
-    - cyclop          # cyclomatic complexity
-    - funlen          # function length
-    - gocognit        # cognitive complexity
+    - cyclop # cyclomatic complexity
+    - funlen # function length
+    - gocognit # cognitive complexity
 
     # Security
-    - gosec           # G* security checks
+    - gosec # G* security checks
 
     # Error handling patterns
-    - wrapcheck       # ensure errors are wrapped with context
-    - nilerr          # detect `return nil, err` where err might be nil
+    - wrapcheck # ensure errors are wrapped with context
+    - nilerr # detect `return nil, err` where err might be nil
 
     # Concurrency
-    - gocritic        # many miscellaneous checks
+    - gocritic # many miscellaneous checks
 
 linters-settings:
   revive:
     rules:
       - name: exported
         arguments:
-          - "checkPrivateReceivers"
+          - 'checkPrivateReceivers'
       - name: var-naming
       - name: error-strings
       - name: if-return
@@ -73,7 +73,7 @@ linters-settings:
 
   wrapcheck:
     ignorePackageGlobs:
-      - "github.com/groupultra/telegram-search/*"
+      - 'github.com/groupultra/telegram-search/*'
 
   gosec:
     excludes:
@@ -86,7 +86,7 @@ issues:
 
   exclude-rules:
     # Test files don't need all the production rigor.
-    - path: "_test\\.go$"
+    - path: '_test\.go$'
       linters:
         - funlen
         - cyclop
@@ -94,7 +94,7 @@ issues:
         - gosec
 
     # Generated ent files are not hand-written.
-    - path: "ent/"
+    - path: 'ent/'
       linters:
         - revive
         - godot

@@ -17,24 +17,24 @@ database:
 telegram:
   # Get these from https://my.telegram.org/apps
   app_id: 0
-  app_hash: ""
+  app_hash: ''
   session_file: ./session.json
   # Optional SOCKS5 / HTTP proxy
   # proxy_url: socks5://user:pass@host:1080
 
 bot:
   # Your bot token from @BotFather
-  token: ""
+  token: ''
   # Public HTTPS URL for webhook mode.  Leave empty for long-polling (local dev).
-  webhook_url: ""
-  webhook_secret: ""
+  webhook_url: ''
+  webhook_secret: ''
   # Optional: restrict the bot to specific Telegram user IDs.
   # allowed_users: [123456789]
 
 embedding:
   # OpenAI-compatible embedding endpoint
   base_url: https://api.openai.com/v1
-  api_key: ""
+  api_key: ''
   # Supported models: text-embedding-3-small (1536), text-embedding-3-large (1536/3072),
   # text-embedding-ada-002 (1536), or any compatible local model.
   model: text-embedding-3-small
