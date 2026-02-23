@@ -1,0 +1,48 @@
+# tgsearch.yaml — Telegram Search configuration
+# Copy this file to tgsearch.yaml and fill in your values.
+# Alternatively, use TGS_* environment variables (they take precedence).
+
+database:
+  # Option A: full DSN
+  dsn: postgres://user:password@localhost:5432/telegram_search?sslmode=disable
+  # Option B: individual fields (ignored when dsn is set)
+  # host: localhost
+  # port: 5432
+  # user: postgres
+  # password: secret
+  # name: telegram_search
+  max_conns: 20
+  min_conns: 2
+
+telegram:
+  # Get these from https://my.telegram.org/apps
+  app_id: 0
+  app_hash: ""
+  session_file: ./session.json
+  # Optional SOCKS5 / HTTP proxy
+  # proxy_url: socks5://user:pass@host:1080
+
+bot:
+  # Your bot token from @BotFather
+  token: ""
+  # Public HTTPS URL for webhook mode.  Leave empty for long-polling (local dev).
+  webhook_url: ""
+  webhook_secret: ""
+  # Optional: restrict the bot to specific Telegram user IDs.
+  # allowed_users: [123456789]
+
+embedding:
+  # OpenAI-compatible embedding endpoint
+  base_url: https://api.openai.com/v1
+  api_key: ""
+  # Supported models: text-embedding-3-small (1536), text-embedding-3-large (1536/3072),
+  # text-embedding-ada-002 (1536), or any compatible local model.
+  model: text-embedding-3-small
+  # Must match the dimension your model produces: 768, 1024, or 1536.
+  dimension: 1536
+  batch_size: 100
+  timeout: 30s
+
+server:
+  addr: :8080
+  shutdown_timeout: 10s
