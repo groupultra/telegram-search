@@ -14,12 +14,13 @@ import (
 	"database/sql"
 	"fmt"
 
+	"log/slog"
+
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 
 	"github.com/groupultra/telegram-search/ent"
 	"github.com/groupultra/telegram-search/internal/config"
@@ -34,7 +35,7 @@ var Module = fx.Module("db",
 
 // NewPool creates a pgxpool.Pool configured from cfg.
 // The pool is closed when the fx lifecycle ends.
-func NewPool(lc fx.Lifecycle, cfg *config.Config, log *zap.Logger) (*pgxpool.Pool, error) {
+func NewPool(lc fx.Lifecycle, cfg *config.Config, log *slog.Logger) (*pgxpool.Pool, error) {
 	dsn := cfg.Database.DSNOrBuild()
 
 	poolCfg, err := pgxpool.ParseConfig(dsn)
@@ -55,7 +56,7 @@ func NewPool(lc fx.Lifecycle, cfg *config.Config, log *zap.Logger) (*pgxpool.Poo
 			if err := pool.Ping(ctx); err != nil {
 				return fmt.Errorf("db: ping: %w", err)
 			}
-			log.Info("database connection established", zap.String("dsn", redactDSN(dsn)))
+			log.Info("database connection established", "dsn", redactDSN(dsn))
 			return nil
 		},
 		OnStop: func(_ context.Context) error {
@@ -80,7 +81,7 @@ func NewEntClient(pool *pgxpool.Pool) (*ent.Client, error) {
 // migrate runs ent auto-migration and ensures pgvector columns exist.
 // NOTE: In production replace this with an Atlas migration workflow
 // (`atlas migrate apply`) to get versioned, reviewable migrations.
-func migrate(lc fx.Lifecycle, client *ent.Client, pool *pgxpool.Pool, log *zap.Logger) {
+func migrate(lc fx.Lifecycle, client *ent.Client, pool *pgxpool.Pool, log *slog.Logger) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			log.Info("running ent schema migration")

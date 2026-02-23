@@ -18,6 +18,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"log/slog"
+
 	"github.com/gotd/td/session"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
@@ -87,12 +89,12 @@ type Client struct {
 	raw   *telegram.Client
 	api   *tg.Client
 	cfg   config.TelegramConfig
-	log   *zap.Logger
+	log   *slog.Logger
 	ready chan struct{}
 }
 
 // New constructs the Client. The TCP connection is not established until Run is called.
-func New(lc fx.Lifecycle, cfg *config.Config, log *zap.Logger) (*Client, error) {
+func New(lc fx.Lifecycle, cfg *config.Config, log *slog.Logger) (*Client, error) {
 	tc := cfg.Telegram
 	if tc.AppID == 0 || tc.AppHash == "" {
 		return nil, fmt.Errorf("tgclient: telegram.app_id and telegram.app_hash are required")
@@ -107,15 +109,20 @@ func New(lc fx.Lifecycle, cfg *config.Config, log *zap.Logger) (*Client, error) 
 	}
 
 	store := &session.FileStorage{Path: sessionPath}
+	// NOTE: gotd/td requires a *zap.Logger; create a minimal warn-level one
+	// to suppress gotd's verbose debug output. This is the only zap usage
+	// in the codebase — everywhere else we use log/slog.
+	gotdLog, _ := zap.NewProduction()
+	gotdLog = gotdLog.WithOptions(zap.IncreaseLevel(zap.WarnLevel))
 	raw := telegram.NewClient(tc.AppID, tc.AppHash, telegram.Options{
 		SessionStorage: store,
-		Logger:         log.Named("gotd").WithOptions(zap.IncreaseLevel(zap.WarnLevel)),
+		Logger:         gotdLog.Named("gotd"),
 	})
 
 	c := &Client{
 		raw:   raw,
 		cfg:   tc,
-		log:   log.Named("tgclient"),
+		log:   log.With("component", "tgclient"),
 		ready: make(chan struct{}),
 	}
 	_ = lc

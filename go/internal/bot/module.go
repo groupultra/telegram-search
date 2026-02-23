@@ -13,12 +13,12 @@ package bot
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	telebot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 
 	"github.com/groupultra/telegram-search/internal/bot/handler"
 	"github.com/groupultra/telegram-search/internal/config"
@@ -35,7 +35,7 @@ var Module = fx.Module("bot",
 // Bot wraps the go-telegram/bot client with application-level context.
 type Bot struct {
 	tg  *telebot.Bot
-	log *zap.Logger
+	log *slog.Logger
 	cfg config.BotConfig
 }
 
@@ -44,7 +44,7 @@ func New(
 	cfg *config.Config,
 	searchSvc *search.Service,
 	syncSvc *syncsvc.Service,
-	log *zap.Logger,
+	log *slog.Logger,
 ) (*Bot, error) {
 	bc := cfg.Bot
 	if bc.Token == "" {
@@ -73,7 +73,7 @@ func New(
 	// Callback queries for search result pagination.
 	tb.RegisterHandler(telebot.HandlerTypeCallbackQueryData, "search:", telebot.MatchTypePrefix, handler.SearchCallback(searchSvc, log))
 
-	return &Bot{tg: tb, log: log.Named("bot"), cfg: bc}, nil
+	return &Bot{tg: tb, log: log.With("component", "bot"), cfg: bc}, nil
 }
 
 // register wires the bot into the fx lifecycle and Echo (for webhook mode).
@@ -97,7 +97,7 @@ func (b *Bot) startWebhook(ctx context.Context, e *echo.Echo) error {
 	e.POST(webhookPath, echo.WrapHandler(b.tg.WebhookHandler()))
 
 	webhookURL := b.cfg.WebhookURL + webhookPath
-	b.log.Info("registering webhook", zap.String("url", webhookURL))
+	b.log.Info("registering webhook", "url", webhookURL)
 
 	if _, err := b.tg.SetWebhook(ctx, &telebot.SetWebhookParams{
 		URL:         webhookURL,
@@ -135,4 +135,3 @@ type SetWebhookParams = telebot.SetWebhookParams
 // Update is the Telegram update type.
 // Re-exported here so callers don't need to import go-telegram/bot/models directly.
 type Update = models.Update
-

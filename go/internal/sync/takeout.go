@@ -16,10 +16,11 @@ import (
 	"fmt"
 	"time"
 
+	"log/slog"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 
 	"github.com/groupultra/telegram-search/internal/embed"
 	"github.com/groupultra/telegram-search/internal/search"
@@ -65,7 +66,7 @@ type Service struct {
 	pool   *pgxpool.Pool
 	embed  *embed.Service
 	search *search.Service
-	log    *zap.Logger
+	log    *slog.Logger
 }
 
 // New constructs a Service.
@@ -74,14 +75,14 @@ func New(
 	pool *pgxpool.Pool,
 	embedSvc *embed.Service,
 	searchSvc *search.Service,
-	log *zap.Logger,
+	log *slog.Logger,
 ) *Service {
 	return &Service{
 		tg:     tgc,
 		pool:   pool,
 		embed:  embedSvc,
 		search: searchSvc,
-		log:    log.Named("sync"),
+		log:    log.With("component", "sync"),
 	}
 }
 
@@ -115,7 +116,7 @@ func (s *Service) Run(ctx context.Context, accountID string, opts SyncOpts, ch c
 			chatName = chatNames[i]
 		}
 		if err := s.syncChat(ctx, accountID, chatID, chatName, opts, batchSize, ch); err != nil {
-			s.log.Error("chat sync failed", zap.String("chat_id", chatID), zap.Error(err))
+			s.log.Error("chat sync failed", "chat_id", chatID, "err", err)
 			ch <- Progress{ChatID: chatID, Err: err}
 		}
 	}
@@ -129,7 +130,7 @@ func (s *Service) syncChat(
 	batchSize int,
 	ch chan<- Progress,
 ) error {
-	s.log.Info("syncing chat", zap.String("chat_id", chatID))
+	s.log.Info("syncing chat", "chat_id", chatID)
 	ch <- Progress{ChatID: chatID, ChatName: chatName, Msg: "starting sync"}
 
 	offsetID := 0
@@ -164,7 +165,7 @@ func (s *Service) syncChat(
 			// NOTE: Embedding failure is non-fatal; messages are stored without
 			// vectors and can be re-embedded by a separate pass later.
 			s.log.Warn("embedding batch failed; messages stored without vectors",
-				zap.Int("count", len(buf)), zap.Error(embedErr))
+				"count", len(buf), "err", embedErr)
 			buf = buf[:0]
 			return nil
 		}
@@ -173,7 +174,7 @@ func (s *Service) syncChat(
 			ids[i] = p.msgUUID
 		}
 		if storeErr := s.search.StoreVectorBatch(ctx, ids, result.Vectors); storeErr != nil {
-			s.log.Warn("vector store failed", zap.Error(storeErr))
+			s.log.Warn("vector store failed", "err", storeErr)
 		}
 		buf = buf[:0]
 		return nil
@@ -202,7 +203,7 @@ func (s *Service) syncChat(
 			msgUUID, upsertErr := s.upsertMessage(ctx, accountID, chatID, chatName, msg)
 			if upsertErr != nil {
 				s.log.Warn("upsert message failed",
-					zap.Int("msg_id", msg.ID), zap.Error(upsertErr))
+					"msg_id", msg.ID, "err", upsertErr)
 				continue
 			}
 			if msgUUID != "" {
@@ -235,7 +236,7 @@ func (s *Service) syncChat(
 	}
 
 	ch <- Progress{ChatID: chatID, ChatName: chatName, Done: done, Total: done, Msg: "done"}
-	s.log.Info("chat sync complete", zap.String("chat_id", chatID), zap.Int("messages", done))
+	s.log.Info("chat sync complete", "chat_id", chatID, "messages", done)
 	return nil
 }
 

@@ -13,10 +13,11 @@ import (
 	"context"
 	"fmt"
 
+	"log/slog"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pgvector/pgvector-go"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 
 	"github.com/groupultra/telegram-search/internal/embed"
 )
@@ -61,16 +62,16 @@ type Opts struct {
 type Service struct {
 	pool   *pgxpool.Pool
 	embed  *embed.Service
-	log    *zap.Logger
+	log    *slog.Logger
 	dimCfg int // embedding dimension from config
 }
 
 // New constructs a Service.
-func New(pool *pgxpool.Pool, embedSvc *embed.Service, log *zap.Logger) *Service {
+func New(pool *pgxpool.Pool, embedSvc *embed.Service, log *slog.Logger) *Service {
 	return &Service{
 		pool:  pool,
 		embed: embedSvc,
-		log:   log.Named("search"),
+		log:   log.With("component", "search"),
 	}
 }
 
@@ -86,12 +87,12 @@ func (s *Service) Search(ctx context.Context, query string, filter Filter, opts 
 	if err == nil {
 		results, verr := s.vectorSearch(ctx, vec, filter, opts)
 		if verr != nil {
-			s.log.Warn("vector search failed, falling back to keyword", zap.Error(verr))
+			s.log.Warn("vector search failed, falling back to keyword", "err", verr)
 		} else {
 			return results, nil
 		}
 	} else {
-		s.log.Debug("embedding unavailable, using keyword search", zap.Error(err))
+		s.log.Debug("embedding unavailable, using keyword search", "err", err)
 	}
 
 	// Keyword fallback: simple ILIKE on content.

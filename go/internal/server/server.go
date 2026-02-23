@@ -11,10 +11,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"log/slog"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 
 	"github.com/groupultra/telegram-search/internal/config"
 )
@@ -27,7 +28,7 @@ var Module = fx.Module("server",
 
 // New creates and configures the Echo instance.
 // Route registration happens here; actual listening starts in registerLifecycle.
-func New(cfg *config.Config, log *zap.Logger) *echo.Echo {
+func New(cfg *config.Config, log *slog.Logger) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -41,16 +42,16 @@ func New(cfg *config.Config, log *zap.Logger) *echo.Echo {
 		LogValuesFunc: func(_ echo.Context, v middleware.RequestLoggerValues) error {
 			if v.Error != nil {
 				log.Error("http",
-					zap.String("method", v.Method),
-					zap.String("uri", v.URI),
-					zap.Int("status", v.Status),
-					zap.Error(v.Error),
+					"method", v.Method,
+					"uri", v.URI,
+					"status", v.Status,
+					"err", v.Error,
 				)
 			} else {
 				log.Info("http",
-					zap.String("method", v.Method),
-					zap.String("uri", v.URI),
-					zap.Int("status", v.Status),
+					"method", v.Method,
+					"uri", v.URI,
+					"status", v.Status,
 				)
 			}
 			return nil
@@ -68,7 +69,7 @@ func New(cfg *config.Config, log *zap.Logger) *echo.Echo {
 }
 
 // registerLifecycle wires the Echo server into the fx lifecycle.
-func registerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg *config.Config, log *zap.Logger) {
+func registerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg *config.Config, log *slog.Logger) {
 	addr := cfg.Server.Addr
 	if addr == "" {
 		addr = ":8080"
@@ -76,10 +77,10 @@ func registerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg *config.Config, log *z
 
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
-			log.Info("HTTP server starting", zap.String("addr", addr))
+			log.Info("HTTP server starting", "addr", addr)
 			go func() {
 				if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
-					log.Error("HTTP server error", zap.Error(err))
+					log.Error("HTTP server error", "err", err)
 				}
 			}()
 			return nil

@@ -14,12 +14,12 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
 	telebot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"go.uber.org/zap"
 
 	"github.com/groupultra/telegram-search/internal/search"
 	"github.com/groupultra/telegram-search/internal/sync"
@@ -33,7 +33,7 @@ const (
 )
 
 // Default handles any update that doesn't match a registered command.
-func Default(log *zap.Logger) telebot.HandlerFunc {
+func Default(log *slog.Logger) telebot.HandlerFunc {
 	return func(ctx context.Context, b *telebot.Bot, update *models.Update) {
 		if update.Message == nil {
 			return
@@ -47,7 +47,7 @@ func Default(log *zap.Logger) telebot.HandlerFunc {
 }
 
 // Start handles /start.
-func Start(log *zap.Logger) telebot.HandlerFunc {
+func Start(log *slog.Logger) telebot.HandlerFunc {
 	return func(ctx context.Context, b *telebot.Bot, update *models.Update) {
 		if update.Message == nil {
 			return
@@ -70,7 +70,7 @@ I can search through your archived Telegram messages using semantic (AI-powered)
 }
 
 // Help handles /help (same content as /start for simplicity).
-func Help(log *zap.Logger) telebot.HandlerFunc {
+func Help(log *slog.Logger) telebot.HandlerFunc {
 	return Start(log)
 }
 
@@ -80,7 +80,7 @@ func Help(log *zap.Logger) telebot.HandlerFunc {
 //
 //	/search machine learning
 //	/search golang --chat -1001234567
-func Search(svc *search.Service, log *zap.Logger) telebot.HandlerFunc {
+func Search(svc *search.Service, log *slog.Logger) telebot.HandlerFunc {
 	return func(ctx context.Context, b *telebot.Bot, update *models.Update) {
 		if update.Message == nil {
 			return
@@ -109,7 +109,7 @@ func Search(svc *search.Service, log *zap.Logger) telebot.HandlerFunc {
 			ChatIDs:   chatIDs,
 		}, search.Opts{Limit: maxSearchResults})
 		if err != nil {
-			log.Error("search failed", zap.Error(err))
+			log.Error("search failed", "err", err)
 			sendText(ctx, b, update.Message.Chat.ID, "Search failed. Please try again.")
 			return
 		}
@@ -126,7 +126,7 @@ func Search(svc *search.Service, log *zap.Logger) telebot.HandlerFunc {
 }
 
 // SearchCallback handles inline keyboard pagination callbacks (search:page:<n>).
-func SearchCallback(svc *search.Service, log *zap.Logger) telebot.HandlerFunc {
+func SearchCallback(svc *search.Service, log *slog.Logger) telebot.HandlerFunc {
 	return func(ctx context.Context, b *telebot.Bot, update *models.Update) {
 		if update.CallbackQuery == nil {
 			return
@@ -138,13 +138,13 @@ func SearchCallback(svc *search.Service, log *zap.Logger) telebot.HandlerFunc {
 			CallbackQueryID: update.CallbackQuery.ID,
 			Text:            "Loading...",
 		}); err != nil {
-			log.Warn("answer callback failed", zap.Error(err))
+			log.Warn("answer callback failed", "err", err)
 		}
 	}
 }
 
 // Sync handles /sync — starts a background message sync job.
-func Sync(svc *sync.Service, log *zap.Logger) telebot.HandlerFunc {
+func Sync(svc *sync.Service, log *slog.Logger) telebot.HandlerFunc {
 	return func(ctx context.Context, b *telebot.Bot, update *models.Update) {
 		if update.Message == nil {
 			return

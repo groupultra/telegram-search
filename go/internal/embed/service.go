@@ -8,9 +8,10 @@ import (
 	"context"
 	"fmt"
 
+	"log/slog"
+
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 
 	"github.com/groupultra/telegram-search/internal/config"
 )
@@ -31,14 +32,14 @@ type EmbedResult struct {
 
 // Service wraps the OpenAI embedding API.
 type Service struct {
-	client    *openai.Client
-	cfg       config.EmbeddingConfig
-	log       *zap.Logger
+	client *openai.Client
+	cfg    config.EmbeddingConfig
+	log    *slog.Logger
 }
 
 // New constructs a Service.  It returns an error if the API key is missing
 // so the issue is surfaced at startup rather than at runtime.
-func New(cfg *config.Config, log *zap.Logger) (*Service, error) {
+func New(cfg *config.Config, log *slog.Logger) (*Service, error) {
 	ec := cfg.Embedding
 	if ec.APIKey == "" {
 		// NOTE: We don't hard-fail here because users may want to run the system
@@ -56,7 +57,7 @@ func New(cfg *config.Config, log *zap.Logger) (*Service, error) {
 	return &Service{
 		client: client,
 		cfg:    ec,
-		log:    log.Named("embed"),
+		log:    log.With("component", "embed"),
 	}, nil
 }
 
@@ -148,9 +149,9 @@ func (s *Service) embedBatch(ctx context.Context, texts []string) ([][]float32, 
 	}
 
 	s.log.Debug("embedded batch",
-		zap.Int("count", len(texts)),
-		zap.Int("dimension", dim),
-		zap.Int("prompt_tokens", resp.Usage.PromptTokens),
+		"count", len(texts),
+		"dimension", dim,
+		"prompt_tokens", resp.Usage.PromptTokens,
 	)
 
 	return vectors, dim, resp.Usage, nil

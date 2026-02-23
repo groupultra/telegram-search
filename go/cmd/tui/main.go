@@ -16,11 +16,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
-	"go.uber.org/zap"
 
 	"github.com/groupultra/telegram-search/internal/config"
 	"github.com/groupultra/telegram-search/internal/db"
@@ -34,8 +34,8 @@ import (
 func main() {
 	app := fx.New(
 		fx.Provide(newDevLogger),
-		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: log.Named("fx")}
+		fx.WithLogger(func(log *slog.Logger) fxevent.Logger {
+			return &fxevent.SlogLogger{Logger: log}
 		}),
 
 		config.Module,
@@ -61,7 +61,7 @@ func runTUI(
 	searchSvc *search.Service,
 	syncSvc *syncsvc.Service,
 	tgc tgclient.API,
-	log *zap.Logger,
+	log *slog.Logger,
 ) {
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
@@ -74,7 +74,7 @@ func runTUI(
 				}
 
 				if err := tui.Run(deps); err != nil {
-					log.Error("TUI exited with error", zap.Error(err))
+					log.Error("TUI exited with error", "err", err)
 					fmt.Fprintln(os.Stderr, "error:", err)
 				}
 				os.Exit(0)
@@ -84,10 +84,10 @@ func runTUI(
 	})
 }
 
-// newDevLogger builds a human-readable console logger.
+// newDevLogger builds a human-readable console logger at WARN level.
 // Logs go to stderr so they don't corrupt the Bubble Tea alternate screen.
-func newDevLogger() (*zap.Logger, error) {
-	cfg := zap.NewDevelopmentConfig()
-	cfg.Level.SetLevel(zap.WarnLevel)
-	return cfg.Build()
+func newDevLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelWarn,
+	}))
 }

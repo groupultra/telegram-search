@@ -13,9 +13,11 @@
 package main
 
 import (
+	"log/slog"
+	"os"
+
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
-	"go.uber.org/zap"
 
 	"github.com/groupultra/telegram-search/internal/bot"
 	"github.com/groupultra/telegram-search/internal/config"
@@ -30,8 +32,8 @@ import (
 func main() {
 	app := fx.New(
 		fx.Provide(newLogger),
-		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: log.Named("fx")}
+		fx.WithLogger(func(log *slog.Logger) fxevent.Logger {
+			return &fxevent.SlogLogger{Logger: log}
 		}),
 
 		config.Module,
@@ -50,8 +52,8 @@ func main() {
 	app.Run()
 }
 
-// newLogger builds the production zap logger used across the entire process.
-// NOTE: JSON output makes logs easy to ingest in Loki, Datadog, CloudWatch, etc.
-func newLogger() (*zap.Logger, error) {
-	return zap.NewProduction()
+// newLogger builds the production JSON logger used across the entire process.
+// JSON output makes logs easy to ingest in Loki, Datadog, CloudWatch, etc.
+func newLogger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(os.Stdout, nil))
 }
