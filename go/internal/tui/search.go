@@ -10,7 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/groupultra/telegram-search/internal/search"
+	"github.com/groupultra/telegram-search/internal/provider/search"
 )
 
 // SearchModel is the search tab sub-model.

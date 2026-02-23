@@ -1,4 +1,4 @@
-// Package sync implements Telegram message history export.
+// Package takeout implements Telegram message history export.
 //
 // Architecture:
 //   - Uses the tgclient.API interface for MTProto calls, keeping gotd/td
@@ -9,7 +9,7 @@
 // NOTE: This package uses raw pgxpool queries instead of ent for DB writes
 // because bulk-insert operations benefit from direct INSERT ... ON CONFLICT
 // DO NOTHING semantics that ent does not expose efficiently.
-package sync
+package takeout
 
 import (
 	"context"
@@ -24,8 +24,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
 
-	"github.com/groupultra/telegram-search/internal/embed"
-	"github.com/groupultra/telegram-search/internal/search"
+	"github.com/groupultra/telegram-search/internal/provider/embed"
+	"github.com/groupultra/telegram-search/internal/provider/search"
 	"github.com/groupultra/telegram-search/pkg/tgclient"
 )
 
@@ -34,7 +34,7 @@ func Modules() fx.Option {
 	return fx.Options(fx.Provide(New))
 }
 
-// Progress carries incremental progress information for a running sync job.
+// Progress carries incremental progress information for a running takeout job.
 type Progress struct {
 	ChatID   string
 	ChatName string
@@ -44,9 +44,9 @@ type Progress struct {
 	Err      error
 }
 
-// SyncOpts configures a sync run.
-type SyncOpts struct {
-	// ChatIDs to sync; empty means all dialogs.
+// TakeoutOpts configures a takeout run.
+type TakeoutOpts struct {
+	// ChatIDs to export; empty means all dialogs.
 	ChatIDs []string
 	// Incremental skips messages already in the DB.
 	Incremental bool
@@ -86,17 +86,17 @@ func New(
 		pool:   pool,
 		embed:  embedSvc,
 		search: searchSvc,
-		log:    log.With("component", "sync"),
+		log:    log.With("component", "takeout"),
 	}
 }
 
-// Run executes a full sync for the given account, reporting progress on ch.
-// ch is closed when the sync finishes (with or without error).
-func (s *Service) Run(ctx context.Context, accountID string, opts SyncOpts, ch chan<- Progress) {
+// Run executes a full takeout for the given account, reporting progress on ch.
+// ch is closed when the takeout finishes (with or without error).
+func (s *Service) Run(ctx context.Context, accountID string, opts TakeoutOpts, ch chan<- Progress) {
 	defer close(ch)
 
 	if !s.tg.IsAuthenticated() {
-		ch <- Progress{Err: errors.New("sync: MTProto client not authenticated")}
+		ch <- Progress{Err: errors.New("takeout: MTProto client not authenticated")}
 		return
 	}
 
@@ -107,7 +107,7 @@ func (s *Service) Run(ctx context.Context, accountID string, opts SyncOpts, ch c
 
 	chatIDs, chatNames, err := s.resolveChatIDs(ctx, opts.ChatIDs)
 	if err != nil {
-		ch <- Progress{Err: fmt.Errorf("sync: resolve chats: %w", err)}
+		ch <- Progress{Err: fmt.Errorf("takeout: resolve chats: %w", err)}
 		return
 	}
 
@@ -121,25 +121,25 @@ func (s *Service) Run(ctx context.Context, accountID string, opts SyncOpts, ch c
 			chatName = chatNames[i]
 		}
 
-		if err := s.syncChat(ctx, accountID, chatID, chatName, opts, batchSize, ch); err != nil {
-			s.log.Error("chat sync failed", "chat_id", chatID, "err", err)
+		if err := s.takeoutChat(ctx, accountID, chatID, chatName, opts, batchSize, ch); err != nil {
+			s.log.Error("chat takeout failed", "chat_id", chatID, "err", err)
 
 			ch <- Progress{ChatID: chatID, Err: err}
 		}
 	}
 }
 
-// syncChat downloads and stores all messages for one chat.
-func (s *Service) syncChat(
+// takeoutChat downloads and stores all messages for one chat.
+func (s *Service) takeoutChat(
 	ctx context.Context,
 	accountID, chatID, chatName string,
-	opts SyncOpts,
+	opts TakeoutOpts,
 	batchSize int,
 	ch chan<- Progress,
 ) error {
-	s.log.Info("syncing chat", "chat_id", chatID)
+	s.log.Info("takeout chat", "chat_id", chatID)
 
-	ch <- Progress{ChatID: chatID, ChatName: chatName, Msg: "starting sync"}
+	ch <- Progress{ChatID: chatID, ChatName: chatName, Msg: "starting takeout"}
 
 	offsetID := 0
 
@@ -244,7 +244,7 @@ func (s *Service) syncChat(
 			ChatID:   chatID,
 			ChatName: chatName,
 			Done:     done,
-			Msg:      fmt.Sprintf("synced %d messages", done),
+			Msg:      fmt.Sprintf("exported %d messages", done),
 		}
 
 		offsetID = messages[len(messages)-1].ID
@@ -259,7 +259,7 @@ func (s *Service) syncChat(
 
 	ch <- Progress{ChatID: chatID, ChatName: chatName, Done: done, Total: done, Msg: "done"}
 
-	s.log.Info("chat sync complete", "chat_id", chatID, "messages", done)
+	s.log.Info("chat takeout complete", "chat_id", chatID, "messages", done)
 
 	return nil
 }
@@ -314,7 +314,7 @@ func (s *Service) upsertMessage(ctx context.Context, accountID, chatID, chatName
 	return msgUUID, nil
 }
 
-// resolveChatIDs returns the list of chat IDs and names to sync.
+// resolveChatIDs returns the list of chat IDs and names to export.
 func (s *Service) resolveChatIDs(ctx context.Context, chatIDs []string) ([]string, []string, error) {
 	if len(chatIDs) > 0 {
 		names := make([]string, len(chatIDs))
@@ -338,7 +338,7 @@ func (s *Service) resolveChatIDs(ctx context.Context, chatIDs []string) ([]strin
 }
 
 // latestStoredMessageID returns the highest platform_message_id stored for
-// the given account+chat, used for incremental sync offset.
+// the given account+chat, used for incremental takeout offset.
 func (s *Service) latestStoredMessageID(ctx context.Context, accountID, chatID string) (int, error) {
 	var id int
 	err := s.pool.QueryRow(ctx, `

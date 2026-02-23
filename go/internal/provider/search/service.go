@@ -19,7 +19,7 @@ import (
 	"github.com/pgvector/pgvector-go"
 	"go.uber.org/fx"
 
-	"github.com/groupultra/telegram-search/internal/embed"
+	"github.com/groupultra/telegram-search/internal/provider/embed"
 )
 
 // Module provides *Service to the fx graph.
@@ -255,7 +255,7 @@ func scanResults(rows interface {
 }
 
 // StoreVectors upserts the embedding vectors for a message.
-// It is called by the sync service after embedding a message batch.
+// It is called by the takeout service after embedding a message batch.
 func (s *Service) StoreVectors(ctx context.Context, messageID string, vec []float32) error {
 	col, err := vectorColumn(len(vec))
 	if err != nil {

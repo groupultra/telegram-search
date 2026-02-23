@@ -24,9 +24,9 @@ import (
 
 	"github.com/groupultra/telegram-search/internal/config"
 	"github.com/groupultra/telegram-search/internal/db"
-	"github.com/groupultra/telegram-search/internal/embed"
-	"github.com/groupultra/telegram-search/internal/search"
-	syncsvc "github.com/groupultra/telegram-search/internal/sync"
+	"github.com/groupultra/telegram-search/internal/provider/embed"
+	"github.com/groupultra/telegram-search/internal/provider/search"
+	"github.com/groupultra/telegram-search/internal/provider/takeout"
 	"github.com/groupultra/telegram-search/internal/tui"
 	"github.com/groupultra/telegram-search/pkg/tgclient"
 	"github.com/lmittmann/tint"
@@ -50,7 +50,7 @@ func main() {
 				embed.Modules(),
 				search.Modules(),
 				tgclient.Modules(),
-				syncsvc.Modules(),
+				takeout.Modules(),
 
 				// Provide *tgclient.Client as tgclient.API so fx can wire it.
 				fx.Provide(func(c *tgclient.Client) tgclient.API { return c }),
@@ -74,7 +74,7 @@ func main() {
 func runTUI(
 	lc fx.Lifecycle,
 	searchSvc *search.Service,
-	syncSvc *syncsvc.Service,
+	takeoutSvc *takeout.Service,
 	tgc tgclient.API,
 	log *slog.Logger,
 ) {
@@ -83,7 +83,7 @@ func runTUI(
 			go func() {
 				deps := tui.Deps{
 					Search:    searchSvc,
-					Sync:      syncSvc,
+					Takeout:   takeoutSvc,
 					TGClient:  tgc,
 					AccountID: "",
 				}

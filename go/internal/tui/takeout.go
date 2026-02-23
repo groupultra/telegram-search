@@ -11,34 +11,34 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	syncsvc "github.com/groupultra/telegram-search/internal/sync"
+	"github.com/groupultra/telegram-search/internal/provider/takeout"
 	"github.com/groupultra/telegram-search/pkg/tgclient"
 )
 
-// syncState tracks the current sync job state.
-type syncState int
+// takeoutState tracks the current takeout job state.
+type takeoutState int
 
 const (
-	syncIdle syncState = iota
-	syncRunning
-	syncDone
-	syncFailed
+	takeoutIdle takeoutState = iota
+	takeoutRunning
+	takeoutDone
+	takeoutFailed
 )
 
-// SyncModel is the sync tab sub-model.
-type SyncModel struct {
-	state     syncState
+// TakeoutModel is the takeout tab sub-model.
+type TakeoutModel struct {
+	state     takeoutState
 	sp        spinner.Model
 	prog      progress.Model
 	log       []string
 	err       error
-	svc       *syncsvc.Service
+	svc       *takeout.Service
 	tgc       tgclient.API
 	accountID string
 	cancel    context.CancelFunc
 }
 
-var syncStyles = struct {
+var takeoutStyles = struct {
 	idle    lipgloss.Style
 	log     lipgloss.Style
 	logLine lipgloss.Style
@@ -53,14 +53,14 @@ var syncStyles = struct {
 		Foreground(lipgloss.Color("252")),
 }
 
-func newSyncModel(svc *syncsvc.Service, tgc tgclient.API, accountID string) SyncModel {
+func newTakeoutModel(svc *takeout.Service, tgc tgclient.API, accountID string) TakeoutModel {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 
 	prog := progress.New(progress.WithDefaultGradient())
 
-	return SyncModel{
-		state:     syncIdle,
+	return TakeoutModel{
+		state:     takeoutIdle,
 		sp:        sp,
 		prog:      prog,
 		svc:       svc,
@@ -69,31 +69,31 @@ func newSyncModel(svc *syncsvc.Service, tgc tgclient.API, accountID string) Sync
 	}
 }
 
-// syncProgressMsg is sent from the goroutine as sync progresses.
-type syncProgressMsg syncsvc.Progress
+// takeoutProgressMsg is sent from the goroutine as takeout progresses.
+type takeoutProgressMsg takeout.Progress
 
-// syncDoneMsg signals that sync has finished.
-type syncDoneMsg struct{ err error }
+// takeoutDoneMsg signals that takeout has finished.
+type takeoutDoneMsg struct{ err error }
 
-func (m SyncModel) Update(msg tea.Msg) (SyncModel, tea.Cmd) {
+func (m TakeoutModel) Update(msg tea.Msg) (TakeoutModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "s":
-			if m.state != syncRunning {
-				return m.startSync()
+			if m.state != takeoutRunning {
+				return m.startTakeout()
 			}
 		case "c":
-			if m.state == syncRunning && m.cancel != nil {
+			if m.state == takeoutRunning && m.cancel != nil {
 				m.cancel()
 
-				m.state = syncFailed
+				m.state = takeoutFailed
 				m.err = errors.New("cancelled by user")
 			}
 		}
 
-	case syncProgressMsg:
-		p := syncsvc.Progress(msg)
+	case takeoutProgressMsg:
+		p := takeout.Progress(msg)
 
 		line := fmt.Sprintf("%-30s  %d/%d  %s", p.ChatName, p.Done, p.Total, p.Msg)
 		if p.Err != nil {
@@ -118,10 +118,10 @@ func (m SyncModel) Update(msg tea.Msg) (SyncModel, tea.Cmd) {
 			return m, progCmd
 		}
 
-	case syncDoneMsg:
-		m.state = syncDone
+	case takeoutDoneMsg:
+		m.state = takeoutDone
 		if msg.err != nil {
-			m.state = syncFailed
+			m.state = takeoutFailed
 			m.err = msg.err
 		}
 
@@ -131,16 +131,16 @@ func (m SyncModel) Update(msg tea.Msg) (SyncModel, tea.Cmd) {
 	}
 
 	var spinCmd tea.Cmd
-	if m.state == syncRunning {
+	if m.state == takeoutRunning {
 		m.sp, spinCmd = m.sp.Update(msg)
 	}
 
 	return m, spinCmd
 }
 
-// startSync kicks off the sync job in a background goroutine.
-func (m SyncModel) startSync() (SyncModel, tea.Cmd) {
-	m.state = syncRunning
+// startTakeout kicks off the takeout job in a background goroutine.
+func (m TakeoutModel) startTakeout() (TakeoutModel, tea.Cmd) {
+	m.state = takeoutRunning
 	m.log = nil
 	m.err = nil
 
@@ -149,10 +149,10 @@ func (m SyncModel) startSync() (SyncModel, tea.Cmd) {
 
 	svc := m.svc
 	accountID := m.accountID
-	opts := syncsvc.SyncOpts{Incremental: true}
+	opts := takeout.TakeoutOpts{Incremental: true}
 
 	return m, func() tea.Msg {
-		ch := make(chan syncsvc.Progress, 32)
+		ch := make(chan takeout.Progress, 32)
 
 		go svc.Run(ctx, accountID, opts, ch)
 
@@ -160,7 +160,7 @@ func (m SyncModel) startSync() (SyncModel, tea.Cmd) {
 		// Subsequent messages are delivered via tea.Batch + tea.Cmd chain.
 		p, ok := <-ch
 		if !ok {
-			return syncDoneMsg{}
+			return takeoutDoneMsg{}
 		}
 
 		// Spawn a goroutine to keep draining the channel and sending messages.
@@ -170,38 +170,38 @@ func (m SyncModel) startSync() (SyncModel, tea.Cmd) {
 			}
 		}()
 
-		return syncProgressMsg(p)
+		return takeoutProgressMsg(p)
 	}
 }
 
-func (m SyncModel) View() string {
+func (m TakeoutModel) View() string {
 	var b strings.Builder
 	b.WriteString("\n")
 
 	switch m.state {
-	case syncIdle:
-		b.WriteString(syncStyles.idle.Render("Press 's' to start syncing your Telegram message history."))
+	case takeoutIdle:
+		b.WriteString(takeoutStyles.idle.Render("Press 's' to start exporting your Telegram message history."))
 		b.WriteString("\n\n")
-		b.WriteString(syncStyles.idle.Render("(Requires an active MTProto session — authenticate via the Auth tab first.)"))
+		b.WriteString(takeoutStyles.idle.Render("(Requires an active MTProto session — authenticate via the Auth tab first.)"))
 
-	case syncRunning:
+	case takeoutRunning:
 		b.WriteString("  ")
 		b.WriteString(m.sp.View())
-		b.WriteString(" Syncing…\n\n")
+		b.WriteString(" Exporting…\n\n")
 		b.WriteString("  ")
 		b.WriteString(m.prog.View())
 		b.WriteString("\n\n")
 		b.WriteString("  Press 'c' to cancel.\n\n")
 		b.WriteString(m.renderLog())
 
-	case syncDone:
-		b.WriteString("  ✅ Sync complete!\n\n")
+	case takeoutDone:
+		b.WriteString("  ✅ Takeout complete!\n\n")
 		b.WriteString(m.renderLog())
 
-	case syncFailed:
-		msg := "Sync failed"
+	case takeoutFailed:
+		msg := "Takeout failed"
 		if m.err != nil {
-			msg = "Sync failed: " + m.err.Error()
+			msg = "Takeout failed: " + m.err.Error()
 		}
 
 		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render("  ✗ " + msg))
@@ -212,15 +212,15 @@ func (m SyncModel) View() string {
 	return b.String()
 }
 
-func (m SyncModel) renderLog() string {
+func (m TakeoutModel) renderLog() string {
 	if len(m.log) == 0 {
 		return ""
 	}
 
 	var b strings.Builder
 	for _, line := range m.log {
-		b.WriteString(syncStyles.logLine.Render("  "+line) + "\n")
+		b.WriteString(takeoutStyles.logLine.Render("  "+line) + "\n")
 	}
 
-	return syncStyles.log.Render(b.String())
+	return takeoutStyles.log.Render(b.String())
 }

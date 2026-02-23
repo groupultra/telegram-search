@@ -23,8 +23,8 @@ import (
 
 	"github.com/groupultra/telegram-search/internal/bot/handler"
 	"github.com/groupultra/telegram-search/internal/config"
-	"github.com/groupultra/telegram-search/internal/search"
-	syncsvc "github.com/groupultra/telegram-search/internal/sync"
+	"github.com/groupultra/telegram-search/internal/provider/search"
+	"github.com/groupultra/telegram-search/internal/provider/takeout"
 )
 
 // Module provides the bot and registers it with Echo's webhook route.
@@ -46,7 +46,7 @@ type Bot struct {
 func New(
 	cfg *config.Config,
 	searchSvc *search.Service,
-	syncSvc *syncsvc.Service,
+	takeoutSvc *takeout.Service,
 	log *slog.Logger,
 ) (*Bot, error) {
 	bc := cfg.Bot
@@ -71,7 +71,7 @@ func New(
 	tb.RegisterHandler(telebot.HandlerTypeMessageText, "/start", telebot.MatchTypeExact, handler.Start(log))
 	tb.RegisterHandler(telebot.HandlerTypeMessageText, "/help", telebot.MatchTypeExact, handler.Help(log))
 	tb.RegisterHandler(telebot.HandlerTypeMessageText, "/search", telebot.MatchTypePrefix, handler.Search(searchSvc, log))
-	tb.RegisterHandler(telebot.HandlerTypeMessageText, "/sync", telebot.MatchTypeExact, handler.Sync(syncSvc, log))
+	tb.RegisterHandler(telebot.HandlerTypeMessageText, "/takeout", telebot.MatchTypeExact, handler.Takeout(takeoutSvc, log))
 
 	// Callback queries for search result pagination.
 	tb.RegisterHandler(telebot.HandlerTypeCallbackQueryData, "search:", telebot.MatchTypePrefix, handler.SearchCallback(searchSvc, log))

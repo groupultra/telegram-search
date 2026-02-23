@@ -22,10 +22,10 @@ import (
 	"github.com/groupultra/telegram-search/internal/bot"
 	"github.com/groupultra/telegram-search/internal/config"
 	"github.com/groupultra/telegram-search/internal/db"
-	"github.com/groupultra/telegram-search/internal/embed"
-	"github.com/groupultra/telegram-search/internal/search"
+	"github.com/groupultra/telegram-search/internal/provider/embed"
+	"github.com/groupultra/telegram-search/internal/provider/search"
+	"github.com/groupultra/telegram-search/internal/provider/takeout"
 	"github.com/groupultra/telegram-search/internal/server"
-	syncsvc "github.com/groupultra/telegram-search/internal/sync"
 	"github.com/groupultra/telegram-search/pkg/tgclient"
 	"github.com/lmittmann/tint"
 	"github.com/spf13/cobra"
@@ -49,11 +49,11 @@ func main() {
 				embed.Modules(),
 				search.Modules(),
 				tgclient.Modules(),
-				syncsvc.Modules(),
+				takeout.Modules(),
 				server.Modules(),
 				bot.Modules(),
 
-				// Provide *tgclient.Client as tgclient.API so the sync service can be wired.
+				// Provide *tgclient.Client as tgclient.API so the takeout service can be wired.
 				fx.Provide(func(c *tgclient.Client) tgclient.API { return c }),
 			)
 

@@ -4,7 +4,7 @@
 // Screen layout:
 //
 //	┌─────────────────────────────────────────┐
-//	│  Telegram Search  [Search] [Sync] [Auth]│  ← tab bar
+//	│  Telegram Search  [Search] [Takeout] [Auth]│  ← tab bar
 //	├─────────────────────────────────────────┤
 //	│  (active view renders here)             │
 //	└─────────────────────────────────────────┘
@@ -18,8 +18,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/groupultra/telegram-search/internal/search"
-	"github.com/groupultra/telegram-search/internal/sync"
+	"github.com/groupultra/telegram-search/internal/provider/search"
+	"github.com/groupultra/telegram-search/internal/provider/takeout"
 	"github.com/groupultra/telegram-search/pkg/tgclient"
 )
 
@@ -28,12 +28,12 @@ type tab int
 
 const (
 	tabSearch tab = iota
-	tabSync
+	tabTakeout
 	tabAuth
 	tabCount
 )
 
-var tabNames = [tabCount]string{"Search", "Sync", "Auth"}
+var tabNames = [tabCount]string{"Search", "Takeout", "Auth"}
 
 // keyMap holds the global keybindings.
 type keyMap struct {
@@ -86,15 +86,15 @@ type Model struct {
 	status    string
 	statusErr bool
 
-	searchView SearchModel
-	syncView   SyncModel
-	authView   AuthModel
+	searchView  SearchModel
+	takeoutView TakeoutModel
+	authView    AuthModel
 }
 
 // Deps groups the service dependencies needed to build the Model.
 type Deps struct {
 	Search    *search.Service
-	Sync      *sync.Service
+	Takeout   *takeout.Service
 	TGClient  tgclient.API
 	AccountID string
 }
@@ -102,11 +102,11 @@ type Deps struct {
 // NewModel initialises the root model.
 func NewModel(deps Deps) Model {
 	return Model{
-		activeTab:  tabSearch,
-		status:     "ready",
-		searchView: newSearchModel(deps.Search, deps.AccountID),
-		syncView:   newSyncModel(deps.Sync, deps.TGClient, deps.AccountID),
-		authView:   newAuthModel(deps.TGClient),
+		activeTab:   tabSearch,
+		status:      "ready",
+		searchView:  newSearchModel(deps.Search, deps.AccountID),
+		takeoutView: newTakeoutModel(deps.Takeout, deps.TGClient, deps.AccountID),
+		authView:    newAuthModel(deps.TGClient),
 	}
 }
 
@@ -149,8 +149,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.activeTab {
 	case tabSearch:
 		m.searchView, cmd = m.searchView.Update(msg)
-	case tabSync:
-		m.syncView, cmd = m.syncView.Update(msg)
+	case tabTakeout:
+		m.takeoutView, cmd = m.takeoutView.Update(msg)
 	case tabAuth:
 		m.authView, cmd = m.authView.Update(msg)
 	}
@@ -169,8 +169,8 @@ func (m Model) View() string {
 	switch m.activeTab {
 	case tabSearch:
 		content = m.searchView.View()
-	case tabSync:
-		content = m.syncView.View()
+	case tabTakeout:
+		content = m.takeoutView.View()
 	case tabAuth:
 		content = m.authView.View()
 	}

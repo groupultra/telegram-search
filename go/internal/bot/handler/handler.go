@@ -22,8 +22,8 @@ import (
 	telebot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
-	"github.com/groupultra/telegram-search/internal/search"
-	"github.com/groupultra/telegram-search/internal/sync"
+	"github.com/groupultra/telegram-search/internal/provider/search"
+	"github.com/groupultra/telegram-search/internal/provider/takeout"
 )
 
 const (
@@ -60,11 +60,11 @@ I can search through your archived Telegram messages using semantic (AI-powered)
 
 *Commands:*
 /search <query> — search messages
-/sync — sync your Telegram message history
+/takeout — export your Telegram message history
 /help — show this help
 
 *Getting started:*
-1. Run /sync to import your messages
+1. Run /takeout to import your messages
 2. Use /search <topic> to find conversations`
 
 		sendMarkdown(ctx, b, update.Message.Chat.ID, msg)
@@ -148,8 +148,8 @@ func SearchCallback(svc *search.Service, log *slog.Logger) telebot.HandlerFunc {
 	}
 }
 
-// Sync handles /sync — starts a background message sync job.
-func Sync(svc *sync.Service, log *slog.Logger) telebot.HandlerFunc {
+// Takeout handles /takeout — starts a background message export job.
+func Takeout(svc *takeout.Service, log *slog.Logger) telebot.HandlerFunc {
 	return func(ctx context.Context, b *telebot.Bot, update *models.Update) {
 		if update.Message == nil {
 			return
@@ -159,36 +159,36 @@ func Sync(svc *sync.Service, log *slog.Logger) telebot.HandlerFunc {
 		userID := update.Message.From.ID
 		accountID := strconv.FormatInt(userID, 10)
 
-		sendText(ctx, b, chatID, "Starting sync... I'll update you as each chat completes.")
+		sendText(ctx, b, chatID, "Starting takeout... I'll update you as each chat completes.")
 
 		// Progress channel; closed by svc.Run when done.
-		progress := make(chan sync.Progress, 32)
+		progress := make(chan takeout.Progress, 32)
 
-		// Run sync in the background so we can send periodic updates.
-		syncCtx, cancel := context.WithTimeout(context.Background(), 6*time.Hour)
+		// Run takeout in the background so we can send periodic updates.
+		takeoutCtx, cancel := context.WithTimeout(context.Background(), 6*time.Hour)
 
 		go func() {
 			defer cancel()
 
-			svc.Run(syncCtx, accountID, sync.SyncOpts{Incremental: true}, progress)
+			svc.Run(takeoutCtx, accountID, takeout.TakeoutOpts{Incremental: true}, progress)
 		}()
 
 		go func() {
 			for p := range progress {
 				if p.Err != nil {
 					sendText(ctx, b, chatID,
-						fmt.Sprintf("⚠️ Error syncing %s: %v", p.ChatID, p.Err))
+						fmt.Sprintf("⚠️ Error exporting %s: %v", p.ChatID, p.Err))
 
 					continue
 				}
 
 				if p.Msg == "done" {
 					sendText(ctx, b, chatID,
-						fmt.Sprintf("✅ Synced %s (%d messages)", p.ChatName, p.Done))
+						fmt.Sprintf("✅ Exported %s (%d messages)", p.ChatName, p.Done))
 				}
 			}
 
-			sendText(ctx, b, chatID, "✅ Sync complete!")
+			sendText(ctx, b, chatID, "✅ Takeout complete!")
 		}()
 	}
 }
