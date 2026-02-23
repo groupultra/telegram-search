@@ -77,8 +77,10 @@ func runTUI(
 					log.Error("TUI exited with error", "err", err)
 					fmt.Fprintln(os.Stderr, "error:", err)
 				}
+
 				os.Exit(0)
 			}()
+
 			return nil
 		},
 	})

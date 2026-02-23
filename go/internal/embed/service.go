@@ -6,6 +6,7 @@ package embed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"log/slog"
@@ -54,6 +55,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Service, error) {
 	if ec.BaseURL != "" {
 		clientCfg.BaseURL = ec.BaseURL
 	}
+
 	client := openai.NewClientWithConfig(clientCfg)
 
 	return &Service{
@@ -64,7 +66,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Service, error) {
 }
 
 // ErrNoAPIKey is returned when the embedding API key is not configured.
-var ErrNoAPIKey = fmt.Errorf("embed: no API key configured")
+var ErrNoAPIKey = errors.New("embed: no API key configured")
 
 // Embed sends texts to the embedding API and returns the resulting vectors.
 //
@@ -74,27 +76,28 @@ func (s *Service) Embed(ctx context.Context, texts []string) (*EmbedResult, erro
 	if s.cfg.APIKey == "" {
 		return nil, ErrNoAPIKey
 	}
+
 	if len(texts) == 0 {
 		return &EmbedResult{}, nil
 	}
 
 	result := &EmbedResult{}
+
 	batchSize := s.cfg.BatchSize
 	if batchSize <= 0 {
 		batchSize = 100
 	}
 
 	for start := 0; start < len(texts); start += batchSize {
-		end := start + batchSize
-		if end > len(texts) {
-			end = len(texts)
-		}
+		end := min(start+batchSize, len(texts))
+
 		batch := texts[start:end]
 
 		vectors, dim, usage, err := s.embedBatch(ctx, batch)
 		if err != nil {
 			return nil, err
 		}
+
 		result.Vectors = append(result.Vectors, vectors...)
 		result.Dimension = dim
 		result.Usage.PromptTokens += usage.PromptTokens
@@ -110,9 +113,11 @@ func (s *Service) EmbedOne(ctx context.Context, text string) ([]float32, error) 
 	if err != nil {
 		return nil, err
 	}
+
 	if len(res.Vectors) == 0 {
-		return nil, fmt.Errorf("embed: no vector returned")
+		return nil, errors.New("embed: no vector returned")
 	}
+
 	return res.Vectors[0], nil
 }
 

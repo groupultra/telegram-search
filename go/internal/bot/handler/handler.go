@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,6 +53,7 @@ func Start(log *slog.Logger) telebot.HandlerFunc {
 		if update.Message == nil {
 			return
 		}
+
 		msg := `*Telegram Search Bot*
 
 I can search through your archived Telegram messages using semantic (AI-powered) search.
@@ -92,6 +94,7 @@ func Search(svc *search.Service, log *slog.Logger) telebot.HandlerFunc {
 		if query == "" {
 			sendText(ctx, b, update.Message.Chat.ID,
 				"Usage: /search <your query>\n\nExample: /search machine learning in Go")
+
 			return
 		}
 
@@ -102,7 +105,7 @@ func Search(svc *search.Service, log *slog.Logger) telebot.HandlerFunc {
 		// NOTE: In a full implementation, resolve the accountID from the
 		// Telegram user ID via the DB (accounts table lookup).
 		// For now we use the user ID as a placeholder.
-		accountID := fmt.Sprintf("%d", userID)
+		accountID := strconv.FormatInt(userID, 10)
 
 		results, err := svc.Search(ctx, query, search.Filter{
 			AccountID: accountID,
@@ -111,12 +114,14 @@ func Search(svc *search.Service, log *slog.Logger) telebot.HandlerFunc {
 		if err != nil {
 			log.Error("search failed", "err", err)
 			sendText(ctx, b, update.Message.Chat.ID, "Search failed. Please try again.")
+
 			return
 		}
 
 		if len(results) == 0 {
 			sendText(ctx, b, update.Message.Chat.ID,
 				fmt.Sprintf("No results found for: *%s*", escapeMarkdown(query)))
+
 			return
 		}
 
@@ -152,7 +157,7 @@ func Sync(svc *sync.Service, log *slog.Logger) telebot.HandlerFunc {
 
 		chatID := update.Message.Chat.ID
 		userID := update.Message.From.ID
-		accountID := fmt.Sprintf("%d", userID)
+		accountID := strconv.FormatInt(userID, 10)
 
 		sendText(ctx, b, chatID, "Starting sync... I'll update you as each chat completes.")
 
@@ -161,8 +166,10 @@ func Sync(svc *sync.Service, log *slog.Logger) telebot.HandlerFunc {
 
 		// Run sync in the background so we can send periodic updates.
 		syncCtx, cancel := context.WithTimeout(context.Background(), 6*time.Hour)
+
 		go func() {
 			defer cancel()
+
 			svc.Run(syncCtx, accountID, sync.SyncOpts{Incremental: true}, progress)
 		}()
 
@@ -171,13 +178,16 @@ func Sync(svc *sync.Service, log *slog.Logger) telebot.HandlerFunc {
 				if p.Err != nil {
 					sendText(ctx, b, chatID,
 						fmt.Sprintf("⚠️ Error syncing %s: %v", p.ChatID, p.Err))
+
 					continue
 				}
+
 				if p.Msg == "done" {
 					sendText(ctx, b, chatID,
 						fmt.Sprintf("✅ Synced %s (%d messages)", p.ChatName, p.Done))
 				}
 			}
+
 			sendText(ctx, b, chatID, "✅ Sync complete!")
 		}()
 	}
@@ -217,6 +227,7 @@ func formatSearchResults(query string, results []search.Result) string {
 		}
 
 		ts := time.Unix(r.PlatformTimestamp, 0).Format("2006-01-02")
+
 		chat := r.ChatName
 		if chat == "" {
 			chat = r.InChatID
@@ -259,5 +270,6 @@ func escapeMarkdown(s string) string {
 	s = strings.ReplaceAll(s, "*", "\\*")
 	s = strings.ReplaceAll(s, "`", "\\`")
 	s = strings.ReplaceAll(s, "[", "\\[")
+
 	return s
 }

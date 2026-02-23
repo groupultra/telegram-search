@@ -8,6 +8,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -56,6 +57,7 @@ func New(cfg *config.Config, log *slog.Logger) *echo.Echo {
 					"status", v.Status,
 				)
 			}
+
 			return nil
 		},
 	}))
@@ -80,20 +82,25 @@ func registerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg *config.Config, log *s
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			log.Info("HTTP server starting", "addr", addr)
+
 			go func() {
-				if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
+				if err := e.Start(addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 					log.Error("HTTP server error", "err", err)
 				}
 			}()
+
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
 			log.Info("HTTP server shutting down")
+
 			shutCtx, cancel := context.WithTimeout(ctx, cfg.Server.ShutdownTimeout)
 			defer cancel()
+
 			if err := e.Shutdown(shutCtx); err != nil {
 				return fmt.Errorf("server: shutdown: %w", err)
 			}
+
 			return nil
 		},
 	})

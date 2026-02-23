@@ -61,6 +61,7 @@ func newAuthModel(tgc tgclient.API) AuthModel {
 
 	step := authStepPhone
 	info := "Enter your Telegram phone number to authenticate."
+
 	if tgc != nil && tgc.IsAuthenticated() {
 		step = authStepDone
 		info = "Already authenticated."
@@ -91,11 +92,14 @@ func (m AuthModel) Update(msg tea.Msg) (AuthModel, tea.Cmd) {
 			if value == "" {
 				return m, nil
 			}
+
 			switch m.step {
 			case authStepPhone:
 				m.phone = value
 				m.input.SetValue("")
+
 				m.input.Placeholder = "Enter auth code"
+
 				return m, m.sendCode(value)
 			case authStepCode:
 				return m, m.submitCode(value)
@@ -122,11 +126,13 @@ func (m AuthModel) Update(msg tea.Msg) (AuthModel, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
+
 	return m, cmd
 }
 
 func (m AuthModel) sendCode(phone string) tea.Cmd {
 	tgc := m.tgc
+
 	return func() tea.Msg {
 		sent, err := tgc.AuthWithPhone(context.Background(), phone)
 		return authResultMsg{sentCode: sent, err: err}
@@ -137,20 +143,24 @@ func (m AuthModel) submitCode(code string) tea.Cmd {
 	tgc := m.tgc
 	phone := m.phone
 	sentCode := m.sentCode
+
 	return func() tea.Msg {
 		if err := tgc.AuthWithCode(context.Background(), phone, code, sentCode); err != nil {
 			return authResultMsg{err: err}
 		}
+
 		return authDoneMsg{}
 	}
 }
 
 func (m AuthModel) submit2FA(password string) tea.Cmd {
 	tgc := m.tgc
+
 	return func() tea.Msg {
 		if err := tgc.AuthWithPassword(context.Background(), password); err != nil {
 			return authResultMsg{err: err}
 		}
+
 		return authDoneMsg{}
 	}
 }

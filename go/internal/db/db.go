@@ -58,12 +58,15 @@ func NewPool(lc fx.Lifecycle, cfg *config.Config, log *slog.Logger) (*pgxpool.Po
 			if err := pool.Ping(ctx); err != nil {
 				return fmt.Errorf("db: ping: %w", err)
 			}
+
 			log.Info("database connection established", "dsn", redactDSN(dsn))
+
 			return nil
 		},
 		OnStop: func(_ context.Context) error {
 			pool.Close()
 			log.Info("database connection closed")
+
 			return nil
 		},
 	})
@@ -77,6 +80,7 @@ func NewEntClient(pool *pgxpool.Pool) (*ent.Client, error) {
 	sqlDB := stdlib.OpenDBFromPool(pool)
 	drv := entsql.OpenDB(dialect.Postgres, sqlDB)
 	client := ent.NewClient(ent.Driver(drv))
+
 	return client, nil
 }
 
@@ -87,6 +91,7 @@ func migrate(lc fx.Lifecycle, client *ent.Client, pool *pgxpool.Pool, log *slog.
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			log.Info("running ent schema migration")
+
 			if err := client.Schema.Create(ctx); err != nil {
 				return fmt.Errorf("db: schema migrate: %w", err)
 			}
@@ -95,7 +100,9 @@ func migrate(lc fx.Lifecycle, client *ent.Client, pool *pgxpool.Pool, log *slog.
 			if err := ensureVectorColumns(ctx, stdlib.OpenDBFromPool(pool)); err != nil {
 				return fmt.Errorf("db: vector columns: %w", err)
 			}
+
 			log.Info("schema migration complete")
+
 			return nil
 		},
 	})
@@ -124,9 +131,11 @@ func ensureVectorColumns(ctx context.Context, db *sql.DB) error {
 			if len(preview) > 60 {
 				preview = preview[:60]
 			}
+
 			return fmt.Errorf("exec %q: %w", preview, err)
 		}
 	}
+
 	return nil
 }
 

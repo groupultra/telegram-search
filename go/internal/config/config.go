@@ -54,22 +54,27 @@ func (d DatabaseConfig) DSNOrBuild() string {
 	if d.DSN != "" {
 		return d.DSN
 	}
+
 	host := d.Host
 	if host == "" {
 		host = "localhost"
 	}
+
 	port := d.Port
 	if port == 0 {
 		port = 5432
 	}
+
 	user := d.User
 	if user == "" {
 		user = "postgres"
 	}
+
 	name := d.Name
 	if name == "" {
 		name = "telegram_search"
 	}
+
 	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		user, d.Password, host, port, name)
 }

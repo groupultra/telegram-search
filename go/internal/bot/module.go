@@ -12,6 +12,7 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -50,7 +51,7 @@ func New(
 ) (*Bot, error) {
 	bc := cfg.Bot
 	if bc.Token == "" {
-		return nil, fmt.Errorf("bot: token is required (set TGS_BOT_TOKEN)")
+		return nil, errors.New("bot: token is required (set TGS_BOT_TOKEN)")
 	}
 
 	opts := []telebot.Option{
@@ -85,6 +86,7 @@ func register(lc fx.Lifecycle, b *Bot, e *echo.Echo) {
 			if b.cfg.WebhookURL != "" {
 				return b.startWebhook(ctx, e)
 			}
+
 			return b.startPolling(ctx)
 		},
 	})
@@ -110,13 +112,16 @@ func (b *Bot) startWebhook(ctx context.Context, e *echo.Echo) error {
 
 	// StartWebhook processes updates dispatched by the webhook handler above.
 	go b.tg.StartWebhook(ctx)
+
 	return nil
 }
 
 // startPolling starts long-polling (non-blocking; runs in a goroutine).
 func (b *Bot) startPolling(ctx context.Context) error {
 	b.log.Info("starting long-polling")
+
 	go b.tg.Start(ctx)
+
 	return nil
 }
 
@@ -127,6 +132,7 @@ func (b *Bot) DeleteWebhook(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("bot: delete webhook: %w", err)
 	}
+
 	return nil
 }
 

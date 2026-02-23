@@ -56,6 +56,7 @@ func newSearchModel(svc *search.Service, accountID string) SearchModel {
 	ti := textinput.New()
 	ti.Placeholder = "Type a query and press Enter…"
 	ti.Focus()
+
 	ti.CharLimit = 500
 
 	return SearchModel{
@@ -80,6 +81,7 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 				m.searching = true
 				m.results = nil
 				m.err = nil
+
 				return m, m.doSearch(query)
 			}
 		case "up", "k":
@@ -101,6 +103,7 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
+
 	return m, cmd
 }
 
@@ -152,6 +155,7 @@ func (m SearchModel) View() string {
 
 func (m SearchModel) renderResult(i int, r search.Result) string {
 	ts := time.Unix(r.PlatformTimestamp, 0).Format("2006-01-02 15:04")
+
 	chat := r.ChatName
 	if chat == "" {
 		chat = r.InChatID
@@ -166,6 +170,7 @@ func (m SearchModel) renderResult(i int, r search.Result) string {
 	if len(content) > 200 {
 		content = content[:200] + "…"
 	}
+
 	body := searchStyles.content.Render(content)
 
 	block := lipgloss.JoinVertical(lipgloss.Left, meta, body)
@@ -173,5 +178,6 @@ func (m SearchModel) renderResult(i int, r search.Result) string {
 	if i == m.cursor {
 		return searchStyles.selectedResult.Render(block) + "\n"
 	}
+
 	return searchStyles.result.Render(block) + "\n"
 }

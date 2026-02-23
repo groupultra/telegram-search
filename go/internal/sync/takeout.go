@@ -13,7 +13,9 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"log/slog"
@@ -94,7 +96,7 @@ func (s *Service) Run(ctx context.Context, accountID string, opts SyncOpts, ch c
 	defer close(ch)
 
 	if !s.tg.IsAuthenticated() {
-		ch <- Progress{Err: fmt.Errorf("sync: MTProto client not authenticated")}
+		ch <- Progress{Err: errors.New("sync: MTProto client not authenticated")}
 		return
 	}
 
@@ -113,12 +115,15 @@ func (s *Service) Run(ctx context.Context, accountID string, opts SyncOpts, ch c
 		if ctx.Err() != nil {
 			return
 		}
+
 		chatName := ""
 		if i < len(chatNames) {
 			chatName = chatNames[i]
 		}
+
 		if err := s.syncChat(ctx, accountID, chatID, chatName, opts, batchSize, ch); err != nil {
 			s.log.Error("chat sync failed", "chat_id", chatID, "err", err)
+
 			ch <- Progress{ChatID: chatID, Err: err}
 		}
 	}
@@ -133,9 +138,11 @@ func (s *Service) syncChat(
 	ch chan<- Progress,
 ) error {
 	s.log.Info("syncing chat", "chat_id", chatID)
+
 	ch <- Progress{ChatID: chatID, ChatName: chatName, Msg: "starting sync"}
 
 	offsetID := 0
+
 	if opts.Incremental {
 		if latest, _ := s.latestStoredMessageID(ctx, accountID, chatID); latest > 0 {
 			offsetID = latest
@@ -143,6 +150,7 @@ func (s *Service) syncChat(
 	}
 
 	done := 0
+
 	embedBatch := opts.EmbedBatch
 	if embedBatch <= 0 {
 		embedBatch = defaultEmbedBatch
@@ -158,27 +166,35 @@ func (s *Service) syncChat(
 		if len(buf) == 0 {
 			return nil
 		}
+
 		texts := make([]string, len(buf))
 		for i, p := range buf {
 			texts[i] = p.content
 		}
+
 		result, embedErr := s.embed.Embed(ctx, texts)
 		if embedErr != nil {
 			// NOTE: Embedding failure is non-fatal; messages are stored without
 			// vectors and can be re-embedded by a separate pass later.
 			s.log.Warn("embedding batch failed; messages stored without vectors",
 				"count", len(buf), "err", embedErr)
+
 			buf = buf[:0]
+
 			return nil
 		}
+
 		ids := make([]string, len(buf))
 		for i, p := range buf {
 			ids[i] = p.msgUUID
 		}
+
 		if storeErr := s.search.StoreVectorBatch(ctx, ids, result.Vectors); storeErr != nil {
 			s.log.Warn("vector store failed", "err", storeErr)
 		}
+
 		buf = buf[:0]
+
 		return nil
 	}
 
@@ -197,6 +213,7 @@ func (s *Service) syncChat(
 		if fetchErr != nil {
 			return fmt.Errorf("fetch history: %w", fetchErr)
 		}
+
 		if len(messages) == 0 {
 			break
 		}
@@ -206,11 +223,14 @@ func (s *Service) syncChat(
 			if upsertErr != nil {
 				s.log.Warn("upsert message failed",
 					"msg_id", msg.ID, "err", upsertErr)
+
 				continue
 			}
+
 			if msgUUID != "" {
 				buf = append(buf, pending{msgUUID: msgUUID, content: msg.Text})
 			}
+
 			done++
 		}
 
@@ -238,7 +258,9 @@ func (s *Service) syncChat(
 	}
 
 	ch <- Progress{ChatID: chatID, ChatName: chatName, Done: done, Total: done, Msg: "done"}
+
 	s.log.Info("chat sync complete", "chat_id", chatID, "messages", done)
+
 	return nil
 }
 
@@ -247,6 +269,7 @@ func (s *Service) syncChat(
 func (s *Service) upsertMessage(ctx context.Context, accountID, chatID, chatName string, msg tgclient.TGMessage) (string, error) {
 	// Upsert chat — create if missing, update name if present.
 	var chatUUID string
+
 	err := s.pool.QueryRow(ctx, `
 		INSERT INTO chats (platform, chat_id, chat_name, owner_account_id)
 		VALUES ('telegram', $1, $2,
@@ -261,6 +284,7 @@ func (s *Service) upsertMessage(ctx context.Context, accountID, chatID, chatName
 
 	// Insert message; silently skip duplicates.
 	var msgUUID string
+
 	scanErr := s.pool.QueryRow(ctx, `
 		INSERT INTO messages (
 			platform, platform_message_id, from_id,
@@ -272,20 +296,21 @@ func (s *Service) upsertMessage(ctx context.Context, accountID, chatID, chatName
 		DO NOTHING
 		RETURNING id::text
 	`,
-		fmt.Sprintf("%d", msg.ID),
+		strconv.Itoa(msg.ID),
 		msg.FromID,
 		msg.Text,
 		int64(msg.Date),
 		chatUUID,
 		accountID,
 	).Scan(&msgUUID)
-
 	if scanErr != nil {
-		if scanErr == pgx.ErrNoRows {
+		if errors.Is(scanErr, pgx.ErrNoRows) {
 			return "", nil // already exists
 		}
+
 		return "", fmt.Errorf("upsert message: %w", scanErr)
 	}
+
 	return msgUUID, nil
 }
 
@@ -302,11 +327,13 @@ func (s *Service) resolveChatIDs(ctx context.Context, chatIDs []string) ([]strin
 	}
 
 	ids := make([]string, len(dialogs))
+
 	names := make([]string, len(dialogs))
 	for i, d := range dialogs {
 		ids[i] = d.ID
 		names[i] = d.Name
 	}
+
 	return ids, names, nil
 }
 
@@ -322,5 +349,6 @@ func (s *Service) latestStoredMessageID(ctx context.Context, accountID, chatID s
 		WHERE a.phone = $1
 		  AND c.chat_id = $2
 	`, accountID, chatID).Scan(&id)
+
 	return id, err
 }

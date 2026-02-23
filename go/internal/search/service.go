@@ -184,6 +184,7 @@ func (s *Service) keywordSearch(ctx context.Context, query string, filter Filter
 	`
 
 	pattern := "%" + query + "%"
+
 	args := []any{filter.AccountID, pattern, opts.Limit, opts.Offset}
 	if len(filter.ChatIDs) > 0 {
 		args = append(args, filter.ChatIDs)
@@ -218,6 +219,7 @@ func chatFilter(filter Filter) string {
 	if len(filter.ChatIDs) == 0 {
 		return ""
 	}
+
 	return "AND c.chat_id = ANY($5)"
 }
 
@@ -228,6 +230,7 @@ func scanResults(rows interface {
 	Err() error
 }) ([]Result, error) {
 	var results []Result
+
 	for rows.Next() {
 		var r Result
 		if err := rows.Scan(
@@ -244,8 +247,10 @@ func scanResults(rows interface {
 		); err != nil {
 			return nil, fmt.Errorf("search: scan: %w", err)
 		}
+
 		results = append(results, r)
 	}
+
 	return results, rows.Err()
 }
 
@@ -266,6 +271,7 @@ func (s *Service) StoreVectors(ctx context.Context, messageID string, vec []floa
 	if err != nil {
 		return fmt.Errorf("search: store vector: %w", err)
 	}
+
 	return nil
 }
 
@@ -276,6 +282,7 @@ func (s *Service) StoreVectorBatch(ctx context.Context, messageIDs []string, vec
 		return fmt.Errorf("search: messageIDs (%d) and vecs (%d) length mismatch",
 			len(messageIDs), len(vecs))
 	}
+
 	if len(vecs) == 0 {
 		return nil
 	}

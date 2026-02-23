@@ -1,105 +1,107 @@
-# golangci-lint configuration for telegram-search Go rewrite.
-# Run: golangci-lint run ./...
-
-version: '2'
-
-run:
-  timeout: 5m
-  # NOTE: Tests often use testify patterns that trip linters; include them
-  # anyway to catch real bugs but tune per-linter below.
-  tests: true
-
+version: "2"
 linters:
-  # Disable all linters by default, then opt-in to the ones we want.
-  # This gives stable behavior as golangci-lint adds new linters over time.
-  default: none
-  enable:
-    # Correctness
-    - errcheck # check that errors are handled
-    - govet # vet checks (shadow, printf, ...)
-    - staticcheck # SA*, ST*, QF* from staticcheck.io
-    - unused # find unused code
-    - ineffassign # detect ineffectual assignments
-    - typecheck # compile-time type errors
-
-    # Style
-    - gofmt # standard formatting
-    - goimports # import grouping and formatting
-    - misspell # common spelling mistakes in comments
-    - revive # a fast, configurable linter (replaces golint)
-    - godot # check that comments end with a period
-
-    # Complexity / design
-    - cyclop # cyclomatic complexity
-    - funlen # function length
-    - gocognit # cognitive complexity
-
-    # Security
-    - gosec # G* security checks
-
-    # Error handling patterns
-    - wrapcheck # ensure errors are wrapped with context
-    - nilerr # detect `return nil, err` where err might be nil
-
-    # Concurrency
-    - gocritic # many miscellaneous checks
-
-linters-settings:
-  revive:
+  default: all
+  disable:
+    - containedctx
+    - contextcheck
+    - cyclop
+    - depguard
+    - err113
+    - exhaustruct
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - gocyclo
+    - godot
+    - godox
+    - ireturn
+    - lll
+    - maintidx
+    - nilnil
+    - nlreturn
+    - paralleltest
+    - tagalign
+    - tagliatelle
+    - testpackage
+    - varnamelen
+    - wrapcheck
+    # Custom disabled linters
+    - gosmopolitan
+    - mnd
+    - wsl
+    - protogetter
+    - noinlineerr
+    - funcorder
+    - nolintlint
+    - godoclint
+  settings:
+    sloglint:
+      key-naming-case: snake
+      # attr-only: true
+      # context: "scope"
+      # msg-style: "capitalized"
+    dupl:
+      threshold: 600
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+    gosec:
+      excludes:
+        - G115
+    # mnd:
+    #   ignored-files:
+    #     - examples/.*
+    #   ignored-functions:
+    #     - context.WithTimeout
+    #     - strconv.ParseComplex
+    nestif:
+      min-complexity: 9
+    revive:
+      rules:
+        - name: blank-imports
+          disabled: true
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
+      enable:
+        - assign-expr
+      disable:
+        - append
+        - decl
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-      - name: exported
-        arguments:
-          - 'checkPrivateReceivers'
-      - name: var-naming
-      - name: error-strings
-      - name: if-return
-      - name: increment-decrement
-
-  cyclop:
-    max-complexity: 15
-
-  funlen:
-    lines: 120
-    statements: 60
-
-  gocognit:
-    min-complexity: 20
-
-  godot:
-    # Only check exported symbols so internal helpers aren't forced to have
-    # sentence-ending comments.
-    scope: toplevel
-    capital: true
-
-  wrapcheck:
-    ignorePackageGlobs:
-      - 'github.com/groupultra/telegram-search/*'
-
-  gosec:
-    excludes:
-      # G115: integer conversion overflow — false positives with proto IDs
-      - G115
-
-issues:
-  # Don't report the same issue more than once.
-  max-same-issues: 3
-
-  exclude-rules:
-    # Test files don't need all the production rigor.
-    - path: '_test\.go$'
-      linters:
-        - funlen
-        - cyclop
-        - wrapcheck
-        - gosec
-
-    # Generated ent files are not hand-written.
-    - path: 'ent/'
-      linters:
-        - revive
-        - godot
-        - wrapcheck
-        - funlen
-        - cyclop
-        - gocognit
-        - gocritic
+      - linters:
+          - perfsprint
+        path: _test\.go
+      - path: (.+)\.go$
+        text: if statements should only be cuddled with assignments
+      - path: (.+)\.go$
+        text: if statements should only be cuddled with assignments used in the if statement itself
+      - path: (.+)\.go$
+        text: assignments should only be cuddled with other assignments
+    paths:
+      - apis
+      - api
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - apis
+      - api
+      - third_party$
+      - builtin$
+      - examples$

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -85,17 +86,20 @@ func (m SyncModel) Update(msg tea.Msg) (SyncModel, tea.Cmd) {
 		case "c":
 			if m.state == syncRunning && m.cancel != nil {
 				m.cancel()
+
 				m.state = syncFailed
-				m.err = fmt.Errorf("cancelled by user")
+				m.err = errors.New("cancelled by user")
 			}
 		}
 
 	case syncProgressMsg:
 		p := syncsvc.Progress(msg)
+
 		line := fmt.Sprintf("%-30s  %d/%d  %s", p.ChatName, p.Done, p.Total, p.Msg)
 		if p.Err != nil {
 			line = fmt.Sprintf("⚠ %s: %v", p.ChatID, p.Err)
 		}
+
 		m.log = append(m.log, line)
 		// Keep at most 100 lines to avoid unbounded growth.
 		if len(m.log) > 100 {
@@ -110,6 +114,7 @@ func (m SyncModel) Update(msg tea.Msg) (SyncModel, tea.Cmd) {
 			if prog, ok := updated.(progress.Model); ok {
 				m.prog = prog
 			}
+
 			return m, progCmd
 		}
 
@@ -119,6 +124,7 @@ func (m SyncModel) Update(msg tea.Msg) (SyncModel, tea.Cmd) {
 			m.state = syncFailed
 			m.err = msg.err
 		}
+
 		if m.cancel != nil {
 			m.cancel()
 		}
@@ -128,6 +134,7 @@ func (m SyncModel) Update(msg tea.Msg) (SyncModel, tea.Cmd) {
 	if m.state == syncRunning {
 		m.sp, spinCmd = m.sp.Update(msg)
 	}
+
 	return m, spinCmd
 }
 
@@ -196,6 +203,7 @@ func (m SyncModel) View() string {
 		if m.err != nil {
 			msg = "Sync failed: " + m.err.Error()
 		}
+
 		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render("  ✗ " + msg))
 		b.WriteString("\n\n")
 		b.WriteString(m.renderLog())
@@ -213,5 +221,6 @@ func (m SyncModel) renderLog() string {
 	for _, line := range m.log {
 		b.WriteString(syncStyles.logLine.Render("  "+line) + "\n")
 	}
+
 	return syncStyles.log.Render(b.String())
 }

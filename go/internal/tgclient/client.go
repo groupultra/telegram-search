@@ -14,9 +14,11 @@ package tgclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"log/slog"
 
@@ -99,13 +101,14 @@ type Client struct {
 func New(lc fx.Lifecycle, cfg *config.Config, log *slog.Logger) (*Client, error) {
 	tc := cfg.Telegram
 	if tc.AppID == 0 || tc.AppHash == "" {
-		return nil, fmt.Errorf("tgclient: telegram.app_id and telegram.app_hash are required")
+		return nil, errors.New("tgclient: telegram.app_id and telegram.app_hash are required")
 	}
 
 	sessionPath := tc.SessionFile
 	if sessionPath == "" {
 		sessionPath = "./session.json"
 	}
+
 	if err := os.MkdirAll(filepath.Dir(sessionPath), 0o700); err != nil {
 		return nil, fmt.Errorf("tgclient: create session dir: %w", err)
 	}
@@ -128,6 +131,7 @@ func New(lc fx.Lifecycle, cfg *config.Config, log *slog.Logger) (*Client, error)
 		ready: make(chan struct{}),
 	}
 	_ = lc
+
 	return c, nil
 }
 
@@ -144,11 +148,13 @@ func (c *Client) Run(ctx context.Context, onReady func()) error {
 
 		if status.Authorized {
 			c.log.Info("session restored; client ready")
+
 			select {
 			case <-c.ready:
 			default:
 				close(c.ready)
 			}
+
 			if onReady != nil {
 				onReady()
 			}
@@ -157,6 +163,7 @@ func (c *Client) Run(ctx context.Context, onReady func()) error {
 		}
 
 		<-ctx.Done()
+
 		return nil
 	})
 }
@@ -187,6 +194,7 @@ func (c *Client) AuthWithPhone(ctx context.Context, phone string) (*SentCode, er
 	if err != nil {
 		return nil, fmt.Errorf("tgclient: send code: %w", err)
 	}
+
 	return &SentCode{inner: sent}, nil
 }
 
@@ -198,10 +206,13 @@ func (c *Client) AuthWithCode(ctx context.Context, phone, code string, sent *Sen
 	if !ok {
 		return fmt.Errorf("tgclient: unexpected sent code type: %T", sent.inner)
 	}
+
 	if _, err := c.raw.Auth().SignIn(ctx, phone, code, sc.PhoneCodeHash); err != nil {
 		return fmt.Errorf("tgclient: sign in: %w", err)
 	}
+
 	c.markReady()
+
 	return nil
 }
 
@@ -210,7 +221,9 @@ func (c *Client) AuthWithPassword(ctx context.Context, password string) error {
 	if _, err := c.raw.Auth().Password(ctx, password); err != nil {
 		return fmt.Errorf("tgclient: 2fa password: %w", err)
 	}
+
 	c.markReady()
+
 	return nil
 }
 
@@ -225,6 +238,7 @@ func (c *Client) GetDialogs(ctx context.Context) ([]TGDialog, error) {
 	}
 
 	var result []TGDialog
+
 	switch v := dialogs.(type) {
 	case *tg.MessagesDialogs:
 		result = append(result, mapChats(v.Chats)...)
@@ -233,6 +247,7 @@ func (c *Client) GetDialogs(ctx context.Context) ([]TGDialog, error) {
 		result = append(result, mapChats(v.Chats)...)
 		result = append(result, mapUsers(v.Users)...)
 	}
+
 	return result, nil
 }
 
@@ -253,6 +268,7 @@ func (c *Client) GetHistory(ctx context.Context, chatID string, offsetID, limit 
 	}
 
 	var messages []TGMessage
+
 	switch v := result.(type) {
 	case *tg.MessagesMessages:
 		messages = mapMessages(v.Messages)
@@ -261,6 +277,7 @@ func (c *Client) GetHistory(ctx context.Context, chatID string, offsetID, limit 
 	case *tg.MessagesChannelMessages:
 		messages = mapMessages(v.Messages)
 	}
+
 	return messages, nil
 }
 
@@ -276,45 +293,54 @@ func (c *Client) markReady() {
 
 func mapChats(chats []tg.ChatClass) []TGDialog {
 	var out []TGDialog
+
 	for _, c := range chats {
 		switch v := c.(type) {
 		case *tg.Chat:
-			out = append(out, TGDialog{ID: fmt.Sprintf("%d", v.ID), Name: v.Title, Type: "group"})
+			out = append(out, TGDialog{ID: strconv.FormatInt(v.ID, 10), Name: v.Title, Type: "group"})
 		case *tg.Channel:
 			t := "channel"
 			if v.Megagroup {
 				t = "supergroup"
 			}
-			out = append(out, TGDialog{ID: fmt.Sprintf("%d", v.ID), Name: v.Title, Type: t})
+
+			out = append(out, TGDialog{ID: strconv.FormatInt(v.ID, 10), Name: v.Title, Type: t})
 		}
 	}
+
 	return out
 }
 
 func mapUsers(users []tg.UserClass) []TGDialog {
 	var out []TGDialog
+
 	for _, u := range users {
 		if user, ok := u.(*tg.User); ok && !user.Bot {
 			name := user.FirstName + " " + user.LastName
-			out = append(out, TGDialog{ID: fmt.Sprintf("%d", user.ID), Name: name, Type: "user"})
+			out = append(out, TGDialog{ID: strconv.FormatInt(user.ID, 10), Name: name, Type: "user"})
 		}
 	}
+
 	return out
 }
 
 func mapMessages(raw []tg.MessageClass) []TGMessage {
 	var out []TGMessage
+
 	for _, m := range raw {
 		msg, ok := m.(*tg.Message)
 		if !ok || msg.Message == "" {
 			continue
 		}
+
 		fromID := ""
+
 		if msg.FromID != nil {
 			if p, ok := msg.FromID.(*tg.PeerUser); ok {
-				fromID = fmt.Sprintf("%d", p.UserID)
+				fromID = strconv.FormatInt(p.UserID, 10)
 			}
 		}
+
 		out = append(out, TGMessage{
 			ID:     msg.ID,
 			FromID: fromID,
@@ -322,6 +348,7 @@ func mapMessages(raw []tg.MessageClass) []TGMessage {
 			Date:   msg.Date,
 		})
 	}
+
 	return out
 }
 

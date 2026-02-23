@@ -145,6 +145,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Delegate to the active sub-model.
 	var cmd tea.Cmd
+
 	switch m.activeTab {
 	case tabSearch:
 		m.searchView, cmd = m.searchView.Update(msg)
@@ -153,6 +154,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tabAuth:
 		m.authView, cmd = m.authView.Update(msg)
 	}
+
 	return m, cmd
 }
 
@@ -163,6 +165,7 @@ func (m Model) View() string {
 
 	// Active view content.
 	var content string
+
 	switch m.activeTab {
 	case tabSearch:
 		content = m.searchView.View()
@@ -180,7 +183,8 @@ func (m Model) View() string {
 
 func (m Model) renderTabBar() string {
 	var tabs []string
-	for i := tab(0); i < tabCount; i++ {
+
+	for i := range tabCount {
 		name := tabNames[i]
 		if i == m.activeTab {
 			tabs = append(tabs, styles.activeTab.Render(name))
@@ -188,7 +192,9 @@ func (m Model) renderTabBar() string {
 			tabs = append(tabs, styles.tab.Render(name))
 		}
 	}
+
 	bar := lipgloss.JoinHorizontal(lipgloss.Top, tabs...)
+
 	return styles.tabBorder.Width(m.width).Render(bar)
 }
 
@@ -197,6 +203,7 @@ func (m Model) renderStatus() string {
 	if m.statusErr {
 		return styles.statusError.Render("✗ " + s)
 	}
+
 	return styles.statusOK.Render("● " + s)
 }
 
@@ -211,5 +218,6 @@ func Run(deps Deps) error {
 	m := NewModel(deps)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	_, err := p.Run()
+
 	return err
 }
