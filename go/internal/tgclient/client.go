@@ -35,17 +35,19 @@ import (
 // SentCode so callers outside this package don't import tg directly.
 
 // Module provides *Client to the fx graph.
-var Module = fx.Module("tgclient", fx.Provide(New))
+func Modules() fx.Option {
+	return fx.Options(fx.Provide(New))
+}
 
 // --- Domain types (no gotd/td types) ----------------------------------------
 
 // TGMessage is a domain-level representation of a Telegram message.
 // It is used by callers so they don't need to import gotd/td types.
 type TGMessage struct {
-	ID        int
-	FromID    string
-	Text      string
-	Date      int // Unix timestamp
+	ID     int
+	FromID string
+	Text   string
+	Date   int // Unix timestamp
 }
 
 // TGDialog is a domain-level representation of a Telegram dialog.

@@ -27,10 +27,12 @@ import (
 )
 
 // Module provides the bot and registers it with Echo's webhook route.
-var Module = fx.Module("bot",
-	fx.Provide(New),
-	fx.Invoke(register),
-)
+func Modules() fx.Option {
+	return fx.Options(
+		fx.Provide(New),
+		fx.Invoke(register),
+	)
+}
 
 // Bot wraps the go-telegram/bot client with application-level context.
 type Bot struct {

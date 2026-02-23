@@ -23,7 +23,9 @@ import (
 )
 
 // Module provides *Service to the fx graph.
-var Module = fx.Module("search", fx.Provide(New))
+func Modules() fx.Option {
+	return fx.Options(fx.Provide(New))
+}
 
 // Result is a single search hit returned to callers.
 type Result struct {

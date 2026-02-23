@@ -21,10 +21,12 @@ import (
 )
 
 // Module provides the Echo instance and registers lifecycle hooks.
-var Module = fx.Module("server",
-	fx.Provide(New),
-	fx.Invoke(registerLifecycle),
-)
+func Modules() fx.Option {
+	return fx.Options(
+		fx.Provide(New),
+		fx.Invoke(registerLifecycle),
+	)
+}
 
 // New creates and configures the Echo instance.
 // Route registration happens here; actual listening starts in registerLifecycle.

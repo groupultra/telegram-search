@@ -28,7 +28,9 @@ import (
 )
 
 // Module provides *Service to the fx graph.
-var Module = fx.Module("sync", fx.Provide(New))
+func Modules() fx.Option {
+	return fx.Options(fx.Provide(New))
+}
 
 // Progress carries incremental progress information for a running sync job.
 type Progress struct {

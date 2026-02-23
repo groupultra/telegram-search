@@ -12,11 +12,11 @@ import (
 type ChatType string
 
 const (
-	ChatTypeUser      ChatType = "user"
-	ChatTypeGroup     ChatType = "group"
+	ChatTypeUser       ChatType = "user"
+	ChatTypeGroup      ChatType = "group"
 	ChatTypeSupergroup ChatType = "supergroup"
-	ChatTypeChannel   ChatType = "channel"
-	ChatTypeBot       ChatType = "bot"
+	ChatTypeChannel    ChatType = "channel"
+	ChatTypeBot        ChatType = "bot"
 )
 
 // Chat represents a Telegram dialog (user, group, channel).

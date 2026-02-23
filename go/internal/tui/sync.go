@@ -196,7 +196,7 @@ func (m SyncModel) View() string {
 		if m.err != nil {
 			msg = "Sync failed: " + m.err.Error()
 		}
-		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render("  ✗ "+msg))
+		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render("  ✗ " + msg))
 		b.WriteString("\n\n")
 		b.WriteString(m.renderLog())
 	}

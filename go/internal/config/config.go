@@ -19,7 +19,9 @@ import (
 )
 
 // Module provides *Config to the fx dependency graph.
-var Module = fx.Module("config", fx.Provide(New))
+func Modules() fx.Option {
+	return fx.Options(fx.Provide(New))
+}
 
 // Config is the root configuration struct.
 // All fields are optional unless marked required.

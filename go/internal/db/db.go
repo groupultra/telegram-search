@@ -27,11 +27,13 @@ import (
 )
 
 // Module provides *ent.Client and *pgxpool.Pool to the fx graph.
-var Module = fx.Module("db",
-	fx.Provide(NewPool),
-	fx.Provide(NewEntClient),
-	fx.Invoke(migrate),
-)
+func Modules() fx.Option {
+	return fx.Options(
+		fx.Provide(NewPool),
+		fx.Provide(NewEntClient),
+		fx.Invoke(migrate),
+	)
+}
 
 // NewPool creates a pgxpool.Pool configured from cfg.
 // The pool is closed when the fx lifecycle ends.

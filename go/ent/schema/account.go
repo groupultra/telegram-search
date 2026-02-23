@@ -81,6 +81,6 @@ type EmbeddingSettings struct {
 
 // BotSettings controls bot-specific behaviour for this account.
 type BotSettings struct {
-	Enabled         bool  `json:"enabled"`
+	Enabled          bool   `json:"enabled"`
 	LastSearchChatID string `json:"lastSearchChatId,omitempty"`
 }

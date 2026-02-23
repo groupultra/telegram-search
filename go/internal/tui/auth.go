@@ -15,7 +15,7 @@ import (
 type authStep int
 
 const (
-	authStepPhone    authStep = iota
+	authStepPhone authStep = iota
 	authStepCode
 	authStepPassword // 2FA
 	authStepDone

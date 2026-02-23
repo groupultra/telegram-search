@@ -17,7 +17,9 @@ import (
 )
 
 // Module provides *Service to the fx graph.
-var Module = fx.Module("embed", fx.Provide(New))
+func Modules() fx.Option {
+	return fx.Options(fx.Provide(New))
+}
 
 // EmbedResult carries the embedding vectors and token usage for a batch.
 type EmbedResult struct {

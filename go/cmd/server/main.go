@@ -36,14 +36,14 @@ func main() {
 			return &fxevent.SlogLogger{Logger: log}
 		}),
 
-		config.Module,
-		db.Module,
-		embed.Module,
-		search.Module,
-		tgclient.Module,
-		syncsvc.Module,
-		server.Module,
-		bot.Module,
+		config.Modules(),
+		db.Modules(),
+		embed.Modules(),
+		search.Modules(),
+		tgclient.Modules(),
+		syncsvc.Modules(),
+		server.Modules(),
+		bot.Modules(),
 
 		// Provide *tgclient.Client as tgclient.API so the sync service can be wired.
 		fx.Provide(func(c *tgclient.Client) tgclient.API { return c }),

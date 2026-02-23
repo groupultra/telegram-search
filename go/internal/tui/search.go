@@ -25,11 +25,11 @@ type SearchModel struct {
 }
 
 var searchStyles = struct {
-	result        lipgloss.Style
+	result         lipgloss.Style
 	selectedResult lipgloss.Style
-	meta          lipgloss.Style
-	content       lipgloss.Style
-	noResults     lipgloss.Style
+	meta           lipgloss.Style
+	content        lipgloss.Style
+	noResults      lipgloss.Style
 }{
 	result: lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
