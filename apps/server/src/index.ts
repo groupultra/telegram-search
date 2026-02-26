@@ -1,5 +1,6 @@
 import type { Log, Logger } from '@guiiai/logg'
 import type { Config, RuntimeFlags } from '@tg-search/common'
+import type { CoreDB, MediaBinaryProvider } from '@tg-search/core'
 
 import process from 'node:process'
 
@@ -8,19 +9,19 @@ import figlet from 'figlet'
 import { initLogger, LoggerFormat, setGlobalHookPostLog, useLogger } from '@guiiai/logg'
 import { createBotRegistry, setBotRegistryInstance } from '@tg-search/bot'
 import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
-import { models } from '@tg-search/core'
+import { initDrizzle, models } from '@tg-search/core'
 import { emitOtelLog } from '@tg-search/observability'
 import { registerOtel } from '@tg-search/observability/node'
 import { plugin as wsPlugin } from 'crossws/server'
 import { defineEventHandler, H3, serve } from 'h3'
+import { createLoggLogger, injeca } from 'injeca'
 
 import pkg from '../package.json' with { type: 'json' }
 
-import { getAccountContext } from './account'
+import { getAccountContext, setAccountDeps } from './account'
 import { v1api } from './apis/v1'
 import { setupWsRoutes } from './app'
-import { getDB, initDrizzle } from './storage/drizzle'
-import { getMediaStorage, initMediaStorage } from './storage/media'
+import { initMediaStorage } from './storage/media'
 import { removeHyperLinks, toSnakeCaseFields } from './utils/fields'
 
 function setupErrorHandlers(logger: Logger): void {
@@ -32,7 +33,13 @@ function setupErrorHandlers(logger: Logger): void {
   process.on('unhandledRejection', error => handleError(error, 'Unhandled rejection'))
 }
 
-function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
+function configureServer(
+  logger: Logger,
+  flags: RuntimeFlags,
+  config: Config,
+  db: CoreDB,
+  mediaStorage: MediaBinaryProvider | undefined,
+) {
   const app = new H3({
     debug: flags.isDebugMode,
     onRequest(event) {
@@ -65,7 +72,7 @@ function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
     return Response.json({ success: true })
   }))
 
-  app.mount('/v1', v1api(getDB(), models, getMediaStorage()))
+  app.mount('/v1', v1api(db, models, mediaStorage))
 
   setupWsRoutes(app, config)
 
@@ -80,6 +87,7 @@ async function bootstrap() {
 
   const flags = parseEnvFlags(process.env)
   initLogger(flags.logLevel, flags.logFormat)
+  injeca.setLogger(createLoggLogger(useLogger('injeca').useGlobalConfig()))
   const logger = useLogger().useGlobalConfig()
 
   const config = parseEnvToConfig(process.env, logger)
@@ -106,23 +114,50 @@ async function bootstrap() {
     })
   }
 
-  await initDrizzle(logger, config, flags)
-
-  await initMediaStorage(logger, config)
-
   setupErrorHandlers(logger)
 
-  // Initialize Grammy bot (non-blocking, no-op if TELEGRAM_BOT_TOKEN not set)
-  const botRegistry = createBotRegistry({
-    config,
-    getDB,
-    getAccountContext,
-    logger,
-  })
-  setBotRegistryInstance(botRegistry)
-  await botRegistry.start()
+  const db = injeca.provide('services:db', {
+    build: async () => {
+      const result = await initDrizzle(logger, config, {
+        isDatabaseDebugMode: flags.isDatabaseDebugMode,
+        disableMigrations: flags.disableMigrations,
+      })
 
-  const app = configureServer(logger, flags, config)
+      logger.log('Database initialized successfully')
+      return result.db
+    },
+  })
+
+  const mediaStorage = injeca.provide('services:media', {
+    build: async () => {
+      const storage = await initMediaStorage(logger, config)
+      return storage
+    },
+  })
+
+  const botRegistry = injeca.provide('services:bot', {
+    dependsOn: { db },
+    build: async ({ dependsOn }) => {
+      const registry = createBotRegistry({
+        config,
+        getDB: () => dependsOn.db,
+        getAccountContext,
+        logger,
+      })
+      setBotRegistryInstance(registry)
+      await registry.start()
+      return registry
+    },
+  })
+
+  await injeca.start()
+
+  const resolved = await injeca.resolve({ db, mediaStorage, botRegistry })
+
+  // Wire resolved deps into the account module
+  setAccountDeps(() => resolved.db, resolved.mediaStorage)
+
+  const app = configureServer(logger, flags, config, resolved.db, resolved.mediaStorage)
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000
   const hostname = process.env.HOST || '0.0.0.0'
@@ -145,7 +180,7 @@ async function bootstrap() {
 
   const shutdown = async () => {
     logger.log('Shutting down server gracefully...')
-    await botRegistry.stop()
+    await injeca.stop()
     server.close()
     process.exit(0)
   }

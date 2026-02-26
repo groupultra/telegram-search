@@ -144,6 +144,9 @@ importers:
       h3:
         specifier: ^2.0.1-rc.11
         version: 2.0.1-rc.11(crossws@0.4.3(srvx@0.10.1))
+      injeca:
+        specifier: ^0.1.7
+        version: 0.1.7(@guiiai/logg@1.2.11)(error-stack-parser@2.1.4)(nanoid@5.1.6)
       minio:
         specifier: ^8.0.6
         version: 8.0.6
@@ -462,6 +465,9 @@ importers:
       file-type:
         specifier: ^21.3.0
         version: 21.3.0
+      injeca:
+        specifier: ^0.1.7
+        version: 0.1.7(@guiiai/logg@1.2.11)(error-stack-parser@2.1.4)(nanoid@5.1.6)
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
@@ -5081,6 +5087,16 @@ packages:
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
 
+  injeca@0.1.7:
+    resolution: {integrity: sha512-Nh166QCTJbshSNBTWGzdGNDkxMKvHALJfCW70zYJ9AF+4FDQLXRcjGJnaaazW7RZWLQsnWEvK5/sXMnexUjvBg==}
+    peerDependencies:
+      '@guiiai/logg': '>= 1'
+      error-stack-parser: ^2.1.4
+      nanoid: '>=5'
+    peerDependenciesMeta:
+      '@guiiai/logg':
+        optional: true
+
   internal-slot@1.1.0:
     resolution: {integrity: sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw==}
     engines: {node: '>= 0.4'}
@@ -6812,6 +6828,7 @@ packages:
 
   unplugin-vue-router@0.19.2:
     resolution: {integrity: sha512-u5dgLBarxE5cyDK/hzJGfpCTLIAyiTXGlo85COuD4Nssj6G7NxS+i9mhCWz/1p/ud1eMwdcUbTXehQe41jYZUA==}
+    deprecated: 'Merged into vuejs/router. Migrate: https://router.vuejs.org/guide/migration/v4-to-v5.html'
     peerDependencies:
       '@vue/compiler-sfc': ^3.5.17
       vue-router: ^4.6.0
@@ -12547,6 +12564,13 @@ snapshots:
       wrappy: 1.0.2
 
   inherits@2.0.4: {}
+
+  injeca@0.1.7(@guiiai/logg@1.2.11)(error-stack-parser@2.1.4)(nanoid@5.1.6):
+    dependencies:
+      error-stack-parser: 2.1.4
+      nanoid: 5.1.6
+    optionalDependencies:
+      '@guiiai/logg': 1.2.11
 
   internal-slot@1.1.0:
     dependencies:

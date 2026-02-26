@@ -94,7 +94,7 @@ export function setupWsRoutes(app: H3, config: Config) {
       wsConnectionsActive.add(1, { mode: WS_MODE_LABEL })
 
       // Get or create account state (reuses existing if available)
-      const account = getOrCreateAccount(accountId, config)
+      const account = await getOrCreateAccount(accountId, config)
 
       // Track this peer
       peerToAccountId.set(peer.id, accountId)

@@ -29,6 +29,7 @@
     "drizzle-orm": "^0.45.1",
     "eventemitter3": "^5.0.4",
     "file-type": "^21.3.0",
+    "injeca": "^0.1.7",
     "pathe": "^2.0.3",
     "postgres": "^3.4.8",
     "telegram": "^2.26.22",

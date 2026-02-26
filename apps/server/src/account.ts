@@ -1,14 +1,11 @@
 import type { Config } from '@tg-search/common'
-import type { CoreContext, CoreEmitter, FromCoreEvent } from '@tg-search/core'
+import type { CoreContext, CoreDB, CoreEmitter, FromCoreEvent, MediaBinaryProvider } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
 import { attachBotToContext, getBotRegistry } from '@tg-search/bot'
 import { CoreEventType, createCoreInstance } from '@tg-search/core'
 import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
-
-import { getDB } from './storage/drizzle'
-import { getMediaStorage } from './storage/media'
 
 /**
  * Account-scoped runtime state.
@@ -54,6 +51,22 @@ export const peerToAccountId = new Map<string, string>()
 // We need to track peer objects for broadcasting
 export const peerObjects = new Map<string, Peer>()
 
+// Injected dependencies from the injeca container
+let _getDB: (() => CoreDB) | undefined
+let _mediaStorage: MediaBinaryProvider | undefined
+
+export function setAccountDeps(getDB: () => CoreDB, mediaStorage: MediaBinaryProvider | undefined) {
+  _getDB = getDB
+  _mediaStorage = mediaStorage
+}
+
+function ensureGetDB(): () => CoreDB {
+  if (!_getDB) {
+    throw new Error('Account dependencies not initialized. Call setAccountDeps() first.')
+  }
+  return _getDB
+}
+
 function bindTracingMetaToSpan(emitter: CoreEmitter) {
   // Ensure tracingId from incoming meta is bound into active span for all core handlers
   const originalOn = emitter.on.bind(emitter)
@@ -71,13 +84,13 @@ function bindTracingMetaToSpan(emitter: CoreEmitter) {
   }) as CoreEmitter['once']
 }
 
-export function getOrCreateAccount(accountId: string, config: Config): AccountState {
+export async function getOrCreateAccount(accountId: string, config: Config): Promise<AccountState> {
   const logger = useLogger('server:account')
 
   if (!accountStates.has(accountId)) {
     logger.withFields({ accountId }).log('Creating new account state')
 
-    const ctx = createCoreInstance(getDB, config, getMediaStorage(), logger, coreMetrics)
+    const ctx = await createCoreInstance(ensureGetDB(), config, _mediaStorage, logger, coreMetrics)
 
     bindTracingMetaToSpan(ctx.emitter)
 

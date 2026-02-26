@@ -109,6 +109,9 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
       setupDevtools?.(db.pglite)
     }
 
+    // Initialize CoreContext (async due to injeca container)
+    await coreRuntime.initCtx()
+
     registerAllEventHandlers(registerEventHandler)
 
     // Initial connection event

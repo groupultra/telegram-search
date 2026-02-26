@@ -13,9 +13,14 @@ interface CoreRuntimeLogger {
 
 export interface CoreRuntime {
   /**
-   * Get or lazily create a CoreContext instance.
-   * This function is intentionally side-effect free beyond creating the
-   * context; callers are responsible for any additional wiring.
+   * Asynchronously create and cache the CoreContext instance.
+   * Must be called (and awaited) before getCtx().
+   */
+  initCtx: () => Promise<CoreContext>
+
+  /**
+   * Get the previously initialized CoreContext instance.
+   * Throws if initCtx() has not been called.
    */
   getCtx: () => CoreContext
 
@@ -46,19 +51,28 @@ export function createCoreRuntime(
     }
   }
 
+  async function initCtx(): Promise<CoreContext> {
+    if (ctx)
+      return ctx
+
+    if (!configRef.value)
+      throw new Error('Core runtime is not initialized')
+
+    // In browser runtime we do not wire metrics; pass undefined.
+    ctx = await createCoreInstance(getDB, configRef.value, getMediaBinaryProvider())
+    return ctx
+  }
+
   function getCtx(): CoreContext {
     if (!ctx) {
-      if (!configRef.value)
-        throw new Error('Core runtime is not initialized')
-
-      // In browser runtime we do not wire metrics; pass undefined.
-      ctx = createCoreInstance(getDB, configRef.value, getMediaBinaryProvider())
+      throw new Error('CoreContext not initialized. Call initCtx() first.')
     }
 
     return ctx
   }
 
   return {
+    initCtx,
     getCtx,
     destroy,
   }
