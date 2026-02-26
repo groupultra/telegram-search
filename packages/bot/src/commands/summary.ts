@@ -5,7 +5,7 @@ import type { BotCommandContext } from '.'
 
 import { randomUUID } from 'node:crypto'
 
-import { CoreEventType } from '@tg-search/core'
+import { MessageFetchSummary, MessageSummaryData } from '@tg-search/core'
 import { InlineKeyboard } from 'grammy'
 import { streamText } from 'xsai'
 
@@ -296,8 +296,9 @@ async function waitForSummaryData(
   return new Promise((resolve, reject) => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined
     let settled = false
+    let unsub: (() => void) | undefined
 
-    const cleanup = (listener: (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => void) => {
+    const cleanup = () => {
       if (settled) {
         return
       }
@@ -305,24 +306,24 @@ async function waitForSummaryData(
       if (timeoutId) {
         clearTimeout(timeoutId)
       }
-      coreCtx.emitter.off(CoreEventType.MessageSummaryData, listener)
+      unsub?.()
     }
 
     const onSummary = (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => {
       if (data.requestId !== request.requestId) {
         return
       }
-      cleanup(onSummary)
+      cleanup()
       resolve(data.messages)
     }
 
     timeoutId = setTimeout(() => {
-      cleanup(onSummary)
+      cleanup()
       reject(new Error('Summary request timed out.'))
     }, SUMMARY_FETCH_TIMEOUT_MS)
 
-    coreCtx.emitter.on(CoreEventType.MessageSummaryData, onSummary)
-    coreCtx.emitter.emit(CoreEventType.MessageFetchSummary, {
+    unsub = coreCtx.emitter.on(MessageSummaryData, onSummary)
+    coreCtx.emitter.emit(MessageFetchSummary, {
       chatId: request.chatId,
       mode: request.mode,
       limit: 1000,

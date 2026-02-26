@@ -11,14 +11,14 @@
 
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
-import type { ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { H3 } from 'h3'
 
-import type { AccountState, CoreEventListener } from './account'
-import type { WsEventToClientData, WsMessageToServer } from './events'
+import type { AccountState } from './account'
+import type { WsEventToClient, WsEventToClientData, WsMessageToServer } from './events'
 
 import { useLogger } from '@guiiai/logg'
-import { CoreEventType, destroyCoreInstance } from '@tg-search/core'
+import { AccountReady, AuthLogin, AuthLogout, destroyCoreInstance, getCoreEventById } from '@tg-search/core'
 import { coreEventsInTotal, wsConnectionsActive } from '@tg-search/observability'
 import { defineWebSocketHandler, HTTPError } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
@@ -28,23 +28,27 @@ import { sendWsEvent } from './events'
 
 const WS_MODE_LABEL = 'server' as const
 
-export function registerCoreEventListeners(logger: Logger, account: AccountState, accountId: string, eventName: keyof FromCoreEvent) {
+export function registerCoreEventListeners(logger: Logger, account: AccountState, accountId: string, eventName: string & keyof FromCoreEvent) {
   if (eventName.startsWith('server:')) {
     return
   }
 
   if (!account.coreEventListeners.has(eventName)) {
-    const listener: CoreEventListener = (...args: unknown[]) => {
-      const data = args[0] as WsEventToClientData<typeof eventName>
+    const eventa = getCoreEventById(eventName)
+    if (!eventa) {
+      return
+    }
+
+    const listener = (data: unknown) => {
       account.activePeers.forEach((peerId) => {
         const targetPeer = peerObjects.get(peerId)
         if (targetPeer) {
-          sendWsEvent(targetPeer, eventName, data)
+          sendWsEvent(targetPeer, eventName, data as WsEventToClientData<typeof eventName>)
         }
       })
     }
 
-    account.ctx.emitter.on(eventName, listener)
+    account.ctx.emitter.on(eventa, listener)
     account.coreEventListeners.set(eventName, listener)
 
     logger.withFields({ eventName, accountId }).debug('Registered shared core event listener')
@@ -54,12 +58,12 @@ export function registerCoreEventListeners(logger: Logger, account: AccountState
 export async function updateAccountState(logger: Logger, account: AccountState, accountId: string, eventName: keyof ToCoreEvent) {
   // Update account state based on events
   switch (eventName) {
-    case CoreEventType.AuthLogin:
-      account.ctx.emitter.once(CoreEventType.AccountReady, () => {
+    case AuthLogin.id:
+      account.ctx.emitter.once(AccountReady, () => {
         account.accountReady = true
       })
       break
-    case CoreEventType.AuthLogout:
+    case AuthLogout.id:
       account.accountReady = false
       logger.withFields({ accountId }).log('User logged out, destroying account')
       await destroyCoreInstance(account.ctx)
@@ -123,7 +127,8 @@ export function setupWsRoutes(app: H3, config: Config) {
 
       try {
         if (event.type === 'server:event:register') {
-          registerCoreEventListeners(logger, account, accountId, event.data.event as keyof FromCoreEvent)
+          const data = event.data as { event: keyof WsEventToClient }
+          registerCoreEventListeners(logger, account, accountId, data.event as string & keyof FromCoreEvent)
           return
         }
 
@@ -136,7 +141,10 @@ export function setupWsRoutes(app: H3, config: Config) {
         }
 
         // Emit to core context (meta.tracingId is re-bound via emitter on/once wrappers)
-        account.ctx.emitter.emit(event.type, { ...event.data, meta: { tracingId } } as ExtractData<keyof ToCoreEvent>)
+        const eventa = getCoreEventById(event.type)
+        if (eventa) {
+          account.ctx.emitter.emit(eventa, { ...event.data, meta: { tracingId } })
+        }
 
         updateAccountState(logger, account, accountId, event.type as keyof ToCoreEvent)
       }

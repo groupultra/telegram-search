@@ -1,7 +1,7 @@
-import type { CoreContext, CoreEmitter } from '../../context'
+import type { CoreContext, CoreEmitter, FromCoreEventPayloadMap, ToCoreEventPayloadMap } from '../../context'
 import type { CoreDB } from '../../db'
 import type { AccountSettings } from '../../types/account-settings'
-import type { CoreUserEntity, FromCoreEvent, ToCoreEvent } from '../../types/events'
+import type { CoreUserEntity } from '../../types/events'
 
 import bigInt from 'big-integer'
 
@@ -9,7 +9,7 @@ import { useLogger } from '@guiiai/logg'
 import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
 
-import { CoreEventType } from '../../types/events'
+import { MessageProcess, MessageProcessed } from '../../types/events'
 import { createTask as createCoreTask } from '../../utils/task'
 import { createTakeoutService } from '../takeout'
 
@@ -38,27 +38,29 @@ function createMockCtx(client: any) {
   const withError = vi.fn((error: unknown) => (error instanceof Error ? error : new Error(String(error))))
 
   // Minimal event emitter stub for processMessageBatch/runTakeout flows.
+  // Uses Eventa's .id property as the key for handler lookup.
   const handlers = new Map<string, Set<(...args: any[]) => void>>()
   const emitter = {
-    on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      const set = handlers.get(event) ?? new Set()
+    on: vi.fn((event: any, handler: (...args: any[]) => void) => {
+      const key = event?.id ?? event
+      const set = handlers.get(key) ?? new Set()
       set.add(handler)
-      handlers.set(event, set)
+      handlers.set(key, set)
     }),
-    off: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      handlers.get(event)?.delete(handler)
+    off: vi.fn((event: any) => {
+      const key = event?.id ?? event
+      handlers.delete(key)
     }),
-    emit: vi.fn((event: string, payload: any) => {
-      handlers.get(event)?.forEach(fn => fn(payload))
+    emit: vi.fn((event: any, payload: any) => {
+      const key = event?.id ?? event
+      handlers.get(key)?.forEach(fn => fn(payload))
     }),
   } as unknown as CoreEmitter
 
   const ctx: CoreContext = {
     emitter,
-    toCoreEvents: new Set<keyof ToCoreEvent>(),
-    fromCoreEvents: new Set<keyof FromCoreEvent>(),
-    wrapEmitterEmit: () => {},
-    wrapEmitterOn: () => {},
+    toCoreEvents: new Set<keyof ToCoreEventPayloadMap>(),
+    fromCoreEvents: new Set<keyof FromCoreEventPayloadMap>(),
     setClient: () => {},
     getClient: () => client,
     setCurrentAccountId: () => {},
@@ -535,8 +537,8 @@ describe('takeout service', () => {
     const { ctx } = createMockCtx(client)
 
     // Auto-complete message processing batches to avoid hanging on pendingBatches.
-    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, batchId }) => {
-      ctx.emitter.emit(CoreEventType.MessageProcessed, {
+    ctx.emitter.on(MessageProcess, ({ messages, batchId }) => {
+      ctx.emitter.emit(MessageProcessed, {
         batchId: batchId ?? 'batch-id',
         count: messages.length,
         resolverSpans: [],

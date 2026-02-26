@@ -7,7 +7,24 @@ import type { CoreDialog } from '../types/dialog'
 import type { CoreMessage } from '../types/message'
 
 import { convertToCoreRetrievalMessages } from '../models/utils/message'
-import { CoreEventType } from '../types/events'
+import {
+  MessageFetchSpecific,
+  StorageChatNote,
+  StorageChatNoteData,
+  StorageDialogs,
+  StorageFetchDialogs,
+  StorageFetchMessageContext,
+  StorageFetchMessages,
+  StorageMessages,
+  StorageMessagesContext,
+  StorageRecordChatFolders,
+  StorageRecordDialogs,
+  StorageRecordMessages,
+  StorageSearchMessages,
+  StorageSearchMessagesData,
+  StorageSearchPhotos,
+  StorageSearchPhotosData,
+} from '../types/events'
 import { embedContents } from '../utils/embed'
 
 /**
@@ -20,7 +37,7 @@ function hasNoMedia(message: CoreMessage): boolean {
 export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, dbModels: Models) {
   logger = logger.withContext('core:storage:event')
 
-  ctx.emitter.on(CoreEventType.StorageFetchMessages, async ({ chatId, pagination }) => {
+  ctx.emitter.on(StorageFetchMessages, async ({ chatId, pagination }) => {
     logger.withFields({ chatId, pagination }).verbose('Fetching messages')
 
     const accountId = ctx.getCurrentAccountId()
@@ -32,10 +49,10 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     }
 
     const messages = (await dbModels.chatMessageModels.fetchMessagesWithPhotos(ctx.getDB(), dbModels.photoModels, accountId, chatId, pagination)).unwrap()
-    ctx.emitter.emit(CoreEventType.StorageMessages, { messages })
+    ctx.emitter.emit(StorageMessages, { messages })
   })
 
-  ctx.emitter.on(CoreEventType.StorageFetchMessageContext, async ({ chatId, messageId, before = 20, after = 20 }) => {
+  ctx.emitter.on(StorageFetchMessageContext, async ({ chatId, messageId, before = 20, after = 20 }) => {
     const safeBefore = Math.max(0, before)
     const safeAfter = Math.max(0, after)
 
@@ -56,7 +73,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       { chatId, messageId, before: safeBefore, after: safeAfter },
     )).unwrap()
 
-    ctx.emitter.emit(CoreEventType.StorageMessagesContext, { chatId, messageId, messages })
+    ctx.emitter.emit(StorageMessagesContext, { chatId, messageId, messages })
 
     // After emitting the initial messages, identify messages that might be missing media
     // and trigger a fetch from Telegram to download them
@@ -72,14 +89,14 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
       // Fetch these specific messages from Telegram which will download any missing media
       // This is done asynchronously and will update the messages once media is downloaded
-      ctx.emitter.emit(CoreEventType.MessageFetchSpecific, {
+      ctx.emitter.emit(MessageFetchSpecific, {
         chatId,
         messageIds: messageIdsToFetch,
       })
     }
   })
 
-  ctx.emitter.on(CoreEventType.StorageRecordMessages, async ({ messages }) => {
+  ctx.emitter.on(StorageRecordMessages, async ({ messages }) => {
     const accountId = ctx.getCurrentAccountId()
 
     await dbModels.chatMessageModels.recordMessages(ctx.getDB(), accountId, messages)
@@ -87,7 +104,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     logger.withFields({ count: messages.length }).verbose('Messages recorded')
   })
 
-  ctx.emitter.on(CoreEventType.StorageFetchDialogs, async (data) => {
+  ctx.emitter.on(StorageFetchDialogs, async (data) => {
     logger.verbose('Fetching dialogs')
 
     const accountId = data?.accountId || ctx.getCurrentAccountId()
@@ -112,10 +129,10 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       } satisfies CoreDialog
     })
 
-    ctx.emitter.emit(CoreEventType.StorageDialogs, { dialogs })
+    ctx.emitter.emit(StorageDialogs, { dialogs })
   })
 
-  ctx.emitter.on(CoreEventType.StorageRecordDialogs, async ({ dialogs, accountId }) => {
+  ctx.emitter.on(StorageRecordDialogs, async ({ dialogs, accountId }) => {
     logger.withFields({
       size: dialogs.length,
       users: dialogs.filter(d => d.type === 'user').length,
@@ -132,7 +149,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     logger.withFields({ count: result.length }).verbose('Successfully recorded dialogs')
   })
 
-  ctx.emitter.on(CoreEventType.StorageRecordChatFolders, async ({ folders, accountId }) => {
+  ctx.emitter.on(StorageRecordChatFolders, async ({ folders, accountId }) => {
     logger.withFields({ count: folders.length }).verbose('Recording chat folders')
 
     const db = ctx.getDB()
@@ -146,7 +163,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     logger.verbose('Successfully stored folder metadata')
   })
 
-  ctx.emitter.on(CoreEventType.StorageSearchMessages, async (params) => {
+  ctx.emitter.on(StorageSearchMessages, async (params) => {
     logger.withFields({ params }).verbose('Searching messages')
 
     const accountId = ctx.getCurrentAccountId()
@@ -207,16 +224,16 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     const coreMessages = convertToCoreRetrievalMessages(dbMessages)
 
-    ctx.emitter.emit(CoreEventType.StorageSearchMessagesData, { messages: coreMessages })
+    ctx.emitter.emit(StorageSearchMessagesData, { messages: coreMessages })
   })
 
-  ctx.emitter.on(CoreEventType.StorageSearchPhotos, async (params) => {
+  ctx.emitter.on(StorageSearchPhotos, async (params) => {
     try {
       logger.withFields({ params }).log('StorageSearchPhotos event received')
 
       if (params.content.length === 0) {
         logger.verbose('Empty content, returning empty results')
-        ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
+        ctx.emitter.emit(StorageSearchPhotosData, { photos: [] })
         return
       }
 
@@ -242,7 +259,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()
         if (!embeddingResult) {
           logger.warn('Failed to generate embedding for photo search')
-          ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
+          ctx.emitter.emit(StorageSearchPhotosData, { photos: [] })
           return
         }
 
@@ -299,15 +316,15 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         corePhotosCount: corePhotos.length,
         samplePhoto: corePhotos[0],
       }).log('Emitting StorageSearchPhotosData event')
-      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: corePhotos })
+      ctx.emitter.emit(StorageSearchPhotosData, { photos: corePhotos })
     }
     catch (error) {
       logger.withError(error).error('Failed to search photos')
-      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
+      ctx.emitter.emit(StorageSearchPhotosData, { photos: [] })
     }
   })
 
-  ctx.emitter.on(CoreEventType.StorageChatNote, async ({ chatId, note, modify }) => {
+  ctx.emitter.on(StorageChatNote, async ({ chatId, note, modify }) => {
     logger.withFields({ chatId, note }).verbose('Recording chat note')
 
     const accountId = ctx.getCurrentAccountId()
@@ -321,7 +338,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     const note_result = await dbModels.chatModels.getOrModifyChatNote(ctx.getDB(), accountId, chatId, note, modify)
     if (note_result !== null) {
       logger.verbose('Successfully recorded chat note')
-      ctx.emitter.emit(CoreEventType.StorageChatNoteData, { chatId, note: note_result })
+      ctx.emitter.emit(StorageChatNoteData, { chatId, note: note_result })
     }
     else {
       ctx.withError('Failed to record chat note', 'Failed to record chat note')

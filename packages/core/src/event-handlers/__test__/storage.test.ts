@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
-import { CoreEventType } from '../../types/events'
+import { CoreError, StorageDialogs, StorageFetchDialogs, StorageFetchMessages, StorageRecordDialogs, StorageSearchMessages } from '../../types/events'
 import { registerStorageEventHandlers } from '../storage'
 
 const logger = useLogger()
@@ -80,12 +80,12 @@ describe('storage event handlers - dialogs with accounts', () => {
     const ACCOUNT_ID = 'account-xyz'
 
     const dialogsPromise = new Promise<CoreDialog[]>((resolve) => {
-      ctx.emitter.on(CoreEventType.StorageDialogs, ({ dialogs }) => {
+      ctx.emitter.on(StorageDialogs, ({ dialogs }) => {
         resolve(dialogs)
       })
     })
 
-    ctx.emitter.emit(CoreEventType.StorageFetchDialogs, { accountId: ACCOUNT_ID })
+    ctx.emitter.emit(StorageFetchDialogs, { accountId: ACCOUNT_ID })
 
     const dialogs = await dialogsPromise
 
@@ -123,7 +123,7 @@ describe('storage event handlers - dialogs with accounts', () => {
       },
     ]
 
-    ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs, accountId: ACCOUNT_ID })
+    ctx.emitter.emit(StorageRecordDialogs, { dialogs, accountId: ACCOUNT_ID })
 
     expect(recordChats).toHaveBeenCalledTimes(1)
     expect(recordChats).toHaveBeenCalledWith(expect.anything(), dialogs, ACCOUNT_ID)
@@ -144,12 +144,12 @@ describe('storage event handlers - message access control', () => {
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<string>((resolve) => {
-      ctx.emitter.on(CoreEventType.CoreError, ({ error }) => {
+      ctx.emitter.on(CoreError, ({ error }) => {
         resolve(error)
       })
     })
 
-    ctx.emitter.emit(CoreEventType.StorageFetchMessages, {
+    ctx.emitter.emit(StorageFetchMessages, {
       chatId: CHAT_ID,
       pagination: { limit: 20, offset: 0 },
     })
@@ -174,12 +174,12 @@ describe('storage event handlers - message access control', () => {
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<string>((resolve) => {
-      ctx.emitter.on(CoreEventType.CoreError, ({ error }) => {
+      ctx.emitter.on(CoreError, ({ error }) => {
         resolve(error)
       })
     })
 
-    ctx.emitter.emit(CoreEventType.StorageSearchMessages, {
+    ctx.emitter.emit(StorageSearchMessages, {
       chatId: CHAT_ID,
       content: 'test search',
       useVector: false,

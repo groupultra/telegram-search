@@ -10,7 +10,7 @@ import { useLogger } from '@guiiai/logg'
 import { createCoreContext } from './context'
 import { afterConnectedEventHandler, basicEventHandler, useEventHandler } from './event-handlers'
 import { models } from './models'
-import { CoreEventType } from './types/events'
+import { CoreCleanup } from './types/events'
 
 export function createCoreInstance(
   db: () => CoreDB,
@@ -57,7 +57,7 @@ export function createCoreInstance(
  */
 export async function destroyCoreInstance(ctx: CoreContext) {
   // Emit cleanup event to notify all services
-  ctx.emitter.emit(CoreEventType.CoreCleanup)
+  ctx.emitter.emit(CoreCleanup)
 
   // Give services time to cleanup
   // TODO: use Promise.allSettled to wait for all services to cleanup

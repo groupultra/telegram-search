@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
-import { CoreEventType } from '../../types/events'
+import { MessageProcess } from '../../types/events'
 import { registerMessageResolverEventHandlers } from '../message-resolver'
 
 const models = {} as unknown as Models
@@ -35,7 +35,7 @@ describe('message-resolver event handlers', () => {
       date: Math.floor(Date.now() / 1000),
     })
 
-    ctx.emitter.emit(CoreEventType.MessageProcess, {
+    ctx.emitter.emit(MessageProcess, {
       messages: [telegramMessage],
       isTakeout: false,
       forceRefetch: true,
@@ -71,7 +71,7 @@ describe('message-resolver event handlers', () => {
       date: Math.floor(Date.now() / 1000),
     })
 
-    ctx.emitter.emit(CoreEventType.MessageProcess, {
+    ctx.emitter.emit(MessageProcess, {
       messages: [telegramMessage],
       isTakeout: true,
       forceRefetch: true,

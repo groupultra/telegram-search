@@ -5,7 +5,7 @@ import type { ConnectionService } from '../services'
 
 import { StringSession } from 'telegram/sessions'
 
-import { CoreEventType } from '../types/events'
+import { AuthLogin, AuthLogout } from '../types/events'
 
 export function registerAuthEventHandlers(ctx: CoreContext, logger: Logger) {
   logger = logger.withContext('core:auth:event')
@@ -13,7 +13,7 @@ export function registerAuthEventHandlers(ctx: CoreContext, logger: Logger) {
   return (
     configuredConnectionService: ConnectionService,
   ) => {
-    ctx.emitter.on(CoreEventType.AuthLogin, async ({ phoneNumber, session }) => {
+    ctx.emitter.on(AuthLogin, async ({ phoneNumber, session }) => {
       if (phoneNumber) {
         return configuredConnectionService.loginWithPhone(phoneNumber)
       }
@@ -24,7 +24,7 @@ export function registerAuthEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.emitter.on(CoreEventType.AuthLogout, async () => {
+    ctx.emitter.on(AuthLogout, async () => {
       logger.verbose('Logged out from Telegram')
       const client = ctx.getClient()
       if (client) {

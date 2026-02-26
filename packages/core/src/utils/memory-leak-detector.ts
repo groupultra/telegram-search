@@ -17,15 +17,20 @@ export function detectMemoryLeak(emitter: CoreEmitter, logger: Logger): () => vo
 
   if (isDevelopment) {
     checkInterval = setInterval(() => {
-      const eventNames = emitter.eventNames()
+      const raw = emitter.raw
       const listenerCounts: Record<string, number> = {}
 
-      eventNames.forEach((event) => {
-        const count = emitter.listenerCount(event as any)
-        if (count > 0) {
-          listenerCounts[event as string] = count
+      // Count listeners from the Eventa context's internal maps
+      for (const [eventId, listeners] of raw.listeners) {
+        if (listeners.size > 0) {
+          listenerCounts[eventId] = (listenerCounts[eventId] || 0) + listeners.size
         }
-      })
+      }
+      for (const [eventId, listeners] of raw.onceListeners) {
+        if (listeners.size > 0) {
+          listenerCounts[eventId] = (listenerCounts[eventId] || 0) + listeners.size
+        }
+      }
 
       const totalListeners = Object.values(listenerCounts).reduce((sum, count) => sum + count, 0)
 

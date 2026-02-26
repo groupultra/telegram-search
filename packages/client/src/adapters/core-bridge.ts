@@ -1,11 +1,11 @@
 import type { Config } from '@tg-search/common'
-import type { ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 
 import { useLogger } from '@guiiai/logg'
 import { deepClone, generateDefaultConfig } from '@tg-search/common'
+import { getCoreEventById } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
@@ -57,23 +57,34 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
     try {
       if (event === 'server:event:register') {
         data = data as WsEventToServerData<'server:event:register'>
-        const eventName = data.event as keyof FromCoreEvent
+        const eventName = data.event as string
 
         if (!eventName.startsWith('server:')) {
-          const fn = (payload: WsEventToClientData<keyof FromCoreEvent>) => {
-            logger.withFields({ eventName }).debug('Sending event to client')
-            const message = {
-              type: eventName as unknown as WsMessageToClient['type'],
-              data: payload,
-            } as WsMessageToClient
-            sendWsEvent(message)
+          const eventa = getCoreEventById(eventName)
+          if (eventa) {
+            ctx.emitter.on(eventa, (payload) => {
+              logger.withFields({ eventName }).debug('Sending event to client')
+              const message = {
+                type: eventName as unknown as WsMessageToClient['type'],
+                data: payload,
+              } as WsMessageToClient
+              sendWsEvent(message)
+            })
           }
-          ctx.emitter.on(eventName, fn as (...args: unknown[]) => void)
+          else {
+            logger.withFields({ eventName }).warn('Unknown core event ID, skipping registration')
+          }
         }
       }
       else {
-        logger.withFields({ event, data }).debug('Emit event to core')
-        ctx.emitter.emit(event, deepClone(data) as ExtractData<keyof ToCoreEvent>)
+        const eventa = getCoreEventById(event)
+        if (eventa) {
+          logger.withFields({ event, data }).debug('Emit event to core')
+          ctx.emitter.emit(eventa, deepClone(data))
+        }
+        else {
+          logger.withFields({ event }).warn('Unknown core event ID, skipping emit')
+        }
       }
     }
     catch (error) {

@@ -2,7 +2,7 @@ import type { Bot } from 'grammy'
 
 import type { BotCommandContext } from '.'
 
-import { CoreEventType } from '@tg-search/core'
+import { TakeoutRun } from '@tg-search/core'
 import { InlineKeyboard } from 'grammy'
 
 import { createChatPicker } from './chat-picker'
@@ -95,7 +95,7 @@ export function registerExportCommand(bot: Bot, ctx: BotCommandContext) {
       const chatIds = state.chatId === '__ALL__' ? [] : [state.chatId]
       const increase = mode === 'incremental'
 
-      coreCtx.emitter.emit(CoreEventType.TakeoutRun, {
+      coreCtx.emitter.emit(TakeoutRun, {
         chatIds,
         increase,
         syncOptions: {},

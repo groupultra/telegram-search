@@ -1,15 +1,14 @@
-import type { CoreEmitter, CoreEvent, ExtractData } from '../context'
+import type { Eventa } from '@moeru/eventa'
 
-export function waitForEvent<E extends keyof CoreEvent>(
+import type { CoreEmitter } from '../context'
+
+export function waitForEvent<P>(
   emitter: CoreEmitter,
-  event: E,
-): Promise<ExtractData<CoreEvent[E]>> {
+  event: Eventa<P>,
+): Promise<P> {
   return new Promise((resolve) => {
-    // emitter.once(event, (data) => {
-    // resolve(data)
-
-    emitter.once(event, (...args) => {
-      resolve(args[0] as ExtractData<CoreEvent[E]>)
+    emitter.once(event, (data) => {
+      resolve(data)
     })
   })
 }

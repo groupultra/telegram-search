@@ -8,7 +8,19 @@ import { Api } from 'telegram/tl'
 import { v4 as uuidv4 } from 'uuid'
 
 import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
-import { CoreEventType } from '../types/events'
+import {
+  MessageData,
+  MessageFetch,
+  MessageFetchSpecific,
+  MessageFetchSummary,
+  MessageFetchUnread,
+  MessageProcess,
+  MessageRead,
+  MessageReprocess,
+  MessageSend,
+  MessageSummaryData,
+  MessageUnreadData,
+} from '../types/events'
 import { convertToCoreMessage } from '../utils/message'
 
 export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
@@ -21,7 +33,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         .map(result => result.unwrap())
     }
 
-    ctx.emitter.on(CoreEventType.MessageFetch, async (opts) => {
+    ctx.emitter.on(MessageFetch, async (opts) => {
       logger.withFields({ chatId: opts.chatId, minId: opts.minId, maxId: opts.maxId }).verbose('Fetching messages')
 
       let messages: Api.Message[] = []
@@ -35,17 +47,17 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
             batchSize,
           }).debug('Processing message batch')
 
-          ctx.emitter.emit(CoreEventType.MessageProcess, { messages })
+          ctx.emitter.emit(MessageProcess, { messages })
           messages = []
         }
       }
 
       if (messages.length > 0) {
-        ctx.emitter.emit(CoreEventType.MessageProcess, { messages })
+        ctx.emitter.emit(MessageProcess, { messages })
       }
     })
 
-    ctx.emitter.on(CoreEventType.MessageFetchSpecific, async ({ chatId, messageIds }) => {
+    ctx.emitter.on(MessageFetchSpecific, async ({ chatId, messageIds }) => {
       logger.withFields({ chatId, count: messageIds.length }).verbose('Fetching specific messages for media')
 
       try {
@@ -54,7 +66,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
 
         if (messages.length > 0) {
           logger.withFields({ chatId, count: messages.length }).verbose('Fetched specific messages, processing for media')
-          ctx.emitter.emit(CoreEventType.MessageProcess, { messages })
+          ctx.emitter.emit(MessageProcess, { messages })
         }
       }
       catch (error) {
@@ -62,7 +74,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.emitter.on(CoreEventType.MessageSend, async ({ chatId, content }) => {
+    ctx.emitter.on(MessageSend, async ({ chatId, content }) => {
       logger.withFields({ chatId, content }).verbose('Sending message')
       const updatedMessage = (await messageService.sendMessage(chatId, content)).unwrap()
 
@@ -70,13 +82,13 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         case 'Updates':
           updatedMessage.updates.forEach((update) => {
             if ('message' in update && update.message instanceof Api.Message) {
-              ctx.emitter.emit(CoreEventType.MessageProcess, { messages: [update.message] })
+              ctx.emitter.emit(MessageProcess, { messages: [update.message] })
             }
           })
           break
         case 'UpdateShortSentMessage': {
           const sender = ctx.getMyUser()
-          ctx.emitter.emit(CoreEventType.MessageData, {
+          ctx.emitter.emit(MessageData, {
             messages: [{
               uuid: uuidv4(),
               platform: 'telegram',
@@ -100,7 +112,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       logger.withFields({ content }).verbose('Message sent')
     })
 
-    ctx.emitter.on(CoreEventType.MessageReprocess, async ({ chatId, messageIds, resolvers }) => {
+    ctx.emitter.on(MessageReprocess, async ({ chatId, messageIds, resolvers }) => {
       // Validate input
       if (messageIds.length === 0) {
         logger.withFields({ chatId }).warn('Re-process called with empty messageIds array')
@@ -129,7 +141,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         //
         // Force refetch to skip database cache and re-download from Telegram.
         // This is necessary when media files are missing from storage (404 errors).
-        ctx.emitter.emit(CoreEventType.MessageProcess, { messages, forceRefetch: true })
+        ctx.emitter.emit(MessageProcess, { messages, forceRefetch: true })
       }
       catch (error) {
         logger.withError(error as Error).warn('Failed to re-process messages')
@@ -137,7 +149,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.emitter.on(CoreEventType.MessageFetchUnread, async ({ chatId, limit, startTime }) => {
+    ctx.emitter.on(MessageFetchUnread, async ({ chatId, limit, startTime }) => {
       logger.withFields({ chatId, limit, startTime }).verbose('Fetching unread messages')
       try {
         const messages = await messageService.fetchUnreadMessages(chatId, { limit, startTime })
@@ -146,20 +158,20 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         messages.reverse()
 
         const coreMessages = toCoreMessages(messages)
-        ctx.emitter.emit(CoreEventType.MessageUnreadData, { messages: coreMessages })
+        ctx.emitter.emit(MessageUnreadData, { messages: coreMessages })
       }
       catch (e) {
         ctx.withError(e, 'Failed to fetch unread messages')
       }
     })
 
-    ctx.emitter.on(CoreEventType.MessageFetchSummary, async ({ chatId, limit, mode, requestId }) => {
+    ctx.emitter.on(MessageFetchSummary, async ({ chatId, limit, mode, requestId }) => {
       logger.withFields({ chatId, limit, mode, requestId }).verbose('Fetching summary messages')
       try {
         if (mode === 'unread') {
           const unread = await messageService.fetchUnreadMessages(chatId, { limit })
           unread.reverse()
-          ctx.emitter.emit(CoreEventType.MessageSummaryData, {
+          ctx.emitter.emit(MessageSummaryData, {
             messages: toCoreMessages(unread),
             mode: 'unread',
             requestId,
@@ -177,7 +189,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         const recent = await messageService.fetchRecentMessagesByTimeRange(chatId, { startTime, limit })
         recent.reverse()
 
-        ctx.emitter.emit(CoreEventType.MessageSummaryData, {
+        ctx.emitter.emit(MessageSummaryData, {
           messages: toCoreMessages(recent),
           mode,
           requestId,
@@ -188,7 +200,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.emitter.on(CoreEventType.MessageRead, async ({ chatId }) => {
+    ctx.emitter.on(MessageRead, async ({ chatId }) => {
       logger.withFields({ chatId }).verbose('Marking messages as read')
       await messageService.markAsRead(chatId)
     })

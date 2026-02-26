@@ -1,18 +1,18 @@
 import type { CoreContext } from '../context'
 import type { TakeoutService } from '../services'
 
-import { CoreEventType } from '../types/events'
+import { TakeoutRun, TakeoutStatsFetch, TakeoutTaskAbort } from '../types/events'
 
 export function registerTakeoutEventHandlers(ctx: CoreContext, takeoutService: TakeoutService) {
-  ctx.emitter.on(CoreEventType.TakeoutRun, async (params) => {
+  ctx.emitter.on(TakeoutRun, async (params) => {
     await takeoutService.runTakeout(params)
   })
 
-  ctx.emitter.on(CoreEventType.TakeoutTaskAbort, ({ taskId }) => {
+  ctx.emitter.on(TakeoutTaskAbort, ({ taskId }) => {
     takeoutService.abortTask(taskId)
   })
 
-  ctx.emitter.on(CoreEventType.TakeoutStatsFetch, async ({ chatId }) => {
+  ctx.emitter.on(TakeoutStatsFetch, async ({ chatId }) => {
     await takeoutService.fetchChatSyncStats(chatId)
   })
 }

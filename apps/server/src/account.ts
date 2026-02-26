@@ -1,10 +1,10 @@
 import type { Config } from '@tg-search/common'
-import type { CoreContext, CoreEmitter, FromCoreEvent } from '@tg-search/core'
+import type { CoreContext, CoreEmitter, Eventa, FromCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
 import { attachBotToContext, getBotRegistry } from '@tg-search/bot'
-import { CoreEventType, createCoreInstance } from '@tg-search/core'
+import { createCoreInstance, MessageProcess } from '@tg-search/core'
 import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
 
 import { getDB } from './storage/drizzle'
@@ -20,7 +20,7 @@ import { getMediaStorage } from './storage/media'
  * Risks:
  * - Long-lived accounts increase memory usage; monitor active account count.
  */
-export type CoreEventListener = (...args: unknown[]) => void
+export type CoreEventListener = (data: unknown) => void
 
 export interface AccountState {
   ctx: CoreContext
@@ -57,16 +57,16 @@ export const peerObjects = new Map<string, Peer>()
 function bindTracingMetaToSpan(emitter: CoreEmitter) {
   // Ensure tracingId from incoming meta is bound into active span for all core handlers
   const originalOn = emitter.on.bind(emitter)
-  emitter.on = ((event, listener) => {
-    return originalOn(event, (...args: Parameters<typeof listener>) => {
-      return withSpan(String(event), () => listener(...args))
+  emitter.on = (<P>(event: Eventa<P>, listener: (data: P) => void | Promise<void>) => {
+    return originalOn(event, (data: P) => {
+      return withSpan(event.id, () => listener(data))
     })
   }) as CoreEmitter['on']
 
   const originalOnce = emitter.once.bind(emitter)
-  emitter.once = ((event, listener) => {
-    return originalOnce(event, (...args: Parameters<typeof listener>) => {
-      return withSpan(String(event), () => listener(...args))
+  emitter.once = (<P>(event: Eventa<P>, listener: (data: P) => void | Promise<void>) => {
+    return originalOnce(event, (data: P) => {
+      return withSpan(event.id, () => listener(data))
     })
   }) as CoreEmitter['once']
 }
@@ -91,7 +91,7 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
     }
 
     // Instrument core message processing for this account
-    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, isTakeout }) => {
+    ctx.emitter.on(MessageProcess, ({ messages, isTakeout }) => {
       const source = isTakeout ? 'takeout' : 'realtime'
       coreMessageBatchesProcessedTotal.add(1, { source })
       coreMessagesProcessedTotal.add(messages.length, { source })

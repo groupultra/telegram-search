@@ -1,26 +1,105 @@
 import type { Logger } from '@guiiai/logg'
+import type { Eventa, EventContext } from '@moeru/eventa'
 import type { CoreMetrics } from '@tg-search/common'
 import type { TelegramClient } from 'telegram'
 
 import type { CoreDB } from './db'
 import type { Models } from './models'
 import type { AccountSettings } from './types/account-settings'
-import type { CoreEmitter, CoreEvent, CoreUserEntity, FromCoreEvent, ToCoreEvent } from './types/events'
+import type { CoreUserEntity, FromCoreEventPayloadMap, ToCoreEventPayloadMap } from './types/events'
 
 import { useLogger } from '@guiiai/logg'
-import { EventEmitter } from 'eventemitter3'
+import { createContext } from '@moeru/eventa'
 
-import { CoreEventType } from './types/events'
+import { CoreError } from './types/events'
 import { detectMemoryLeak } from './utils/memory-leak-detector'
 
-export type { CoreEmitter, CoreEvent, ExtractData, FromCoreEvent, ToCoreEvent } from './types/events'
+// ============================================================================
+// CoreEmitter: Eventa-based event bus wrapper
+// ============================================================================
+
+/**
+ * Wrapper around Eventa's EventContext that provides a simplified API
+ * where handlers receive the payload directly (not the full Eventa envelope).
+ */
+export interface CoreEmitter {
+  on: <P>(event: Eventa<P>, handler: (data: P) => void | Promise<void> | Promise<any>) => () => void
+  once: <P>(event: Eventa<P>, handler: (data: P) => void | Promise<void> | Promise<any>) => () => void
+  emit: <P>(event: Eventa<P>, ...args: [P] extends [undefined] ? [] | [data?: P] : [data: P]) => void
+  off: <P>(event: Eventa<P>) => void
+  removeAllListeners: () => void
+
+  /** Access underlying Eventa context for advanced use (adapters, matchBy, etc.) */
+  readonly raw: EventContext<any, any>
+}
+
+export function createCoreEmitter(logger: Logger): CoreEmitter {
+  const ctx = createContext()
+
+  function on<P>(event: Eventa<P>, handler: (data: P) => void | Promise<void>): () => void {
+    const wrappedHandler = async (eventa: Eventa<P>) => {
+      try {
+        logger.withFields({ event: event.id }).debug('Handle core event')
+        await handler(eventa.body as P)
+      }
+      catch (error) {
+        logger.withError(error instanceof Error ? (error.cause ?? error) : error).error('Failed to handle core event')
+      }
+    }
+
+    return ctx.on(event, wrappedHandler)
+  }
+
+  function once<P>(event: Eventa<P>, handler: (data: P) => void | Promise<void>): () => void {
+    const wrappedHandler = async (eventa: Eventa<P>) => {
+      try {
+        logger.withFields({ event: event.id }).debug('Handle core event (once)')
+        await handler(eventa.body as P)
+      }
+      catch (error) {
+        logger.withError(error instanceof Error ? (error.cause ?? error) : error).error('Failed to handle core event (once)')
+      }
+    }
+
+    return ctx.once(event, wrappedHandler)
+  }
+
+  function emit<P>(event: Eventa<P>, ...args: [P] extends [undefined] ? [] | [data?: P] : [data: P]): void {
+    const data = args[0] as P
+    logger.withFields({ event: event.id }).debug('Emit core event')
+    ctx.emit(event, data)
+  }
+
+  function off<P>(event: Eventa<P>): void {
+    ctx.off(event)
+  }
+
+  function removeAllListeners(): void {
+    // Clear all listener maps on the raw context
+    ctx.listeners.clear()
+    ctx.onceListeners.clear()
+  }
+
+  return {
+    on,
+    once,
+    emit,
+    off,
+    removeAllListeners,
+    get raw() {
+      return ctx
+    },
+  }
+}
+
+// ============================================================================
+// CoreContext
+// ============================================================================
 
 export interface CoreContext {
   emitter: CoreEmitter
-  toCoreEvents: Set<keyof ToCoreEvent>
-  fromCoreEvents: Set<keyof FromCoreEvent>
-  wrapEmitterEmit: (emitter: CoreEmitter, fn?: (event: keyof FromCoreEvent) => void) => void
-  wrapEmitterOn: (emitter: CoreEmitter, fn?: (event: keyof ToCoreEvent) => void) => void
+  toCoreEvents: Set<keyof ToCoreEventPayloadMap>
+  fromCoreEvents: Set<keyof FromCoreEventPayloadMap>
   setClient: (client: TelegramClient) => void
   getClient: () => TelegramClient
   setCurrentAccountId: (accountId: string) => void
@@ -51,7 +130,7 @@ function createErrorHandler(emitter: CoreEmitter, logger: Logger) {
     }
 
     // Emit raw error for frontend to handle (i18n, UI, etc.)
-    emitter.emit(CoreEventType.CoreError, { error: error instanceof Error ? error.message : String(error), description })
+    emitter.emit(CoreError, { error: error instanceof Error ? error.message : String(error), description })
 
     // Log error details
     if (error instanceof Error) {
@@ -67,58 +146,14 @@ function createErrorHandler(emitter: CoreEmitter, logger: Logger) {
 }
 
 export function createCoreContext(db: () => CoreDB, models: Models, logger: Logger, metrics?: CoreMetrics): CoreContext {
-  const emitter = new EventEmitter<CoreEvent>()
+  const emitter = createCoreEmitter(logger)
   const withError = createErrorHandler(emitter, logger)
   let telegramClient: TelegramClient
   let currentAccountId: string | undefined
   let myUser: CoreUserEntity | undefined
 
-  const toCoreEvents = new Set<keyof ToCoreEvent>()
-  const fromCoreEvents = new Set<keyof FromCoreEvent>()
-
-  const wrapEmitterOn = (emitter: CoreEmitter, fn?: (event: keyof ToCoreEvent) => void) => {
-    const _on = emitter.on.bind(emitter)
-
-    // eslint-disable-next-line sonarjs/no-invariant-returns
-    emitter.on = (event, listener) => {
-      const onFn = _on(event, async (...args) => {
-        try {
-          fn?.(event as keyof ToCoreEvent)
-
-          logger.withFields({ event }).debug('Handle core event')
-          return await listener(...args)
-        }
-        catch (error) {
-          logger.withError(error instanceof Error ? (error.cause ?? error) : error).error('Failed to handle core event')
-        }
-      })
-
-      if (toCoreEvents.has(event as keyof ToCoreEvent)) {
-        return onFn
-      }
-
-      logger.withFields({ event }).debug('Register to core event')
-      toCoreEvents.add(event as keyof ToCoreEvent)
-      return onFn
-    }
-  }
-
-  const wrapEmitterEmit = (emitter: CoreEmitter, fn?: (event: keyof FromCoreEvent) => void) => {
-    const _emit = emitter.emit.bind(emitter)
-
-    emitter.emit = (event, ...args) => {
-      if (fromCoreEvents.has(event as keyof FromCoreEvent)) {
-        return _emit(event, ...args)
-      }
-
-      logger.withFields({ event }).debug('Register from core event')
-
-      fromCoreEvents.add(event as keyof FromCoreEvent)
-      fn?.(event as keyof FromCoreEvent)
-
-      return _emit(event, ...args)
-    }
-  }
+  const toCoreEvents = new Set<keyof ToCoreEventPayloadMap>()
+  const fromCoreEvents = new Set<keyof FromCoreEventPayloadMap>()
 
   function setClient(client: TelegramClient) {
     logger.debug('Set Telegram client')
@@ -205,20 +240,13 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
     logger.debug('CoreContext cleaned up')
   }
 
-  wrapEmitterOn(emitter, (event) => {
-    useLogger('core:event').withFields({ event }).debug('Core event received')
-  })
-
-  wrapEmitterEmit(emitter, (event) => {
-    useLogger('core:event').withFields({ event }).debug('Core event emitted')
-  })
+  // Log context creation
+  useLogger('core:event').debug('CoreContext created with Eventa event system')
 
   return {
     emitter,
     toCoreEvents,
     fromCoreEvents,
-    wrapEmitterEmit,
-    wrapEmitterOn,
     setClient,
     getClient: ensureClient,
     setCurrentAccountId,
@@ -233,3 +261,17 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
     metrics,
   }
 }
+
+export type {
+  CoreEventAll,
+  CoreEventMeta,
+  CoreEventPayloadMap,
+  EventaPayload,
+  ExtractData,
+  FromCoreEvent,
+  FromCoreEventPayloadMap,
+  ToCoreEvent,
+  ToCoreEventPayloadMap,
+} from './types/events'
+// Re-exports for consumers
+export type { Eventa, EventContext } from '@moeru/eventa'

@@ -1,11 +1,9 @@
-import type { MockedFunction } from 'vitest'
-
 import type { CoreEmitter } from '../../context'
 
 import { useLogger } from '@guiiai/logg'
 import { describe, expect, it, vi } from 'vitest'
 
-import { CoreEventType } from '../../types/events'
+import { TakeoutTaskProgress } from '../../types/events'
 import { createTask } from '../task'
 
 const logger = useLogger()
@@ -20,7 +18,7 @@ describe('utils/task - createTask', () => {
 
     expect(emitter.emit).toHaveBeenCalledTimes(1)
     expect(emitter.emit).toHaveBeenCalledWith(
-      CoreEventType.TakeoutTaskProgress,
+      TakeoutTaskProgress,
       expect.objectContaining({
         taskId: expect.any(String),
         type: 'takeout',
@@ -33,7 +31,7 @@ describe('utils/task - createTask', () => {
     )
 
     // toJSON payload must not expose abortController
-    const payload = (emitter.emit as MockedFunction<typeof emitter.emit>).mock.calls[0][1]
+    const payload = (emitter.emit as any).mock.calls[0][1]
     expect(payload).not.toHaveProperty('abortController')
   })
 
@@ -49,7 +47,7 @@ describe('utils/task - createTask', () => {
 
     expect(emitter.emit).toHaveBeenCalledTimes(1)
     expect(emitter.emit).toHaveBeenCalledWith(
-      CoreEventType.TakeoutTaskProgress,
+      TakeoutTaskProgress,
       expect.objectContaining({
         type: 'takeout',
         progress: -1,
