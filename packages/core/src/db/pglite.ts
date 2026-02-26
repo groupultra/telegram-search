@@ -14,7 +14,9 @@ import { migrations } from '@tg-search/schema'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/pglite'
 
-export type PgliteDB = ReturnType<typeof drizzlePglite>
+import * as schema from '../schemas/index'
+
+export type PgliteDB = ReturnType<typeof drizzlePglite<typeof schema>>
 
 async function applyMigrations(logger: Logger, db: PgliteDB) {
   try {
@@ -46,7 +48,10 @@ export async function initPgliteDrizzleInNode(
     })
 
     // Create Drizzle instance
-    const db = drizzle(pglite, { logger: !!options.isDatabaseDebugMode }) as PgliteDB
+    const db = drizzle(pglite, {
+      logger: !!options.isDatabaseDebugMode,
+      schema,
+    })
 
     // Check database connection
     try {

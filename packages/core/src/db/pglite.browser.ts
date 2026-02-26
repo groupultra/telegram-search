@@ -13,7 +13,9 @@ import { drizzle } from 'drizzle-orm/pglite'
 
 import { Conn } from '../libs/ws'
 
-type PgliteDB = ReturnType<typeof drizzlePglite>
+import * as schema from '../schemas/index'
+
+type PgliteDB = ReturnType<typeof drizzlePglite<typeof schema>>
 
 async function applyMigrations(logger: Logger, db: PgliteDB) {
   try {
@@ -60,7 +62,10 @@ export async function initPgliteDrizzleInBrowser(
     }
 
     // Create Drizzle instance
-    const db = drizzle(pglite, { logger: !!options.isDatabaseDebugMode }) as PgliteDB
+    const db = drizzle(pglite, {
+      logger: !!options.isDatabaseDebugMode,
+      schema,
+    })
 
     // Check database connection
     try {

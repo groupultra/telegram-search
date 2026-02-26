@@ -10,7 +10,9 @@ import { migrations } from '@tg-search/schema'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 
-export type PostgresDB = ReturnType<typeof drizzlePg>
+import * as schema from '../schemas/index'
+
+export type PostgresDB = ReturnType<typeof drizzlePg<typeof schema>>
 
 async function applyMigrations(logger: Logger, db: PostgresDB) {
   try {
@@ -60,7 +62,10 @@ export async function initPgDrizzle(
     },
   })
 
-  const db = drizzle(client, { logger: !!options.isDatabaseDebugMode }) as PostgresDB
+  const db = drizzle(client, {
+    logger: !!options.isDatabaseDebugMode,
+    schema,
+  })
 
   // Check database connection
   try {
