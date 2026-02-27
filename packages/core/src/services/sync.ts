@@ -73,7 +73,7 @@ export function createSyncService(
         gap: targetPts - account.pts,
       }).log('Starting catch-up sync')
 
-      ctx.emitter.emit(SyncStatus, { status: 'syncing' })
+      ctx.eventContext.emit(SyncStatus, { status: 'syncing' })
 
       let currentPts = account.pts
       let currentQts = account.qts
@@ -106,7 +106,7 @@ export function createSyncService(
             lastSyncAt: Date.now(),
           })
 
-          ctx.emitter.emit(TakeoutRun, { chatIds: [], increase: true, syncOptions: {} })
+          ctx.eventContext.emit(TakeoutRun, { chatIds: [], increase: true, syncOptions: {} })
           break
         }
 
@@ -114,7 +114,7 @@ export function createSyncService(
         const users = 'users' in difference ? difference.users : []
         const chats = 'chats' in difference ? difference.chats : []
         if (users.length > 0 || chats.length > 0) {
-          ctx.emitter.emit(EntityProcess, { users, chats })
+          ctx.eventContext.emit(EntityProcess, { users, chats })
         }
 
         // Handle messages
@@ -130,7 +130,7 @@ export function createSyncService(
           }).log('Syncing messages batch (Text only)')
 
           // TODO: sync media, with delete at
-          ctx.emitter.emit(MessageProcess, {
+          ctx.eventContext.emit(MessageProcess, {
             messages: validMessages,
             isTakeout: false,
             // Skip expensive side-effects during massive catch-up to avoid bans
@@ -174,12 +174,12 @@ export function createSyncService(
         }
       }
 
-      ctx.emitter.emit(SyncStatus, { status: 'idle' })
+      ctx.eventContext.emit(SyncStatus, { status: 'idle' })
       logger.log('Sync process finished', { finalPts: currentPts })
     }
     catch (error) {
       ctx.withError(error, 'Catch-up sync failed')
-      ctx.emitter.emit(SyncStatus, { status: 'error' })
+      ctx.eventContext.emit(SyncStatus, { status: 'error' })
     }
     finally {
       isSyncing = false

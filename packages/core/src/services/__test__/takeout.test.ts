@@ -1,4 +1,4 @@
-import type { CoreContext, CoreEmitter, FromCoreEventPayloadMap, ToCoreEventPayloadMap } from '../../context'
+import type { CoreContext, CoreEventContext, FromCoreEventPayloadMap, ToCoreEventPayloadMap } from '../../context'
 import type { CoreDB } from '../../db'
 import type { AccountSettings } from '../../types/account-settings'
 import type { CoreUserEntity } from '../../types/events'
@@ -40,7 +40,7 @@ function createMockCtx(client: any) {
   // Minimal event emitter stub for processMessageBatch/runTakeout flows.
   // Uses Eventa's .id property as the key for handler lookup.
   const handlers = new Map<string, Set<(...args: any[]) => void>>()
-  const emitter = {
+  const eventContext = {
     on: vi.fn((event: any, handler: (...args: any[]) => void) => {
       const key = event?.id ?? event
       const set = handlers.get(key) ?? new Set()
@@ -55,10 +55,10 @@ function createMockCtx(client: any) {
       const key = event?.id ?? event
       handlers.get(key)?.forEach(fn => fn(payload))
     }),
-  } as unknown as CoreEmitter
+  } as unknown as CoreEventContext
 
   const ctx: CoreContext = {
-    emitter,
+    eventContext,
     toCoreEvents: new Set<keyof ToCoreEventPayloadMap>(),
     fromCoreEvents: new Set<keyof FromCoreEventPayloadMap>(),
     setClient: () => {},
@@ -79,9 +79,9 @@ function createMockCtx(client: any) {
 }
 
 function createTask() {
-  // Minimal emitter stub for CoreTask -> task.ts only calls emitter.emit(...)
-  const emitter = { emit: vi.fn() } as unknown as CoreEmitter
-  return createCoreTask('takeout', { chatIds: ['123'] }, emitter, logger)
+  // Minimal eventContext stub for CoreTask -> task.ts only calls eventContext.emit(...)
+  const eventContext = { emit: vi.fn() } as unknown as CoreEventContext
+  return createCoreTask('takeout', { chatIds: ['123'] }, eventContext, logger)
 }
 
 describe('takeout service', () => {
@@ -537,8 +537,10 @@ describe('takeout service', () => {
     const { ctx } = createMockCtx(client)
 
     // Auto-complete message processing batches to avoid hanging on pendingBatches.
-    ctx.emitter.on(MessageProcess, ({ messages, batchId }) => {
-      ctx.emitter.emit(MessageProcessed, {
+    // NOTE: Raw ctx.eventContext.on() handlers receive the full Eventa envelope.
+    ctx.eventContext.on(MessageProcess, (envelope: any) => {
+      const { messages, batchId } = envelope.body
+      ctx.eventContext.emit(MessageProcessed, {
         batchId: batchId ?? 'batch-id',
         count: messages.length,
         resolverSpans: [],

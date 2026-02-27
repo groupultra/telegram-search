@@ -1,14 +1,14 @@
 import type { Eventa } from '@moeru/eventa'
 
-import type { CoreEmitter } from '../context'
+import type { CoreEventContext } from '../context'
 
 export function waitForEvent<P>(
-  emitter: CoreEmitter,
+  eventContext: CoreEventContext,
   event: Eventa<P>,
 ): Promise<P> {
   return new Promise((resolve) => {
-    emitter.once(event, (data) => {
-      resolve(data)
+    eventContext.once(event, (envelope: Eventa<P>) => {
+      resolve(envelope.body as P)
     })
   })
 }

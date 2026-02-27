@@ -2,12 +2,13 @@ import type { Models } from '../../models'
 import type { CoreDialog } from '../../types/dialog'
 
 import { useLogger } from '@guiiai/logg'
+import { defineInvoke } from '@moeru/eventa'
 import { Ok } from '@unbird/result'
 import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
-import { CoreError, StorageDialogs, StorageFetchDialogs, StorageFetchMessages, StorageRecordDialogs, StorageSearchMessages } from '../../types/events'
+import { StorageFetchDialogsInvoke, StorageFetchMessagesInvoke, StorageRecordDialogs, StorageSearchMessagesInvoke } from '../../types/events'
 import { registerStorageEventHandlers } from '../storage'
 
 const logger = useLogger()
@@ -52,9 +53,9 @@ const recordChats = vi.fn(async (_db: unknown, _dialogs: CoreDialog[], _accountI
 // Message-related mocks
 const isChatAccessibleByAccount = vi.fn(async (_db: unknown, _accountId: string, _chatId: string) => Ok(true))
 const fetchMessageContextWithPhotos = vi.fn()
-const fetchMessagesWithPhotos = vi.fn(async (_db: unknown, _accountId: string, _chatId: string, _pagination: unknown) => Ok([] as unknown[]))
+const fetchMessagesWithPhotos = vi.fn(async (_db: unknown, _photoModels: unknown, _accountId: string, _chatId: string, _pagination: unknown) => Ok([] as unknown[]))
 const recordMessagesWithMedia = vi.fn()
-const retrieveMessages = vi.fn(async (_db: unknown, _accountId: string, _dimension: unknown, _content: unknown, _pagination: unknown, _filters: unknown) => Ok([] as unknown[]))
+const retrieveMessages = vi.fn(async (_db: unknown, _logger: unknown, _accountId: string, _dimension: unknown, _content: unknown, _pagination: unknown, _filters: unknown) => Ok([] as unknown[]))
 
 const models = {
   chatModels: {
@@ -67,34 +68,34 @@ const models = {
     recordMessagesWithMedia,
     retrieveMessages,
   },
+  chatMessageModels: {
+    fetchMessagesWithPhotos,
+    fetchMessageContextWithPhotos,
+    recordMessages: vi.fn(),
+    retrieveMessages,
+  },
   chatMessageStatsModels: {
     getChatMessagesStats,
   },
+  photoModels: {},
 } as unknown as Models
 
 describe('storage event handlers - dialogs with accounts', () => {
-  it('storage:fetch:dialogs should query dialogs for given account and emit mapped dialogs', async () => {
+  it('storage:fetch:dialogs should query dialogs for given account and return mapped dialogs via invoke', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
     registerStorageEventHandlers(ctx, logger, models)
 
     const ACCOUNT_ID = 'account-xyz'
 
-    const dialogsPromise = new Promise<CoreDialog[]>((resolve) => {
-      ctx.emitter.on(StorageDialogs, ({ dialogs }) => {
-        resolve(dialogs)
-      })
-    })
-
-    ctx.emitter.emit(StorageFetchDialogs, { accountId: ACCOUNT_ID })
-
-    const dialogs = await dialogsPromise
+    const invoke = defineInvoke(ctx.eventContext, StorageFetchDialogsInvoke)
+    const result = await invoke({ accountId: ACCOUNT_ID })
 
     // Verify models were called with correct account id (first arg is db instance)
     expect(fetchChatsByAccountId).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID)
     expect(getChatMessagesStats).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID)
 
     // Verify mapping to CoreDialog shape
-    expect(dialogs).toEqual([
+    expect(result.dialogs).toEqual([
       {
         id: 1001,
         name: 'Test Chat',
@@ -123,7 +124,10 @@ describe('storage event handlers - dialogs with accounts', () => {
       },
     ]
 
-    ctx.emitter.emit(StorageRecordDialogs, { dialogs, accountId: ACCOUNT_ID })
+    ctx.eventContext.emit(StorageRecordDialogs, { dialogs, accountId: ACCOUNT_ID })
+
+    // Wait for async handler
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(recordChats).toHaveBeenCalledTimes(1)
     expect(recordChats).toHaveBeenCalledWith(expect.anything(), dialogs, ACCOUNT_ID)
@@ -131,7 +135,7 @@ describe('storage event handlers - dialogs with accounts', () => {
 })
 
 describe('storage event handlers - message access control', () => {
-  it('storage:fetch:messages should reject when account has no access to chat', async () => {
+  it('storage:fetch:messages should return empty when account has no access to chat', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
     registerStorageEventHandlers(ctx, logger, models)
 
@@ -143,25 +147,19 @@ describe('storage event handlers - message access control', () => {
     // For this test, deny access
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
-    const errorPromise = new Promise<string>((resolve) => {
-      ctx.emitter.on(CoreError, ({ error }) => {
-        resolve(error)
-      })
-    })
-
-    ctx.emitter.emit(StorageFetchMessages, {
+    const invoke = defineInvoke(ctx.eventContext, StorageFetchMessagesInvoke)
+    const result = await invoke({
       chatId: CHAT_ID,
       pagination: { limit: 20, offset: 0 },
     })
 
-    const error = await errorPromise
-
-    expect(error).toBe('Unauthorized chat access')
+    // With invoke, unauthorized access returns empty messages instead of emitting an error
+    expect(result.messages).toEqual([])
     expect(isChatAccessibleByAccount).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID, CHAT_ID)
     expect(fetchMessagesWithPhotos).not.toHaveBeenCalled()
   })
 
-  it('storage:search:messages should reject when account has no access to specified chatId', async () => {
+  it('storage:search:messages should return empty when account has no access to specified chatId', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
     registerStorageEventHandlers(ctx, logger, models)
 
@@ -173,22 +171,16 @@ describe('storage event handlers - message access control', () => {
     // For this test, deny access for this chat
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
-    const errorPromise = new Promise<string>((resolve) => {
-      ctx.emitter.on(CoreError, ({ error }) => {
-        resolve(error)
-      })
-    })
-
-    ctx.emitter.emit(StorageSearchMessages, {
+    const invoke = defineInvoke(ctx.eventContext, StorageSearchMessagesInvoke)
+    const result = await invoke({
       chatId: CHAT_ID,
       content: 'test search',
       useVector: false,
       pagination: { limit: 20, offset: 0 },
     })
 
-    const error = await errorPromise
-
-    expect(error).toBe('Unauthorized chat access')
+    // With invoke, unauthorized access returns empty messages instead of emitting an error
+    expect(result.messages).toEqual([])
     expect(isChatAccessibleByAccount).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID, CHAT_ID)
     expect(retrieveMessages).not.toHaveBeenCalled()
   })

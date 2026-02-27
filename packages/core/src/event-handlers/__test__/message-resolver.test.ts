@@ -35,7 +35,7 @@ describe('message-resolver event handlers', () => {
       date: Math.floor(Date.now() / 1000),
     })
 
-    ctx.emitter.emit(MessageProcess, {
+    ctx.eventContext.emit(MessageProcess, {
       messages: [telegramMessage],
       isTakeout: false,
       forceRefetch: true,
@@ -71,7 +71,7 @@ describe('message-resolver event handlers', () => {
       date: Math.floor(Date.now() / 1000),
     })
 
-    ctx.emitter.emit(MessageProcess, {
+    ctx.eventContext.emit(MessageProcess, {
       messages: [telegramMessage],
       isTakeout: true,
       forceRefetch: true,

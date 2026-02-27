@@ -131,8 +131,8 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
       if (!isAuthorized) {
         // Surface this as an auth-specific error so the frontend can fall
         // back to manual login and optionally clear the stored session.
-        ctx.emitter.emit(AuthError)
-        ctx.emitter.emit(AuthDisconnected)
+        ctx.eventContext.emit(AuthError, undefined)
+        ctx.eventContext.emit(AuthDisconnected, undefined)
         return Err(ctx.withError('User is not authorized'))
       }
 
@@ -141,7 +141,7 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
       logger.withFields({ hasSession: !!sessionString }).verbose('Forwarding session to client')
 
       // 1) Forward updated session to frontend so it can persist it.
-      ctx.emitter.emit(SessionUpdate, { session: sessionString })
+      ctx.eventContext.emit(SessionUpdate, { session: sessionString })
 
       // 2) Attach client to context for subsequent services.
       ctx.setClient(client)
@@ -149,14 +149,14 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
       // 3) Finally signal that auth is connected; this will trigger
       //    afterConnectedEventHandler, which will establish current
       //    account ID and bootstrap dialogs/storage.
-      ctx.emitter.emit(AuthConnected)
+      ctx.eventContext.emit(AuthConnected, undefined)
 
       logger.log('Login with session successful')
 
       return Ok(client)
     }
     catch (error) {
-      ctx.emitter.emit(AuthError)
+      ctx.eventContext.emit(AuthError, undefined)
       return Err(ctx.withError(error, 'Failed to login with session'))
     }
   }
@@ -176,21 +176,21 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
       logger.withFields({ hasSession: !!sessionString }).verbose('Forwarding session to client')
 
       // 1) Forward updated session
-      ctx.emitter.emit(SessionUpdate, { session: sessionString })
+      ctx.eventContext.emit(SessionUpdate, { session: sessionString })
 
       // 2) Attach client
       ctx.setClient(client)
 
       // 3) Notify connected; afterConnectedEventHandler will establish
       //    current account ID and bootstrap dialogs/storage.
-      ctx.emitter.emit(AuthConnected)
+      ctx.eventContext.emit(AuthConnected, undefined)
 
       logger.log('Login with phone successful')
 
       return Ok(client)
     }
     catch (error) {
-      ctx.emitter.emit(AuthError)
+      ctx.eventContext.emit(AuthError, undefined)
       return Err(ctx.withError(error, 'Failed to login with phone'))
     }
   }
@@ -206,18 +206,18 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
         phoneNumber,
         phoneCode: async () => {
           logger.verbose('Waiting for code')
-          ctx.emitter.emit(AuthCodeNeeded)
-          const { code } = await waitForEvent(ctx.emitter, AuthCode)
+          ctx.eventContext.emit(AuthCodeNeeded, undefined)
+          const { code } = await waitForEvent(ctx.eventContext, AuthCode)
           return code
         },
         password: async () => {
           logger.verbose('Waiting for password')
-          ctx.emitter.emit(AuthPasswordNeeded)
-          const { password } = await waitForEvent(ctx.emitter, AuthPassword)
+          ctx.eventContext.emit(AuthPasswordNeeded, undefined)
+          const { password } = await waitForEvent(ctx.eventContext, AuthPassword)
           return password
         },
         onError: (error) => {
-          ctx.emitter.emit(AuthError)
+          ctx.eventContext.emit(AuthError, undefined)
           reject(ctx.withError(error, 'Failed to sign in to Telegram'))
         },
       })
@@ -230,7 +230,7 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
     if (client.connected) {
       await client.invoke(new Api.auth.LogOut())
       await client.disconnect()
-      ctx.emitter.emit(AuthDisconnected)
+      ctx.eventContext.emit(AuthDisconnected, undefined)
     }
 
     client.session.delete()

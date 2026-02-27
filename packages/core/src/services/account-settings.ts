@@ -7,7 +7,6 @@ import { toSafePresenceFlag } from '@tg-search/common'
 import { safeParse } from 'valibot'
 
 import { accountSettingsSchema } from '../types'
-import { ConfigData } from '../types/events'
 
 export type AccountSettingsService = ReturnType<typeof createAccountSettingsService>
 
@@ -27,15 +26,15 @@ export function createAccountSettingsService(ctx: CoreContext, logger: Logger) {
     }
   }
 
-  async function fetchAccountSettings() {
+  async function fetchAccountSettings(): Promise<{ accountSettings: AccountSettings }> {
     logger.verbose('Fetching account settings')
 
     const accountSettings = await ctx.getAccountSettings()
 
-    ctx.emitter.emit(ConfigData, { accountSettings })
+    return { accountSettings }
   }
 
-  async function setAccountSettings(accountSettings: AccountSettings) {
+  async function setAccountSettings(accountSettings: AccountSettings): Promise<{ accountSettings: AccountSettings }> {
     logger.withFields(toSettingsLogSummary(accountSettings)).verbose('Setting account settings')
 
     const parsedAccountSettings = safeParse(accountSettingsSchema, accountSettings)
@@ -46,7 +45,7 @@ export function createAccountSettingsService(ctx: CoreContext, logger: Logger) {
 
     await ctx.setAccountSettings(parsedAccountSettings.output)
 
-    ctx.emitter.emit(ConfigData, { accountSettings: parsedAccountSettings.output })
+    return { accountSettings: parsedAccountSettings.output }
   }
 
   return {

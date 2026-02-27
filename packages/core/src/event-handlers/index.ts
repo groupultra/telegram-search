@@ -6,6 +6,7 @@ import type { MediaBinaryProvider } from '../types/storage'
 
 import { useLogger } from '@guiiai/logg'
 
+import { safeOn, safeOnce } from '../context'
 import { useMessageResolverRegistry } from '../message-resolvers'
 import { createAvatarResolver } from '../message-resolvers/avatar-resolver'
 import { createEmbeddingResolver } from '../message-resolvers/embedding-resolver'
@@ -92,7 +93,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
   const syncService = createSyncService(ctx, logger)
   const gramEventsService = createGramEventsService(ctx, logger)
 
-  ctx.emitter.once(AuthConnected, async () => {
+  safeOnce(ctx.eventContext, AuthConnected, async () => {
     // Register entity handlers first so we can establish currentAccountId.
     logger.verbose('Getting me info')
     const account = (await accountService.fetchMyAccount()).expect('Failed to get me info')
@@ -105,12 +106,12 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     ctx.setCurrentAccountId(dbAccount.id)
 
     // Trigger sync catch-up in background after account is identified
-    ctx.emitter.on(SyncCatchUp, async () => {
+    safeOn(ctx.eventContext, SyncCatchUp, async () => {
       await syncService.catchUp()
-    })
-    ctx.emitter.on(SyncReset, async () => {
+    }, logger)
+    safeOn(ctx.eventContext, SyncReset, async () => {
       await syncService.reset()
-    })
+    }, logger)
     void syncService.catchUp()
     ctx.setMyUser(account)
 
@@ -121,23 +122,23 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
 
     logger.withFields({ accountId: dbAccount.id }).verbose('Set current account ID')
 
-    ctx.emitter.emit(AccountReady, { accountId: dbAccount.id })
-  })
+    ctx.eventContext.emit(AccountReady, { accountId: dbAccount.id })
+  }, logger)
 
-  ctx.emitter.once(AccountReady, ({ accountId }) => {
+  safeOnce(ctx.eventContext, AccountReady, ({ accountId }) => {
     logger = logger.withFields({ accountId })
 
     registerEntityEventHandlers(ctx, logger)(entityService)
     registerMessageEventHandlers(ctx, logger)(messageService)
     registerDialogEventHandlers(ctx, logger, models)(dialogService)
-    registerTakeoutEventHandlers(ctx, takeoutService)
+    registerTakeoutEventHandlers(ctx, logger, takeoutService)
     registerGramEventsEventHandlers(ctx, logger, accountModels, models.chatModels)(gramEventsService)
 
     // Dialog bootstrap is now triggered from account:setup handler once
     // currentAccountId has been established, to avoid races where dialog or
     // storage handlers read account context too early.
     gramEventsService.registerGramEvents()
-  })
+  }, logger)
 
   return () => {}
 }

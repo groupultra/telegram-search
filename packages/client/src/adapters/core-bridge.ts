@@ -5,7 +5,7 @@ import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event
 
 import { useLogger } from '@guiiai/logg'
 import { deepClone, generateDefaultConfig } from '@tg-search/common'
-import { getCoreEventById } from '@tg-search/core'
+import { defineInvoke, getCoreEventById, invokeEventConfig, isInvokeEventId } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
@@ -62,7 +62,9 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
         if (!eventName.startsWith('server:')) {
           const eventa = getCoreEventById(eventName)
           if (eventa) {
-            ctx.emitter.on(eventa, (payload) => {
+            ctx.eventContext.on(eventa, (envelope: unknown) => {
+              // Raw Eventa handler receives envelope; extract body
+              const payload = (envelope as { body?: unknown })?.body ?? envelope
               logger.withFields({ eventName }).debug('Sending event to client')
               const message = {
                 type: eventName as unknown as WsMessageToClient['type'],
@@ -76,11 +78,27 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
           }
         }
       }
+      else if (isInvokeEventId(event)) {
+        // Invoke (RPC) events: use defineInvoke and send the response
+        const invokeConfig = invokeEventConfig[event]
+        if (invokeConfig) {
+          const invoke = defineInvoke(ctx.eventContext, invokeConfig.event)
+          invoke(deepClone(data) as any).then((result) => {
+            sendWsEvent({
+              type: invokeConfig.responseEventId as WsMessageToClient['type'],
+              data: result,
+            } as WsMessageToClient)
+          }).catch((error) => {
+            logger.withError(error).error(`Invoke handler failed for ${event}`)
+          })
+        }
+      }
       else {
+        // Fire-and-forget: emit directly
         const eventa = getCoreEventById(event)
         if (eventa) {
           logger.withFields({ event, data }).debug('Emit event to core')
-          ctx.emitter.emit(eventa, deepClone(data))
+          ctx.eventContext.emit(eventa, deepClone(data))
         }
         else {
           logger.withFields({ event }).warn('Unknown core event ID, skipping emit')

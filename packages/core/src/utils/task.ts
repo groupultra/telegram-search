@@ -1,6 +1,6 @@
 import type { Logger } from '@guiiai/logg'
 
-import type { CoreEmitter } from '../context'
+import type { CoreEventContext } from '../context'
 import type { CoreTask, CoreTaskData, CoreTasks, CoreTaskType } from '../types/task'
 
 import { v4 as uuidv4 } from 'uuid'
@@ -13,7 +13,7 @@ import { TakeoutTaskProgress } from '../types/events'
 export function createTask<T extends CoreTaskType>(
   type: T,
   metadata: CoreTasks[T],
-  emitter: CoreEmitter,
+  eventContext: CoreEventContext,
   logger: Logger,
 ): CoreTask<T> {
   logger = logger.withContext('core:task')
@@ -32,7 +32,7 @@ export function createTask<T extends CoreTaskType>(
 
   const emitUpdate = () => {
     if (type === 'takeout') {
-      emitter.emit(TakeoutTaskProgress, task.toJSON() as any)
+      eventContext.emit(TakeoutTaskProgress, task.toJSON() as any)
     }
   }
 

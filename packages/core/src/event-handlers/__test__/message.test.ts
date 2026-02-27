@@ -39,13 +39,14 @@ describe('message event handlers', () => {
     registerHandlers(mockMessageService as any)
 
     // Set up listener for message:process to capture forceRefetch flag
+    // NOTE: Raw ctx.eventContext.on() handlers receive the full Eventa envelope.
     let capturedForceRefetch: boolean | undefined
-    ctx.emitter.on(MessageProcess, ({ forceRefetch }) => {
-      capturedForceRefetch = forceRefetch
+    ctx.eventContext.on(MessageProcess, (envelope: any) => {
+      capturedForceRefetch = envelope.body.forceRefetch
     })
 
     // Emit message:reprocess event
-    ctx.emitter.emit(MessageReprocess, {
+    ctx.eventContext.emit(MessageReprocess, {
       chatId: '789',
       messageIds: [123],
       resolvers: ['media'],
@@ -74,13 +75,14 @@ describe('message event handlers', () => {
     registerHandlers(mockMessageService as any)
 
     // Set up listener for core:error
+    // NOTE: Raw ctx.eventContext.on() handlers receive the full Eventa envelope.
     const errors: any[] = []
-    ctx.emitter.on(CoreError, (error) => {
-      errors.push(error)
+    ctx.eventContext.on(CoreError, (envelope: any) => {
+      errors.push(envelope.body)
     })
 
     // Emit message:reprocess event
-    ctx.emitter.emit(MessageReprocess, {
+    ctx.eventContext.emit(MessageReprocess, {
       chatId: '789',
       messageIds: [123],
       resolvers: ['media'],
@@ -110,13 +112,14 @@ describe('message event handlers', () => {
     registerHandlers(mockMessageService as any)
 
     // Set up listener for message:process
+    // NOTE: Raw ctx.eventContext.on() handlers receive the full Eventa envelope.
     const processedMessages: Api.Message[] = []
-    ctx.emitter.on(MessageProcess, ({ messages }) => {
-      processedMessages.push(...messages)
+    ctx.eventContext.on(MessageProcess, (envelope: any) => {
+      processedMessages.push(...envelope.body.messages)
     })
 
     // Emit message:reprocess event
-    ctx.emitter.emit(MessageReprocess, {
+    ctx.eventContext.emit(MessageReprocess, {
       chatId: '789',
       messageIds: [123],
       resolvers: ['media'],

@@ -7,13 +7,14 @@ import type { GramEventsService } from '../services/gram-events'
 
 import { Api } from 'telegram'
 
+import { safeOn } from '../context'
 import { GramMessageReceived, MessageProcess } from '../types/events'
 
 export function registerGramEventsEventHandlers(ctx: CoreContext, logger: Logger, accountModels: AccountModels, chatModels: ChatModels) {
   logger = logger.withContext('core:gram:event')
 
   return (_: GramEventsService) => {
-    ctx.emitter.on(GramMessageReceived, async ({ message, pts, date, isChannel }) => {
+    safeOn(ctx.eventContext, GramMessageReceived, async ({ message, pts, date, isChannel }) => {
       const accountSettings = await ctx.getAccountSettings()
       const receiveSettings = accountSettings.messageProcessing?.receiveMessages
 
@@ -30,7 +31,7 @@ export function registerGramEventsEventHandlers(ctx: CoreContext, logger: Logger
 
       logger.withFields({ message: message.id, fromId: message.fromId, content: message.text, pts, isChannel }).debug('Message received')
 
-      ctx.emitter.emit(MessageProcess, { messages: [message], syncOptions })
+      ctx.eventContext.emit(MessageProcess, { messages: [message], syncOptions })
 
       if (!pts)
         return
@@ -54,6 +55,6 @@ export function registerGramEventsEventHandlers(ctx: CoreContext, logger: Logger
           date,
         })
       }
-    })
+    }, logger)
   }
 }

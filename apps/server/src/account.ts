@@ -1,11 +1,11 @@
 import type { Config } from '@tg-search/common'
-import type { CoreContext, CoreEmitter, Eventa, FromCoreEvent } from '@tg-search/core'
+import type { CoreContext, FromCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
 import { attachBotToContext, getBotRegistry } from '@tg-search/bot'
-import { createCoreInstance, MessageProcess } from '@tg-search/core'
-import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
+import { createCoreInstance, MessageProcess, safeOn } from '@tg-search/core'
+import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics } from '@tg-search/observability'
 
 import { getDB } from './storage/drizzle'
 import { getMediaStorage } from './storage/media'
@@ -54,23 +54,6 @@ export const peerToAccountId = new Map<string, string>()
 // We need to track peer objects for broadcasting
 export const peerObjects = new Map<string, Peer>()
 
-function bindTracingMetaToSpan(emitter: CoreEmitter) {
-  // Ensure tracingId from incoming meta is bound into active span for all core handlers
-  const originalOn = emitter.on.bind(emitter)
-  emitter.on = (<P>(event: Eventa<P>, listener: (data: P) => void | Promise<void>) => {
-    return originalOn(event, (data: P) => {
-      return withSpan(event.id, () => listener(data))
-    })
-  }) as CoreEmitter['on']
-
-  const originalOnce = emitter.once.bind(emitter)
-  emitter.once = (<P>(event: Eventa<P>, listener: (data: P) => void | Promise<void>) => {
-    return originalOnce(event, (data: P) => {
-      return withSpan(event.id, () => listener(data))
-    })
-  }) as CoreEmitter['once']
-}
-
 export function getOrCreateAccount(accountId: string, config: Config): AccountState {
   const logger = useLogger('server:account')
 
@@ -78,8 +61,6 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
     logger.withFields({ accountId }).log('Creating new account state')
 
     const ctx = createCoreInstance(getDB, config, getMediaStorage(), logger, coreMetrics)
-
-    bindTracingMetaToSpan(ctx.emitter)
 
     const account: AccountState = {
       ctx,
@@ -91,11 +72,11 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
     }
 
     // Instrument core message processing for this account
-    ctx.emitter.on(MessageProcess, ({ messages, isTakeout }) => {
+    safeOn(ctx.eventContext, MessageProcess, ({ messages, isTakeout }) => {
       const source = isTakeout ? 'takeout' : 'realtime'
       coreMessageBatchesProcessedTotal.add(1, { source })
       coreMessagesProcessedTotal.add(messages.length, { source })
-    })
+    }, logger)
 
     // Bridge bot events to shared bot registry (if bot is enabled)
     const botRegistry = getBotRegistry()

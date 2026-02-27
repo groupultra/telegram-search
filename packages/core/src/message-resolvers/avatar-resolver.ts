@@ -230,7 +230,7 @@ function createAvatarHelper(ctx: CoreContext, logger: Logger) {
         const cachedEarly = cache.get(key)
         logger.withFields({ userId: key, expectedFileId: opts.expectedFileId, cachedFileId: cachedEarly?.fileId }).verbose('User avatar early cache validation')
         if (cachedEarly && cachedEarly.fileId === opts.expectedFileId && cachedEarly.byte && cachedEarly.mimeType) {
-          ctx.emitter.emit(EntityAvatarData, { userId: key, byte: cachedEarly.byte, mimeType: cachedEarly.mimeType, fileId: opts.expectedFileId })
+          ctx.eventContext.emit(EntityAvatarData, { userId: key, byte: cachedEarly.byte, mimeType: cachedEarly.mimeType, fileId: opts.expectedFileId })
           return
         }
       }
@@ -264,11 +264,11 @@ function createAvatarHelper(ctx: CoreContext, logger: Logger) {
       const cached = cache.get(key)
       if (cached && cached.byte && cached.mimeType && ((fileId && cached.fileId === fileId) || !fileId)) {
         if (isUser) {
-          ctx.emitter.emit(EntityAvatarData, { userId: key, byte: cached.byte, mimeType: cached.mimeType, fileId })
+          ctx.eventContext.emit(EntityAvatarData, { userId: key, byte: cached.byte, mimeType: cached.mimeType, fileId })
         }
         else {
           const idNumCached = typeof idRaw === 'string' ? Number(idRaw) : idRaw
-          ctx.emitter.emit(DialogAvatarData, { chatId: idNumCached, byte: cached.byte, mimeType: cached.mimeType, fileId })
+          ctx.eventContext.emit(DialogAvatarData, { chatId: idNumCached, byte: cached.byte, mimeType: cached.mimeType, fileId })
         }
         return
       }
@@ -304,11 +304,11 @@ function createAvatarHelper(ctx: CoreContext, logger: Logger) {
       }
 
       if (isUser) {
-        ctx.emitter.emit(EntityAvatarData, { userId: key, byte: result.byte, mimeType: result.mimeType, fileId })
+        ctx.eventContext.emit(EntityAvatarData, { userId: key, byte: result.byte, mimeType: result.mimeType, fileId })
       }
       else {
         const idNum = typeof idRaw === 'string' ? Number(idRaw) : idRaw
-        ctx.emitter.emit(DialogAvatarData, { chatId: idNum, byte: result.byte, mimeType: result.mimeType, fileId })
+        ctx.eventContext.emit(DialogAvatarData, { chatId: idNum, byte: result.byte, mimeType: result.mimeType, fileId })
       }
     }
     catch (error) {
@@ -408,7 +408,7 @@ function createAvatarHelper(ctx: CoreContext, logger: Logger) {
 
         chatAvatarCache.set(key, { fileId, mimeType: result.mimeType, byte: result.byte })
 
-        ctx.emitter.emit(DialogAvatarData, { chatId: id, byte: result.byte, mimeType: result.mimeType, fileId })
+        ctx.eventContext.emit(DialogAvatarData, { chatId: id, byte: result.byte, mimeType: result.mimeType, fileId })
       }
       catch (error) {
         logger.withError(error as Error).warn('Failed to fetch avatar for dialog')

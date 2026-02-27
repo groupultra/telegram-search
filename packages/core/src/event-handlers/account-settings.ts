@@ -3,22 +3,22 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext } from '../context'
 import type { AccountSettingsService } from '../services/account-settings'
 
-import { ConfigFetch, ConfigUpdate } from '../types/events'
+import { defineInvokeHandler } from '@moeru/eventa'
+
+import { ConfigFetchInvoke, ConfigUpdateInvoke } from '../types/events'
 
 export function registerAccountSettingsEventHandlers(ctx: CoreContext, logger: Logger) {
   logger = logger.withContext('core:account-settings:event')
 
   return (configService: AccountSettingsService) => {
-    ctx.emitter.on(ConfigFetch, async () => {
+    defineInvokeHandler(ctx.eventContext, ConfigFetchInvoke, async () => {
       logger.verbose('Getting config')
-
-      configService.fetchAccountSettings()
+      return configService.fetchAccountSettings()
     })
 
-    ctx.emitter.on(ConfigUpdate, async ({ accountSettings }) => {
+    defineInvokeHandler(ctx.eventContext, ConfigUpdateInvoke, async ({ accountSettings }) => {
       logger.verbose('Saving config')
-
-      await configService.setAccountSettings(accountSettings)
+      return configService.setAccountSettings(accountSettings)
     })
   }
 }

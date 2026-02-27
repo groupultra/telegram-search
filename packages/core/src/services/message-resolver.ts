@@ -49,7 +49,7 @@ export function createMessageResolverService(
 
     // Return the messages to client first.
     if (!options.takeout) {
-      ctx.emitter.emit(MessageData, { messages: coreMessages })
+      ctx.eventContext.emit(MessageData, { messages: coreMessages })
     }
 
     // Storage the messages first and get the actual DB IDs
@@ -94,16 +94,16 @@ export function createMessageResolverService(
           const result = (await resolver.run(opts)).unwrap()
 
           if (result.length > 0) {
-            ctx.emitter.emit(StorageRecordMessages, { messages: result })
+            ctx.eventContext.emit(StorageRecordMessages, { messages: result })
           }
         }
         else if (resolver.stream) {
           for await (const message of resolver.stream(opts)) {
             if (!options.takeout) {
-              ctx.emitter.emit(MessageData, { messages: [message] })
+              ctx.eventContext.emit(MessageData, { messages: [message] })
             }
 
-            ctx.emitter.emit(StorageRecordMessages, { messages: [message] })
+            ctx.eventContext.emit(StorageRecordMessages, { messages: [message] })
           }
         }
       }
@@ -154,7 +154,7 @@ export function createMessageResolverService(
     await Promise.allSettled(promises)
 
     if (options.batchId) {
-      ctx.emitter.emit(MessageProcessed, {
+      ctx.eventContext.emit(MessageProcessed, {
         batchId: options.batchId,
         count: coreMessages.length,
         resolverSpans,

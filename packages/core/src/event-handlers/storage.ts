@@ -6,24 +6,21 @@ import type { DBRetrievalMessages } from '../models/utils/message'
 import type { CoreDialog } from '../types/dialog'
 import type { CoreMessage } from '../types/message'
 
+import { defineInvokeHandler } from '@moeru/eventa'
+
+import { safeOn } from '../context'
 import { convertToCoreRetrievalMessages } from '../models/utils/message'
 import {
   MessageFetchSpecific,
-  StorageChatNote,
-  StorageChatNoteData,
-  StorageDialogs,
-  StorageFetchDialogs,
-  StorageFetchMessageContext,
-  StorageFetchMessages,
-  StorageMessages,
-  StorageMessagesContext,
+  StorageChatNoteInvoke,
+  StorageFetchDialogsInvoke,
+  StorageFetchMessageContextInvoke,
+  StorageFetchMessagesInvoke,
   StorageRecordChatFolders,
   StorageRecordDialogs,
   StorageRecordMessages,
-  StorageSearchMessages,
-  StorageSearchMessagesData,
-  StorageSearchPhotos,
-  StorageSearchPhotosData,
+  StorageSearchMessagesInvoke,
+  StorageSearchPhotosInvoke,
 } from '../types/events'
 import { embedContents } from '../utils/embed'
 
@@ -37,7 +34,7 @@ function hasNoMedia(message: CoreMessage): boolean {
 export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, dbModels: Models) {
   logger = logger.withContext('core:storage:event')
 
-  ctx.emitter.on(StorageFetchMessages, async ({ chatId, pagination }) => {
+  defineInvokeHandler(ctx.eventContext, StorageFetchMessagesInvoke, async ({ chatId, pagination }) => {
     logger.withFields({ chatId, pagination }).verbose('Fetching messages')
 
     const accountId = ctx.getCurrentAccountId()
@@ -45,14 +42,14 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     if (!hasAccess) {
       ctx.withError('Unauthorized chat access', 'Account does not have access to requested chat messages')
-      return
+      return { messages: [] as CoreMessage[] }
     }
 
     const messages = (await dbModels.chatMessageModels.fetchMessagesWithPhotos(ctx.getDB(), dbModels.photoModels, accountId, chatId, pagination)).unwrap()
-    ctx.emitter.emit(StorageMessages, { messages })
+    return { messages }
   })
 
-  ctx.emitter.on(StorageFetchMessageContext, async ({ chatId, messageId, before = 20, after = 20 }) => {
+  defineInvokeHandler(ctx.eventContext, StorageFetchMessageContextInvoke, async ({ chatId, messageId, before = 20, after = 20 }) => {
     const safeBefore = Math.max(0, before)
     const safeAfter = Math.max(0, after)
 
@@ -63,7 +60,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     if (!hasAccess) {
       ctx.withError('Unauthorized chat access', 'Account does not have access to requested message context')
-      return
+      return { chatId, messageId, messages: [] as CoreMessage[] }
     }
 
     const messages = (await dbModels.chatMessageModels.fetchMessageContextWithPhotos(
@@ -73,9 +70,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       { chatId, messageId, before: safeBefore, after: safeAfter },
     )).unwrap()
 
-    ctx.emitter.emit(StorageMessagesContext, { chatId, messageId, messages })
-
-    // After emitting the initial messages, identify messages that might be missing media
+    // After preparing the response, identify messages that might be missing media
     // and trigger a fetch from Telegram to download them
     // We only fetch messages that have no media in the database, as media is optional
     // The media resolver will check if media already exists before downloading
@@ -89,22 +84,24 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
       // Fetch these specific messages from Telegram which will download any missing media
       // This is done asynchronously and will update the messages once media is downloaded
-      ctx.emitter.emit(MessageFetchSpecific, {
+      ctx.eventContext.emit(MessageFetchSpecific, {
         chatId,
         messageIds: messageIdsToFetch,
       })
     }
+
+    return { chatId, messageId, messages }
   })
 
-  ctx.emitter.on(StorageRecordMessages, async ({ messages }) => {
+  safeOn(ctx.eventContext, StorageRecordMessages, async ({ messages }) => {
     const accountId = ctx.getCurrentAccountId()
 
     await dbModels.chatMessageModels.recordMessages(ctx.getDB(), accountId, messages)
 
     logger.withFields({ count: messages.length }).verbose('Messages recorded')
-  })
+  }, logger)
 
-  ctx.emitter.on(StorageFetchDialogs, async (data) => {
+  defineInvokeHandler(ctx.eventContext, StorageFetchDialogsInvoke, async (data) => {
     logger.verbose('Fetching dialogs')
 
     const accountId = data?.accountId || ctx.getCurrentAccountId()
@@ -129,10 +126,10 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       } satisfies CoreDialog
     })
 
-    ctx.emitter.emit(StorageDialogs, { dialogs })
+    return { dialogs }
   })
 
-  ctx.emitter.on(StorageRecordDialogs, async ({ dialogs, accountId }) => {
+  safeOn(ctx.eventContext, StorageRecordDialogs, async ({ dialogs, accountId }) => {
     logger.withFields({
       size: dialogs.length,
       users: dialogs.filter(d => d.type === 'user').length,
@@ -147,9 +144,9 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     const result = await dbModels.chatModels.recordChats(ctx.getDB(), dialogs, accountId)
     logger.withFields({ count: result.length }).verbose('Successfully recorded dialogs')
-  })
+  }, logger)
 
-  ctx.emitter.on(StorageRecordChatFolders, async ({ folders, accountId }) => {
+  safeOn(ctx.eventContext, StorageRecordChatFolders, async ({ folders, accountId }) => {
     logger.withFields({ count: folders.length }).verbose('Recording chat folders')
 
     const db = ctx.getDB()
@@ -161,15 +158,15 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     // Store folder metadata in account_chat_folders table
     await dbModels.chatFolderModels.upsertFolders(db, accountId, folders)
     logger.verbose('Successfully stored folder metadata')
-  })
+  }, logger)
 
-  ctx.emitter.on(StorageSearchMessages, async (params) => {
+  defineInvokeHandler(ctx.eventContext, StorageSearchMessagesInvoke, async (params) => {
     logger.withFields({ params }).verbose('Searching messages')
 
     const accountId = ctx.getCurrentAccountId()
 
     if (params.content.length === 0) {
-      return
+      return { messages: [] as CoreMessage[] }
     }
 
     if (params.chatId) {
@@ -177,7 +174,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
       if (!hasAccess) {
         ctx.withError('Unauthorized chat access', 'Account does not have access to requested chat messages')
-        return
+        return { messages: [] as CoreMessage[] }
       }
     }
 
@@ -224,107 +221,99 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     const coreMessages = convertToCoreRetrievalMessages(dbMessages)
 
-    ctx.emitter.emit(StorageSearchMessagesData, { messages: coreMessages })
+    return { messages: coreMessages }
   })
 
-  ctx.emitter.on(StorageSearchPhotos, async (params) => {
-    try {
-      logger.withFields({ params }).log('StorageSearchPhotos event received')
+  defineInvokeHandler(ctx.eventContext, StorageSearchPhotosInvoke, async (params) => {
+    logger.withFields({ params }).log('StorageSearchPhotos event received')
 
-      if (params.content.length === 0) {
-        logger.verbose('Empty content, returning empty results')
-        ctx.emitter.emit(StorageSearchPhotosData, { photos: [] })
-        return
-      }
-
-      const embeddingSettings = (await ctx.getAccountSettings()).embedding
-      const embeddingDimension = embeddingSettings.dimension
-      logger.withFields({ embeddingDimension }).verbose('Embedding settings loaded')
-
-      let corePhotos: Array<{
-        id: string
-        messageId: string | null
-        platformMessageId?: string
-        chatId?: string
-        chatName?: string
-        description: string
-        mimeType: string
-        createdAt: number
-        similarity?: number
-      }> = []
-
-      if (params.useVector) {
-        // Vector search
-        logger.verbose('Starting vector search for photos')
-        const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()
-        if (!embeddingResult) {
-          logger.warn('Failed to generate embedding for photo search')
-          ctx.emitter.emit(StorageSearchPhotosData, { photos: [] })
-          return
-        }
-
-        const embedding = embeddingResult.embeddings[0]
-        const limit = params.pagination?.limit || 10
-        logger.withFields({ embeddingLength: embedding.length, limit }).verbose('Embedding generated, searching database')
-
-        const results = (await dbModels.photoModels.searchPhotosByVector(
-          ctx.getDB(),
-          embedding,
-          embeddingDimension,
-          limit,
-        )).expect('Failed to search photos by vector')
-
-        logger.withFields({ resultsCount: results.length }).verbose('Vector search completed')
-
-        corePhotos = results.map(photo => ({
-          id: photo.id,
-          messageId: photo.message_id,
-          platformMessageId: photo.platform_message_id,
-          chatId: photo.chat_id,
-          chatName: photo.chat_name || undefined,
-          description: photo.description,
-          mimeType: photo.image_mime_type,
-          createdAt: photo.created_at,
-          similarity: photo.similarity,
-        }))
-      }
-      else {
-        // Text search
-        logger.verbose('Starting text search for photos')
-        const limit = params.pagination?.limit || 10
-        const results = (await dbModels.photoModels.searchPhotosByText(
-          ctx.getDB(),
-          params.content,
-          limit,
-        )).expect('Failed to search photos by text')
-
-        logger.withFields({ resultsCount: results.length }).verbose('Text search completed')
-
-        corePhotos = results.map(photo => ({
-          id: photo.id,
-          messageId: photo.message_id,
-          platformMessageId: photo.platform_message_id,
-          chatId: photo.chat_id,
-          chatName: photo.chat_name || undefined,
-          description: photo.description,
-          mimeType: photo.image_mime_type,
-          createdAt: photo.created_at,
-        }))
-      }
-
-      logger.withFields({
-        corePhotosCount: corePhotos.length,
-        samplePhoto: corePhotos[0],
-      }).log('Emitting StorageSearchPhotosData event')
-      ctx.emitter.emit(StorageSearchPhotosData, { photos: corePhotos })
+    if (params.content.length === 0) {
+      logger.verbose('Empty content, returning empty results')
+      return { photos: [] }
     }
-    catch (error) {
-      logger.withError(error).error('Failed to search photos')
-      ctx.emitter.emit(StorageSearchPhotosData, { photos: [] })
+
+    const embeddingSettings = (await ctx.getAccountSettings()).embedding
+    const embeddingDimension = embeddingSettings.dimension
+    logger.withFields({ embeddingDimension }).verbose('Embedding settings loaded')
+
+    let corePhotos: Array<{
+      id: string
+      messageId: string | null
+      platformMessageId?: string
+      chatId?: string
+      chatName?: string
+      description: string
+      mimeType: string
+      createdAt: number
+      similarity?: number
+    }> = []
+
+    if (params.useVector) {
+      // Vector search
+      logger.verbose('Starting vector search for photos')
+      const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()
+      if (!embeddingResult) {
+        logger.warn('Failed to generate embedding for photo search')
+        return { photos: [] }
+      }
+
+      const embedding = embeddingResult.embeddings[0]
+      const limit = params.pagination?.limit || 10
+      logger.withFields({ embeddingLength: embedding.length, limit }).verbose('Embedding generated, searching database')
+
+      const results = (await dbModels.photoModels.searchPhotosByVector(
+        ctx.getDB(),
+        embedding,
+        embeddingDimension,
+        limit,
+      )).expect('Failed to search photos by vector')
+
+      logger.withFields({ resultsCount: results.length }).verbose('Vector search completed')
+
+      corePhotos = results.map(photo => ({
+        id: photo.id,
+        messageId: photo.message_id,
+        platformMessageId: photo.platform_message_id,
+        chatId: photo.chat_id,
+        chatName: photo.chat_name || undefined,
+        description: photo.description,
+        mimeType: photo.image_mime_type,
+        createdAt: photo.created_at,
+        similarity: photo.similarity,
+      }))
     }
+    else {
+      // Text search
+      logger.verbose('Starting text search for photos')
+      const limit = params.pagination?.limit || 10
+      const results = (await dbModels.photoModels.searchPhotosByText(
+        ctx.getDB(),
+        params.content,
+        limit,
+      )).expect('Failed to search photos by text')
+
+      logger.withFields({ resultsCount: results.length }).verbose('Text search completed')
+
+      corePhotos = results.map(photo => ({
+        id: photo.id,
+        messageId: photo.message_id,
+        platformMessageId: photo.platform_message_id,
+        chatId: photo.chat_id,
+        chatName: photo.chat_name || undefined,
+        description: photo.description,
+        mimeType: photo.image_mime_type,
+        createdAt: photo.created_at,
+      }))
+    }
+
+    logger.withFields({
+      corePhotosCount: corePhotos.length,
+      samplePhoto: corePhotos[0],
+    }).log('Returning search photos results')
+    return { photos: corePhotos }
   })
 
-  ctx.emitter.on(StorageChatNote, async ({ chatId, note, modify }) => {
+  defineInvokeHandler(ctx.eventContext, StorageChatNoteInvoke, async ({ chatId, note, modify }) => {
     logger.withFields({ chatId, note }).verbose('Recording chat note')
 
     const accountId = ctx.getCurrentAccountId()
@@ -332,16 +321,17 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     if (!hasAccess) {
       ctx.withError('Unauthorized chat access', 'Account does not have access to requested chat note')
-      return
+      return { chatId, note: '' }
     }
 
     const note_result = await dbModels.chatModels.getOrModifyChatNote(ctx.getDB(), accountId, chatId, note, modify)
     if (note_result !== null) {
       logger.verbose('Successfully recorded chat note')
-      ctx.emitter.emit(StorageChatNoteData, { chatId, note: note_result })
+      return { chatId, note: note_result }
     }
     else {
       ctx.withError('Failed to record chat note', 'Failed to record chat note')
+      return { chatId, note: '' }
     }
   })
 }

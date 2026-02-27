@@ -18,7 +18,7 @@ import type { AccountState } from './account'
 import type { WsEventToClient, WsEventToClientData, WsMessageToServer } from './events'
 
 import { useLogger } from '@guiiai/logg'
-import { AccountReady, AuthLogin, AuthLogout, destroyCoreInstance, getCoreEventById } from '@tg-search/core'
+import { AccountReady, AuthLogin, AuthLogout, defineInvoke, destroyCoreInstance, getCoreEventById, invokeEventConfig, isInvokeEventId, safeOnce } from '@tg-search/core'
 import { coreEventsInTotal, wsConnectionsActive } from '@tg-search/observability'
 import { defineWebSocketHandler, HTTPError } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
@@ -39,7 +39,9 @@ export function registerCoreEventListeners(logger: Logger, account: AccountState
       return
     }
 
-    const listener = (data: unknown) => {
+    const listener = (envelope: unknown) => {
+      // Raw Eventa handler receives envelope; extract body
+      const data = (envelope as { body?: unknown })?.body ?? envelope
       account.activePeers.forEach((peerId) => {
         const targetPeer = peerObjects.get(peerId)
         if (targetPeer) {
@@ -48,7 +50,7 @@ export function registerCoreEventListeners(logger: Logger, account: AccountState
       })
     }
 
-    account.ctx.emitter.on(eventa, listener)
+    account.ctx.eventContext.on(eventa, listener)
     account.coreEventListeners.set(eventName, listener)
 
     logger.withFields({ eventName, accountId }).debug('Registered shared core event listener')
@@ -59,9 +61,9 @@ export async function updateAccountState(logger: Logger, account: AccountState, 
   // Update account state based on events
   switch (eventName) {
     case AuthLogin.id:
-      account.ctx.emitter.once(AccountReady, () => {
+      safeOnce(account.ctx.eventContext, AccountReady, () => {
         account.accountReady = true
-      })
+      }, logger)
       break
     case AuthLogout.id:
       account.accountReady = false
@@ -140,10 +142,27 @@ export function setupWsRoutes(app: H3, config: Config) {
           coreEventsInTotal.add(1, { event_name: event.type })
         }
 
-        // Emit to core context (meta.tracingId is re-bound via emitter on/once wrappers)
-        const eventa = getCoreEventById(event.type)
-        if (eventa) {
-          account.ctx.emitter.emit(eventa, { ...event.data, meta: { tracingId } })
+        // Check if this is an invoke (RPC) event
+        if (isInvokeEventId(event.type)) {
+          const invokeConfig = invokeEventConfig[event.type]
+          if (invokeConfig) {
+            const invoke = defineInvoke(account.ctx.eventContext, invokeConfig.event)
+            try {
+              const result = await invoke(event.data as any)
+              // Send the invoke response back to the requesting peer
+              sendWsEvent(peer, invokeConfig.responseEventId as keyof WsEventToClient, result as any)
+            }
+            catch (error) {
+              logger.withError(error).error(`Invoke handler failed for ${event.type}`)
+            }
+          }
+        }
+        else {
+          // Fire-and-forget: emit directly to core context
+          const eventa = getCoreEventById(event.type)
+          if (eventa) {
+            account.ctx.eventContext.emit(eventa, event.data)
+          }
         }
 
         updateAccountState(logger, account, accountId, event.type as keyof ToCoreEvent)

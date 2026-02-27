@@ -4,12 +4,13 @@ import type { MessageService } from '../../services/message'
 import bigInt from 'big-integer'
 
 import { useLogger } from '@guiiai/logg'
+import { defineInvoke } from '@moeru/eventa'
 import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
-import { MessageFetchSummary, MessageSummaryData } from '../../types/events'
+import { MessageFetchSummaryInvoke } from '../../types/events'
 import { registerMessageEventHandlers } from '../message'
 
 const models = {} as unknown as Models
@@ -28,7 +29,7 @@ function createApiMessage(id: number, date: number, content: string) {
   } as unknown as Api.Message
 }
 
-describe(MessageFetchSummary.id, () => {
+describe('message:fetch:summary (invoke)', () => {
   it('mode=unread should use fetchUnreadMessages', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
 
@@ -49,17 +50,11 @@ describe(MessageFetchSummary.id, () => {
 
     registerMessageEventHandlers(ctx, logger)(mockMessageService as unknown as MessageService)
 
-    const received: Array<{ mode: 'unread' | 'today' | 'last24h', count: number }> = []
-    ctx.emitter.on(MessageSummaryData, ({ mode, messages }) => {
-      received.push({ mode, count: messages.length })
-    })
+    const invoke = defineInvoke(ctx.eventContext, MessageFetchSummaryInvoke)
+    const result = await invoke({ chatId: '1', limit: 1000, mode: 'unread' })
 
-    ctx.emitter.emit(MessageFetchSummary, { chatId: '1', limit: 1000, mode: 'unread' })
-    await new Promise(resolve => setTimeout(resolve, 50))
-
-    expect(received).toHaveLength(1)
-    expect(received[0].mode).toBe('unread')
-    expect(received[0].count).toBe(2)
+    expect(result.mode).toBe('unread')
+    expect(result.messages).toHaveLength(2)
     expect(mockMessageService.fetchRecentMessagesByTimeRange).not.toHaveBeenCalled()
   })
 
@@ -83,17 +78,11 @@ describe(MessageFetchSummary.id, () => {
 
     registerMessageEventHandlers(ctx, logger)(mockMessageService as unknown as MessageService)
 
-    const received: Array<{ mode: 'unread' | 'today' | 'last24h', count: number }> = []
-    ctx.emitter.on(MessageSummaryData, ({ mode, messages }) => {
-      received.push({ mode, count: messages.length })
-    })
+    const invoke = defineInvoke(ctx.eventContext, MessageFetchSummaryInvoke)
+    const result = await invoke({ chatId: '1', limit: 1000, mode: 'today' })
 
-    ctx.emitter.emit(MessageFetchSummary, { chatId: '1', limit: 1000, mode: 'today' })
-    await new Promise(resolve => setTimeout(resolve, 50))
-
-    expect(received).toHaveLength(1)
-    expect(received[0].mode).toBe('today')
-    expect(received[0].count).toBe(2)
+    expect(result.mode).toBe('today')
+    expect(result.messages).toHaveLength(2)
     expect(mockMessageService.fetchRecentMessagesByTimeRange).toHaveBeenCalledOnce()
     expect(mockMessageService.fetchUnreadMessages).not.toHaveBeenCalled()
   })

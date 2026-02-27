@@ -57,7 +57,7 @@ export function createCoreInstance(
  */
 export async function destroyCoreInstance(ctx: CoreContext) {
   // Emit cleanup event to notify all services
-  ctx.emitter.emit(CoreCleanup)
+  ctx.eventContext.emit(CoreCleanup, undefined)
 
   // Give services time to cleanup
   // TODO: use Promise.allSettled to wait for all services to cleanup

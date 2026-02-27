@@ -1,4 +1,4 @@
-import type { CoreContext, CoreEmitter, FromCoreEventPayloadMap, ToCoreEventPayloadMap } from '../../context'
+import type { CoreContext, CoreEventContext, FromCoreEventPayloadMap, ToCoreEventPayloadMap } from '../../context'
 import type { CoreUserEntity } from '../../types/events'
 
 import bigInt from 'big-integer'
@@ -32,7 +32,7 @@ function createMockCtx(db: any, client: any, accountId?: string) {
   const withError = vi.fn((error: unknown) => (error instanceof Error ? error : new Error(String(error))))
 
   const ctx: CoreContext = {
-    emitter: { emit: vi.fn(), on: vi.fn() } as unknown as CoreEmitter,
+    eventContext: { emit: vi.fn(), on: vi.fn() } as unknown as CoreEventContext,
     toCoreEvents: new Set<keyof ToCoreEventPayloadMap>(),
     fromCoreEvents: new Set<keyof FromCoreEventPayloadMap>(),
     setClient: () => {},

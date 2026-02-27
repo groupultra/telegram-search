@@ -21,7 +21,7 @@ export function createAccountService(ctx: CoreContext, logger: Logger) {
 
       const apiUser = await ctx.getClient().getMe()
       const result = resolveEntity(apiUser).expect('Failed to resolve entity') as CoreUserEntity
-      ctx.emitter.emit(EntityMeData, result)
+      ctx.eventContext.emit(EntityMeData, result)
       return Ok(result)
     })
   }

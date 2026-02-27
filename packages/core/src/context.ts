@@ -1,5 +1,5 @@
 import type { Logger } from '@guiiai/logg'
-import type { Eventa, EventContext } from '@moeru/eventa'
+import type { Eventa, InvocableEventContext } from '@moeru/eventa'
 import type { CoreMetrics } from '@tg-search/common'
 import type { TelegramClient } from 'telegram'
 
@@ -15,89 +15,32 @@ import { CoreError } from './types/events'
 import { detectMemoryLeak } from './utils/memory-leak-detector'
 
 // ============================================================================
-// CoreEmitter: Eventa-based event bus wrapper
+// CoreEventContext: Raw Eventa EventContext (supports invoke handlers)
 // ============================================================================
 
 /**
- * Wrapper around Eventa's EventContext that provides a simplified API
- * where handlers receive the payload directly (not the full Eventa envelope).
+ * The Eventa EventContext type used throughout the core package.
+ * Supports both regular events (on/emit) and invoke handlers (defineInvokeHandler).
  */
-export interface CoreEmitter {
-  on: <P>(event: Eventa<P>, handler: (data: P) => void | Promise<void> | Promise<any>) => () => void
-  once: <P>(event: Eventa<P>, handler: (data: P) => void | Promise<void> | Promise<any>) => () => void
-  emit: <P>(event: Eventa<P>, ...args: [P] extends [undefined] ? [] | [data?: P] : [data: P]) => void
-  off: <P>(event: Eventa<P>) => void
-  removeAllListeners: () => void
-
-  /** Access underlying Eventa context for advanced use (adapters, matchBy, etc.) */
-  readonly raw: EventContext<any, any>
-}
-
-export function createCoreEmitter(logger: Logger): CoreEmitter {
-  const ctx = createContext()
-
-  function on<P>(event: Eventa<P>, handler: (data: P) => void | Promise<void>): () => void {
-    const wrappedHandler = async (eventa: Eventa<P>) => {
-      try {
-        logger.withFields({ event: event.id }).debug('Handle core event')
-        await handler(eventa.body as P)
-      }
-      catch (error) {
-        logger.withError(error instanceof Error ? (error.cause ?? error) : error).error('Failed to handle core event')
-      }
-    }
-
-    return ctx.on(event, wrappedHandler)
-  }
-
-  function once<P>(event: Eventa<P>, handler: (data: P) => void | Promise<void>): () => void {
-    const wrappedHandler = async (eventa: Eventa<P>) => {
-      try {
-        logger.withFields({ event: event.id }).debug('Handle core event (once)')
-        await handler(eventa.body as P)
-      }
-      catch (error) {
-        logger.withError(error instanceof Error ? (error.cause ?? error) : error).error('Failed to handle core event (once)')
-      }
-    }
-
-    return ctx.once(event, wrappedHandler)
-  }
-
-  function emit<P>(event: Eventa<P>, ...args: [P] extends [undefined] ? [] | [data?: P] : [data: P]): void {
-    const data = args[0] as P
-    logger.withFields({ event: event.id }).debug('Emit core event')
-    ctx.emit(event, data)
-  }
-
-  function off<P>(event: Eventa<P>): void {
-    ctx.off(event)
-  }
-
-  function removeAllListeners(): void {
-    // Clear all listener maps on the raw context
-    ctx.listeners.clear()
-    ctx.onceListeners.clear()
-  }
-
-  return {
-    on,
-    once,
-    emit,
-    off,
-    removeAllListeners,
-    get raw() {
-      return ctx
-    },
-  }
-}
+export type CoreEventContext = InvocableEventContext<any, any>
 
 // ============================================================================
 // CoreContext
 // ============================================================================
 
 export interface CoreContext {
-  emitter: CoreEmitter
+  /**
+   * Raw Eventa EventContext for event handling.
+   *
+   * - For fire-and-forget: use `safeOn(ctx.eventContext, event, handler, logger)` or `ctx.eventContext.on(event, handler)`
+   * - For emit: use `ctx.eventContext.emit(event, data)`
+   * - For RPC handlers: use `defineInvokeHandler(ctx.eventContext, invokeEvent, handler)`
+   * - For RPC callers: use `defineInvoke(ctx.eventContext, invokeEvent)(requestData)`
+   *
+   * NOTE: Raw `ctx.eventContext.on()` handlers receive the full Eventa envelope. Access data via `envelope.body`.
+   */
+  eventContext: CoreEventContext
+
   toCoreEvents: Set<keyof ToCoreEventPayloadMap>
   fromCoreEvents: Set<keyof FromCoreEventPayloadMap>
   setClient: (client: TelegramClient) => void
@@ -122,15 +65,67 @@ export interface CoreContext {
 
 export type Service<T> = (ctx: CoreContext, logger: Logger) => T
 
-function createErrorHandler(emitter: CoreEmitter, logger: Logger) {
+// ============================================================================
+// Helper: Safe event handler for fire-and-forget events
+// ============================================================================
+
+/**
+ * Register a fire-and-forget event handler with automatic error logging.
+ * Wraps the handler in try-catch to prevent unhandled rejections.
+ *
+ * For invoke (RPC) events, use `defineInvokeHandler` instead – errors
+ * propagate via Promise rejection automatically.
+ */
+export function safeOn<P>(
+  eventContext: CoreEventContext,
+  event: Eventa<P>,
+  handler: (data: P) => void | Promise<void>,
+  logger: Logger,
+): () => void {
+  return eventContext.on(event, async (envelope: Eventa<P>) => {
+    try {
+      logger.withFields({ event: event.id }).debug('Handle core event')
+      await handler(envelope.body as P)
+    }
+    catch (error) {
+      logger.withError(error instanceof Error ? (error.cause ?? error) : error).error('Failed to handle core event')
+    }
+  })
+}
+
+/**
+ * Register a one-time fire-and-forget event handler with automatic error logging.
+ */
+export function safeOnce<P>(
+  eventContext: CoreEventContext,
+  event: Eventa<P>,
+  handler: (data: P) => void | Promise<void>,
+  logger: Logger,
+): () => void {
+  return eventContext.once(event, async (envelope: Eventa<P>) => {
+    try {
+      logger.withFields({ event: event.id }).debug('Handle core event (once)')
+      await handler(envelope.body as P)
+    }
+    catch (error) {
+      logger.withError(error instanceof Error ? (error.cause ?? error) : error).error('Failed to handle core event (once)')
+    }
+  })
+}
+
+// ============================================================================
+// Error Handler
+// ============================================================================
+
+function createErrorHandler(eventContext: CoreEventContext, logger: Logger) {
   return (error: unknown, description?: string): Error => {
     // Unwrap nested errors
     if (error instanceof Error && 'cause' in error) {
-      return createErrorHandler(emitter, logger)(error.cause, description)
+      return createErrorHandler(eventContext, logger)(error.cause, description)
     }
 
     // Emit raw error for frontend to handle (i18n, UI, etc.)
-    emitter.emit(CoreError, { error: error instanceof Error ? error.message : String(error), description })
+    eventContext.emit(CoreError, { error: error instanceof Error ? error.message : String(error), description })
 
     // Log error details
     if (error instanceof Error) {
@@ -145,9 +140,13 @@ function createErrorHandler(emitter: CoreEmitter, logger: Logger) {
   }
 }
 
+// ============================================================================
+// Factory
+// ============================================================================
+
 export function createCoreContext(db: () => CoreDB, models: Models, logger: Logger, metrics?: CoreMetrics): CoreContext {
-  const emitter = createCoreEmitter(logger)
-  const withError = createErrorHandler(emitter, logger)
+  const eventContext = createContext() as CoreEventContext
+  const withError = createErrorHandler(eventContext, logger)
   let telegramClient: TelegramClient
   let currentAccountId: string | undefined
   let myUser: CoreUserEntity | undefined
@@ -207,7 +206,7 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
   }
 
   // Setup memory leak detection and get cleanup function
-  const cleanupMemoryLeakDetector = detectMemoryLeak(emitter, logger)
+  const cleanupMemoryLeakDetector = detectMemoryLeak(eventContext, logger)
 
   function getDB(): CoreDB {
     const dbInstance = db()
@@ -224,7 +223,8 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
     cleanupMemoryLeakDetector()
 
     // Remove all event listeners
-    emitter.removeAllListeners()
+    eventContext.listeners.clear()
+    eventContext.onceListeners.clear()
 
     // Clear event sets
     toCoreEvents.clear()
@@ -244,7 +244,7 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
   useLogger('core:event').debug('CoreContext created with Eventa event system')
 
   return {
-    emitter,
+    eventContext,
     toCoreEvents,
     fromCoreEvents,
     setClient,
@@ -274,4 +274,4 @@ export type {
   ToCoreEventPayloadMap,
 } from './types/events'
 // Re-exports for consumers
-export type { Eventa, EventContext } from '@moeru/eventa'
+export type { Eventa, EventContext, InvocableEventContext, InvokeEventa } from '@moeru/eventa'

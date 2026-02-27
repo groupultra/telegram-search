@@ -3,7 +3,7 @@ import type { CoreContext } from '@tg-search/core'
 
 import type { BotRegistry } from './registry'
 
-import { CoreEvents } from '@tg-search/core'
+import { CoreEvents, safeOn } from '@tg-search/core'
 
 const attachedContexts = new WeakSet<CoreContext>()
 
@@ -28,13 +28,8 @@ export function attachBotToContext(
   attachedContexts.add(ctx)
   const scopedLogger = logger.withContext('bot:bridge')
 
-  ctx.emitter.on(CoreEvents.BotSendMessage, async (data) => {
-    try {
-      await registry.sendMessage(data.chatId, data.content, data.parseMode)
-      scopedLogger.withFields({ accountId, chatId: data.chatId }).debug('Bot message sent via bridge')
-    }
-    catch (error) {
-      scopedLogger.withError(error).error('Failed to send bot message via bridge')
-    }
-  })
+  safeOn(ctx.eventContext, CoreEvents.BotSendMessage, async (data) => {
+    await registry.sendMessage(data.chatId, data.content, data.parseMode)
+    scopedLogger.withFields({ accountId, chatId: data.chatId }).debug('Bot message sent via bridge')
+  }, scopedLogger)
 }

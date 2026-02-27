@@ -13,7 +13,7 @@ import { Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
 import { useAvatarHelper } from '../message-resolvers/avatar-resolver'
-import { DialogFoldersData, EntityProcess } from '../types/events'
+import { EntityProcess } from '../types/events'
 import { getApiChatIdFromMtpPeer, resolveDialog } from '../utils/dialog'
 
 export type DialogService = ReturnType<typeof createDialogService>
@@ -70,8 +70,6 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
       }
 
       logger.withFields({ count: folders.length }).verbose('Fetched chat folders')
-
-      ctx.emitter.emit(DialogFoldersData, { folders })
 
       return Ok(folders)
     })
@@ -155,7 +153,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
         if (result instanceof Api.contacts.Contacts) {
           logger.withFields({ count: result.users.length }).verbose('Fetched contacts')
           // Process entities to save access hashes
-          ctx.emitter.emit(EntityProcess, { users: result.users, chats: [] })
+          ctx.eventContext.emit(EntityProcess, { users: result.users, chats: [] })
         }
       }
       catch (err) {

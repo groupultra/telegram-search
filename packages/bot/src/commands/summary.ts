@@ -5,7 +5,7 @@ import type { BotCommandContext } from '.'
 
 import { randomUUID } from 'node:crypto'
 
-import { MessageFetchSummary, MessageSummaryData } from '@tg-search/core'
+import { defineInvoke, MessageFetchSummaryInvoke } from '@tg-search/core'
 import { InlineKeyboard } from 'grammy'
 import { streamText } from 'xsai'
 
@@ -266,7 +266,7 @@ async function fetchMessagesForSummary(
   }
 
   const requestId = randomUUID()
-  const summaryMessages = await waitForSummaryData(coreCtx, { chatId, mode, requestId })
+  const summaryMessages = await invokeSummaryFetch(coreCtx, { chatId, mode, requestId })
 
   const db = ctx.getDB()
   const chatsResult = await ctx.models.chatModels.fetchChatsByAccountId(db, accountId)
@@ -287,49 +287,18 @@ async function fetchMessagesForSummary(
   })
 }
 
-const SUMMARY_FETCH_TIMEOUT_MS = 60_000
-
-async function waitForSummaryData(
+async function invokeSummaryFetch(
   coreCtx: CoreContext,
   request: { chatId: string, mode: SummaryMode, requestId: string },
 ): Promise<CoreMessage[]> {
-  return new Promise((resolve, reject) => {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined
-    let settled = false
-    let unsub: (() => void) | undefined
-
-    const cleanup = () => {
-      if (settled) {
-        return
-      }
-      settled = true
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-      unsub?.()
-    }
-
-    const onSummary = (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => {
-      if (data.requestId !== request.requestId) {
-        return
-      }
-      cleanup()
-      resolve(data.messages)
-    }
-
-    timeoutId = setTimeout(() => {
-      cleanup()
-      reject(new Error('Summary request timed out.'))
-    }, SUMMARY_FETCH_TIMEOUT_MS)
-
-    unsub = coreCtx.emitter.on(MessageSummaryData, onSummary)
-    coreCtx.emitter.emit(MessageFetchSummary, {
-      chatId: request.chatId,
-      mode: request.mode,
-      limit: 1000,
-      requestId: request.requestId,
-    })
+  const invoke = defineInvoke(coreCtx.eventContext, MessageFetchSummaryInvoke)
+  const result = await invoke({
+    chatId: request.chatId,
+    mode: request.mode,
+    limit: 1000,
+    requestId: request.requestId,
   })
+  return result.messages
 }
 
 /**

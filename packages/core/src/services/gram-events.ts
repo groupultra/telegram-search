@@ -51,7 +51,7 @@ export function createGramEventsService(ctx: CoreContext, logger: Logger) {
           isChannel = event.message.peerId instanceof Api.PeerChannel
         }
 
-        ctx.emitter.emit(GramMessageReceived, {
+        ctx.eventContext.emit(GramMessageReceived, {
           message: event.message,
           pts,
           date: event.message.date,
@@ -83,7 +83,7 @@ export function createGramEventsService(ctx: CoreContext, logger: Logger) {
   }
 
   // Listen for cleanup event
-  ctx.emitter.once(CoreCleanup, cleanup)
+  ctx.eventContext.once(CoreCleanup, cleanup)
 
   return {
     registerGramEvents,

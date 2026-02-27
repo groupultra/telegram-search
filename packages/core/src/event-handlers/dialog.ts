@@ -3,17 +3,20 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext } from '../context'
 import type { Models } from '../models'
 import type { DialogService } from '../services'
+import type { CoreDialog } from '../types/dialog'
 
+import { defineInvokeHandler } from '@moeru/eventa'
+
+import { safeOn } from '../context'
 import {
   DialogAvatarFetch,
-  DialogData,
-  DialogFetch,
-  DialogFoldersFetch,
+  DialogFetchInvoke,
+  DialogFoldersFetchInvoke,
   StorageRecordChatFolders,
   StorageRecordDialogs,
 } from '../types/events'
 
-export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: Models, dialogService: DialogService) {
+export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: Models, dialogService: DialogService): Promise<CoreDialog[]> {
   logger.verbose('Fetching dialogs')
 
   const dialogs = (await dialogService.fetchDialogs()).expect('Failed to fetch dialogs')
@@ -41,31 +44,38 @@ export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: M
     }
   }
 
-  ctx.emitter.emit(DialogData, { dialogs })
-  ctx.emitter.emit(StorageRecordDialogs, { dialogs, accountId })
+  // Side effect: persist to DB
+  ctx.eventContext.emit(StorageRecordDialogs, { dialogs, accountId })
+
+  // Return dialogs for invoke response
+  return dialogs
 }
 
 export function registerDialogEventHandlers(ctx: CoreContext, logger: Logger, dbModels: Models) {
   logger = logger.withContext('core:dialog:event')
 
   return (dialogService: DialogService) => {
-    ctx.emitter.on(DialogFetch, async () => {
-      await fetchDialogs(ctx, logger, dbModels, dialogService)
+    defineInvokeHandler(ctx.eventContext, DialogFetchInvoke, async () => {
+      const dialogs = await fetchDialogs(ctx, logger, dbModels, dialogService)
+      return { dialogs }
     })
 
-    ctx.emitter.on(DialogFoldersFetch, async () => {
+    defineInvokeHandler(ctx.eventContext, DialogFoldersFetchInvoke, async () => {
       logger.verbose('Fetching chat folders')
 
       const folders = (await dialogService.fetchChatFolders()).expect('Failed to fetch chat folders')
       const accountId = ctx.getCurrentAccountId()
 
-      ctx.emitter.emit(StorageRecordChatFolders, { folders, accountId })
+      // Side effect: persist to DB
+      ctx.eventContext.emit(StorageRecordChatFolders, { folders, accountId })
+
+      return { folders }
     })
 
     // Prioritized single-avatar fetch for viewport-visible items
-    ctx.emitter.on(DialogAvatarFetch, async ({ chatId }) => {
+    safeOn(ctx.eventContext, DialogAvatarFetch, async ({ chatId }) => {
       logger.withFields({ chatId }).verbose('Fetching single dialog avatar')
       await dialogService.fetchSingleDialogAvatar(String(chatId))
-    })
+    }, logger)
   }
 }

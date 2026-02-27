@@ -95,7 +95,7 @@ export function registerExportCommand(bot: Bot, ctx: BotCommandContext) {
       const chatIds = state.chatId === '__ALL__' ? [] : [state.chatId]
       const increase = mode === 'incremental'
 
-      coreCtx.emitter.emit(TakeoutRun, {
+      coreCtx.eventContext.emit(TakeoutRun, {
         chatIds,
         increase,
         syncOptions: {},

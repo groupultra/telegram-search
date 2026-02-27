@@ -1,18 +1,25 @@
+import type { Logger } from '@guiiai/logg'
+
 import type { CoreContext } from '../context'
 import type { TakeoutService } from '../services'
 
-import { TakeoutRun, TakeoutStatsFetch, TakeoutTaskAbort } from '../types/events'
+import { defineInvokeHandler } from '@moeru/eventa'
 
-export function registerTakeoutEventHandlers(ctx: CoreContext, takeoutService: TakeoutService) {
-  ctx.emitter.on(TakeoutRun, async (params) => {
+import { safeOn } from '../context'
+import { TakeoutRun, TakeoutStatsFetchInvoke, TakeoutTaskAbort } from '../types/events'
+
+export function registerTakeoutEventHandlers(ctx: CoreContext, logger: Logger, takeoutService: TakeoutService) {
+  logger = logger.withContext('core:takeout:event')
+
+  safeOn(ctx.eventContext, TakeoutRun, async (params) => {
     await takeoutService.runTakeout(params)
-  })
+  }, logger)
 
-  ctx.emitter.on(TakeoutTaskAbort, ({ taskId }) => {
+  safeOn(ctx.eventContext, TakeoutTaskAbort, ({ taskId }) => {
     takeoutService.abortTask(taskId)
-  })
+  }, logger)
 
-  ctx.emitter.on(TakeoutStatsFetch, async ({ chatId }) => {
-    await takeoutService.fetchChatSyncStats(chatId)
+  defineInvokeHandler(ctx.eventContext, TakeoutStatsFetchInvoke, async ({ chatId }) => {
+    return takeoutService.fetchChatSyncStats(chatId)
   })
 }

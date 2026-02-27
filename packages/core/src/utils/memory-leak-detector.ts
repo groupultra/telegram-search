@@ -1,12 +1,12 @@
 import type { Logger } from '@guiiai/logg'
 
-import type { CoreEmitter } from '../context'
+import type { CoreEventContext } from '../context'
 
 /**
  * Detect memory leaks in development mode
  * Returns a cleanup function to clear the interval
  */
-export function detectMemoryLeak(emitter: CoreEmitter, logger: Logger): () => void {
+export function detectMemoryLeak(eventContext: CoreEventContext, logger: Logger): () => void {
   logger = logger.withContext('core:memory-leak')
 
   // Memory leak detection in development mode
@@ -17,16 +17,15 @@ export function detectMemoryLeak(emitter: CoreEmitter, logger: Logger): () => vo
 
   if (isDevelopment) {
     checkInterval = setInterval(() => {
-      const raw = emitter.raw
       const listenerCounts: Record<string, number> = {}
 
       // Count listeners from the Eventa context's internal maps
-      for (const [eventId, listeners] of raw.listeners) {
+      for (const [eventId, listeners] of eventContext.listeners) {
         if (listeners.size > 0) {
           listenerCounts[eventId] = (listenerCounts[eventId] || 0) + listeners.size
         }
       }
-      for (const [eventId, listeners] of raw.onceListeners) {
+      for (const [eventId, listeners] of eventContext.onceListeners) {
         if (listeners.size > 0) {
           listenerCounts[eventId] = (listenerCounts[eventId] || 0) + listeners.size
         }

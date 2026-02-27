@@ -6,6 +6,7 @@ import type { MessageResolverService } from '../services/message-resolver'
 import { newQueue } from '@henrygd/queue'
 
 import { MESSAGE_RESOLVER_QUEUE_SIZE } from '../constants'
+import { safeOn } from '../context'
 import { MessageProcess } from '../types/events'
 
 export function registerMessageResolverEventHandlers(ctx: CoreContext, logger: Logger) {
@@ -15,7 +16,7 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext, logger: L
     const queue = newQueue(MESSAGE_RESOLVER_QUEUE_SIZE)
 
     // TODO: debounce, background tasks
-    ctx.emitter.on(MessageProcess, ({ messages, isTakeout = false, syncOptions = {}, forceRefetch = false, batchId }) => {
+    safeOn(ctx.eventContext, MessageProcess, ({ messages, isTakeout = false, syncOptions = {}, forceRefetch = false, batchId }) => {
       logger.withFields({ count: messages.length, isTakeout, syncOptions, forceRefetch, batchId }).verbose('Processing messages')
 
       if (!isTakeout) {
@@ -32,6 +33,6 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext, logger: L
           logger.withError(error).warn('Failed to process takeout messages')
         })
       })
-    })
+    }, logger)
   }
 }
