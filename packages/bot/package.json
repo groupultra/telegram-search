@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@guiiai/logg": "catalog:",
-    "@moeru/eventa": "1.0.0-alpha.11",
+    "@moeru/eventa": "catalog:",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "croner": "^10.0.1",
