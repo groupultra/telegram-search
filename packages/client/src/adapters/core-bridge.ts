@@ -1,11 +1,12 @@
 import type { Config } from '@tg-search/common'
-import type { ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 
 import { useLogger } from '@guiiai/logg'
+import { defineInvoke } from '@moeru/eventa'
 import { deepClone, generateDefaultConfig } from '@tg-search/common'
+import { fireAndForgetEvents, notificationEvents, rpcEvents } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
@@ -56,24 +57,47 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
 
     try {
       if (event === 'server:event:register') {
-        data = data as WsEventToServerData<'server:event:register'>
-        const eventName = data.event as keyof FromCoreEvent
+        const registerData = data as WsEventToServerData<'server:event:register'>
+        const eventName = registerData.event as string
 
         if (!eventName.startsWith('server:')) {
-          const fn = (payload: WsEventToClientData<keyof FromCoreEvent>) => {
-            logger.withFields({ eventName }).debug('Sending event to client')
-            const message = {
-              type: eventName as unknown as WsMessageToClient['type'],
-              data: payload,
-            } as WsMessageToClient
-            sendWsEvent(message)
+          // Subscribe to Eventa notification event and forward to client
+          const eventObj = notificationEvents.get(eventName)
+          if (eventObj) {
+            ctx.ctx.on(eventObj, ({ body }) => {
+              logger.withFields({ eventName }).debug('Sending event to client')
+              sendWsEvent({
+                type: eventName as unknown as WsMessageToClient['type'],
+                data: body,
+              } as WsMessageToClient)
+            })
           }
-          ctx.emitter.on(eventName, fn as (...args: unknown[]) => void)
         }
       }
       else {
-        logger.withFields({ event, data }).debug('Emit event to core')
-        ctx.emitter.emit(event, deepClone(data) as ExtractData<keyof ToCoreEvent>)
+        const eventStr = event as string
+        logger.withFields({ event: eventStr, data }).debug('Emit event to core')
+
+        // Try RPC invoke first — response sent back via sendWsEvent
+        const rpc = rpcEvents.get(eventStr)
+        if (rpc) {
+          const invoke = defineInvoke(ctx.ctx, rpc.invoke)
+          invoke(deepClone(data)).then((result) => {
+            sendWsEvent({
+              type: rpc.responseEvent as unknown as WsMessageToClient['type'],
+              data: result,
+            } as WsMessageToClient)
+          }).catch((error) => {
+            logger.withError(error).error('RPC invoke failed')
+          })
+          return
+        }
+
+        // Fire-and-forget
+        const eventObj = fireAndForgetEvents.get(eventStr)
+        if (eventObj) {
+          ctx.ctx.emit(eventObj, deepClone(data))
+        }
       }
     }
     catch (error) {

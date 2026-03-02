@@ -335,6 +335,9 @@ importers:
       '@guiiai/logg':
         specifier: 'catalog:'
         version: 1.2.11
+      '@moeru/eventa':
+        specifier: 1.0.0-alpha.11
+        version: 1.0.0-alpha.11(h3@2.0.1-rc.11(crossws@0.4.3(srvx@0.10.1)))
       '@tg-search/common':
         specifier: workspace:*
         version: link:../common

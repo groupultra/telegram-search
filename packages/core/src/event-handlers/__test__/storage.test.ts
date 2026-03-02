@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
 import { coreErrorEvent, storageFetchDialogsInvoke, storageFetchMessagesInvoke, storageRecordDialogsEvent, storageSearchMessagesInvoke } from '../../events'
+import { onEvent } from '../../utils/promise'
 import { registerStorageEventHandlers } from '../storage'
 
 const logger = useLogger()
@@ -138,7 +139,7 @@ describe('storage event handlers - message access control', () => {
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<string>((resolve) => {
-      ctx.ctx.on(coreErrorEvent, ({ body: { error } }) => {
+      onEvent(ctx.ctx, coreErrorEvent, ({ error }) => {
         resolve(error)
       })
     })
@@ -172,7 +173,7 @@ describe('storage event handlers - message access control', () => {
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<string>((resolve) => {
-      ctx.ctx.on(coreErrorEvent, ({ body: { error } }) => {
+      onEvent(ctx.ctx, coreErrorEvent, ({ error }) => {
         resolve(error)
       })
     })

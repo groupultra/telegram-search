@@ -131,8 +131,8 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
       if (!isAuthorized) {
         // Surface this as an auth-specific error so the frontend can fall
         // back to manual login and optionally clear the stored session.
-        ctx.ctx.emit(authErrorEvent)
-        ctx.ctx.emit(authDisconnectedEvent)
+        ctx.ctx.emit(authErrorEvent, undefined)
+        ctx.ctx.emit(authDisconnectedEvent, undefined)
         return Err(ctx.withError('User is not authorized'))
       }
 
@@ -149,14 +149,14 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
       // 3) Finally signal that auth is connected; this will trigger
       //    afterConnectedEventHandler, which will establish current
       //    account ID and bootstrap dialogs/storage.
-      ctx.ctx.emit(authConnectedEvent)
+      ctx.ctx.emit(authConnectedEvent, undefined)
 
       logger.log('Login with session successful')
 
       return Ok(client)
     }
     catch (error) {
-      ctx.ctx.emit(authErrorEvent)
+      ctx.ctx.emit(authErrorEvent, undefined)
       return Err(ctx.withError(error, 'Failed to login with session'))
     }
   }
@@ -183,14 +183,14 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
 
       // 3) Notify connected; afterConnectedEventHandler will establish
       //    current account ID and bootstrap dialogs/storage.
-      ctx.ctx.emit(authConnectedEvent)
+      ctx.ctx.emit(authConnectedEvent, undefined)
 
       logger.log('Login with phone successful')
 
       return Ok(client)
     }
     catch (error) {
-      ctx.ctx.emit(authErrorEvent)
+      ctx.ctx.emit(authErrorEvent, undefined)
       return Err(ctx.withError(error, 'Failed to login with phone'))
     }
   }
@@ -206,18 +206,18 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
         phoneNumber,
         phoneCode: async () => {
           logger.verbose('Waiting for code')
-          ctx.ctx.emit(authCodeNeededEvent)
+          ctx.ctx.emit(authCodeNeededEvent, undefined)
           const { code } = await waitForEvent(ctx.ctx, authCodeEvent)
           return code
         },
         password: async () => {
           logger.verbose('Waiting for password')
-          ctx.ctx.emit(authPasswordNeededEvent)
+          ctx.ctx.emit(authPasswordNeededEvent, undefined)
           const { password } = await waitForEvent(ctx.ctx, authPasswordEvent)
           return password
         },
         onError: (error) => {
-          ctx.ctx.emit(authErrorEvent)
+          ctx.ctx.emit(authErrorEvent, undefined)
           reject(ctx.withError(error, 'Failed to sign in to Telegram'))
         },
       })
@@ -230,7 +230,7 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
     if (client.connected) {
       await client.invoke(new Api.auth.LogOut())
       await client.disconnect()
-      ctx.ctx.emit(authDisconnectedEvent)
+      ctx.ctx.emit(authDisconnectedEvent, undefined)
     }
 
     client.session.delete()

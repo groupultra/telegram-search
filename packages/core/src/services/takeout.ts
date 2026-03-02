@@ -385,7 +385,7 @@ export function createTakeoutService(
       }
     }
 
-    const unsubscribe = ctx.ctx.on(messageProcessedEvent, ({ body }) => onMessageProcessed(body))
+    const unsubscribe = ctx.ctx.on(messageProcessedEvent, ({ body }) => onMessageProcessed(body!))
 
     try {
       for await (const message of generator) {

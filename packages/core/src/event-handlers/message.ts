@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 import { messageDataEvent, messageFetchEvent, messageFetchSpecificEvent, messageFetchSummaryInvoke, messageFetchUnreadInvoke, messageProcessEvent, messageReadEvent, messageReprocessEvent, messageSendEvent } from '../events'
 import { convertToCoreMessage } from '../utils/message'
+import { onEvent } from '../utils/promise'
 
 export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
   logger = logger.withContext('core:message:event')
@@ -22,7 +23,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         .map(result => result.unwrap())
     }
 
-    ctx.ctx.on(messageFetchEvent, async ({ body: opts }) => {
+    onEvent(ctx.ctx, messageFetchEvent, async (opts) => {
       logger.withFields({ chatId: opts.chatId, minId: opts.minId, maxId: opts.maxId }).verbose('Fetching messages')
 
       let messages: Api.Message[] = []
@@ -46,7 +47,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.ctx.on(messageFetchSpecificEvent, async ({ body: { chatId, messageIds } }) => {
+    onEvent(ctx.ctx, messageFetchSpecificEvent, async ({ chatId, messageIds }) => {
       logger.withFields({ chatId, count: messageIds.length }).verbose('Fetching specific messages for media')
 
       try {
@@ -63,7 +64,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.ctx.on(messageSendEvent, async ({ body: { chatId, content } }) => {
+    onEvent(ctx.ctx, messageSendEvent, async ({ chatId, content }) => {
       logger.withFields({ chatId, content }).verbose('Sending message')
       const updatedMessage = (await messageService.sendMessage(chatId, content)).unwrap()
 
@@ -101,7 +102,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       logger.withFields({ content }).verbose('Message sent')
     })
 
-    ctx.ctx.on(messageReprocessEvent, async ({ body: { chatId, messageIds, resolvers } }) => {
+    onEvent(ctx.ctx, messageReprocessEvent, async ({ chatId, messageIds, resolvers }) => {
       // Validate input
       if (messageIds.length === 0) {
         logger.withFields({ chatId }).warn('Re-process called with empty messageIds array')
@@ -178,7 +179,7 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       }
     })
 
-    ctx.ctx.on(messageReadEvent, async ({ body: { chatId } }) => {
+    onEvent(ctx.ctx, messageReadEvent, async ({ chatId }) => {
       logger.withFields({ chatId }).verbose('Marking messages as read')
       await messageService.markAsRead(chatId)
     })

@@ -11,6 +11,7 @@ import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
 
 import { messageProcessedEvent, messageProcessEvent } from '../../events'
+import { onEvent } from '../../utils/promise'
 import { createTask as createCoreTask } from '../../utils/task'
 import { createTakeoutService } from '../takeout'
 
@@ -516,7 +517,7 @@ describe('takeout service', () => {
     const { ctx } = createMockCtx(client)
 
     // Auto-complete message processing batches to avoid hanging on pendingBatches.
-    ctx.ctx.on(messageProcessEvent, ({ body: { messages, batchId } }) => {
+    onEvent(ctx.ctx, messageProcessEvent, ({ messages, batchId }) => {
       ctx.ctx.emit(messageProcessedEvent, {
         batchId: batchId ?? 'batch-id',
         count: messages.length,

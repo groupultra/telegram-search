@@ -1,11 +1,9 @@
-import type { CoreContext, CoreMessage } from '@tg-search/core'
 import type { Bot } from 'grammy'
 
 import type { BotCommandContext } from '.'
 
-import { randomUUID } from 'node:crypto'
-
-import { CoreEventType } from '@tg-search/core'
+import { defineInvoke } from '@moeru/eventa'
+import { messageFetchSummaryInvoke } from '@tg-search/core'
 import { InlineKeyboard } from 'grammy'
 import { streamText } from 'xsai'
 
@@ -248,7 +246,8 @@ export function registerSummaryCommand(bot: Bot, ctx: BotCommandContext) {
 }
 
 /**
- * Fetch messages for the given time range and optional chat filter
+ * Fetch messages for the given time range and optional chat filter.
+ * Uses the messageFetchSummaryInvoke RPC — the core handler returns the response directly.
  */
 async function fetchMessagesForSummary(
   ctx: BotCommandContext,
@@ -265,8 +264,8 @@ async function fetchMessagesForSummary(
     throw new Error('Account session not ready. Please log in via the web interface first.')
   }
 
-  const requestId = randomUUID()
-  const summaryMessages = await waitForSummaryData(coreCtx, { chatId, mode, requestId })
+  const invoke = defineInvoke(coreCtx.ctx, messageFetchSummaryInvoke)
+  const { messages: summaryMessages } = await invoke({ chatId, mode, limit: 1000 })
 
   const db = ctx.getDB()
   const chatsResult = await ctx.models.chatModels.fetchChatsByAccountId(db, accountId)
@@ -284,50 +283,6 @@ async function fetchMessagesForSummary(
       chatType: chat?.chat_type || 'unknown',
       chatUsername: chat?.chat_username,
     }
-  })
-}
-
-const SUMMARY_FETCH_TIMEOUT_MS = 60_000
-
-async function waitForSummaryData(
-  coreCtx: CoreContext,
-  request: { chatId: string, mode: SummaryMode, requestId: string },
-): Promise<CoreMessage[]> {
-  return new Promise((resolve, reject) => {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined
-    let settled = false
-
-    const cleanup = (listener: (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => void) => {
-      if (settled) {
-        return
-      }
-      settled = true
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-      coreCtx.emitter.off(CoreEventType.MessageSummaryData, listener)
-    }
-
-    const onSummary = (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => {
-      if (data.requestId !== request.requestId) {
-        return
-      }
-      cleanup(onSummary)
-      resolve(data.messages)
-    }
-
-    timeoutId = setTimeout(() => {
-      cleanup(onSummary)
-      reject(new Error('Summary request timed out.'))
-    }, SUMMARY_FETCH_TIMEOUT_MS)
-
-    coreCtx.emitter.on(CoreEventType.MessageSummaryData, onSummary)
-    coreCtx.emitter.emit(CoreEventType.MessageFetchSummary, {
-      chatId: request.chatId,
-      mode: request.mode,
-      limit: 1000,
-      requestId: request.requestId,
-    })
   })
 }
 

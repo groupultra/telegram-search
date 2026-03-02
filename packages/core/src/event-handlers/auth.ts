@@ -6,6 +6,7 @@ import type { ConnectionService } from '../services'
 import { StringSession } from 'telegram/sessions'
 
 import { authLoginEvent, authLogoutEvent } from '../events'
+import { onEvent } from '../utils/promise'
 
 export function registerAuthEventHandlers(ctx: CoreContext, logger: Logger) {
   logger = logger.withContext('core:auth:event')
@@ -13,7 +14,7 @@ export function registerAuthEventHandlers(ctx: CoreContext, logger: Logger) {
   return (
     configuredConnectionService: ConnectionService,
   ) => {
-    ctx.ctx.on(authLoginEvent, async ({ body: { phoneNumber, session } }) => {
+    onEvent(ctx.ctx, authLoginEvent, async ({ phoneNumber, session }) => {
       if (phoneNumber) {
         return configuredConnectionService.loginWithPhone(phoneNumber)
       }

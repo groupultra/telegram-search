@@ -31,6 +31,7 @@ import { createMessageService } from '../services/message'
 import { createMessageResolverService } from '../services/message-resolver'
 import { createSyncService } from '../services/sync'
 import { createTakeoutService } from '../services/takeout'
+import { onceEvent } from '../utils/promise'
 import { registerAccountSettingsEventHandlers } from './account-settings'
 import { registerAuthEventHandlers } from './auth'
 import { fetchDialogs, registerDialogEventHandlers } from './dialog'
@@ -124,7 +125,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     ctx.ctx.emit(accountReadyEvent, { accountId: dbAccount.id })
   })
 
-  ctx.ctx.once(accountReadyEvent, ({ body: { accountId } }) => {
+  onceEvent(ctx.ctx, accountReadyEvent, ({ accountId }) => {
     logger = logger.withFields({ accountId })
 
     registerEntityEventHandlers(ctx, logger)(entityService)

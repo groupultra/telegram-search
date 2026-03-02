@@ -8,12 +8,13 @@ import type { GramEventsService } from '../services/gram-events'
 import { Api } from 'telegram'
 
 import { gramMessageReceivedEvent, messageProcessEvent } from '../events'
+import { onEvent } from '../utils/promise'
 
 export function registerGramEventsEventHandlers(ctx: CoreContext, logger: Logger, accountModels: AccountModels, chatModels: ChatModels) {
   logger = logger.withContext('core:gram:event')
 
   return (_: GramEventsService) => {
-    ctx.ctx.on(gramMessageReceivedEvent, async ({ body: { message, pts, date, isChannel } }) => {
+    onEvent(ctx.ctx, gramMessageReceivedEvent, async ({ message, pts, date, isChannel }) => {
       const accountSettings = await ctx.getAccountSettings()
       const receiveSettings = accountSettings.messageProcessing?.receiveMessages
 

@@ -1,12 +1,37 @@
+import type { Eventa } from '@moeru/eventa'
 import type { Config } from '@tg-search/common'
-import type { CoreContext, CoreEmitter, FromCoreEvent } from '@tg-search/core'
+import type { CoreContext } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
 import { attachBotToContext, getBotRegistry } from '@tg-search/bot'
-import { CoreEventType, createCoreInstance } from '@tg-search/core'
-import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
+import {
+  // Notification events from core (broadcast to all peers)
+  accountReadyEvent,
+  authCodeNeededEvent,
+  authConnectedEvent,
+  authDisconnectedEvent,
+  authErrorEvent,
+  authPasswordNeededEvent,
+  botStatusEvent,
+  coreErrorEvent,
+  createCoreInstance,
+  dialogAvatarDataEvent,
+  entityAvatarDataEvent,
+  entityMeDataEvent,
+  gramMessageReceivedEvent,
+  messageDataEvent,
+  messageFetchProgressEvent,
+  messageProcessEvent,
+  onEvent,
+  sessionUpdateEvent,
+  syncStatusEvent,
+  takeoutMetricsEvent,
+  takeoutTaskProgressEvent,
+} from '@tg-search/core'
+import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics } from '@tg-search/observability'
 
+import { sendWsEvent } from './events'
 import { getDB } from './storage/drizzle'
 import { getMediaStorage } from './storage/media'
 
@@ -20,8 +45,6 @@ import { getMediaStorage } from './storage/media'
  * Risks:
  * - Long-lived accounts increase memory usage; monitor active account count.
  */
-export type CoreEventListener = (...args: unknown[]) => void
-
 export interface AccountState {
   ctx: CoreContext
 
@@ -29,11 +52,6 @@ export interface AccountState {
    * Whether the account is ready to be used
    */
   accountReady: boolean
-
-  /**
-   * Core event listeners (registered once, shared by all WebSocket connections)
-   */
-  coreEventListeners: Map<keyof FromCoreEvent, CoreEventListener>
 
   /**
    * Active WebSocket peers for this account
@@ -51,24 +69,52 @@ export const accountStates = new Map<string, AccountState>()
 // Ephemeral per-peer bookkeeping.
 export const peerToAccountId = new Map<string, string>()
 
-// We need to track peer objects for broadcasting
+// NOTICE: peerObjects is populated in app.ts (WebSocket open/close handlers).
+// The sonarjs/no-empty-collection rule cannot track cross-file mutations.
+
 export const peerObjects = new Map<string, Peer>()
 
-function bindTracingMetaToSpan(emitter: CoreEmitter) {
-  // Ensure tracingId from incoming meta is bound into active span for all core handlers
-  const originalOn = emitter.on.bind(emitter)
-  emitter.on = ((event, listener) => {
-    return originalOn(event, (...args: Parameters<typeof listener>) => {
-      return withSpan(String(event), () => listener(...args))
-    })
-  }) as CoreEmitter['on']
+/**
+ * All notification events from core that should be broadcast to WebSocket peers.
+ * Each entry maps a typed Eventa event to its wire protocol event name.
+ */
+const notificationEvents: Array<{ event: Eventa<any>, wireName: string }> = [
+  { event: coreErrorEvent, wireName: 'core:error' },
+  { event: authCodeNeededEvent, wireName: 'auth:code:needed' },
+  { event: authPasswordNeededEvent, wireName: 'auth:password:needed' },
+  { event: authConnectedEvent, wireName: 'auth:connected' },
+  { event: authDisconnectedEvent, wireName: 'auth:disconnected' },
+  { event: authErrorEvent, wireName: 'auth:error' },
+  { event: sessionUpdateEvent, wireName: 'session:update' },
+  { event: accountReadyEvent, wireName: 'account:ready' },
+  { event: messageDataEvent, wireName: 'message:data' },
+  { event: messageFetchProgressEvent, wireName: 'message:fetch:progress' },
+  { event: dialogAvatarDataEvent, wireName: 'dialog:avatar:data' },
+  { event: entityMeDataEvent, wireName: 'entity:me:data' },
+  { event: entityAvatarDataEvent, wireName: 'entity:avatar:data' },
+  { event: takeoutTaskProgressEvent, wireName: 'takeout:task:progress' },
+  { event: takeoutMetricsEvent, wireName: 'takeout:metrics' },
+  { event: gramMessageReceivedEvent, wireName: 'gram:message:received' },
+  { event: botStatusEvent, wireName: 'bot:status' },
+  { event: syncStatusEvent, wireName: 'sync:status' },
+]
 
-  const originalOnce = emitter.once.bind(emitter)
-  emitter.once = ((event, listener) => {
-    return originalOnce(event, (...args: Parameters<typeof listener>) => {
-      return withSpan(String(event), () => listener(...args))
+/**
+ * Register all notification event listeners on the core context.
+ * Each notification is broadcast to all active WebSocket peers for this account.
+ */
+function registerNotificationListeners(account: AccountState) {
+  for (const { event, wireName } of notificationEvents) {
+    onEvent(account.ctx.ctx, event, (body) => {
+      account.activePeers.forEach((peerId) => {
+        // eslint-disable-next-line sonarjs/no-empty-collection -- peerObjects is populated in app.ts
+        const targetPeer = peerObjects.get(peerId)
+        if (targetPeer) {
+          sendWsEvent(targetPeer, wireName, body)
+        }
+      })
     })
-  }) as CoreEmitter['once']
+  }
 }
 
 export function getOrCreateAccount(accountId: string, config: Config): AccountState {
@@ -79,19 +125,19 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
 
     const ctx = createCoreInstance(getDB, config, getMediaStorage(), logger, coreMetrics)
 
-    bindTracingMetaToSpan(ctx.emitter)
-
     const account: AccountState = {
       ctx,
       accountReady: false,
-      coreEventListeners: new Map(),
       activePeers: new Set(),
       createdAt: Date.now(),
       lastActive: Date.now(),
     }
 
+    // Register all notification listeners upfront (replaces server:event:register protocol)
+    registerNotificationListeners(account)
+
     // Instrument core message processing for this account
-    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, isTakeout }) => {
+    onEvent(ctx.ctx, messageProcessEvent, ({ messages, isTakeout }) => {
       const source = isTakeout ? 'takeout' : 'realtime'
       coreMessageBatchesProcessedTotal.add(1, { source })
       coreMessagesProcessedTotal.add(messages.length, { source })

@@ -13,7 +13,7 @@ import { takeoutTaskProgressEvent } from '../events'
 export function createTask<T extends CoreTaskType>(
   type: T,
   metadata: CoreTasks[T],
-  ctx: EventContext,
+  ctx: EventContext<any, any>,
   logger: Logger,
 ): CoreTask<T> {
   logger = logger.withContext('core:task')

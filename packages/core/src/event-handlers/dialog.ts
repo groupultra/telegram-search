@@ -7,6 +7,7 @@ import type { DialogService } from '../services'
 import { defineInvokeHandler } from '@moeru/eventa'
 
 import { dialogAvatarFetchEvent, dialogFetchInvoke, dialogFoldersFetchInvoke, storageRecordChatFoldersEvent, storageRecordDialogsEvent } from '../events'
+import { onEvent } from '../utils/promise'
 
 export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: Models, dialogService: DialogService) {
   logger.verbose('Fetching dialogs')
@@ -60,7 +61,7 @@ export function registerDialogEventHandlers(ctx: CoreContext, logger: Logger, db
     })
 
     // Prioritized single-avatar fetch for viewport-visible items
-    ctx.ctx.on(dialogAvatarFetchEvent, async ({ body: { chatId } }) => {
+    onEvent(ctx.ctx, dialogAvatarFetchEvent, async ({ chatId }) => {
       logger.withFields({ chatId }).verbose('Fetching single dialog avatar')
       await dialogService.fetchSingleDialogAvatar(String(chatId))
     })

@@ -22,6 +22,7 @@ import {
 } from '../events'
 import { convertToCoreRetrievalMessages } from '../models/utils/message'
 import { embedContents } from '../utils/embed'
+import { onEvent } from '../utils/promise'
 
 /**
  * Check if a message has no media attached
@@ -87,7 +88,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     return { chatId, messageId, messages }
   })
 
-  ctx.ctx.on(storageRecordMessagesEvent, async ({ body: { messages } }) => {
+  onEvent(ctx.ctx, storageRecordMessagesEvent, async ({ messages }) => {
     const accountId = ctx.getCurrentAccountId()
 
     await dbModels.chatMessageModels.recordMessages(ctx.getDB(), accountId, messages)
@@ -123,7 +124,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     return { dialogs }
   })
 
-  ctx.ctx.on(storageRecordDialogsEvent, async ({ body: { dialogs, accountId } }) => {
+  onEvent(ctx.ctx, storageRecordDialogsEvent, async ({ dialogs, accountId }) => {
     logger.withFields({
       size: dialogs.length,
       users: dialogs.filter(d => d.type === 'user').length,
@@ -140,7 +141,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     logger.withFields({ count: result.length }).verbose('Successfully recorded dialogs')
   })
 
-  ctx.ctx.on(storageRecordChatFoldersEvent, async ({ body: { folders, accountId } }) => {
+  onEvent(ctx.ctx, storageRecordChatFoldersEvent, async ({ folders, accountId }) => {
     logger.withFields({ count: folders.length }).verbose('Recording chat folders')
 
     const db = ctx.getDB()

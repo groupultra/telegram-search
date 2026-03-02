@@ -11,55 +11,32 @@
 
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
-import type { ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { H3 } from 'h3'
 
-import type { AccountState, CoreEventListener } from './account'
-import type { WsEventToClientData, WsMessageToServer } from './events'
+import type { AccountState } from './account'
+import type { WsMessageToServer } from './events'
 
 import { useLogger } from '@guiiai/logg'
-import { CoreEventType, destroyCoreInstance } from '@tg-search/core'
+import { accountReadyEvent, authLoginEvent, authLogoutEvent, destroyCoreInstance } from '@tg-search/core'
 import { coreEventsInTotal, wsConnectionsActive } from '@tg-search/observability'
 import { defineWebSocketHandler, HTTPError } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
 
 import { accountStates, getOrCreateAccount, peerObjects, peerToAccountId } from './account'
+import { dispatchClientEvent, isCoreEvent } from './event-dispatch'
 import { sendWsEvent } from './events'
 
 const WS_MODE_LABEL = 'server' as const
 
-export function registerCoreEventListeners(logger: Logger, account: AccountState, accountId: string, eventName: keyof FromCoreEvent) {
-  if (eventName.startsWith('server:')) {
-    return
-  }
-
-  if (!account.coreEventListeners.has(eventName)) {
-    const listener: CoreEventListener = (...args: unknown[]) => {
-      const data = args[0] as WsEventToClientData<typeof eventName>
-      account.activePeers.forEach((peerId) => {
-        const targetPeer = peerObjects.get(peerId)
-        if (targetPeer) {
-          sendWsEvent(targetPeer, eventName, data)
-        }
-      })
-    }
-
-    account.ctx.emitter.on(eventName, listener)
-    account.coreEventListeners.set(eventName, listener)
-
-    logger.withFields({ eventName, accountId }).debug('Registered shared core event listener')
-  }
-}
-
-export async function updateAccountState(logger: Logger, account: AccountState, accountId: string, eventName: keyof ToCoreEvent) {
+export async function updateAccountState(logger: Logger, account: AccountState, accountId: string, eventName: string) {
   // Update account state based on events
   switch (eventName) {
-    case CoreEventType.AuthLogin:
-      account.ctx.emitter.once(CoreEventType.AccountReady, () => {
+    case authLoginEvent.id:
+      account.ctx.ctx.once(accountReadyEvent, () => {
         account.accountReady = true
       })
       break
-    case CoreEventType.AuthLogout:
+    case authLogoutEvent.id:
       account.accountReady = false
       logger.withFields({ accountId }).log('User logged out, destroying account')
       await destroyCoreInstance(account.ctx)
@@ -122,8 +99,8 @@ export function setupWsRoutes(app: H3, config: Config) {
       const event = message.json<WsMessageToServer>()
 
       try {
+        // Skip the old server:event:register protocol — notifications are registered upfront
         if (event.type === 'server:event:register') {
-          registerCoreEventListeners(logger, account, accountId, event.data.event as keyof FromCoreEvent)
           return
         }
 
@@ -131,14 +108,14 @@ export function setupWsRoutes(app: H3, config: Config) {
 
         logger.withFields({ type: event.type, accountId, tracingId }).verbose('Message received')
 
-        if (!event.type.startsWith('server:')) {
+        if (isCoreEvent(event.type)) {
           coreEventsInTotal.add(1, { event_name: event.type })
         }
 
-        // Emit to core context (meta.tracingId is re-bound via emitter on/once wrappers)
-        account.ctx.emitter.emit(event.type, { ...event.data, meta: { tracingId } } as ExtractData<keyof ToCoreEvent>)
+        // Dispatch to core via Eventa events
+        await dispatchClientEvent(account.ctx, event.type, event.data, peer)
 
-        updateAccountState(logger, account, accountId, event.type as keyof ToCoreEvent)
+        updateAccountState(logger, account, accountId, event.type)
       }
       catch (error) {
         logger.withError(error).error('Handle websocket message failed')

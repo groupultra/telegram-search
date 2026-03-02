@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
 import { coreErrorEvent, messageProcessEvent, messageReprocessEvent } from '../../events'
+import { onEvent } from '../../utils/promise'
 import { registerMessageEventHandlers } from '../message'
 
 const models = {} as unknown as Models
@@ -40,7 +41,7 @@ describe('message event handlers', () => {
 
     // Set up listener for message:process to capture forceRefetch flag
     let capturedForceRefetch: boolean | undefined
-    ctx.ctx.on(messageProcessEvent, ({ body: { forceRefetch } }) => {
+    onEvent(ctx.ctx, messageProcessEvent, ({ forceRefetch }) => {
       capturedForceRefetch = forceRefetch
     })
 
@@ -75,7 +76,7 @@ describe('message event handlers', () => {
 
     // Set up listener for core:error
     const errors: any[] = []
-    ctx.ctx.on(coreErrorEvent, ({ body }) => {
+    onEvent(ctx.ctx, coreErrorEvent, (body) => {
       errors.push(body)
     })
 
@@ -111,7 +112,7 @@ describe('message event handlers', () => {
 
     // Set up listener for message:process
     const processedMessages: Api.Message[] = []
-    ctx.ctx.on(messageProcessEvent, ({ body: { messages } }) => {
+    onEvent(ctx.ctx, messageProcessEvent, ({ messages }) => {
       processedMessages.push(...messages)
     })
 

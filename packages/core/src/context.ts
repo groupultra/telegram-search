@@ -15,7 +15,7 @@ import { coreErrorEvent } from './events'
 
 export interface CoreContext {
   /** Eventa event context — the central hub for all event emission and subscription */
-  ctx: EventContext
+  ctx: EventContext<any, any>
   setClient: (client: TelegramClient) => void
   getClient: () => TelegramClient
   setCurrentAccountId: (accountId: string) => void
@@ -38,7 +38,7 @@ export interface CoreContext {
 
 export type Service<T> = (ctx: CoreContext, logger: Logger) => T
 
-function createErrorHandler(eventaCtx: EventContext, logger: Logger) {
+function createErrorHandler(eventaCtx: EventContext<any, any>, logger: Logger) {
   return (error: unknown, description?: string): Error => {
     // Unwrap nested errors
     if (error instanceof Error && 'cause' in error) {
