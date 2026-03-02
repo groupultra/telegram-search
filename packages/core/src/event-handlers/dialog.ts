@@ -4,7 +4,9 @@ import type { CoreContext } from '../context'
 import type { Models } from '../models'
 import type { DialogService } from '../services'
 
-import { CoreEventType } from '../types/events'
+import { defineInvokeHandler } from '@moeru/eventa'
+
+import { dialogAvatarFetchEvent, dialogFetchInvoke, dialogFoldersFetchInvoke, storageRecordChatFoldersEvent, storageRecordDialogsEvent } from '../events'
 
 export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: Models, dialogService: DialogService) {
   logger.verbose('Fetching dialogs')
@@ -34,29 +36,31 @@ export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: M
     }
   }
 
-  ctx.emitter.emit(CoreEventType.DialogData, { dialogs })
-  ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs, accountId })
+  return { dialogs, accountId }
 }
 
 export function registerDialogEventHandlers(ctx: CoreContext, logger: Logger, dbModels: Models) {
   logger = logger.withContext('core:dialog:event')
 
   return (dialogService: DialogService) => {
-    ctx.emitter.on(CoreEventType.DialogFetch, async () => {
-      await fetchDialogs(ctx, logger, dbModels, dialogService)
+    defineInvokeHandler(ctx.ctx, dialogFetchInvoke, async () => {
+      const { dialogs, accountId } = await fetchDialogs(ctx, logger, dbModels, dialogService)
+      ctx.ctx.emit(storageRecordDialogsEvent, { dialogs, accountId })
+      return { dialogs }
     })
 
-    ctx.emitter.on(CoreEventType.DialogFoldersFetch, async () => {
+    defineInvokeHandler(ctx.ctx, dialogFoldersFetchInvoke, async () => {
       logger.verbose('Fetching chat folders')
 
       const folders = (await dialogService.fetchChatFolders()).expect('Failed to fetch chat folders')
       const accountId = ctx.getCurrentAccountId()
 
-      ctx.emitter.emit(CoreEventType.StorageRecordChatFolders, { folders, accountId })
+      ctx.ctx.emit(storageRecordChatFoldersEvent, { folders, accountId })
+      return { folders }
     })
 
     // Prioritized single-avatar fetch for viewport-visible items
-    ctx.emitter.on(CoreEventType.DialogAvatarFetch, async ({ chatId }) => {
+    ctx.ctx.on(dialogAvatarFetchEvent, async ({ body: { chatId } }) => {
       logger.withFields({ chatId }).verbose('Fetching single dialog avatar')
       await dialogService.fetchSingleDialogAvatar(String(chatId))
     })

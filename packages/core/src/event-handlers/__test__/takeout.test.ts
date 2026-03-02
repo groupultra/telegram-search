@@ -1,11 +1,12 @@
 import type { Models } from '../../models'
 
 import { useLogger } from '@guiiai/logg'
+import { defineInvoke } from '@moeru/eventa'
 import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
-import { CoreEventType } from '../../types/events'
+import { takeoutRunEvent, takeoutStatsFetchInvoke, takeoutTaskAbortEvent } from '../../events'
 import { registerTakeoutEventHandlers } from '../takeout'
 
 const logger = useLogger()
@@ -21,7 +22,7 @@ describe('takeout event handlers', () => {
     registerTakeoutEventHandlers(ctx, takeoutService)
 
     const params = { chatIds: ['123'], increase: false, syncOptions: {} }
-    ctx.emitter.emit(CoreEventType.TakeoutRun, params)
+    ctx.ctx.emit(takeoutRunEvent, params)
 
     expect(runTakeout).toHaveBeenCalledWith(params)
   })
@@ -33,19 +34,20 @@ describe('takeout event handlers', () => {
 
     registerTakeoutEventHandlers(ctx, takeoutService)
 
-    ctx.emitter.emit(CoreEventType.TakeoutTaskAbort, { taskId: 'task-1' })
+    ctx.ctx.emit(takeoutTaskAbortEvent, { taskId: 'task-1' })
 
     expect(abortTask).toHaveBeenCalledWith('task-1')
   })
 
   it('takeout:stats:fetch should delegate to takeoutService.fetchChatSyncStats', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
-    const fetchChatSyncStats = vi.fn()
+    const fetchChatSyncStats = vi.fn(async () => ({ stats: [] }))
     const takeoutService = { fetchChatSyncStats } as any
 
     registerTakeoutEventHandlers(ctx, takeoutService)
 
-    ctx.emitter.emit(CoreEventType.TakeoutStatsFetch, { chatId: '123' })
+    const invoke = defineInvoke(ctx.ctx, takeoutStatsFetchInvoke)
+    await invoke({ chatId: '123' })
 
     expect(fetchChatSyncStats).toHaveBeenCalledWith('123')
   })

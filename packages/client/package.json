@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@moeru/eventa": "1.0.0-alpha.11",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
     "@tg-search/server": "workspace:*",

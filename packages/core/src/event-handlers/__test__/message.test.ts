@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
-import { CoreEventType } from '../../types/events'
+import { coreErrorEvent, messageProcessEvent, messageReprocessEvent } from '../../events'
 import { registerMessageEventHandlers } from '../message'
 
 const models = {} as unknown as Models
@@ -40,12 +40,12 @@ describe('message event handlers', () => {
 
     // Set up listener for message:process to capture forceRefetch flag
     let capturedForceRefetch: boolean | undefined
-    ctx.emitter.on(CoreEventType.MessageProcess, ({ forceRefetch }) => {
+    ctx.ctx.on(messageProcessEvent, ({ body: { forceRefetch } }) => {
       capturedForceRefetch = forceRefetch
     })
 
     // Emit message:reprocess event
-    ctx.emitter.emit(CoreEventType.MessageReprocess, {
+    ctx.ctx.emit(messageReprocessEvent, {
       chatId: '789',
       messageIds: [123],
       resolvers: ['media'],
@@ -75,12 +75,12 @@ describe('message event handlers', () => {
 
     // Set up listener for core:error
     const errors: any[] = []
-    ctx.emitter.on(CoreEventType.CoreError, (error) => {
-      errors.push(error)
+    ctx.ctx.on(coreErrorEvent, ({ body }) => {
+      errors.push(body)
     })
 
     // Emit message:reprocess event
-    ctx.emitter.emit(CoreEventType.MessageReprocess, {
+    ctx.ctx.emit(messageReprocessEvent, {
       chatId: '789',
       messageIds: [123],
       resolvers: ['media'],
@@ -111,12 +111,12 @@ describe('message event handlers', () => {
 
     // Set up listener for message:process
     const processedMessages: Api.Message[] = []
-    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages }) => {
+    ctx.ctx.on(messageProcessEvent, ({ body: { messages } }) => {
       processedMessages.push(...messages)
     })
 
     // Emit message:reprocess event
-    ctx.emitter.emit(CoreEventType.MessageReprocess, {
+    ctx.ctx.emit(messageReprocessEvent, {
       chatId: '789',
       messageIds: [123],
       resolvers: ['media'],

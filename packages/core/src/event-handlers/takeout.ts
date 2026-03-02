@@ -1,18 +1,20 @@
 import type { CoreContext } from '../context'
 import type { TakeoutService } from '../services'
 
-import { CoreEventType } from '../types/events'
+import { defineInvokeHandler } from '@moeru/eventa'
+
+import { takeoutRunEvent, takeoutStatsFetchInvoke, takeoutTaskAbortEvent } from '../events'
 
 export function registerTakeoutEventHandlers(ctx: CoreContext, takeoutService: TakeoutService) {
-  ctx.emitter.on(CoreEventType.TakeoutRun, async (params) => {
+  ctx.ctx.on(takeoutRunEvent, async ({ body: params }) => {
     await takeoutService.runTakeout(params)
   })
 
-  ctx.emitter.on(CoreEventType.TakeoutTaskAbort, ({ taskId }) => {
+  ctx.ctx.on(takeoutTaskAbortEvent, ({ body: { taskId } }) => {
     takeoutService.abortTask(taskId)
   })
 
-  ctx.emitter.on(CoreEventType.TakeoutStatsFetch, async ({ chatId }) => {
-    await takeoutService.fetchChatSyncStats(chatId)
+  defineInvokeHandler(ctx.ctx, takeoutStatsFetchInvoke, async ({ chatId }) => {
+    return await takeoutService.fetchChatSyncStats(chatId)
   })
 }

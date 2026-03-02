@@ -1,26 +1,21 @@
 import type { Logger } from '@guiiai/logg'
+import type { EventContext } from '@moeru/eventa'
 import type { CoreMetrics } from '@tg-search/common'
 import type { TelegramClient } from 'telegram'
 
 import type { CoreDB } from './db'
 import type { Models } from './models'
 import type { AccountSettings } from './types/account-settings'
-import type { CoreEmitter, CoreEvent, CoreUserEntity, FromCoreEvent, ToCoreEvent } from './types/events'
+import type { CoreUserEntity } from './types/events'
 
 import { useLogger } from '@guiiai/logg'
-import { EventEmitter } from 'eventemitter3'
+import { createContext } from '@moeru/eventa'
 
-import { CoreEventType } from './types/events'
-import { detectMemoryLeak } from './utils/memory-leak-detector'
-
-export type { CoreEmitter, CoreEvent, ExtractData, FromCoreEvent, ToCoreEvent } from './types/events'
+import { coreErrorEvent } from './events'
 
 export interface CoreContext {
-  emitter: CoreEmitter
-  toCoreEvents: Set<keyof ToCoreEvent>
-  fromCoreEvents: Set<keyof FromCoreEvent>
-  wrapEmitterEmit: (emitter: CoreEmitter, fn?: (event: keyof FromCoreEvent) => void) => void
-  wrapEmitterOn: (emitter: CoreEmitter, fn?: (event: keyof ToCoreEvent) => void) => void
+  /** Eventa event context — the central hub for all event emission and subscription */
+  ctx: EventContext
   setClient: (client: TelegramClient) => void
   getClient: () => TelegramClient
   setCurrentAccountId: (accountId: string) => void
@@ -43,15 +38,15 @@ export interface CoreContext {
 
 export type Service<T> = (ctx: CoreContext, logger: Logger) => T
 
-function createErrorHandler(emitter: CoreEmitter, logger: Logger) {
+function createErrorHandler(eventaCtx: EventContext, logger: Logger) {
   return (error: unknown, description?: string): Error => {
     // Unwrap nested errors
     if (error instanceof Error && 'cause' in error) {
-      return createErrorHandler(emitter, logger)(error.cause, description)
+      return createErrorHandler(eventaCtx, logger)(error.cause, description)
     }
 
     // Emit raw error for frontend to handle (i18n, UI, etc.)
-    emitter.emit(CoreEventType.CoreError, { error: error instanceof Error ? error.message : String(error), description })
+    eventaCtx.emit(coreErrorEvent, { error: error instanceof Error ? error.message : String(error), description })
 
     // Log error details
     if (error instanceof Error) {
@@ -67,58 +62,11 @@ function createErrorHandler(emitter: CoreEmitter, logger: Logger) {
 }
 
 export function createCoreContext(db: () => CoreDB, models: Models, logger: Logger, metrics?: CoreMetrics): CoreContext {
-  const emitter = new EventEmitter<CoreEvent>()
-  const withError = createErrorHandler(emitter, logger)
+  const eventaCtx = createContext()
+  const withError = createErrorHandler(eventaCtx, logger)
   let telegramClient: TelegramClient
   let currentAccountId: string | undefined
   let myUser: CoreUserEntity | undefined
-
-  const toCoreEvents = new Set<keyof ToCoreEvent>()
-  const fromCoreEvents = new Set<keyof FromCoreEvent>()
-
-  const wrapEmitterOn = (emitter: CoreEmitter, fn?: (event: keyof ToCoreEvent) => void) => {
-    const _on = emitter.on.bind(emitter)
-
-    // eslint-disable-next-line sonarjs/no-invariant-returns
-    emitter.on = (event, listener) => {
-      const onFn = _on(event, async (...args) => {
-        try {
-          fn?.(event as keyof ToCoreEvent)
-
-          logger.withFields({ event }).debug('Handle core event')
-          return await listener(...args)
-        }
-        catch (error) {
-          logger.withError(error instanceof Error ? (error.cause ?? error) : error).error('Failed to handle core event')
-        }
-      })
-
-      if (toCoreEvents.has(event as keyof ToCoreEvent)) {
-        return onFn
-      }
-
-      logger.withFields({ event }).debug('Register to core event')
-      toCoreEvents.add(event as keyof ToCoreEvent)
-      return onFn
-    }
-  }
-
-  const wrapEmitterEmit = (emitter: CoreEmitter, fn?: (event: keyof FromCoreEvent) => void) => {
-    const _emit = emitter.emit.bind(emitter)
-
-    emitter.emit = (event, ...args) => {
-      if (fromCoreEvents.has(event as keyof FromCoreEvent)) {
-        return _emit(event, ...args)
-      }
-
-      logger.withFields({ event }).debug('Register from core event')
-
-      fromCoreEvents.add(event as keyof FromCoreEvent)
-      fn?.(event as keyof FromCoreEvent)
-
-      return _emit(event, ...args)
-    }
-  }
 
   function setClient(client: TelegramClient) {
     logger.debug('Set Telegram client')
@@ -171,9 +119,6 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
     await models.accountSettingsModels.updateAccountSettings(getDB(), getCurrentAccountId(), newSettings)
   }
 
-  // Setup memory leak detection and get cleanup function
-  const cleanupMemoryLeakDetector = detectMemoryLeak(emitter, logger)
-
   function getDB(): CoreDB {
     const dbInstance = db()
     if (!dbInstance) {
@@ -183,17 +128,7 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
   }
 
   function cleanup() {
-    logger.debug('Cleaning up CoreContext')
-
-    // Clean up memory leak detector first
-    cleanupMemoryLeakDetector()
-
-    // Remove all event listeners
-    emitter.removeAllListeners()
-
-    // Clear event sets
-    toCoreEvents.clear()
-    fromCoreEvents.clear()
+    useLogger('core:context').debug('Cleaning up CoreContext')
 
     // Clear client reference
     // @ts-expect-error - Allow setting to undefined for cleanup
@@ -202,23 +137,11 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
     // Clear account reference
     currentAccountId = undefined
 
-    logger.debug('CoreContext cleaned up')
+    useLogger('core:context').debug('CoreContext cleaned up')
   }
 
-  wrapEmitterOn(emitter, (event) => {
-    useLogger('core:event').withFields({ event }).debug('Core event received')
-  })
-
-  wrapEmitterEmit(emitter, (event) => {
-    useLogger('core:event').withFields({ event }).debug('Core event emitted')
-  })
-
   return {
-    emitter,
-    toCoreEvents,
-    fromCoreEvents,
-    wrapEmitterEmit,
-    wrapEmitterOn,
+    ctx: eventaCtx,
     setClient,
     getClient: ensureClient,
     setCurrentAccountId,

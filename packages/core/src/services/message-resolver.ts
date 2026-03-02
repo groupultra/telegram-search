@@ -5,8 +5,8 @@ import type { CoreContext } from '../context'
 import type { MessageResolver, MessageResolverRegistryFn } from '../message-resolvers'
 import type { SyncOptions } from '../types/events'
 
+import { messageDataEvent, messageProcessedEvent, storageRecordMessagesEvent } from '../events'
 import { chatMessageModels } from '../models/chat-message'
-import { CoreEventType } from '../types/events'
 import { convertToCoreMessage } from '../utils/message'
 
 export type MessageResolverService = ReturnType<typeof createMessageResolverService>
@@ -49,7 +49,7 @@ export function createMessageResolverService(
 
     // Return the messages to client first.
     if (!options.takeout) {
-      ctx.emitter.emit(CoreEventType.MessageData, { messages: coreMessages })
+      ctx.ctx.emit(messageDataEvent, { messages: coreMessages })
     }
 
     // Storage the messages first and get the actual DB IDs
@@ -94,16 +94,16 @@ export function createMessageResolverService(
           const result = (await resolver.run(opts)).unwrap()
 
           if (result.length > 0) {
-            ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: result })
+            ctx.ctx.emit(storageRecordMessagesEvent, { messages: result })
           }
         }
         else if (resolver.stream) {
           for await (const message of resolver.stream(opts)) {
             if (!options.takeout) {
-              ctx.emitter.emit(CoreEventType.MessageData, { messages: [message] })
+              ctx.ctx.emit(messageDataEvent, { messages: [message] })
             }
 
-            ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: [message] })
+            ctx.ctx.emit(storageRecordMessagesEvent, { messages: [message] })
           }
         }
       }
@@ -154,7 +154,7 @@ export function createMessageResolverService(
     await Promise.allSettled(promises)
 
     if (options.batchId) {
-      ctx.emitter.emit(CoreEventType.MessageProcessed, {
+      ctx.ctx.emit(messageProcessedEvent, {
         batchId: options.batchId,
         count: coreMessages.length,
         resolverSpans,

@@ -1,9 +1,10 @@
-import type { CoreContext, CoreEmitter } from '../../context'
-import type { CoreUserEntity, FromCoreEvent, ToCoreEvent } from '../../types/events'
+import type { CoreContext } from '../../context'
+import type { CoreUserEntity } from '../../types/events'
 
 import bigInt from 'big-integer'
 
 import { useLogger } from '@guiiai/logg'
+import { createContext } from '@moeru/eventa'
 import { eq } from 'drizzle-orm'
 import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
@@ -32,11 +33,7 @@ function createMockCtx(db: any, client: any, accountId?: string) {
   const withError = vi.fn((error: unknown) => (error instanceof Error ? error : new Error(String(error))))
 
   const ctx: CoreContext = {
-    emitter: { emit: vi.fn(), on: vi.fn() } as unknown as CoreEmitter,
-    toCoreEvents: new Set<keyof ToCoreEvent>(),
-    fromCoreEvents: new Set<keyof FromCoreEvent>(),
-    wrapEmitterEmit: () => {},
-    wrapEmitterOn: () => {},
+    ctx: createContext(),
     setClient: () => {},
     getClient: () => client,
     setCurrentAccountId: () => {},

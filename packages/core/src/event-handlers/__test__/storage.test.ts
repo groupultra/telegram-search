@@ -2,12 +2,13 @@ import type { Models } from '../../models'
 import type { CoreDialog } from '../../types/dialog'
 
 import { useLogger } from '@guiiai/logg'
+import { defineInvoke } from '@moeru/eventa'
 import { Ok } from '@unbird/result'
 import { describe, expect, it, vi } from 'vitest'
 
 import { getMockEmptyDB } from '../../../mock'
 import { createCoreContext } from '../../context'
-import { CoreEventType } from '../../types/events'
+import { coreErrorEvent, storageFetchDialogsInvoke, storageFetchMessagesInvoke, storageRecordDialogsEvent, storageSearchMessagesInvoke } from '../../events'
 import { registerStorageEventHandlers } from '../storage'
 
 const logger = useLogger()
@@ -79,15 +80,8 @@ describe('storage event handlers - dialogs with accounts', () => {
 
     const ACCOUNT_ID = 'account-xyz'
 
-    const dialogsPromise = new Promise<CoreDialog[]>((resolve) => {
-      ctx.emitter.on(CoreEventType.StorageDialogs, ({ dialogs }) => {
-        resolve(dialogs)
-      })
-    })
-
-    ctx.emitter.emit(CoreEventType.StorageFetchDialogs, { accountId: ACCOUNT_ID })
-
-    const dialogs = await dialogsPromise
+    const invoke = defineInvoke(ctx.ctx, storageFetchDialogsInvoke)
+    const { dialogs } = await invoke({ accountId: ACCOUNT_ID })
 
     // Verify models were called with correct account id (first arg is db instance)
     expect(fetchChatsByAccountId).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID)
@@ -123,7 +117,7 @@ describe('storage event handlers - dialogs with accounts', () => {
       },
     ]
 
-    ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs, accountId: ACCOUNT_ID })
+    ctx.ctx.emit(storageRecordDialogsEvent, { dialogs, accountId: ACCOUNT_ID })
 
     expect(recordChats).toHaveBeenCalledTimes(1)
     expect(recordChats).toHaveBeenCalledWith(expect.anything(), dialogs, ACCOUNT_ID)
@@ -144,14 +138,18 @@ describe('storage event handlers - message access control', () => {
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<string>((resolve) => {
-      ctx.emitter.on(CoreEventType.CoreError, ({ error }) => {
+      ctx.ctx.on(coreErrorEvent, ({ body: { error } }) => {
         resolve(error)
       })
     })
 
-    ctx.emitter.emit(CoreEventType.StorageFetchMessages, {
+    const invoke = defineInvoke(ctx.ctx, storageFetchMessagesInvoke)
+    // The invoke will throw or the error event will fire
+    invoke({
       chatId: CHAT_ID,
       pagination: { limit: 20, offset: 0 },
+    }).catch(() => {
+      // Expected to fail
     })
 
     const error = await errorPromise
@@ -174,16 +172,19 @@ describe('storage event handlers - message access control', () => {
     ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
 
     const errorPromise = new Promise<string>((resolve) => {
-      ctx.emitter.on(CoreEventType.CoreError, ({ error }) => {
+      ctx.ctx.on(coreErrorEvent, ({ body: { error } }) => {
         resolve(error)
       })
     })
 
-    ctx.emitter.emit(CoreEventType.StorageSearchMessages, {
+    const invoke = defineInvoke(ctx.ctx, storageSearchMessagesInvoke)
+    invoke({
       chatId: CHAT_ID,
       content: 'test search',
       useVector: false,
       pagination: { limit: 20, offset: 0 },
+    }).catch(() => {
+      // Expected to fail
     })
 
     const error = await errorPromise

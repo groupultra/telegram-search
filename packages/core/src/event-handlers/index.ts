@@ -6,6 +6,7 @@ import type { MediaBinaryProvider } from '../types/storage'
 
 import { useLogger } from '@guiiai/logg'
 
+import { accountReadyEvent, authConnectedEvent, syncCatchUpEvent, syncResetEvent } from '../events'
 import { useMessageResolverRegistry } from '../message-resolvers'
 import { createAvatarResolver } from '../message-resolvers/avatar-resolver'
 import { createEmbeddingResolver } from '../message-resolvers/embedding-resolver'
@@ -30,7 +31,6 @@ import { createMessageService } from '../services/message'
 import { createMessageResolverService } from '../services/message-resolver'
 import { createSyncService } from '../services/sync'
 import { createTakeoutService } from '../services/takeout'
-import { CoreEventType } from '../types/events'
 import { registerAccountSettingsEventHandlers } from './account-settings'
 import { registerAuthEventHandlers } from './auth'
 import { fetchDialogs, registerDialogEventHandlers } from './dialog'
@@ -92,7 +92,7 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
   const syncService = createSyncService(ctx, logger)
   const gramEventsService = createGramEventsService(ctx, logger)
 
-  ctx.emitter.once(CoreEventType.AuthConnected, async () => {
+  ctx.ctx.once(authConnectedEvent, async () => {
     // Register entity handlers first so we can establish currentAccountId.
     logger.verbose('Getting me info')
     const account = (await accountService.fetchMyAccount()).expect('Failed to get me info')
@@ -105,10 +105,10 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     ctx.setCurrentAccountId(dbAccount.id)
 
     // Trigger sync catch-up in background after account is identified
-    ctx.emitter.on(CoreEventType.SyncCatchUp, async () => {
+    ctx.ctx.on(syncCatchUpEvent, async () => {
       await syncService.catchUp()
     })
-    ctx.emitter.on(CoreEventType.SyncReset, async () => {
+    ctx.ctx.on(syncResetEvent, async () => {
       await syncService.reset()
     })
     void syncService.catchUp()
@@ -121,10 +121,10 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
 
     logger.withFields({ accountId: dbAccount.id }).verbose('Set current account ID')
 
-    ctx.emitter.emit(CoreEventType.AccountReady, { accountId: dbAccount.id })
+    ctx.ctx.emit(accountReadyEvent, { accountId: dbAccount.id })
   })
 
-  ctx.emitter.once(CoreEventType.AccountReady, ({ accountId }) => {
+  ctx.ctx.once(accountReadyEvent, ({ body: { accountId } }) => {
     logger = logger.withFields({ accountId })
 
     registerEntityEventHandlers(ctx, logger)(entityService)

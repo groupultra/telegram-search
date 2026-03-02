@@ -1,15 +1,16 @@
-import type { CoreContext, CoreEmitter } from '../../context'
+import type { CoreContext } from '../../context'
 import type { CoreDB } from '../../db'
 import type { AccountSettings } from '../../types/account-settings'
-import type { CoreUserEntity, FromCoreEvent, ToCoreEvent } from '../../types/events'
+import type { CoreUserEntity } from '../../types/events'
 
 import bigInt from 'big-integer'
 
 import { useLogger } from '@guiiai/logg'
+import { createContext } from '@moeru/eventa'
 import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
 
-import { CoreEventType } from '../../types/events'
+import { messageProcessedEvent, messageProcessEvent } from '../../events'
 import { createTask as createCoreTask } from '../../utils/task'
 import { createTakeoutService } from '../takeout'
 
@@ -35,30 +36,11 @@ vi.mock('../../utils/min-interval', () => {
 })
 
 function createMockCtx(client: any) {
+  const eventaCtx = createContext()
   const withError = vi.fn((error: unknown) => (error instanceof Error ? error : new Error(String(error))))
 
-  // Minimal event emitter stub for processMessageBatch/runTakeout flows.
-  const handlers = new Map<string, Set<(...args: any[]) => void>>()
-  const emitter = {
-    on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      const set = handlers.get(event) ?? new Set()
-      set.add(handler)
-      handlers.set(event, set)
-    }),
-    off: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      handlers.get(event)?.delete(handler)
-    }),
-    emit: vi.fn((event: string, payload: any) => {
-      handlers.get(event)?.forEach(fn => fn(payload))
-    }),
-  } as unknown as CoreEmitter
-
   const ctx: CoreContext = {
-    emitter,
-    toCoreEvents: new Set<keyof ToCoreEvent>(),
-    fromCoreEvents: new Set<keyof FromCoreEvent>(),
-    wrapEmitterEmit: () => {},
-    wrapEmitterOn: () => {},
+    ctx: eventaCtx,
     setClient: () => {},
     getClient: () => client,
     setCurrentAccountId: () => {},
@@ -77,9 +59,8 @@ function createMockCtx(client: any) {
 }
 
 function createTask() {
-  // Minimal emitter stub for CoreTask -> task.ts only calls emitter.emit(...)
-  const emitter = { emit: vi.fn() } as unknown as CoreEmitter
-  return createCoreTask('takeout', { chatIds: ['123'] }, emitter, logger)
+  const eventaCtx = createContext()
+  return createCoreTask('takeout', { chatIds: ['123'] }, eventaCtx, logger)
 }
 
 describe('takeout service', () => {
@@ -535,8 +516,8 @@ describe('takeout service', () => {
     const { ctx } = createMockCtx(client)
 
     // Auto-complete message processing batches to avoid hanging on pendingBatches.
-    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, batchId }) => {
-      ctx.emitter.emit(CoreEventType.MessageProcessed, {
+    ctx.ctx.on(messageProcessEvent, ({ body: { messages, batchId } }) => {
+      ctx.ctx.emit(messageProcessedEvent, {
         batchId: batchId ?? 'batch-id',
         count: messages.length,
         resolverSpans: [],

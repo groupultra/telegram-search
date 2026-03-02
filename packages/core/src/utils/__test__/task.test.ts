@@ -1,26 +1,24 @@
-import type { MockedFunction } from 'vitest'
-
-import type { CoreEmitter } from '../../context'
-
 import { useLogger } from '@guiiai/logg'
+import { createContext } from '@moeru/eventa'
 import { describe, expect, it, vi } from 'vitest'
 
-import { CoreEventType } from '../../types/events'
+import { takeoutTaskProgressEvent } from '../../events'
 import { createTask } from '../task'
 
 const logger = useLogger()
 
 describe('utils/task - createTask', () => {
   it('should emit takeout:task:progress on updateProgress for takeout task', () => {
-    const emitter = { emit: vi.fn() } as unknown as CoreEmitter
+    const eventaCtx = createContext()
+    const emitSpy = vi.spyOn(eventaCtx, 'emit')
 
-    const task = createTask('takeout', { chatIds: ['1', '2'] }, emitter, logger)
+    const task = createTask('takeout', { chatIds: ['1', '2'] }, eventaCtx, logger)
 
     task.updateProgress(10, 'hello')
 
-    expect(emitter.emit).toHaveBeenCalledTimes(1)
-    expect(emitter.emit).toHaveBeenCalledWith(
-      CoreEventType.TakeoutTaskProgress,
+    expect(emitSpy).toHaveBeenCalledTimes(1)
+    expect(emitSpy).toHaveBeenCalledWith(
+      takeoutTaskProgressEvent,
       expect.objectContaining({
         taskId: expect.any(String),
         type: 'takeout',
@@ -33,23 +31,24 @@ describe('utils/task - createTask', () => {
     )
 
     // toJSON payload must not expose abortController
-    const payload = (emitter.emit as MockedFunction<typeof emitter.emit>).mock.calls[0][1]
+    const payload = emitSpy.mock.calls[0][1]
     expect(payload).not.toHaveProperty('abortController')
   })
 
   it('should set progress=-1 and emit on updateError for takeout task', () => {
-    const emitter = { emit: vi.fn() } as unknown as CoreEmitter
+    const eventaCtx = createContext()
+    const emitSpy = vi.spyOn(eventaCtx, 'emit')
 
-    const task = createTask('takeout', { chatIds: ['x'] }, emitter, logger)
+    const task = createTask('takeout', { chatIds: ['x'] }, eventaCtx, logger)
 
     task.updateError(new Error('boom'))
 
     expect(task.state.progress).toBe(-1)
     expect(task.state.lastError).toBe('boom')
 
-    expect(emitter.emit).toHaveBeenCalledTimes(1)
-    expect(emitter.emit).toHaveBeenCalledWith(
-      CoreEventType.TakeoutTaskProgress,
+    expect(emitSpy).toHaveBeenCalledTimes(1)
+    expect(emitSpy).toHaveBeenCalledWith(
+      takeoutTaskProgressEvent,
       expect.objectContaining({
         type: 'takeout',
         progress: -1,
@@ -59,9 +58,10 @@ describe('utils/task - createTask', () => {
   })
 
   it('abort should abort signal and set error', () => {
-    const emitter = { emit: vi.fn() } as unknown as CoreEmitter
+    const eventaCtx = createContext()
+    const emitSpy = vi.spyOn(eventaCtx, 'emit')
 
-    const task = createTask('takeout', { chatIds: ['x'] }, emitter, logger)
+    const task = createTask('takeout', { chatIds: ['x'] }, eventaCtx, logger)
 
     task.abort()
 
@@ -70,15 +70,16 @@ describe('utils/task - createTask', () => {
     expect(task.state.lastError).toBe('Task aborted')
 
     // abort internally calls updateError, which emits once
-    expect(emitter.emit).toHaveBeenCalledTimes(1)
+    expect(emitSpy).toHaveBeenCalledTimes(1)
   })
 
   it('should not emit takeout progress events for non-takeout task types', () => {
-    const emitter = { emit: vi.fn() } as unknown as CoreEmitter
+    const eventaCtx = createContext()
+    const emitSpy = vi.spyOn(eventaCtx, 'emit')
 
-    const task = createTask('embed', undefined, emitter, logger)
+    const task = createTask('embed', undefined, eventaCtx, logger)
     task.updateProgress(1)
 
-    expect(emitter.emit).not.toHaveBeenCalled()
+    expect(emitSpy).not.toHaveBeenCalled()
   })
 })

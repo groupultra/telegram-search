@@ -1,11 +1,11 @@
 import type { Logger } from '@guiiai/logg'
+import type { EventContext } from '@moeru/eventa'
 
-import type { CoreEmitter } from '../context'
 import type { CoreTask, CoreTaskData, CoreTasks, CoreTaskType } from '../types/task'
 
 import { v4 as uuidv4 } from 'uuid'
 
-import { CoreEventType } from '../types/events'
+import { takeoutTaskProgressEvent } from '../events'
 
 /**
  * Create a task that manages its own state
@@ -13,7 +13,7 @@ import { CoreEventType } from '../types/events'
 export function createTask<T extends CoreTaskType>(
   type: T,
   metadata: CoreTasks[T],
-  emitter: CoreEmitter,
+  ctx: EventContext,
   logger: Logger,
 ): CoreTask<T> {
   logger = logger.withContext('core:task')
@@ -32,7 +32,7 @@ export function createTask<T extends CoreTaskType>(
 
   const emitUpdate = () => {
     if (type === 'takeout') {
-      emitter.emit(CoreEventType.TakeoutTaskProgress, task.toJSON() as any)
+      ctx.emit(takeoutTaskProgressEvent, task.toJSON() as any)
     }
   }
 
