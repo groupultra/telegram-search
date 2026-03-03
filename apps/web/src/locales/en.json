@@ -113,7 +113,9 @@
   "messages": {
     "copied": "Copied to clipboard",
     "copyMessageLink": "Copy message link",
-    "openInChat": "Open in chat"
+    "openInChat": "Open in chat",
+    "openInTelegram": "Open in Telegram",
+    "openProfileInTelegram": "Open profile in Telegram"
   },
   "search": {
     "noRelatedMessages": "No related messages found",

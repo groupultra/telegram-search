@@ -16,6 +16,7 @@ import SummaryDialog from '../../components/SummaryDialog.vue'
 import VirtualMessageList from '../../components/VirtualMessageList.vue'
 
 import { Button } from '../../components/ui/Button'
+import { getChatProfileLink } from '../../utils/telegram-links'
 
 const { t } = useI18n()
 
@@ -30,6 +31,11 @@ const { activeSessionId } = storeToRefs(useSessionStore())
 
 const { sortedMessageIds, messageWindow, sortedMessageArray } = storeToRefs(messageStore)
 const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.toString()))
+const chatTelegramLink = computed(() => {
+  if (!currentChat.value)
+    return null
+  return getChatProfileLink(currentChat.value)
+})
 
 const messageLimit = ref(100)
 const messageOffset = ref(0)
@@ -174,6 +180,13 @@ function sendMessage() {
   toast.success(t('chat.messageSent'))
 }
 
+function openChatInTelegram() {
+  const link = chatTelegramLink.value
+  if (link) {
+    window.open(link.tgLink, '_self')
+  }
+}
+
 function resetPagination() {
   messageOffset.value = 0
 }
@@ -272,15 +285,21 @@ watch(
     <!-- Chat Header -->
     <div class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
       <div class="flex items-center gap-3">
-        <EntityAvatar
+        <a
           v-if="currentChat && currentChat.id != null"
-          :id="currentChat.id"
-          entity="other"
-          entity-type="chat"
-          :file-id="currentChat?.avatarFileId"
-          :name="currentChat?.name"
-          size="md"
-        />
+          :href="chatTelegramLink?.tgLink"
+          :title="chatTelegramLink ? t('messages.openInTelegram') : undefined"
+          :class="chatTelegramLink ? 'cursor-pointer' : 'cursor-default'"
+        >
+          <EntityAvatar
+            :id="currentChat.id"
+            entity="other"
+            entity-type="chat"
+            :file-id="currentChat?.avatarFileId"
+            :name="currentChat?.name"
+            size="md"
+          />
+        </a>
         <div>
           <h2 class="text-lg font-semibold">
             {{ currentChat?.name }}
@@ -291,6 +310,16 @@ watch(
         </div>
       </div>
       <div class="flex items-center gap-2">
+        <Button
+          v-if="chatTelegramLink"
+          icon="i-lucide-external-link"
+          variant="ghost"
+          size="sm"
+          :title="t('messages.openInTelegram')"
+          @click="openChatInTelegram"
+        >
+          {{ t('messages.openInTelegram') }}
+        </Button>
         <SummaryDialog :chat-id="id.toString()">
           <template #default="{ open }">
             <Button
