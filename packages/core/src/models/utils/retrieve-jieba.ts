@@ -90,4 +90,5 @@ export async function retrieveJieba(
     )
     .where(and(...whereConditions))
     .limit(pagination?.limit || 20)
+    .offset(pagination?.offset || 0)
 }

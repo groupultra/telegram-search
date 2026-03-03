@@ -250,8 +250,7 @@ interface SearchResult {
 }
 
 /**
- * Execute search with pagination support.
- * Vector search doesn't support offset, so we fetch (page+1)*limit and slice.
+ * Execute search with pagination support using DB-level offset.
  */
 async function executeSearchWithPagination(
   ctx: BotCommandContext,
@@ -265,8 +264,6 @@ async function executeSearchWithPagination(
 
   const limit = 10
   const startIdx = page * limit
-  const endIdx = startIdx + limit
-  const fetchLimit = endIdx + 1
 
   const filters = chatId === '__ALL__'
     ? {}
@@ -278,13 +275,13 @@ async function executeSearchWithPagination(
     accountId,
     DEFAULT_EMBEDDING_DIMENSION,
     { text: query },
-    { limit: fetchLimit, offset: 0 },
+    { limit: limit + 1, offset: startIdx },
     filters,
   )
 
   const allMessages = result.expect('Failed to search messages')
-  const hasMore = allMessages.length > endIdx
-  const messages = allMessages.slice(startIdx, endIdx)
+  const hasMore = allMessages.length > limit
+  const messages = hasMore ? allMessages.slice(0, limit) : allMessages
 
   if (messages.length === 0) {
     return {

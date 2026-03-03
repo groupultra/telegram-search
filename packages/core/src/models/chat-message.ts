@@ -389,7 +389,16 @@ async function retrieveMessages(
       retrievalMessages.push(...relevantMessages)
     }
 
-    return retrievalMessages
+    // Deduplicate messages from multiple sources (jieba + vector),
+    // preferring the entry with a higher combined/similarity score.
+    const seen = new Map<string, DBRetrievalMessages>()
+    for (const msg of retrievalMessages) {
+      const existing = seen.get(msg.id)
+      if (!existing || (msg.combined_score ?? msg.similarity ?? 0) > (existing.combined_score ?? existing.similarity ?? 0)) {
+        seen.set(msg.id, msg)
+      }
+    }
+    return [...seen.values()]
   })
 }
 

@@ -9,9 +9,12 @@ const { t } = useI18n()
 
 const {
   isLoading,
+  isLoadingMore,
+  hasMore,
   keyword,
   keywordDebounced,
   searchResult,
+  loadMore,
 } = useMessageSearch()
 </script>
 
@@ -46,7 +49,13 @@ const {
       :class="{ 'opacity-0': !keywordDebounced, 'opacity-100': keywordDebounced }"
     >
       <template v-if="searchResult.length > 0">
-        <MessageList :messages="searchResult" :keyword="keyword" />
+        <MessageList
+          :messages="searchResult"
+          :keyword="keyword"
+          :has-more="hasMore"
+          :is-loading-more="isLoadingMore"
+          @load-more="loadMore"
+        />
       </template>
       <template v-else-if="isLoading">
         <div class="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-70">

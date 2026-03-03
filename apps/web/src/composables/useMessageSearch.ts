@@ -27,9 +27,12 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}) {
   const keyword = ref<string>('')
   const keywordDebounced = useDebounce(keyword, debounceMs)
   const isLoading = ref(false)
+  const isLoadingMore = ref(false)
+  const hasMore = ref(false)
   const searchResult = ref<CoreRetrievalMessages[]>([])
 
   let requestSeq = 0
+  let currentOffset = 0
 
   watch(keywordDebounced, async (newKeyword) => {
     const nextKeyword = newKeyword.trim()
@@ -37,12 +40,16 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}) {
     if (nextKeyword.length === 0) {
       requestSeq += 1
       isLoading.value = false
+      isLoadingMore.value = false
+      hasMore.value = false
       searchResult.value = []
+      currentOffset = 0
       return
     }
 
     const currentRequest = ++requestSeq
     isLoading.value = true
+    currentOffset = 0
 
     bridge.sendEvent(CoreEventType.StorageSearchMessages, {
       chatId: options.chatId,
@@ -55,11 +62,13 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}) {
     })
 
     try {
-      const { messages } = await bridge.waitForEvent(CoreEventType.StorageSearchMessagesData)
+      const result = await bridge.waitForEvent(CoreEventType.StorageSearchMessagesData)
       if (currentRequest !== requestSeq) {
         return
       }
-      searchResult.value = messages
+      searchResult.value = result.messages
+      hasMore.value = result.hasMore
+      currentOffset = result.messages.length
     }
     finally {
       if (currentRequest === requestSeq) {
@@ -68,10 +77,48 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}) {
     }
   })
 
+  async function loadMore() {
+    const currentKeyword = keywordDebounced.value.trim()
+    if (!currentKeyword || isLoadingMore.value || isLoading.value || !hasMore.value) {
+      return
+    }
+
+    const currentRequest = ++requestSeq
+    isLoadingMore.value = true
+
+    bridge.sendEvent(CoreEventType.StorageSearchMessages, {
+      chatId: options.chatId,
+      content: currentKeyword,
+      useVector,
+      pagination: {
+        limit,
+        offset: currentOffset,
+      },
+    })
+
+    try {
+      const result = await bridge.waitForEvent(CoreEventType.StorageSearchMessagesData)
+      if (currentRequest !== requestSeq) {
+        return
+      }
+      searchResult.value = [...searchResult.value, ...result.messages]
+      hasMore.value = result.hasMore
+      currentOffset += result.messages.length
+    }
+    finally {
+      if (currentRequest === requestSeq) {
+        isLoadingMore.value = false
+      }
+    }
+  }
+
   return {
     keyword,
     keywordDebounced,
     isLoading,
+    isLoadingMore,
+    hasMore,
     searchResult,
+    loadMore,
   }
 }
