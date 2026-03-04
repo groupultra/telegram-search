@@ -3,18 +3,28 @@ import type { CoreMessageMediaFromBlob, CoreRetrievalPhoto } from '@tg-search/co
 
 import { formatMessageTimestamp, getMediaBinaryProvider, hydrateMediaBlobWithCore } from '@tg-search/client'
 import { models } from '@tg-search/core'
-import { ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import EntityAvatar from './avatar/EntityAvatar.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   photos: CoreRetrievalPhoto[]
+  hasMore?: boolean
+  isLoadingMore?: boolean
+}>(), {
+  hasMore: false,
+  isLoadingMore: false,
+})
+
+const emit = defineEmits<{
+  loadMore: []
 }>()
 
 const { t } = useI18n()
 const router = useRouter()
+const scrollRef = ref<HTMLElement | null>(null)
 
 type ProcessedRetrievalPhoto = CoreRetrievalPhoto & {
   blobUrl?: string
@@ -77,10 +87,29 @@ function getPhotoTimestamp(photo: CoreRetrievalPhoto) {
   // createdAt is stored in milliseconds while formatter expects seconds.
   return formatMessageTimestamp(Math.floor(photo.createdAt / 1000))
 }
+
+function onScroll() {
+  const el = scrollRef.value
+  if (!el || !props.hasMore || props.isLoadingMore)
+    return
+
+  const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+  if (distanceFromBottom < 200) {
+    emit('loadMore')
+  }
+}
+
+onMounted(() => {
+  scrollRef.value?.addEventListener('scroll', onScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  scrollRef.value?.removeEventListener('scroll', onScroll)
+})
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto">
+  <div ref="scrollRef" class="h-full overflow-y-auto">
     <ul class="flex flex-col">
       <li
         v-for="photo in processedPhotos"
@@ -135,6 +164,11 @@ function getPhotoTimestamp(photo: CoreRetrievalPhoto) {
             <span>{{ photo.platformMessageId }}</span>
           </div>
         </div>
+      </li>
+
+      <!-- Loading more indicator -->
+      <li v-if="isLoadingMore" class="flex items-center justify-center py-4">
+        <span class="i-lucide-loader-circle animate-spin text-xl text-primary" />
       </li>
     </ul>
   </div>

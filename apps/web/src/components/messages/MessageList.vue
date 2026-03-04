@@ -3,17 +3,28 @@ import type { CoreMessage } from '@tg-search/core/types'
 
 import { formatMessageTimestamp } from '@tg-search/client'
 import { useClipboard } from '@vueuse/core'
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import EntityAvatar from '../avatar/EntityAvatar.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   messages: CoreMessage[]
   keyword: string
+  hasMore?: boolean
+  isLoadingMore?: boolean
+}>(), {
+  hasMore: false,
+  isLoadingMore: false,
+})
+
+const emit = defineEmits<{
+  loadMore: []
 }>()
+
 const router = useRouter()
 const hoveredMessage = ref<CoreMessage | null>(null)
+const listRef = ref<HTMLElement | null>(null)
 const { copy } = useClipboard()
 
 function highlightKeyword(text: string, keyword: string) {
@@ -36,10 +47,30 @@ function navigateToMessage(message: CoreMessage) {
     },
   })
 }
+
+function onScroll() {
+  const el = listRef.value
+  if (!el || !props.hasMore || props.isLoadingMore)
+    return
+
+  // Trigger load-more when scrolled within 200px of the bottom
+  const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+  if (distanceFromBottom < 200) {
+    emit('loadMore')
+  }
+}
+
+onMounted(() => {
+  listRef.value?.addEventListener('scroll', onScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  listRef.value?.removeEventListener('scroll', onScroll)
+})
 </script>
 
 <template>
-  <ul class="h-full flex flex-col animate-fade-in overflow-y-auto md:max-h-[540px]">
+  <ul ref="listRef" class="h-full flex flex-col animate-fade-in overflow-y-auto md:max-h-[540px]">
     <li
       v-for="item in props.messages"
       :key="item.uuid"
@@ -74,6 +105,11 @@ function navigateToMessage(message: CoreMessage) {
           <span>{{ item.platformMessageId }}</span>
         </div>
       </div>
+    </li>
+
+    <!-- Loading more indicator -->
+    <li v-if="isLoadingMore" class="flex items-center justify-center py-4">
+      <span class="i-lucide-loader-circle animate-spin text-xl text-primary" />
     </li>
   </ul>
 </template>

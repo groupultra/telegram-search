@@ -16,7 +16,7 @@ describe('useMessageSearch', () => {
   beforeEach(() => {
     bridge.sendEvent.mockReset()
     bridge.waitForEvent.mockReset()
-    bridge.waitForEvent.mockResolvedValue({ messages: [] })
+    bridge.waitForEvent.mockResolvedValue({ messages: [], hasMore: false })
   })
 
   it('sends consistent search payload for global search', async () => {

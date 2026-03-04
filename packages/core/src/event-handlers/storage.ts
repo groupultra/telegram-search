@@ -173,6 +173,13 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     const embeddingSettings = (await ctx.getAccountSettings()).embedding
     const embeddingDimension = embeddingSettings.dimension
+
+    // Overfetch by 1 to detect whether more results exist beyond the requested page.
+    const requestedLimit = params.pagination?.limit ?? 10
+    const overfetchPagination = params.pagination
+      ? { ...params.pagination, limit: requestedLimit + 1 }
+      : { limit: requestedLimit + 1, offset: 0 }
+
     let dbMessages: DBRetrievalMessages[] = []
     if (params.useVector) {
       let embedding: number[] = []
@@ -186,7 +193,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         accountId,
         embeddingDimension,
         { embedding, model: embeddingSettings.model, text: params.content },
-        params.pagination,
+        overfetchPagination,
         filters,
       )).expect('Failed to retrieve messages')
     }
@@ -197,17 +204,19 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         accountId,
         embeddingDimension,
         { model: embeddingSettings.model, text: params.content },
-        params.pagination,
+        overfetchPagination,
         filters,
       )).expect('Failed to retrieve messages')
     }
 
-    logger.withFields({ count: dbMessages.length }).verbose('Retrieved messages')
-    logger.withFields(dbMessages).debug('Retrieved messages')
+    const hasMore = dbMessages.length > requestedLimit
+    const trimmedMessages = hasMore ? dbMessages.slice(0, requestedLimit) : dbMessages
 
-    const coreMessages = convertToCoreRetrievalMessages(dbMessages)
+    logger.withFields({ count: trimmedMessages.length, hasMore }).verbose('Retrieved messages')
 
-    ctx.emitter.emit(CoreEventType.StorageSearchMessagesData, { messages: coreMessages })
+    const coreMessages = convertToCoreRetrievalMessages(trimmedMessages)
+
+    ctx.emitter.emit(CoreEventType.StorageSearchMessagesData, { messages: coreMessages, hasMore })
   })
 
   ctx.emitter.on(CoreEventType.StorageSearchPhotos, async (params) => {
@@ -216,7 +225,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
       if (params.content.length === 0) {
         logger.verbose('Empty content, returning empty results')
-        ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
+        ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false })
         return
       }
 
@@ -224,6 +233,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       const embeddingDimension = embeddingSettings.dimension
       logger.withFields({ embeddingDimension }).verbose('Embedding settings loaded')
 
+      let hasMore = false
       let corePhotos: Array<{
         id: string
         messageId: string | null
@@ -242,24 +252,27 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()
         if (!embeddingResult) {
           logger.warn('Failed to generate embedding for photo search')
-          ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
+          ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false })
           return
         }
 
         const embedding = embeddingResult.embeddings[0]
-        const limit = params.pagination?.limit || 10
-        logger.withFields({ embeddingLength: embedding.length, limit }).verbose('Embedding generated, searching database')
+        const requestedLimit = params.pagination?.limit || 10
+        logger.withFields({ embeddingLength: embedding.length, limit: requestedLimit }).verbose('Embedding generated, searching database')
 
         const results = (await dbModels.photoModels.searchPhotosByVector(
           ctx.getDB(),
           embedding,
           embeddingDimension,
-          limit,
+          requestedLimit + 1,
         )).expect('Failed to search photos by vector')
 
         logger.withFields({ resultsCount: results.length }).verbose('Vector search completed')
 
-        corePhotos = results.map(photo => ({
+        const hasMorePhotos = results.length > requestedLimit
+        const trimmedResults = hasMorePhotos ? results.slice(0, requestedLimit) : results
+
+        corePhotos = trimmedResults.map(photo => ({
           id: photo.id,
           messageId: photo.message_id,
           platformMessageId: photo.platform_message_id,
@@ -270,20 +283,24 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
           createdAt: photo.created_at,
           similarity: photo.similarity,
         }))
+        hasMore = hasMorePhotos
       }
       else {
         // Text search
         logger.verbose('Starting text search for photos')
-        const limit = params.pagination?.limit || 10
+        const requestedLimit = params.pagination?.limit || 10
         const results = (await dbModels.photoModels.searchPhotosByText(
           ctx.getDB(),
           params.content,
-          limit,
+          requestedLimit + 1,
         )).expect('Failed to search photos by text')
 
         logger.withFields({ resultsCount: results.length }).verbose('Text search completed')
 
-        corePhotos = results.map(photo => ({
+        const hasMorePhotos = results.length > requestedLimit
+        const trimmedResults = hasMorePhotos ? results.slice(0, requestedLimit) : results
+
+        corePhotos = trimmedResults.map(photo => ({
           id: photo.id,
           messageId: photo.message_id,
           platformMessageId: photo.platform_message_id,
@@ -293,17 +310,18 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
           mimeType: photo.image_mime_type,
           createdAt: photo.created_at,
         }))
+        hasMore = hasMorePhotos
       }
 
       logger.withFields({
         corePhotosCount: corePhotos.length,
         samplePhoto: corePhotos[0],
       }).log('Emitting StorageSearchPhotosData event')
-      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: corePhotos })
+      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: corePhotos, hasMore })
     }
     catch (error) {
       logger.withError(error).error('Failed to search photos')
-      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [] })
+      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false })
     }
   })
 

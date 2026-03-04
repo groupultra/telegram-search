@@ -30,7 +30,6 @@ const messageTelegramLink = computed(() => {
 const senderTelegramLink = computed(() => {
   if (!currentChat.value)
     return null
-  // Build a pseudo-dialog for the sender to generate a profile link
   // For channel messages, fromId is the channel itself
   if (currentChat.value.type === 'channel' || currentChat.value.type === 'supergroup')
     return getChatLink(currentChat.value)

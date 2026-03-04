@@ -317,8 +317,8 @@ export interface StorageEventFromCore {
 
   [CoreEventType.StorageDialogs]: (data: { dialogs: CoreDialog[] }) => void
 
-  [CoreEventType.StorageSearchMessagesData]: (data: { messages: CoreRetrievalMessages[] }) => void
-  [CoreEventType.StorageSearchPhotosData]: (data: { photos: CoreRetrievalPhoto[] }) => void
+  [CoreEventType.StorageSearchMessagesData]: (data: { messages: CoreRetrievalMessages[], hasMore: boolean }) => void
+  [CoreEventType.StorageSearchPhotosData]: (data: { photos: CoreRetrievalPhoto[], hasMore: boolean }) => void
 
   [CoreEventType.StorageMessagesContext]: (data: { messages: CoreMessage[] } & StorageMessageContextParams) => void
 

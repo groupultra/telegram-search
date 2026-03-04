@@ -88,4 +88,5 @@ export async function retrieveVector(
     .where(and(...whereConditions))
     .orderBy(desc(sql`combined_score`))
     .limit(pagination?.limit || 20)
+    .offset(pagination?.offset || 0)
 }

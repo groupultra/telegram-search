@@ -29,15 +29,31 @@ const photoResult = ref<CoreRetrievalPhoto[]>([])
 const activeTab = ref<'messages' | 'photos'>('messages')
 const hasResults = computed(() => searchResult.value.length > 0 || photoResult.value.length > 0)
 
-// TODO: Infinite scroll
+const SEARCH_LIMIT = 10
+const messagesHasMore = ref(false)
+const photosHasMore = ref(false)
+const isLoadingMoreMessages = ref(false)
+const isLoadingMorePhotos = ref(false)
+let messagesOffset = 0
+let photosOffset = 0
+let requestSeq = 0
+
 watch(keywordDebounced, (newKeyword) => {
   if (newKeyword.length === 0) {
     searchResult.value = []
     photoResult.value = []
+    messagesHasMore.value = false
+    photosHasMore.value = false
+    messagesOffset = 0
+    photosOffset = 0
+    requestSeq += 1
     return
   }
 
+  const currentRequest = ++requestSeq
   isLoading.value = true
+  messagesOffset = 0
+  photosOffset = 0
 
   // Search messages
   bridge.sendEvent(CoreEventType.StorageSearchMessages, {
@@ -45,7 +61,7 @@ watch(keywordDebounced, (newKeyword) => {
     content: newKeyword,
     useVector: true,
     pagination: {
-      limit: 10,
+      limit: SEARCH_LIMIT,
       offset: 0,
     },
   })
@@ -55,7 +71,7 @@ watch(keywordDebounced, (newKeyword) => {
     content: newKeyword,
     useVector: true,
     pagination: {
-      limit: 10,
+      limit: SEARCH_LIMIT,
       offset: 0,
     },
     chatIds: props.chatId ? [props.chatId] : undefined,
@@ -65,13 +81,20 @@ watch(keywordDebounced, (newKeyword) => {
   Promise.all([
     bridge.waitForEvent(CoreEventType.StorageSearchMessagesData),
     bridge.waitForEvent(CoreEventType.StorageSearchPhotosData),
-  ]).then(([{ messages }, { photos }]) => {
-    searchResult.value = messages
-    photoResult.value = photos
+  ]).then(([messagesData, photosData]) => {
+    if (currentRequest !== requestSeq)
+      return
+
+    searchResult.value = messagesData.messages
+    photoResult.value = photosData.photos
+    messagesHasMore.value = messagesData.hasMore
+    photosHasMore.value = photosData.hasMore
+    messagesOffset = messagesData.messages.length
+    photosOffset = photosData.photos.length
     isLoading.value = false
 
     // Auto-switch to tab with results
-    if (messages.length === 0 && photos.length > 0) {
+    if (messagesData.messages.length === 0 && photosData.photos.length > 0) {
       activeTab.value = 'photos'
     }
     else {
@@ -79,6 +102,74 @@ watch(keywordDebounced, (newKeyword) => {
     }
   })
 })
+
+async function loadMoreMessages() {
+  const currentKeyword = keywordDebounced.value.trim()
+  if (!currentKeyword || isLoadingMoreMessages.value || !messagesHasMore.value)
+    return
+
+  const currentRequest = ++requestSeq
+  isLoadingMoreMessages.value = true
+
+  bridge.sendEvent(CoreEventType.StorageSearchMessages, {
+    chatId: props.chatId,
+    content: currentKeyword,
+    useVector: true,
+    pagination: {
+      limit: SEARCH_LIMIT,
+      offset: messagesOffset,
+    },
+  })
+
+  try {
+    const result = await bridge.waitForEvent(CoreEventType.StorageSearchMessagesData)
+    if (currentRequest !== requestSeq)
+      return
+
+    searchResult.value = [...searchResult.value, ...result.messages]
+    messagesHasMore.value = result.hasMore
+    messagesOffset += result.messages.length
+  }
+  finally {
+    if (currentRequest === requestSeq) {
+      isLoadingMoreMessages.value = false
+    }
+  }
+}
+
+async function loadMorePhotos() {
+  const currentKeyword = keywordDebounced.value.trim()
+  if (!currentKeyword || isLoadingMorePhotos.value || !photosHasMore.value)
+    return
+
+  const currentRequest = ++requestSeq
+  isLoadingMorePhotos.value = true
+
+  bridge.sendEvent(CoreEventType.StorageSearchPhotos, {
+    content: currentKeyword,
+    useVector: true,
+    pagination: {
+      limit: SEARCH_LIMIT,
+      offset: photosOffset,
+    },
+    chatIds: props.chatId ? [props.chatId] : undefined,
+  })
+
+  try {
+    const result = await bridge.waitForEvent(CoreEventType.StorageSearchPhotosData)
+    if (currentRequest !== requestSeq)
+      return
+
+    photoResult.value = [...photoResult.value, ...result.photos]
+    photosHasMore.value = result.hasMore
+    photosOffset += result.photos.length
+  }
+  finally {
+    if (currentRequest === requestSeq) {
+      isLoadingMorePhotos.value = false
+    }
+  }
+}
 </script>
 
 <template>
@@ -147,7 +238,7 @@ watch(keywordDebounced, (newKeyword) => {
               <span class="i-lucide-message-square h-4 w-4" />
               <span>{{ t('searchDialog.messages') }}</span>
               <span v-if="searchResult.length > 0" class="rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                {{ searchResult.length }}
+                {{ searchResult.length }}{{ messagesHasMore ? '+' : '' }}
               </span>
             </span>
             <div
@@ -164,7 +255,7 @@ watch(keywordDebounced, (newKeyword) => {
               <span class="i-lucide-image h-4 w-4" />
               <span>{{ t('searchDialog.photos') }}</span>
               <span v-if="photoResult.length > 0" class="rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                {{ photoResult.length }}
+                {{ photoResult.length }}{{ photosHasMore ? '+' : '' }}
               </span>
             </span>
             <div
@@ -200,7 +291,14 @@ watch(keywordDebounced, (newKeyword) => {
               <template v-else-if="hasResults">
                 <!-- Messages Tab -->
                 <div v-if="activeTab === 'messages'" class="h-full">
-                  <MessageList v-if="searchResult.length > 0" :messages="searchResult" :keyword="keyword" />
+                  <MessageList
+                    v-if="searchResult.length > 0"
+                    :messages="searchResult"
+                    :keyword="keyword"
+                    :has-more="messagesHasMore"
+                    :is-loading-more="isLoadingMoreMessages"
+                    @load-more="loadMoreMessages"
+                  />
                   <div v-else class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
                     <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
                       <span class="i-lucide-message-square text-3xl" />
@@ -211,7 +309,7 @@ watch(keywordDebounced, (newKeyword) => {
 
                 <!-- Photos Tab -->
                 <div v-if="activeTab === 'photos'" class="h-full">
-                  <PhotoSearchResults v-if="photoResult.length > 0" :photos="photoResult" />
+                  <PhotoSearchResults v-if="photoResult.length > 0" :photos="photoResult" :has-more="photosHasMore" :is-loading-more="isLoadingMorePhotos" @load-more="loadMorePhotos" />
                   <div v-else class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
                     <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
                       <span class="i-lucide-image text-3xl" />
