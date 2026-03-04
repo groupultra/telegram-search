@@ -10,7 +10,7 @@ import EntityAvatar from '../avatar/EntityAvatar.vue'
 import ContextMenu from '../ui/ContextMenu.vue'
 import MediaRenderer from './media/MediaRenderer.vue'
 
-import { getChatLink, getMessageLink } from '../../utils/telegram-links'
+import { getChatLink, getMessageLink, getUserProfileLink } from '../../utils/telegram-links'
 
 const props = defineProps<{
   message: CoreMessage
@@ -34,8 +34,8 @@ const senderTelegramLink = computed(() => {
   if (currentChat.value.type === 'channel' || currentChat.value.type === 'supergroup')
     return getChatLink(currentChat.value)
 
-  // For users, we don't have the username in the message, but t.me/@id works
-  return `https://t.me/@id${props.message.fromId}`
+  // For users, use tg://user?id= (no t.me equivalent for user IDs)
+  return getUserProfileLink(props.message.fromId)
 })
 
 // Context menu state
