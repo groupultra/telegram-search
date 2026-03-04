@@ -13,10 +13,11 @@ import { toast } from 'vue-sonner'
 import EntityAvatar from '../../components/avatar/EntityAvatar.vue'
 import SearchDialog from '../../components/SearchDialog.vue'
 import SummaryDialog from '../../components/SummaryDialog.vue'
+import ContextMenu from '../../components/ui/ContextMenu.vue'
 import VirtualMessageList from '../../components/VirtualMessageList.vue'
 
 import { Button } from '../../components/ui/Button'
-import { getChatProfileLink } from '../../utils/telegram-links'
+import { getChatLink } from '../../utils/telegram-links'
 
 const { t } = useI18n()
 
@@ -34,7 +35,25 @@ const currentChat = computed<CoreDialog | undefined>(() => chatStore.getChat(id.
 const chatTelegramLink = computed(() => {
   if (!currentChat.value)
     return null
-  return getChatProfileLink(currentChat.value)
+  return getChatLink(currentChat.value)
+})
+
+// Context menu for chat header avatar
+const avatarContextOpen = ref(false)
+const avatarContextX = ref(0)
+const avatarContextY = ref(0)
+const avatarContextItems = computed(() => {
+  const items: { label: string, icon: string, action: () => void }[] = []
+  if (chatTelegramLink.value) {
+    items.push({
+      label: t('messages.openInTelegram'),
+      icon: 'i-lucide-external-link',
+      action: () => {
+        window.open(chatTelegramLink.value!, '_blank')
+      },
+    })
+  }
+  return items
 })
 
 const messageLimit = ref(100)
@@ -180,11 +199,13 @@ function sendMessage() {
   toast.success(t('chat.messageSent'))
 }
 
-function openChatInTelegram() {
-  const link = chatTelegramLink.value
-  if (link) {
-    window.open(link.tgLink, '_self')
-  }
+function showAvatarContextMenu(e: MouseEvent) {
+  if (avatarContextItems.value.length === 0)
+    return
+  e.preventDefault()
+  avatarContextX.value = e.clientX
+  avatarContextY.value = e.clientY
+  avatarContextOpen.value = true
 }
 
 function resetPagination() {
@@ -285,11 +306,10 @@ watch(
     <!-- Chat Header -->
     <div class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
       <div class="flex items-center gap-3">
-        <a
+        <div
           v-if="currentChat && currentChat.id != null"
-          :href="chatTelegramLink?.tgLink"
-          :title="chatTelegramLink ? t('messages.openInTelegram') : undefined"
-          :class="chatTelegramLink ? 'cursor-pointer' : 'cursor-default'"
+          :class="chatTelegramLink ? 'cursor-context-menu' : ''"
+          @contextmenu="showAvatarContextMenu"
         >
           <EntityAvatar
             :id="currentChat.id"
@@ -299,7 +319,7 @@ watch(
             :name="currentChat?.name"
             size="md"
           />
-        </a>
+        </div>
         <div>
           <h2 class="text-lg font-semibold">
             {{ currentChat?.name }}
@@ -310,16 +330,6 @@ watch(
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <Button
-          v-if="chatTelegramLink"
-          icon="i-lucide-external-link"
-          variant="ghost"
-          size="sm"
-          :title="t('messages.openInTelegram')"
-          @click="openChatInTelegram"
-        >
-          {{ t('messages.openInTelegram') }}
-        </Button>
         <SummaryDialog :chat-id="id.toString()">
           <template #default="{ open }">
             <Button
@@ -343,6 +353,13 @@ watch(
         </Button>
       </div>
     </div>
+
+    <ContextMenu
+      v-model:open="avatarContextOpen"
+      :items="avatarContextItems"
+      :x="avatarContextX"
+      :y="avatarContextY"
+    />
 
     <!-- Messages Area with Virtual List -->
     <div class="flex-1 overflow-hidden">

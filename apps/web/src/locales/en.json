@@ -112,10 +112,11 @@
   },
   "messages": {
     "copied": "Copied to clipboard",
+    "copyText": "Copy text",
     "copyMessageLink": "Copy message link",
     "openInChat": "Open in chat",
     "openInTelegram": "Open in Telegram",
-    "openProfileInTelegram": "Open profile in Telegram"
+    "openProfileInTelegram": "View sender profile"
   },
   "search": {
     "noRelatedMessages": "No related messages found",

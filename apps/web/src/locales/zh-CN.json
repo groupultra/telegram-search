@@ -112,10 +112,11 @@
   },
   "messages": {
     "copied": "已复制到剪贴板",
+    "copyText": "复制文本",
     "copyMessageLink": "复制消息链接",
     "openInChat": "在聊天中打开",
     "openInTelegram": "在 Telegram 中打开",
-    "openProfileInTelegram": "在 Telegram 中打开资料"
+    "openProfileInTelegram": "查看发送者资料"
   },
   "search": {
     "noRelatedMessages": "没有找到相关消息",

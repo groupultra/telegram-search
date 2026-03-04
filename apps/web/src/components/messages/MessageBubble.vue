@@ -2,15 +2,15 @@
 import type { CoreMessage } from '@tg-search/core/types'
 
 import { formatMessageTimestamp, useChatStore } from '@tg-search/client'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import EntityAvatar from '../avatar/EntityAvatar.vue'
-import Button from '../ui/Button/Button.vue'
+import ContextMenu from '../ui/ContextMenu.vue'
 import MediaRenderer from './media/MediaRenderer.vue'
 
-import { getMessageLink, getUserProfileLink } from '../../utils/telegram-links'
+import { getChatLink, getMessageLink } from '../../utils/telegram-links'
 
 const props = defineProps<{
   message: CoreMessage
@@ -27,35 +27,111 @@ const messageTelegramLink = computed(() => {
   return getMessageLink(currentChat.value, props.message.platformMessageId)
 })
 
-const senderProfileLink = computed(() => {
-  return getUserProfileLink(props.message.fromId)
+const senderTelegramLink = computed(() => {
+  if (!currentChat.value)
+    return null
+  // Build a pseudo-dialog for the sender to generate a profile link
+  // For channel messages, fromId is the channel itself
+  if (currentChat.value.type === 'channel' || currentChat.value.type === 'supergroup')
+    return getChatLink(currentChat.value)
+
+  // For users, we don't have the username in the message, but t.me/@id works
+  return `https://t.me/@id${props.message.fromId}`
 })
 
-function copyMessageLink(message: CoreMessage) {
-  navigator.clipboard.writeText(`https://t.me/c/${message.chatId}/${message.platformMessageId}`)
-  toast.success(t('messages.copied'))
+// Context menu state
+const contextMenuOpen = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+
+const contextMenuItems = computed(() => {
+  const items = [
+    {
+      label: t('messages.copyText'),
+      icon: 'i-lucide-copy',
+      action: () => {
+        navigator.clipboard.writeText(props.message.content)
+        toast.success(t('messages.copied'))
+      },
+    },
+    {
+      label: t('messages.copyMessageLink'),
+      icon: 'i-lucide-link',
+      action: () => {
+        const link = messageTelegramLink.value
+        if (link) {
+          navigator.clipboard.writeText(link)
+        }
+        else {
+          navigator.clipboard.writeText(`https://t.me/c/${props.message.chatId}/${props.message.platformMessageId}`)
+        }
+        toast.success(t('messages.copied'))
+      },
+    },
+  ]
+
+  if (messageTelegramLink.value) {
+    items.push({
+      label: t('messages.openInTelegram'),
+      icon: 'i-lucide-external-link',
+      action: () => {
+        window.open(messageTelegramLink.value!, '_blank')
+      },
+    })
+  }
+
+  if (senderTelegramLink.value) {
+    items.push({
+      label: t('messages.openProfileInTelegram'),
+      icon: 'i-lucide-user',
+      action: () => {
+        window.open(senderTelegramLink.value!, '_blank')
+      },
+    })
+  }
+
+  return items
+})
+
+function showContextMenu(e: MouseEvent | PointerEvent) {
+  e.preventDefault()
+  contextMenuX.value = e.clientX
+  contextMenuY.value = e.clientY
+  contextMenuOpen.value = true
 }
 
-function copyMessageText(message: CoreMessage) {
-  navigator.clipboard.writeText(message.content)
-  toast.success(t('messages.copied'))
+// Long-press support for mobile
+let longPressTimer: ReturnType<typeof setTimeout> | null = null
+
+function onPointerDown(e: PointerEvent) {
+  // Only handle touch events for long-press (mouse uses contextmenu event)
+  if (e.pointerType !== 'touch')
+    return
+
+  longPressTimer = setTimeout(() => {
+    showContextMenu(e)
+    longPressTimer = null
+  }, 500)
 }
 
-function openInTelegram() {
-  const link = messageTelegramLink.value
-  if (link) {
-    window.open(link.tgLink, '_self')
+function cancelLongPress() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
   }
 }
 </script>
 
 <template>
-  <div class="group mx-3 my-1 flex items-start gap-3 rounded-xl p-3 transition-all duration-200 md:mx-4 md:gap-4 hover:bg-accent/50">
-    <a
-      class="shrink-0 cursor-pointer pt-0.5"
-      :href="senderProfileLink.tgLink"
-      :title="t('messages.openProfileInTelegram')"
-    >
+  <div
+    class="group mx-3 my-1 flex items-start gap-3 rounded-xl p-3 transition-all duration-200 md:mx-4 md:gap-4 hover:bg-accent/50"
+    @contextmenu="showContextMenu"
+    @pointerdown="onPointerDown"
+    @pointerup="cancelLongPress"
+    @pointermove="cancelLongPress"
+    @pointercancel="cancelLongPress"
+  >
+    <div class="shrink-0 pt-0.5">
       <EntityAvatar
         :id="message.fromId"
         entity="other"
@@ -63,7 +139,7 @@ function openInTelegram() {
         :name="message.fromName"
         size="md"
       />
-    </a>
+    </div>
     <div class="min-w-0 flex-1">
       <div class="mb-1.5 flex items-baseline gap-2">
         <span class="truncate text-sm text-foreground font-semibold">{{ message.fromName }}</span>
@@ -74,33 +150,20 @@ function openInTelegram() {
         <MediaRenderer :message="message" />
       </div>
 
-      <!-- Message ID badge and actions (hidden by default, shown on hover) -->
+      <!-- Message ID badge (hidden by default, shown on hover) -->
       <div class="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
         <span class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
           <span class="i-lucide-hash mr-1 h-3 w-3" />
           {{ message.platformMessageId }}
         </span>
-        <Button
-          icon="i-lucide-copy"
-          size="sm"
-          class="h-3 w-3 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
-          @click="copyMessageText(message)"
-        />
-        <Button
-          icon="i-lucide-link"
-          size="sm"
-          class="h-3 w-3 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
-          @click="copyMessageLink(message)"
-        />
-        <Button
-          v-if="messageTelegramLink"
-          icon="i-lucide-external-link"
-          size="sm"
-          class="h-3 w-3 shrink-0 px-0 opacity-50 transition-opacity hover:opacity-100"
-          :title="t('messages.openInTelegram')"
-          @click="openInTelegram"
-        />
       </div>
     </div>
+
+    <ContextMenu
+      v-model:open="contextMenuOpen"
+      :items="contextMenuItems"
+      :x="contextMenuX"
+      :y="contextMenuY"
+    />
   </div>
 </template>
