@@ -16,20 +16,23 @@ export function registerStartCommand(bot: Bot, ctx: BotCommandContext) {
         `Welcome back! Your account is linked.\n\n`
         + `Available commands:\n`
         + `/search <query> - Search your message history\n`
+        + `/export - Export/sync messages from Telegram\n`
         + `/summary - Get a summary of recent messages\n`
-        + `/schedule - Manage scheduled summaries`,
+        + `/status - Check connection status\n`
+        + `/logout - Disconnect your account`,
       )
     }
     else {
       await gramCtx.reply(
         `Welcome to Telegram Search Bot!\n\n`
-        + `Your Telegram account is not linked yet. `
-        + `Please log in through the web interface first, `
-        + `then come back here to use bot features.\n\n`
+        + `Your Telegram account is not linked yet.\n`
+        + `Use /login to connect your Telegram account directly, `
+        + `or log in through the web interface.\n\n`
         + `Once linked, you can:\n`
         + `/search <query> - Search your message history\n`
+        + `/export - Export/sync messages from Telegram\n`
         + `/summary - Get a summary of recent messages\n`
-        + `/schedule - Manage scheduled summaries`,
+        + `/status - Check connection status`,
       )
     }
   })

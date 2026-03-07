@@ -25,6 +25,7 @@ export interface BotRegistryOptions {
   config: Config
   getDB: () => CoreDB
   getAccountContext: (accountId: string) => CoreContext | undefined
+  ensureAccountContext: (accountId: string) => CoreContext
   logger?: Logger
 }
 
@@ -59,6 +60,7 @@ export function createBotRegistry(options: BotRegistryOptions): BotRegistry {
     models,
     resolveAccountByTelegramUserId,
     getAccountContext: options.getAccountContext,
+    ensureAccountContext: options.ensureAccountContext,
     logger,
   })
 
@@ -69,6 +71,9 @@ export function createBotRegistry(options: BotRegistryOptions): BotRegistry {
       // Set bot commands for autocomplete in chat input
       await bot.api.setMyCommands([
         { command: 'start', description: 'Start the bot and show welcome message' },
+        { command: 'login', description: 'Log in with your Telegram account' },
+        { command: 'logout', description: 'Disconnect your account' },
+        { command: 'status', description: 'Check connection status' },
         { command: 'search', description: 'Search messages in your chats' },
         { command: 'summary', description: 'Generate AI summary of recent messages' },
         { command: 'export', description: 'Export or sync messages from Telegram' },
