@@ -1,14 +1,14 @@
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
-import type { drizzle as drizzlePg } from 'drizzle-orm/postgres-js'
+import type { drizzle as drizzlePg } from 'drizzle-orm/node-postgres'
 
-import postgres from 'postgres'
+import pg from 'pg'
 
 import { migrate as migratePg } from '@proj-airi/drizzle-orm-browser-migrator/pg'
 import { getDatabaseDSN } from '@tg-search/common'
 import { migrations } from '@tg-search/schema'
 import { sql } from 'drizzle-orm'
-import { drizzle } from 'drizzle-orm/postgres-js'
+import { drizzle } from 'drizzle-orm/node-postgres'
 
 import * as schema from '../schemas/index'
 
@@ -16,7 +16,10 @@ export type PostgresDB = ReturnType<typeof drizzlePg<typeof schema>>
 
 async function applyMigrations(logger: Logger, db: PostgresDB) {
   try {
-    await migratePg(db as PostgresDB, migrations)
+    // NOTICE: browser-migrator types declare PostgresJsDatabase, but the runtime API
+    // (db.execute / db.transaction) is identical for node-postgres. Safe to cast.
+    // TODO: upstream the type fix to @proj-airi/drizzle-orm-browser-migrator
+    await migratePg(db as any, migrations)
   }
   catch (error) {
     logger.withError(error).error('Failed to apply database migrations')
@@ -56,13 +59,12 @@ export async function initPgDrizzle(
   const connectionString = getDatabaseDSN(config.database)
   logger.log(`Connecting to PostgreSQL database: ${connectionString}`)
 
-  const client = postgres(connectionString, {
-    onnotice: (notice) => {
-      logger.withFields({ notice }).debug('Database connection notice')
-    },
+  const pool = new pg.Pool({ connectionString })
+  pool.on('error', (err) => {
+    logger.withError(err).error('Unexpected pool error')
   })
 
-  const db = drizzle(client, {
+  const db = drizzle(pool, {
     logger: !!options.isDatabaseDebugMode,
     schema,
   })

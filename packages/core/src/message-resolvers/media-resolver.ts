@@ -127,6 +127,7 @@ export function createMediaResolver(
                 const sticker = (await stickerModels.getStickerQueryIdByFileIdWithMimeType(db, media.platformId)).orUndefined()
 
                 if (sticker) {
+                  ctx.metrics?.mediaDownload.inc({ outcome: 'cache_hit' })
                   return {
                     messageUUID: message.uuid,
                     queryId: sticker.id,
@@ -156,6 +157,7 @@ export function createMediaResolver(
                     platformId: media.platformId,
                   }).log('Photo found in cache, updated message_id')
 
+                  ctx.metrics?.mediaDownload.inc({ outcome: 'cache_hit' })
                   return {
                     messageUUID: message.uuid,
                     queryId: photo.id,
@@ -200,10 +202,13 @@ export function createMediaResolver(
             const apiMedia = rawMessage.media as Api.TypeMessageMedia
             const client = ctx.getClient()
             let byte: Buffer | undefined
+            let downloadOutcome: 'downloaded' | 'fallback' | 'error' = 'error'
 
             try {
               const mediaFetched = await client.downloadMedia(apiMedia)
               byte = mediaFetched instanceof Buffer ? mediaFetched : undefined
+              if (byte)
+                downloadOutcome = 'downloaded'
             }
             catch (err) {
               logger.withError(err as Error).debug('downloadMedia failed, trying direct download via InputFileLocation')
@@ -214,11 +219,15 @@ export function createMediaResolver(
             if (!byte) {
               try {
                 byte = await downloadMediaDirect(client, apiMedia, logger)
+                if (byte)
+                  downloadOutcome = 'fallback'
               }
               catch (err) {
                 logger.withError(err as Error).debug('Direct download fallback also failed')
               }
             }
+
+            ctx.metrics?.mediaDownload.inc({ outcome: downloadOutcome })
 
             let mimeType: string | undefined
             if (!byte || !(byte instanceof Buffer)) {

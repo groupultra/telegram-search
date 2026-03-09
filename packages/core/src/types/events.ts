@@ -80,6 +80,8 @@ export enum CoreEventType {
   TakeoutTaskProgress = 'takeout:task:progress',
   TakeoutStatsData = 'takeout:stats:data',
   TakeoutMetrics = 'takeout:metrics',
+  TakeoutConfirmNeeded = 'takeout:confirm:needed',
+  TakeoutConfirmResponse = 'takeout:confirm:response',
 
   GramMessageReceived = 'gram:message:received',
 
@@ -407,6 +409,8 @@ export interface TakeoutEventToCore {
   [CoreEventType.TakeoutRun]: (data: { chatIds: string[], increase?: boolean, syncOptions?: SyncOptions }) => void
   [CoreEventType.TakeoutTaskAbort]: (data: { taskId: string }) => void
   [CoreEventType.TakeoutStatsFetch]: (data: { chatId: string }) => void
+  /** User response to the takeout authorization dialog. */
+  [CoreEventType.TakeoutConfirmResponse]: (data: { useTakeout: boolean }) => void
 }
 
 export interface ChatSyncStats {
@@ -437,6 +441,8 @@ export interface TakeoutEventFromCore {
   [CoreEventType.TakeoutTaskProgress]: (data: CoreTaskData<'takeout'>) => void
   [CoreEventType.TakeoutStatsData]: (data: ChatSyncStats) => void
   [CoreEventType.TakeoutMetrics]: (data: TakeoutMetrics) => void
+  /** Core requests user to choose between takeout authorization and GetHistory fallback. */
+  [CoreEventType.TakeoutConfirmNeeded]: () => void
 }
 
 export interface TakeoutOpts {
@@ -467,6 +473,10 @@ export interface TakeoutOpts {
 
   // Sync options (media size limit, etc.)
   syncOptions?: SyncOptions
+
+  // Skip takeout session initialization; use regular GetHistory instead.
+  // Set when the user explicitly declines takeout authorization.
+  skipTakeout?: boolean
 }
 
 // ============================================================================

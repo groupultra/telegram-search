@@ -22,12 +22,14 @@ export function createUserResolver(ctx: CoreContext, logger: Logger, userModels:
     // 1. Check in-memory cache
     const cached = userCache.get(cacheKey)
     if (cached) {
+      ctx.metrics?.entityResolve.inc({ source: 'cache', outcome: 'hit' })
       return cached
     }
 
     // 2. Check database
     const dbUser = (await userModels.findUserByPlatformId(ctx.getDB(), 'telegram', fromId)).orUndefined()
     if (dbUser) {
+      ctx.metrics?.entityResolve.inc({ source: 'db', outcome: 'hit' })
       userCache.set(cacheKey, dbUser)
       logger.withFields({ userId: dbUser.id, fromId }).debug('User found in database')
       return dbUser
@@ -50,6 +52,7 @@ export function createUserResolver(ctx: CoreContext, logger: Logger, userModels:
 
       // 4. Record new user to database
       const recordedUser = await userModels.recordUser(ctx.getDB(), entity)
+      ctx.metrics?.entityResolve.inc({ source: 'api', outcome: 'hit' })
       userCache.set(cacheKey, recordedUser)
       logger.withFields({ userId: recordedUser.id, fromId }).debug('User saved to database')
 
@@ -71,6 +74,7 @@ export function createUserResolver(ctx: CoreContext, logger: Logger, userModels:
       // But re-trying on every message might spam logs.
 
       // Let's assume most errors are API errors here or transient DB errors.
+      ctx.metrics?.entityResolve.inc({ source: 'api', outcome: 'miss' })
       userBlockedList.add(fromId)
       logger.withFields({ fromId }).withError(err).warn('Failed to resolve or save user')
       return undefined

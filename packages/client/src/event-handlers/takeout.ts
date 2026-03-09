@@ -7,6 +7,10 @@ import { useSyncTaskStore } from '../stores/useSyncTask'
 export function registerTakeoutEventHandlers(
   registerEventHandler: ClientRegisterEventHandler,
 ) {
+  registerEventHandler(CoreEventType.TakeoutConfirmNeeded, () => {
+    useSyncTaskStore().takeoutConfirmNeeded = true
+  })
+
   registerEventHandler(CoreEventType.TakeoutTaskProgress, (data) => {
     useSyncTaskStore().currentTask = data
   })

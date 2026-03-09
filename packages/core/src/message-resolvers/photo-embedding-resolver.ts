@@ -115,6 +115,7 @@ export function createPhotoEmbeddingResolver(ctx: CoreContext, logger: Logger): 
             }).log('Generating description for photo')
 
             const descriptionResult = await describeImage(photo.image_bytes, visionLLM)
+            ctx.metrics?.visionApiCall.inc({ status: descriptionResult.orUndefined() != null ? 'success' : 'error' })
             const desc = descriptionResult.expect('Failed to generate description')
 
             description = desc.description
@@ -138,6 +139,7 @@ export function createPhotoEmbeddingResolver(ctx: CoreContext, logger: Logger): 
 
       const descriptions = descriptionsToEmbed.map(d => d.description)
       const embedResult = await embedContents(descriptions, embedding)
+      ctx.metrics?.embeddingApiCall.inc({ status: embedResult.orUndefined() != null ? 'success' : 'error' })
       const { embeddings } = embedResult.expect('Failed to generate embeddings')
       const validDimension = EMBEDDING_DIMENSION_TO_VECTOR_DIMENSION[embedding.dimension]
 

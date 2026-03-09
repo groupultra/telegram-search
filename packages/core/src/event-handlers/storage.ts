@@ -184,6 +184,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     if (params.useVector) {
       let embedding: number[] = []
       const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()
+      ctx.metrics?.embeddingApiCall.inc({ status: embeddingResult != null ? 'success' : 'error' })
       if (embeddingResult)
         embedding = embeddingResult.embeddings[0]
 
@@ -250,6 +251,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         // Vector search
         logger.verbose('Starting vector search for photos')
         const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()
+        ctx.metrics?.embeddingApiCall.inc({ status: embeddingResult != null ? 'success' : 'error' })
         if (!embeddingResult) {
           logger.warn('Failed to generate embedding for photo search')
           ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false })

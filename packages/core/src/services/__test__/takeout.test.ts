@@ -45,6 +45,15 @@ function createMockCtx(client: any) {
       set.add(handler)
       handlers.set(event, set)
     }),
+    once: vi.fn((event: string, handler: (...args: any[]) => void) => {
+      const wrapped = (...args: any[]) => {
+        handlers.get(event)?.delete(wrapped)
+        handler(...args)
+      }
+      const set = handlers.get(event) ?? new Set()
+      set.add(wrapped)
+      handlers.set(event, set)
+    }),
     off: vi.fn((event: string, handler: (...args: any[]) => void) => {
       handlers.get(event)?.delete(handler)
     }),
@@ -131,23 +140,30 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
+
         if (query instanceof Api.InvokeWithTakeout) {
-          const inner = (query).query
-          if (inner instanceof Api.messages.GetHistory) {
-            // First page has 3 results (one empty), second is boundary.
-            if ((inner).offsetId === 0) {
-              return {
-                messages: [
-                  new Api.MessageEmpty({ id: 1 }),
-                  { id: 2 },
-                  { id: 3 },
-                ],
+          const rangeWrapper = (query).query
+          if (rangeWrapper instanceof Api.InvokeWithMessagesRange) {
+            const inner = rangeWrapper.query
+            if (inner instanceof Api.messages.GetHistory) {
+              // First page has 3 results (one empty), second is boundary.
+              if ((inner).offsetId === 0) {
+                return {
+                  messages: [
+                    new Api.MessageEmpty({ id: 1 }),
+                    { id: 2 },
+                    { id: 3 },
+                  ],
+                }
               }
+              return { messages: [] }
             }
-            return { messages: [] }
           }
 
-          if (inner instanceof Api.account.FinishTakeoutSession) {
+          if (rangeWrapper instanceof Api.account.FinishTakeoutSession) {
             return {}
           }
         }
@@ -201,22 +217,29 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
+
         if (query instanceof Api.InvokeWithTakeout) {
-          const inner = (query).query
-          if (inner instanceof Api.messages.GetHistory) {
-            if ((inner).offsetId === 0) {
-              return {
-                messages: [
-                  { id: 30, date: startSec + 100 },
-                  { id: 29, date: startSec },
-                  { id: 28, date: startSec - 100 },
-                ],
+          const rangeWrapper = (query).query
+          if (rangeWrapper instanceof Api.InvokeWithMessagesRange) {
+            const inner = rangeWrapper.query
+            if (inner instanceof Api.messages.GetHistory) {
+              if ((inner).offsetId === 0) {
+                return {
+                  messages: [
+                    { id: 30, date: startSec + 100 },
+                    { id: 29, date: startSec },
+                    { id: 28, date: startSec - 100 },
+                  ],
+                }
               }
+              return { messages: [] }
             }
-            return { messages: [] }
           }
 
-          if (inner instanceof Api.account.FinishTakeoutSession) {
+          if (rangeWrapper instanceof Api.account.FinishTakeoutSession) {
             return {}
           }
         }
@@ -254,6 +277,7 @@ describe('takeout service', () => {
   it('takeoutMessages should fall back to regular GetHistory when initTakeout fails', async () => {
     // When initTakeout fails, the generator should NOT abort but instead
     // fall back to plain GetHistory calls (without InvokeWithTakeout wrapper).
+    // GetHistory is still wrapped in InvokeWithMessagesRange for split ranges.
     const calls: any[] = []
 
     const client = {
@@ -265,12 +289,19 @@ describe('takeout service', () => {
           throw new TypeError('init failed')
         }
 
-        // Fallback path: plain GetHistory (not wrapped in InvokeWithTakeout)
-        if (query instanceof Api.messages.GetHistory) {
-          if ((query).offsetId === 0) {
-            return { messages: [{ id: 10 }, { id: 11 }] }
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
+
+        // Fallback path: InvokeWithMessagesRange wrapping GetHistory (no InvokeWithTakeout)
+        if (query instanceof Api.InvokeWithMessagesRange) {
+          const inner = query.query
+          if (inner instanceof Api.messages.GetHistory) {
+            if ((inner).offsetId === 0) {
+              return { messages: [{ id: 10 }, { id: 11 }] }
+            }
+            return { messages: [] }
           }
-          return { messages: [] }
         }
 
         throw new Error('unexpected query')
@@ -324,8 +355,16 @@ describe('takeout service', () => {
           })
         }
 
-        if (query instanceof Api.messages.GetHistory) {
-          return { messages: [{ id: 88 }] }
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
+
+        // Fallback: InvokeWithMessagesRange wrapping GetHistory (no takeout since init timed out)
+        if (query instanceof Api.InvokeWithMessagesRange) {
+          const inner = query.query
+          if (inner instanceof Api.messages.GetHistory) {
+            return { messages: [{ id: 88 }] }
+          }
         }
 
         if (query instanceof Api.InvokeWithTakeout) {
@@ -390,8 +429,14 @@ describe('takeout service', () => {
         if (query instanceof Api.account.InitTakeoutSession) {
           throw new TypeError('init failed')
         }
-        if (query instanceof Api.messages.GetHistory) {
-          return { messages: [] }
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
+        if (query instanceof Api.InvokeWithMessagesRange) {
+          const inner = query.query
+          if (inner instanceof Api.messages.GetHistory) {
+            return { messages: [] }
+          }
         }
         throw new Error('unexpected query')
       }),
@@ -438,14 +483,21 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
+
         if (query instanceof Api.InvokeWithTakeout) {
-          const inner = (query).query
-          if (inner instanceof Api.messages.GetHistory) {
-            return {
-              messages: [{ id: 1 }],
+          const rangeWrapper = (query).query
+          if (rangeWrapper instanceof Api.InvokeWithMessagesRange) {
+            const inner = rangeWrapper.query
+            if (inner instanceof Api.messages.GetHistory) {
+              return {
+                messages: [{ id: 1 }],
+              }
             }
           }
-          if (inner instanceof Api.account.FinishTakeoutSession) {
+          if (rangeWrapper instanceof Api.account.FinishTakeoutSession) {
             return {}
           }
         }
@@ -511,19 +563,26 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.InvokeWithTakeout) {
-          const inner = (query).query
-          if (inner instanceof Api.messages.GetHistory) {
-            historyCalls.push(inner)
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
 
-            // Return one message for the first backward page, then end.
-            if ((inner).offsetId === 0) {
-              return { messages: [{ id: 3894497 }] }
+        if (query instanceof Api.InvokeWithTakeout) {
+          const maybeRange = (query).query
+          if (maybeRange instanceof Api.InvokeWithMessagesRange) {
+            const inner = maybeRange.query
+            if (inner instanceof Api.messages.GetHistory) {
+              historyCalls.push(inner)
+
+              // Return one message for the first backward page, then end.
+              if ((inner).offsetId === 0) {
+                return { messages: [{ id: 3894497 }] }
+              }
+              return { messages: [] }
             }
-            return { messages: [] }
           }
 
-          if (inner instanceof Api.account.FinishTakeoutSession) {
+          if (maybeRange instanceof Api.account.FinishTakeoutSession) {
             return {}
           }
         }
@@ -533,6 +592,14 @@ describe('takeout service', () => {
     }
 
     const { ctx } = createMockCtx(client)
+
+    // Auto-respond to takeout confirmation prompt. Must be async so that
+    // waitForEvent registers its once() listener before we emit the response.
+    ctx.emitter.on(CoreEventType.TakeoutConfirmNeeded, () => {
+      queueMicrotask(() => {
+        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { useTakeout: true })
+      })
+    })
 
     // Auto-complete message processing batches to avoid hanging on pendingBatches.
     ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, batchId }) => {
@@ -564,5 +631,85 @@ describe('takeout service', () => {
       expect(typeof call.maxId).toBe('number')
       expect(typeof call.offsetId).toBe('number')
     }
+  })
+
+  it('takeoutMessages should iterate all split ranges and yield messages from each', async () => {
+    // Verifies that messages from different split ranges (message boxes) are all
+    // fetched. Without InvokeWithMessagesRange, messages beyond 500K/1M
+    // boundaries would be silently missed.
+    const rangesSeen: number[] = []
+
+    const client = {
+      getInputEntity: vi.fn(async (_chatId: string) => ({})),
+      invoke: vi.fn(async (query: any) => {
+        if (query instanceof Api.account.InitTakeoutSession) {
+          return { id: bigInt(1) }
+        }
+
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [
+            new Api.MessageRange({ minId: 1, maxId: 500000 }),
+            new Api.MessageRange({ minId: 500001, maxId: 1000000 }),
+          ]
+        }
+
+        if (query instanceof Api.InvokeWithTakeout) {
+          const rangeWrapper = (query).query
+          if (rangeWrapper instanceof Api.InvokeWithMessagesRange) {
+            rangesSeen.push(rangeWrapper.range.minId)
+            const inner = rangeWrapper.query
+            if (inner instanceof Api.messages.GetHistory) {
+              // Return different messages per range
+              if (rangeWrapper.range.minId === 1) {
+                if ((inner).offsetId === 0) {
+                  return { messages: [{ id: 100 }, { id: 200 }] }
+                }
+                return { messages: [] }
+              }
+              if (rangeWrapper.range.minId === 500001) {
+                if ((inner).offsetId === 0) {
+                  return { messages: [{ id: 500100 }, { id: 500200 }] }
+                }
+                return { messages: [] }
+              }
+            }
+          }
+          if (rangeWrapper instanceof Api.account.FinishTakeoutSession) {
+            return {}
+          }
+        }
+
+        throw new Error('unexpected query')
+      }),
+    }
+
+    const { ctx } = createMockCtx(client)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+    const task = createTask()
+    task.updateProgress = vi.fn()
+    task.updateError = vi.fn()
+
+    const yielded: any[] = []
+    for await (const m of service.takeoutMessages('123', {
+      pagination: { limit: 100, offset: 0 },
+      minId: 0,
+      maxId: 0,
+      skipMedia: true,
+      task,
+      expectedCount: 4,
+      disableAutoProgress: false,
+      syncOptions: undefined,
+    })) {
+      yielded.push(m)
+    }
+
+    // Both ranges should have been visited
+    expect(rangesSeen).toContain(1)
+    expect(rangesSeen).toContain(500001)
+
+    // Messages from both ranges should be yielded
+    expect(yielded.map(m => m.id)).toEqual([100, 200, 500100, 500200])
+    expect(task.updateError).not.toHaveBeenCalled()
+    expect(task.updateProgress).toHaveBeenCalledWith(100)
   })
 })

@@ -5,6 +5,8 @@ import type { CoreContext } from '../context'
 import type { MessageResolver, MessageResolverRegistryFn } from '../message-resolvers'
 import type { SyncOptions } from '../types/events'
 
+import { withSpan } from '@tg-search/observability'
+
 import { chatMessageModels } from '../models/chat-message'
 import { CoreEventType } from '../types/events'
 import { convertToCoreMessage } from '../utils/message'
@@ -20,6 +22,22 @@ export function createMessageResolverService(
 
   // TODO: worker_threads?
   async function processMessages(
+    messages: Api.Message[],
+    options: {
+      takeout?: boolean
+      syncOptions?: SyncOptions
+      forceRefetch?: boolean
+      batchId?: string
+    } = {},
+  ) {
+    return withSpan('resolver:processMessages', () => processMessagesInner(messages, options), {
+      messageCount: messages.length,
+      ...(options.takeout != null ? { takeout: options.takeout } : {}),
+      ...(options.batchId != null ? { batchId: options.batchId } : {}),
+    })
+  }
+
+  async function processMessagesInner(
     messages: Api.Message[],
     options: {
       takeout?: boolean
@@ -79,65 +97,68 @@ export function createMessageResolverService(
     const resolverSpans: Array<{ name: string, duration: number, count: number }> = []
 
     const executeResolver = async (name: string, resolver: MessageResolver) => {
-      const resolverStart = performance.now()
-      logger.withFields({ name }).verbose('Process messages with resolver')
+      return withSpan(`resolver:${name}`, async () => {
+        const resolverStart = performance.now()
+        logger.withFields({ name }).verbose('Process messages with resolver')
 
-      const opts = {
-        messages: coreMessages,
-        rawMessages: messages,
-        syncOptions: options.syncOptions,
-        forceRefetch: options.forceRefetch,
-      }
-
-      try {
-        if (resolver.run) {
-          const result = (await resolver.run(opts)).unwrap()
-
-          if (result.length > 0) {
-            ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: result })
-          }
+        const opts = {
+          messages: coreMessages,
+          rawMessages: messages,
+          syncOptions: options.syncOptions,
+          forceRefetch: options.forceRefetch,
         }
-        else if (resolver.stream) {
-          for await (const message of resolver.stream(opts)) {
-            if (!options.takeout) {
-              ctx.emitter.emit(CoreEventType.MessageData, { messages: [message] })
+
+        try {
+          if (resolver.run) {
+            const result = (await resolver.run(opts)).unwrap()
+
+            if (result.length > 0) {
+              ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: result })
             }
-
-            ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: [message] })
           }
-        }
-      }
-      catch (error) {
-        logger.withError(error).warn('Failed to process messages')
-      }
-      finally {
-        const duration = performance.now() - resolverStart
-        resolverSpans.push({
-          name,
-          duration,
-          count: coreMessages.length,
-        })
+          else if (resolver.stream) {
+            for await (const message of resolver.stream(opts)) {
+              if (!options.takeout) {
+                ctx.emitter.emit(CoreEventType.MessageData, { messages: [message] })
+              }
 
-        if (ctx.metrics) {
-          ctx.metrics.resolverDuration.observe({ resolver: name }, duration)
+              ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: [message] })
+            }
+          }
+
+          ctx.metrics?.resolverOutcome.inc({ resolver: name, outcome: 'success' })
         }
-      }
+        catch (error) {
+          ctx.metrics?.resolverOutcome.inc({ resolver: name, outcome: 'error' })
+          logger.withError(error).warn('Failed to process messages')
+        }
+        finally {
+          const duration = performance.now() - resolverStart
+          resolverSpans.push({
+            name,
+            duration,
+            count: coreMessages.length,
+          })
+
+          ctx.metrics?.resolverDuration.observe({ resolver: name }, duration)
+        }
+      }, { resolver: name, messageCount: coreMessages.length })
     }
 
     // Resolve enabled resolvers and preserve registration order.
     const allResolvers = Array.from(resolvers.registry.entries())
       .filter(([name]) => {
-        if (disabledResolvers.includes(name))
+        const shouldSkip = disabledResolvers.includes(name)
+          || (name === 'media' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
+          || (name === 'embedding' && (options.syncOptions?.skipEmbedding))
+          || (name === 'jieba' && (options.syncOptions?.skipJieba))
+          // Photo embedding depends on media resolver, skip if media is disabled
+          || (name === 'photo-embedding' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
+
+        if (shouldSkip) {
+          ctx.metrics?.resolverSkipped.inc({ resolver: name })
           return false
-        if (name === 'media' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
-          return false
-        if (name === 'embedding' && (options.syncOptions?.skipEmbedding))
-          return false
-        if (name === 'jieba' && (options.syncOptions?.skipJieba))
-          return false
-        // Photo embedding depends on media resolver, skip if media is disabled
-        if (name === 'photo-embedding' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
-          return false
+        }
         return true
       })
 
@@ -162,12 +183,10 @@ export function createMessageResolverService(
     }
 
     // Record batch duration if metrics sink is available (Node/server runtime only).
-    if (ctx.metrics) {
-      const durationMs = performance.now() - start
-      const source = options.takeout ? 'takeout' : 'realtime'
-      ctx.metrics.messageBatchDuration.observe({ source }, durationMs)
-      ctx.metrics.messagesProcessed.inc({ source }, coreMessages.length)
-    }
+    const durationMs = performance.now() - start
+    const source = options.takeout ? 'takeout' : 'realtime'
+    ctx.metrics?.messageBatchDuration.observe({ source }, durationMs)
+    ctx.metrics?.messagesProcessed.inc({ source }, coreMessages.length)
   }
 
   return {

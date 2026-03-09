@@ -10,12 +10,14 @@ import type { EntityService } from './entity'
 import bigInt from 'big-integer'
 
 import { usePagination } from '@tg-search/common'
+import { withSpan } from '@tg-search/observability'
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
 import { MESSAGE_PROCESS_BATCH_SIZE, TELEGRAM_HISTORY_INTERVAL_MS } from '../constants'
 import { CoreEventType } from '../types/events'
 import { createMinIntervalWaiter } from '../utils/min-interval'
+import { waitForEvent } from '../utils/promise'
 import { createTask } from '../utils/task'
 
 export type TakeoutService = ReturnType<typeof createTakeoutService>
@@ -53,77 +55,99 @@ export function createTakeoutService(
     return fallback
   }
 
+  /**
+   * Fetch split ranges from Telegram. Messages may be split across multiple
+   * "message boxes" on the server (at 500K / 1M boundaries). Each range must
+   * be iterated separately via InvokeWithMessagesRange to avoid missing messages.
+   *
+   * https://core.telegram.org/api/takeout
+   * https://core.telegram.org/method/messages.getSplitRanges
+   */
+  async function getSplitRanges(): Promise<Api.MessageRange[]> {
+    return withSpan('takeout:getSplitRanges', async () => {
+      const ranges = await ctx.getClient().invoke(new Api.messages.GetSplitRanges())
+      logger.withFields({ rangeCount: ranges.length }).log('Fetched split ranges')
+      return ranges
+    })
+  }
+
   const TAKEOUT_INIT_TIMEOUT_MS = 30_000
 
   async function initTakeout(): Promise<Api.account.Takeout> {
-    const fileMaxSize = bigInt(1024 * 1024 * 1024) // 1GB
+    return withSpan('takeout:initSession', async () => {
+      const fileMaxSize = bigInt(1024 * 1024 * 1024) // 1GB
 
-    logger.log('Initializing takeout session...')
+      logger.log('Initializing takeout session...')
 
-    const invokePromise = ctx.getClient().invoke(new Api.account.InitTakeoutSession({
-      contacts: true,
-      messageUsers: true,
-      messageChats: true,
-      messageMegagroups: true,
-      messageChannels: true,
-      files: true,
-      fileMaxSize,
-    }))
+      const invokePromise = ctx.getClient().invoke(new Api.account.InitTakeoutSession({
+        contacts: true,
+        messageUsers: true,
+        messageChats: true,
+        messageMegagroups: true,
+        messageChannels: true,
+        files: true,
+        fileMaxSize,
+      }))
 
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-    let timedOut = false
+      let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+      let timedOut = false
 
-    // Guard against indefinite hangs (e.g. connection overloaded by concurrent
-    // downloads, or Telegram silently ignoring the request).
-    try {
-      const result = await Promise.race([
-        invokePromise,
-        new Promise<never>((_, reject) => {
-          timeoutHandle = setTimeout(() => {
-            timedOut = true
-            reject(new Error('Takeout session init timed out after 30s'))
-          }, TAKEOUT_INIT_TIMEOUT_MS)
-        }),
-      ])
+      // Guard against indefinite hangs (e.g. connection overloaded by concurrent
+      // downloads, or Telegram silently ignoring the request).
+      try {
+        const result = await Promise.race([
+          invokePromise,
+          new Promise<never>((_, reject) => {
+            timeoutHandle = setTimeout(() => {
+              timedOut = true
+              reject(new Error('Takeout session init timed out after 30s'))
+            }, TAKEOUT_INIT_TIMEOUT_MS)
+          }),
+        ])
 
-      logger.withFields({ takeoutId: result.id.toString() }).log('Takeout session initialized')
-      return result
-    }
-    catch (error) {
-      // Init timed out, but the underlying request may still resolve later.
-      // Clean up that late session so we don't leak server-side takeout sessions.
-      if (timedOut) {
-        void invokePromise
-          .then(async (lateTakeout) => {
-            logger.withFields({ takeoutId: lateTakeout.id.toString() }).warn('Takeout session initialized after timeout, finishing late session')
-            try {
-              await finishTakeout(lateTakeout, false)
-            }
-            catch (finishError) {
-              logger.withError(finishError).warn('Failed to finish late takeout session')
-            }
-          })
-          .catch((lateError) => {
-            logger.withError(lateError).debug('Late takeout init rejected after timeout')
-          })
+        logger.withFields({ takeoutId: result.id.toString() }).log('Takeout session initialized')
+        ctx.metrics?.takeoutSessionInitTotal.inc({ status: 'success' })
+        return result
       }
+      catch (error) {
+        ctx.metrics?.takeoutSessionInitTotal.inc({ status: timedOut ? 'timeout' : 'error' })
+        // Init timed out, but the underlying request may still resolve later.
+        // Clean up that late session so we don't leak server-side takeout sessions.
+        if (timedOut) {
+          void invokePromise
+            .then(async (lateTakeout) => {
+              logger.withFields({ takeoutId: lateTakeout.id.toString() }).warn('Takeout session initialized after timeout, finishing late session')
+              try {
+                await finishTakeout(lateTakeout, false)
+              }
+              catch (finishError) {
+                logger.withError(finishError).warn('Failed to finish late takeout session')
+              }
+            })
+            .catch((lateError) => {
+              logger.withError(lateError).debug('Late takeout init rejected after timeout')
+            })
+        }
 
-      throw error
-    }
-    finally {
-      if (timeoutHandle) {
-        clearTimeout(timeoutHandle)
+        throw error
       }
-    }
+      finally {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle)
+        }
+      }
+    })
   }
 
   async function finishTakeout(takeout: Api.account.Takeout, success: boolean) {
-    await ctx.getClient().invoke(new Api.InvokeWithTakeout({
-      takeoutId: takeout.id,
-      query: new Api.account.FinishTakeoutSession({
-        success,
-      }),
-    }))
+    return withSpan('takeout:finishSession', () => {
+      return ctx.getClient().invoke(new Api.InvokeWithTakeout({
+        takeoutId: takeout.id,
+        query: new Api.account.FinishTakeoutSession({
+          success,
+        }),
+      }))
+    }, { success })
   }
 
   async function getHistoryWithMessagesCount(chatId: EntityLike): Promise<Result<Api.messages.TypeMessages & { count: number }>> {
@@ -164,6 +188,156 @@ export function createTakeoutService(
     }
   }
 
+  /**
+   * Build the final invoke query, optionally wrapping in InvokeWithMessagesRange
+   * and InvokeWithTakeout as required by the takeout protocol.
+   *
+   * https://core.telegram.org/api/takeout
+   */
+  function buildInvokeQuery(
+    historyQuery: Api.messages.GetHistory,
+    takeoutSession: Api.account.Takeout | undefined,
+    range: Api.MessageRange | undefined,
+  ): Api.AnyRequest {
+    // Innermost: the raw GetHistory query
+    let query: Api.AnyRequest = historyQuery
+
+    // Wrap with message range if provided (required for split-range iteration)
+    if (range) {
+      query = new Api.InvokeWithMessagesRange({ range, query })
+    }
+
+    // Wrap with takeout if a session is active
+    if (takeoutSession) {
+      query = new Api.InvokeWithTakeout({ takeoutId: takeoutSession.id, query })
+    }
+
+    return query
+  }
+
+  /**
+   * Paginate through messages for a single split range (or no range).
+   * Yields Api.Message objects one at a time.
+   */
+  async function* paginateRange(
+    chatId: string,
+    options: Omit<TakeoutOpts, 'chatId'>,
+    takeoutSession: Api.account.Takeout | undefined,
+    range: Api.MessageRange | undefined,
+    count: number,
+    processedCount: { value: number },
+  ): AsyncGenerator<Api.Message> {
+    const { task } = options
+    const limit = options.pagination.limit
+    const minId = normalizeId(options.minId, 0)
+    const maxId = normalizeId(options.maxId, 0)
+
+    // Reset pagination for each split range
+    let offsetId = range ? 0 : normalizeId(options.pagination.offset, 0)
+    let hasMore = true
+
+    while (hasMore && !task.state.abortController.signal.aborted) {
+      // https://core.telegram.org/api/offsets#hash-generation
+      const id = BigInt(chatId)
+      const hashBigInt = id ^ (id >> 21n) ^ (id << 35n) ^ (id >> 4n) + id
+      const hash = bigInt(hashBigInt.toString())
+
+      // Resolve peer via entityService to get the correct InputPeer type and accessHash
+      // from the DB, avoiding misidentification (e.g. channel treated as PeerUser).
+      const peer = await entityService.getInputPeer(chatId)
+      const historyQuery = new Api.messages.GetHistory({
+        peer,
+        offsetId,
+        addOffset: 0,
+        offsetDate: 0,
+        limit,
+        maxId,
+        minId,
+        hash,
+      })
+
+      logger.withFields(historyQuery).verbose('Historical messages query')
+
+      // Pace requests before invoking Telegram API; allow abort while waiting
+      try {
+        await waitHistoryInterval(task.state.abortController.signal)
+      }
+      catch {
+        logger.verbose('Aborted during rate-limit wait')
+        break
+      }
+
+      const query = buildInvokeQuery(historyQuery, takeoutSession, range)
+      const fetchStart = performance.now()
+      const result = await withSpan('takeout:fetchPage', () => {
+        return ctx.getClient().invoke(query) as unknown as Promise<Api.messages.MessagesSlice>
+      }, {
+        chatId,
+        offsetId,
+        ...(range ? { rangeMinId: range.minId, rangeMaxId: range.maxId } : {}),
+      })
+
+      ctx.metrics?.takeoutPageFetchTotal.inc()
+      ctx.metrics?.takeoutPageFetchDurationMs.observe({}, performance.now() - fetchStart)
+
+      // Type safe check
+      if (!('messages' in result)) {
+        task.updateError(new Error('Invalid response format from Telegram API'))
+        break
+      }
+
+      const messages = result.messages as Api.Message[]
+
+      ctx.metrics?.takeoutPageMessages.observe({}, messages.length)
+
+      // If no messages returned, we've exhausted this range
+      if (messages.length === 0) {
+        logger.verbose('No more messages to fetch, reached boundary')
+        break
+      }
+
+      // If we got fewer messages than requested, there are no more
+      hasMore = messages.length === limit
+
+      logger.withFields({ count: messages.length }).debug('Got messages batch')
+
+      for (const message of messages) {
+        if (task.state.abortController.signal.aborted) {
+          break
+        }
+
+        // Skip empty messages
+        if (message instanceof Api.MessageEmpty) {
+          continue
+        }
+
+        // Time range filtering
+        if (options.endTime && message.date > options.endTime / 1000) {
+          continue
+        }
+        if (options.startTime && message.date < options.startTime / 1000) {
+          hasMore = false
+          break
+        }
+
+        processedCount.value++
+        yield message
+      }
+
+      offsetId = normalizeId(messages[messages.length - 1]?.id, offsetId)
+
+      // Only emit progress if auto-progress is enabled
+      if (!options.disableAutoProgress) {
+        task.updateProgress(
+          Number(((processedCount.value / count) * 100).toFixed(2)),
+          `Processed ${processedCount.value}/${count} messages`,
+        )
+      }
+
+      logger.withFields({ processedCount: processedCount.value, count }).verbose('Processed messages')
+    }
+  }
+
   async function* takeoutMessages(
     chatId: string,
     options: Omit<TakeoutOpts, 'chatId'>,
@@ -172,27 +346,30 @@ export function createTakeoutService(
 
     task.updateProgress(0, 'Init takeout session')
 
-    let offsetId = normalizeId(options.pagination.offset, 0)
-    let hasMore = true
-    let processedCount = 0
-
-    const limit = options.pagination.limit
-    const minId = normalizeId(options.minId, 0)
-    const maxId = normalizeId(options.maxId, 0)
+    const processedCount = { value: 0 }
 
     // Try to initialize a takeout session. If it fails (timeout, flood-wait,
     // or other error), fall back to regular GetHistory calls. Takeout is
     // preferred because it avoids per-chat rate limits, but is not required.
+    // When skipTakeout is true the user has explicitly chosen GetHistory.
     let takeoutSession: Api.account.Takeout | undefined
 
-    try {
-      takeoutSession = await initTakeout()
-    }
-    catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error)
-      logger.withError(error).warn(`Takeout session init failed, falling back to regular GetHistory: ${errMsg}`)
+    if (options.skipTakeout) {
+      logger.log('Takeout skipped by user choice, using regular GetHistory')
       if (!options.disableAutoProgress) {
-        task.updateProgress(0, 'Takeout unavailable, using regular sync')
+        task.updateProgress(0, 'Using regular sync (takeout declined)')
+      }
+    }
+    else {
+      try {
+        takeoutSession = await initTakeout()
+      }
+      catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error)
+        logger.withError(error).warn(`Takeout session init failed, falling back to regular GetHistory: ${errMsg}`)
+        if (!options.disableAutoProgress) {
+          task.updateProgress(0, 'Takeout unavailable, using regular sync')
+        }
       }
     }
 
@@ -207,100 +384,27 @@ export function createTakeoutService(
 
       logger.withFields({ expectedCount: count, providedCount: options.expectedCount, useTakeout: !!takeoutSession }).log('Starting message fetch')
 
-      while (hasMore && !task.state.abortController.signal.aborted) {
-        // https://core.telegram.org/api/offsets#hash-generation
-        const id = BigInt(chatId)
-        const hashBigInt = id ^ (id >> 21n) ^ (id << 35n) ^ (id >> 4n) + id
-        const hash = bigInt(hashBigInt.toString())
+      // Fetch split ranges so we iterate every message box on the server.
+      // Without this, messages beyond the 500K/1M boundaries may be missed.
+      // https://core.telegram.org/api/takeout
+      const splitRanges = await getSplitRanges()
+      logger.withFields({ splitRangeCount: splitRanges.length }).log('Using split ranges for message fetch')
 
-        // Resolve peer via entityService to get the correct InputPeer type and accessHash
-        // from the DB, avoiding misidentification (e.g. channel treated as PeerUser).
-        const peer = await entityService.getInputPeer(chatId)
-        const historyQuery = new Api.messages.GetHistory({
-          peer,
-          offsetId,
-          addOffset: 0,
-          offsetDate: 0,
-          limit,
-          maxId,
-          minId,
-          hash,
-        })
-
-        logger.withFields(historyQuery).verbose('Historical messages query')
-
-        // Pace requests before invoking Telegram API; allow abort while waiting
-        try {
-          await waitHistoryInterval(task.state.abortController.signal)
-        }
-        catch {
-          logger.verbose('Aborted during rate-limit wait')
-          break
-        }
-
-        // Wrap in takeout if available; otherwise call GetHistory directly.
-        const result = takeoutSession
-          ? await ctx.getClient().invoke(
-            new Api.InvokeWithTakeout({
-              takeoutId: takeoutSession.id,
-              query: historyQuery,
-            }),
-          ) as unknown as Api.messages.MessagesSlice
-          : await ctx.getClient().invoke(historyQuery) as unknown as Api.messages.MessagesSlice
-
-        // Type safe check
-        if (!('messages' in result)) {
-          task.updateError(new Error('Invalid response format from Telegram API'))
-          break
-        }
-
-        const messages = result.messages as Api.Message[]
-
-        // If no messages returned, it means we've reached the boundary (no more messages to fetch)
-        if (messages.length === 0) {
-          logger.verbose('No more messages to fetch, reached boundary')
-          break
-        }
-
-        // If we got fewer messages than requested, there are no more
-        hasMore = messages.length === limit
-
-        logger.withFields({ count: messages.length }).debug('Got messages batch')
-
-        for (const message of messages) {
+      if (splitRanges.length > 0) {
+        // Iterate each split range separately, resetting pagination per range
+        for (const range of splitRanges) {
           if (task.state.abortController.signal.aborted) {
             break
           }
 
-          // Skip empty messages
-          if (message instanceof Api.MessageEmpty) {
-            continue
-          }
+          logger.withFields({ rangeMinId: range.minId, rangeMaxId: range.maxId }).log('Fetching messages for split range')
 
-          // Time range filtering
-          if (options.endTime && message.date > options.endTime / 1000) {
-            continue
-          }
-          if (options.startTime && message.date < options.startTime / 1000) {
-            hasMore = false
-            break
-          }
-
-          processedCount++
-          yield message
+          yield* paginateRange(chatId, options, takeoutSession, range, count, processedCount)
         }
-
-        offsetId = normalizeId(messages[messages.length - 1]?.id, offsetId)
-
-        // Only emit progress if auto-progress is enabled
-        if (!options.disableAutoProgress) {
-          task.updateProgress(
-            Number(((processedCount / count) * 100).toFixed(2)),
-            `Processed ${processedCount}/${count} messages`,
-          )
-        }
-
-        logger.withFields({ processedCount, count }).verbose('Processed messages')
+      }
+      else {
+        // No split ranges returned (single message box) – paginate without range wrapping
+        yield* paginateRange(chatId, options, takeoutSession, undefined, count, processedCount)
       }
 
       if (takeoutSession) {
@@ -333,6 +437,16 @@ export function createTakeoutService(
   }
 
   async function processMessageBatch(
+    task: ReturnType<typeof createTask>,
+    generator: AsyncGenerator<Api.Message>,
+    syncOptions?: SyncOptions,
+    onProcessed?: (count: number) => void,
+    skipId?: number,
+  ) {
+    return withSpan('takeout:processMessageBatch', () => processMessageBatchInner(task, generator, syncOptions, onProcessed, skipId))
+  }
+
+  async function processMessageBatchInner(
     task: ReturnType<typeof createTask>,
     generator: AsyncGenerator<Api.Message>,
     syncOptions?: SyncOptions,
@@ -397,9 +511,7 @@ export function createTakeoutService(
         messages.push(message)
         downloadCount++
 
-        if (ctx.metrics) {
-          ctx.metrics.takeoutDownloadTotal.inc()
-        }
+        ctx.metrics?.takeoutDownloadTotal.inc()
 
         if (messages.length >= MESSAGE_PROCESS_BATCH_SIZE) {
           if (task.state.abortController.signal.aborted)
@@ -451,9 +563,23 @@ export function createTakeoutService(
     increase?: boolean
     syncOptions?: SyncOptions
   }) {
+    return withSpan('takeout:run', () => runTakeoutInner(params), { chatCount: params.chatIds.length })
+  }
+
+  async function runTakeoutInner(params: {
+    chatIds: string[]
+    increase?: boolean
+    syncOptions?: SyncOptions
+  }) {
     let { chatIds } = params
     const { increase, syncOptions } = params
     const pagination = usePagination()
+
+    // Ask the user once per sync run whether to use takeout or fall back to
+    // GetHistory. Core emits the event and waits for the client to respond.
+    ctx.emitter.emit(CoreEventType.TakeoutConfirmNeeded)
+    const { useTakeout } = await waitForEvent(ctx.emitter, CoreEventType.TakeoutConfirmResponse)
+    const skipTakeout = !useTakeout
 
     if (chatIds.length === 0) {
       const accountId = ctx.getCurrentAccountId()
@@ -461,94 +587,103 @@ export function createTakeoutService(
       chatIds = chats.map(c => c.chat_id)
     }
 
+    ctx.metrics?.takeoutRunTotal.inc()
+
     for (const chatId of chatIds) {
-      const stats = (await chatMessageStatsModels.getChatMessageStatsByChatId(ctx.getDB(), ctx.getCurrentAccountId(), chatId))?.unwrap()
-      const totalCount = (await getTotalMessageCount(chatId)) ?? 0
+      await withSpan('takeout:chat', async () => {
+        const chatStart = performance.now()
+        const stats = (await chatMessageStatsModels.getChatMessageStatsByChatId(ctx.getDB(), ctx.getCurrentAccountId(), chatId))?.unwrap()
+        const totalCount = (await getTotalMessageCount(chatId)) ?? 0
 
-      logger.withFields({ chatId, totalCount, hasStats: !!stats }).log('Starting takeout for chat')
+        logger.withFields({ chatId, totalCount, hasStats: !!stats }).log('Starting takeout for chat')
 
-      const task = createTask('takeout', { chatIds: [chatId], totalMessages: totalCount }, ctx.emitter, logger)
-      activeTasks.set(task.state.taskId, task)
+        const task = createTask('takeout', { chatIds: [chatId], totalMessages: totalCount }, ctx.emitter, logger)
+        activeTasks.set(task.state.taskId, task)
 
-      try {
-        const updateProgress = (count: number, expected: number) => {
-          const progress = expected > 0 ? Number(((count / expected) * 100).toFixed(2)) : 0
-          task.updateProgress(progress, `Processed ${count}/${expected} messages`)
+        try {
+          const updateProgress = (count: number, expected: number) => {
+            const progress = expected > 0 ? Number(((count / expected) * 100).toFixed(2)) : 0
+            task.updateProgress(progress, `Processed ${count}/${expected} messages`)
+          }
+
+          if (!increase || !stats || (stats.first_message_id === 0 && stats.latest_message_id === 0)) {
+            const opts = {
+              pagination: { ...pagination, offset: 0 },
+              minId: normalizeId(syncOptions?.minMessageId, 0),
+              maxId: normalizeId(syncOptions?.maxMessageId, 0),
+              startTime: syncOptions?.startTime,
+              endTime: syncOptions?.endTime,
+              skipMedia: !syncOptions?.syncMedia,
+              expectedCount: totalCount,
+              disableAutoProgress: true,
+              skipTakeout,
+              task,
+              syncOptions,
+            }
+            await processMessageBatch(task, takeoutMessages(chatId, opts), syncOptions, (c) => {
+              updateProgress(c, totalCount)
+            })
+          }
+          else {
+            const needToSyncCount = Math.max(0, totalCount - stats.message_count)
+            task.updateProgress(0, 'Starting incremental sync')
+
+            const latestMessageId = normalizeId(stats.latest_message_id, 0)
+            let backwardProcessed = 0
+            // Phase 1: Backward
+            const backwardOpts = {
+              pagination: { ...pagination, offset: 0 },
+              minId: normalizeId(syncOptions?.minMessageId ?? latestMessageId, 0),
+              maxId: normalizeId(syncOptions?.maxMessageId, 0),
+              startTime: syncOptions?.startTime,
+              endTime: syncOptions?.endTime,
+              skipMedia: !syncOptions?.syncMedia,
+              expectedCount: needToSyncCount,
+              disableAutoProgress: true,
+              skipTakeout,
+              task,
+              syncOptions,
+            }
+            const ok = await processMessageBatch(task, takeoutMessages(chatId, backwardOpts), syncOptions, (c) => {
+              backwardProcessed = c
+              updateProgress(backwardProcessed, needToSyncCount)
+            }, latestMessageId > 0 ? latestMessageId : undefined)
+
+            if (!ok)
+              return
+
+            // Phase 2: Forward
+            const forwardOpts = {
+              pagination: { ...pagination, offset: normalizeId(stats.first_message_id, 0) },
+              minId: normalizeId(syncOptions?.minMessageId, 0),
+              maxId: normalizeId(syncOptions?.maxMessageId, 0),
+              startTime: syncOptions?.startTime,
+              endTime: syncOptions?.endTime,
+              skipMedia: !syncOptions?.syncMedia,
+              expectedCount: needToSyncCount,
+              disableAutoProgress: true,
+              skipTakeout,
+              task,
+              syncOptions,
+            }
+            await processMessageBatch(task, takeoutMessages(chatId, forwardOpts), syncOptions, (c) => {
+              updateProgress(backwardProcessed + c, needToSyncCount)
+            })
+
+            if (!task.state.abortController.signal.aborted) {
+              task.updateProgress(100, 'Incremental sync completed')
+            }
+          }
         }
-
-        if (!increase || !stats || (stats.first_message_id === 0 && stats.latest_message_id === 0)) {
-          const opts = {
-            pagination: { ...pagination, offset: 0 },
-            minId: normalizeId(syncOptions?.minMessageId, 0),
-            maxId: normalizeId(syncOptions?.maxMessageId, 0),
-            startTime: syncOptions?.startTime,
-            endTime: syncOptions?.endTime,
-            skipMedia: !syncOptions?.syncMedia,
-            expectedCount: totalCount,
-            disableAutoProgress: true,
-            task,
-            syncOptions,
-          }
-          await processMessageBatch(task, takeoutMessages(chatId, opts), syncOptions, (c) => {
-            updateProgress(c, totalCount)
-          })
+        catch (error) {
+          logger.withError(error).withFields({ chatId }).error('Takeout failed for chat')
+          task.updateError(error)
         }
-        else {
-          const needToSyncCount = Math.max(0, totalCount - stats.message_count)
-          task.updateProgress(0, 'Starting incremental sync')
-
-          const latestMessageId = normalizeId(stats.latest_message_id, 0)
-          let backwardProcessed = 0
-          // Phase 1: Backward
-          const backwardOpts = {
-            pagination: { ...pagination, offset: 0 },
-            minId: normalizeId(syncOptions?.minMessageId ?? latestMessageId, 0),
-            maxId: normalizeId(syncOptions?.maxMessageId, 0),
-            startTime: syncOptions?.startTime,
-            endTime: syncOptions?.endTime,
-            skipMedia: !syncOptions?.syncMedia,
-            expectedCount: needToSyncCount,
-            disableAutoProgress: true,
-            task,
-            syncOptions,
-          }
-          const ok = await processMessageBatch(task, takeoutMessages(chatId, backwardOpts), syncOptions, (c) => {
-            backwardProcessed = c
-            updateProgress(backwardProcessed, needToSyncCount)
-          }, latestMessageId > 0 ? latestMessageId : undefined)
-
-          if (!ok)
-            continue
-
-          // Phase 2: Forward
-          const forwardOpts = {
-            pagination: { ...pagination, offset: normalizeId(stats.first_message_id, 0) },
-            minId: normalizeId(syncOptions?.minMessageId, 0),
-            maxId: normalizeId(syncOptions?.maxMessageId, 0),
-            startTime: syncOptions?.startTime,
-            endTime: syncOptions?.endTime,
-            skipMedia: !syncOptions?.syncMedia,
-            expectedCount: needToSyncCount,
-            disableAutoProgress: true,
-            task,
-            syncOptions,
-          }
-          await processMessageBatch(task, takeoutMessages(chatId, forwardOpts), syncOptions, (c) => {
-            updateProgress(backwardProcessed + c, needToSyncCount)
-          })
-
-          if (!task.state.abortController.signal.aborted) {
-            task.updateProgress(100, 'Incremental sync completed')
-          }
+        finally {
+          activeTasks.delete(task.state.taskId)
+          ctx.metrics?.takeoutChatDurationMs.observe({ chatId }, performance.now() - chatStart)
         }
-      }
-      catch (error) {
-        logger.withError(error).withFields({ chatId }).error('Takeout failed for chat')
-        task.updateError(error)
-      }
-      finally {
-        activeTasks.delete(task.state.taskId)
-      }
+      }, { chatId })
     }
   }
 

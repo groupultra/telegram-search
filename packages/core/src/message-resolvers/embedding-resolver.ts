@@ -47,7 +47,9 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
           totalBatches: Math.ceil(messages.length / batchSize),
         }).verbose('Processing embedding batch')
 
-        const result = (await embedContents(batchContents, embeddingSettings)).expect('Failed to embed messages')
+        const embedResult = await embedContents(batchContents, embeddingSettings)
+        ctx.metrics?.embeddingApiCall.inc({ status: embedResult.orUndefined() != null ? 'success' : 'error' })
+        const result = embedResult.expect('Failed to embed messages')
 
         allEmbeddings.push(...result.embeddings)
         totalUsage.prompt_tokens += result.usage.prompt_tokens
@@ -56,6 +58,8 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
       }
 
       logger.withFields({ count: allEmbeddings.length, usage: totalUsage }).verbose('Embedding messages done')
+
+      ctx.metrics?.embeddingTokens.inc(undefined, totalUsage.prompt_tokens)
 
       if (!dimension) {
         throw new Error('No dimension returned from embedding')

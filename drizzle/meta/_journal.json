@@ -232,6 +232,13 @@
       "when": 1770883532307,
       "tag": "0032_majestic_lily_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1773046446128,
+      "tag": "0033_tense_power_man",
+      "breakpoints": true
     }
   ]
 }

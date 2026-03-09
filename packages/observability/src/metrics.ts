@@ -1,21 +1,10 @@
 import type { CoreCounter, CoreHistogram, CoreMetrics } from '@tg-search/common'
 
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
-import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
+import { metrics } from '@opentelemetry/api'
 
-const metricExporter = new OTLPMetricExporter({})
-
-// Create an instance of the metric provider
-const meterProvider = new MeterProvider({
-  readers: [
-    new PeriodicExportingMetricReader({
-      exporter: metricExporter,
-      exportIntervalMillis: 250,
-    }),
-  ],
-})
-
-const meter = meterProvider.getMeter('@tg-search/observability')
+// Use the global MeterProvider registered by the NodeSDK in node.ts,
+// avoiding a duplicate metric pipeline and ensuring shared resource attributes.
+const meter = metrics.getMeter('@tg-search/observability')
 
 /**
  * WebSocket send fail total
@@ -76,6 +65,99 @@ export const coreTakeoutDownloadedTotal = meter.createCounter('core.takeout.down
 })
 
 /**
+ * Core takeout page fetch total
+ */
+export const coreTakeoutPageFetchTotal = meter.createCounter('core.takeout.page.fetch.total', {
+  description: 'Total number of pages fetched from Telegram API during takeout',
+})
+
+/**
+ * Core takeout page fetch duration histogram
+ */
+export const coreTakeoutPageFetchDurationMs = meter.createHistogram('core.takeout.page.fetch.duration.ms', {
+  description: 'Duration of individual page fetch calls in milliseconds',
+  unit: 'ms',
+})
+
+/**
+ * Core takeout session init total
+ */
+export const coreTakeoutSessionInitTotal = meter.createCounter('core.takeout.session.init.total', {
+  description: 'Total number of takeout sessions initiated',
+})
+
+/**
+ * Core takeout chat duration histogram
+ */
+export const coreTakeoutChatDurationMs = meter.createHistogram('core.takeout.chat.duration.ms', {
+  description: 'Duration of per-chat takeout in milliseconds',
+  unit: 'ms',
+})
+
+/**
+ * Core takeout run total
+ */
+export const coreTakeoutRunTotal = meter.createCounter('core.takeout.run.total', {
+  description: 'Total number of takeout runs started',
+})
+
+/**
+ * Core resolver outcome total
+ */
+export const coreResolverOutcomeTotal = meter.createCounter('core.resolver.outcome.total', {
+  description: 'Total number of resolver outcomes (success or error)',
+})
+
+/**
+ * Core resolver skipped total
+ */
+export const coreResolverSkippedTotal = meter.createCounter('core.resolver.skipped.total', {
+  description: 'Total number of resolvers skipped due to config or syncOptions',
+})
+
+/**
+ * Core embedding API call total
+ */
+export const coreEmbeddingApiCallTotal = meter.createCounter('core.embedding.api.call.total', {
+  description: 'Total number of embedding API calls',
+})
+
+/**
+ * Core embedding tokens total
+ */
+export const coreEmbeddingTokensTotal = meter.createCounter('core.embedding.tokens.total', {
+  description: 'Total number of embedding tokens consumed',
+})
+
+/**
+ * Core media download total
+ */
+export const coreMediaDownloadTotal = meter.createCounter('core.media.download.total', {
+  description: 'Total number of media download outcomes',
+})
+
+/**
+ * Core vision API call total
+ */
+export const coreVisionApiCallTotal = meter.createCounter('core.vision.api.call.total', {
+  description: 'Total number of vision LLM API calls',
+})
+
+/**
+ * Core entity resolve total
+ */
+export const coreEntityResolveTotal = meter.createCounter('core.entity.resolve.total', {
+  description: 'Total number of entity resolution outcomes',
+})
+
+/**
+ * Core takeout page messages histogram
+ */
+export const coreTakeoutPageMessages = meter.createHistogram('core.takeout.page.messages', {
+  description: 'Number of messages per takeout page fetch',
+})
+
+/**
  * Create OpenTelemetry counter from CoreCounter
  */
 function createOtelCounter(otelCounter: ReturnType<typeof meter.createCounter>): CoreCounter {
@@ -105,4 +187,17 @@ export const coreMetrics: CoreMetrics = {
   messageBatchDuration: createOtelHistogram(coreMessageBatchDurationMs),
   resolverDuration: createOtelHistogram(coreResolverDurationMs),
   takeoutDownloadTotal: createOtelCounter(coreTakeoutDownloadedTotal),
+  takeoutPageFetchTotal: createOtelCounter(coreTakeoutPageFetchTotal),
+  takeoutPageFetchDurationMs: createOtelHistogram(coreTakeoutPageFetchDurationMs),
+  takeoutSessionInitTotal: createOtelCounter(coreTakeoutSessionInitTotal),
+  takeoutChatDurationMs: createOtelHistogram(coreTakeoutChatDurationMs),
+  takeoutRunTotal: createOtelCounter(coreTakeoutRunTotal),
+  resolverOutcome: createOtelCounter(coreResolverOutcomeTotal),
+  resolverSkipped: createOtelCounter(coreResolverSkippedTotal),
+  embeddingApiCall: createOtelCounter(coreEmbeddingApiCallTotal),
+  embeddingTokens: createOtelCounter(coreEmbeddingTokensTotal),
+  mediaDownload: createOtelCounter(coreMediaDownloadTotal),
+  visionApiCall: createOtelCounter(coreVisionApiCallTotal),
+  entityResolve: createOtelCounter(coreEntityResolveTotal),
+  takeoutPageMessages: createOtelHistogram(coreTakeoutPageMessages),
 }
