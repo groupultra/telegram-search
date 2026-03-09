@@ -54,6 +54,20 @@ export function createTakeoutService(
     return fallback
   }
 
+  /**
+   * Fetch split ranges from Telegram. Messages may be split across multiple
+   * "message boxes" on the server (at 500K / 1M boundaries). Each range must
+   * be iterated separately via InvokeWithMessagesRange to avoid missing messages.
+   *
+   * https://core.telegram.org/api/takeout
+   * https://core.telegram.org/method/messages.getSplitRanges
+   */
+  async function getSplitRanges(): Promise<Api.MessageRange[]> {
+    const ranges = await ctx.getClient().invoke(new Api.messages.GetSplitRanges())
+    logger.withFields({ rangeCount: ranges.length }).log('Fetched split ranges')
+    return ranges
+  }
+
   const TAKEOUT_INIT_TIMEOUT_MS = 30_000
 
   async function initTakeout(): Promise<Api.account.Takeout> {
@@ -165,6 +179,144 @@ export function createTakeoutService(
     }
   }
 
+  /**
+   * Build the final invoke query, optionally wrapping in InvokeWithMessagesRange
+   * and InvokeWithTakeout as required by the takeout protocol.
+   *
+   * https://core.telegram.org/api/takeout
+   */
+  function buildInvokeQuery(
+    historyQuery: Api.messages.GetHistory,
+    takeoutSession: Api.account.Takeout | undefined,
+    range: Api.MessageRange | undefined,
+  ): Api.AnyRequest {
+    // Innermost: the raw GetHistory query
+    let query: Api.AnyRequest = historyQuery
+
+    // Wrap with message range if provided (required for split-range iteration)
+    if (range) {
+      query = new Api.InvokeWithMessagesRange({ range, query })
+    }
+
+    // Wrap with takeout if a session is active
+    if (takeoutSession) {
+      query = new Api.InvokeWithTakeout({ takeoutId: takeoutSession.id, query })
+    }
+
+    return query
+  }
+
+  /**
+   * Paginate through messages for a single split range (or no range).
+   * Yields Api.Message objects one at a time.
+   */
+  async function* paginateRange(
+    chatId: string,
+    options: Omit<TakeoutOpts, 'chatId'>,
+    takeoutSession: Api.account.Takeout | undefined,
+    range: Api.MessageRange | undefined,
+    count: number,
+    processedCount: { value: number },
+  ): AsyncGenerator<Api.Message> {
+    const { task } = options
+    const limit = options.pagination.limit
+    const minId = normalizeId(options.minId, 0)
+    const maxId = normalizeId(options.maxId, 0)
+
+    // Reset pagination for each split range
+    let offsetId = range ? 0 : normalizeId(options.pagination.offset, 0)
+    let hasMore = true
+
+    while (hasMore && !task.state.abortController.signal.aborted) {
+      // https://core.telegram.org/api/offsets#hash-generation
+      const id = BigInt(chatId)
+      const hashBigInt = id ^ (id >> 21n) ^ (id << 35n) ^ (id >> 4n) + id
+      const hash = bigInt(hashBigInt.toString())
+
+      // Resolve peer via entityService to get the correct InputPeer type and accessHash
+      // from the DB, avoiding misidentification (e.g. channel treated as PeerUser).
+      const peer = await entityService.getInputPeer(chatId)
+      const historyQuery = new Api.messages.GetHistory({
+        peer,
+        offsetId,
+        addOffset: 0,
+        offsetDate: 0,
+        limit,
+        maxId,
+        minId,
+        hash,
+      })
+
+      logger.withFields(historyQuery).verbose('Historical messages query')
+
+      // Pace requests before invoking Telegram API; allow abort while waiting
+      try {
+        await waitHistoryInterval(task.state.abortController.signal)
+      }
+      catch {
+        logger.verbose('Aborted during rate-limit wait')
+        break
+      }
+
+      const query = buildInvokeQuery(historyQuery, takeoutSession, range)
+      const result = await ctx.getClient().invoke(query) as unknown as Api.messages.MessagesSlice
+
+      // Type safe check
+      if (!('messages' in result)) {
+        task.updateError(new Error('Invalid response format from Telegram API'))
+        break
+      }
+
+      const messages = result.messages as Api.Message[]
+
+      // If no messages returned, we've exhausted this range
+      if (messages.length === 0) {
+        logger.verbose('No more messages to fetch, reached boundary')
+        break
+      }
+
+      // If we got fewer messages than requested, there are no more
+      hasMore = messages.length === limit
+
+      logger.withFields({ count: messages.length }).debug('Got messages batch')
+
+      for (const message of messages) {
+        if (task.state.abortController.signal.aborted) {
+          break
+        }
+
+        // Skip empty messages
+        if (message instanceof Api.MessageEmpty) {
+          continue
+        }
+
+        // Time range filtering
+        if (options.endTime && message.date > options.endTime / 1000) {
+          continue
+        }
+        if (options.startTime && message.date < options.startTime / 1000) {
+          hasMore = false
+          break
+        }
+
+        processedCount.value++
+        yield message
+      }
+
+      offsetId = normalizeId(messages[messages.length - 1]?.id, offsetId)
+
+      // Only emit progress if auto-progress is enabled
+      if (!options.disableAutoProgress) {
+        task.updateProgress(
+          Number(((processedCount.value / count) * 100).toFixed(2)),
+          `Processed ${processedCount.value}/${count} messages`,
+        )
+      }
+
+      logger.withFields({ processedCount: processedCount.value, count }).verbose('Processed messages')
+    }
+  }
+
   async function* takeoutMessages(
     chatId: string,
     options: Omit<TakeoutOpts, 'chatId'>,
@@ -173,13 +325,7 @@ export function createTakeoutService(
 
     task.updateProgress(0, 'Init takeout session')
 
-    let offsetId = normalizeId(options.pagination.offset, 0)
-    let hasMore = true
-    let processedCount = 0
-
-    const limit = options.pagination.limit
-    const minId = normalizeId(options.minId, 0)
-    const maxId = normalizeId(options.maxId, 0)
+    const processedCount = { value: 0 }
 
     // Try to initialize a takeout session. If it fails (timeout, flood-wait,
     // or other error), fall back to regular GetHistory calls. Takeout is
@@ -217,100 +363,27 @@ export function createTakeoutService(
 
       logger.withFields({ expectedCount: count, providedCount: options.expectedCount, useTakeout: !!takeoutSession }).log('Starting message fetch')
 
-      while (hasMore && !task.state.abortController.signal.aborted) {
-        // https://core.telegram.org/api/offsets#hash-generation
-        const id = BigInt(chatId)
-        const hashBigInt = id ^ (id >> 21n) ^ (id << 35n) ^ (id >> 4n) + id
-        const hash = bigInt(hashBigInt.toString())
+      // Fetch split ranges so we iterate every message box on the server.
+      // Without this, messages beyond the 500K/1M boundaries may be missed.
+      // https://core.telegram.org/api/takeout
+      const splitRanges = await getSplitRanges()
+      logger.withFields({ splitRangeCount: splitRanges.length }).log('Using split ranges for message fetch')
 
-        // Resolve peer via entityService to get the correct InputPeer type and accessHash
-        // from the DB, avoiding misidentification (e.g. channel treated as PeerUser).
-        const peer = await entityService.getInputPeer(chatId)
-        const historyQuery = new Api.messages.GetHistory({
-          peer,
-          offsetId,
-          addOffset: 0,
-          offsetDate: 0,
-          limit,
-          maxId,
-          minId,
-          hash,
-        })
-
-        logger.withFields(historyQuery).verbose('Historical messages query')
-
-        // Pace requests before invoking Telegram API; allow abort while waiting
-        try {
-          await waitHistoryInterval(task.state.abortController.signal)
-        }
-        catch {
-          logger.verbose('Aborted during rate-limit wait')
-          break
-        }
-
-        // Wrap in takeout if available; otherwise call GetHistory directly.
-        const result = takeoutSession
-          ? await ctx.getClient().invoke(
-            new Api.InvokeWithTakeout({
-              takeoutId: takeoutSession.id,
-              query: historyQuery,
-            }),
-          ) as unknown as Api.messages.MessagesSlice
-          : await ctx.getClient().invoke(historyQuery) as unknown as Api.messages.MessagesSlice
-
-        // Type safe check
-        if (!('messages' in result)) {
-          task.updateError(new Error('Invalid response format from Telegram API'))
-          break
-        }
-
-        const messages = result.messages as Api.Message[]
-
-        // If no messages returned, it means we've reached the boundary (no more messages to fetch)
-        if (messages.length === 0) {
-          logger.verbose('No more messages to fetch, reached boundary')
-          break
-        }
-
-        // If we got fewer messages than requested, there are no more
-        hasMore = messages.length === limit
-
-        logger.withFields({ count: messages.length }).debug('Got messages batch')
-
-        for (const message of messages) {
+      if (splitRanges.length > 0) {
+        // Iterate each split range separately, resetting pagination per range
+        for (const range of splitRanges) {
           if (task.state.abortController.signal.aborted) {
             break
           }
 
-          // Skip empty messages
-          if (message instanceof Api.MessageEmpty) {
-            continue
-          }
+          logger.withFields({ rangeMinId: range.minId, rangeMaxId: range.maxId }).log('Fetching messages for split range')
 
-          // Time range filtering
-          if (options.endTime && message.date > options.endTime / 1000) {
-            continue
-          }
-          if (options.startTime && message.date < options.startTime / 1000) {
-            hasMore = false
-            break
-          }
-
-          processedCount++
-          yield message
+          yield* paginateRange(chatId, options, takeoutSession, range, count, processedCount)
         }
-
-        offsetId = normalizeId(messages[messages.length - 1]?.id, offsetId)
-
-        // Only emit progress if auto-progress is enabled
-        if (!options.disableAutoProgress) {
-          task.updateProgress(
-            Number(((processedCount / count) * 100).toFixed(2)),
-            `Processed ${processedCount}/${count} messages`,
-          )
-        }
-
-        logger.withFields({ processedCount, count }).verbose('Processed messages')
+      }
+      else {
+        // No split ranges returned (single message box) – paginate without range wrapping
+        yield* paginateRange(chatId, options, takeoutSession, undefined, count, processedCount)
       }
 
       if (takeoutSession) {
