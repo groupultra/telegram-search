@@ -23,7 +23,7 @@ const {
 
 <template>
   <div class="h-full flex flex-col">
-    <header class="flex items-center border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
+    <header class="h-14 flex items-center border-b bg-card/50 px-4 py-0 backdrop-blur-sm md:h-16 md:px-6">
       <div class="flex items-center gap-3">
         <h1 class="text-lg font-semibold">
           {{ t('search.search') }}

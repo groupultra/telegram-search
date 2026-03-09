@@ -107,6 +107,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
+      '@': resolve(import.meta.dirname, './src'),
       '@tg-search/common': resolve(import.meta.dirname, '../../packages/common/src'),
       '@tg-search/core': resolve(import.meta.dirname, '../../packages/core/src'),
       '@tg-search/client': resolve(import.meta.dirname, '../../packages/client/src'),

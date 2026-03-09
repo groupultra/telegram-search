@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useAccountStore, useSessionStore } from '@tg-search/client'
+import { useSessionStore } from '@tg-search/client'
 import { useDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import EntityAvatar from '../avatar/EntityAvatar.vue'
@@ -11,58 +11,56 @@ import LanguageSelector from './LanguageSelector.vue'
 import SidebarSelector from './SidebarSelector.vue'
 import UserDropdown from './UserDropdown.vue'
 
+import { SIDEBAR_NAV_ITEMS } from '../../constants'
+import { runThemeAppearanceTransition } from '../../lib/utils'
 import { Button } from '../ui/Button'
+import { Input } from '../ui/Input'
 
 const { t } = useI18n()
-const accountStore = useAccountStore()
 const { activeSession } = storeToRefs(useSessionStore())
 const isDark = useDark()
 
 const searchParams = ref('')
-const userDropdownOpen = ref(false)
+const navigationItems = computed(() => {
+  return SIDEBAR_NAV_ITEMS.map(item => ({
+    ...item,
+    label: t(item.labelKey),
+  }))
+})
+
+function toggleTheme(event: Event) {
+  void runThemeAppearanceTransition(event, async () => {
+    isDark.value = !isDark.value
+    await nextTick()
+  })
+}
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-card">
+  <div class="h-full flex flex-col bg-card/50 backdrop-blur-xl">
     <!-- Search section -->
-    <div class="border-b p-3">
-      <div class="relative">
+    <div class="px-4 pb-2 pt-4">
+      <div class="group relative">
         <div
-          class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-muted-foreground -translate-y-1/2"
+          class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-primary"
         />
-        <input
+        <Input
           v-model="searchParams"
           type="text"
-          class="h-9 w-full border rounded-md bg-background px-3 py-1 pl-9 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          class="h-10 border-transparent rounded-xl bg-muted/50 pl-9 transition-all focus:border-primary/20 focus:bg-background hover:bg-muted/80 focus:ring-2 focus:ring-primary/20"
           :placeholder="t('search.search')"
-        >
+        />
       </div>
     </div>
 
     <!-- Navigation -->
-    <div class="py-2">
+    <div class="flex-col gap-0.5 px-3 py-2 hidden md:flex">
       <SidebarSelector
-        path="/sync"
-        icon="i-lucide-refresh-cw"
-        :name="t('sync.sync')"
-      />
-
-      <SidebarSelector
-        path="/search"
-        icon="i-lucide-search"
-        :name="t('search.search')"
-      />
-
-      <SidebarSelector
-        path="/ai-chat"
-        icon="i-lucide-message-square-text"
-        :name="t('aiChat.aiChat')"
-      />
-
-      <SidebarSelector
-        path="/settings"
-        icon="i-lucide-settings"
-        :name="t('settings.settings')"
+        v-for="item in navigationItems"
+        :key="item.path"
+        :path="item.path"
+        :icon="item.icon"
+        :name="item.label"
       />
     </div>
 
@@ -70,54 +68,48 @@ const userDropdownOpen = ref(false)
     <ChatListSection :search-query="searchParams" />
 
     <!-- User profile section -->
-    <div class="relative border-t p-3">
+    <div class="mt-auto border-t border-border/40 bg-muted/30 p-3 backdrop-blur-sm">
       <div class="flex items-center justify-between gap-2">
-        <div
-          class="min-w-0 flex flex-1 cursor-pointer items-center gap-2.5 rounded-md p-1 transition-colors hover:bg-accent"
-          @click="userDropdownOpen = !userDropdownOpen"
-        >
-          <div class="h-8 w-8 flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+        <!-- User dropdown menu -->
+        <UserDropdown class="min-w-0 flex-1">
+          <div
+            class="group min-w-0 flex cursor-pointer items-center gap-3 rounded-xl p-2 transition-all hover:bg-background hover:shadow-sm"
+          >
             <EntityAvatar
               v-if="activeSession?.me?.id != null"
-              :id="activeSession?.me?.id!"
+              :id="activeSession?.me?.id"
               entity="self"
               entity-type="user"
               :name="activeSession?.me?.name"
               size="sm"
+              class="shrink-0 ring-2 ring-transparent transition-all group-hover:ring-primary/20"
             />
+            <div v-else class="h-8 w-8 flex shrink-0 items-center justify-center rounded-full bg-muted group-hover:bg-primary/10 group-hover:text-primary">
+              <span class="i-lucide-user h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+            </div>
+
+            <div class="flex flex-1 flex-col overflow-hidden">
+              <span class="truncate text-sm text-foreground/80 font-semibold group-hover:text-foreground">{{ activeSession?.me?.name || t('settings.notLoggedIn') }}</span>
+              <span v-if="activeSession?.me?.id" class="truncate text-xs text-muted-foreground group-hover:text-muted-foreground/80">ID: {{ activeSession?.me?.id }}</span>
+            </div>
+            <div class="i-lucide-chevrons-up-down h-3 w-3 shrink-0 text-muted-foreground opacity-50 transition-opacity group-hover:opacity-100" />
           </div>
-          <div class="min-w-0 flex flex-1 flex-col">
-            <span class="truncate text-sm font-medium">{{ activeSession?.me?.name }}</span>
-            <span class="truncate text-xs text-muted-foreground">
-              {{
-                accountStore.syncStatus === 'syncing'
-                  ? t('sync.syncing')
-                  : accountStore.isReady
-                    ? t('settings.connected')
-                    : t('settings.disconnected')
-              }}
-            </span>
-          </div>
-          <div class="i-lucide-chevron-up h-4 w-4 shrink-0 text-muted-foreground" />
-        </div>
+        </UserDropdown>
 
         <!-- Control buttons -->
-        <div class="flex shrink-0 items-center gap-1">
+        <div class="flex shrink-0 flex-row gap-1">
           <Button
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
-            class="h-8 w-8 rounded-md p-0"
+            class="h-8 w-8 rounded-lg text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm"
             variant="ghost"
-            size="sm"
+            size="icon"
             :title="isDark ? t('settings.switchToLightMode') : t('settings.switchToDarkMode')"
-            @click="() => { isDark = !isDark }"
+            @click="toggleTheme"
           />
 
           <LanguageSelector />
         </div>
       </div>
-
-      <!-- User dropdown menu -->
-      <UserDropdown v-model:open="userDropdownOpen" />
     </div>
   </div>
 </template>

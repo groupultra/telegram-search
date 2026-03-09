@@ -5,7 +5,10 @@ import { VList } from 'virtua/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import SelectDropdown from './ui/SelectDropdown.vue'
+import EntityAvatar from './avatar/EntityAvatar.vue'
+
+import { Checkbox } from './ui/Checkbox'
+import { Input } from './ui/Input'
 
 const props = defineProps<{
   chats: CoreDialog[]
@@ -77,6 +80,8 @@ const filteredChats = computed(() => {
     title: chat.name || t('chatSelector.chat', { id: chat.id }),
     subtitle: t('chatSelector.id', { id: chat.id }),
     type: chat.type,
+    avatarFileId: chat.avatarFileId,
+    name: chat.name,
   })).sort((a, b) => {
     // Use optimized Set lookup for better performance
     const aSelected = selectedChatsSet.value.has(a.id)
@@ -114,72 +119,126 @@ function toggleSelection(id: number): void {
 </script>
 
 <template>
-  <div class="h-full flex flex-col space-y-4">
-    <!-- Filters -->
-    <div class="flex shrink-0 flex-col items-start gap-3 md:flex-row md:items-center">
-      <!-- Type Selection -->
-      <div class="w-full md:w-48">
-        <SelectDropdown
-          v-model="selectedFilter"
-          :options="filterOptions"
-        />
+  <div class="h-full flex flex-col gap-4 md:flex-row md:gap-6">
+    <!-- Left Sidebar: Filter Groups (Desktop) -->
+    <div class="w-48 flex-shrink-0 flex-col gap-1 border-r pr-6 hidden md:flex">
+      <div class="mb-2 px-2 text-xs text-muted-foreground font-semibold tracking-wider uppercase">
+        {{ t('chatSelector.filters') }}
       </div>
-
-      <!-- Search Input -->
-      <div class="relative flex flex-1 items-center">
-        <span class="i-lucide-search absolute left-3 h-4 w-4 text-muted-foreground" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="h-12 w-full border rounded-lg bg-background px-3 pl-10 text-sm transition-all duration-200 focus:border-primary placeholder:text-muted-foreground focus:outline-none"
-          :placeholder="t('chatSelector.search')"
-        >
-      </div>
+      <button
+        v-for="option in filterOptions"
+        :key="option.value"
+        class="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-all"
+        :class="selectedFilter === option.value ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+        @click="selectedFilter = option.value"
+      >
+        <span class="truncate">{{ option.label }}</span>
+        <span v-if="selectedFilter === option.value" class="i-lucide-chevron-right h-4 w-4 opacity-50" />
+      </button>
     </div>
 
-    <!-- Chat List Container -->
-    <div class="min-h-0 flex-1 overflow-hidden border rounded-lg bg-card">
-      <!-- No Results Message -->
-      <div v-if="filteredChats.length === 0" class="h-full flex flex-col items-center justify-center py-16">
-        <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
-          <span class="i-lucide-search-x h-8 w-8 text-muted-foreground" />
+    <!-- Mobile Filters (Top Bar) -->
+    <div class="no-scrollbar flex items-center gap-2 overflow-x-auto pb-2 md:hidden">
+      <button
+        v-for="option in filterOptions"
+        :key="option.value"
+        class="flex shrink-0 items-center gap-2 border rounded-full px-3 py-1.5 text-xs font-medium transition-all"
+        :class="selectedFilter === option.value
+          ? 'bg-primary text-primary-foreground border-primary'
+          : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'"
+        @click="selectedFilter = option.value"
+      >
+        <span>{{ option.label }}</span>
+      </button>
+    </div>
+
+    <!-- Right Content: Search & List -->
+    <div class="min-w-0 flex flex-1 flex-col space-y-4">
+      <!-- Search Input -->
+      <div class="flex flex-col gap-3">
+        <div class="group relative w-full">
+          <div
+            class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-primary"
+          />
+          <Input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="t('chatSelector.searchPlaceholder')"
+            class="h-10 border-transparent rounded-xl bg-muted/50 pl-9 transition-all focus:border-primary/20 focus:bg-background hover:bg-muted/80 focus:ring-2 focus:ring-primary/20"
+          />
         </div>
-        <p class="text-base text-muted-foreground font-medium">
-          {{ t('chatSelector.noChatsFound') }}
-        </p>
+
+        <!-- Actions Area (Below Search) -->
+        <div class="flex items-center justify-between">
+          <slot name="actions" />
+        </div>
       </div>
 
-      <!-- Virtual Chat List -->
-      <VList
-        v-else
-        :data="filteredChats"
-        class="h-full"
-      >
-        <template #default="{ item: chat }">
-          <label
-            :key="chat.id"
-            class="group flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-accent"
-            :class="{
-              'bg-primary/5': isSelected(chat.id),
-            }"
-          >
-            <input
-              type="checkbox"
-              :checked="isSelected(chat.id)"
-              class="h-4 w-4 cursor-pointer border-2 rounded text-primary transition-all focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-              @change="toggleSelection(chat.id)"
+      <!-- Chat List Container -->
+      <div class="min-h-0 flex-1 overflow-hidden border rounded-lg bg-card">
+        <!-- No Results Message -->
+        <div v-if="filteredChats.length === 0" class="h-full flex flex-col items-center justify-center py-16">
+          <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
+            <span class="i-lucide-search-x h-8 w-8 text-muted-foreground" />
+          </div>
+          <p class="text-base text-muted-foreground font-medium">
+            {{ t('chatSelector.noChatsFound') }}
+          </p>
+        </div>
+
+        <!-- Virtual Chat List -->
+        <VList
+          v-else
+          :data="filteredChats"
+          class="h-full"
+        >
+          <template #default="{ item: chat }">
+            <label
+              :key="chat.id"
+              class="group flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-all hover:bg-accent/50"
+              :class="{
+                'bg-primary/5': isSelected(chat.id),
+              }"
             >
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm text-foreground font-medium">
-                {{ chat.title }}
-              </p>
-              <p class="truncate text-xs text-muted-foreground">
-                {{ chat.subtitle }}
-              </p>
-            </div>
-          </label>
-        </template>
-      </VList>
+              <EntityAvatar
+                :id="chat.id"
+                entity="other"
+                entity-type="chat"
+                :file-id="chat.avatarFileId"
+                :name="chat.name"
+                size="sm"
+                class="shrink-0"
+              />
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="truncate text-sm text-foreground font-medium">
+                    {{ chat.title }}
+                  </p>
+                </div>
+                <p class="truncate text-xs text-muted-foreground">
+                  {{ chat.subtitle }}
+                </p>
+              </div>
+
+              <Checkbox
+                :checked="isSelected(chat.id)"
+                @update:checked="toggleSelection(chat.id)"
+              />
+            </label>
+          </template>
+        </VList>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

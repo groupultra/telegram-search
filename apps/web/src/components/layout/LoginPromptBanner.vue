@@ -49,7 +49,7 @@ const { auth } = storeToRefs(accountStore)
         </div>
         <Button
           v-if="!auth.isLoading"
-          size="md"
+          size="default"
           icon="i-lucide-log-in"
           class="shrink-0"
           @click="$router.push({ path: '/login', query: { redirect: route.fullPath } })"

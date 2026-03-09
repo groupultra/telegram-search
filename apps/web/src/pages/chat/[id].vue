@@ -13,10 +13,16 @@ import { toast } from 'vue-sonner'
 import EntityAvatar from '../../components/avatar/EntityAvatar.vue'
 import SearchDialog from '../../components/SearchDialog.vue'
 import SummaryDialog from '../../components/SummaryDialog.vue'
-import ContextMenu from '../../components/ui/ContextMenu.vue'
 import VirtualMessageList from '../../components/VirtualMessageList.vue'
 
 import { Button } from '../../components/ui/Button'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '../../components/ui/ContextMenu'
+import { Input } from '../../components/ui/Input'
 import { getChatLink } from '../../utils/telegram-links'
 
 const { t } = useI18n()
@@ -36,24 +42,6 @@ const chatTelegramLink = computed(() => {
   if (!currentChat.value)
     return null
   return getChatLink(currentChat.value)
-})
-
-// Context menu for chat header avatar
-const avatarContextOpen = ref(false)
-const avatarContextX = ref(0)
-const avatarContextY = ref(0)
-const avatarContextItems = computed(() => {
-  const items: { label: string, icon: string, action: () => void }[] = []
-  if (chatTelegramLink.value) {
-    items.push({
-      label: t('messages.openInTelegram'),
-      icon: 'i-lucide-external-link',
-      action: () => {
-        window.open(chatTelegramLink.value!, '_self')
-      },
-    })
-  }
-  return items
 })
 
 const messageLimit = ref(100)
@@ -79,12 +67,6 @@ const targetMessageParams = computed(() => ({
   messageUuid: route.query.messageUuid as string | undefined,
 }))
 
-// Avatar store access is not needed; ChatAvatar handles ensure and rendering
-
-/**
- * Compute chat header avatar src via centralized avatar store.
- * Avoids typing issues by not reading transient fields on CoreDialog.
- */
 // Header avatar is rendered via ChatAvatar wrapper
 
 // Use ChatAvatar wrapper to handle ensure and rendering
@@ -199,13 +181,10 @@ function sendMessage() {
   toast.success(t('chat.messageSent'))
 }
 
-function showAvatarContextMenu(e: MouseEvent) {
-  if (avatarContextItems.value.length === 0)
-    return
-  e.preventDefault()
-  avatarContextX.value = e.clientX
-  avatarContextY.value = e.clientY
-  avatarContextOpen.value = true
+function openTelegram() {
+  if (chatTelegramLink.value) {
+    window.open(chatTelegramLink.value, '_self')
+  }
 }
 
 function resetPagination() {
@@ -287,49 +266,56 @@ watch(
       <span>
         Offset: {{ messageOffset }}
       </span>
-      <button
-        class="rounded bg-blue-500 px-2 py-1 text-xs text-white"
+      <Button
+        size="sm"
         :disabled="isLoadingOlder || isLoadingMessages"
         @click="loadOlderMessages"
       >
         {{ t('chat.forceLoadOlder') }}
-      </button>
-      <button
-        class="rounded bg-green-500 px-2 py-1 text-xs text-white"
+      </Button>
+      <Button
+        size="sm"
+        variant="secondary"
         :disabled="isLoadingNewer || isLoadingMessages"
         @click="loadNewerMessages"
       >
         {{ t('chat.forceLoadNewer') }}
-      </button>
+      </Button>
     </div>
 
     <!-- Chat Header -->
-    <div class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
-      <div class="flex items-center gap-3">
-        <div
-          v-if="currentChat && currentChat.id != null"
-          :class="chatTelegramLink ? 'cursor-context-menu' : ''"
-          @contextmenu="showAvatarContextMenu"
-        >
-          <EntityAvatar
-            :id="currentChat.id"
-            entity="other"
-            entity-type="chat"
-            :file-id="currentChat?.avatarFileId"
-            :name="currentChat?.name"
-            size="md"
-          />
-        </div>
-        <div>
-          <h2 class="text-lg font-semibold">
+    <div class="sticky top-0 z-20 h-14 flex items-center justify-between gap-2 border-b bg-background/80 px-4 py-0 backdrop-blur-md md:h-16 supports-[backdrop-filter]:bg-background/60 md:px-6">
+      <div class="min-w-0 flex flex-1 items-center gap-3">
+        <ContextMenu v-if="currentChat && currentChat.id != null">
+          <ContextMenuTrigger>
+            <div :class="chatTelegramLink ? 'cursor-context-menu' : ''">
+              <EntityAvatar
+                :id="currentChat.id"
+                entity="other"
+                entity-type="chat"
+                :file-id="currentChat?.avatarFileId"
+                :name="currentChat?.name"
+                size="md"
+              />
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent v-if="chatTelegramLink">
+            <ContextMenuItem @select="openTelegram">
+              <span class="i-lucide-external-link mr-2 h-4 w-4" />
+              {{ t('messages.openInTelegram') }}
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+        <div class="min-w-0">
+          <h2 class="truncate text-lg font-semibold">
             {{ currentChat?.name }}
           </h2>
-          <p v-if="currentChat?.id" class="text-xs text-muted-foreground">
+          <p v-if="currentChat?.id" class="truncate text-xs text-muted-foreground">
             ID: {{ currentChat?.id }}
           </p>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 items-center gap-1">
         <SummaryDialog :chat-id="id.toString()">
           <template #default="{ open }">
             <Button
@@ -345,23 +331,16 @@ watch(
         <Button
           icon="i-lucide-search"
           variant="ghost"
-          size="sm"
+          size="icon"
+          class="h-9 w-9"
+          :aria-label="t('chat.search')"
+          :title="t('chat.search')"
           data-search-button
           @click="isGlobalSearchOpen = !isGlobalSearchOpen"
-        >
-          {{ t('chat.search') }}
-        </Button>
+        />
       </div>
     </div>
 
-    <ContextMenu
-      v-model:open="avatarContextOpen"
-      :items="avatarContextItems"
-      :x="avatarContextX"
-      :y="avatarContextY"
-    />
-
-    <!-- Messages Area with Virtual List -->
     <div class="flex-1 overflow-hidden">
       <VirtualMessageList
         ref="virtualListRef"
@@ -374,45 +353,48 @@ watch(
     </div>
 
     <!-- Message Input -->
-    <div class="p-4 md:p-6">
-      <div class="mx-auto max-w-4xl flex items-end gap-3">
+    <div class="absolute bottom-6 left-0 right-0 z-20 px-4 md:bottom-6 md:px-6">
+      <div class="mx-auto max-w-4xl flex items-end gap-3 border-transparent rounded-2xl bg-muted/50 p-2 shadow-sm backdrop-blur-xl transition-all duration-200 focus-within:border-primary/20 focus-within:bg-background hover:bg-muted/80 focus-within:ring-2 focus-within:ring-primary/20">
         <!-- Input container with modern design -->
         <div class="relative flex flex-1 items-center">
-          <div class="absolute left-4 flex items-center gap-2">
-            <button
-              class="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              type="button"
+          <div class="absolute left-2 flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
               title="Emoji"
             >
-              <span class="i-lucide-smile h-4 w-4" />
-            </button>
+              <span class="i-lucide-smile h-5 w-5" />
+            </Button>
           </div>
-          <input
+          <Input
             v-model="messageInput"
             type="text"
             :placeholder="t('chat.typeAMessage')"
-            class="h-14 w-full border-0 rounded-2xl bg-muted/50 px-4 py-4 pl-14 pr-14 text-base shadow-sm transition-all duration-200 focus:bg-muted placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            class="h-10 w-full border-transparent bg-transparent pl-14 pr-14 text-base shadow-none transition-all md:h-14 focus-visible:ring-0"
             @keyup.enter="sendMessage"
-          >
-          <div class="absolute right-4 flex items-center gap-1">
-            <button
-              class="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              type="button"
+          />
+          <div class="absolute right-2 flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
               title="Attachment"
             >
-              <span class="i-lucide-paperclip h-4 w-4" />
-            </button>
+              <span class="i-lucide-paperclip h-5 w-5" />
+            </Button>
           </div>
         </div>
 
         <!-- Send button with modern design -->
-        <button
+        <Button
           :disabled="!messageInput.trim()"
-          class="h-14 w-14 flex shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed hover:bg-primary/90 disabled:opacity-50 hover:shadow-xl disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:shadow-lg"
+          size="icon"
+          class="h-10 w-10 shrink-0 rounded-xl shadow-sm transition-transform md:h-14 md:w-14 active:scale-95 hover:scale-105"
           @click="sendMessage"
         >
-          <span class="i-lucide-send h-5 w-5" />
-        </button>
+          <span class="i-lucide-send ml-0.5 mt-0.5 h-5 w-5 md:h-6 md:w-6" />
+        </Button>
       </div>
     </div>
 

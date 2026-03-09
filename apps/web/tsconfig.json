@@ -16,7 +16,8 @@
       "@tg-search/core/types": ["../../packages/core/src/types/index.ts"],
       "@tg-search/common": ["../../packages/common/src"],
       "@tg-search/client": ["../../packages/client/src"],
-      "@tg-search/server/types": ["../../apps/server/src/types.ts"]
+      "@tg-search/server/types": ["../../apps/server/src/types.ts"],
+      "@/*": ["./src/*"]
     },
     "resolveJsonModule": true,
     "types": [

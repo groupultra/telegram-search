@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { CoreMessage } from '@tg-search/core'
 
-import { useWindowSize } from '@vueuse/core'
 import { VList } from 'virtua/vue'
-import { computed, nextTick, ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import MessageBubble from './messages/MessageBubble.vue'
@@ -25,7 +24,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const { height: windowHeight } = useWindowSize()
 const vListRef = ref<InstanceType<typeof VList>>()
 
 // Track scroll state
@@ -34,7 +32,7 @@ const scrollTop = ref(0)
 let scrollTimer: ReturnType<typeof setTimeout> | null = null
 
 // Container height calculation
-const containerHeight = computed(() => Math.max(windowHeight.value - 200, 400))
+// const containerHeight = computed(() => Math.max(windowHeight.value - 200, 400))
 
 // Track if we're at top/bottom to prevent repeated callbacks
 const isAtTop = ref(false)
@@ -165,7 +163,7 @@ defineExpose({
     <VList
       ref="vListRef"
       :data="messages"
-      :style="{ height: `${containerHeight}px` }"
+      class="h-full pb-32"
       :item-size="120"
       shift
       @scroll="onScroll"

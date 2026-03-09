@@ -10,20 +10,32 @@ import { en, zhCN } from '../locales'
  * TODO: Remove zh-Hant/zh-HK remaps when full support is available.
  */
 const languageRemap: Record<string, string> = {
-  'zh-CN': 'zhCN',
+  'zh-CN': 'zh-CN',
+  'zhCN': 'zh-CN',
   'en-US': 'en',
   'en': 'en',
 }
 
 const messages = {
   en,
-  zhCN,
+  'zh-CN': zhCN,
 }
 
 type LocaleKey = keyof typeof messages
 
 function getLocale(): LocaleKey {
-  let language = localStorage.getItem('settings/language') || navigator.language || 'en'
+  let language = localStorage.getItem('settings/language')
+  // Handle potential JSON string from useLocalStorage
+  if (language && (language.startsWith('"') || language.startsWith('\''))) {
+    try {
+      language = JSON.parse(language)
+    }
+    catch {
+      // ignore
+    }
+  }
+
+  language = language || navigator.language || 'en'
   language = languageRemap[language] ?? language
   if (Object.keys(messages).includes(language))
     return language as LocaleKey

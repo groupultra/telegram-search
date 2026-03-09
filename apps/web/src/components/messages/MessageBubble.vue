@@ -7,10 +7,10 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import EntityAvatar from '../avatar/EntityAvatar.vue'
-import ContextMenu from '../ui/ContextMenu.vue'
 import MediaRenderer from './media/MediaRenderer.vue'
 
 import { getChatLink, getMessageLink, getMessageWebLink, getUserLink } from '../../utils/telegram-links'
+import { ContextMenu } from '../ui/ContextMenu'
 
 const props = defineProps<{
   message: CoreMessage

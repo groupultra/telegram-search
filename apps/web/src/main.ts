@@ -3,6 +3,7 @@ import NProgress from 'nprogress'
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { initLogger, LoggerFormat } from '@guiiai/logg'
 import { VueQueryPlugin } from '@tanstack/vue-query'
+import { useAccountStore, useSessionStore } from '@tg-search/client'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
 import { createApp } from 'vue'
@@ -29,6 +30,11 @@ initLogger(LOG_LEVEL, LoggerFormat.Pretty)
 const app = createApp(App)
 
 const pinia = createPinia()
+app.use(pinia)
+
+const sessionStore = useSessionStore()
+sessionStore.init()
+
 const routes = setupLayouts(generatedRoutes.filter(_ => true))
 const router = createRouter({
   routes,
@@ -39,8 +45,23 @@ const router = createRouter({
 NProgress.configure({ showSpinner: false })
 
 // Add router navigation guards for NProgress
-router.beforeEach(() => {
+router.beforeEach((to) => {
   NProgress.start()
+
+  const accountStore = useAccountStore()
+  const isLoginRoute = to.path === '/login'
+  const hasValidLogin = accountStore.isReady
+
+  if (!isLoginRoute && !hasValidLogin) {
+    return {
+      path: '/login',
+      query: { redirect: to.fullPath },
+    }
+  }
+  if (isLoginRoute && hasValidLogin) {
+    return '/'
+  }
+  return true
 })
 
 router.afterEach(() => {
@@ -54,7 +75,6 @@ router.onError(() => {
 app.use(i18n)
 app.use(router)
 app.use(VueQueryPlugin)
-app.use(pinia)
 app.use(autoAnimatePlugin)
 app.use(createPGliteDevtoolsPlugin())
 

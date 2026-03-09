@@ -1,5 +1,10 @@
 {
   "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "clear": "Clear",
+    "unknown": "Unknown",
     "unknownChat": "Unknown Chat"
   },
   "aiChat": {
@@ -32,7 +37,15 @@
     "typeYourMessage": "Type your message...",
     "userFilter": "User Filter",
     "regeneratedMessage": "Message regenerated",
-    "deletedMessage": "Message deleted"
+    "deletedMessage": "Message deleted",
+    "toolCalls": "Tool Calls",
+    "tokenUsage": "Token Usage",
+    "prompt": "Prompt",
+    "completion": "Completion",
+    "total": "Total",
+    "tokens": "tokens",
+    "input": "Input",
+    "output": "Output"
   },
   "base": {
     "toaster": {
@@ -61,13 +74,24 @@
     "group": "Groups",
     "user": "Users"
   },
+  "chatList": {
+    "privateChat": "Private Chat",
+    "channel": "Channel",
+    "group": "Group",
+    "noChatsFound": "No chats found"
+  },
   "chatSelector": {
+    "filters": "Filters",
+    "all": "All",
     "channel": "Channel",
     "chat": "Chat {id}",
     "group": "Group",
+    "supergroup": "Supergroup",
+    "private": "Private",
     "id": "ID: {id}",
     "noChatsFound": "No chats found",
     "search": "Search",
+    "searchPlaceholder": "Search chats...",
     "type": "Type",
     "user": "User"
   },
@@ -84,23 +108,29 @@
   },
   "login": {
     "code": "Code",
+    "changePhone": "Change phone number",
     "codeDescription": "Please enter the verification code from Telegram",
     "complete": "Complete",
     "completeDescription": "Login successful!",
     "enterHome": "Go to Home",
     "login": "Login",
+    "signIn": "Sign in",
     "loginSuccess": "Login successful!",
     "loginSuccessDescription": "You have successfully logged into your Telegram account",
     "password": "Two-factor Password",
-    "passwordDescription": "Please enter your two-factor authentication password",
+    "passwordDescription": "Please enter your two-factor authentication password to verify your identity.",
     "phone": "Phone",
-    "phoneDescription": "Please enter your phone number (Remember to add the country code before the phone number)",
+    "phoneDescription": "Please confirm your country code and enter your phone number.",
     "phoneNumber": "Phone Number",
-    "phoneNumberPlaceholder": "Enter your phone number",
+    "phoneNumberPlaceholder": "Phone number",
+    "phonePlaceholder": "+1 234 567 8900",
     "processing": "Processing...",
+    "continue": "Continue",
     "telegramLogin": "Telegram Login",
     "twoFactorPassword": "Two-factor Password",
     "verificationCode": "Verification Code",
+    "enterCodePlaceholder": "Enter code",
+    "passwordPlaceholder": "Password",
     "verify": "Verify"
   },
   "loginPromptBanner": {
@@ -182,6 +212,16 @@
     "receiveMessagesSettings": "New Messages Behavior",
     "resolversDescription": "Control which message resolvers are enabled. Disabled resolvers will not process messages.",
     "resolversSettings": "Message Resolvers Settings",
+    "resolvers": {
+      "media": "Media Resolver",
+      "mediaDescription": "Resolves media content like images, videos, and files in messages.",
+      "user": "User Resolver",
+      "userDescription": "Resolves user information including sender, forward source, etc.",
+      "link": "Link Resolver",
+      "linkDescription": "Resolves links in messages and extracts metadata.",
+      "embedding": "Embedding Resolver",
+      "embeddingDescription": "Converts message content into vectors for semantic search."
+    },
     "save": "Save",
     "savingSettings": "Saving settings...",
     "settings": "Settings",
@@ -206,6 +246,7 @@
     "etaSeconds": "ETA: {seconds}s",
     "etaTime": "ETA: {minutes}m {seconds}s",
     "getMessages": "Get messages",
+    "hideStats": "Hide Statistics",
     "hideAdvanced": "Hide Advanced",
     "incrementalSync": "Incremental Sync",
     "incrementalSyncCompleted": "Incremental sync completed",
@@ -225,6 +266,7 @@
     "selectAllWarning": "You selected {count} chats. Sync may take a long time.",
     "selectChats": "Select Chats",
     "selectedChats": "{count} chats selected",
+    "showStats": "Show Statistics",
     "showAdvanced": "Show Advanced",
     "startSync": "Start Sync",
     "startSyncPrompt": "The first synchronization requires authorization of Data Export in the Telegram client, and then refresh the page and try again.",
@@ -236,6 +278,7 @@
     "syncMedia": "Sync Media Files",
     "syncMediaDescription": "When enabled, media files (images, videos, etc.) will be downloaded and saved",
     "syncOptions": "Sync Options",
+    "syncOptionsDescription": "Configure sync range and media options before starting.",
     "syncProgress": "Sync Progress",
     "syncPrompt": "After a synchronized conversation, you can search all chat records.",
     "syncRange": "Sync Range",
@@ -243,9 +286,11 @@
     "syncVisualization": "Sync Status Visualization",
     "syncedMessages": "Synced Messages",
     "syncing": "Syncing...",
+    "selectDateRange": "Select Date Range",
     "timeRange": "Time Range",
     "totalMessages": "Total Messages",
-    "unsyncedMessages": "Unsynced Messages"
+    "unsyncedMessages": "Unsynced Messages",
+    "selectChatToViewStats": "Select a chat to view sync statistics"
   },
   "summaryDialog": {
     "title": "Message Summary",
@@ -265,7 +310,8 @@
     "markAsRead": "Mark as Read ({count})",
     "summary": "Summary",
     "sources": "Sources",
-    "noSources": "No messages"
+    "noSources": "No messages",
+    "userWithId": "User {id}"
   },
   "virtualMessageList": {
     "scrolling": "Loading..."

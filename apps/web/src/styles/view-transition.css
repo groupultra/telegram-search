@@ -1,0 +1,20 @@
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* 
+  We want the NEW view to always be on top of the OLD view.
+  This allows us to simply animate the NEW view clipping path
+  from 0 to 100% to create the "expanding" effect for both
+  Light->Dark and Dark->Light transitions.
+*/
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}

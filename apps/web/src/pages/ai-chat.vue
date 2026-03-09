@@ -14,9 +14,17 @@ import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
 import PhotoSearchResults from '../components/PhotoSearchResults.vue'
-import Dialog from '../components/ui/Dialog.vue'
 
 import { Button } from '../components/ui/Button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/Dialog'
+import { Textarea } from '../components/ui/Textarea'
 import { useAIChatLogic } from '../composables/useAIChat'
 
 const { t } = useI18n()
@@ -37,7 +45,27 @@ const { chats } = storeToRefs(chatStore)
 
 const isScopeSelectorOpen = ref(false)
 const selectedChatIds = ref<number[]>([])
+const tempSelectedChatIds = ref<number[]>([])
 const activeChatId = ref<number | null>(null)
+
+watch(isScopeSelectorOpen, (open) => {
+  if (open) {
+    tempSelectedChatIds.value = [...selectedChatIds.value]
+  }
+})
+
+function confirmFilter() {
+  selectedChatIds.value = [...tempSelectedChatIds.value]
+  isScopeSelectorOpen.value = false
+}
+
+function cancelFilter() {
+  isScopeSelectorOpen.value = false
+}
+
+function clearFilter() {
+  tempSelectedChatIds.value = []
+}
 
 const filteredChatsCount = computed(() => selectedChatIds.value.length)
 
@@ -283,7 +311,7 @@ async function generateMessage(message: string, assistantId?: string) {
     )
   }
   catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+    const errorMessage = err instanceof Error ? err.message : t('errors.unknownError')
     aiChatStore.setError(errorMessage)
     toast.error(errorMessage)
   }
@@ -298,11 +326,6 @@ function handleKeyPress(event: KeyboardEvent) {
     event.preventDefault()
     sendMessage()
   }
-}
-
-function clearChat() {
-  aiChatStore.clearChat()
-  toast.success(t('aiChat.clearChat'))
 }
 
 function viewMessageInChat(chatId: string, platformMessageId: string) {
@@ -321,7 +344,6 @@ function copyMessage(content: string) {
 }
 
 function regenerateMessage(id: string) {
-  // aiChatStore.regenerateMessage(id)
   aiChatStore.updateAssistantMessage(id, '', [], undefined, true, [])
   generateMessage('', id)
   toast.success(t('aiChat.regeneratedMessage'))
@@ -340,29 +362,33 @@ onMounted(() => {
 <template>
   <div class="h-full flex flex-col">
     <!-- Header -->
-    <header class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
+    <header class="h-14 flex shrink-0 items-center justify-between border-b bg-card/50 px-4 py-0 backdrop-blur-sm md:h-16 md:px-6">
       <div class="flex items-center gap-3">
         <h1 class="text-lg font-semibold">
           {{ t('aiChat.aiChat') }}
         </h1>
       </div>
+
       <div class="flex items-center gap-2">
         <Button
-          v-if="messages.length > 0"
-          icon="i-lucide-trash-2"
           variant="ghost"
-          size="sm"
-          @click="clearChat"
+          size="icon"
+          class="h-9 w-9 rounded-full"
+          :class="filteredChatsCount > 0 ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-muted'"
+          @click="isScopeSelectorOpen = true"
         >
-          {{ t('aiChat.clearChat') }}
+          <div v-if="filteredChatsCount > 0" class="h-5 w-5 flex items-center justify-center text-xs font-bold">
+            {{ filteredChatsCount }}
+          </div>
+          <span v-else class="i-lucide-filter h-5 w-5" />
         </Button>
       </div>
     </header>
 
-    <!-- Messages Area -->
+    <!-- Chat Messages Area -->
     <div
       ref="messagesContainer"
-      class="flex-1 overflow-y-auto p-6 space-y-4"
+      class="flex-1 overflow-y-auto scroll-smooth p-4"
     >
       <!-- Empty state -->
       <div
@@ -512,11 +538,11 @@ onMounted(() => {
                 </div>
                 <div v-if="message.debugInfo.toolCalls && message.debugInfo.toolCalls.length > 0" class="mt-1.5 border-t border-border/50 pt-1.5">
                   <div class="mb-1 flex items-center justify-between">
-                    <span class="font-medium">Tool Calls:</span>
+                    <span class="font-medium">{{ t('aiChat.toolCalls') }}:</span>
                     <div class="flex items-center gap-2 text-[9px] opacity-60">
-                      <span>Total: {{ message.debugInfo.toolCalls.reduce((sum, t) => sum + (t.duration || 0), 0) }}ms</span>
+                      <span>{{ t('aiChat.total') }}: {{ message.debugInfo.toolCalls.reduce((sum, t) => sum + (t.duration || 0), 0) }}ms</span>
                       <span v-if="message.debugInfo.toolCalls.some(t => t.usage)">
-                        | {{ message.debugInfo.toolCalls.reduce((sum, t) => sum + (t.usage?.totalTokens || 0), 0) }} tokens
+                        | {{ message.debugInfo.toolCalls.reduce((sum, t) => sum + (t.usage?.totalTokens || 0), 0) }} {{ t('aiChat.tokens') }}
                       </span>
                     </div>
                   </div>
@@ -546,20 +572,20 @@ onMounted(() => {
                           {{ tool.description }}
                         </div>
                         <div v-if="tool.usage" class="flex items-center gap-2 rounded bg-primary/10 p-1 text-[9px]">
-                          <span class="font-medium opacity-70">Token Usage:</span>
-                          <span class="opacity-60">Prompt: {{ tool.usage.promptTokens || 0 }}</span>
-                          <span class="opacity-60">Completion: {{ tool.usage.completionTokens || 0 }}</span>
-                          <span class="font-medium opacity-70">Total: {{ tool.usage.totalTokens || 0 }}</span>
+                          <span class="font-medium opacity-70">{{ t('aiChat.tokenUsage') }}:</span>
+                          <span class="opacity-60">{{ t('aiChat.prompt') }}: {{ tool.usage.promptTokens || 0 }}</span>
+                          <span class="opacity-60">{{ t('aiChat.completion') }}: {{ tool.usage.completionTokens || 0 }}</span>
+                          <span class="font-medium opacity-70">{{ t('aiChat.total') }}: {{ tool.usage.totalTokens || 0 }}</span>
                         </div>
                         <div v-if="tool.input" class="rounded bg-muted/50 p-1">
                           <div class="mb-0.5 font-medium opacity-70">
-                            Input:
+                            {{ t('aiChat.input') }}:
                           </div>
                           <pre class="whitespace-pre-wrap break-all font-mono opacity-60">{{ JSON.stringify(tool.input, null, 2) }}</pre>
                         </div>
                         <div v-if="tool.output" class="rounded bg-muted/50 p-1">
                           <div class="mb-0.5 font-medium opacity-70">
-                            Output:
+                            {{ t('aiChat.output') }}:
                           </div>
                           <pre class="whitespace-pre-wrap break-all font-mono opacity-60">{{ JSON.stringify(tool.output, null, 2) }}</pre>
                         </div>
@@ -616,34 +642,19 @@ onMounted(() => {
     <div class="border-t bg-card/50 p-4 backdrop-blur-sm">
       <div class="mx-auto max-w-4xl">
         <div class="flex items-end gap-2">
-          <!-- Chat Scope Selector Trigger -->
-          <Button
-            variant="outline"
-            icon="i-lucide-filter"
-            class="h-12 w-12 shrink-0 px-0"
-            @click="isScopeSelectorOpen = true"
-          >
-            <div v-if="filteredChatsCount > 0" class="flex items-center justify-center gap-1">
-              <span class="text-sm font-medium">
-                {{ filteredChatsCount }}
-              </span>
-            </div>
-          </Button>
-
-          <textarea
+          <Textarea
             v-model="messageInput"
             :placeholder="t('aiChat.typeYourMessage')"
-            class="max-h-32 min-h-12 flex-1 resize-none border rounded-lg bg-background px-4 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="max-h-32 min-h-12 flex-1 resize-none border-input rounded-xl bg-background px-4 py-3 text-sm shadow-sm transition-all focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
             rows="1"
             @keydown="handleKeyPress"
           />
           <Button
-            icon="i-lucide-send"
             :disabled="!messageInput.trim() || isLoading"
-            class="h-12 w-16 shrink-0 px-0"
+            class="h-12 w-12 flex shrink-0 items-center justify-center rounded-xl p-0 shadow-sm transition-all active:scale-95 hover:scale-105"
             @click="sendMessage"
           >
-            {{ t('aiChat.send') }}
+            <span class="i-lucide-send h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -651,54 +662,50 @@ onMounted(() => {
   </div>
 
   <!-- Chat Scope Selector Dialog -->
-  <Dialog
-    v-model="isScopeSelectorOpen"
-    class="sm:max-w-md"
-  >
-    <div class="h-[60vh] flex flex-col">
-      <div class="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <h2 class="text-lg font-semibold">
-            {{ t('aiChat.selectScope') }}
-          </h2>
-          <p class="text-sm text-muted-foreground">
-            {{ t('aiChat.selectScopeDescription') }}
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          icon="i-lucide-x"
-          class="h-8 w-8 rounded-full -mr-2"
-          @click="isScopeSelectorOpen = false"
-        />
-      </div>
+  <Dialog v-model:open="isScopeSelectorOpen">
+    <DialogContent class="h-[80vh] max-w-[calc(100%-2rem)] flex flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-md" :show-close-button="false">
+      <DialogHeader class="shrink-0 border-b px-6 py-4">
+        <DialogTitle>{{ t('aiChat.selectScope') }}</DialogTitle>
+        <DialogDescription>
+          {{ t('aiChat.selectScopeDescription') }}
+        </DialogDescription>
+      </DialogHeader>
 
-      <div class="min-h-0 flex-1">
+      <div class="min-h-0 flex-1 p-4">
         <ChatSelector
-          v-model:selected-chats="selectedChatIds"
+          v-model:selected-chats="tempSelectedChatIds"
           v-model:active-chat-id="activeChatId"
           :chats="chats"
-        />
+          class="h-full"
+        >
+          <template #actions>
+            <Button
+              v-if="tempSelectedChatIds.length > 0"
+              variant="ghost"
+              size="sm"
+              class="h-10 px-2 text-xs text-destructive hover:text-destructive"
+              @click="clearFilter"
+            >
+              <span class="i-lucide-trash-2 mr-1 h-4 w-4" />
+              {{ t('common.clear') }}
+            </Button>
+          </template>
+        </ChatSelector>
       </div>
 
-      <div class="mt-4 flex justify-end gap-2">
+      <DialogFooter class="shrink-0 border-t bg-muted/10 px-6 py-4">
         <Button
           variant="ghost"
-          size="sm"
-          icon="i-lucide-x"
-          @click="selectedChatIds = []"
+          @click="cancelFilter"
         >
-          {{ t('aiChat.cancelFilter') }}
+          {{ t('common.cancel') }}
         </Button>
         <Button
-          size="sm"
-          icon="i-lucide-check"
-          @click="isScopeSelectorOpen = false"
+          @click="confirmFilter"
         >
-          {{ t('aiChat.confirmFilter') }}
+          {{ t('common.confirm') }}
         </Button>
-      </div>
-    </div>
+      </DialogFooter>
+    </DialogContent>
   </Dialog>
 </template>

@@ -2,6 +2,7 @@ import type { ClientRegisterEventHandler } from '.'
 
 import { useLogger } from '@guiiai/logg'
 import { CoreEventType } from '@tg-search/core'
+import { toast } from 'vue-sonner'
 
 import { useAccountStore } from '../stores/useAccount'
 import { useSessionStore } from '../stores/useSession'
@@ -40,5 +41,6 @@ export function registerBasicEventHandlers(
 
   registerEventHandler(CoreEventType.AuthError, () => {
     useAccountStore().auth.isLoading = false
+    toast.error('Login failed')
   })
 }

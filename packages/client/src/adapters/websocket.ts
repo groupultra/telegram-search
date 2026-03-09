@@ -13,6 +13,7 @@ import { useLogger } from '@guiiai/logg'
 import { useWebSocket } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { computed, watch } from 'vue'
+import { toast } from 'vue-sonner'
 
 import { WS_API_BASE } from '../constants'
 import { getRegisterEventHandler } from '../event-handlers'
@@ -68,6 +69,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     onConnected: handleWsConnected,
     onDisconnected: () => {
       logger.log('Disconnected')
+      toast.error('WebSocket disconnected')
     },
     // Only connect when URL is defined
     immediate: !!wsUrlComputed.value,

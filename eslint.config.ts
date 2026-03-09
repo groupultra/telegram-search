@@ -52,6 +52,7 @@ const config = defineConfig({
     ],
     'sonarjs/no-dead-store': 'off',
     'sonarjs/cognitive-complexity': 'off',
+    'sonarjs/no-unused-vars': 'off',
     // 'sonarjs/no-commented-code': 'off',
     // 'sonarjs/pseudo-random': 'off',
     'sonarjs/todo-tag': 'off',

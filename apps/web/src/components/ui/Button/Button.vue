@@ -1,47 +1,60 @@
 <script setup lang="ts">
-const props = defineProps<{
-  icon: string
-  size?: 'sm' | 'md' | 'lg'
-  hasTooltip?: boolean
-  darkModeText?: boolean
-  withTransition?: boolean
-  ariaLabel?: string
-  disabled?: boolean
-}>()
+import type { VariantProps } from 'class-variance-authority'
+import type { PrimitiveProps } from 'reka-ui'
 
-const sizeClasses = {
-  sm: 'p-1',
-  md: 'p-2',
-  lg: 'p-3',
-}
+import { cva } from 'class-variance-authority'
+import { Primitive } from 'reka-ui'
 
-const iconSizeClasses = {
-  sm: 'h-4 w-4',
-  md: 'h-5 w-5',
-  lg: 'h-6 w-6',
+import { cn } from '@/lib/utils'
+
+const props = withDefaults(defineProps<Props>(), {
+  as: 'button',
+})
+
+const buttonVariants = cva(
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        destructive:
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        outline:
+          'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+        secondary:
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+        link: 'text-primary underline-offset-4 hover:underline',
+      },
+      size: {
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 rounded-md px-3',
+        lg: 'h-11 rounded-md px-8',
+        icon: 'h-10 w-10',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  },
+)
+
+interface Props extends PrimitiveProps {
+  variant?: VariantProps<typeof buttonVariants>['variant']
+  size?: VariantProps<typeof buttonVariants>['size']
+  class?: string
+  icon?: string
 }
 </script>
 
 <template>
-  <button
-    class="flex flex-row items-center justify-center gap-2 rounded-lg p-2 text-gray-900 hover:bg-neutral-100 dark:text-gray-100 dark:hover:bg-neutral-800"
-    :class="[
-      sizeClasses[size ?? 'md'],
-      disabled ? 'cursor-not-allowed opacity-50' : '',
-      hasTooltip ? 'group relative' : '',
-      withTransition ? 'transition-colors duration-300' : '',
-    ]"
-    :aria-label="ariaLabel"
-    :disabled="disabled"
+  <Primitive
+    :as="as"
+    :as-child="asChild"
+    :class="cn(buttonVariants({ variant, size }), props.class)"
   >
-    <div
-      :class="[
-        iconSizeClasses[size ?? 'md'],
-        props.icon,
-        darkModeText ? 'text-gray-900 dark:text-gray-100' : '',
-        withTransition ? 'transition-colors duration-300' : '',
-      ]"
-    />
+    <span v-if="icon" :class="cn(icon, 'mr-2 h-4 w-4')" />
     <slot />
-  </button>
+  </Primitive>
 </template>

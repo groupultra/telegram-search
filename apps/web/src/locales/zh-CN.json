@@ -1,6 +1,11 @@
 {
   "common": {
-    "unknownChat": "未知对话"
+    "back": "返回",
+    "cancel": "取消",
+    "confirm": "确认",
+    "clear": "清除",
+    "unknown": "未知",
+    "unknownChat": "未知会话"
   },
   "aiChat": {
     "aiChat": "AI 对话",
@@ -32,7 +37,15 @@
     "typeYourMessage": "输入您的消息...",
     "userFilter": "用户过滤",
     "regeneratedMessage": "消息已重新生成",
-    "deletedMessage": "消息已删除"
+    "deletedMessage": "消息已删除",
+    "toolCalls": "工具调用",
+    "tokenUsage": "Token 用量",
+    "prompt": "提示词",
+    "completion": "补全文本",
+    "total": "总计",
+    "tokens": "tokens",
+    "input": "输入",
+    "output": "输出"
   },
   "base": {
     "toaster": {
@@ -61,13 +74,24 @@
     "group": "群组",
     "user": "用户"
   },
+  "chatList": {
+    "privateChat": "私聊",
+    "channel": "频道",
+    "group": "群组",
+    "noChatsFound": "没有找到聊天"
+  },
   "chatSelector": {
+    "filters": "筛选",
+    "all": "全部",
     "channel": "频道",
     "chat": "聊天 {id}",
     "group": "群组",
+    "supergroup": "超级群组",
+    "private": "私聊",
     "id": "ID: {id}",
     "noChatsFound": "没有找到聊天",
     "search": "搜索",
+    "searchPlaceholder": "搜索聊天...",
     "type": "类型",
     "user": "用户"
   },
@@ -84,23 +108,29 @@
   },
   "login": {
     "code": "验证码",
+    "changePhone": "更换手机号",
     "codeDescription": "请输入 Telegram 内的验证码",
     "complete": "完成",
     "completeDescription": "登录成功！",
     "enterHome": "进入主页",
     "login": "登录",
+    "signIn": "登录",
     "loginSuccess": "登录成功！",
     "loginSuccessDescription": "您已成功登录 Telegram 账号",
     "password": "两步验证密码",
-    "passwordDescription": "请输入您的两步验证密码",
+    "passwordDescription": "请输入您的两步验证密码以验证身份",
     "phone": "手机号",
-    "phoneDescription": "请输入您的手机号码 (请在电话号码前加上国家代码)",
+    "phoneDescription": "请确认您的国家/地区代码并输入手机号码。",
     "phoneNumber": "手机号码",
-    "phoneNumberPlaceholder": "请输入手机号码",
+    "phoneNumberPlaceholder": "手机号码",
+    "phonePlaceholder": "+86 138 0000 0000",
     "processing": "处理中...",
+    "continue": "继续",
     "telegramLogin": "Telegram 登录",
     "twoFactorPassword": "两步验证密码",
     "verificationCode": "验证码",
+    "enterCodePlaceholder": "输入验证码",
+    "passwordPlaceholder": "密码",
     "verify": "验证"
   },
   "loginPromptBanner": {
@@ -180,6 +210,16 @@
     "receiveMessagesSettings": "新消息行为",
     "resolversDescription": "控制哪些消息解析器已启用。禁用的解析器将不会处理消息。",
     "resolversSettings": "消息解析器设置",
+    "resolvers": {
+      "media": "媒体解析器",
+      "mediaDescription": "解析消息中的图片、视频、文件等媒体内容。",
+      "user": "用户解析器",
+      "userDescription": "解析消息中的用户信息，包括发送者、转发来源等。",
+      "link": "链接解析器",
+      "linkDescription": "解析消息中的链接，提取元数据。",
+      "embedding": "嵌入向量解析器",
+      "embeddingDescription": "将消息内容转换为向量，用于语义搜索。"
+    },
     "save": "保存",
     "savingSettings": "保存设置中",
     "settings": "设置",
@@ -206,6 +246,7 @@
     "etaSeconds": "预计还需 {seconds} 秒",
     "etaTime": "预计还需 {minutes} 分 {seconds} 秒",
     "getMessages": "获取消息",
+    "hideStats": "隐藏统计",
     "hideAdvanced": "隐藏高级选项",
     "incrementalSync": "增量同步",
     "incrementalSyncCompleted": "增量同步完成",
@@ -225,6 +266,7 @@
     "selectAllWarning": "已选择 {count} 个聊天，同步可能耗时较长。",
     "selectChats": "选择聊天",
     "selectedChats": "已选择 {count} 个聊天",
+    "showStats": "显示统计",
     "showAdvanced": "显示高级选项",
     "startSync": "开始同步",
     "startSyncPrompt": "首次同步需要在 Telegram 客户端中授权 Data Export 数据导出，并且刷新页面之后再尝试一次。",
@@ -236,6 +278,7 @@
     "syncMedia": "同步媒体文件",
     "syncMediaDescription": "启用后将下载并保存消息中的媒体文件（图片、视频等）",
     "syncOptions": "同步选项",
+    "syncOptionsDescription": "设置同步范围与媒体选项，调整后再开始同步。",
     "syncProgress": "同步进度",
     "syncPrompt": "同步对话之后才能搜索全部的聊天记录",
     "syncRange": "同步范围",
@@ -243,9 +286,11 @@
     "syncVisualization": "同步状态可视化",
     "syncedMessages": "已同步消息",
     "syncing": "同步中...",
+    "selectDateRange": "选择时间范围",
     "timeRange": "时间范围",
     "totalMessages": "总消息数",
-    "unsyncedMessages": "未同步消息"
+    "unsyncedMessages": "未同步消息",
+    "selectChatToViewStats": "选择聊天以查看同步统计信息"
   },
   "summaryDialog": {
     "title": "消息摘要",
@@ -265,7 +310,8 @@
     "markAsRead": "标记为已读",
     "summary": "摘要",
     "sources": "来源",
-    "noSources": "没有来源"
+    "noSources": "没有来源",
+    "userWithId": "用户 {id}"
   },
   "virtualMessageList": {
     "scrolling": "加载中"

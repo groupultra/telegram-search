@@ -13,11 +13,17 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
-import Dialog from './ui/Dialog.vue'
-
 import { useAIChatLogic } from '../composables/useAIChat'
 import { useSummarizeStore } from '../stores/summarize'
 import { Button } from './ui/Button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/Dialog'
 
 type SummaryMode = 'unread' | 'today' | 'last24h'
 
@@ -108,7 +114,7 @@ async function generateSummary(
   const model = settings?.model || 'gpt-4o-mini'
 
   const content = messages.map((m) => {
-    const name = m.fromName || (m.fromId ? `User ${m.fromId}` : 'Unknown')
+    const name = m.fromName || (m.fromId ? t('summaryDialog.userWithId', { id: m.fromId }) : t('common.unknown'))
     return `${name}: ${m.content}`
   }).join('\n')
 
@@ -185,114 +191,112 @@ const canMarkRead = computed(() => {
 </script>
 
 <template>
-  <slot :open="open" />
+  <Dialog v-model:open="isOpen">
+    <slot :open="open" />
 
-  <Dialog
-    v-model="isOpen"
-    max-width="64rem"
-  >
-    <div class="h-[70vh] flex flex-col gap-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-bold">
+    <DialogContent class="h-[80vh] max-w-5xl flex flex-col gap-0 overflow-hidden p-0">
+      <DialogHeader class="border-b px-6 py-4">
+        <DialogTitle>{{ t('summaryDialog.title') }}</DialogTitle>
+        <DialogDescription class="hidden">
           {{ t('summaryDialog.title') }}
-        </h2>
-      </div>
+        </DialogDescription>
+      </DialogHeader>
 
-      <!-- Mode Tabs -->
-      <div class="flex items-center gap-2">
-        <button
-          :disabled="session.isLoading"
-          :class="{ 'bg-accent text-accent-foreground': activeMode === 'unread' }"
-          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
-          @click="triggerGenerate('unread')"
-        >
-          <span class="i-lucide-mail-open h-4 w-4" />
-          <span>{{ t('summaryDialog.tabUnread') }}</span>
-        </button>
-        <button
-          :disabled="session.isLoading"
-          :class="{ 'bg-accent text-accent-foreground': activeMode === 'today' }"
-          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
-          @click="triggerGenerate('today')"
-        >
-          <span class="i-lucide-calendar-days h-4 w-4" />
-          <span>{{ t('summaryDialog.tabToday') }}</span>
-        </button>
-        <button
-          :disabled="session.isLoading"
-          :class="{ 'bg-accent text-accent-foreground': activeMode === 'last24h' }"
-          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
-          @click="triggerGenerate('last24h')"
-        >
-          <span class="i-lucide-clock-3 h-4 w-4" />
-          <span>{{ t('summaryDialog.tabLast24h') }}</span>
-        </button>
-      </div>
-
-      <div class="min-h-0 flex flex-1 flex-col gap-4 md:flex-row">
-        <!-- Summary Section -->
-        <div class="flex flex-1 flex-col overflow-hidden rounded-lg bg-muted/30 p-4">
-          <h3 class="mb-2 text-muted-foreground font-medium">
-            {{ t('summaryDialog.summary') || 'Summary' }}
-          </h3>
-          <div v-if="session.isLoading && !session.content" class="animate-pulse space-y-3">
-            <div class="h-4 w-3/4 rounded bg-muted" />
-            <div class="h-4 w-1/2 rounded bg-muted" />
-            <div class="h-4 w-5/6 rounded bg-muted" />
-          </div>
-          <div v-else class="max-w-none overflow-y-auto">
-            <MarkdownRender
-              :custom-id="`unread-summary-${props.chatId}`"
-              :content="session.content"
-            />
-          </div>
+      <div class="flex flex-1 flex-col gap-4 overflow-hidden p-6">
+        <!-- Mode Tabs -->
+        <div class="flex items-center gap-2">
+          <Button
+            :disabled="session.isLoading"
+            :variant="activeMode === 'unread' ? 'default' : 'ghost'"
+            size="sm"
+            @click="triggerGenerate('unread')"
+          >
+            <span class="i-lucide-mail-open mr-2 h-4 w-4" />
+            <span>{{ t('summaryDialog.tabUnread') }}</span>
+          </Button>
+          <Button
+            :disabled="session.isLoading"
+            :variant="activeMode === 'today' ? 'default' : 'ghost'"
+            size="sm"
+            @click="triggerGenerate('today')"
+          >
+            <span class="i-lucide-calendar-days mr-2 h-4 w-4" />
+            <span>{{ t('summaryDialog.tabToday') }}</span>
+          </Button>
+          <Button
+            :disabled="session.isLoading"
+            :variant="activeMode === 'last24h' ? 'default' : 'ghost'"
+            size="sm"
+            @click="triggerGenerate('last24h')"
+          >
+            <span class="i-lucide-clock-3 mr-2 h-4 w-4" />
+            <span>{{ t('summaryDialog.tabLast24h') }}</span>
+          </Button>
         </div>
 
-        <!-- Sources Section -->
-        <div class="w-full flex flex-col overflow-hidden border rounded-lg bg-background md:w-80">
-          <div class="border-b bg-muted/30 px-4 py-2 text-sm text-muted-foreground font-medium">
-            {{ t('summaryDialog.sources') || 'Sources' }} ({{ session.sourceMessages.length }})
-          </div>
-          <div class="flex-1 overflow-y-auto p-2">
-            <div v-if="session.sourceMessages.length === 0" class="py-8 text-center text-sm text-muted-foreground">
-              {{ t('summaryDialog.noSources') || 'No messages' }}
+        <div class="min-h-0 flex flex-1 flex-col gap-4 md:flex-row">
+          <!-- Summary Section -->
+          <div class="flex flex-1 flex-col overflow-hidden border rounded-lg bg-muted/30 p-4">
+            <h3 class="mb-2 flex items-center gap-2 text-muted-foreground font-medium">
+              <span class="i-lucide-sparkles h-4 w-4" />
+              {{ t('summaryDialog.summary') || 'Summary' }}
+            </h3>
+            <div v-if="session.isLoading && !session.content" class="animate-pulse space-y-3">
+              <div class="h-4 w-3/4 rounded bg-muted" />
+              <div class="h-4 w-1/2 rounded bg-muted" />
+              <div class="h-4 w-5/6 rounded bg-muted" />
             </div>
-            <div
-              v-for="msg in session.sourceMessages"
-              :key="msg.uuid"
-              class="cursor-pointer rounded p-2 text-sm hover:bg-muted/50"
-              @click="goToMessage(msg)"
-            >
-              <div class="flex justify-between text-xs text-muted-foreground">
-                <span class="text-foreground font-medium">{{ msg.fromName || msg.fromId }}</span>
-                <span>{{ formatTime(msg.platformTimestamp) }}</span>
+            <div v-else class="max-w-none overflow-y-auto pr-2">
+              <MarkdownRender
+                :custom-id="`unread-summary-${props.chatId}`"
+                :content="session.content"
+              />
+            </div>
+          </div>
+
+          <!-- Sources Section -->
+          <div class="w-full flex flex-col overflow-hidden border rounded-lg bg-background md:w-80">
+            <div class="border-b bg-muted/30 px-4 py-2 text-sm text-muted-foreground font-medium">
+              {{ t('summaryDialog.sources') || 'Sources' }} ({{ session.sourceMessages.length }})
+            </div>
+            <div class="flex-1 overflow-y-auto p-2">
+              <div v-if="session.sourceMessages.length === 0" class="py-8 text-center text-sm text-muted-foreground">
+                {{ t('summaryDialog.noSources') || 'No messages' }}
               </div>
-              <div class="line-clamp-2 mt-1 text-muted-foreground">
-                {{ msg.content }}
+              <div
+                v-for="msg in session.sourceMessages"
+                :key="msg.uuid"
+                class="cursor-pointer rounded p-2 text-sm transition-colors hover:bg-muted/50"
+                @click="goToMessage(msg)"
+              >
+                <div class="flex justify-between text-xs text-muted-foreground">
+                  <span class="text-foreground font-medium">{{ msg.fromName || msg.fromId }}</span>
+                  <span>{{ formatTime(msg.platformTimestamp) }}</span>
+                </div>
+                <div class="line-clamp-2 mt-1 text-muted-foreground">
+                  {{ msg.content }}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <DialogFooter class="border-t bg-muted/10 px-6 py-4">
         <Button
-          icon="i-lucide-x"
           variant="outline"
-          size="sm"
           @click="isOpen = false"
         >
           {{ t('summaryDialog.close') }}
         </Button>
         <Button
-          icon="i-lucide-check"
-          size="sm"
           :disabled="!canMarkRead"
           @click="markRead"
         >
+          <span class="i-lucide-check mr-2 h-4 w-4" />
           {{ t('summaryDialog.markAsRead', { count: session.sourceMessages.length }) }}
         </Button>
-      </div>
-    </div>
+      </DialogFooter>
+    </DialogContent>
   </Dialog>
 </template>

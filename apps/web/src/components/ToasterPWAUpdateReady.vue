@@ -31,7 +31,7 @@ function handleNotNow() {
     </div>
     <div w-full flex items-center gap-2>
       <Button
-        icon="i-solar:close-circle-line-duotone"
+        icon="i-lucide-x-circle"
         w-full
         size="sm"
         aria-label="Not now"
@@ -42,7 +42,7 @@ function handleNotNow() {
         </div>
       </Button>
       <Button
-        icon="i-solar:check-circle-line-duotone"
+        icon="i-lucide-check-circle"
         w-full
         size="sm"
         aria-label="Update"

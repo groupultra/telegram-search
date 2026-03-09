@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { SyncOptions } from '@tg-search/core'
-import type { DateRange } from 'reka-ui'
+import type { DateRange, DateValue } from 'reka-ui'
 
 import NProgress from 'nprogress'
 
 import { getErrorMessage, useAccountStore, useBridge, useChatStore, useSyncTaskStore } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
+import { useMediaQuery } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import {
   DateRangePickerCalendar,
@@ -16,8 +17,6 @@ import {
   DateRangePickerGridBody,
   DateRangePickerGridHead,
   DateRangePickerGridRow,
-  DateRangePickerHeadCell,
-  DateRangePickerHeader,
   DateRangePickerHeading,
   DateRangePickerNext,
   DateRangePickerPrev,
@@ -30,10 +29,19 @@ import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
 import SyncVisualization from '../components/SyncVisualization.vue'
-import Dialog from '../components/ui/Dialog.vue'
 
 import { Button } from '../components/ui/Button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/Dialog'
+import { Input } from '../components/ui/Input'
 import { Progress } from '../components/ui/Progress'
+import { Switch } from '../components/ui/Switch'
 import {
   formatRangeLabel,
   sameRange,
@@ -89,6 +97,8 @@ const activeChatId = ref<number | null>(null)
 
 // Sync options dialog state
 const isSyncOptionsDialogOpen = ref(false)
+const isDesktop = useMediaQuery('(min-width: 768px)')
+const isRightSidebarOpen = ref(isDesktop.value)
 
 watch(
   () => [syncOptions.value.startTime, syncOptions.value.endTime] as const,
@@ -370,11 +380,18 @@ watch(activeChatId, (chatId) => {
     chatId: chatId.toString(),
   })
 })
+
+function startSync() {
+  isSyncOptionsDialogOpen.value = false
+  handleSync()
+}
 </script>
 
 <template>
   <div class="h-full flex flex-col bg-background">
-    <header class="flex items-center justify-between border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
+    <!-- Header: Hidden on mobile to save space, actions moved to bottom sheet or other menu if needed -->
+    <!-- Or simplified for mobile -->
+    <header class="h-14 flex items-center justify-between border-b bg-card/50 px-4 py-0 backdrop-blur-sm md:h-16 md:px-6">
       <div class="flex items-center gap-3">
         <h1 class="text-lg font-semibold">
           {{ t('sync.sync') }}
@@ -383,87 +400,158 @@ watch(activeChatId, (chatId) => {
 
       <div class="flex items-center gap-2">
         <Button
-          icon="i-lucide-refresh-cw"
-          variant="ghost"
-          size="sm"
-          :disabled="isButtonDisabled"
-          @click="handleSync"
-        >
-          {{ t('sync.incrementalSync') }}
-        </Button>
-        <Button
-          icon="i-lucide-rotate-ccw"
           variant="outline"
           size="sm"
-          :disabled="isButtonDisabled"
-          @click="handleResync"
-        >
-          {{ t('sync.resync') }}
-        </Button>
-        <Button
-          icon="i-lucide-sliders-horizontal"
-          variant="outline"
-          size="sm"
+          class="h-8 w-8 rounded-full px-0 md:h-9 md:w-auto md:px-3"
           @click="isSyncOptionsDialogOpen = true"
         >
-          {{ t('sync.syncOptions') }}
+          <span class="i-lucide-sliders-horizontal h-4 w-4 md:mr-2" />
+          <span class="hidden md:inline">{{ t('sync.syncOptions') }}</span>
         </Button>
       </div>
     </header>
 
-    <div class="flex flex-1 flex-col overflow-hidden p-6">
-      <div class="mx-auto h-full max-w-6xl w-full flex flex-col space-y-6">
-        <!-- Combined card: sync task status + per-chat visualization -->
-        <div
-          class="flex flex-1 flex-col border rounded-2xl bg-card p-6 shadow-sm transition-all"
-          :class="shouldShowTaskStatus
-            ? (currentTask?.lastError ? 'border-destructive/20 bg-destructive/5' : 'border-primary/20 bg-primary/5')
-            : 'border-border'"
-        >
-          <div
-            v-if="shouldShowTaskStatus"
-            class="mb-6 border-b border-border/60 pb-6 space-y-4"
+    <div class="relative flex flex-1 overflow-hidden">
+      <!-- Main Content: Chat Selector -->
+      <div class="min-w-0 flex flex-1 flex-col">
+        <!-- Chat List Area -->
+        <div class="min-h-0 flex-1 p-4">
+          <ChatSelector
+            v-model:selected-chats="selectedChats"
+            v-model:active-chat-id="activeChatId"
+            :chats="chats"
+            :folders="folders"
+            class="h-full"
           >
-            <div class="flex items-center gap-4">
-              <div
-                class="h-12 w-12 flex shrink-0 items-center justify-center rounded-full"
-                :class="currentTask?.lastError ? 'bg-destructive/10' : 'bg-primary/10'"
-              >
-                <div v-if="currentTask?.lastError" class="i-lucide-alert-circle h-6 w-6 text-destructive" />
-                <div v-else class="i-lucide-loader-2 h-6 w-6 animate-spin text-primary" />
+            <template #actions>
+              <!-- Left side: Sync Actions -->
+              <div class="flex items-center gap-2">
+                <Button
+                  icon="i-lucide-refresh-cw"
+                  variant="ghost"
+                  size="sm"
+                  class="h-8 px-2 text-xs"
+                  :disabled="isButtonDisabled"
+                  @click="handleSync"
+                >
+                  <span class="inline">{{ t('sync.incrementalSync') }}</span>
+                </Button>
+                <Button
+                  icon="i-lucide-rotate-ccw"
+                  variant="ghost"
+                  size="sm"
+                  class="h-8 px-2 text-xs"
+                  :disabled="isButtonDisabled"
+                  @click="handleResync"
+                >
+                  <span class="inline">{{ t('sync.resync') }}</span>
+                </Button>
               </div>
-              <div class="flex flex-1 flex-col gap-1">
-                <span class="text-base text-foreground font-semibold">
-                  {{ currentTask?.lastError ? t('sync.syncFailed') : t('sync.syncing') }}
-                </span>
-                <span v-if="currentTask?.lastError" class="text-sm text-destructive">{{ errorMessage }}</span>
-                <div v-else class="flex flex-col gap-0.5">
-                  <span v-if="localizedTaskMessage" class="text-sm text-muted-foreground">{{ localizedTaskMessage }}</span>
-                  <span v-if="etaMessage" class="text-xs text-primary/80 font-medium">{{ etaMessage }}</span>
+
+              <!-- Right side: Selection & Stats -->
+              <div class="flex items-center gap-2">
+                <div
+                  v-if="selectedChats.length > 0"
+                  class="flex shrink-0 items-center gap-2 rounded-md bg-primary/10 px-2 py-1 text-xs text-primary font-medium"
+                >
+                  <span class="i-lucide-check-circle h-3.5 w-3.5" />
+                  <span class="hidden sm:inline">{{ t('sync.selectedChats', { count: selectedChats.length }) }}</span>
+                  <span class="sm:hidden">{{ selectedChats.length }}</span>
                 </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="h-8 px-2 text-xs"
+                  :disabled="isSelectAllDisabled"
+                  @click="handleSelectAll"
+                >
+                  <span class="i-lucide-check-square h-3.5 w-3.5 sm:mr-2" />
+                  <span class="hidden sm:inline">{{ isAllSelected ? t('sync.deselectAll') : t('sync.selectAll') }}</span>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-8 w-8 text-muted-foreground"
+                  :class="isRightSidebarOpen ? 'bg-muted/50 text-foreground' : ''"
+                  :title="isRightSidebarOpen ? t('sync.hideStats') : t('sync.showStats')"
+                  @click="isRightSidebarOpen = !isRightSidebarOpen"
+                >
+                  <span class="i-lucide-panel-right h-4 w-4" />
+                </Button>
+              </div>
+            </template>
+          </ChatSelector>
+        </div>
+      </div>
+
+      <!-- Right Sidebar: Status & Info -->
+      <!-- Mobile: Overlay, Desktop: Side Panel -->
+      <div
+        class="fixed inset-0 z-50 flex shrink-0 flex-col overflow-y-auto border-l bg-background transition-all duration-300 ease-in-out md:static md:z-auto md:bg-muted/10"
+        :class="[
+          isRightSidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 md:translate-x-0 md:w-0 md:opacity-0',
+          'md:border-l',
+        ]"
+      >
+        <div class="h-full w-full flex flex-col bg-background md:w-80">
+          <!-- Mobile Header for Sidebar -->
+          <div class="flex items-center justify-between border-b p-4 md:hidden">
+            <h3 class="font-semibold">
+              {{ t('sync.syncVisualization') }}
+            </h3>
+            <Button variant="ghost" size="icon" @click="isRightSidebarOpen = false">
+              <span class="i-lucide-x h-5 w-5" />
+            </Button>
+          </div>
+
+          <!-- Active Task Status -->
+          <div v-if="shouldShowTaskStatus" class="border-b bg-background p-4">
+            <div class="mb-3 flex items-center gap-3">
+              <div
+                class="h-8 w-8 flex shrink-0 items-center justify-center rounded-lg"
+                :class="currentTask?.lastError ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'"
+              >
+                <span v-if="currentTask?.lastError" class="i-lucide-alert-circle h-4 w-4" />
+                <span v-else class="i-lucide-loader-2 h-4 w-4 animate-spin" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3 class="truncate text-sm font-medium">
+                  {{ currentTask?.lastError ? t('sync.syncFailed') : t('sync.syncing') }}
+                </h3>
+                <p v-if="etaMessage && !currentTask?.lastError" class="text-xs text-muted-foreground">
+                  {{ etaMessage }}
+                </p>
               </div>
             </div>
 
-            <Progress
-              v-if="!currentTask?.lastError"
-              :progress="currentTaskProgress"
-            />
+            <div v-if="currentTask?.lastError" class="mb-3 break-words text-xs text-destructive">
+              {{ errorMessage }}
+            </div>
+            <div v-else class="mb-3 space-y-1">
+              <div class="flex justify-between text-xs text-muted-foreground">
+                <span>{{ localizedTaskMessage }}</span>
+                <span>{{ Math.round(currentTaskProgress) }}%</span>
+              </div>
+              <Progress :progress="currentTaskProgress" class="h-1.5" />
+            </div>
 
             <div class="flex justify-end gap-2">
               <Button
                 v-if="currentTask?.lastError"
-                icon="i-lucide-x"
-                size="sm"
                 variant="outline"
+                size="sm"
+                class="h-7 text-xs"
                 @click="syncTaskStore.currentTask = undefined"
               >
                 {{ t('sync.dismiss') }}
               </Button>
               <Button
                 v-else
-                icon="i-lucide-x"
-                size="sm"
                 variant="outline"
+                size="sm"
+                class="h-7 text-xs"
                 @click="handleAbort"
               >
                 {{ t('sync.cancel') }}
@@ -471,243 +559,220 @@ watch(activeChatId, (chatId) => {
             </div>
           </div>
 
-          <!-- Main content: chat list + status stacked -->
-          <div class="min-h-0 flex flex-1 flex-col space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-lg text-foreground font-semibold">
-                  {{ t('sync.selectChats') }}
-                </h3>
-                <p class="mt-1 text-sm text-muted-foreground">
-                  {{ t('sync.syncPrompt') }}
-                </p>
-              </div>
-
-              <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 rounded-full bg-muted px-4 py-2">
-                  <span class="i-lucide-check-circle h-4 w-4 text-primary" />
-                  <span class="text-sm text-foreground font-medium">
-                    {{ t('sync.selectedChats', { count: selectedChats.length }) }}
-                  </span>
+          <!-- Sync Visualization (Stats) -->
+          <div class="flex-1 p-4">
+            <div v-if="activeChat" class="space-y-4">
+              <div class="mb-2 flex items-center gap-3">
+                <div class="h-10 w-10 flex items-center justify-center overflow-hidden rounded-full bg-muted text-muted-foreground">
+                  <!-- Simple Avatar Placeholder if EntityAvatar is not available here,
+                        or we can import EntityAvatar if needed.
+                        For now, use icon. -->
+                  <span class="i-lucide-message-circle h-5 w-5" />
                 </div>
-                <button
-                  class="flex appearance-none items-center gap-2 rounded-full bg-muted px-4 py-2"
-                  :disabled="isSelectAllDisabled"
-                  :class="{ 'opacity-50 cursor-not-allowed': isSelectAllDisabled }"
-                  @click="handleSelectAll"
-                >
-                  <span class="i-lucide-check-square h-4 w-4 text-primary" />
-                  <span class="text-sm text-foreground font-medium">{{ isAllSelected ? t('sync.deselectAll') : t('sync.selectAll') }}</span>
-                </button>
+                <div>
+                  <h3 class="text-sm font-medium">
+                    {{ activeChat.name || t('chatSelector.chat', { id: activeChat.id }) }}
+                  </h3>
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('chatSelector.id', { id: activeChat.id }) }}
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div class="min-h-0 flex-1 overflow-hidden">
-              <ChatSelector
-                v-model:selected-chats="selectedChats"
-                v-model:active-chat-id="activeChatId"
-                :chats="chats"
-                :folders="folders"
+              <SyncVisualization
+                :stats="chatStats"
+                :loading="chatStatsLoading"
+                :chat-label="activeChat.name || ''"
+                class="w-full"
               />
             </div>
 
-            <!-- Status panel under the list, inside the same card -->
-            <SyncVisualization
-              :stats="chatStats"
-              :loading="chatStatsLoading"
-              :chat-label="activeChat ? (activeChat.name || t('chatSelector.chat', { id: activeChat.id })) : ''"
-            />
+            <div v-else class="h-full flex flex-col items-center justify-center p-8 text-center text-muted-foreground/50">
+              <span class="i-lucide-bar-chart-2 mb-2 h-12 w-12 opacity-20" />
+              <p class="text-sm">
+                {{ t('sync.selectChatToViewStats') }}
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Sync Options Dialog -->
-  <Dialog v-model="isSyncOptionsDialogOpen" max-width="40rem">
-    <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-base text-foreground font-semibold">
-          {{ t('sync.syncOptions') }}
-        </h3>
-        <Button
-          icon="i-lucide-x"
-          size="sm"
-          variant="outline"
-          @click="isSyncOptionsDialogOpen = false"
-        >
-          {{ t('sync.dismiss') }}
-        </Button>
-      </div>
+    <!-- Sync Options Dialog -->
+    <Dialog v-model:open="isSyncOptionsDialogOpen">
+      <DialogContent class="max-h-[90vh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl outline-none ring-0 sm:max-w-[500px] focus-visible:outline-none focus-visible:ring-0">
+        <DialogHeader>
+          <DialogTitle>{{ t('sync.syncOptions') }}</DialogTitle>
+          <DialogDescription>
+            {{ t('sync.syncOptionsDescription') }}
+          </DialogDescription>
+        </DialogHeader>
 
-      <div class="space-y-4">
-        <!-- Advanced Options -->
-        <div class="border-t pt-4 space-y-4">
-          <div>
-            <h4 class="mb-3 text-sm text-foreground font-medium">
-              {{ t('sync.syncRange') }}
-            </h4>
-            <p class="mb-3 text-xs text-muted-foreground">
-              {{ t('sync.syncRangeDescription') }}
+        <div class="grid gap-4 py-4">
+          <!-- Sync Media Switch -->
+          <div class="flex items-center justify-between space-x-2">
+            <label
+              for="sync-media"
+              class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              {{ t('sync.syncMedia') }}
+            </label>
+            <Switch
+              id="sync-media"
+              :checked="syncMedia"
+              @update:checked="(v: boolean) => syncMedia = v"
+            />
+          </div>
+
+          <!-- Max Media Size Input -->
+          <div class="grid gap-2">
+            <label
+              for="max-media-size"
+              class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              {{ t('sync.maxMediaSize') }} (MB)
+            </label>
+            <Input
+              id="max-media-size"
+              v-model.number="maxMediaSize"
+              type="number"
+              class="col-span-3"
+            />
+            <p class="text-[0.8rem] text-muted-foreground">
+              {{ t('sync.maxMediaSizeDescription') }}
             </p>
+          </div>
 
-            <!-- Time Range -->
-            <div class="mb-4 space-y-2">
-              <label class="block text-sm text-foreground font-medium">
-                {{ t('sync.timeRange') }}
-              </label>
+          <!-- Date Range Picker -->
+          <div class="grid gap-2">
+            <label class="text-sm font-medium leading-none">
+              {{ t('sync.timeRange') }}
+            </label>
+            <div class="flex flex-col gap-2">
               <DateRangePickerRoot
+                id="date-range"
                 v-model="timeRange"
-                :number-of-months="2"
-                :close-on-select="false"
-                granularity="minute"
+                class="w-full"
               >
-                <DateRangePickerTrigger as-child>
-                  <button
-                    type="button"
-                    class="w-full flex items-center justify-between gap-3 border border-input rounded-md bg-background px-3 py-2 text-left text-sm ring-offset-background transition-colors hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+                <DateRangePickerTrigger>
+                  <Button
+                    variant="outline"
+                    class="w-full justify-start text-left font-normal"
+                    :class="!timeRange ? 'text-muted-foreground' : ''"
                   >
-                    <div class="flex flex-col">
-                      <span class="text-xs text-muted-foreground">
-                        {{ t('sync.startTime') }} / {{ t('sync.endTime') }}
-                      </span>
-                      <span class="text-sm text-foreground font-medium">
+                    <span class="i-lucide-calendar mr-2 h-4 w-4" />
+                    <template v-if="timeRange?.start">
+                      <template v-if="timeRange.end">
                         {{ formattedRangeLabel }}
-                      </span>
-                    </div>
-                    <span class="i-lucide-calendar h-4 w-4 text-muted-foreground" />
-                  </button>
+                      </template>
+                      <template v-else>
+                        {{ formattedRangeLabel }}
+                      </template>
+                    </template>
+                    <template v-else>
+                      {{ t('sync.selectDateRange') }}
+                    </template>
+                  </Button>
                 </DateRangePickerTrigger>
-
-                <DateRangePickerContent
-                  align="start"
-                  class="z-210 max-w-[95vw] w-[640px] border rounded-lg bg-popover p-3 text-popover-foreground shadow-lg"
-                >
-                  <DateRangePickerCalendar v-slot="{ weekDays, grid }">
-                    <div class="space-y-3">
-                      <DateRangePickerHeader class="flex items-center justify-between">
-                        <DateRangePickerPrev class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent">
+                <DateRangePickerContent class="z-50 w-auto border rounded-md bg-popover p-0 shadow-md" align="start">
+                  <DateRangePickerCalendar v-slot="{ weekDays, grid }" class="p-3">
+                    <DateRangePickerHeader class="flex items-center justify-between">
+                      <DateRangePickerPrev>
+                        <div class="h-7 w-7 flex items-center justify-center rounded bg-transparent hover:bg-muted">
                           <span class="i-lucide-chevron-left h-4 w-4" />
-                        </DateRangePickerPrev>
-                        <DateRangePickerHeading class="text-sm font-medium" />
-                        <DateRangePickerNext class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent">
+                        </div>
+                      </DateRangePickerPrev>
+                      <DateRangePickerHeading class="text-sm font-medium" />
+                      <DateRangePickerNext>
+                        <div class="h-7 w-7 flex items-center justify-center rounded bg-transparent hover:bg-muted">
                           <span class="i-lucide-chevron-right h-4 w-4" />
-                        </DateRangePickerNext>
-                      </DateRangePickerHeader>
-
-                      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <DateRangePickerGrid
-                          v-for="month in grid"
-                          :key="month.value.toString()"
-                          class="w-full border-separate border-spacing-1"
+                        </div>
+                      </DateRangePickerNext>
+                    </DateRangePickerHeader>
+                    <DateRangePickerGrid class="mt-4 w-full border-collapse select-none space-y-1">
+                      <DateRangePickerGridHead>
+                        <DateRangePickerGridRow class="mb-1 w-full flex justify-between">
+                          <DateRangePickerHeadCell
+                            v-for="day in weekDays"
+                            :key="day"
+                            class="w-8 rounded-md text-[0.8rem] text-muted-foreground font-normal"
+                          >
+                            {{ day }}
+                          </DateRangePickerHeadCell>
+                        </DateRangePickerGridRow>
+                      </DateRangePickerGridHead>
+                      <DateRangePickerGridBody>
+                        <DateRangePickerGridRow
+                          v-for="(weekDates, index) in (grid as unknown as DateValue[][])"
+                          :key="index"
+                          class="mt-2 w-full flex"
                         >
-                          <DateRangePickerGridHead>
-                            <DateRangePickerGridRow>
-                              <DateRangePickerHeadCell
-                                v-for="day in weekDays"
-                                :key="day"
-                                class="h-8 w-9 text-center text-xs text-muted-foreground font-medium"
-                              >
-                                {{ day }}
-                              </DateRangePickerHeadCell>
-                            </DateRangePickerGridRow>
-                          </DateRangePickerGridHead>
-                          <DateRangePickerGridBody>
-                            <DateRangePickerGridRow v-for="(week, wi) in month.rows" :key="`week-${wi}`">
-                              <DateRangePickerCell
-                                v-for="dateValue in week"
-                                :key="dateValue.toString()"
-                                :date="dateValue"
-                              >
-                                <DateRangePickerCellTrigger
-                                  :day="dateValue"
-                                  :month="month.value"
-                                  class="data-highlighted:bg-primary/15 data-selected:bg-primary data-selection-end:bg-primary data-selection-start:bg-primary data-outside-view:text-muted-foreground data-selected:text-primary-foreground data-selection-end:text-primary-foreground data-selection-start:text-primary-foreground data-disabled:opacity-40 h-9 w-9 flex items-center justify-center rounded-md text-sm outline-none transition-colors hover:bg-accent/60"
-                                />
-                              </DateRangePickerCell>
-                            </DateRangePickerGridRow>
-                          </DateRangePickerGridBody>
-                        </DateRangePickerGrid>
-                      </div>
-                    </div>
+                          <DateRangePickerCell
+                            v-for="weekDate in weekDates"
+                            :key="weekDate.toString()"
+                            :date="weekDate"
+                          >
+                            <DateRangePickerCellTrigger
+                              :day="weekDate"
+                              :month="weekDate"
+                              class="relative h-8 w-8 flex items-center justify-center whitespace-nowrap border border-transparent rounded-md text-sm font-normal ring-offset-background transition-colors disabled:pointer-events-none data-[selected]:bg-primary data-[today]:bg-accent hover:bg-accent data-[selected]:text-primary-foreground data-[today]:text-accent-foreground hover:text-accent-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring data-[selected]:hover:bg-primary data-[selected]:hover:text-primary-foreground"
+                            />
+                          </DateRangePickerCell>
+                        </DateRangePickerGridRow>
+                      </DateRangePickerGridBody>
+                    </DateRangePickerGrid>
                   </DateRangePickerCalendar>
                 </DateRangePickerContent>
               </DateRangePickerRoot>
             </div>
-
-            <!-- Message ID Range -->
-            <div class="space-y-2">
-              <label class="block text-sm text-foreground font-medium">
-                {{ t('sync.messageIdRange') }}
-              </label>
-              <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div>
-                  <label for="min-msg-id" class="mb-1 block text-xs text-muted-foreground">
-                    {{ t('sync.minMessageId') }}
-                  </label>
-                  <input
-                    id="min-msg-id"
-                    v-model.number="minMessageId"
-                    type="number"
-                    min="0"
-                    class="block w-full border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-                    placeholder="0"
-                  >
-                </div>
-                <div>
-                  <label for="max-msg-id" class="mb-1 block text-xs text-muted-foreground">
-                    {{ t('sync.maxMessageId') }}
-                  </label>
-                  <input
-                    id="max-msg-id"
-                    v-model.number="maxMessageId"
-                    type="number"
-                    min="0"
-                    class="block w-full border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-                    placeholder="0"
-                  >
-                </div>
-              </div>
-            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </Dialog>
 
-  <!-- Select All Reminder Dialog -->
-  <Dialog v-model="isSelectAllDialogOpen" max-width="32rem" persistent>
-    <div class="space-y-5">
-      <div class="flex items-start gap-4">
-        <div
-          class="h-12 w-12 flex items-center justify-center rounded-xl ring-1"
-          :class="isSelectAllWarning ? 'bg-destructive/10 ring-destructive/30' : 'bg-primary/10 ring-primary/30'"
-        >
-          <span
-            :class="isSelectAllWarning ? 'i-lucide-alert-triangle text-destructive' : 'i-lucide-info text-primary'"
-            class="h-6 w-6"
-          />
-        </div>
-        <div class="flex-1">
-          <p class="text-base text-foreground font-medium leading-relaxed">
-            {{ isSelectAllWarning
-              ? t('sync.selectAllWarning', { count: selectAllCount })
-              : t('sync.selectAllInfo', { count: selectAllCount })
-            }}
-          </p>
-        </div>
-      </div>
+        <DialogFooter class="gap-3 sm:gap-0">
+          <Button variant="outline" @click="isSyncOptionsDialogOpen = false">
+            {{ t('common.cancel') }}
+          </Button>
+          <Button @click="startSync">
+            {{ t('sync.startSync') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-      <div class="flex justify-end gap-2">
-        <Button
-          icon="i-lucide-x"
-          size="sm"
-          variant="outline"
-          @click="isSelectAllDialogOpen = false"
-        >
-          {{ t('sync.dismiss') }}
-        </Button>
-      </div>
-    </div>
-  </Dialog>
+    <!-- Select All Reminder Dialog -->
+    <Dialog v-model:open="isSelectAllDialogOpen">
+      <DialogContent class="max-w-[calc(100%-2rem)] rounded-2xl sm:max-w-[425px]" :show-close-button="false">
+        <DialogHeader>
+          <div class="flex items-center gap-4">
+            <div
+              class="h-10 w-10 flex shrink-0 items-center justify-center rounded-full"
+              :class="isSelectAllWarning ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'"
+            >
+              <span
+                class="h-5 w-5"
+                :class="isSelectAllWarning ? 'i-lucide-alert-triangle' : 'i-lucide-info'"
+              />
+            </div>
+            <div class="flex flex-col gap-1 text-left">
+              <DialogTitle>
+                {{ t('sync.selectAll') }}
+              </DialogTitle>
+              <DialogDescription>
+                {{ isSelectAllWarning
+                  ? t('sync.selectAllWarning', { count: selectAllCount })
+                  : t('sync.selectAllInfo', { count: selectAllCount })
+                }}
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <DialogFooter class="sm:justify-end">
+          <Button class="w-full sm:w-auto" @click="isSelectAllDialogOpen = false">
+            {{ t('sync.dismiss') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
 </template>

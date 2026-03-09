@@ -1,52 +1,32 @@
 <script setup lang="ts">
-interface Props {
-  /**
-   * The checked state of the switch
-   */
-  modelValue: boolean
-  /**
-   * The label text to display next to the switch
-   */
-  label?: string
-  /**
-   * Whether the switch is disabled
-   */
-  disabled?: boolean
-}
+import type { SwitchRootEmits, SwitchRootProps } from 'reka-ui'
 
-withDefaults(defineProps<Props>(), {
-  disabled: false,
+import { SwitchRoot, SwitchThumb, useForwardPropsEmits } from 'reka-ui'
+import { computed } from 'vue'
+
+import { cn } from '@/lib/utils'
+
+const props = defineProps<SwitchRootProps & { class?: string }>()
+const emits = defineEmits<SwitchRootEmits>()
+
+const delegatedProps = computed(() => {
+  const { class: _, ...delegated } = props
+  return delegated
 })
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void
-}>()
-
-function handleChange(event: Event) {
-  const target = event.target as HTMLInputElement
-  emit('update:modelValue', target.checked)
-}
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
-  <div class="flex items-center">
-    <label class="relative inline-flex cursor-pointer items-center">
-      <input
-        type="checkbox"
-        :checked="modelValue"
-        :disabled="disabled"
-        class="peer sr-only"
-        @change="handleChange"
-      >
-      <div
-        class="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 peer-disabled:cursor-not-allowed after:border after:border-gray-300 after:rounded-full after:bg-white dark:bg-gray-600 peer-checked:bg-primary peer-disabled:opacity-50 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/25 after:transition-all after:content-[''] peer-checked:after:translate-x-full dark:after:border-gray-600 peer-checked:after:border-white dark:after:bg-gray-700 dark:peer-checked:bg-primary"
-      />
-      <span
-        v-if="label"
-        class="ml-3 text-sm text-gray-900 dark:text-gray-100"
-      >
-        {{ label }}
-      </span>
-    </label>
-  </div>
+  <SwitchRoot
+    v-bind="forwarded"
+    :class="cn(
+      'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',
+      props.class,
+    )"
+  >
+    <SwitchThumb
+      :class="cn('pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0')"
+    />
+  </SwitchRoot>
 </template>

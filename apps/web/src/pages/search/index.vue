@@ -20,7 +20,7 @@ const {
 
 <template>
   <div class="h-full flex flex-col">
-    <header class="flex items-center border-b bg-card/50 px-6 py-4 backdrop-blur-sm">
+    <header class="h-14 flex items-center justify-between border-b bg-card/50 px-4 py-0 backdrop-blur-sm md:h-16 md:px-6">
       <div class="flex items-center gap-3">
         <h1 class="text-lg font-semibold">
           {{ t('search.search') }}
@@ -29,13 +29,13 @@ const {
     </header>
 
     <!-- Search bar placed directly at the top of the page -->
-    <div class="flex flex-col px-8 pt-8">
+    <div class="flex flex-col px-4 pt-4 md:px-8 md:pt-8">
       <div class="mx-auto max-w-4xl w-full flex items-center gap-2">
         <div class="relative flex flex-1 items-center">
           <span class="i-lucide-search absolute left-4 h-5 w-5 text-muted-foreground" />
           <input
             v-model="keyword"
-            class="h-12 w-full border rounded-xl bg-background px-4 py-3 pl-12 pr-4 text-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            class="h-12 w-full border-transparent rounded-xl bg-muted/50 px-4 py-3 pl-12 pr-4 text-sm shadow-sm transition-all duration-200 focus:border-primary/20 focus:bg-background hover:bg-muted/80 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             :placeholder="t('search.searchMessages')"
           >
         </div>
@@ -45,7 +45,7 @@ const {
     <!-- Search results displayed directly below -->
     <div
       v-show="keywordDebounced"
-      class="flex-1 px-8 pt-4 transition-all duration-300 ease-in-out"
+      class="flex-1 px-4 pt-4 transition-all duration-300 ease-in-out md:px-8"
       :class="{ 'opacity-0': !keywordDebounced, 'opacity-100': keywordDebounced }"
     >
       <template v-if="searchResult.length > 0">

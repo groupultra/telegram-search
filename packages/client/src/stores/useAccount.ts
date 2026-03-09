@@ -5,6 +5,7 @@ import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
 import { useBridge } from '../composables/useBridge'
+import { IS_CORE_MODE, TELEGRAM_APP_HASH, TELEGRAM_APP_ID } from '../constants'
 import { useChatStore } from './useChat'
 import { useMessageStore } from './useMessage'
 import { useSessionStore } from './useSession'
@@ -24,6 +25,8 @@ export const useAccountStore = defineStore('account', () => {
   const attemptCounter = ref(0)
   const MAX_ATTEMPTS = 3
   let reconnectTimer: number | undefined
+  const AUTH_TIMEOUT_MS = 20000
+  let authTimeoutTimer: number | undefined
 
   // --- Account State ---
   const accountSettings = ref(generateDefaultAccountSettings())
@@ -49,6 +52,12 @@ export const useAccountStore = defineStore('account', () => {
       return
     }
 
+    if (IS_CORE_MODE && (!TELEGRAM_APP_ID || !TELEGRAM_APP_HASH)) {
+      toast.error('Missing Telegram API credentials')
+      authStatus.value.isLoading = false
+      return
+    }
+
     resetReady()
     authStatus.value.isLoading = true
     logger.log('Attempting login')
@@ -59,6 +68,11 @@ export const useAccountStore = defineStore('account', () => {
     function login(phoneNumber: string) {
       // NOTICE: session cloud be undefined, we determine it login with phone number as new login
       const session = sessionStore.activeSession?.session
+      if (IS_CORE_MODE && (!TELEGRAM_APP_ID || !TELEGRAM_APP_HASH)) {
+        toast.error('Missing Telegram API credentials')
+        authStatus.value.isLoading = false
+        return
+      }
 
       authStatus.value.isLoading = true
       bridge.sendEvent(CoreEventType.AuthLogin, {
@@ -124,6 +138,28 @@ export const useAccountStore = defineStore('account', () => {
   }
 
   // --- Watchers ---
+  watch(
+    () => authStatus.value.isLoading,
+    (isLoading) => {
+      if (!isLoading) {
+        if (authTimeoutTimer) {
+          window.clearTimeout(authTimeoutTimer)
+          authTimeoutTimer = undefined
+        }
+        return
+      }
+
+      if (authTimeoutTimer)
+        window.clearTimeout(authTimeoutTimer)
+
+      authTimeoutTimer = window.setTimeout(() => {
+        if (!authStatus.value.isLoading)
+          return
+        authStatus.value.isLoading = false
+        toast.error('Login timed out')
+      }, AUTH_TIMEOUT_MS)
+    },
+  )
 
   /**
    * Watch the active session's readiness status and handle reconnection logic.
