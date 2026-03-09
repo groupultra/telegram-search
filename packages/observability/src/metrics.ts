@@ -1,21 +1,10 @@
 import type { CoreCounter, CoreHistogram, CoreMetrics } from '@tg-search/common'
 
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
-import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
+import { metrics } from '@opentelemetry/api'
 
-const metricExporter = new OTLPMetricExporter({})
-
-// Create an instance of the metric provider
-const meterProvider = new MeterProvider({
-  readers: [
-    new PeriodicExportingMetricReader({
-      exporter: metricExporter,
-      exportIntervalMillis: 250,
-    }),
-  ],
-})
-
-const meter = meterProvider.getMeter('@tg-search/observability')
+// Use the global MeterProvider registered by the NodeSDK in node.ts,
+// avoiding a duplicate metric pipeline and ensuring shared resource attributes.
+const meter = metrics.getMeter('@tg-search/observability')
 
 /**
  * WebSocket send fail total

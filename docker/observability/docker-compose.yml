@@ -1,6 +1,19 @@
 name: telegram-search-infra
 
 services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./otel-collector/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - 4317:4317
+      - 4318:4318
+    depends_on:
+      - tempo
+      - prometheus
+      - loki
+    restart: unless-stopped
+
   pg-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:latest
     environment:
@@ -24,16 +37,12 @@ services:
     volumes:
       - ./tempo/tempo.yaml:/etc/tempo.yaml
       - tempo_data:/var/tempo
-    ports:
-      - 4317:4317
-      - 4318:4318
     command: ['-config.file=/etc/tempo.yaml']
 
   prometheus:
     image: prom/prometheus:latest
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-      # - '--web.enable-admin-api'
       - '--web.enable-otlp-receiver'
       - '--web.enable-remote-write-receiver'
       - '--enable-feature=native-histograms'

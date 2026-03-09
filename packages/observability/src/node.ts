@@ -10,9 +10,15 @@ import { resourceFromAttributes } from '@opentelemetry/resources'
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs'
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 import { NodeSDK } from '@opentelemetry/sdk-node'
-import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node'
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
 
+/**
+ * Register OpenTelemetry SDK with OTLP exporters.
+ *
+ * All exporters read from the standard `OTEL_EXPORTER_OTLP_ENDPOINT` env var,
+ * so a single OTLP Collector endpoint is sufficient for traces, metrics, and logs.
+ */
 export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: string }) {
   const attributes: Record<string, string> = {
     [ATTR_SERVICE_NAME]: 'telegram-search',
@@ -47,9 +53,8 @@ export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: 
       }),
     ],
     resource: resourceFromAttributes(attributes),
-    traceExporter: new OTLPTraceExporter(),
     spanProcessors: [
-      new SimpleSpanProcessor(new OTLPTraceExporter()),
+      new BatchSpanProcessor(new OTLPTraceExporter()),
     ],
     logRecordProcessor: new BatchLogRecordProcessor(new OTLPLogExporter(), {
       maxQueueSize: 1000,
