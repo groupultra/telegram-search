@@ -1,10 +1,24 @@
 import type { CoreCounter, CoreHistogram, CoreMetrics } from '@tg-search/common'
 
-import { metrics } from '@opentelemetry/api'
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
+import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 
-// Use the global MeterProvider registered by the NodeSDK in node.ts,
-// avoiding a duplicate metric pipeline and ensuring shared resource attributes.
-const meter = metrics.getMeter('@tg-search/observability')
+const metricExporter = new OTLPMetricExporter({})
+
+// NOTICE: Uses a standalone MeterProvider instead of the global one from NodeSDK.
+// The global MeterProvider (registered by registerOtel/NodeSDK.start()) is not available
+// at module load time because metrics.ts is imported before registerOtel() is called.
+// Instruments created from a NoopMeter do not rebind when the real provider registers later.
+const meterProvider = new MeterProvider({
+  readers: [
+    new PeriodicExportingMetricReader({
+      exporter: metricExporter,
+      exportIntervalMillis: 250,
+    }),
+  ],
+})
+
+const meter = meterProvider.getMeter('@tg-search/observability')
 
 /**
  * WebSocket send fail total

@@ -41,6 +41,9 @@ export default defineConfig({
     VueMacros({
       defineOptions: false,
       defineModels: false,
+      betterDefine: {
+        exclude: ['**/components/ui/**'],
+      },
       plugins: {
         vue: Vue({
           script: {

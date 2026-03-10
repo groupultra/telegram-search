@@ -1,14 +1,10 @@
-import { env } from 'node:process'
-
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg'
 import { resourceFromAttributes } from '@opentelemetry/resources'
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs'
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
@@ -33,14 +29,8 @@ export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: 
     )
   }
 
-  let metricsExporterInterval = 250
-  if (env.OTEL_METRICS_EXPORTER_INTERVAL) {
-    const parsed = Number.parseInt(env.OTEL_METRICS_EXPORTER_INTERVAL, 10)
-    if (!Number.isNaN(parsed)) {
-      metricsExporterInterval = parsed
-    }
-  }
-
+  // NOTICE: Metrics are handled by a standalone MeterProvider in metrics.ts,
+  // not by NodeSDK, because metrics.ts is imported before registerOtel() runs.
   const sdk = new NodeSDK({
     instrumentations: [
       getNodeAutoInstrumentations(),
@@ -48,12 +38,7 @@ export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: 
         enhancedDatabaseReporting: true,
       }),
     ],
-    metricReaders: [
-      new PeriodicExportingMetricReader({
-        exportIntervalMillis: metricsExporterInterval,
-        exporter: new OTLPMetricExporter(),
-      }),
-    ],
+    traceExporter: new OTLPTraceExporter(),
     resource: resourceFromAttributes(attributes),
     spanProcessors: [
       new BatchSpanProcessor(new OTLPTraceExporter()),
