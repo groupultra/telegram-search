@@ -35,7 +35,7 @@ const {
           <span class="i-lucide-search absolute left-4 h-5 w-5 text-muted-foreground" />
           <input
             v-model="keyword"
-            class="h-12 w-full border-transparent rounded-xl bg-muted/50 px-4 py-3 pl-12 pr-4 text-sm shadow-sm transition-all duration-200 focus:border-primary/20 focus:bg-background hover:bg-muted/80 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            class="h-12 w-full border border-border/60 rounded-xl bg-background/85 px-4 py-3 pl-12 pr-4 text-sm text-foreground shadow-sm transition-all duration-200 focus:border-primary/35 hover:border-border focus:bg-background hover:bg-background placeholder:text-foreground/45 focus:outline-none focus:ring-2 focus:ring-primary/15"
             :placeholder="t('search.searchMessages')"
           >
         </div>

@@ -65,9 +65,6 @@ function handleSwitchAccount(sessionId: string) {
 
 const username = computed(() => activeSession.value?.me?.name)
 const allAccounts = computed(() => accountStore.handleAuth().getAllAccounts())
-const otherAccounts = computed(() => {
-  return allAccounts.value.filter(account => (account.uuid !== activeSessionId.value) && account)
-})
 </script>
 
 <template>
@@ -99,9 +96,9 @@ const otherAccounts = computed(() => {
     <DrawerPortal>
       <DrawerOverlay class="fixed inset-0 z-50 bg-black/40" />
       <DrawerContent
-        class="fixed bottom-0 left-0 right-0 z-50 mt-24 h-[90%] flex flex-col rounded-t-[10px] bg-background outline-none"
+        class="fixed bottom-0 left-0 right-0 z-50 mt-24 h-[62vh] max-h-[62vh] flex flex-col rounded-t-[10px] bg-background outline-none"
       >
-        <div class="flex-1 overflow-y-auto rounded-t-[10px] bg-background p-4">
+        <div class="flex-1 rounded-t-[10px] bg-background p-4">
           <div class="mx-auto mb-8 h-1.5 w-12 flex-shrink-0 rounded-full bg-muted" />
 
           <div class="mb-6 flex flex-col items-center gap-4">
@@ -183,64 +180,82 @@ const otherAccounts = computed(() => {
     <DropdownMenuTrigger as-child>
       <slot />
     </DropdownMenuTrigger>
-    <DropdownMenuContent class="min-w-[240px] p-1" align="start" side="top" :side-offset="8">
-      <!-- Current Account Section -->
-      <div v-if="isReady" class="flex items-center gap-3 rounded-md bg-muted/30 p-2">
+    <DropdownMenuContent
+      class="max-w-[296px] min-w-[296px] w-[296px] border-border/60 rounded-3xl bg-background/96 p-3 shadow-2xl backdrop-blur-xl"
+      align="start"
+      side="top"
+      :side-offset="0"
+    >
+      <div class="mb-3 flex items-center gap-4 rounded-2xl bg-muted/30 p-4">
         <EntityAvatar
           v-if="activeSession?.me?.id != null"
           :id="activeSession?.me?.id"
           entity="self"
           entity-type="user"
           :name="username"
-          size="md"
-          class="shrink-0 ring-2 ring-background"
+          size="lg"
+          class="h-16 w-16 shrink-0 ring-4 ring-background"
         />
         <div class="min-w-0 flex flex-1 flex-col">
-          <span class="truncate text-sm font-semibold">{{ username }}</span>
-          <span class="truncate text-xs text-muted-foreground font-mono">ID: {{ activeSession?.me?.id }}</span>
+          <span class="truncate text-xl font-bold">{{ username || t('common.unknown') }}</span>
+          <span class="truncate text-sm text-muted-foreground font-mono">ID: {{ activeSession?.me?.id }}</span>
         </div>
-        <div class="h-2 w-2 rounded-full bg-primary shadow-sm" />
+        <div class="h-3 w-3 rounded-full bg-primary shadow-sm" />
       </div>
 
-      <DropdownMenuSeparator v-if="isReady" class="my-1" />
-
-      <!-- Switch Account Section -->
-      <DropdownMenuGroup v-if="otherAccounts.length > 0">
-        <DropdownMenuLabel class="px-2 py-1.5 text-xs text-muted-foreground font-medium tracking-wider uppercase">
+      <DropdownMenuGroup class="grid gap-1">
+        <DropdownMenuLabel class="px-2 py-1 text-sm text-muted-foreground font-medium">
           {{ t('settings.switchAccount') }}
         </DropdownMenuLabel>
         <DropdownMenuItem
-          v-for="account in otherAccounts"
+          v-for="account in allAccounts"
           :key="account.uuid"
-          class="cursor-pointer gap-3 rounded-md px-2 py-2 focus:bg-accent focus:text-accent-foreground"
+          class="cursor-pointer rounded-2xl p-0 focus:bg-transparent focus:text-foreground"
           @select="handleSwitchAccount(account.uuid)"
         >
-          <EntityAvatar
-            v-if="account.me?.id"
-            :id="account.me.id"
-            entity="other"
-            entity-type="user"
-            :name="account.me.name"
-            size="sm"
-            class="h-8 w-8 text-xs ring-1 ring-border/20"
-          />
-          <div class="min-w-0 flex flex-1 flex-col gap-0.5">
-            <span class="truncate text-sm font-medium">{{ account.me?.name || t('common.unknown') }}</span>
-            <span class="truncate text-[10px] text-muted-foreground font-mono">ID: {{ account.me?.id }}</span>
+          <div
+            class="w-full flex items-center gap-4 rounded-2xl p-3 transition-colors"
+            :class="account.uuid === activeSessionId ? 'bg-muted/40' : 'hover:bg-muted/30'"
+          >
+            <EntityAvatar
+              v-if="account.me?.id"
+              :id="account.me.id"
+              entity="other"
+              entity-type="user"
+              :name="account.me.name"
+              size="md"
+              class="h-12 w-12 shrink-0 ring-2 ring-border/20"
+            />
+            <div class="min-w-0 flex flex-1 flex-col gap-1">
+              <span class="truncate text-base font-semibold">{{ account.me?.name || t('common.unknown') }}</span>
+              <span class="truncate text-xs text-muted-foreground font-mono">ID: {{ account.me?.id }}</span>
+            </div>
+            <div
+              v-if="account.uuid === activeSessionId"
+              class="h-3 w-3 shrink-0 rounded-full bg-primary shadow-sm"
+            />
           </div>
         </DropdownMenuItem>
-        <DropdownMenuSeparator class="my-1" />
       </DropdownMenuGroup>
 
-      <!-- Actions -->
-      <DropdownMenuGroup>
-        <DropdownMenuItem class="cursor-pointer gap-2 rounded-md px-2 py-2 focus:bg-accent focus:text-accent-foreground" @click="handleAddAccount">
-          <span class="i-lucide-plus-circle h-4 w-4 text-muted-foreground" />
-          <span class="text-sm font-medium">{{ t('settings.addAccount') }}</span>
+      <DropdownMenuSeparator class="my-3" />
+
+      <DropdownMenuGroup class="grid gap-2">
+        <DropdownMenuItem class="cursor-pointer rounded-2xl p-0 focus:bg-transparent focus:text-foreground" @click="handleAddAccount">
+          <div class="w-full flex items-center gap-3 rounded-2xl p-3 transition-colors hover:bg-muted/30">
+            <div class="h-10 w-10 flex items-center justify-center rounded-full bg-muted">
+              <span class="i-lucide-plus h-5 w-5" />
+            </div>
+            <span class="text-sm font-medium">{{ t('settings.addAccount') }}</span>
+          </div>
         </DropdownMenuItem>
-        <DropdownMenuItem class="cursor-pointer gap-2 rounded-md px-2 py-2 text-destructive focus:bg-destructive/10 focus:text-destructive" @click="handleLoginLogout">
-          <span class="i-lucide-log-out h-4 w-4" />
-          <span class="text-sm font-medium">{{ isReady ? t('settings.logout') : t('login.login') }}</span>
+        <DropdownMenuItem class="cursor-pointer rounded-2xl p-0 focus:bg-transparent focus:text-destructive" @click="handleLoginLogout">
+          <div class="w-full flex items-center gap-3 rounded-2xl p-3 text-destructive transition-colors hover:bg-destructive/10">
+            <div class="h-10 w-10 flex items-center justify-center rounded-full bg-destructive/10">
+              <span class="i-lucide-log-out h-5 w-5" />
+            </div>
+            <span class="text-sm font-medium">{{ isReady ? t('settings.logout') : t('login.login') }}</span>
+          </div>
         </DropdownMenuItem>
       </DropdownMenuGroup>
     </DropdownMenuContent>

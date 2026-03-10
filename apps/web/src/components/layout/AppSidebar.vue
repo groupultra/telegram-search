@@ -47,7 +47,7 @@ function toggleTheme(event: Event) {
         <Input
           v-model="searchParams"
           type="text"
-          class="h-10 border-transparent rounded-xl bg-muted/50 pl-9 transition-all focus:border-primary/20 focus:bg-background hover:bg-muted/80 focus:ring-2 focus:ring-primary/20"
+          class="h-10 border-border/60 rounded-xl bg-background/80 pl-9 text-foreground shadow-sm transition-all focus:border-primary/35 hover:border-border focus:bg-background hover:bg-background placeholder:text-foreground/45 focus:ring-2 focus:ring-primary/15"
           :placeholder="t('search.search')"
         />
       </div>
@@ -73,7 +73,7 @@ function toggleTheme(event: Event) {
         <!-- User dropdown menu -->
         <UserDropdown class="min-w-0 flex-1">
           <div
-            class="group min-w-0 flex cursor-pointer items-center gap-3 rounded-xl p-2 transition-all hover:bg-background hover:shadow-sm"
+            class="group min-w-0 w-full flex cursor-pointer items-center gap-3 rounded-xl p-2 transition-all hover:bg-background hover:shadow-sm"
           >
             <EntityAvatar
               v-if="activeSession?.me?.id != null"

@@ -280,7 +280,7 @@ watch(containerRef, (el) => {
             <Input
               v-model="searchValue"
               type="text"
-              class="h-10 border-transparent rounded-xl bg-muted/50 pl-9 transition-all focus:border-primary/20 focus:bg-background hover:bg-muted/80 focus:ring-2 focus:ring-primary/20"
+              class="h-10 border-border/60 rounded-xl bg-background/80 pl-9 text-foreground shadow-sm transition-all focus:border-primary/35 hover:border-border focus:bg-background hover:bg-background placeholder:text-foreground/45 focus:ring-2 focus:ring-primary/15"
               :placeholder="t('search.search')"
             />
           </div>
@@ -293,7 +293,7 @@ watch(containerRef, (el) => {
       <VList
         v-if="activeGroupChats.length > 0"
         :data="activeGroupChats"
-        class="h-full px-2 pb-2"
+        class="chat-list h-full px-2 pb-2"
       >
         <template #default="{ item: chat }">
           <div
@@ -363,5 +363,23 @@ watch(containerRef, (el) => {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.chat-list {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.chat-list::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-list :deep(*) {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.chat-list :deep(div::-webkit-scrollbar) {
+  display: none;
 }
 </style>

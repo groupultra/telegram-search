@@ -354,7 +354,7 @@ watch(
 
     <!-- Message Input -->
     <div class="absolute bottom-6 left-0 right-0 z-20 px-4 md:bottom-6 md:px-6">
-      <div class="mx-auto max-w-4xl flex items-end gap-3 border-transparent rounded-2xl bg-muted/50 p-2 shadow-sm backdrop-blur-xl transition-all duration-200 focus-within:border-primary/20 focus-within:bg-background hover:bg-muted/80 focus-within:ring-2 focus-within:ring-primary/20">
+      <div class="mx-auto max-w-4xl flex items-end gap-3 border border-border/65 rounded-2xl bg-background/90 p-2 shadow-sm backdrop-blur-xl transition-all duration-200 focus-within:border-primary/35 hover:border-border focus-within:bg-background hover:bg-background focus-within:ring-2 focus-within:ring-primary/15">
         <!-- Input container with modern design -->
         <div class="relative flex flex-1 items-center">
           <div class="absolute left-2 flex items-center gap-2">
@@ -371,7 +371,7 @@ watch(
             v-model="messageInput"
             type="text"
             :placeholder="t('chat.typeAMessage')"
-            class="h-10 w-full border-transparent bg-transparent pl-14 pr-14 text-base shadow-none transition-all md:h-14 focus-visible:ring-0"
+            class="h-10 w-full border-transparent bg-transparent pl-14 pr-14 text-base text-foreground shadow-none transition-all md:h-14 placeholder:text-foreground/45 focus-visible:ring-0"
             @keyup.enter="sendMessage"
           />
           <div class="absolute right-2 flex items-center gap-1">
