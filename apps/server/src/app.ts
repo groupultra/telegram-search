@@ -54,13 +54,34 @@ export function registerCoreEventListeners(logger: Logger, account: AccountState
 export async function updateAccountState(logger: Logger, account: AccountState, accountId: string, eventName: keyof ToCoreEvent) {
   // Update account state based on events
   switch (eventName) {
-    case CoreEventType.AuthLogin:
-      account.ctx.emitter.once(CoreEventType.AccountReady, () => {
+    case CoreEventType.AuthLogin: {
+      if (account.pendingReadyListener) {
+        account.ctx.emitter.off(CoreEventType.AccountReady, account.pendingReadyListener)
+        account.pendingReadyListener = undefined
+      }
+
+      const onAccountReady: CoreEventListener = () => {
+        account.pendingReadyListener = undefined
         account.accountReady = true
-      })
+        logger.withFields({ accountId }).log('Account marked ready, notifying peers')
+        account.activePeers.forEach((peerId) => {
+          const targetPeer = peerObjects.get(peerId)
+          if (targetPeer) {
+            sendWsEvent(targetPeer, 'server:connected', { sessionId: accountId, accountReady: true })
+          }
+        })
+      }
+
+      account.pendingReadyListener = onAccountReady
+      account.ctx.emitter.once(CoreEventType.AccountReady, onAccountReady)
       break
+    }
     case CoreEventType.AuthLogout:
       account.accountReady = false
+      if (account.pendingReadyListener) {
+        account.ctx.emitter.off(CoreEventType.AccountReady, account.pendingReadyListener)
+        account.pendingReadyListener = undefined
+      }
       logger.withFields({ accountId }).log('User logged out, destroying account')
       await destroyCoreInstance(account.ctx)
       accountStates.delete(accountId)

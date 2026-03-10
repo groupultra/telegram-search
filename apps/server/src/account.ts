@@ -36,6 +36,13 @@ export interface AccountState {
   coreEventListeners: Map<keyof FromCoreEvent, CoreEventListener>
 
   /**
+   * Pending AccountReady listener for the current login attempt.
+   * This is replaced on every AuthLogin to avoid stacking one-time listeners
+   * across retries/timeouts.
+   */
+  pendingReadyListener?: CoreEventListener
+
+  /**
    * Active WebSocket peers for this account
    */
   activePeers: Set<string>
@@ -85,6 +92,7 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
       ctx,
       accountReady: false,
       coreEventListeners: new Map(),
+      pendingReadyListener: undefined,
       activePeers: new Set(),
       createdAt: Date.now(),
       lastActive: Date.now(),

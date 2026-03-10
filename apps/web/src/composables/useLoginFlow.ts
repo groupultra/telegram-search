@@ -56,8 +56,15 @@ export function useLoginFlow() {
       if (activeSession.value?.me?.id) {
         avatarStore.ensureUserAvatar(activeSession.value.me.id, undefined, true)
       }
+
+      // The login UI is mounted on /login itself. Once auth completes we need
+      // to actively leave that route, otherwise the user can remain looking at
+      // the login screen even though Telegram already accepted the session.
+      if (route.path === '/login') {
+        redirectRoot()
+      }
     }
-  })
+  }, { immediate: true })
 
   const steps = computed(() => [
     { step: 1, value: 'phone', title: t('login.phone'), description: t('login.phoneDescription') },

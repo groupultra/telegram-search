@@ -7,12 +7,14 @@ import { abbreviatedSha as gitShortSha } from '~build/git'
 import { version as pkgVersion } from '~build/package'
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
-import { RouterView } from 'vue-router'
+import { RouterView, useRoute } from 'vue-router'
 
 import AppSidebar from '../components/layout/AppSidebar.vue'
 import MobileNav from '../components/layout/MobileNav.vue'
 
 const { isReady } = storeToRefs(useAccountStore())
+const route = useRoute()
+const isLoginOverlayVisible = computed(() => !isReady.value && route.path === '/login')
 
 // --- Build info using unplugin-info ---
 const buildVersionLabel = computed(() => {
@@ -51,7 +53,7 @@ const sidebarClasses = computed(() => {
   >
     <!-- Login Overlay -->
     <div
-      v-if="!isReady && $route.path === '/login'"
+      v-if="isLoginOverlayVisible"
       class="fixed inset-0 z-50 flex items-center justify-center bg-background/20 backdrop-blur-[2px]"
     >
       <RouterView />
@@ -77,16 +79,9 @@ const sidebarClasses = computed(() => {
         :class="{ 'ml-0': isMobile, 'pb-24': isMobile && !$route.path.startsWith('/chat/') && $route.path !== '/chats' }"
       >
         <!-- Only render main content router-view if NOT login page to avoid duplicate views -->
-        <RouterView v-if="$route.path !== '/login'" :key="$route.fullPath" />
+        <RouterView v-if="!isLoginOverlayVisible" :key="$route.fullPath" />
 
-        <!-- Placeholder for main content when login overlay is active -->
-        <div v-else class="pointer-events-none flex flex-1 flex-col gap-4 overflow-hidden p-4 opacity-100 blur-[2px] filter md:p-6">
-          <div class="h-14 w-full rounded-xl bg-muted/60" />
-          <div class="grid grid-cols-1 flex-1 gap-4 md:grid-cols-3">
-            <div class="rounded-xl bg-muted/50 md:col-span-1" />
-            <div class="rounded-xl bg-muted/40 md:col-span-2" />
-          </div>
-        </div>
+        <div v-else class="flex-1 bg-background" />
 
         <!-- Version info -->
         <div

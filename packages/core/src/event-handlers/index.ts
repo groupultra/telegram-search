@@ -83,6 +83,7 @@ export function basicEventHandler(ctx: CoreContext, config: Config, mediaBinaryP
 
 export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
   let logger = useLogger()
+  let didRegisterPostLoginHandlers = false
 
   const accountService = createAccountService(ctx, logger)
   const entityService = createEntityService(ctx, logger)
@@ -92,7 +93,8 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
   const syncService = createSyncService(ctx, logger)
   const gramEventsService = createGramEventsService(ctx, logger)
 
-  ctx.emitter.once(CoreEventType.AuthConnected, async () => {
+  ctx.emitter.on(CoreEventType.AuthConnected, async () => {
+    logger.log('AuthConnected received, starting post-login bootstrap')
     // Register entity handlers first so we can establish currentAccountId.
     logger.verbose('Getting me info')
     const account = (await accountService.fetchMyAccount()).expect('Failed to get me info')
@@ -114,17 +116,36 @@ export function afterConnectedEventHandler(ctx: CoreContext): EventHandler {
     void syncService.catchUp()
     ctx.setMyUser(account)
 
-    // Fetch dialogs
-    await fetchDialogs(ctx, logger, models, dialogService)
-    // Fetch contacts to ensure we have access hashes for all contacts
-    await dialogService.fetchContacts()
-
     logger.withFields({ accountId: dbAccount.id }).verbose('Set current account ID')
+    logger.withFields({ accountId: dbAccount.id, userId: account.id }).log('Emitting AccountReady')
 
     ctx.emitter.emit(CoreEventType.AccountReady, { accountId: dbAccount.id })
+
+    // Do not block AccountReady on chat bootstrap. Telegram already considers
+    // the login complete at this point, and large dialog/contact lists can make
+    // the UI look stuck on the verification step for a long time.
+    void (async () => {
+      try {
+        logger.withFields({ accountId: dbAccount.id }).log('Starting post-login dialog bootstrap')
+        await fetchDialogs(ctx, logger, models, dialogService)
+        // Fetch contacts to ensure we have access hashes for all contacts.
+        await dialogService.fetchContacts()
+        logger.withFields({ accountId: dbAccount.id }).log('Finished post-login dialog bootstrap')
+      }
+      catch (error) {
+        logger.withError(error).warn('Post-login bootstrap failed')
+      }
+    })()
   })
 
-  ctx.emitter.once(CoreEventType.AccountReady, ({ accountId }) => {
+  ctx.emitter.on(CoreEventType.AccountReady, ({ accountId }) => {
+    if (didRegisterPostLoginHandlers) {
+      logger.withFields({ accountId }).debug('AccountReady received again, post-login handlers already registered')
+      return
+    }
+
+    didRegisterPostLoginHandlers = true
+    logger.withFields({ accountId }).log('Registering post-login handlers')
     logger = logger.withFields({ accountId })
 
     registerEntityEventHandlers(ctx, logger)(entityService)

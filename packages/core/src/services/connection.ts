@@ -110,7 +110,9 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
   }
 
   async function connectOrThrow(client: TelegramClient): Promise<void> {
-    const CONNECT_TIMEOUT = 5000
+    // Telegram sign-in can require an extra DC hop before the session is ready.
+    // A 5s cap is too aggressive on unstable networks and causes false timeouts.
+    const CONNECT_TIMEOUT = 20000
 
     const isConnected = await Promise.race<boolean>([
       client.connect(),
