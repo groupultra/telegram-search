@@ -127,11 +127,10 @@ const isChatPage = computed(() => {
       :class="activeKey === item.key ? 'text-primary' : 'text-muted-foreground hover:text-foreground'"
       @click="handleItemClick(item)"
     >
-      <div class="nav-icon-container flex items-center justify-center rounded-full p-2.5">
-        <!-- Using dynamic class with explicit block display -->
+      <div class="nav-icon-container h-11 w-11 flex items-center justify-center rounded-full">
         <span
           :class="[item.icon, activeKey === item.key ? 'text-primary-foreground' : '']"
-          class="h-6 w-6 flex items-center justify-center leading-none transition-colors duration-200"
+          class="block h-6 w-6 flex-shrink-0 leading-none transition-colors duration-200"
         />
       </div>
     </button>

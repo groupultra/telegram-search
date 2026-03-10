@@ -71,6 +71,13 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
       logger.log('Disconnected')
       toast.error('WebSocket disconnected')
     },
+    autoReconnect: {
+      retries: Number.POSITIVE_INFINITY,
+      delay: 1500,
+      onFailed() {
+        logger.error('WebSocket reconnect attempts exhausted')
+      },
+    },
     // Only connect when URL is defined
     immediate: !!wsUrlComputed.value,
   })
