@@ -21,3 +21,4 @@ coverage/
 *.cpuprofile
 *.local
 .ghfs
+.turbo
