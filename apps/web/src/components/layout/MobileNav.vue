@@ -13,9 +13,16 @@ const route = useRoute()
 
 interface NavItem {
   key: string
-  icon: string
+  icon: 'sync' | 'chats' | 'ai-chat' | 'settings'
   label: string
 }
+
+const MOBILE_NAV_ICON_CLASS = {
+  'ai-chat': 'i-lucide-bot',
+  'chats': 'i-lucide-message-circle',
+  'settings': 'i-lucide-settings',
+  'sync': 'i-lucide-refresh-cw',
+} as const
 
 const navItems = computed<NavItem[]>(() => {
   return MOBILE_NAV_ITEMS.map(item => ({
@@ -129,7 +136,7 @@ const isChatPage = computed(() => {
     >
       <div class="nav-icon-container h-11 w-11 flex items-center justify-center rounded-full">
         <span
-          :class="[item.icon, activeKey === item.key ? 'text-primary-foreground' : '']"
+          :class="[MOBILE_NAV_ICON_CLASS[item.icon], activeKey === item.key ? 'text-primary-foreground' : '']"
           class="block h-6 w-6 flex-shrink-0 leading-none transition-colors duration-200"
         />
       </div>

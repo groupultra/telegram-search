@@ -11,29 +11,6 @@ import {
 import { presetScrollbar } from 'unocss-preset-scrollbar'
 
 export default defineConfig({
-  safelist: [
-    'i-lucide-bot',
-    'i-lucide-check-circle',
-    'i-lucide-copy',
-    'i-lucide-external-link',
-    'i-lucide-link',
-    'i-lucide-log-in',
-    'i-lucide-message-circle',
-    'i-lucide-message-square-text',
-    'i-lucide-moon',
-    'i-lucide-refresh-cw',
-    'i-lucide-rotate-ccw',
-    'i-lucide-save',
-    'i-lucide-search',
-    'i-lucide-settings',
-    'i-lucide-shield-check',
-    'i-lucide-shield-off',
-    'i-lucide-sparkles',
-    'i-lucide-sun',
-    'i-lucide-trash-2',
-    'i-lucide-user',
-    'i-lucide-x-circle',
-  ],
   presets: [
     presetWind3(),
     presetAttributify(),
