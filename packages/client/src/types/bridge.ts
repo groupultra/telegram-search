@@ -15,5 +15,8 @@ export interface BridgeAdapter {
    */
   init: () => Promise<void>
   sendEvent: ClientSendEventFn
-  waitForEvent: <T extends keyof WsEventToClient>(event: T) => Promise<WsEventToClientData<T>>
+  waitForEvent: <T extends keyof WsEventToClient>(
+    event: T,
+    predicate?: (data: WsEventToClientData<T>) => boolean,
+  ) => Promise<WsEventToClientData<T>>
 }

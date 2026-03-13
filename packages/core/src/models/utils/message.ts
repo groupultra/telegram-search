@@ -38,6 +38,7 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
 
     createdAt: message.created_at,
     updatedAt: message.updated_at,
+    deletedAt: message.deleted_at,
     platformTimestamp: message.platform_timestamp,
   } satisfies CoreMessage
 }

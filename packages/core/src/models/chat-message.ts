@@ -24,6 +24,17 @@ import { convertDBPhotoToCoreMessageMedia } from './utils/photos'
 import { retrieveJieba } from './utils/retrieve-jieba'
 import { retrieveVector } from './utils/retrieve-vector'
 
+function notDeletedCondition() {
+  return eq(chatMessagesTable.deleted_at, 0)
+}
+
+function ownerScopedCondition(accountId: string) {
+  return sql`(
+    ${chatMessagesTable.owner_account_id} = ${accountId}
+    OR ${chatMessagesTable.owner_account_id} IS NULL
+  )`
+}
+
 /**
  * Upsert messages for a specific account.
  * NOTE: Without result wrapper, because it's insert operation, maybe outer don't receive any error, just throw error directly.
@@ -116,6 +127,46 @@ async function recordMessages(
 }
 
 /**
+ * Soft-delete messages by platform message IDs.
+ * This keeps history for potential recovery but excludes deleted data in reads.
+ */
+async function softDeleteMessages(
+  db: CoreDB,
+  accountId: string,
+  messageIds: string[],
+  options?: {
+    chatId?: string
+  },
+): Promise<number> {
+  if (messageIds.length === 0) {
+    return 0
+  }
+
+  const now = Date.now()
+  const conditions = [
+    notDeletedCondition(),
+    eq(chatMessagesTable.platform, 'telegram'),
+    inArray(chatMessagesTable.platform_message_id, messageIds),
+    ownerScopedCondition(accountId),
+  ]
+
+  if (options?.chatId) {
+    conditions.push(eq(chatMessagesTable.in_chat_id, options.chatId))
+  }
+
+  const result = await db
+    .update(chatMessagesTable)
+    .set({
+      deleted_at: now,
+      updated_at: now,
+    })
+    .where(and(...conditions))
+    .returning()
+
+  return result.length
+}
+
+/**
  * Fetch messages for a specific account.
  * @deprecated Use fetchMessagesByTimeRange instead.
  */
@@ -135,6 +186,7 @@ async function fetchMessages(
       .innerJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
       .where(and(
         eq(chatMessagesTable.in_chat_id, chatId),
+        notDeletedCondition(),
         // ACL: for private dialogs, only return messages owned by this account (or legacy NULL owner).
         sql`(
         ${joinedChatsTable.chat_type} != 'user'
@@ -205,6 +257,7 @@ async function fetchMessageContextWithPhotos(
       .where(and(
         eq(chatMessagesTable.in_chat_id, chatId),
         eq(chatMessagesTable.platform_message_id, messageId),
+        notDeletedCondition(),
         sql`(
         ${joinedChatsTable.chat_type} != 'user'
         OR ${chatMessagesTable.owner_account_id} = ${accountId}
@@ -228,6 +281,7 @@ async function fetchMessageContextWithPhotos(
       .where(and(
         eq(chatMessagesTable.in_chat_id, chatId),
         lt(chatMessagesTable.platform_timestamp, targetMessage.platform_timestamp),
+        notDeletedCondition(),
         sql`(
         ${joinedChatsTable.chat_type} != 'user'
         OR ${chatMessagesTable.owner_account_id} = ${accountId}
@@ -247,6 +301,7 @@ async function fetchMessageContextWithPhotos(
       .where(and(
         eq(chatMessagesTable.in_chat_id, chatId),
         gt(chatMessagesTable.platform_timestamp, targetMessage.platform_timestamp),
+        notDeletedCondition(),
         sql`(
         ${joinedChatsTable.chat_type} != 'user'
         OR ${chatMessagesTable.owner_account_id} = ${accountId}
@@ -295,6 +350,7 @@ async function fetchMessagesByTimeRange(
     const conditions = [
       gte(chatMessagesTable.platform_timestamp, timeRange.start),
       lte(chatMessagesTable.platform_timestamp, timeRange.end),
+      notDeletedCondition(),
       // ACL: same pattern as fetchMessages
       sql`(
         ${joinedChatsTable.chat_type} != 'user'
@@ -345,10 +401,40 @@ async function fetchMessagesByIds(
       .innerJoin(accountJoinedChatsTable, eq(joinedChatsTable.id, accountJoinedChatsTable.joined_chat_id))
       .where(and(
         inArray(chatMessagesTable.id, messageIds),
+        notDeletedCondition(),
         eq(accountJoinedChatsTable.account_id, accountId),
       ))
 
     return results
+  })
+}
+
+async function fetchEditedMessageIds(
+  db: CoreDB,
+  accountId: string,
+  chatId: string,
+  messageIds: string[],
+): PromiseResult<string[]> {
+  return withResult(async () => {
+    if (messageIds.length === 0) {
+      return []
+    }
+
+    const results = await db
+      .select({
+        platform_message_id: chatMessagesTable.platform_message_id,
+      })
+      .from(chatMessagesTable)
+      .where(and(
+        eq(chatMessagesTable.platform, 'telegram'),
+        eq(chatMessagesTable.in_chat_id, chatId),
+        inArray(chatMessagesTable.platform_message_id, messageIds),
+        notDeletedCondition(),
+        ownerScopedCondition(accountId),
+        gt(chatMessagesTable.updated_at, chatMessagesTable.created_at),
+      ))
+
+    return results.map(row => row.platform_message_id)
   })
 }
 
@@ -404,8 +490,10 @@ async function retrieveMessages(
 
 export const chatMessageModels = {
   recordMessages,
+  softDeleteMessages,
   fetchMessages,
   fetchMessagesByIds,
+  fetchEditedMessageIds,
   fetchMessagesByTimeRange,
   fetchMessagesWithPhotos,
   fetchMessageContextWithPhotos,

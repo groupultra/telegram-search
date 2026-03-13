@@ -36,6 +36,7 @@ export async function retrieveVector(
   const whereConditions = [
     eq(chatMessagesTable.platform, 'telegram'),
     eq(chatMessagesTable.content_vector_model, model),
+    eq(chatMessagesTable.deleted_at, 0),
     filters?.chatIds?.length ? inArray(chatMessagesTable.in_chat_id, filters.chatIds) : undefined,
     gt(similarity, 0.5),
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,

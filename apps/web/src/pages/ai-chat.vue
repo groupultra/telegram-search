@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import type { CoreRetrievalMessages, CoreRetrievalPhoto } from '@tg-search/core/types'
 
+import type { ToolCallRecord } from '../composables/useAIChat'
+
 import MarkdownRender from 'markstream-vue'
 
 import { useLogger } from '@guiiai/logg'
-import { useAccountStore, useAIChatStore, useBridge, useChatStore } from '@tg-search/client'
-import { CoreEventType } from '@tg-search/core'
+import { useAccountStore, useAIChatStore, useChatStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
@@ -25,15 +26,21 @@ import {
   DialogTitle,
 } from '../components/ui/Dialog'
 import { Textarea } from '../components/ui/Textarea'
+import { useAIChatToolExecutors } from '../composables/use-ai-chat-tool-executors'
 import { useAIChatLogic } from '../composables/useAIChat'
+
+const props = withDefaults(defineProps<{
+  chatIds?: number[]
+}>(), {
+  chatIds: () => [],
+})
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 
 const aiChatStore = useAIChatStore()
 const { messages, isLoading, isSearching, searchStage, error } = storeToRefs(aiChatStore)
-
-const bridge = useBridge()
 
 const { accountSettings } = storeToRefs(useAccountStore())
 
@@ -47,12 +54,21 @@ const isScopeSelectorOpen = ref(false)
 const selectedChatIds = ref<number[]>([])
 const tempSelectedChatIds = ref<number[]>([])
 const activeChatId = ref<number | null>(null)
+const toolExecutors = useAIChatToolExecutors({ selectedChatIds })
 
 watch(isScopeSelectorOpen, (open) => {
   if (open) {
     tempSelectedChatIds.value = [...selectedChatIds.value]
   }
 })
+
+watch(selectedChatIds, (ids) => {
+  if (!isScopeSelectorOpen.value) {
+    return
+  }
+
+  tempSelectedChatIds.value = [...ids]
+}, { deep: true })
 
 function confirmFilter() {
   selectedChatIds.value = [...tempSelectedChatIds.value]
@@ -116,98 +132,32 @@ async function generateMessage(message: string, assistantId?: string) {
     // Track all retrieved messages, photos and tool calls
     const allRetrievedMessages: CoreRetrievalMessages[] = []
     const allRetrievedPhotos: CoreRetrievalPhoto[] = []
-    const toolCalls: any[] = []
+    const toolCalls: ToolCallRecord[] = []
 
-    // Create tool executors that interact with the bridge
-    const searchMessagesExecutor = async (params: any) => {
-      return new Promise<CoreRetrievalMessages[]>((resolve) => {
-        bridge.waitForEvent(CoreEventType.StorageSearchMessagesData).then(({ messages }) => {
-          allRetrievedMessages.push(...messages)
-          resolve(messages)
-        })
-
-        bridge.sendEvent(CoreEventType.StorageSearchMessages, {
-          content: params.query,
-          useVector: params.useVector,
-          pagination: {
-            limit: params.limit,
-            offset: 0,
-          },
-          fromUserId: params.fromUserId,
-          timeRange: params.timeRange,
-          // Inject UI-selected chat scope
-          chatIds: selectedChatIds.value.length > 0
-            ? selectedChatIds.value.map(id => id.toString())
-            : undefined,
-        })
-      })
+    const searchMessagesExecutor = async (...args: Parameters<typeof toolExecutors.searchMessages>) => {
+      const results = await toolExecutors.searchMessages(...args)
+      allRetrievedMessages.push(...results)
+      return results
     }
 
-    const retrieveContextExecutor = async (params: any) => {
-      return new Promise<CoreRetrievalMessages[]>((resolve) => {
-        bridge.waitForEvent(CoreEventType.StorageSearchMessagesData).then(({ messages }) => {
-          allRetrievedMessages.push(...messages)
-          resolve(messages)
-        })
-
-        bridge.sendEvent(CoreEventType.StorageSearchMessages, {
-          chatId: params.chatId,
-          content: '',
-          useVector: false,
-          pagination: {
-            limit: params.limit,
-            offset: 0,
-          },
-          timeRange: {
-            end: params.targetTimestamp - 1,
-          },
-        })
-      })
+    const retrieveContextExecutor = async (...args: Parameters<typeof toolExecutors.retrieveContext>) => {
+      const results = await toolExecutors.retrieveContext(...args)
+      allRetrievedMessages.push(...results)
+      return results
     }
 
-    const getDialogsExecutor = async (_: any) => {
-      return new Promise<any[]>((resolve) => {
-        bridge.waitForEvent(CoreEventType.StorageDialogs).then(({ dialogs }) => {
-          resolve(dialogs)
-        })
-
-        bridge.sendEvent(CoreEventType.StorageFetchDialogs)
-      })
+    const getDialogsExecutor = (...args: Parameters<typeof toolExecutors.getDialogs>) => {
+      return toolExecutors.getDialogs(...args)
     }
 
-    const searchPhotosExecutor = async (params: any) => {
-      return new Promise<CoreRetrievalPhoto[]>((resolve) => {
-        useLogger('composables:ai-chat').withFields({ params }).log('searchPhotos executor called')
-
-        bridge.waitForEvent(CoreEventType.StorageSearchPhotosData).then(({ photos }) => {
-          useLogger('composables:ai-chat').withFields({ photosCount: photos.length }).log('searchPhotos received response')
-          allRetrievedPhotos.push(...photos)
-          resolve(photos)
-        })
-
-        bridge.sendEvent(CoreEventType.StorageSearchPhotos, {
-          content: params.query,
-          useVector: params.useVector,
-          pagination: {
-            limit: params.limit,
-            offset: 0,
-          },
-          // Inject UI-selected chat scope
-          chatIds: selectedChatIds.value.length > 0
-            ? selectedChatIds.value.map(id => id.toString())
-            : undefined,
-        })
-      })
+    const searchPhotosExecutor = async (...args: Parameters<typeof toolExecutors.searchPhotos>) => {
+      const results = await toolExecutors.searchPhotos(...args)
+      allRetrievedPhotos.push(...results)
+      return results
     }
 
-    const chatNoteExecutor = async (params: { chatId: string, note: string, modify: boolean }) => {
-      return new Promise<string>((resolve) => {
-        bridge.waitForEvent(CoreEventType.StorageChatNoteData).then(({ note }) => {
-          resolve(note ?? '')
-        })
-
-        bridge.sendEvent(CoreEventType.StorageChatNote, params)
-      })
+    const chatNoteExecutor = (...args: Parameters<typeof toolExecutors.chatNote>) => {
+      return toolExecutors.chatNote(...args)
     }
 
     // Create tools
@@ -354,7 +304,48 @@ function deleteMessage(id: string) {
   toast.success(t('aiChat.deletedMessage'))
 }
 
+function parseChatIdsFromQuery(queryValue: string | (string | null)[] | null | undefined): number[] {
+  const raw = Array.isArray(queryValue)
+    ? queryValue.join(',')
+    : (queryValue ?? '')
+
+  const ids = raw
+    .split(',')
+    .map(item => Number.parseInt(item.trim(), 10))
+    .filter(id => Number.isFinite(id) && id > 0)
+
+  return Array.from(new Set(ids))
+}
+
+function applyRouteScope() {
+  if (props.chatIds.length > 0) {
+    selectedChatIds.value = Array.from(new Set(props.chatIds))
+    tempSelectedChatIds.value = [...selectedChatIds.value]
+    return
+  }
+
+  const ids = parseChatIdsFromQuery(route.query.chatIds)
+  if (ids.length === 0) {
+    return
+  }
+
+  selectedChatIds.value = ids
+  tempSelectedChatIds.value = [...ids]
+}
+
+watch(() => route.query.chatIds, () => {
+  if (props.chatIds.length > 0) {
+    return
+  }
+  applyRouteScope()
+})
+
+watch(() => props.chatIds, () => {
+  applyRouteScope()
+}, { deep: true })
+
 onMounted(() => {
+  applyRouteScope()
   scrollToBottom()
 })
 </script>
@@ -372,15 +363,17 @@ onMounted(() => {
       <div class="flex items-center gap-2">
         <Button
           variant="ghost"
-          size="icon"
-          class="h-9 w-9 rounded-full"
+          class="h-9 gap-2 rounded-full px-3"
           :class="filteredChatsCount > 0 ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-muted'"
           @click="isScopeSelectorOpen = true"
         >
-          <div v-if="filteredChatsCount > 0" class="h-5 w-5 flex items-center justify-center text-xs font-bold">
-            {{ filteredChatsCount }}
-          </div>
-          <span v-else class="i-lucide-filter h-5 w-5" />
+          <span class="i-lucide-filter h-4 w-4" />
+          <span v-if="filteredChatsCount > 0" class="text-xs font-semibold">
+            {{ t('aiChat.selectedScopeCount', { count: filteredChatsCount }) }}
+          </span>
+          <span v-else class="text-xs font-semibold">
+            {{ t('aiChat.selectScope') }}
+          </span>
         </Button>
       </div>
     </header>
@@ -663,7 +656,7 @@ onMounted(() => {
 
   <!-- Chat Scope Selector Dialog -->
   <Dialog v-model:open="isScopeSelectorOpen">
-    <DialogContent class="h-[80vh] max-w-[calc(100%-2rem)] flex flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-md" :show-close-button="false">
+    <DialogContent class="h-[80vh] max-w-[calc(100%-2rem)] flex flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-4xl" :show-close-button="false">
       <DialogHeader class="shrink-0 border-b px-6 py-4">
         <DialogTitle>{{ t('aiChat.selectScope') }}</DialogTitle>
         <DialogDescription>

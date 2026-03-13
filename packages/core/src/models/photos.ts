@@ -222,6 +222,7 @@ async function searchPhotosByVector(
       .where(and(
         sql`${vectorColumn} IS NOT NULL`,
         gt(sql`1 - (${cosineDistance(vectorColumn, embedding)})`, minSimilarity),
+        eq(chatMessagesTable.deleted_at, 0),
       ))
       .orderBy(cosineDistance(vectorColumn, embedding))
       .limit(limit)
@@ -268,7 +269,10 @@ async function searchPhotosByText(
       .from(photosTable)
       .leftJoin(chatMessagesTable, eq(photosTable.message_id, chatMessagesTable.id))
       .leftJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
-      .where(sql`${photosTable.description} ILIKE ${`%${searchText}%`}`)
+      .where(and(
+        eq(chatMessagesTable.deleted_at, 0),
+        sql`${photosTable.description} ILIKE ${`%${searchText}%`}`,
+      ))
       .orderBy(photosTable.created_at)
       .limit(limit)
 

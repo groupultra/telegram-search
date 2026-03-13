@@ -34,6 +34,10 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}) {
   let requestSeq = 0
   let currentOffset = 0
 
+  function createRequestId() {
+    return `message-search:${Date.now()}:${Math.random().toString(36).slice(2)}`
+  }
+
   watch(keywordDebounced, async (newKeyword) => {
     const nextKeyword = newKeyword.trim()
 
@@ -50,8 +54,10 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}) {
     const currentRequest = ++requestSeq
     isLoading.value = true
     currentOffset = 0
+    const requestId = createRequestId()
 
     bridge.sendEvent(CoreEventType.StorageSearchMessages, {
+      requestId,
       chatId: options.chatId,
       content: nextKeyword,
       useVector,
@@ -62,7 +68,7 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}) {
     })
 
     try {
-      const result = await bridge.waitForEvent(CoreEventType.StorageSearchMessagesData)
+      const result = await bridge.waitForEvent(CoreEventType.StorageSearchMessagesData, data => data.requestId === requestId)
       if (currentRequest !== requestSeq) {
         return
       }
@@ -85,8 +91,10 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}) {
 
     const currentRequest = ++requestSeq
     isLoadingMore.value = true
+    const requestId = createRequestId()
 
     bridge.sendEvent(CoreEventType.StorageSearchMessages, {
+      requestId,
       chatId: options.chatId,
       content: currentKeyword,
       useVector,
@@ -97,7 +105,7 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}) {
     })
 
     try {
-      const result = await bridge.waitForEvent(CoreEventType.StorageSearchMessagesData)
+      const result = await bridge.waitForEvent(CoreEventType.StorageSearchMessagesData, data => data.requestId === requestId)
       if (currentRequest !== requestSeq) {
         return
       }

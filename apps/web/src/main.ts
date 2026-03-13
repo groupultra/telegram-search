@@ -35,7 +35,13 @@ app.use(pinia)
 const sessionStore = useSessionStore()
 sessionStore.init()
 
-const routes = setupLayouts(generatedRoutes.filter(_ => true))
+const routes = setupLayouts([
+  ...generatedRoutes.filter(_ => true),
+  {
+    path: '/search/:pathMatch(.*)*',
+    redirect: '/chats',
+  },
+])
 const router = createRouter({
   routes,
   history: createWebHistory(import.meta.env.BASE_URL),

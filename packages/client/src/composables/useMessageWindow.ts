@@ -52,6 +52,20 @@ export class MessageWindow {
     return this.messages.has(msgId)
   }
 
+  remove(msgId: string): void {
+    this.cleanupMessage(msgId)
+
+    if (this.messages.size > 0) {
+      const remainingIds = this.getSortedIds()
+      this.minId = Number(remainingIds[0])
+      this.maxId = Number(remainingIds[remainingIds.length - 1])
+    }
+    else {
+      this.minId = Infinity
+      this.maxId = -Infinity
+    }
+  }
+
   // Get all message IDs sorted
   getSortedIds(): string[] {
     return Array.from(this.messages.keys()).sort((a, b) => Number(a) - Number(b))

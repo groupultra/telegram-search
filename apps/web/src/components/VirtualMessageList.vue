@@ -2,7 +2,7 @@
 import type { CoreMessage } from '@tg-search/core'
 
 import { VList } from 'virtua/vue'
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import MessageBubble from './messages/MessageBubble.vue'
@@ -38,6 +38,69 @@ let scrollTimer: ReturnType<typeof setTimeout> | null = null
 const isAtTop = ref(false)
 const isAtBottom = ref(true)
 let lastMessageCount = 0
+
+type MessageListItem
+  = | { type: 'separator', id: string, label: string }
+    | { type: 'message', id: string, message: CoreMessage, messageIndex: number }
+
+function toDayKey(timestamp: number) {
+  const date = new Date(timestamp * 1000)
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+}
+
+function formatDaySeparator(timestamp: number) {
+  const date = new Date(timestamp * 1000)
+  const now = new Date()
+
+  const isSameDay = now.getFullYear() === date.getFullYear()
+    && now.getMonth() === date.getMonth()
+    && now.getDate() === date.getDate()
+
+  if (isSameDay) {
+    return '今天'
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: now.getFullYear() === date.getFullYear() ? undefined : 'numeric',
+  }).format(date)
+}
+
+const renderItems = computed<MessageListItem[]>(() => {
+  const items: MessageListItem[] = []
+  let lastDayKey = ''
+
+  props.messages.forEach((message, messageIndex) => {
+    const dayKey = toDayKey(message.platformTimestamp)
+
+    if (dayKey !== lastDayKey) {
+      items.push({
+        type: 'separator',
+        id: `separator:${dayKey}`,
+        label: formatDaySeparator(message.platformTimestamp),
+      })
+      lastDayKey = dayKey
+    }
+
+    items.push({
+      type: 'message',
+      id: message.uuid,
+      message,
+      messageIndex,
+    })
+  })
+
+  return items
+})
+
+function getPreviousMessage(index: number) {
+  return index > 0 ? props.messages[index - 1] : undefined
+}
+
+function getNextMessage(index: number) {
+  return index < props.messages.length - 1 ? props.messages[index + 1] : undefined
+}
 
 // Watch for message changes to maintain scroll position
 watch(() => props.messages, async (newMessages, oldMessages) => {
@@ -110,13 +173,13 @@ function onScroll(offset: number) {
 async function scrollToBottom() {
   await nextTick()
   if (vListRef.value) {
-    vListRef.value.scrollToIndex(props.messages.length - 1, { align: 'end' })
+    vListRef.value.scrollToIndex(renderItems.value.length - 1, { align: 'end' })
     isAtBottom.value = true
   }
 }
 
 async function scrollToMessage(messageId: string | number) {
-  const targetIndex = props.messages.findIndex(msg => msg.uuid === messageId)
+  const targetIndex = renderItems.value.findIndex(item => item.type === 'message' && item.message.uuid === messageId)
   if (targetIndex === -1 || !vListRef.value)
     return
 
@@ -126,7 +189,7 @@ async function scrollToMessage(messageId: string | number) {
 
 // Get scroll offset for maintaining position
 function getScrollOffset(anchorId: string | number): { anchorIndex: number, offset: number } | null {
-  const anchorIndex = props.messages.findIndex(msg => msg.uuid === anchorId)
+  const anchorIndex = renderItems.value.findIndex(item => item.type === 'message' && item.message.uuid === anchorId)
   if (anchorIndex === -1)
     return null
 
@@ -162,16 +225,28 @@ defineExpose({
   <div class="relative h-full overflow-hidden">
     <VList
       ref="vListRef"
-      :data="messages"
+      :data="renderItems"
       class="h-full pb-32"
-      :item-size="120"
+      :item-size="72"
       shift
       @scroll="onScroll"
       @scroll-end="() => (isScrolling = false)"
     >
-      <template #default="{ item: message }">
-        <div :key="message.uuid" class="w-full">
-          <MessageBubble :message="message" />
+      <template #default="{ item }">
+        <div v-if="item.type === 'separator'" :key="item.id" class="w-full py-3">
+          <div class="flex justify-center">
+            <div class="rounded-full bg-card/80 px-3 py-1 text-xs text-muted-foreground font-medium shadow-sm backdrop-blur-sm">
+              {{ item.label }}
+            </div>
+          </div>
+        </div>
+
+        <div v-else :key="item.id" class="w-full">
+          <MessageBubble
+            :message="item.message"
+            :previous-message="getPreviousMessage(item.messageIndex)"
+            :next-message="getNextMessage(item.messageIndex)"
+          />
         </div>
       </template>
     </VList>

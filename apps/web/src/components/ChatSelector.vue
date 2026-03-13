@@ -7,7 +7,6 @@ import { useI18n } from 'vue-i18n'
 
 import EntityAvatar from './avatar/EntityAvatar.vue'
 
-import { Checkbox } from './ui/Checkbox'
 import { Input } from './ui/Input'
 
 const props = defineProps<{
@@ -116,12 +115,21 @@ function toggleSelection(id: number): void {
   // Always focus the chat that was interacted with so status panel switches accordingly
   activeChatId.value = id
 }
+
+function handleChatRowKeydown(event: KeyboardEvent, id: number) {
+  if (event.key !== 'Enter' && event.key !== ' ') {
+    return
+  }
+
+  event.preventDefault()
+  toggleSelection(id)
+}
 </script>
 
 <template>
   <div class="h-full flex flex-col gap-4 md:flex-row md:gap-6">
     <!-- Left Sidebar: Filter Groups (Desktop) -->
-    <div class="w-48 flex-shrink-0 flex-col gap-1 border-r pr-6 hidden md:flex">
+    <div class="w-32 flex-shrink-0 flex-col gap-1 border-r pr-4 hidden lg:flex">
       <div class="mb-2 px-2 text-xs text-muted-foreground font-semibold tracking-wider uppercase">
         {{ t('chatSelector.filters') }}
       </div>
@@ -193,12 +201,16 @@ function toggleSelection(id: number): void {
           class="h-full"
         >
           <template #default="{ item: chat }">
-            <label
-              :key="chat.id"
+            <div
+              :key="`${chat.id}-${isSelected(chat.id) ? 'checked' : 'unchecked'}`"
               class="group flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-all hover:bg-accent/50"
               :class="{
                 'bg-primary/5': isSelected(chat.id),
               }"
+              role="button"
+              tabindex="0"
+              @click="toggleSelection(chat.id)"
+              @keydown="handleChatRowKeydown($event, chat.id)"
             >
               <EntityAvatar
                 :id="chat.id"
@@ -221,11 +233,13 @@ function toggleSelection(id: number): void {
                 </p>
               </div>
 
-              <Checkbox
-                :checked="isSelected(chat.id)"
-                @update:checked="toggleSelection(chat.id)"
-              />
-            </label>
+              <div
+                class="h-5 w-5 flex shrink-0 items-center justify-center border rounded-md transition-colors"
+                :class="isSelected(chat.id) ? 'border-primary bg-primary text-primary-foreground' : 'border-border/70 text-transparent'"
+              >
+                <span class="i-lucide-check h-3 w-3" />
+              </div>
+            </div>
           </template>
         </VList>
       </div>

@@ -37,7 +37,7 @@ export interface ToolCallRecord {
   }
 }
 
-interface SearchMessagesParams {
+export interface SearchMessagesParams {
   query: string
   useVector: boolean
   limit: number
@@ -46,23 +46,23 @@ interface SearchMessagesParams {
   chatIds?: string[] | null
 }
 
-interface RetrieveContextParams {
+export interface RetrieveContextParams {
   chatId: string
   targetTimestamp: number
   limit: number
 }
 
-interface GetDialogsParams {
+export interface GetDialogsParams {
 }
 
-interface SearchPhotosParams {
+export interface SearchPhotosParams {
   query: string
   useVector: boolean
   limit: number
   chatIds?: string[] | null
 }
 
-interface ChatNoteParams {
+export interface ChatNoteParams {
   chatId: string
   note: string
   modify: boolean

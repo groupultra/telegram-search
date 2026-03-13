@@ -44,6 +44,7 @@ export async function retrieveJieba(
       ? inArray(chatMessagesTable.in_chat_id, filters.chatIds)
       : undefined,
 
+    eq(chatMessagesTable.deleted_at, 0),
     sql`${chatMessagesTable.jieba_tokens} @> ${JSON.stringify(jiebaTokens)}::jsonb`,
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
     filters?.timeRange?.start ? sql`${chatMessagesTable.platform_timestamp} >= ${filters.timeRange.start}` : undefined,

@@ -10,6 +10,7 @@ export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: M
   logger.verbose('Fetching dialogs')
 
   const dialogs = (await dialogService.fetchDialogs()).expect('Failed to fetch dialogs')
+  const pinnedDialogIds = (await dialogService.fetchPinnedDialogIds(0)).orUndefined() ?? []
 
   // Get current account ID from context
   const accountId = ctx.getCurrentAccountId()
@@ -34,7 +35,7 @@ export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: M
     }
   }
 
-  ctx.emitter.emit(CoreEventType.DialogData, { dialogs })
+  ctx.emitter.emit(CoreEventType.DialogData, { dialogs, pinnedDialogIds })
   ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs, accountId })
 }
 

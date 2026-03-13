@@ -116,12 +116,15 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
     isInitialized.value = true
   }
 
-  function waitForEvent<T extends keyof WsEventToClient>(event: T) {
+  function waitForEvent<T extends keyof WsEventToClient>(
+    event: T,
+    predicate?: (data: WsEventToClientData<T>) => boolean,
+  ) {
     logger.withFields({ event }).debug('Waiting for event from core')
     return new Promise<WsEventToClientData<T>>((resolve) => {
       enqueueEventHandler(eventHandlersQueue, event, (data: WsEventToClientData<T>) => {
         resolve(deepClone(data) as WsEventToClientData<T>)
-      })
+      }, predicate)
     })
   }
 

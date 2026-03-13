@@ -3,6 +3,8 @@ import type { Result } from '@unbird/result'
 import type { Dialog } from 'telegram/tl/custom/dialog'
 
 import type { CoreContext } from '../context'
+import type { UserModels } from '../models/users'
+import type { DBSelectUser } from '../models/utils/types'
 import type { CoreChatFolder, CoreDialog } from '../types/dialog'
 
 import bigInt from 'big-integer'
@@ -14,11 +16,11 @@ import { Api } from 'telegram'
 
 import { useAvatarHelper } from '../message-resolvers/avatar-resolver'
 import { CoreEventType } from '../types/events'
-import { getApiChatIdFromMtpPeer, resolveDialog } from '../utils/dialog'
+import { getApiChatIdFromMtpPeer, resolveDialog, resolveDialogMessagePreview, resolveDialogMessageSenderId, resolveDialogMessageSenderName } from '../utils/dialog'
 
 export type DialogService = ReturnType<typeof createDialogService>
 
-export function createDialogService(ctx: CoreContext, logger: Logger) {
+export function createDialogService(ctx: CoreContext, logger: Logger, userModels: UserModels) {
   logger = logger.withContext('core:dialog')
 
   /**
@@ -26,6 +28,67 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
    * Provides shared caches and dedup across services/resolvers.
    */
   const avatarHelper = useAvatarHelper(ctx, logger)
+
+  async function resolveDialogSenderNames(dialogList: Dialog[]) {
+    const senderIds = Array.from(new Set(dialogList.flatMap((dialog) => {
+      const result = resolveDialog(dialog).orUndefined()
+      if (!result || (result.type !== 'group' && result.type !== 'supergroup')) {
+        return []
+      }
+
+      const senderId = resolveDialogMessageSenderId(dialog.message)
+      const senderName = resolveDialogMessageSenderName(dialog.message)
+
+      if (!senderId || (senderName && senderName !== senderId)) {
+        return []
+      }
+
+      return [senderId]
+    })))
+
+    const senderNameMap = new Map<string, string>()
+    if (senderIds.length === 0) {
+      return senderNameMap
+    }
+
+    const dbUsers = (await userModels.findUsersByPlatformIds(ctx.getDB(), 'telegram', senderIds)).orUndefined() ?? []
+    const dbUsersByPlatformId = new Map<string, DBSelectUser>(
+      dbUsers.map((user: DBSelectUser) => [user.platform_user_id, user]),
+    )
+
+    const missingSenderIds = senderIds.filter(senderId => !dbUsersByPlatformId.has(senderId))
+    for (const senderId of missingSenderIds) {
+      try {
+        const rawEntity = await ctx.getClient().getEntity(senderId)
+        if (!(rawEntity instanceof Api.User)) {
+          continue
+        }
+
+        const fullName = [rawEntity.firstName, rawEntity.lastName].filter(Boolean).join(' ').trim()
+        const recordedUser = await userModels.recordUser(ctx.getDB(), {
+          type: 'user',
+          id: rawEntity.id.toString(),
+          name: fullName || rawEntity.username || rawEntity.id.toString(),
+          username: rawEntity.username ?? rawEntity.id.toString(),
+          accessHash: rawEntity.accessHash?.toString(),
+        })
+
+        dbUsersByPlatformId.set(senderId, recordedUser)
+      }
+      catch (error) {
+        logger.withFields({ senderId }).withError(error).warn('Failed to resolve dialog preview sender')
+      }
+    }
+
+    for (const senderId of senderIds) {
+      const user = dbUsersByPlatformId.get(senderId)
+      if (user?.name) {
+        senderNameMap.set(senderId, user.name)
+      }
+    }
+
+    return senderNameMap
+  }
 
   async function fetchChatFolders(): Promise<Result<CoreChatFolder[]>> {
     return withSpan('core:dialog:service:fetchChatFolders', async () => {
@@ -77,6 +140,33 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
     })
   }
 
+  async function fetchPinnedDialogIds(folderId = 0): Promise<Result<number[]>> {
+    return withSpan('core:dialog:service:fetchPinnedDialogIds', async () => {
+      try {
+        const result = await ctx.getClient().invoke(new Api.messages.GetPinnedDialogs({ folderId }))
+        if (!(result instanceof Api.messages.PeerDialogs)) {
+          return Ok([])
+        }
+
+        const pinnedDialogIds = result.dialogs
+          .flatMap((dialog) => {
+            if (!(dialog instanceof Api.Dialog)) {
+              return []
+            }
+
+            const chatId = getApiChatIdFromMtpPeer(dialog.peer)
+            return chatId === undefined ? [] : [chatId]
+          })
+
+        return Ok(pinnedDialogIds)
+      }
+      catch (error) {
+        logger.withFields({ folderId }).withError(error).warn('Failed to fetch pinned dialogs')
+        return Ok([])
+      }
+    })
+  }
+
   /**
    * Fetch dialogs and emit base data. Then asynchronously fetch avatars.
    *
@@ -91,6 +181,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
       const dialogList = await ctx.getClient().getDialogs()
       // const dialogs = await getClient().invoke(new Api.messages.GetDialogs({})) as Api.messages.Dialogs
 
+      const senderNameMap = await resolveDialogSenderNames(dialogList)
       const dialogs: CoreDialog[] = []
       for (const dialog of dialogList) {
         if (!dialog.entity) {
@@ -104,6 +195,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
         }
 
         let messageCount = 0
+        let lastMessageFromName: string | undefined
         let lastMessage: string | undefined
         let lastMessageDate: Date | undefined
         const unreadCount = dialog.unreadCount
@@ -114,7 +206,12 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
         }
 
         if (dialog.message) {
-          lastMessage = dialog.message.message
+          const senderId = resolveDialogMessageSenderId(dialog.message)
+          lastMessageFromName = resolveDialogMessageSenderName(dialog.message)
+          if (senderId && (!lastMessageFromName || lastMessageFromName === senderId)) {
+            lastMessageFromName = senderNameMap.get(senderId) || lastMessageFromName
+          }
+          lastMessage = resolveDialogMessagePreview(dialog.message)
           lastMessageDate = new Date(dialog.message.date * 1000)
         }
 
@@ -125,6 +222,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
           isContact: result.isContact,
           unreadCount,
           messageCount,
+          lastMessageFromName,
           lastMessage,
           lastMessageDate,
           avatarFileId: result.avatarFileId,
@@ -166,6 +264,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger) {
 
   return {
     fetchDialogs,
+    fetchPinnedDialogIds,
     fetchContacts,
     fetchChatFolders,
     // Delegated to AvatarHelper

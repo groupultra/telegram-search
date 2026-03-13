@@ -76,6 +76,7 @@ async function getChatMessagesStats(db: CoreDB, accountId: string): PromiseResul
         and(
           eq(joinedChatsTable.chat_id, chatMessagesTable.in_chat_id),
           eq(chatMessagesTable.platform, 'telegram'),
+          eq(chatMessagesTable.deleted_at, 0),
           sql`(
             ${joinedChatsTable.chat_type} != 'user'
             OR ${chatMessagesTable.owner_account_id} = ${accountId}
@@ -116,6 +117,7 @@ async function getChatMessageStatsByChatId(db: CoreDB, accountId: string, chatId
         and(
           eq(joinedChatsTable.chat_id, chatMessagesTable.in_chat_id),
           eq(chatMessagesTable.platform, 'telegram'),
+          eq(chatMessagesTable.deleted_at, 0),
           sql`(
           ${joinedChatsTable.chat_type} != 'user'
           OR ${chatMessagesTable.owner_account_id} = ${accountId}

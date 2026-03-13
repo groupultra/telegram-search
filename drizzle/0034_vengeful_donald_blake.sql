@@ -1,0 +1,1 @@
+ALTER TABLE "joined_chats" ADD COLUMN "last_message" text;

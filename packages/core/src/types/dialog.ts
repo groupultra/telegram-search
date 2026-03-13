@@ -24,6 +24,7 @@ export interface CoreDialog {
   isContact?: boolean
   unreadCount?: number
   messageCount?: number
+  lastMessageFromName?: string
   lastMessage?: string
   lastMessageDate?: Date
   // Optional avatar metadata and client blob url

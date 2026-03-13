@@ -26,12 +26,13 @@ describe('useMessageSearch', () => {
     await new Promise(resolve => setTimeout(resolve, 0))
     await nextTick()
 
-    expect(bridge.sendEvent).toHaveBeenCalledWith('storage:search:messages', {
+    expect(bridge.sendEvent).toHaveBeenCalledWith('storage:search:messages', expect.objectContaining({
       chatId: undefined,
       content: 'hello',
       useVector: true,
       pagination: { limit: 10, offset: 0 },
-    })
+      requestId: expect.any(String),
+    }))
   })
 
   it('sends consistent search payload for chat-scoped search', async () => {
@@ -41,11 +42,12 @@ describe('useMessageSearch', () => {
     await new Promise(resolve => setTimeout(resolve, 0))
     await nextTick()
 
-    expect(bridge.sendEvent).toHaveBeenCalledWith('storage:search:messages', {
+    expect(bridge.sendEvent).toHaveBeenCalledWith('storage:search:messages', expect.objectContaining({
       chatId: '123',
       content: 'hello',
       useVector: true,
       pagination: { limit: 10, offset: 0 },
-    })
+      requestId: expect.any(String),
+    }))
   })
 })
