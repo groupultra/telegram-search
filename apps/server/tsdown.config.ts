@@ -9,6 +9,7 @@ export default defineConfig({
   shims: true,
   fixedExtension: true,
   sourcemap: true,
+  inlineOnly: false,
   external: [
     'vue',
     '@node-rs/jieba',
