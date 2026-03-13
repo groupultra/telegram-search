@@ -69,6 +69,6 @@
   },
   "devDependencies": {
     "pathe": "^2.0.3",
-    "vite-node": "^5.3.0"
+    "vite-node": "^6.0.0"
   }
 }
