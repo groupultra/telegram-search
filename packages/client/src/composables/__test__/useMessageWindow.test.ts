@@ -47,14 +47,17 @@ describe('messageWindow', () => {
     it('should initialize with default maxSize of 50', () => {
       const defaultWindow = new MessageWindow()
       expect(defaultWindow.maxSize).toBe(50)
+      expect(defaultWindow.trimThreshold).toBe(55)
     })
 
     it('should initialize with custom maxSize', () => {
       expect(messageWindow.maxSize).toBe(3)
+      expect(messageWindow.trimThreshold).toBe(4)
     })
 
     it('should initialize with default values', () => {
       expect(messageWindow.messages.size).toBe(0)
+      expect(messageWindow.pages).toEqual([])
       expect(messageWindow.minId).toBe(Infinity)
       expect(messageWindow.maxId).toBe(-Infinity)
       expect(messageWindow.lastAccessTime).toBeCloseTo(Date.now(), -2)
@@ -105,11 +108,22 @@ describe('messageWindow', () => {
 
       expect(messageWindow.lastAccessTime).toBeGreaterThanOrEqual(beforeTime)
     })
+
+    it('should track fetched batches as pages', () => {
+      messageWindow.addBatch([createMockMessage('20'), createMockMessage('30')], 'initial')
+      messageWindow.addBatch([createMockMessage('10')], 'older')
+      messageWindow.addBatch([createMockMessage('40')], 'newer')
+
+      expect(messageWindow.pages).toEqual([
+        ['10'],
+        ['20', '30'],
+        ['40'],
+      ])
+    })
   })
 
   describe('cleanup behavior', () => {
-    it('should remove newest messages when direction is "older"', () => {
-      // Add 4 messages (exceeds maxSize of 3)
+    it('should delay cleanup until the trim threshold is exceeded', () => {
       const messages = [
         createMockMessage('10'),
         createMockMessage('20'),
@@ -119,51 +133,69 @@ describe('messageWindow', () => {
 
       messageWindow.addBatch(messages, 'older')
 
+      expect(messageWindow.messages.size).toBe(4)
+      expect(messageWindow.has('40')).toBe(true)
+    })
+
+    it('should remove newest page when direction is "older" after crossing the trim threshold', () => {
+      messageWindow.addBatch([
+        createMockMessage('40'),
+        createMockMessage('50'),
+      ], 'initial')
+      messageWindow.addBatch([
+        createMockMessage('10'),
+        createMockMessage('20'),
+        createMockMessage('30'),
+      ], 'older')
+
       expect(messageWindow.messages.size).toBe(3)
       expect(messageWindow.has('10')).toBe(true)
       expect(messageWindow.has('20')).toBe(true)
       expect(messageWindow.has('30')).toBe(true)
-      expect(messageWindow.has('40')).toBe(false) // Newest should be removed
+      expect(messageWindow.has('40')).toBe(false)
+      expect(messageWindow.has('50')).toBe(false)
       expect(messageWindow.minId).toBe(10)
       expect(messageWindow.maxId).toBe(30)
     })
 
-    it('should remove oldest messages when direction is "newer"', () => {
-      // Add 4 messages (exceeds maxSize of 3)
-      const messages = [
+    it('should remove oldest page when direction is "newer" after crossing the trim threshold', () => {
+      messageWindow.addBatch([
         createMockMessage('10'),
         createMockMessage('20'),
+      ], 'older')
+      messageWindow.addBatch([
         createMockMessage('30'),
         createMockMessage('40'),
-      ]
-
-      messageWindow.addBatch(messages, 'newer')
+        createMockMessage('50'),
+      ], 'initial')
 
       expect(messageWindow.messages.size).toBe(3)
-      expect(messageWindow.has('10')).toBe(false) // Oldest should be removed
-      expect(messageWindow.has('20')).toBe(true)
+      expect(messageWindow.has('10')).toBe(false)
+      expect(messageWindow.has('20')).toBe(false)
       expect(messageWindow.has('30')).toBe(true)
       expect(messageWindow.has('40')).toBe(true)
-      expect(messageWindow.minId).toBe(20)
-      expect(messageWindow.maxId).toBe(40)
+      expect(messageWindow.has('50')).toBe(true)
+      expect(messageWindow.minId).toBe(30)
+      expect(messageWindow.maxId).toBe(50)
     })
 
-    it('should remove oldest messages when direction is "initial"', () => {
-      // Add 4 messages (exceeds maxSize of 3)
-      const messages = [
+    it('should remove oldest page when direction is "initial" after crossing the trim threshold', () => {
+      messageWindow.addBatch([
         createMockMessage('10'),
         createMockMessage('20'),
+      ], 'initial')
+      messageWindow.addBatch([
         createMockMessage('30'),
         createMockMessage('40'),
-      ]
-
-      messageWindow.addBatch(messages, 'initial')
+        createMockMessage('50'),
+      ], 'initial')
 
       expect(messageWindow.messages.size).toBe(3)
-      expect(messageWindow.has('10')).toBe(false) // Oldest should be removed
-      expect(messageWindow.has('20')).toBe(true)
+      expect(messageWindow.has('10')).toBe(false)
+      expect(messageWindow.has('20')).toBe(false)
       expect(messageWindow.has('30')).toBe(true)
       expect(messageWindow.has('40')).toBe(true)
+      expect(messageWindow.has('50')).toBe(true)
     })
 
     it('should cleanup media blobs when removing messages', () => {
@@ -171,12 +203,30 @@ describe('messageWindow', () => {
         createMockMessage('10', true),
         createMockMessage('20', true),
         createMockMessage('30', true),
-        createMockMessage('40', true), // This will be removed
+        createMockMessage('40', true),
+        createMockMessage('50', true),
       ]
 
       messageWindow.addBatch(messagesWithMedia, 'newer')
 
       expect(mockedCleanupMediaBlobs).toHaveBeenCalledWith(messagesWithMedia[0].media)
+    })
+
+    it('should keep page metadata in sync when removing a single message', () => {
+      messageWindow.addBatch([
+        createMockMessage('10'),
+        createMockMessage('20'),
+      ], 'initial')
+      messageWindow.addBatch([
+        createMockMessage('30'),
+      ], 'newer')
+
+      messageWindow.remove('20')
+
+      expect(messageWindow.pages).toEqual([
+        ['10'],
+        ['30'],
+      ])
     })
   })
 
@@ -297,17 +347,18 @@ describe('messageWindow', () => {
     })
 
     it('should update boundaries correctly after partial cleanup', () => {
-      const messages = [
+      messageWindow.addBatch([
         createMockMessage('10'),
         createMockMessage('20'),
+      ], 'older')
+      messageWindow.addBatch([
         createMockMessage('30'),
         createMockMessage('40'),
-      ]
+        createMockMessage('50'),
+      ], 'newer')
 
-      messageWindow.addBatch(messages, 'newer') // Should remove oldest (10)
-
-      expect(messageWindow.minId).toBe(20)
-      expect(messageWindow.maxId).toBe(40)
+      expect(messageWindow.minId).toBe(30)
+      expect(messageWindow.maxId).toBe(50)
     })
   })
 })

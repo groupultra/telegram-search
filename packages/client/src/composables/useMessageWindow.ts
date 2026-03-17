@@ -4,34 +4,46 @@ import { useLogger } from '@guiiai/logg'
 
 import { cleanupMediaBlobs } from '../utils/blob'
 
+type MessageBatchDirection = 'older' | 'newer' | 'initial'
+
 export class MessageWindow {
   messages: Map<string, CoreMessage> = new Map()
+  pages: string[][] = []
   minId: number = Infinity
   maxId: number = -Infinity
   lastAccessTime: number = Date.now()
   logger = useLogger('MessageWindow')
 
   readonly maxSize: number
+  readonly trimThreshold: number
 
   constructor(maxSize: number = 50) {
     this.maxSize = maxSize
+    this.trimThreshold = maxSize + Math.max(1, Math.ceil(maxSize * 0.1))
   }
 
   // Add multiple messages
-  addBatch(messages: CoreMessage[], direction: 'older' | 'newer' | 'initial' = 'initial'): void {
+  addBatch(messages: CoreMessage[], direction: MessageBatchDirection = 'initial'): void {
     if (messages.length === 0)
       return
 
     const sortedNewMessages = messages.sort((a, b) => Number(a.platformMessageId) - Number(b.platformMessageId))
+    const introducedIds: string[] = []
 
     sortedNewMessages.forEach((msg) => {
       const msgId = msg.platformMessageId
+
+      if (!this.messages.has(msgId)) {
+        introducedIds.push(msgId)
+      }
 
       this.messages.set(msgId, msg)
 
       this.minId = Math.min(Number(msgId), this.minId)
       this.maxId = Math.max(Number(msgId), this.maxId)
     })
+
+    this.recordPage(introducedIds, direction)
 
     this.logger.debug('Add batch', messages.length, `${sortedNewMessages[0].platformMessageId} - ${sortedNewMessages[sortedNewMessages.length - 1].platformMessageId}`, `direction: ${direction}`)
 
@@ -84,34 +96,66 @@ export class MessageWindow {
       cleanupMediaBlobs(message.media)
     }
     this.messages.delete(msgId)
+    this.removeMessageFromPages(msgId)
   }
 
-  // Direction-based cleanup: when loading older messages, keep newer ones; when loading newer, keep older ones
-  private cleanupByDirection(direction: 'older' | 'newer' | 'initial'): void {
-    if (this.messages.size <= this.maxSize) {
+  private recordPage(messageIds: string[], direction: MessageBatchDirection): void {
+    if (messageIds.length === 0) {
       return
     }
 
-    const sortedIds = this.getSortedIds()
-    const excessCount = this.messages.size - this.maxSize
+    if (direction === 'older') {
+      this.pages.unshift(messageIds)
+      return
+    }
+
+    if (direction === 'initial' && this.pages.length === 0) {
+      this.pages = [messageIds]
+      return
+    }
+
+    this.pages.push(messageIds)
+  }
+
+  private removeMessageFromPages(msgId: string): void {
+    this.pages = this.pages
+      .map(page => page.filter(id => id !== msgId))
+      .filter(page => page.length > 0)
+  }
+
+  // Direction-based cleanup: trim the opposite edge by whole fetched pages so
+  // prepending history does not immediately tear apart the current viewport.
+  private cleanupByDirection(direction: MessageBatchDirection): void {
+    if (this.messages.size <= this.trimThreshold) {
+      return
+    }
+
     const removedIds: string[] = []
 
-    if (direction === 'older') {
-      // When loading older messages, remove the newest (highest ID) messages
-      const idsToRemove = sortedIds.slice(-excessCount)
-      idsToRemove.forEach((id) => {
+    while (this.messages.size > this.trimThreshold && this.pages.length > 0) {
+      const pageToRemove = direction === 'older'
+        ? this.pages[this.pages.length - 1]
+        : this.pages[0]
+
+      if (!pageToRemove || pageToRemove.length === 0) {
+        if (direction === 'older') {
+          this.pages.pop()
+        }
+        else {
+          this.pages.shift()
+        }
+        continue
+      }
+
+      for (const id of [...pageToRemove]) {
+        if (!this.messages.has(id)) {
+          this.removeMessageFromPages(id)
+          continue
+        }
+
         this.cleanupMessage(id)
         removedIds.push(id)
-      })
-    }
-    else {
-      // For initial load and loading newer messages, keep the most recent messages
-      // Remove the oldest (lowest ID) messages
-      const idsToRemove = sortedIds.slice(0, excessCount)
-      idsToRemove.forEach((id) => {
-        this.cleanupMessage(id)
-        removedIds.push(id)
-      })
+      }
     }
 
     // Update minId and maxId
@@ -141,6 +185,7 @@ export class MessageWindow {
     })
 
     this.messages.clear()
+    this.pages = []
     this.minId = Infinity
     this.maxId = -Infinity
     this.lastAccessTime = Date.now()

@@ -44,14 +44,21 @@ const chatTelegramLink = computed(() => {
   return getChatLink(currentChat.value)
 })
 
-const messageLimit = ref(100)
+// Fetch batch size (per request) and window capacity (total in-memory) are intentionally
+// separated. A large window prevents cleanup from evicting messages the user is currently
+// viewing, which was the root cause of scroll drift when loading older messages.
+const messageFetchLimit = 50
+const messageWindowSize = 500
 const messageOffset = ref(0)
-const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString(), messageLimit.value)
+const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString(), messageWindowSize)
 
 const { height: windowHeight } = useWindowSize()
 
 const isLoadingOlder = ref(false)
 const isLoadingNewer = ref(false)
+
+// Cooldown prevents rapid re-triggers after a load completes.
+let loadCooldownUntil = 0
 const virtualListRef = ref<InstanceType<typeof VirtualMessageList>>()
 
 // @ts-expect-error: TODO: already used, fix it?
@@ -97,7 +104,7 @@ watch(
 
     isContextMode.value = false
     resetPagination()
-    messageStore.replaceMessages([], { chatId: id.toString(), limit: messageLimit.value })
+    messageStore.replaceMessages([], { chatId: id.toString(), limit: messageWindowSize })
     await loadOlderMessages()
   },
 )
@@ -106,20 +113,27 @@ watch(
 async function loadOlderMessages() {
   if (isContextMode.value)
     return
-  if (isLoadingOlder.value || isLoadingMessages.value)
+  if (isLoadingOlder.value)
+    return
+  if (Date.now() < loadCooldownUntil)
     return
 
   isLoadingOlder.value = true
+  // Set cooldown immediately to prevent re-entry from scroll events
+  // that fire between now and when fetchMessages resolves.
+  loadCooldownUntil = Date.now() + 1000
 
   try {
-    fetchMessages({
-      offset: messageOffset.value,
-      limit: messageLimit.value,
+    const currentOffset = messageOffset.value
+    messageOffset.value += messageFetchLimit
+    await fetchMessages({
+      offset: currentOffset,
+      limit: messageFetchLimit,
     }, 'older')
-    messageOffset.value += messageLimit.value
   }
   finally {
     isLoadingOlder.value = false
+    loadCooldownUntil = Date.now() + 1000
   }
 }
 
@@ -127,7 +141,9 @@ async function loadOlderMessages() {
 async function loadNewerMessages() {
   if (isContextMode.value)
     return
-  if (isLoadingNewer.value || isLoadingMessages.value)
+  if (isLoadingNewer.value)
+    return
+  if (Date.now() < loadCooldownUntil)
     return
 
   // Get the current max message ID to fetch messages after it
@@ -138,13 +154,13 @@ async function loadNewerMessages() {
   }
 
   isLoadingNewer.value = true
+  loadCooldownUntil = Date.now() + 1000
 
   try {
-    // Use a separate fetch function for newer messages with minId
-    fetchMessages(
+    await fetchMessages(
       {
         offset: 0,
-        limit: messageLimit.value,
+        limit: messageFetchLimit,
         minId: currentMaxId,
       },
       'newer',
@@ -152,19 +168,7 @@ async function loadNewerMessages() {
   }
   finally {
     isLoadingNewer.value = false
-  }
-}
-
-// Handle virtual list scroll events
-function handleVirtualListScroll({ isAtTop, isAtBottom }: { scrollTop: number, isAtTop: boolean, isAtBottom: boolean }) {
-  // Load older messages when scrolled to top
-  if (isAtTop && !isLoadingOlder.value && !isLoadingMessages.value) {
-    loadOlderMessages()
-  }
-
-  // Load newer messages when scrolled to bottom
-  if (isAtBottom && !isLoadingNewer.value && !isLoadingMessages.value) {
-    loadNewerMessages()
+    loadCooldownUntil = Date.now() + 1000
   }
 }
 
@@ -203,7 +207,7 @@ async function openMessageContext(messageId: string, messageUuid?: string) {
     const messages = await messageStore.loadMessageContext(id.toString(), messageId, {
       before: 40,
       after: 40,
-      limit: messageLimit.value,
+      limit: messageWindowSize,
     })
 
     if (messages.length === 0) {
@@ -240,7 +244,7 @@ watch(
     else if (oldMessageId) {
       isContextMode.value = false
       resetPagination()
-      messageStore.replaceMessages([], { chatId: id.toString(), limit: messageLimit.value })
+      messageStore.replaceMessages([], { chatId: id.toString(), limit: messageWindowSize })
       await loadOlderMessages()
     }
   },
@@ -348,13 +352,13 @@ watch(
         :on-scroll-to-top="loadOlderMessages"
         :on-scroll-to-bottom="loadNewerMessages"
         :auto-scroll-to-bottom="!isContextMode"
-        @scroll="handleVirtualListScroll"
+        :debug="debugMode"
       />
     </div>
 
     <!-- Message Input -->
     <div class="absolute bottom-6 left-0 right-0 z-20 px-4 md:bottom-6 md:px-6">
-      <div class="mx-auto max-w-4xl flex items-end gap-3 border border-border/65 rounded-2xl bg-background/90 p-2 shadow-sm backdrop-blur-xl transition-all duration-200 focus-within:border-primary/35 hover:border-border focus-within:bg-background hover:bg-background focus-within:ring-2 focus-within:ring-primary/15">
+      <div class="mx-auto max-w-4xl flex items-end gap-3 border-transparent rounded-2xl bg-muted/50 p-2 shadow-sm backdrop-blur-xl transition-all duration-200 focus-within:border-primary/20 focus-within:bg-background hover:bg-muted/80 focus-within:ring-2 focus-within:ring-primary/20">
         <!-- Input container with modern design -->
         <div class="relative flex flex-1 items-center">
           <div class="absolute left-2 flex items-center gap-2">
@@ -371,7 +375,7 @@ watch(
             v-model="messageInput"
             type="text"
             :placeholder="t('chat.typeAMessage')"
-            class="h-10 w-full border-transparent bg-transparent pl-14 pr-14 text-base text-foreground shadow-none transition-all md:h-14 placeholder:text-foreground/45 focus-visible:ring-0"
+            class="h-10 w-full border-transparent bg-transparent pl-14 pr-14 text-base shadow-none transition-all md:h-14 focus-visible:ring-0"
             @keyup.enter="sendMessage"
           />
           <div class="absolute right-2 flex items-center gap-1">

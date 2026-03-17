@@ -52,6 +52,8 @@ export async function hydrateMediaBlobWithCore(
       const url = URL.createObjectURL(blob)
 
       media.blobUrl = url
+      media.width = photo?.image_width || media.width
+      media.height = photo?.image_height || media.height
 
       logger.debug('Hydrated photo blob in With Core mode', { queryId: media.queryId })
       return
@@ -84,6 +86,8 @@ export async function hydrateMediaBlobWithCore(
       const url = URL.createObjectURL(blob)
 
       media.blobUrl = url
+      media.width = sticker?.sticker_width || media.width
+      media.height = sticker?.sticker_height || media.height
 
       logger.debug('Hydrated sticker blob in With Core mode', { queryId: media.queryId })
     }

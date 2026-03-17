@@ -45,6 +45,8 @@ async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<D
         image_bytes: media.storagePath ? null : media.byte,
         image_path: media.storagePath,
         image_mime_type: media.mimeType,
+        image_width: media.width ?? 0,
+        image_height: media.height ?? 0,
       } satisfies DBInsertPhoto
     })
 
@@ -63,6 +65,8 @@ async function recordPhotos(db: CoreDB, media: PhotoMediaForRecord[]): Promise<D
         // Only update image_path if new value is not empty
         image_path: sql`CASE WHEN excluded.image_path != '' THEN excluded.image_path ELSE ${photosTable.image_path} END`,
         image_mime_type: sql`excluded.image_mime_type`,
+        image_width: sql`CASE WHEN excluded.image_width > 0 THEN excluded.image_width ELSE ${photosTable.image_width} END`,
+        image_height: sql`CASE WHEN excluded.image_height > 0 THEN excluded.image_height ELSE ${photosTable.image_height} END`,
         updated_at: Date.now(),
       },
     })
@@ -105,12 +109,14 @@ async function findPhotoByFileId(db: CoreDB, fileId: string): PromiseResult<DBSe
 /**
  * Find a photo by file_id with mime_type
  */
-async function findPhotoByFileIdWithMimeType(db: CoreDB, fileId: string): PromiseResult<{ id: string, mimeType: string }> {
+async function findPhotoByFileIdWithMimeType(db: CoreDB, fileId: string): PromiseResult<{ id: string, mimeType: string, width: number, height: number }> {
   return withResult(async () => {
     const photos = await db
       .select({
         id: photosTable.id,
         mimeType: photosTable.image_mime_type,
+        width: photosTable.image_width,
+        height: photosTable.image_height,
       })
       .from(photosTable)
       .where(

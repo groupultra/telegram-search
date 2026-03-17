@@ -8,5 +8,7 @@ export function convertDBPhotoToCoreMessageMedia(dbPhoto: DBSelectPhoto): CoreMe
     platformId: dbPhoto.file_id,
     // Expose queryId so clients can fetch media via HTTP endpoints.
     queryId: dbPhoto.id,
+    width: dbPhoto.image_width || undefined,
+    height: dbPhoto.image_height || undefined,
   } satisfies CoreMessageMediaPhoto
 }

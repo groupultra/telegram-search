@@ -7,7 +7,7 @@ import { useLogger } from '@guiiai/logg'
 import { CoreEventType } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
 import { useBridge } from '../composables/useBridge'
 import { MessageWindow } from '../composables/useMessageWindow'
@@ -455,7 +455,7 @@ export const useMessageStore = defineStore('message', () => {
 
     const isLoading = ref(false)
 
-    function fetchMessages(
+    async function fetchMessages(
       pagination: CorePagination & {
         minId?: number
       },
@@ -482,15 +482,25 @@ export const useMessageStore = defineStore('message', () => {
           break
       }
 
-      Promise.race([
-        bridge.waitForEvent(CoreEventType.MessageData),
-        bridge.waitForEvent(CoreEventType.StorageMessages),
-        createContextWithTimeout(10000),
-      ]).catch(() => {
+      try {
+        const result = await Promise.race([
+          bridge.waitForEvent(CoreEventType.MessageData),
+          bridge.waitForEvent(CoreEventType.StorageMessages),
+          createContextWithTimeout(10000),
+        ])
+
+        // Let the registered event handler push the fetched messages into the
+        // store before callers continue with follow-up scroll logic.
+        await nextTick()
+        return result
+      }
+      catch {
         logger.warn('Message fetch timed out or failed')
-      }).finally(() => {
+        return undefined
+      }
+      finally {
         isLoading.value = false
-      })
+      }
     }
 
     return {
