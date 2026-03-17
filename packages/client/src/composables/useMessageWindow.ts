@@ -134,26 +134,19 @@ export class MessageWindow {
 
     while (this.messages.size > this.trimThreshold && this.pages.length > 0) {
       const pageToRemove = direction === 'older'
-        ? this.pages[this.pages.length - 1]
-        : this.pages[0]
+        ? this.pages.pop()
+        : this.pages.shift()
 
-      if (!pageToRemove || pageToRemove.length === 0) {
-        if (direction === 'older') {
-          this.pages.pop()
-        }
-        else {
-          this.pages.shift()
-        }
+      if (!pageToRemove?.length) {
         continue
       }
 
-      for (const id of [...pageToRemove]) {
-        if (!this.messages.has(id)) {
-          this.removeMessageFromPages(id)
-          continue
+      for (const id of pageToRemove) {
+        const message = this.messages.get(id)
+        if (message?.media) {
+          cleanupMediaBlobs(message.media)
         }
-
-        this.cleanupMessage(id)
+        this.messages.delete(id)
         removedIds.push(id)
       }
     }
