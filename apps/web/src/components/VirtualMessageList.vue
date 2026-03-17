@@ -41,6 +41,8 @@ let bottomLoadArmed = true
 let topLoadPending = false
 let topLoadCooldownUntil = 0
 let topLoadRequiresLeave = false
+let topLoadRequestId = 0
+let topLoadExpectedMessageCount = 0
 
 // Track if we're at top/bottom to prevent repeated callbacks
 const isAtTop = ref(false)
@@ -55,6 +57,20 @@ function debugLog(label: string, data?: Record<string, unknown>) {
 
   // eslint-disable-next-line no-console
   console.log(`[MessageList] ${label}`, data ?? '')
+}
+
+function finalizeTopLoad(requestId: number, reason: 'restore' | 'no-new-messages') {
+  if (!topLoadPending || requestId !== topLoadRequestId)
+    return
+
+  topLoadPending = false
+  topLoadCooldownUntil = Date.now() + TOP_LOAD_COOLDOWN_MS
+
+  if (reason === 'no-new-messages') {
+    pendingTopAnchorUuid = null
+    pendingTopAnchorScrollTop = null
+    debugLog('complete-top-load', { reason })
+  }
 }
 
 function getFirstVisibleMessageUuid() {
@@ -88,8 +104,8 @@ watch(() => props.messages, async (newMessages, oldMessages) => {
     const el = scrollContainerRef.value
     const anchorUuid = pendingTopAnchorUuid
     const anchorScrollTop = pendingTopAnchorScrollTop
-    topLoadPending = false
-    topLoadCooldownUntil = Date.now() + TOP_LOAD_COOLDOWN_MS
+    const requestId = topLoadRequestId
+    finalizeTopLoad(requestId, 'restore')
     pendingTopAnchorUuid = null
     pendingTopAnchorScrollTop = null
 
@@ -223,6 +239,9 @@ function setupBoundaryObservers() {
 
       topLoadArmed = false
       topLoadPending = true
+      topLoadRequestId += 1
+      topLoadExpectedMessageCount = props.messages.length
+      const requestId = topLoadRequestId
       const anchorUuid = getFirstVisibleMessageUuid()
       debugLog('trigger-load-older', {
         scrollTop: root.scrollTop,
@@ -232,7 +251,11 @@ function setupBoundaryObservers() {
       })
       pendingTopAnchorUuid = anchorUuid
       pendingTopAnchorScrollTop = root.scrollTop
-      props.onScrollToTop()
+      void Promise.resolve(props.onScrollToTop()).finally(() => {
+        if (props.messages.length === topLoadExpectedMessageCount) {
+          finalizeTopLoad(requestId, 'no-new-messages')
+        }
+      })
     },
     {
       root,
