@@ -50,6 +50,8 @@ async function recordStickers(db: CoreDB, stickers: StickerMediaForRecord[]): Pr
         sticker_bytes: hasExternalStorage ? undefined : sticker.byte,
         sticker_path: sticker.storagePath,
         sticker_mime_type: sticker.mimeType,
+        sticker_width: sticker.width ?? 0,
+        sticker_height: sticker.height ?? 0,
       } satisfies DBInsertSticker
     })
 
@@ -67,6 +69,8 @@ async function recordStickers(db: CoreDB, stickers: StickerMediaForRecord[]): Pr
         sticker_bytes: sql`excluded.sticker_bytes`,
         sticker_path: sql`excluded.sticker_path`,
         sticker_mime_type: sql`excluded.sticker_mime_type`,
+        sticker_width: sql`CASE WHEN excluded.sticker_width > 0 THEN excluded.sticker_width ELSE ${stickersTable.sticker_width} END`,
+        sticker_height: sql`CASE WHEN excluded.sticker_height > 0 THEN excluded.sticker_height ELSE ${stickersTable.sticker_height} END`,
         updated_at: Date.now(),
       },
     })
@@ -105,12 +109,14 @@ async function findStickerByQueryId(db: CoreDB, queryId: string): PromiseResult<
 /**
  * Get the query_id for a sticker by file_id
  */
-async function getStickerQueryIdByFileIdWithMimeType(db: CoreDB, fileId: string): PromiseResult<{ id: string, mimeType: string }> {
+async function getStickerQueryIdByFileIdWithMimeType(db: CoreDB, fileId: string): PromiseResult<{ id: string, mimeType: string, width: number, height: number }> {
   return withResult(async () => {
     const stickers = await db
       .select({
         id: stickersTable.id,
         mimeType: stickersTable.sticker_mime_type,
+        width: stickersTable.sticker_width,
+        height: stickersTable.sticker_height,
       })
       .from(stickersTable)
       .where(eq(stickersTable.file_id, fileId))

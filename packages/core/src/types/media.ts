@@ -23,10 +23,14 @@ export interface CoreMessageMediaBase {
 
 export type CoreMessageMediaPhoto = CoreMessageMediaBase & {
   type: 'photo'
+  width?: number
+  height?: number
 }
 
 export type CoreMessageMediaSticker = CoreMessageMediaBase & {
   type: 'sticker'
+  width?: number
+  height?: number
 
   /**
    * Emoji associated with the sticker (if available).

@@ -61,6 +61,8 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
         image_path: 'photo/file-1',
         image_bytes: null,
         image_mime_type: 'image/jpeg',
+        image_width: 640,
+        image_height: 480,
       }),
     })
 
@@ -75,6 +77,8 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
 
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
     expect(media.blobUrl).toBe('blob:test-url')
+    expect(media.width).toBe(640)
+    expect(media.height).toBe(480)
   })
 
   it('falls back to image_bytes when provider is unavailable', async () => {
@@ -85,6 +89,8 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
         image_path: null,
         image_bytes: bytes,
         image_mime_type: 'image/png',
+        image_width: 1280,
+        image_height: 720,
       }),
     })
 
@@ -99,6 +105,8 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
 
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
     expect(media.blobUrl).toBe('blob:test-url')
+    expect(media.width).toBe(1280)
+    expect(media.height).toBe(720)
   })
 
   it('hydrates sticker blob through provider when sticker_path is present', async () => {
@@ -122,6 +130,8 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
         sticker_path: 'sticker/file-3',
         sticker_bytes: null,
         sticker_mime_type: 'image/webp',
+        sticker_width: 512,
+        sticker_height: 512,
       }),
     })
 
@@ -136,5 +146,7 @@ describe('adapters/core-media - hydrateMediaBlobWithCore', () => {
 
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
     expect(media.blobUrl).toBe('blob:test-url')
+    expect(media.width).toBe(512)
+    expect(media.height).toBe(512)
   })
 })

@@ -37,6 +37,8 @@ describe('photos', () => {
         messageUUID: 'msg-456',
         platformId: 'file-789',
         queryId: '123',
+        width: undefined,
+        height: undefined,
       })
     })
 
@@ -69,6 +71,8 @@ describe('photos', () => {
         messageUUID: undefined,
         platformId: 'file-789',
         queryId: '123',
+        width: undefined,
+        height: undefined,
       })
     })
 
@@ -101,6 +105,8 @@ describe('photos', () => {
         messageUUID: 'msg-456',
         platformId: 'file-789',
         queryId: '123',
+        width: undefined,
+        height: undefined,
       })
     })
 
@@ -156,6 +162,40 @@ describe('photos', () => {
       const result = convertDBPhotoToCoreMessageMedia(dbPhoto)
 
       expect(result.platformId).toBe('unique-file-identifier-12345')
+    })
+
+    it('should include dimensions when available', () => {
+      const dbPhoto: DBSelectPhoto = {
+        id: '123',
+        platform: 'telegram',
+        message_id: 'msg-456',
+        file_id: 'file-789',
+        image_bytes: null,
+        image_thumbnail_bytes: Buffer.from([1, 2, 3, 4]),
+        image_thumbnail_path: '',
+        image_mime_type: 'image/jpeg',
+        image_width: 1280,
+        image_height: 720,
+        image_path: '',
+        caption: '',
+        description: '',
+        description_vector_1536: null,
+        description_vector_1024: null,
+        description_vector_768: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+      }
+
+      const result = convertDBPhotoToCoreMessageMedia(dbPhoto)
+
+      expect(result).toEqual({
+        type: 'photo',
+        messageUUID: 'msg-456',
+        platformId: 'file-789',
+        queryId: '123',
+        width: 1280,
+        height: 720,
+      })
     })
   })
 })

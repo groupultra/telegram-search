@@ -118,7 +118,7 @@ describe('useMessageStore', () => {
     waitForEventMock.mockReturnValue(promise)
 
     const pagination: CorePagination & { minId?: number } = { offset: 0, limit: 20 }
-    fetchMessages(pagination, 'older')
+    const fetchPromise = fetchMessages(pagination, 'older')
 
     expect(isLoading.value).toBe(true)
     expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.MessageFetch, {
@@ -128,8 +128,7 @@ describe('useMessageStore', () => {
 
     // @ts-expect-error intentionally resolve for test
     resolvePromise({ messages: [] })
-    // Wait for promise chain
-    await new Promise(process.nextTick)
+    await fetchPromise
 
     expect(isLoading.value).toBe(false)
   })

@@ -79,6 +79,8 @@ const processedMedia = computed<ProcessedMedia>(() => {
         src: mediaItem.blobUrl,
         type: mediaItem.type,
         mimeType: mediaItem.mimeType,
+        width: mediaItem.width,
+        height: mediaItem.height,
       } satisfies ProcessedMedia
 
     default:
@@ -110,6 +112,18 @@ const isLoading = computed(() => {
 
 const finalError = computed(() => {
   return processedMedia.value.error || runtimeError.value
+})
+
+const mediaFrameStyle = computed(() => {
+  if (processedMedia.value.width && processedMedia.value.height) {
+    return {
+      aspectRatio: `${processedMedia.value.width} / ${processedMedia.value.height}`,
+    }
+  }
+
+  return {
+    aspectRatio: '1 / 1',
+  }
 })
 
 watch(
@@ -241,7 +255,7 @@ function handlePlaceholderClick() {
     {{ JSON.stringify(processedMedia, null, 2) }}
   </code>
 
-  <div v-if="message.content" class="mb-2 whitespace-pre-wrap text-gray-900 dark:text-gray-100">
+  <div v-if="message.content" class="whitespace-pre-wrap break-words text-current">
     {{ message.content }}
   </div>
 
@@ -274,7 +288,9 @@ function handlePlaceholderClick() {
       <img
         v-else-if="processedMedia.type === 'photo'"
         :src="processedMedia.src"
-        class="h-auto max-w-xs rounded-lg"
+        class="h-auto max-w-xs rounded-2xl"
+        :width="processedMedia.width"
+        :height="processedMedia.height"
         :style="processedMedia.width && processedMedia.height
           ? { aspectRatio: `${processedMedia.width} / ${processedMedia.height}` }
           : {}"
@@ -285,7 +301,10 @@ function handlePlaceholderClick() {
       <video
         v-else-if="processedMedia.mimeType?.startsWith('video/')"
         :src="processedMedia.src"
-        class="h-auto max-w-[12rem] rounded-lg"
+        class="h-auto max-w-[12rem] rounded-2xl"
+        :width="processedMedia.width"
+        :height="processedMedia.height"
+        :style="mediaFrameStyle"
         alt="Video"
         autoplay loop muted playsinline
         @error="handleStickerError"
@@ -294,7 +313,8 @@ function handlePlaceholderClick() {
       <div
         v-else-if="processedMedia.type === 'sticker'"
         ref="tgsContainer"
-        class="h-auto max-w-[12rem] rounded-lg"
+        class="max-w-[12rem] w-full overflow-hidden rounded-2xl"
+        :style="mediaFrameStyle"
       />
     </div>
 

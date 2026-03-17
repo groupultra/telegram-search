@@ -36,6 +36,33 @@ function getLastPhotoSizeType(sizes: Api.TypePhotoSize[]): string | undefined {
   return undefined
 }
 
+function getLargestPhotoDimensions(sizes: Api.TypePhotoSize[]): { width?: number, height?: number } {
+  for (let i = sizes.length - 1; i >= 0; i--) {
+    const size = sizes[i]
+    if (size instanceof Api.PhotoSize || size instanceof Api.PhotoCachedSize || size instanceof Api.PhotoSizeProgressive) {
+      return {
+        width: size.w || undefined,
+        height: size.h || undefined,
+      }
+    }
+  }
+
+  return {}
+}
+
+function getDocumentDimensions(document: Api.Document): { width?: number, height?: number } {
+  for (const attribute of document.attributes) {
+    if (attribute instanceof Api.DocumentAttributeImageSize || attribute instanceof Api.DocumentAttributeVideo) {
+      return {
+        width: attribute.w || undefined,
+        height: attribute.h || undefined,
+      }
+    }
+  }
+
+  return {}
+}
+
 /**
  * Download media directly by constructing InputFileLocation and calling
  * client.downloadFile, bypassing the high-level downloadMedia wrapper.
@@ -134,6 +161,8 @@ export function createMediaResolver(
                     type: media.type,
                     platformId: media.platformId,
                     mimeType: sticker.mimeType,
+                    width: sticker.width || undefined,
+                    height: sticker.height || undefined,
                   } satisfies CoreMessageMedia
                 }
               }
@@ -164,6 +193,8 @@ export function createMediaResolver(
                     mimeType: photo.mimeType,
                     type: media.type,
                     platformId: media.platformId,
+                    width: photo.width || undefined,
+                    height: photo.height || undefined,
                   } satisfies CoreMessageMedia
                 }
               }
@@ -246,6 +277,10 @@ export function createMediaResolver(
                   if (!byte)
                     break
 
+                  const photoDimensions = rawMessage.media instanceof Api.MessageMediaPhoto && rawMessage.media.photo instanceof Api.Photo
+                    ? getLargestPhotoDimensions(rawMessage.media.photo.sizes)
+                    : {}
+
                   let storagePath: string | undefined
 
                   if (mediaBinaryProvider) {
@@ -265,6 +300,8 @@ export function createMediaResolver(
                     byte,
                     mimeType,
                     storagePath,
+                    width: photoDimensions.width,
+                    height: photoDimensions.height,
                   }])
 
                   logger.withFields({
@@ -279,12 +316,18 @@ export function createMediaResolver(
                     type: media.type,
                     platformId: media.platformId,
                     mimeType,
+                    width: photoDimensions.width,
+                    height: photoDimensions.height,
                   } satisfies CoreMessageMediaPhoto
                 }
 
                 case 'sticker': {
                   if (!byte)
                     break
+
+                  const stickerDimensions = rawMessage.media instanceof Api.MessageMediaDocument && rawMessage.media.document instanceof Api.Document
+                    ? getDocumentDimensions(rawMessage.media.document)
+                    : {}
 
                   let storagePath: string | undefined
 
@@ -305,6 +348,8 @@ export function createMediaResolver(
                     byte,
                     mimeType,
                     storagePath,
+                    width: stickerDimensions.width,
+                    height: stickerDimensions.height,
                   }])
 
                   return {
@@ -313,6 +358,8 @@ export function createMediaResolver(
                     type: media.type,
                     platformId: media.platformId,
                     mimeType,
+                    width: stickerDimensions.width,
+                    height: stickerDimensions.height,
                   } satisfies CoreMessageMediaSticker
                 }
 
