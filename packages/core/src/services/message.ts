@@ -5,7 +5,7 @@ import type { FetchMessageOpts } from '../types/events'
 import type { EntityService } from './entity'
 
 import { withSpan } from '@tg-search/observability'
-import { Err, Ok } from '@unbird/result'
+import { Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
 export type MessageService = ReturnType<typeof createMessageService>
@@ -26,8 +26,7 @@ export function createMessageService(ctx: CoreContext, logger: Logger, entitySer
     options: Omit<FetchMessageOpts, 'chatId'>,
   ): AsyncGenerator<Api.Message> {
     if (!await ctx.getClient().isUserAuthorized()) {
-      logger.error('User not authorized')
-      return
+      throw new Error('User not authorized')
     }
 
     const limit = options.pagination.limit
@@ -41,32 +40,25 @@ export function createMessageService(ctx: CoreContext, logger: Logger, entitySer
       maxId,
     }).verbose('Fetch messages options')
 
-    try {
-      logger.withFields({ limit }).debug('Fetching messages from Telegram server')
-      // Resolve peer using our DB-backed helper to ensure correct accessHash
-      const peer = await entityService.getInputPeer(chatId)
-      const messages = await ctx.getClient().getMessages(peer, {
-        limit,
-        minId,
-        maxId,
-        addOffset: options.pagination.offset,
-      })
+    logger.withFields({ limit }).debug('Fetching messages from Telegram server')
+    const peer = await entityService.getInputPeer(chatId)
+    const messages = await ctx.getClient().getMessages(peer, {
+      limit,
+      minId,
+      maxId,
+      addOffset: options.pagination.offset,
+    })
 
-      if (messages.length === 0) {
-        logger.warn('Get messages failed or returned empty data')
-        return Err(new Error('Get messages failed or returned empty data'))
-      }
-
-      for (const message of messages) {
-        // Skip empty messages
-        if (message instanceof Api.MessageEmpty) {
-          continue
-        }
-        yield message
-      }
+    if (messages.length === 0) {
+      logger.warn('Get messages returned empty data')
+      return
     }
-    catch (error) {
-      return Err(ctx.withError(error, 'Fetch messages failed'))
+
+    for (const message of messages) {
+      if (message instanceof Api.MessageEmpty) {
+        continue
+      }
+      yield message
     }
   }
 
@@ -87,30 +79,21 @@ export function createMessageService(ctx: CoreContext, logger: Logger, entitySer
   async function fetchSpecificMessages(chatId: string, messageIds: number[]): Promise<Api.Message[]> {
     return withSpan('core:message:service:fetchSpecificMessages', async () => {
       if (!await ctx.getClient().isUserAuthorized()) {
-        logger.error('User not authorized')
-        return []
+        throw new Error('User not authorized')
       }
 
       if (messageIds.length === 0) {
         return []
       }
 
-      try {
-        logger.withFields({ chatId, count: messageIds.length }).debug('Fetching specific messages from Telegram')
+      logger.withFields({ chatId, count: messageIds.length }).debug('Fetching specific messages from Telegram')
 
-        // Telegram API getMessages can accept an array of message IDs
-        const peer = await entityService.getInputPeer(chatId)
-        const messages = await ctx.getClient().getMessages(peer, {
-          ids: messageIds,
-        })
+      const peer = await entityService.getInputPeer(chatId)
+      const messages = await ctx.getClient().getMessages(peer, {
+        ids: messageIds,
+      })
 
-        // Filter out empty messages
-        return messages.filter((message: Api.Message) => !(message instanceof Api.MessageEmpty))
-      }
-      catch (error) {
-        logger.withError(ctx.withError(error, 'Fetch specific messages failed') as Error).error('Failed to fetch specific messages')
-        return []
-      }
+      return messages.filter((message: Api.Message) => !(message instanceof Api.MessageEmpty))
     })
   }
 
@@ -125,94 +108,75 @@ export function createMessageService(ctx: CoreContext, logger: Logger, entitySer
   ): Promise<Api.Message[]> {
     return withSpan('core:message:service:fetchUnreadMessages', async () => {
       if (!await ctx.getClient().isUserAuthorized()) {
-        logger.error('User not authorized')
+        throw new Error('User not authorized')
+      }
+
+      const peer = await entityService.getInputPeer(chatId)
+
+      const peerDialogs = await ctx.getClient().invoke(
+        new Api.messages.GetPeerDialogs({
+          peers: [new Api.InputDialogPeer({ peer })],
+        }),
+      )
+
+      if (!(peerDialogs instanceof Api.messages.PeerDialogs) || peerDialogs.dialogs.length === 0) {
+        logger.withFields({ chatId }).warn('Dialog not found for unread fetch')
         return []
       }
 
-      try {
-        // 1. Resolve Peer
-        const peer = await entityService.getInputPeer(chatId)
-
-        // 2. Get dialog metadata to locate read inbox boundary
-        const peerDialogs = await ctx.getClient().invoke(
-          new Api.messages.GetPeerDialogs({
-            peers: [new Api.InputDialogPeer({ peer })],
-          }),
-        )
-
-        if (!(peerDialogs instanceof Api.messages.PeerDialogs) || peerDialogs.dialogs.length === 0) {
-          logger.withFields({ chatId }).warn('Dialog not found for unread fetch')
-          return []
-        }
-
-        const dialog = peerDialogs.dialogs[0]
-        if (!(dialog instanceof Api.Dialog)) {
-          return []
-        }
-
-        const readInboxMaxId = dialog.readInboxMaxId
-        const unreadCount = dialog.unreadCount
-        const topMessage = dialog.topMessage
-
-        if (unreadCount <= 0) {
-          logger.withFields({ chatId }).debug('No unread messages on Telegram for this chat')
-          return []
-        }
-
-        // 3. Pull history
-        // We use client.getMessages which handles pagination automatically to reach the 'limit'.
-        const limit = Math.min(opts?.limit ?? MAX_UNREAD_MESSAGES_LIMIT, MAX_UNREAD_MESSAGES_LIMIT, unreadCount)
-
-        logger.withFields({
-          chatId,
-          unreadCount,
-          readInboxMaxId,
-          topMessage,
-          limit,
-        }).debug('Fetching unread messages from top via getMessages')
-
-        const messages = await ctx.getClient().getMessages(peer, {
-          limit,
-          // We don't strictly use minId in the request to avoid issues where readInboxMaxId is de-synced,
-          // instead we fetch the top N messages and filter locally.
-        }) as Api.Message[]
-
-        if (messages && messages.length > 0) {
-          // Filter out empty messages (already mostly handled by getMessages but to be safe)
-          const validMessages = messages.filter(message => !(message instanceof Api.MessageEmpty))
-
-          // Optional: Filter by readInboxMaxId locally if we want to be strict,
-          // but often unreadCount is what the user expects to see.
-          const filteredByReadBoundary = validMessages.filter(m => m.id > readInboxMaxId)
-          const filteredByStartTime = opts?.startTime
-            ? filteredByReadBoundary.filter(m => m.date >= opts.startTime!)
-            : filteredByReadBoundary
-
-          logger.withFields({
-            chatId,
-            returned: validMessages.length,
-            newerThanBoundary: filteredByReadBoundary.length,
-            newerThanStartTime: filteredByStartTime.length,
-            latestId: validMessages[0]?.id,
-            oldestId: validMessages[validMessages.length - 1]?.id,
-          }).debug('Unread messages fetch result')
-
-          // If local filtering results in too few messages compared to unreadCount,
-          // we trust unreadCount and return the full batch.
-          // Prefer the strictest filter, but avoid surprising empty results when Telegram metadata is inconsistent.
-          if (filteredByStartTime.length > 0)
-            return filteredByStartTime
-          if (filteredByReadBoundary.length > 0)
-            return filteredByReadBoundary
-          return validMessages
-        }
-
+      const dialog = peerDialogs.dialogs[0]
+      if (!(dialog instanceof Api.Dialog)) {
         return []
       }
-      catch (error) {
-        ctx.withError(error, 'Fetch unread messages failed')
+
+      const readInboxMaxId = dialog.readInboxMaxId
+      const unreadCount = dialog.unreadCount
+      const topMessage = dialog.topMessage
+
+      if (unreadCount <= 0) {
+        logger.withFields({ chatId }).debug('No unread messages on Telegram for this chat')
         return []
       }
+
+      const limit = Math.min(opts?.limit ?? MAX_UNREAD_MESSAGES_LIMIT, MAX_UNREAD_MESSAGES_LIMIT, unreadCount)
+
+      logger.withFields({
+        chatId,
+        unreadCount,
+        readInboxMaxId,
+        topMessage,
+        limit,
+      }).debug('Fetching unread messages from top via getMessages')
+
+      const messages = await ctx.getClient().getMessages(peer, {
+        limit,
+      }) as Api.Message[]
+
+      if (messages.length === 0) {
+        return []
+      }
+
+      const startTime = opts?.startTime
+      const validMessages = messages.filter(message => !(message instanceof Api.MessageEmpty))
+      const filteredByReadBoundary = validMessages.filter(m => m.id > readInboxMaxId)
+      const filteredByStartTime = startTime !== undefined
+        ? filteredByReadBoundary.filter(m => m.date >= startTime)
+        : filteredByReadBoundary
+
+      logger.withFields({
+        chatId,
+        returned: validMessages.length,
+        newerThanBoundary: filteredByReadBoundary.length,
+        newerThanStartTime: filteredByStartTime.length,
+        latestId: validMessages[0]?.id,
+        oldestId: validMessages[validMessages.length - 1]?.id,
+      }).debug('Unread messages fetch result')
+
+      if (filteredByStartTime.length > 0)
+        return filteredByStartTime
+      if (filteredByReadBoundary.length > 0)
+        return filteredByReadBoundary
+      return validMessages
     })
   }
 

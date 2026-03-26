@@ -3,7 +3,7 @@ import bigInt from 'big-integer'
 import { Api } from 'telegram'
 import { describe, expect, it } from 'vitest'
 
-import { getApiChatIdFromMtpPeer } from '../dialog'
+import { getApiChatIdFromMtpPeer, resolveDialog } from '../dialog'
 
 describe('getApiChatIdFromMtpPeer', () => {
   it('should extract userId from InputPeerUser', () => {
@@ -44,5 +44,38 @@ describe('getApiChatIdFromMtpPeer', () => {
   it('should return undefined for unknown peer types', () => {
     // @ts-expect-error - testing invalid input
     expect(getApiChatIdFromMtpPeer({})).toBeUndefined()
+  })
+})
+
+describe('resolveDialog', () => {
+  it('returns channel metadata without swallowing normal entity fields', () => {
+    const dialog = {
+      isGroup: false,
+      isChannel: true,
+      isUser: false,
+      name: 'Channel Name',
+      entity: new Api.Channel({
+        id: bigInt(123),
+        title: 'Channel Name',
+        accessHash: bigInt('987654321'),
+        megagroup: true,
+        username: 'channel_name',
+        photo: new Api.ChatPhoto({ photoId: bigInt(456), dcId: 1 }),
+        date: 1,
+      }),
+    } as any
+
+    const result = resolveDialog(dialog).unwrap()
+
+    expect(result).toEqual({
+      id: 123,
+      name: 'Channel Name',
+      type: 'supergroup',
+      isContact: false,
+      avatarFileId: '456',
+      avatarUpdatedAt: undefined,
+      accessHash: '987654321',
+      username: 'channel_name',
+    })
   })
 })

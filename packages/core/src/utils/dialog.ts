@@ -41,28 +41,25 @@ export function resolveDialog(dialog: Dialog): Result<{
   let isContact = false
   let isMegagroup = false
 
-  try {
-    if (dialog.entity instanceof Api.User) {
-      if (dialog.entity.photo && 'photoId' in dialog.entity.photo) {
-        avatarFileId = (dialog.entity.photo as Api.UserProfilePhoto).photoId?.toString()
-      }
-      accessHash = dialog.entity.accessHash?.toString()
-      isBot = dialog.entity.bot || false
-      isContact = dialog.entity.contact || false
+  if (dialog.entity instanceof Api.User) {
+    if (dialog.entity.photo && 'photoId' in dialog.entity.photo) {
+      avatarFileId = dialog.entity.photo.photoId?.toString()
     }
-    else if (dialog.entity instanceof Api.Channel) {
-      if (dialog.entity.photo && 'photoId' in dialog.entity.photo) {
-        avatarFileId = (dialog.entity.photo as Api.ChatPhoto).photoId?.toString()
-      }
-      accessHash = dialog.entity.accessHash?.toString()
-      isMegagroup = dialog.entity.megagroup || false
-      username = dialog.entity.username || undefined
-    }
-    else if (dialog.entity instanceof Api.Chat && dialog.entity.photo && 'photoId' in dialog.entity.photo) {
-      avatarFileId = (dialog.entity.photo as Api.ChatPhoto).photoId?.toString()
-    }
+    accessHash = dialog.entity.accessHash?.toString()
+    isBot = dialog.entity.bot === true
+    isContact = dialog.entity.contact === true
   }
-  catch {}
+  else if (dialog.entity instanceof Api.Channel) {
+    if (dialog.entity.photo && 'photoId' in dialog.entity.photo) {
+      avatarFileId = dialog.entity.photo.photoId?.toString()
+    }
+    accessHash = dialog.entity.accessHash?.toString()
+    isMegagroup = dialog.entity.megagroup === true
+    username = dialog.entity.username ?? undefined
+  }
+  else if (dialog.entity instanceof Api.Chat && dialog.entity.photo && 'photoId' in dialog.entity.photo) {
+    avatarFileId = dialog.entity.photo.photoId?.toString()
+  }
 
   let type: DialogType
   if (isMegagroup) {

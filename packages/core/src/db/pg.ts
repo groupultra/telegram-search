@@ -28,6 +28,7 @@ async function applyMigrations(logger: Logger, db: PostgresDB) {
 }
 
 async function ensureVectorExtension(logger: Logger, db: PostgresDB) {
+  let vectorsError: unknown
   // For pgvector-rs compatibility
   try {
     await db.execute(sql`ALTER SYSTEM SET vectors.pgvector_compatibility=on;`)
@@ -35,14 +36,20 @@ async function ensureVectorExtension(logger: Logger, db: PostgresDB) {
     logger.log('pgvector-rs extension enabled successfully')
     return
   }
-  catch {}
+  catch (error) {
+    vectorsError = error
+    logger.withError(error).warn('Failed to enable vectors extension, falling back to pgvector')
+  }
 
   // For pgvector compatibility
   try {
     await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector;`)
     logger.log('pgvector extension enabled successfully')
   }
-  catch {}
+  catch (error) {
+    logger.withFields({ vectorsError }).withError(error).error('Failed to enable any vector extension')
+    throw new Error('Failed to enable vector extension', { cause: error })
+  }
 }
 
 export async function initPgDrizzle(

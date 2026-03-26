@@ -165,6 +165,23 @@ describe('services/entity', () => {
     expect((inputPeer as Api.InputPeerUser).userId.toString()).toBe('3003')
   })
 
+  it('getInputPeer propagates account chat lookup failures instead of falling back to client', async () => {
+    const db = {
+      select() {
+        throw new Error('db unavailable')
+      },
+    }
+    const client = {
+      getInputEntity: vi.fn(),
+    }
+
+    const { ctx } = createMockCtx(db as any, client, VALID_UUID)
+    const service = createEntityService(ctx, logger)
+
+    await expect(service.getInputPeer('3003')).rejects.toThrow('Failed to find chat access hash for peer 3003')
+    expect(client.getInputEntity).not.toHaveBeenCalled()
+  })
+
   it('processEntities saves users and chats with accessHash to DB', async () => {
     const db = await setupDb()
     const accountId = VALID_UUID

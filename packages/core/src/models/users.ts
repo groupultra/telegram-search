@@ -85,6 +85,6 @@ async function findUserAccessHash(db: CoreDB, platformUserId: string): PromiseRe
 
     if (rows.length === 0)
       return null
-    return rows[0].access_hash || null
+    return rows[0].access_hash
   })
 }

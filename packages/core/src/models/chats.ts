@@ -235,7 +235,7 @@ async function recordChatEntity(db: CoreDB, entity: CoreEntity, accountId?: stri
 /**
  * Find access hash and type for a specific chat
  */
-async function findChatAccessHash(db: CoreDB, accountId: string, chatId: string): PromiseResult<{ accessHash: string, type: string } | null> {
+async function findChatAccessHash(db: CoreDB, accountId: string, chatId: string): PromiseResult<{ accessHash: string | null, type: string } | null> {
   return withResult(async () => {
     const rows = await db
       .select({
@@ -255,7 +255,7 @@ async function findChatAccessHash(db: CoreDB, accountId: string, chatId: string)
 
     if (rows.length === 0)
       return null
-    return { accessHash: rows[0].access_hash || '', type: rows[0].type }
+    return { accessHash: rows[0].access_hash, type: rows[0].type }
   })
 }
 

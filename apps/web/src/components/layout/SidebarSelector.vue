@@ -4,14 +4,22 @@ import { useRoute, useRouter } from 'vue-router'
 
 const props = defineProps<{
   path: string
-  icon: string
+  icon: keyof typeof SIDEBAR_ICON_CLASS
   name: string
 }>()
+
+const SIDEBAR_ICON_CLASS = {
+  'chats': 'i-lucide-message-circle',
+  'ai-chat': 'i-lucide-message-square-text',
+  'settings': 'i-lucide-settings',
+  'sync': 'i-lucide-refresh-cw',
+} as const
 
 const router = useRouter()
 const route = useRoute()
 
 const isCurrentPage = computed(() => route.path === props.path)
+const iconClass = computed(() => SIDEBAR_ICON_CLASS[props.icon])
 </script>
 
 <template>
@@ -27,7 +35,7 @@ const isCurrentPage = computed(() => route.path === props.path)
     <div
       class="flex cursor-pointer items-center gap-2.5 px-3 py-2"
     >
-      <span :class="icon" class="h-4.5 w-4.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+      <span :class="iconClass" class="h-4.5 w-4.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
       <span class="truncate text-sm">{{ name }}</span>
     </div>
 

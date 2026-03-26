@@ -14,7 +14,6 @@ describe('message', () => {
 
       // Check that it returns a string with date components
       expect(result).toContain('2024')
-      expect(result).toBeTruthy()
       expect(typeof result).toBe('string')
     })
 
