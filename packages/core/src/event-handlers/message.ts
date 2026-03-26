@@ -25,23 +25,28 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
       logger.withFields({ chatId: opts.chatId, minId: opts.minId, maxId: opts.maxId }).verbose('Fetching messages')
 
       let messages: Api.Message[] = []
-      for await (const message of messageService.fetchMessages(opts.chatId, opts)) {
-        messages.push(message)
+      try {
+        for await (const message of messageService.fetchMessages(opts.chatId, opts)) {
+          messages.push(message)
 
-        const batchSize = MESSAGE_PROCESS_BATCH_SIZE
-        if (messages.length >= batchSize) {
-          logger.withFields({
-            total: messages.length,
-            batchSize,
-          }).debug('Processing message batch')
+          const batchSize = MESSAGE_PROCESS_BATCH_SIZE
+          if (messages.length >= batchSize) {
+            logger.withFields({
+              total: messages.length,
+              batchSize,
+            }).debug('Processing message batch')
 
+            ctx.emitter.emit(CoreEventType.MessageProcess, { messages })
+            messages = []
+          }
+        }
+
+        if (messages.length > 0) {
           ctx.emitter.emit(CoreEventType.MessageProcess, { messages })
-          messages = []
         }
       }
-
-      if (messages.length > 0) {
-        ctx.emitter.emit(CoreEventType.MessageProcess, { messages })
+      catch (error) {
+        ctx.withError(error, 'Failed to fetch messages')
       }
     })
 

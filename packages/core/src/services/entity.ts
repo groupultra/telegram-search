@@ -46,26 +46,27 @@ export function createEntityService(ctx: CoreContext, logger: Logger) {
 
     // 1. Try to find in account-joined chats (Dialogs)
     if (accountId) {
-      const chatRes = await chatModels.findChatAccessHash(ctx.getDB(), accountId, idStr)
-      // Safely unwrap or default to null if error (though findChatAccessHash shouldn't return Err for not found, it returns Ok(null))
-      // If it returns Err (DB error), we log and skip.
-      let chatValue
-      try {
-        chatValue = chatRes.unwrap()
-      }
-      catch (e) {
-        logger.withError(e).warn('Failed to unwrap chat access hash result')
-      }
+      const chatValue = (await chatModels.findChatAccessHash(ctx.getDB(), accountId, idStr))
+        .expect(`Failed to find chat access hash for peer ${idStr}`)
 
       if (chatValue) {
         const { accessHash, type } = chatValue
         const id = bigInt(idStr)
-        const hash = bigInt(accessHash)
 
         if (type === 'user' || type === 'bot') {
+          if (!accessHash) {
+            throw new Error(`Chat ${idStr} is missing access hash for peer type ${type}`)
+          }
+
+          const hash = bigInt(accessHash)
           return new Api.InputPeerUser({ userId: id, accessHash: hash })
         }
         if (type === 'channel' || type === 'supergroup') {
+          if (!accessHash) {
+            throw new Error(`Chat ${idStr} is missing access hash for peer type ${type}`)
+          }
+
+          const hash = bigInt(accessHash)
           return new Api.InputPeerChannel({ channelId: id, accessHash: hash })
         }
         if (type === 'group') {
@@ -75,14 +76,8 @@ export function createEntityService(ctx: CoreContext, logger: Logger) {
     }
 
     // 2. Try to find in global users cache
-    const userHashRes = await userModels.findUserAccessHash(ctx.getDB(), idStr)
-    let userHashValue
-    try {
-      userHashValue = userHashRes.unwrap()
-    }
-    catch (e) {
-      logger.withError(e).warn('Failed to unwrap user access hash result')
-    }
+    const userHashValue = (await userModels.findUserAccessHash(ctx.getDB(), idStr))
+      .expect(`Failed to find user access hash for peer ${idStr}`)
 
     if (userHashValue) {
       return new Api.InputPeerUser({

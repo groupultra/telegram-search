@@ -269,6 +269,34 @@ describe('models/chats', () => {
     expect(notFound).toBeNull()
   })
 
+  it('findChatAccessHash preserves missing access hashes instead of coercing them to empty strings', async () => {
+    const db = await setupDb()
+
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+
+    const [chat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: '555',
+      chat_name: 'Target Chat',
+      chat_type: 'channel',
+    }).returning()
+
+    await db.insert(accountJoinedChatsTable).values({
+      account_id: account.id,
+      joined_chat_id: chat.id,
+      access_hash: null,
+    })
+
+    const result = (await chatModels.findChatAccessHash(db, account.id, '555')).unwrap()
+    expect(result).toEqual({
+      accessHash: null,
+      type: 'channel',
+    })
+  })
+
   it('updateChatPts updates pts for a specific chat for an account', async () => {
     const db = await setupDb()
 
