@@ -89,10 +89,9 @@ describe('useChatStore', () => {
   it('manages folders correctly', () => {
     const store = useChatStore()
     const mockFolders = [
-      { id: 1, title: 'Folder 1' },
+      { id: 1, title: 'Folder 1', includedChatIds: [], excludedChatIds: [] },
     ]
 
-    // @ts-expect-error - mock data
     store.folders = mockFolders
 
     expect(store.folders).toHaveLength(1)

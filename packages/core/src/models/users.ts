@@ -3,7 +3,7 @@ import type { CoreEntity } from '../types/events'
 import type { PromiseResult } from '../utils/result'
 import type { DBSelectUser } from './utils/types'
 
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 
 import { usersTable } from '../schemas/users'
 import { withResult } from '../utils/result'
@@ -50,6 +50,25 @@ async function findUserByPlatformId(db: CoreDB, platform: string, platformUserId
 }
 
 /**
+ * Find users by platform user ids in a single query.
+ */
+async function findUsersByPlatformIds(db: CoreDB, platform: string, platformUserIds: string[]): PromiseResult<DBSelectUser[]> {
+  return withResult(async () => {
+    if (platformUserIds.length === 0) {
+      return []
+    }
+
+    return db
+      .select()
+      .from(usersTable)
+      .where(and(
+        eq(usersTable.platform, platform),
+        inArray(usersTable.platform_user_id, platformUserIds),
+      ))
+  })
+}
+
+/**
  * Find a user by UUID
  */
 async function findUserByUUID(db: CoreDB, uuid: string): PromiseResult<DBSelectUser> {
@@ -66,6 +85,7 @@ async function findUserByUUID(db: CoreDB, uuid: string): PromiseResult<DBSelectU
 export const userModels = {
   recordUser,
   findUserByPlatformId,
+  findUsersByPlatformIds,
   findUserByUUID,
   findUserAccessHash,
 }

@@ -27,7 +27,7 @@ export class MessageWindow {
     if (messages.length === 0)
       return
 
-    const sortedNewMessages = messages.sort((a, b) => Number(a.platformMessageId) - Number(b.platformMessageId))
+    const sortedNewMessages = [...messages].sort((a, b) => Number(a.platformMessageId) - Number(b.platformMessageId))
     const introducedIds: string[] = []
 
     sortedNewMessages.forEach((msg) => {
@@ -150,19 +150,26 @@ export class MessageWindow {
 
     while (this.messages.size > this.trimThreshold && this.pages.length > 0) {
       const pageToRemove = direction === 'older'
-        ? this.pages.pop()
-        : this.pages.shift()
+        ? this.pages[this.pages.length - 1]
+        : this.pages[0]
 
-      if (!pageToRemove?.length) {
+      if (!pageToRemove || pageToRemove.length === 0) {
+        if (direction === 'older') {
+          this.pages.pop()
+        }
+        else {
+          this.pages.shift()
+        }
         continue
       }
 
-      for (const id of pageToRemove) {
-        const message = this.messages.get(id)
-        if (message?.media) {
-          cleanupMediaBlobs(message.media)
+      for (const id of [...pageToRemove]) {
+        if (!this.messages.has(id)) {
+          this.removeMessageFromPages(id)
+          continue
         }
-        this.messages.delete(id)
+
+        this.cleanupMessage(id)
         removedIds.push(id)
       }
     }

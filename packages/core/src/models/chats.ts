@@ -29,6 +29,8 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
         chat_name: chat.name,
         chat_type: chat.type,
         chat_username: chat.username || null,
+        last_message_from_name: chat.lastMessageFromName || null,
+        last_message: chat.lastMessage || null,
         dialog_date: parseDate(chat.lastMessageDate),
       })))
       .onConflictDoUpdate({
@@ -37,6 +39,8 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
           chat_name: sql`excluded.chat_name`,
           chat_type: sql`excluded.chat_type`,
           chat_username: sql`COALESCE(excluded.chat_username, ${joinedChatsTable.chat_username})`,
+          last_message_from_name: sql`excluded.last_message_from_name`,
+          last_message: sql`excluded.last_message`,
           dialog_date: sql`excluded.dialog_date`,
           updated_at: Date.now(),
         },
@@ -100,6 +104,8 @@ async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResu
       chat_name: joinedChatsTable.chat_name,
       chat_type: joinedChatsTable.chat_type,
       chat_username: joinedChatsTable.chat_username,
+      last_message_from_name: joinedChatsTable.last_message_from_name,
+      last_message: joinedChatsTable.last_message,
       note: joinedChatsTable.note,
       dialog_date: joinedChatsTable.dialog_date,
       access_hash: accountJoinedChatsTable.access_hash,

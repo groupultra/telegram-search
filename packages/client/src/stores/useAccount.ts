@@ -49,6 +49,8 @@ export const useAccountStore = defineStore('account', () => {
     if (isReady.value) {
       logger.verbose('Account is ready, fetching dialogs')
       useChatStore().fetchStorageDialogs()
+      useChatStore().fetchDialogs()
+      useChatStore().fetchFolders()
       return
     }
 

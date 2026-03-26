@@ -1,18 +1,23 @@
 <script lang="ts" setup>
 import buildTime from '~build/time'
 
-import { useAccountStore } from '@tg-search/client'
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 import { abbreviatedSha as gitShortSha } from '~build/git'
 import { version as pkgVersion } from '~build/package'
-import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
-import { RouterView } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 
 import AppSidebar from '../components/layout/AppSidebar.vue'
 import MobileNav from '../components/layout/MobileNav.vue'
+import SearchDialog from '../components/SearchDialog.vue'
+import AIChatPage from '../pages/ai-chat.vue'
 
-const { isReady } = storeToRefs(useAccountStore())
+import { Dialog, DialogContent } from '../components/ui/Dialog'
+
+const route = useRoute()
+const isGlobalSearchOpen = ref(false)
+const isAIChatDrawerOpen = ref(false)
+const aiChatDrawerChatIds = ref<number[]>([])
 
 // --- Build info using unplugin-info ---
 const buildVersionLabel = computed(() => {
@@ -43,6 +48,60 @@ const sidebarClasses = computed(() => {
     container: isMobile.value ? 'hidden' : 'w-80',
   }
 })
+
+const OPEN_GLOBAL_SEARCH_EVENT = 'tg-search:open-global-search'
+const OPEN_AI_CHAT_EVENT = 'tg-search:open-ai-chat'
+const AI_CHAT_DRAWER_STATE_EVENT = 'tg-search:ai-chat-drawer-state'
+
+const currentRouteChatId = computed(() => {
+  if (!route.path.startsWith('/chat/')) {
+    return undefined
+  }
+
+  return typeof route.params.id === 'string' ? route.params.id : undefined
+})
+
+function openGlobalSearch() {
+  isGlobalSearchOpen.value = true
+}
+
+function onOpenGlobalSearch() {
+  openGlobalSearch()
+}
+
+function onOpenAIChat(event: Event) {
+  const customEvent = event as CustomEvent<{ chatIds?: number[] }>
+  aiChatDrawerChatIds.value = (customEvent.detail?.chatIds ?? []).filter(id => Number.isFinite(id))
+  isAIChatDrawerOpen.value = true
+}
+
+function onGlobalSearchShortcut(event: KeyboardEvent) {
+  const isCmdOrCtrl = event.metaKey || event.ctrlKey
+  if (!isCmdOrCtrl || event.key.toLowerCase() !== 'k') {
+    return
+  }
+
+  event.preventDefault()
+  openGlobalSearch()
+}
+
+onMounted(() => {
+  window.addEventListener(OPEN_GLOBAL_SEARCH_EVENT, onOpenGlobalSearch)
+  window.addEventListener(OPEN_AI_CHAT_EVENT, onOpenAIChat)
+  window.addEventListener('keydown', onGlobalSearchShortcut)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener(OPEN_GLOBAL_SEARCH_EVENT, onOpenGlobalSearch)
+  window.removeEventListener(OPEN_AI_CHAT_EVENT, onOpenAIChat)
+  window.removeEventListener('keydown', onGlobalSearchShortcut)
+})
+
+watch(isAIChatDrawerOpen, (open) => {
+  window.dispatchEvent(new CustomEvent(AI_CHAT_DRAWER_STATE_EVENT, {
+    detail: { open },
+  }))
+})
 </script>
 
 <template>
@@ -51,7 +110,7 @@ const sidebarClasses = computed(() => {
   >
     <!-- Login Overlay -->
     <div
-      v-if="!isReady && $route.path === '/login'"
+      v-if="$route.path === '/login'"
       class="fixed inset-0 z-50 flex items-center justify-center bg-background/20 backdrop-blur-[2px]"
     >
       <RouterView />
@@ -102,4 +161,15 @@ const sidebarClasses = computed(() => {
       </div>
     </div>
   </div>
+
+  <SearchDialog v-model:open="isGlobalSearchOpen" :chat-id="currentRouteChatId" />
+
+  <Dialog v-model:open="isAIChatDrawerOpen">
+    <DialogContent
+      class="left-auto right-0 top-0 h-screen max-w-[min(760px,100vw)] w-full translate-x-0 translate-y-0 border-0 border-l rounded-none p-0"
+      :show-close-button="true"
+    >
+      <AIChatPage :chat-ids="aiChatDrawerChatIds" />
+    </DialogContent>
+  </Dialog>
 </template>

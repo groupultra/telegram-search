@@ -14,7 +14,6 @@ import UserDropdown from './UserDropdown.vue'
 import { SIDEBAR_NAV_ITEMS } from '../../constants'
 import { runThemeAppearanceTransition } from '../../lib/utils'
 import { Button } from '../ui/Button'
-import { Input } from '../ui/Input'
 
 const { t } = useI18n()
 const { activeSession } = storeToRefs(useSessionStore())
@@ -38,23 +37,8 @@ function toggleTheme(event: Event) {
 
 <template>
   <div class="h-full flex flex-col bg-card/50 backdrop-blur-xl">
-    <!-- Search section -->
-    <div class="px-4 pb-2 pt-4">
-      <div class="group relative">
-        <div
-          class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-primary"
-        />
-        <Input
-          v-model="searchParams"
-          type="text"
-          class="h-10 border-border/60 rounded-xl bg-background/80 pl-9 text-foreground shadow-sm transition-all focus:border-primary/35 hover:border-border focus:bg-background hover:bg-background placeholder:text-foreground/45 focus:ring-2 focus:ring-primary/15"
-          :placeholder="t('search.search')"
-        />
-      </div>
-    </div>
-
     <!-- Navigation -->
-    <div class="flex-col gap-0.5 px-3 py-2 hidden md:flex">
+    <div class="flex-col gap-0.5 px-3 pb-2 pt-4 hidden md:flex">
       <SidebarSelector
         v-for="item in navigationItems"
         :key="item.path"
@@ -65,7 +49,7 @@ function toggleTheme(event: Event) {
     </div>
 
     <!-- Chat groups and list -->
-    <ChatListSection :search-query="searchParams" />
+    <ChatListSection v-model:search-query="searchParams" />
 
     <!-- User profile section -->
     <div class="mt-auto border-t border-border/40 bg-muted/30 p-3 backdrop-blur-sm">

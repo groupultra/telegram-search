@@ -19,7 +19,15 @@ export function registerDialogEventHandlers(
 
   // Base dialog list
   registerEventHandler(CoreEventType.DialogData, (data) => {
-    useChatStore().chats = data.dialogs
+    const chatStore = useChatStore()
+    if (data.pinnedDialogIds?.length) {
+      chatStore.syncPinnedOrder(data.pinnedDialogIds)
+    }
+    else {
+      chatStore.syncPinnedOrder(data.dialogs.filter(chat => chat.pinned).map(chat => Number(chat.id)).reverse())
+    }
+
+    chatStore.mergeDialogs(data.dialogs)
   })
 
   // Chat folders

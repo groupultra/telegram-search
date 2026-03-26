@@ -16,7 +16,7 @@ export function registerStorageEventHandlers(
 ) {
   registerEventHandler(CoreEventType.StorageDialogs, (data) => {
     const chatStore = useChatStore()
-    chatStore.chats = data.dialogs
+    chatStore.mergeDialogs(data.dialogs, { preserveUnreadCount: true })
     // Prefill avatars from persistent cache concurrently for better initial UX
     Promise.resolve().then(async () => {
       try {
@@ -36,6 +36,7 @@ export function registerStorageEventHandlers(
   // Wait for result event
   registerEventHandler(CoreEventType.StorageSearchMessagesData, (_) => {})
   registerEventHandler(CoreEventType.StorageMessagesContext, (_) => {})
+  registerEventHandler(CoreEventType.StorageMessageEditMarks, (_) => {})
   registerEventHandler(CoreEventType.StorageChatNoteData, (_) => {})
   registerEventHandler(CoreEventType.StorageSearchPhotosData, (_) => {})
 }

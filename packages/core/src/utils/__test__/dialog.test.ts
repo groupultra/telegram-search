@@ -1,9 +1,11 @@
+import { Buffer } from 'node:buffer'
+
 import bigInt from 'big-integer'
 
 import { Api } from 'telegram'
 import { describe, expect, it } from 'vitest'
 
-import { getApiChatIdFromMtpPeer, resolveDialog } from '../dialog'
+import { getApiChatIdFromMtpPeer, resolveDialog, resolveDialogMessagePreview } from '../dialog'
 
 describe('getApiChatIdFromMtpPeer', () => {
   it('should extract userId from InputPeerUser', () => {
@@ -44,6 +46,75 @@ describe('getApiChatIdFromMtpPeer', () => {
   it('should return undefined for unknown peer types', () => {
     // @ts-expect-error - testing invalid input
     expect(getApiChatIdFromMtpPeer({})).toBeUndefined()
+  })
+})
+
+describe('resolveDialogMessagePreview', () => {
+  it('returns text content when present', () => {
+    const message = new Api.Message({
+      id: 1,
+      message: 'hello world',
+      date: 1,
+    })
+
+    expect(resolveDialogMessagePreview(message)).toBe('hello world')
+  })
+
+  it('returns sticker emoji when the last message is a sticker', () => {
+    const message = new Api.Message({
+      id: 1,
+      message: '',
+      date: 1,
+      media: new Api.MessageMediaDocument({
+        document: new Api.Document({
+          id: bigInt(1),
+          accessHash: bigInt(1),
+          fileReference: Buffer.from([]),
+          date: 1,
+          mimeType: 'image/webp',
+          size: bigInt(1),
+          dcId: 1,
+          attributes: [
+            new Api.DocumentAttributeSticker({
+              alt: '🙂',
+              stickerset: new Api.InputStickerSetEmpty(),
+            }),
+          ],
+        }),
+      }),
+    })
+
+    expect(resolveDialogMessagePreview(message)).toBe('🙂')
+  })
+
+  it('returns media label when the last message is a photo', () => {
+    const message = new Api.Message({
+      id: 1,
+      message: '',
+      date: 1,
+      media: new Api.MessageMediaPhoto({
+        photo: new Api.Photo({
+          id: bigInt(1),
+          accessHash: bigInt(1),
+          fileReference: Buffer.from([]),
+          date: 1,
+          sizes: [],
+          dcId: 1,
+        }),
+      }),
+    })
+
+    expect(resolveDialogMessagePreview(message)).toBe('Photo')
+  })
+
+  it('returns service preview for pinned message actions', () => {
+    const message = new Api.MessageService({
+      id: 1,
+      date: 1,
+      action: new Api.MessageActionPinMessage(),
+    })
+
+    expect(resolveDialogMessagePreview(message)).toBe('Pinned a message')
   })
 })
 

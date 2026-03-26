@@ -239,6 +239,20 @@
       "when": 1773046446128,
       "tag": "0033_tense_power_man",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1773306480300,
+      "tag": "0034_vengeful_donald_blake",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1773311604354,
+      "tag": "0035_nasty_bastion",
+      "breakpoints": true
     }
   ]
 }

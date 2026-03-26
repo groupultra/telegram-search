@@ -3,6 +3,8 @@ import type { Dialog } from 'telegram/tl/custom/dialog'
 
 import type { DialogType } from '../types/dialog'
 
+import bigInt from 'big-integer'
+
 import { Err, Ok } from '@unbird/result'
 import { Api } from 'telegram'
 
@@ -88,6 +90,130 @@ export function resolveDialog(dialog: Dialog): Result<{
     accessHash,
     username,
   })
+}
+
+function resolveMediaPreview(media: Api.TypeMessageMedia): string | undefined {
+  if (media instanceof Api.MessageMediaPhoto) {
+    return 'Photo'
+  }
+
+  if (media instanceof Api.MessageMediaPoll) {
+    return 'Poll'
+  }
+
+  if (media instanceof Api.MessageMediaGeo || media instanceof Api.MessageMediaGeoLive || media instanceof Api.MessageMediaVenue) {
+    return 'Location'
+  }
+
+  if (media instanceof Api.MessageMediaContact) {
+    return 'Contact'
+  }
+
+  if (media instanceof Api.MessageMediaWebPage) {
+    return 'Link'
+  }
+
+  if (media instanceof Api.MessageMediaDocument && media.document instanceof Api.Document) {
+    const attributes = media.document.attributes
+
+    if (attributes.some(attr => attr instanceof Api.DocumentAttributeSticker)) {
+      const sticker = attributes.find(attr => attr instanceof Api.DocumentAttributeSticker)
+      return sticker?.alt?.trim() || 'Sticker'
+    }
+
+    const audio = attributes.find(attr => attr instanceof Api.DocumentAttributeAudio)
+    if (audio instanceof Api.DocumentAttributeAudio) {
+      return audio.voice ? 'Voice message' : 'Audio'
+    }
+
+    const video = attributes.find(attr => attr instanceof Api.DocumentAttributeVideo)
+    if (video instanceof Api.DocumentAttributeVideo) {
+      return video.roundMessage ? 'Video message' : 'Video'
+    }
+
+    const animated = attributes.find(attr => attr instanceof Api.DocumentAttributeAnimated)
+    if (animated instanceof Api.DocumentAttributeAnimated) {
+      return 'GIF'
+    }
+
+    return 'File'
+  }
+
+  return undefined
+}
+
+export function resolveDialogMessagePreview(message?: Api.TypeMessage): string | undefined {
+  if (!message) {
+    return undefined
+  }
+
+  if (message instanceof Api.Message) {
+    const text = message.message?.trim()
+    if (text) {
+      return text
+    }
+
+    if (message.media) {
+      return resolveMediaPreview(message.media)
+    }
+  }
+
+  if (message instanceof Api.MessageService) {
+    if (message.action instanceof Api.MessageActionPinMessage) {
+      return 'Pinned a message'
+    }
+
+    if (message.action instanceof Api.MessageActionChatAddUser) {
+      return 'Added members'
+    }
+
+    if (message.action instanceof Api.MessageActionChatJoinedByLink) {
+      return 'Joined via invite link'
+    }
+
+    if (message.action instanceof Api.MessageActionChatEditTitle) {
+      return 'Changed group name'
+    }
+
+    if (message.action instanceof Api.MessageActionChatEditPhoto) {
+      return 'Changed group photo'
+    }
+
+    if (message.action instanceof Api.MessageActionChatDeletePhoto) {
+      return 'Removed group photo'
+    }
+  }
+
+  return undefined
+}
+
+export function resolveDialogMessageSenderName(message?: Api.TypeMessage): string | undefined {
+  if (!(message instanceof Api.Message)) {
+    return undefined
+  }
+
+  const sender = message.sender
+  const senderId = typeof message.senderId === 'string' ? bigInt(message.senderId) : message.senderId
+
+  if ((!sender && !senderId) || sender instanceof Api.UserEmpty || sender instanceof Api.ChatEmpty) {
+    return undefined
+  }
+
+  if (sender instanceof Api.User) {
+    const fullName = [sender.firstName, sender.lastName].filter(Boolean).join(' ').trim()
+    return fullName || sender.username || senderId?.toString()
+  }
+
+  return sender?.title?.trim() || senderId?.toString()
+}
+
+export function resolveDialogMessageSenderId(message?: Api.TypeMessage): string | undefined {
+  if (!(message instanceof Api.Message)) {
+    return undefined
+  }
+
+  const senderId = typeof message.senderId === 'string' ? bigInt(message.senderId) : message.senderId
+  return senderId?.toString()
 }
 
 /**

@@ -12,6 +12,8 @@ export const joinedChatsTable = pgTable('joined_chats', () => {
     chat_name: text().notNull().default(''),
     chat_type: text().notNull().default('user').$type<JoinedChatType>(),
     chat_username: text(), // Public username for channels/supergroups (nullable)
+    last_message_from_name: text(),
+    last_message: text(),
     note: text().notNull().default(''),
     dialog_date: bigint({ mode: 'number' }).notNull().default(0),
     created_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),

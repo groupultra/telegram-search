@@ -57,7 +57,7 @@ export function useLoginFlow() {
         avatarStore.ensureUserAvatar(activeSession.value.me.id, undefined, true)
       }
     }
-  })
+  }, { immediate: true })
 
   const steps = computed(() => [
     { step: 1, value: 'phone', title: t('login.phone'), description: t('login.phoneDescription') },

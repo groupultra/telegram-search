@@ -15,6 +15,22 @@ export const usePWAStore = defineStore('pwa', () => {
   const isMobile = breakpoints.smaller('md')
   const isInitialized = ref(false)
 
+  async function unregisterExistingServiceWorkers() {
+    if (!('serviceWorker' in navigator)) {
+      return
+    }
+
+    const registrations = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(registrations.map(async (registration) => {
+      try {
+        await registration.unregister()
+      }
+      catch (error) {
+        useLogger('PWA').withError(error).warn('Failed to unregister service worker')
+      }
+    }))
+  }
+
   async function init() {
     if (import.meta.env.SSR) {
       return
@@ -22,6 +38,14 @@ export const usePWAStore = defineStore('pwa', () => {
 
     if (isInitialized.value) {
       useLogger('PWA').debug('Already initialized, skipping')
+      return
+    }
+
+    // NOTICE: local dev regularly switches between preview/dev servers and
+    // stale service workers can trap the app in an old boot state.
+    if (import.meta.env.DEV) {
+      await unregisterExistingServiceWorkers()
+      isInitialized.value = true
       return
     }
 

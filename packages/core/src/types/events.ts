@@ -42,6 +42,8 @@ export enum CoreEventType {
   MessageProcess = 'message:process',
   MessageReprocess = 'message:reprocess',
   MessageProcessed = 'message:processed',
+  MessageUpdated = 'message:updated',
+  MessageDeleted = 'message:deleted',
 
   DialogFetch = 'dialog:fetch',
   DialogFoldersFetch = 'dialog:folders:fetch',
@@ -66,11 +68,13 @@ export enum CoreEventType {
   StorageSearchMessages = 'storage:search:messages',
   StorageSearchPhotos = 'storage:search:photos',
   StorageFetchMessageContext = 'storage:fetch:message-context',
+  StorageFetchMessageEditMarks = 'storage:fetch:message-edit-marks',
   StorageMessages = 'storage:messages',
   StorageDialogs = 'storage:dialogs',
   StorageSearchMessagesData = 'storage:search:messages:data',
   StorageSearchPhotosData = 'storage:search:photos:data',
   StorageMessagesContext = 'storage:messages:context',
+  StorageMessageEditMarks = 'storage:message-edit-marks',
   StorageChatNote = 'storage:record:dialog-note',
   StorageChatNoteData = 'storage:dialog-note',
 
@@ -84,6 +88,8 @@ export enum CoreEventType {
   TakeoutConfirmResponse = 'takeout:confirm:response',
 
   GramMessageReceived = 'gram:message:received',
+  GramMessageEdited = 'gram:message:edited',
+  GramMessageDeleted = 'gram:message:deleted',
 
   BotSendMessage = 'bot:send:message',
   BotStatus = 'bot:status',
@@ -194,6 +200,8 @@ export interface MessageEventFromCore {
   [CoreEventType.MessageData]: (data: { messages: CoreMessage[] }) => void
   [CoreEventType.MessageUnreadData]: (data: { messages: CoreMessage[] }) => void
   [CoreEventType.MessageSummaryData]: (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => void
+  [CoreEventType.MessageUpdated]: (data: { chatId: string, messageId: string }) => void
+  [CoreEventType.MessageDeleted]: (data: { chatId?: string, messageIds: string[] }) => void
 }
 
 export interface FetchMessageOpts {
@@ -229,7 +237,7 @@ export interface DialogEventToCore {
 }
 
 export interface DialogEventFromCore {
-  [CoreEventType.DialogData]: (data: { dialogs: CoreDialog[] }) => void
+  [CoreEventType.DialogData]: (data: { dialogs: CoreDialog[], pinnedDialogIds?: number[] }) => void
   [CoreEventType.DialogFoldersData]: (data: { folders: CoreChatFolder[] }) => void
   /**
    * Emit avatar bytes for a single dialog. Frontend should convert bytes to blobUrl
@@ -310,6 +318,7 @@ export interface StorageEventToCore {
   [CoreEventType.StorageSearchPhotos]: (data: CorePhotoSearchParams) => void
 
   [CoreEventType.StorageFetchMessageContext]: (data: StorageMessageContextParams) => void
+  [CoreEventType.StorageFetchMessageEditMarks]: (data: { chatId: string, messageIds: string[], requestId?: string }) => void
 
   [CoreEventType.StorageChatNote]: (data: { chatId: string, note: string, modify: boolean }) => void
 }
@@ -319,15 +328,17 @@ export interface StorageEventFromCore {
 
   [CoreEventType.StorageDialogs]: (data: { dialogs: CoreDialog[] }) => void
 
-  [CoreEventType.StorageSearchMessagesData]: (data: { messages: CoreRetrievalMessages[], hasMore: boolean }) => void
-  [CoreEventType.StorageSearchPhotosData]: (data: { photos: CoreRetrievalPhoto[], hasMore: boolean }) => void
+  [CoreEventType.StorageSearchMessagesData]: (data: { messages: CoreRetrievalMessages[], hasMore: boolean, requestId?: string }) => void
+  [CoreEventType.StorageSearchPhotosData]: (data: { photos: CoreRetrievalPhoto[], hasMore: boolean, requestId?: string }) => void
 
   [CoreEventType.StorageMessagesContext]: (data: { messages: CoreMessage[] } & StorageMessageContextParams) => void
+  [CoreEventType.StorageMessageEditMarks]: (data: { chatId: string, editedMessageIds: string[], requestId?: string }) => void
 
   [CoreEventType.StorageChatNoteData]: (data: { chatId: string, note: string }) => void
 }
 
 export interface CoreMessageSearchParams {
+  requestId?: string
   chatId?: string
   content: string
 
@@ -344,6 +355,7 @@ export interface CoreMessageSearchParams {
 }
 
 export interface CorePhotoSearchParams {
+  requestId?: string
   content: string
   useVector: boolean
   pagination?: CorePagination
@@ -487,6 +499,13 @@ export interface GramEventsEventToCore {}
 
 export interface GramEventsEventFromCore {
   [CoreEventType.GramMessageReceived]: (data: { message: Api.Message, pts?: number, date?: number, isChannel: boolean }) => void
+  [CoreEventType.GramMessageEdited]: (data: { message: Api.Message, pts?: number, date?: number, isChannel: boolean }) => void
+  [CoreEventType.GramMessageDeleted]: (data: {
+    messageIds: string[]
+    chatId?: string
+    pts?: number
+    isChannel: boolean
+  }) => void
 }
 
 // ============================================================================

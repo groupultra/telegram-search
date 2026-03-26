@@ -63,35 +63,79 @@ export function createMessageResolverService(
 
     logger.withFields({ count: coreMessages.length }).debug('Converted messages')
 
-    // TODO: Query user database to get user info
-
-    // Return the messages to client first.
-    if (!options.takeout) {
-      ctx.emitter.emit(CoreEventType.MessageData, { messages: coreMessages })
-    }
-
-    // Storage the messages first and get the actual DB IDs
-    const accountId = ctx.getCurrentAccountId()
-    const recordedMessages = await chatMessageModels.recordMessages(ctx.getDB(), accountId, coreMessages)
-
-    // Update coreMessages UUIDs with the actual DB IDs
-    // Create a map for O(1) lookup: chat_id:platform_message_id -> db_uuid
-    const messageIdMap = new Map<string, string>()
-    for (const msg of recordedMessages) {
-      messageIdMap.set(`${msg.in_chat_id}:${msg.platform_message_id}`, msg.id!)
-    }
-
-    // Apply the actual DB UUIDs to the core messages
-    for (const msg of coreMessages) {
-      const dbUuid = messageIdMap.get(`${msg.chatId}:${msg.platformMessageId}`)
-      if (dbUuid) {
-        msg.uuid = dbUuid
-      }
-    }
-
     // Avatar resolver is disabled by default (configured in generateDefaultConfig).
     // Current strategy: client-driven, on-demand avatar loading via entity:avatar:fetch.
     const disabledResolvers = (await ctx.getAccountSettings()).messageProcessing?.resolvers?.disabledResolvers
+
+    // Resolve enabled resolvers and preserve registration order.
+    const allResolvers = Array.from(resolvers.registry.entries())
+      .filter(([name]) => {
+        const shouldSkip = disabledResolvers.includes(name)
+          || (name === 'media' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
+          || (name === 'embedding' && (options.syncOptions?.skipEmbedding))
+          || (name === 'jieba' && (options.syncOptions?.skipJieba))
+          // Photo embedding depends on media resolver, skip if media is disabled
+          || (name === 'photo-embedding' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
+
+        if (shouldSkip) {
+          ctx.metrics?.resolverSkipped.inc({ resolver: name })
+          return false
+        }
+        return true
+      })
+
+    const baseResolverOpts = {
+      messages: coreMessages,
+      rawMessages: messages,
+      syncOptions: options.syncOptions,
+      forceRefetch: options.forceRefetch,
+    }
+
+    // For realtime delivery, resolve sender names before the first client push.
+    // Otherwise convertToCoreMessage may fall back to numeric IDs when Telegram
+    // hasn't hydrated message.sender yet, and the UI keeps that stale value.
+    const userResolver = allResolvers.find(([name]) => name === 'user')
+    if (userResolver?.[1].run) {
+      try {
+        await withSpan('resolver:user:pre-emit', async () => {
+          const result = (await userResolver[1].run!(baseResolverOpts)).unwrap()
+
+          if (result.length > 0) {
+            ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: result })
+          }
+        }, { resolver: 'user', messageCount: coreMessages.length })
+      }
+      catch (error) {
+        logger.withError(error).warn('Failed to resolve users before realtime message delivery')
+      }
+    }
+
+    // Store the messages first and use the persisted metadata for client delivery.
+    const accountId = ctx.getCurrentAccountId()
+    const recordedMessages = await chatMessageModels.recordMessages(ctx.getDB(), accountId, coreMessages)
+
+    // Update coreMessages with the actual DB metadata so refreshed pages retain
+    // persisted state like updatedAt/deletedAt instead of falling back to the
+    // transient Telegram payload.
+    const messageRecordMap = new Map<string, typeof recordedMessages[number]>()
+    for (const msg of recordedMessages) {
+      messageRecordMap.set(`${msg.in_chat_id}:${msg.platform_message_id}`, msg)
+    }
+
+    // Apply the actual DB fields to the core messages.
+    for (const msg of coreMessages) {
+      const record = messageRecordMap.get(`${msg.chatId}:${msg.platformMessageId}`)
+      if (record) {
+        msg.uuid = record.id!
+        msg.createdAt = record.created_at ?? msg.createdAt
+        msg.updatedAt = record.updated_at ?? msg.updatedAt
+        msg.deletedAt = record.deleted_at ?? msg.deletedAt
+      }
+    }
+
+    if (!options.takeout) {
+      ctx.emitter.emit(CoreEventType.MessageData, { messages: coreMessages })
+    }
 
     // Embedding or resolve messages
     const resolverSpans: Array<{ name: string, duration: number, count: number }> = []
@@ -101,23 +145,16 @@ export function createMessageResolverService(
         const resolverStart = performance.now()
         logger.withFields({ name }).verbose('Process messages with resolver')
 
-        const opts = {
-          messages: coreMessages,
-          rawMessages: messages,
-          syncOptions: options.syncOptions,
-          forceRefetch: options.forceRefetch,
-        }
-
         try {
           if (resolver.run) {
-            const result = (await resolver.run(opts)).unwrap()
+            const result = (await resolver.run(baseResolverOpts)).unwrap()
 
             if (result.length > 0) {
               ctx.emitter.emit(CoreEventType.StorageRecordMessages, { messages: result })
             }
           }
           else if (resolver.stream) {
-            for await (const message of resolver.stream(opts)) {
+            for await (const message of resolver.stream(baseResolverOpts)) {
               if (!options.takeout) {
                 ctx.emitter.emit(CoreEventType.MessageData, { messages: [message] })
               }
@@ -145,23 +182,6 @@ export function createMessageResolverService(
       }, { resolver: name, messageCount: coreMessages.length })
     }
 
-    // Resolve enabled resolvers and preserve registration order.
-    const allResolvers = Array.from(resolvers.registry.entries())
-      .filter(([name]) => {
-        const shouldSkip = disabledResolvers.includes(name)
-          || (name === 'media' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
-          || (name === 'embedding' && (options.syncOptions?.skipEmbedding))
-          || (name === 'jieba' && (options.syncOptions?.skipJieba))
-          // Photo embedding depends on media resolver, skip if media is disabled
-          || (name === 'photo-embedding' && (options.syncOptions?.skipMedia || options.syncOptions?.syncMedia === false))
-
-        if (shouldSkip) {
-          ctx.metrics?.resolverSkipped.inc({ resolver: name })
-          return false
-        }
-        return true
-      })
-
     // Run media first to satisfy downstream resolvers that depend on persisted media records.
     const mediaResolver = allResolvers.find(([name]) => name === 'media')
     if (mediaResolver) {
@@ -169,7 +189,7 @@ export function createMessageResolverService(
     }
 
     // Run remaining resolvers concurrently after media is complete.
-    const otherResolvers = allResolvers.filter(([name]) => name !== 'media')
+    const otherResolvers = allResolvers.filter(([name]) => name !== 'media' && name !== 'user')
     const promises = otherResolvers.map(([name, resolver]) => executeResolver(name, resolver))
 
     await Promise.allSettled(promises)

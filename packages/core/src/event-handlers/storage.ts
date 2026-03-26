@@ -79,6 +79,31 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     }
   })
 
+  ctx.emitter.on(CoreEventType.StorageFetchMessageEditMarks, async ({ chatId, messageIds, requestId }) => {
+    logger.withFields({ chatId, count: messageIds.length }).verbose('Fetching message edit marks')
+
+    const accountId = ctx.getCurrentAccountId()
+    const hasAccess = (await dbModels.chatModels.isChatAccessibleByAccount(ctx.getDB(), accountId, chatId)).expect('Failed to check chat access')
+
+    if (!hasAccess) {
+      ctx.withError('Unauthorized chat access', 'Account does not have access to requested message edit marks')
+      return
+    }
+
+    const editedMessageIds = (await dbModels.chatMessageModels.fetchEditedMessageIds(
+      ctx.getDB(),
+      accountId,
+      chatId,
+      messageIds,
+    )).unwrap()
+
+    ctx.emitter.emit(CoreEventType.StorageMessageEditMarks, {
+      chatId,
+      editedMessageIds,
+      requestId,
+    })
+  })
+
   ctx.emitter.on(CoreEventType.StorageRecordMessages, async ({ messages }) => {
     const accountId = ctx.getCurrentAccountId()
 
@@ -105,6 +130,8 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         type: chat.chat_type,
         isContact: chat.is_contact ?? undefined,
         messageCount: chatMessageStats?.message_count,
+        lastMessageFromName: chat.last_message_from_name ?? undefined,
+        lastMessage: chat.last_message ?? undefined,
         lastMessageDate: chat.dialog_date ? new Date(chat.dialog_date) : undefined,
         pinned: !!chat.is_pinned,
         folderIds: chat.folder_ids ?? [],
@@ -144,6 +171,28 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     // Store folder metadata in account_chat_folders table
     await dbModels.chatFolderModels.upsertFolders(db, accountId, folders)
     logger.verbose('Successfully stored folder metadata')
+
+    const dbChats = (await dbModels.chatModels.fetchChatsByAccountId(db, accountId)).unwrap()
+    const chatsMessageStats = (await dbModels.chatMessageStatsModels.getChatMessagesStats(db, accountId)).unwrap()
+
+    const dialogs = dbChats.map((chat) => {
+      const chatMessageStats = chatsMessageStats.find(stats => stats.chat_id === chat.chat_id)
+      return {
+        id: Number(chat.chat_id),
+        name: chat.chat_name,
+        type: chat.chat_type,
+        isContact: chat.is_contact ?? undefined,
+        messageCount: chatMessageStats?.message_count,
+        lastMessageFromName: chat.last_message_from_name ?? undefined,
+        lastMessage: chat.last_message ?? undefined,
+        lastMessageDate: chat.dialog_date ? new Date(chat.dialog_date) : undefined,
+        pinned: !!chat.is_pinned,
+        folderIds: chat.folder_ids ?? [],
+        accessHash: chat.access_hash ?? undefined,
+      } satisfies CoreDialog
+    })
+
+    ctx.emitter.emit(CoreEventType.StorageDialogs, { dialogs })
   })
 
   ctx.emitter.on(CoreEventType.StorageSearchMessages, async (params) => {
@@ -217,7 +266,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
     const coreMessages = convertToCoreRetrievalMessages(trimmedMessages)
 
-    ctx.emitter.emit(CoreEventType.StorageSearchMessagesData, { messages: coreMessages, hasMore })
+    ctx.emitter.emit(CoreEventType.StorageSearchMessagesData, { messages: coreMessages, hasMore, requestId: params.requestId })
   })
 
   ctx.emitter.on(CoreEventType.StorageSearchPhotos, async (params) => {
@@ -226,7 +275,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
 
       if (params.content.length === 0) {
         logger.verbose('Empty content, returning empty results')
-        ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false })
+        ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false, requestId: params.requestId })
         return
       }
 
@@ -254,7 +303,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         ctx.metrics?.embeddingApiCall.inc({ status: embeddingResult != null ? 'success' : 'error' })
         if (!embeddingResult) {
           logger.warn('Failed to generate embedding for photo search')
-          ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false })
+          ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false, requestId: params.requestId })
           return
         }
 
@@ -319,11 +368,11 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         corePhotosCount: corePhotos.length,
         samplePhoto: corePhotos[0],
       }).log('Emitting StorageSearchPhotosData event')
-      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: corePhotos, hasMore })
+      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: corePhotos, hasMore, requestId: params.requestId })
     }
     catch (error) {
       logger.withError(error).error('Failed to search photos')
-      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false })
+      ctx.emitter.emit(CoreEventType.StorageSearchPhotosData, { photos: [], hasMore: false, requestId: params.requestId })
     }
   })
 
