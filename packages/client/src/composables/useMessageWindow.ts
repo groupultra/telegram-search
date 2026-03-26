@@ -66,16 +66,7 @@ export class MessageWindow {
 
   remove(msgId: string): void {
     this.cleanupMessage(msgId)
-
-    if (this.messages.size > 0) {
-      const remainingIds = this.getSortedIds()
-      this.minId = Number(remainingIds[0])
-      this.maxId = Number(remainingIds[remainingIds.length - 1])
-    }
-    else {
-      this.minId = Infinity
-      this.maxId = -Infinity
-    }
+    this.recalcBounds()
   }
 
   // Get all message IDs sorted
@@ -86,6 +77,31 @@ export class MessageWindow {
   // Get current size
   size(): number {
     return this.messages.size
+  }
+
+  // Recalculate minId/maxId from remaining page boundaries.
+  // Pages are ordered oldest-first, so the first ID of the first page
+  // and the last ID of the last page give us the bounds in O(pages).
+  private recalcBounds(): void {
+    if (this.messages.size === 0) {
+      this.minId = Infinity
+      this.maxId = -Infinity
+      return
+    }
+
+    let min = Infinity
+    let max = -Infinity
+    for (const page of this.pages) {
+      for (const id of page) {
+        const num = Number(id)
+        if (num < min)
+          min = num
+        if (num > max)
+          max = num
+      }
+    }
+    this.minId = min
+    this.maxId = max
   }
 
   // Clean up a single message and its blob URLs
@@ -151,17 +167,7 @@ export class MessageWindow {
       }
     }
 
-    // Update minId and maxId
-    if (this.messages.size > 0) {
-      // TODO: performance issue?
-      const remainingIds = this.getSortedIds()
-      this.minId = Number(remainingIds[0])
-      this.maxId = Number(remainingIds[remainingIds.length - 1])
-    }
-    else {
-      this.minId = Infinity
-      this.maxId = -Infinity
-    }
+    this.recalcBounds()
 
     if (removedIds.length > 0) {
       this.logger.debug(`Cleaned up ${removedIds.length} messages (${direction}), removed: ${removedIds[0]} - ${removedIds[removedIds.length - 1]}`)

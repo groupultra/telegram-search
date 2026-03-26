@@ -36,13 +36,19 @@ function getLastPhotoSizeType(sizes: Api.TypePhotoSize[]): string | undefined {
   return undefined
 }
 
+/**
+ * Extract pixel dimensions from the largest available photo size.
+ * Telegram stores multiple resolutions per photo; we walk backwards
+ * to find the last PhotoSize/PhotoCachedSize/PhotoSizeProgressive
+ * which is typically the highest-resolution variant.
+ */
 function getLargestPhotoDimensions(sizes: Api.TypePhotoSize[]): { width?: number, height?: number } {
   for (let i = sizes.length - 1; i >= 0; i--) {
     const size = sizes[i]
     if (size instanceof Api.PhotoSize || size instanceof Api.PhotoCachedSize || size instanceof Api.PhotoSizeProgressive) {
       return {
-        width: size.w || undefined,
-        height: size.h || undefined,
+        width: size.w ?? undefined,
+        height: size.h ?? undefined,
       }
     }
   }
@@ -50,12 +56,17 @@ function getLargestPhotoDimensions(sizes: Api.TypePhotoSize[]): { width?: number
   return {}
 }
 
+/**
+ * Extract pixel dimensions from a Document's attributes.
+ * Documents carry size info inside DocumentAttributeImageSize (for stickers)
+ * or DocumentAttributeVideo (for videos / animated stickers).
+ */
 function getDocumentDimensions(document: Api.Document): { width?: number, height?: number } {
   for (const attribute of document.attributes) {
     if (attribute instanceof Api.DocumentAttributeImageSize || attribute instanceof Api.DocumentAttributeVideo) {
       return {
-        width: attribute.w || undefined,
-        height: attribute.h || undefined,
+        width: attribute.w ?? undefined,
+        height: attribute.h ?? undefined,
       }
     }
   }
@@ -161,8 +172,8 @@ export function createMediaResolver(
                     type: media.type,
                     platformId: media.platformId,
                     mimeType: sticker.mimeType,
-                    width: sticker.width || undefined,
-                    height: sticker.height || undefined,
+                    width: sticker.width ?? undefined,
+                    height: sticker.height ?? undefined,
                   } satisfies CoreMessageMedia
                 }
               }
@@ -193,8 +204,8 @@ export function createMediaResolver(
                     mimeType: photo.mimeType,
                     type: media.type,
                     platformId: media.platformId,
-                    width: photo.width || undefined,
-                    height: photo.height || undefined,
+                    width: photo.width ?? undefined,
+                    height: photo.height ?? undefined,
                   } satisfies CoreMessageMedia
                 }
               }
@@ -277,9 +288,10 @@ export function createMediaResolver(
                   if (!byte)
                     break
 
-                  const photoDimensions = rawMessage.media instanceof Api.MessageMediaPhoto && rawMessage.media.photo instanceof Api.Photo
-                    ? getLargestPhotoDimensions(rawMessage.media.photo.sizes)
-                    : {}
+                  let photoDimensions: { width?: number, height?: number } = {}
+                  if (rawMessage.media instanceof Api.MessageMediaPhoto && rawMessage.media.photo instanceof Api.Photo) {
+                    photoDimensions = getLargestPhotoDimensions(rawMessage.media.photo.sizes)
+                  }
 
                   let storagePath: string | undefined
 
@@ -325,9 +337,10 @@ export function createMediaResolver(
                   if (!byte)
                     break
 
-                  const stickerDimensions = rawMessage.media instanceof Api.MessageMediaDocument && rawMessage.media.document instanceof Api.Document
-                    ? getDocumentDimensions(rawMessage.media.document)
-                    : {}
+                  let stickerDimensions: { width?: number, height?: number } = {}
+                  if (rawMessage.media instanceof Api.MessageMediaDocument && rawMessage.media.document instanceof Api.Document) {
+                    stickerDimensions = getDocumentDimensions(rawMessage.media.document)
+                  }
 
                   let storagePath: string | undefined
 

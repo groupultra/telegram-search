@@ -3,7 +3,6 @@ import type { CoreDialog, CoreMessage } from '@tg-search/core/types'
 
 import { useBridge, useChatStore, useMessageStore, useSessionStore, useSettingsStore } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
-import { useWindowSize } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -52,13 +51,9 @@ const messageWindowSize = 500
 const messageOffset = ref(0)
 const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString(), messageWindowSize)
 
-const { height: windowHeight } = useWindowSize()
-
 const isLoadingOlder = ref(false)
 const isLoadingNewer = ref(false)
 
-// Cooldown prevents rapid re-triggers after a load completes.
-let loadCooldownUntil = 0
 const virtualListRef = ref<InstanceType<typeof VirtualMessageList>>()
 
 // @ts-expect-error: TODO: already used, fix it?
@@ -109,19 +104,16 @@ watch(
   },
 )
 
-// Load older messages when scrolling to top
-async function loadOlderMessages() {
+// Load older messages when scrolling to top.
+// Returns a status so VirtualMessageList's top-load state machine can
+// distinguish a real "no more messages" from a skipped request.
+async function loadOlderMessages(): Promise<'fetched' | 'skipped'> {
   if (isContextMode.value)
-    return
+    return 'skipped'
   if (isLoadingOlder.value)
-    return
-  if (Date.now() < loadCooldownUntil)
-    return
+    return 'skipped'
 
   isLoadingOlder.value = true
-  // Set cooldown immediately to prevent re-entry from scroll events
-  // that fire between now and when fetchMessages resolves.
-  loadCooldownUntil = Date.now() + 1000
 
   try {
     const currentOffset = messageOffset.value
@@ -130,31 +122,28 @@ async function loadOlderMessages() {
       offset: currentOffset,
       limit: messageFetchLimit,
     }, 'older')
+    return 'fetched'
   }
   finally {
     isLoadingOlder.value = false
-    loadCooldownUntil = Date.now() + 1000
   }
 }
 
 // Load newer messages when scrolling to bottom
-async function loadNewerMessages() {
+async function loadNewerMessages(): Promise<'fetched' | 'skipped'> {
   if (isContextMode.value)
-    return
+    return 'skipped'
   if (isLoadingNewer.value)
-    return
-  if (Date.now() < loadCooldownUntil)
-    return
+    return 'skipped'
 
   // Get the current max message ID to fetch messages after it
   const currentMaxId = messageWindow.value?.maxId
   if (!currentMaxId || currentMaxId === -Infinity) {
     console.warn('No messages loaded yet, cannot fetch newer messages')
-    return
+    return 'skipped'
   }
 
   isLoadingNewer.value = true
-  loadCooldownUntil = Date.now() + 1000
 
   try {
     await fetchMessages(
@@ -165,10 +154,10 @@ async function loadNewerMessages() {
       },
       'newer',
     )
+    return 'fetched'
   }
   finally {
     isLoadingNewer.value = false
-    loadCooldownUntil = Date.now() + 1000
   }
 }
 
@@ -256,7 +245,7 @@ watch(
     <!-- Debug Panel -->
     <div v-if="debugMode" class="absolute right-4 top-24 z-10 w-1/4 flex flex-col justify-left gap-2 border rounded-lg bg-card p-2 text-sm text-muted-foreground font-mono shadow-lg">
       <span>
-        Height: {{ windowHeight }} / Messages: {{ sortedMessageArray.length }}
+        Messages: {{ sortedMessageArray.length }}
       </span>
       <span>
         IDs: {{ sortedMessageIds[0] }} - {{ sortedMessageIds[sortedMessageIds.length - 1] }}

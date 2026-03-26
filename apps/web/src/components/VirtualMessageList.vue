@@ -6,10 +6,12 @@ import { useI18n } from 'vue-i18n'
 
 import MessageBubble from './messages/MessageBubble.vue'
 
+type LoadStatus = 'fetched' | 'skipped' | void
+
 interface Props {
   messages: CoreMessage[]
-  onScrollToTop?: () => void
-  onScrollToBottom?: () => void
+  onScrollToTop?: () => LoadStatus | Promise<LoadStatus>
+  onScrollToBottom?: () => LoadStatus | Promise<LoadStatus>
   autoScrollToBottom?: boolean
   debug?: boolean
 }
@@ -42,7 +44,6 @@ let topLoadPending = false
 let topLoadCooldownUntil = 0
 let topLoadRequiresLeave = false
 let topLoadRequestId = 0
-let topLoadExpectedMessageCount = 0
 
 // Track if we're at top/bottom to prevent repeated callbacks
 const isAtTop = ref(false)
@@ -240,7 +241,6 @@ function setupBoundaryObservers() {
       topLoadArmed = false
       topLoadPending = true
       topLoadRequestId += 1
-      topLoadExpectedMessageCount = props.messages.length
       const requestId = topLoadRequestId
       const anchorUuid = getFirstVisibleMessageUuid()
       debugLog('trigger-load-older', {
@@ -251,10 +251,28 @@ function setupBoundaryObservers() {
       })
       pendingTopAnchorUuid = anchorUuid
       pendingTopAnchorScrollTop = root.scrollTop
-      void Promise.resolve(props.onScrollToTop()).finally(() => {
-        if (props.messages.length === topLoadExpectedMessageCount) {
+      void Promise.resolve(props.onScrollToTop()).then(async (status) => {
+        // If the caller skipped (e.g. already loading), reset the state
+        // machine so it can re-arm on the next scroll movement.
+        if (status === 'skipped') {
+          topLoadPending = false
+          topLoadArmed = true
+          pendingTopAnchorUuid = null
+          pendingTopAnchorScrollTop = null
+          return
+        }
+        // Wait for the DOM update cycle so the message watch can fire
+        // first if new messages arrived.
+        await nextTick()
+        await nextTick()
+        // If topLoadPending is still true here, no new messages were
+        // added (the watch didn't fire), so finalize explicitly.
+        if (topLoadPending && requestId === topLoadRequestId) {
           finalizeTopLoad(requestId, 'no-new-messages')
         }
+      }).catch(() => {
+        // On error, reset so the user can retry
+        finalizeTopLoad(requestId, 'no-new-messages')
       })
     },
     {
