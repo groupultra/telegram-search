@@ -10,7 +10,7 @@ import type {
 } from './useAIChat'
 
 import { useLogger } from '@guiiai/logg'
-import { useBridge } from '@tg-search/client'
+import { useBridge, waitForEventWithTimeout } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
 
 function createRequestId() {
@@ -48,10 +48,10 @@ export function useAIChatToolExecutors({ selectedChatIds }: UseAIChatToolExecuto
         : undefined,
     })
 
-    const { messages } = await bridge.waitForEvent(
+    const { messages } = await waitForEventWithTimeout(bridge.waitForEvent(
       CoreEventType.StorageSearchMessagesData,
       data => data.requestId === requestId,
-    )
+    ))
 
     return messages
   }
@@ -73,17 +73,17 @@ export function useAIChatToolExecutors({ selectedChatIds }: UseAIChatToolExecuto
       },
     })
 
-    const { messages } = await bridge.waitForEvent(
+    const { messages } = await waitForEventWithTimeout(bridge.waitForEvent(
       CoreEventType.StorageSearchMessagesData,
       data => data.requestId === requestId,
-    )
+    ))
 
     return messages
   }
 
   async function getDialogs(_: GetDialogsParams) {
     bridge.sendEvent(CoreEventType.StorageFetchDialogs)
-    const { dialogs } = await bridge.waitForEvent(CoreEventType.StorageDialogs)
+    const { dialogs } = await waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageDialogs))
     return dialogs as CoreDialog[]
   }
 
@@ -105,10 +105,10 @@ export function useAIChatToolExecutors({ selectedChatIds }: UseAIChatToolExecuto
         : undefined,
     })
 
-    const { photos } = await bridge.waitForEvent(
+    const { photos } = await waitForEventWithTimeout(bridge.waitForEvent(
       CoreEventType.StorageSearchPhotosData,
       data => data.requestId === requestId,
-    )
+    ))
 
     logger.withFields({ photosCount: photos.length }).log('searchPhotos received response')
     return photos as CoreRetrievalPhoto[]
@@ -116,7 +116,7 @@ export function useAIChatToolExecutors({ selectedChatIds }: UseAIChatToolExecuto
 
   async function chatNote(params: ChatNoteParams) {
     bridge.sendEvent(CoreEventType.StorageChatNote, params)
-    const { note } = await bridge.waitForEvent(CoreEventType.StorageChatNoteData)
+    const { note } = await waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageChatNoteData))
     return note ?? ''
   }
 

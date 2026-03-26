@@ -12,15 +12,10 @@ import { computed, nextTick, ref } from 'vue'
 import { useBridge } from '../composables/useBridge'
 import { MessageWindow } from '../composables/useMessageWindow'
 import { createMediaBlob } from '../utils/blob'
+import { waitForEventWithTimeout } from '../utils/event-queue'
 import { determineMessageDirection } from '../utils/message'
 import { readVersionedScopedCache, writeVersionedScopedCache } from '../utils/versioned-local-cache'
 import { useSessionStore } from './useSession'
-
-function createContextWithTimeout(timeout: number) {
-  return new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Timeout')), timeout),
-  )
-}
 
 export const useMessageStore = defineStore('message', () => {
   const MESSAGE_EDIT_ANIMATION_MS = 320
@@ -97,21 +92,6 @@ export const useMessageStore = defineStore('message', () => {
     return name !== fromId
   }
 
-  function rememberSenderName(fromId: string | undefined, fromName: string | undefined) {
-    if (!hasResolvedSenderName(fromName, fromId) || !fromId) {
-      return
-    }
-
-    if (senderNames.value[fromId] === fromName) {
-      return
-    }
-
-    senderNames.value = {
-      ...senderNames.value,
-      [fromId]: fromName!,
-    }
-  }
-
   function backfillWindowSenderName(fromId: string, fromName: string) {
     if (!messageWindow.value) {
       return
@@ -162,11 +142,18 @@ export const useMessageStore = defineStore('message', () => {
       }
     })
 
+    // Batch all new sender names into a single localStorage write
+    const newNames: Record<string, string> = {}
     for (const message of normalizedMessages) {
       if (hasResolvedSenderName(message.fromName, message.fromId)) {
-        rememberSenderName(message.fromId, message.fromName)
+        if (senderNames.value[message.fromId] !== message.fromName) {
+          newNames[message.fromId] = message.fromName
+        }
         backfillWindowSenderName(message.fromId, message.fromName)
       }
+    }
+    if (Object.keys(newNames).length > 0) {
+      senderNames.value = { ...senderNames.value, ...newNames }
     }
 
     return normalizedMessages
@@ -309,10 +296,10 @@ export const useMessageStore = defineStore('message', () => {
     })
 
     try {
-      const { chatId: responseChatId, editedMessageIds } = await bridge.waitForEvent(
+      const { chatId: responseChatId, editedMessageIds } = await waitForEventWithTimeout(bridge.waitForEvent(
         CoreEventType.StorageMessageEditMarks,
         data => data.requestId === requestId,
-      )
+      ))
       if (responseChatId !== chatId || editedMessageIds.length === 0) {
         return
       }
@@ -368,7 +355,7 @@ export const useMessageStore = defineStore('message', () => {
       after,
     })
 
-    const { messages } = await bridge.waitForEvent(CoreEventType.StorageMessagesContext)
+    const { messages } = await waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageMessagesContext))
 
     replaceMessages(messages, { chatId, limit })
 
@@ -483,11 +470,10 @@ export const useMessageStore = defineStore('message', () => {
       }
 
       try {
-        const result = await Promise.race([
+        const result = await waitForEventWithTimeout(Promise.race([
           bridge.waitForEvent(CoreEventType.MessageData),
           bridge.waitForEvent(CoreEventType.StorageMessages),
-          createContextWithTimeout(10000),
-        ])
+        ]))
 
         // Let the registered event handler push the fetched messages into the
         // store before callers continue with follow-up scroll logic.

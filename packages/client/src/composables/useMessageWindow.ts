@@ -27,7 +27,7 @@ export class MessageWindow {
     if (messages.length === 0)
       return
 
-    const sortedNewMessages = messages.sort((a, b) => Number(a.platformMessageId) - Number(b.platformMessageId))
+    const sortedNewMessages = [...messages].sort((a, b) => Number(a.platformMessageId) - Number(b.platformMessageId))
     const introducedIds: string[] = []
 
     sortedNewMessages.forEach((msg) => {

@@ -3,7 +3,8 @@ import type { Ref } from 'vue'
 
 import type { SearchMode } from '../utils/search-dialog'
 
-import { useBridge } from '@tg-search/client'
+import { useLogger } from '@guiiai/logg'
+import { useBridge, waitForEventWithTimeout } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
 import { computed, ref, watch } from 'vue'
 
@@ -25,6 +26,7 @@ export function useSearchDialogResults({
   scopedChatId,
 }: UseSearchDialogResultsOptions) {
   const bridge = useBridge()
+  const logger = useLogger('composables:search-dialog')
 
   const isLoading = ref(false)
   const isLoadingMoreMessages = ref(false)
@@ -87,8 +89,8 @@ export function useSearchDialogResults({
     })
 
     Promise.all([
-      bridge.waitForEvent(CoreEventType.StorageSearchMessagesData, data => data.requestId === messageRequestId),
-      bridge.waitForEvent(CoreEventType.StorageSearchPhotosData, data => data.requestId === photoRequestId),
+      waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageSearchMessagesData, data => data.requestId === messageRequestId)),
+      waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageSearchPhotosData, data => data.requestId === photoRequestId)),
     ]).then(([messagesData, photosData]) => {
       if (currentRequest !== requestSeq) {
         return
@@ -101,6 +103,11 @@ export function useSearchDialogResults({
       messagesOffset = messagesData.messages.length
       photosOffset = photosData.photos.length
       isLoading.value = false
+    }).catch((error) => {
+      logger.withError(error).warn('Search request failed or timed out')
+      if (currentRequest === requestSeq) {
+        isLoading.value = false
+      }
     })
   })
 
@@ -126,7 +133,7 @@ export function useSearchDialogResults({
     })
 
     try {
-      const result = await bridge.waitForEvent(CoreEventType.StorageSearchMessagesData, data => data.requestId === requestId)
+      const result = await waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageSearchMessagesData, data => data.requestId === requestId))
       if (currentRequest !== requestSeq) {
         return
       }
@@ -164,7 +171,7 @@ export function useSearchDialogResults({
     })
 
     try {
-      const result = await bridge.waitForEvent(CoreEventType.StorageSearchPhotosData, data => data.requestId === requestId)
+      const result = await waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageSearchPhotosData, data => data.requestId === requestId))
       if (currentRequest !== requestSeq) {
         return
       }

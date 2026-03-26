@@ -50,6 +50,8 @@ const SCROLL_THRESHOLD = 50
 const TOP_LOAD_COOLDOWN_MS = 240
 
 function debugLog(label: string, data?: Record<string, unknown>) {
+  if (!props.debug)
+    return
   // eslint-disable-next-line no-console
   console.log(`[MessageList] ${label}`, data ?? '')
 }

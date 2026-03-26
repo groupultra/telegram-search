@@ -6,6 +6,7 @@ export type ClientEventHandler<T extends keyof WsEventToClient> = (data: WsEvent
 export interface ClientQueuedEventHandler<T extends keyof WsEventToClient> {
   handler: ClientEventHandler<T>
   predicate?: (data: WsEventToClientData<T>) => boolean
+  createdAt?: number
 }
 export type ClientRegisterEventHandler = <T extends keyof WsEventToClient>(event: T, handler: ClientEventHandler<T>) => void
 export type ClientEventHandlerMap = Map<keyof WsEventToClient, ClientEventHandler<keyof WsEventToClient>>
