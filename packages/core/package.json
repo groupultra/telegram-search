@@ -28,7 +28,7 @@
     "buffer": "^6.0.3",
     "drizzle-orm": "^0.45.1",
     "eventemitter3": "^5.0.4",
-    "file-type": "^21.3.0",
+    "file-type": "^22.0.0",
     "pathe": "^2.0.3",
     "pg": "^8.20.0",
     "telegram": "^2.26.22",
