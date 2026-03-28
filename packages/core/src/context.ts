@@ -137,6 +137,7 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
   function setCurrentAccountId(accountId: string) {
     logger.withFields({ accountId }).debug('Set current account ID')
     currentAccountId = accountId
+    accountSettings = undefined
   }
 
   function getCurrentAccountId(): string {
