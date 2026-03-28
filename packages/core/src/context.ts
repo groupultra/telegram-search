@@ -71,6 +71,7 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
   const withError = createErrorHandler(emitter, logger)
   let telegramClient: TelegramClient
   let currentAccountId: string | undefined
+  let accountSettings: AccountSettings | undefined
   let myUser: CoreUserEntity | undefined
 
   const toCoreEvents = new Set<keyof ToCoreEvent>()
@@ -161,7 +162,10 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
     if (!models) {
       throw withError('Models not initialized')
     }
-    return (await models.accountSettingsModels.fetchSettingsByAccountId(getDB(), getCurrentAccountId())).expect('Failed to fetch account settings')
+    if (!accountSettings) {
+      accountSettings = (await models.accountSettingsModels.fetchSettingsByAccountId(getDB(), getCurrentAccountId())).expect('Failed to fetch account settings')
+    }
+    return accountSettings
   }
 
   async function setAccountSettings(newSettings: AccountSettings) {
@@ -169,6 +173,7 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
       throw withError('Models not initialized')
     }
     await models.accountSettingsModels.updateAccountSettings(getDB(), getCurrentAccountId(), newSettings)
+    accountSettings = newSettings
   }
 
   // Setup memory leak detection and get cleanup function
