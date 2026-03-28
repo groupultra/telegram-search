@@ -207,6 +207,9 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
     // Clear account reference
     currentAccountId = undefined
 
+    // Clear account settings reference
+    accountSettings = undefined
+
     logger.debug('CoreContext cleaned up')
   }
 
