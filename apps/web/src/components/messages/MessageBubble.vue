@@ -475,9 +475,9 @@ function cancelLongPress() {
 }
 
 .message-bubble-shell {
-  --message-bubble-bg: #dbe8f7;
-  --message-bubble-fg: #14263a;
-  --message-bubble-shadow: 0 10px 24px rgba(125, 146, 175, 0.18);
+  --message-bubble-bg: var(--message-bubble-incoming-bg);
+  --message-bubble-fg: var(--message-bubble-incoming-fg);
+  --message-bubble-shadow: var(--message-bubble-incoming-shadow);
   background: var(--message-bubble-bg);
   color: var(--message-bubble-fg);
   box-shadow: var(--message-bubble-shadow);
