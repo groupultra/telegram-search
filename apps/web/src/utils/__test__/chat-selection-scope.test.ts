@@ -15,6 +15,12 @@ describe('chat selection scope helpers', () => {
     expect(toggleVisibleChatSelection([9], [1, 2, 3])).toEqual([9, 1, 2, 3])
   })
 
+  it('preserves hidden selections when computing the next total selected count', () => {
+    const nextSelectedChats = toggleVisibleChatSelection([7, 8], [1, 2, 3])
+
+    expect(nextSelectedChats).toHaveLength(5)
+  })
+
   it('removes only the visible chats when deselecting the current scope', () => {
     // Hidden selections should stay selected when toggling a filtered subset off.
     expect(toggleVisibleChatSelection([1, 2, 3, 9], [1, 2, 3])).toEqual([9])

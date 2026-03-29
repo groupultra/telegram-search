@@ -254,12 +254,13 @@ const isSelectAllWarning = ref<boolean>(false)
  */
 function handleSelectAll() {
   const allSelected = isAllSelected.value
+  const nextSelectedChats = toggleVisibleChatSelection(selectedChats.value, visibleChatIds.value)
 
-  selectedChats.value = toggleVisibleChatSelection(selectedChats.value, visibleChatIds.value)
+  selectedChats.value = nextSelectedChats
 
   // Show prompt only when switching to "Select All"
   if (!allSelected) {
-    const count = visibleChatIds.value.length
+    const count = nextSelectedChats.length
     selectAllCount.value = count
     isSelectAllWarning.value = count >= SELECT_ALL_WARNING_THRESHOLD
     isSelectAllDialogOpen.value = true
