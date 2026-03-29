@@ -487,8 +487,8 @@ importers:
         specifier: ^2.26.22
         version: 2.26.22
       tiny-lru:
-        specifier: ^11.4.7
-        version: 11.4.7
+        specifier: ^12.0.0
+        version: 12.0.0
       uuid:
         specifier: ^13.0.0
         version: 13.0.0
@@ -6575,9 +6575,9 @@ packages:
   through2@4.0.2:
     resolution: {integrity: sha512-iOqSav00cVxEEICeD7TjLB1sueEL+81Wpzp2bY17uZjZN0pWZPuo4suZ/61VujxmqSGFfgOcNuTZ85QJwNZQpw==}
 
-  tiny-lru@11.4.7:
-    resolution: {integrity: sha512-w/Te7uMUVeH0CR8vZIjr+XiN41V+30lkDdK+NRIDCUYKKuL9VcmaUEmaPISuwGhLlrTGh5yu18lENtR9axSxYw==}
-    engines: {node: '>=12'}
+  tiny-lru@12.0.0:
+    resolution: {integrity: sha512-MKfpesxB741PWeW8jnfm8eEWWJBDjCitj3V9V8kbdgk61ePHJjvMwlomSaZmN/jQyjJ+QUNeeCD01IpEAUB/3g==}
+    engines: {node: '>=14'}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -14376,7 +14376,7 @@ snapshots:
     dependencies:
       readable-stream: 3.6.2
 
-  tiny-lru@11.4.7: {}
+  tiny-lru@12.0.0: {}
 
   tinybench@2.9.0: {}
 
