@@ -99,6 +99,15 @@ html.dark {
   color-scheme: dark;
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* NProgress Customization */
 #nprogress {
   pointer-events: none;
