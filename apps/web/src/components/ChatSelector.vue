@@ -206,7 +206,7 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
         <VList
           v-else
           :data="filteredChats"
-          class="chat-selector-list h-full"
+          class="no-scrollbar h-full"
         >
           <template #default="{ item: chat }">
             <div
@@ -262,14 +262,5 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-.chat-selector-list {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.chat-selector-list::-webkit-scrollbar {
-  display: none;
 }
 </style>
