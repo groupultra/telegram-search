@@ -255,6 +255,12 @@
     "save": "Save",
     "savingSettings": "Saving settings...",
     "settings": "Settings",
+    "loadingSettings": "Loading settings",
+    "loadingSettingsDescription": "Syncing your current settings. Please wait.",
+    "loadingSettingsFailed": "Failed to load settings",
+    "loadingSettingsFailedDescription": "We couldn't load your current settings. Please check the connection and try again.",
+    "retryLoadingSettings": "Retry",
+    "settingsSaveFailed": "Failed to save settings",
     "settingsSavedSuccessfully": "Settings saved successfully",
     "switchAccount": "Switch Account",
     "switchToDarkMode": "Switch to dark mode",
@@ -262,7 +268,8 @@
     "telegramApi": "Telegram API",
     "temperature": "Temperature",
     "useCachedMessage": "Use cached messages from database",
-    "userResolver": "User Resolver"
+    "userResolver": "User Resolver",
+    "waitingForConnection": "The active account is not connected yet, so settings cannot be loaded from the backend."
   },
   "sync": {
     "cancel": "Cancel",

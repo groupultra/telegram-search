@@ -1,3 +1,4 @@
+import lucide from '@iconify-json/lucide/icons.json'
 import presetAnimations from 'unocss-preset-animations'
 import presetShadcn from 'unocss-preset-shadcn'
 
@@ -15,6 +16,9 @@ export default defineConfig({
     presetWind3(),
     presetAttributify(),
     presetIcons({
+      collections: {
+        lucide: () => lucide,
+      },
       scale: 1.2,
       warn: true,
     }),

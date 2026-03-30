@@ -11,6 +11,7 @@ import { useLogger } from '@guiiai/logg'
 import { EventEmitter } from 'eventemitter3'
 
 import { CoreEventType } from './types/events'
+import { normalizeAccountSettings } from './utils/account-settings'
 import { detectMemoryLeak } from './utils/memory-leak-detector'
 
 export type { CoreEmitter, CoreEvent, ExtractData, FromCoreEvent, ToCoreEvent } from './types/events'
@@ -164,7 +165,9 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
       throw withError('Models not initialized')
     }
     if (!accountSettings) {
-      accountSettings = (await models.accountSettingsModels.fetchSettingsByAccountId(getDB(), getCurrentAccountId())).expect('Failed to fetch account settings')
+      accountSettings = normalizeAccountSettings(
+        (await models.accountSettingsModels.fetchSettingsByAccountId(getDB(), getCurrentAccountId())).expect('Failed to fetch account settings'),
+      )
     }
     return accountSettings
   }
@@ -173,8 +176,9 @@ export function createCoreContext(db: () => CoreDB, models: Models, logger: Logg
     if (!models) {
       throw withError('Models not initialized')
     }
-    await models.accountSettingsModels.updateAccountSettings(getDB(), getCurrentAccountId(), newSettings)
-    accountSettings = newSettings
+    const normalizedSettings = normalizeAccountSettings(newSettings)
+    await models.accountSettingsModels.updateAccountSettings(getDB(), getCurrentAccountId(), normalizedSettings)
+    accountSettings = normalizedSettings
   }
 
   // Setup memory leak detection and get cleanup function
