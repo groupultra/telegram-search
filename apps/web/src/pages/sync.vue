@@ -498,7 +498,7 @@ function startSync() {
       <div
         class="shrink-0 overflow-hidden border-t bg-background/95 backdrop-blur-sm transition-all duration-300 ease-in-out"
         :class="[
-          isBottomPanelOpen ? 'max-h-[22rem] opacity-100' : 'max-h-0 opacity-0',
+          isBottomPanelOpen ? 'max-h-[70vh] overflow-y-auto overscroll-contain opacity-100 md:max-h-[22rem]' : 'max-h-0 opacity-0',
         ]"
       >
         <div class="min-h-0 flex flex-col gap-3 p-3 md:flex-row md:items-stretch">
