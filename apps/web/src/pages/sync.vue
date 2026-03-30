@@ -524,7 +524,7 @@ function startSync() {
                 :title="t('sync.hideStats')"
                 @click="isBottomPanelOpen = false"
               >
-                <span class="i-lucide-panel-bottom h-4 w-4" />
+                <span class="i-lucide-x h-4 w-4" />
               </Button>
             </div>
 
