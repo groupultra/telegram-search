@@ -202,10 +202,20 @@ const gliderStyle = ref({
   transform: 'translateX(0px)',
   opacity: 0,
 })
+const canDragTabs = ref(false)
+
+function updateTabScrollability() {
+  const container = containerRef.value
+  canDragTabs.value = !!container && container.scrollWidth > container.clientWidth
+}
 
 function updateGlider() {
-  if (!containerRef.value)
+  if (!containerRef.value) {
+    canDragTabs.value = false
     return
+  }
+
+  updateTabScrollability()
 
   const containerRect = containerRef.value.getBoundingClientRect()
   let activeEl: HTMLElement | undefined
@@ -316,7 +326,7 @@ function handleTabWheel(event: WheelEvent) {
 }
 
 function handleTabPointerDown(event: PointerEvent) {
-  if (isCoarsePointer.value || event.pointerType === 'touch' || event.button !== 0 || !containerRef.value) {
+  if (isCoarsePointer.value || event.pointerType === 'touch' || event.button !== 0 || !containerRef.value || !canDragTabs.value) {
     return
   }
 
@@ -380,7 +390,7 @@ function handleTabClickCapture(event: MouseEvent) {
       <div class="flex flex-col">
         <div
           ref="containerRef"
-          :class="isDraggingTabs ? 'cursor-grabbing select-none' : 'cursor-grab'"
+          :class="isDraggingTabs ? 'cursor-grabbing select-none' : canDragTabs ? 'cursor-grab' : ''"
           class="no-scrollbar relative flex items-center gap-2 overflow-x-auto px-3 py-2"
           @click.capture="handleTabClickCapture"
           @pointercancel="endTabDrag"
