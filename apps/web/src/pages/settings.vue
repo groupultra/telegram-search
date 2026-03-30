@@ -70,10 +70,6 @@ function waitForFetchedSettings(timeout = CONFIG_FETCH_TIMEOUT_MS) {
 }
 
 function waitForMatchingSavedSettings(timeout: number, expectedSettings: ReturnType<typeof createAccountSettingsSavePayload>) {
-  if (accountSettings.value && isMatchingAccountSettingsResponse({ accountSettings: accountSettings.value }, expectedSettings)) {
-    return Promise.resolve(accountSettings.value)
-  }
-
   return new Promise<NonNullable<typeof accountSettings.value>>((resolve, reject) => {
     const stop = watch(
       () => accountSettings.value,
@@ -85,7 +81,6 @@ function waitForMatchingSavedSettings(timeout: number, expectedSettings: ReturnT
         cleanup()
         resolve(settings)
       },
-      { immediate: true },
     )
 
     const timer = window.setTimeout(() => {

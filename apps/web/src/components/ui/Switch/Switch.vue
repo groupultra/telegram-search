@@ -61,8 +61,6 @@ function handleUpdate(value: boolean) {
       props.class,
     )"
     @click="handleUpdate(!checkedValue)"
-    @keydown.enter.prevent="handleUpdate(!checkedValue)"
-    @keydown.space.prevent="handleUpdate(!checkedValue)"
   >
     <span
       aria-hidden="true"
