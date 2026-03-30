@@ -101,15 +101,6 @@ const remainingPercent = computed(() => Math.max(0, 100 - progressPercent.value)
               </span>
             </div>
           </div>
-
-          <div class="mt-4 rounded-lg bg-muted/35 px-3 py-2">
-            <div class="text-[11px] text-muted-foreground tracking-[0.14em] uppercase">
-              {{ t('sync.syncProgress') }}
-            </div>
-            <div class="pt-1 text-lg text-foreground font-semibold tabular-nums">
-              {{ progressPercent }}%
-            </div>
-          </div>
         </div>
       </div>
     </div>
