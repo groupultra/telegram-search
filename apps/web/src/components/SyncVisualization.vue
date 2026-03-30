@@ -5,9 +5,6 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<Props>()
-const emit = defineEmits<{
-  togglePanel: []
-}>()
 
 const { t } = useI18n()
 
@@ -15,7 +12,6 @@ interface Props {
   stats?: ChatSyncStats
   loading?: boolean
   chatLabel?: string
-  showPanelToggle?: boolean
 }
 
 const isOpen = ref(true)
@@ -64,14 +60,6 @@ const unsyncedWidth = computed(() => `${Math.max(0, 100 - syncPercentage.value)}
           {{ t('sync.syncProgress') }}:
           <span class="ml-1 text-foreground font-medium">{{ syncPercentage }}%</span>
         </div>
-        <button
-          v-if="props.showPanelToggle"
-          type="button"
-          class="h-8 w-8 flex shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-          @click="emit('togglePanel')"
-        >
-          <span class="i-lucide-panel-bottom h-4 w-4" />
-        </button>
       </div>
     </div>
 

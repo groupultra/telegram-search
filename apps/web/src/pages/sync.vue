@@ -516,7 +516,7 @@ function startSync() {
 
           <!-- Sync Visualization (Stats) -->
           <div class="min-w-0 flex-1 border rounded-2xl bg-card/70 p-3.5 shadow-sm">
-            <div v-if="!activeChat" class="mb-3 flex justify-end">
+            <div class="mb-3 flex justify-end">
               <Button
                 variant="ghost"
                 size="icon"
@@ -533,9 +533,7 @@ function startSync() {
                 :stats="chatStats"
                 :loading="chatStatsLoading"
                 :chat-label="activeChat.name || ''"
-                :show-panel-toggle="true"
                 class="w-full"
-                @toggle-panel="isBottomPanelOpen = !isBottomPanelOpen"
               />
             </div>
 
