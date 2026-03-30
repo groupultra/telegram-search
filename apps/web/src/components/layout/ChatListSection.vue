@@ -324,8 +324,6 @@ function handleTabPointerDown(event: PointerEvent) {
   dragStartX = event.clientX
   dragStartScrollLeft = containerRef.value.scrollLeft
   isDraggingTabs.value = false
-
-  containerRef.value.setPointerCapture(event.pointerId)
 }
 
 function handleTabPointerMove(event: PointerEvent) {
@@ -338,6 +336,7 @@ function handleTabPointerMove(event: PointerEvent) {
   if (!isDraggingTabs.value && Math.abs(deltaX) > 4) {
     isDraggingTabs.value = true
     suppressNextTabClick = true
+    container.setPointerCapture(event.pointerId)
   }
 
   if (!isDraggingTabs.value) {
