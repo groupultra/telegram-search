@@ -206,7 +206,7 @@ const canDragTabs = ref(false)
 
 function updateTabScrollability() {
   const container = containerRef.value
-  canDragTabs.value = !!container && container.scrollWidth > container.clientWidth
+  canDragTabs.value = container !== null && container.scrollWidth > container.clientWidth
 }
 
 function updateGlider() {
