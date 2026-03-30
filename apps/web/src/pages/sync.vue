@@ -28,6 +28,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
+import SyncTaskStatusCard from '../components/SyncTaskStatusCard.vue'
 import SyncVisualization from '../components/SyncVisualization.vue'
 
 import { Button } from '../components/ui/Button'
@@ -40,7 +41,6 @@ import {
   DialogTitle,
 } from '../components/ui/Dialog'
 import { Input } from '../components/ui/Input'
-import { Progress } from '../components/ui/Progress'
 import { Switch } from '../components/ui/Switch'
 import {
   formatRangeLabel,
@@ -98,7 +98,7 @@ const activeChatId = ref<number | null>(null)
 // Sync options dialog state
 const isSyncOptionsDialogOpen = ref(false)
 const isDesktop = useMediaQuery('(min-width: 768px)')
-const isRightSidebarOpen = ref(isDesktop.value)
+const isBottomPanelOpen = ref(isDesktop.value)
 
 watch(
   () => [syncOptions.value.startTime, syncOptions.value.endTime] as const,
@@ -349,6 +349,10 @@ function handleTakeoutConfirm(useTakeout: boolean) {
   bridge.sendEvent(CoreEventType.TakeoutConfirmResponse, { useTakeout })
 }
 
+function dismissCurrentTask() {
+  syncTaskStore.currentTask = undefined
+}
+
 watch(currentTaskProgress, (progress) => {
   if (progress === 100) {
     toast.success(t('sync.syncCompleted'))
@@ -405,6 +409,26 @@ function startSync() {
 
       <div class="flex items-center gap-2">
         <Button
+          icon="i-lucide-refresh-cw"
+          variant="outline"
+          size="sm"
+          class="h-8 rounded-full px-3 text-xs md:h-9"
+          :disabled="isButtonDisabled"
+          @click="handleSync"
+        >
+          <span>{{ t('sync.incrementalSync') }}</span>
+        </Button>
+        <Button
+          icon="i-lucide-rotate-ccw"
+          variant="outline"
+          size="sm"
+          class="h-8 rounded-full px-3 text-xs md:h-9"
+          :disabled="isButtonDisabled"
+          @click="handleResync"
+        >
+          <span>{{ t('sync.resync') }}</span>
+        </Button>
+        <Button
           variant="outline"
           size="sm"
           class="h-8 w-8 rounded-full px-0 md:h-9 md:w-auto md:px-3"
@@ -416,7 +440,7 @@ function startSync() {
       </div>
     </header>
 
-    <div class="relative flex flex-1 overflow-hidden">
+    <div class="flex flex-1 flex-col overflow-hidden">
       <!-- Main Content: Chat Selector -->
       <div class="min-w-0 flex flex-1 flex-col">
         <!-- Chat List Area -->
@@ -429,29 +453,7 @@ function startSync() {
             class="h-full"
           >
             <template #actions>
-              <!-- Left side: Sync Actions -->
-              <div class="flex items-center gap-2">
-                <Button
-                  icon="i-lucide-refresh-cw"
-                  variant="ghost"
-                  size="sm"
-                  class="h-8 px-2 text-xs"
-                  :disabled="isButtonDisabled"
-                  @click="handleSync"
-                >
-                  <span class="inline">{{ t('sync.incrementalSync') }}</span>
-                </Button>
-                <Button
-                  icon="i-lucide-rotate-ccw"
-                  variant="ghost"
-                  size="sm"
-                  class="h-8 px-2 text-xs"
-                  :disabled="isButtonDisabled"
-                  @click="handleResync"
-                >
-                  <span class="inline">{{ t('sync.resync') }}</span>
-                </Button>
-              </div>
+              <div />
 
               <!-- Right side: Selection & Stats -->
               <div class="flex items-center gap-2">
@@ -474,126 +476,71 @@ function startSync() {
                   <span class="i-lucide-check-square h-3.5 w-3.5 sm:mr-2" />
                   <span class="hidden sm:inline">{{ isAllSelected ? t('sync.deselectAll') : t('sync.selectAll') }}</span>
                 </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-8 w-8 text-muted-foreground"
-                  :class="isRightSidebarOpen ? 'bg-muted/50 text-foreground' : ''"
-                  :title="isRightSidebarOpen ? t('sync.hideStats') : t('sync.showStats')"
-                  @click="isRightSidebarOpen = !isRightSidebarOpen"
-                >
-                  <span class="i-lucide-panel-right h-4 w-4" />
-                </Button>
               </div>
             </template>
           </ChatSelector>
         </div>
+
+        <div v-if="!isBottomPanelOpen" class="flex justify-end px-4 pb-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            class="h-8 w-8 text-muted-foreground"
+            :title="t('sync.showStats')"
+            @click="isBottomPanelOpen = !isBottomPanelOpen"
+          >
+            <span class="i-lucide-panel-bottom h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      <!-- Right Sidebar: Status & Info -->
-      <!-- Mobile: Overlay, Desktop: Side Panel -->
+      <!-- Bottom Panel: Status & Info -->
       <div
-        class="fixed inset-0 z-50 flex shrink-0 flex-col overflow-y-auto border-l bg-background transition-all duration-300 ease-in-out md:static md:z-auto md:bg-muted/10"
+        class="shrink-0 overflow-hidden border-t bg-background/95 backdrop-blur-sm transition-all duration-300 ease-in-out"
         :class="[
-          isRightSidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 md:translate-x-0 md:w-0 md:opacity-0',
-          'md:border-l',
+          isBottomPanelOpen ? 'max-h-[22rem] opacity-100' : 'max-h-0 opacity-0',
         ]"
       >
-        <div class="h-full w-full flex flex-col bg-background md:w-80">
-          <!-- Mobile Header for Sidebar -->
-          <div class="flex items-center justify-between border-b p-4 md:hidden">
-            <h3 class="font-semibold">
-              {{ t('sync.syncVisualization') }}
-            </h3>
-            <Button variant="ghost" size="icon" @click="isRightSidebarOpen = false">
-              <span class="i-lucide-x h-5 w-5" />
-            </Button>
-          </div>
-
+        <div class="min-h-0 flex flex-col gap-3 p-3 md:flex-row md:items-stretch">
           <!-- Active Task Status -->
-          <div v-if="shouldShowTaskStatus" class="border-b bg-background p-4">
-            <div class="mb-3 flex items-center gap-3">
-              <div
-                class="h-8 w-8 flex shrink-0 items-center justify-center rounded-lg"
-                :class="currentTask?.lastError ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'"
-              >
-                <span v-if="currentTask?.lastError" class="i-lucide-alert-circle h-4 w-4" />
-                <span v-else class="i-lucide-loader-2 h-4 w-4 animate-spin" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <h3 class="truncate text-sm font-medium">
-                  {{ currentTask?.lastError ? t('sync.syncFailed') : t('sync.syncing') }}
-                </h3>
-                <p v-if="etaMessage && !currentTask?.lastError" class="text-xs text-muted-foreground">
-                  {{ etaMessage }}
-                </p>
-              </div>
-            </div>
-
-            <div v-if="currentTask?.lastError" class="mb-3 break-words text-xs text-destructive">
-              {{ errorMessage }}
-            </div>
-            <div v-else class="mb-3 space-y-1">
-              <div class="flex justify-between text-xs text-muted-foreground">
-                <span>{{ localizedTaskMessage }}</span>
-                <span>{{ Math.round(currentTaskProgress) }}%</span>
-              </div>
-              <Progress :progress="currentTaskProgress" class="h-1.5" />
-            </div>
-
-            <div class="flex justify-end gap-2">
-              <Button
-                v-if="currentTask?.lastError"
-                variant="outline"
-                size="sm"
-                class="h-7 text-xs"
-                @click="syncTaskStore.currentTask = undefined"
-              >
-                {{ t('sync.dismiss') }}
-              </Button>
-              <Button
-                v-else
-                variant="outline"
-                size="sm"
-                class="h-7 text-xs"
-                @click="handleAbort"
-              >
-                {{ t('sync.cancel') }}
-              </Button>
-            </div>
-          </div>
+          <SyncTaskStatusCard
+            v-if="shouldShowTaskStatus"
+            :eta-message="etaMessage"
+            :error-message="errorMessage"
+            :has-error="!!currentTask?.lastError"
+            :progress="currentTaskProgress"
+            :status-message="localizedTaskMessage"
+            @abort="handleAbort"
+            @dismiss="dismissCurrentTask"
+          />
 
           <!-- Sync Visualization (Stats) -->
-          <div class="flex-1 p-4">
-            <div v-if="activeChat" class="space-y-4">
-              <div class="mb-2 flex items-center gap-3">
-                <div class="h-10 w-10 flex items-center justify-center overflow-hidden rounded-full bg-muted text-muted-foreground">
-                  <!-- Simple Avatar Placeholder if EntityAvatar is not available here,
-                        or we can import EntityAvatar if needed.
-                        For now, use icon. -->
-                  <span class="i-lucide-message-circle h-5 w-5" />
-                </div>
-                <div>
-                  <h3 class="text-sm font-medium">
-                    {{ activeChat.name || t('chatSelector.chat', { id: activeChat.id }) }}
-                  </h3>
-                  <p class="text-xs text-muted-foreground">
-                    {{ t('chatSelector.id', { id: activeChat.id }) }}
-                  </p>
-                </div>
-              </div>
+          <div class="min-w-0 flex-1 border rounded-2xl bg-card/70 p-3.5 shadow-sm">
+            <div v-if="!activeChat" class="mb-3 flex justify-end">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="h-8 w-8 text-muted-foreground"
+                :title="t('sync.hideStats')"
+                @click="isBottomPanelOpen = false"
+              >
+                <span class="i-lucide-panel-bottom h-4 w-4" />
+              </Button>
+            </div>
 
+            <div v-if="activeChat" class="space-y-3">
               <SyncVisualization
                 :stats="chatStats"
                 :loading="chatStatsLoading"
                 :chat-label="activeChat.name || ''"
+                :show-panel-toggle="true"
                 class="w-full"
+                @toggle-panel="isBottomPanelOpen = !isBottomPanelOpen"
               />
             </div>
 
-            <div v-else class="h-full flex flex-col items-center justify-center p-8 text-center text-muted-foreground/50">
-              <span class="i-lucide-bar-chart-2 mb-2 h-12 w-12 opacity-20" />
+            <div v-else class="flex items-center gap-3 py-6 text-muted-foreground/60">
+              <span class="i-lucide-bar-chart-2 h-8 w-8 opacity-40" />
               <p class="text-sm">
                 {{ t('sync.selectChatToViewStats') }}
               </p>

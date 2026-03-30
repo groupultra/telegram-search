@@ -320,11 +320,13 @@
     "syncRangeDescription": "选择要同步的消息范围",
     "syncVisualization": "同步状态可视化",
     "syncedMessages": "已同步消息",
+    "completedRatio": "已完成",
     "syncing": "同步中...",
     "selectDateRange": "选择时间范围",
     "timeRange": "时间范围",
     "totalMessages": "总消息数",
     "unsyncedMessages": "未同步消息",
+    "remainingRatio": "剩余",
     "selectChatToViewStats": "选择聊天以查看同步统计信息"
   },
   "summaryDialog": {

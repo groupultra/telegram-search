@@ -1,20 +1,13 @@
 <script setup lang="ts">
 import type { ChatSyncStats } from '@tg-search/core'
-import type { BarSeriesOption } from 'echarts/charts'
-import type { EChartsOption } from 'echarts/types/dist/shared'
 
-import VChart from 'vue-echarts'
-
-import { BarChart } from 'echarts/charts'
-import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
-import { use } from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<Props>()
-
-use([CanvasRenderer, BarChart, GridComponent, TooltipComponent, LegendComponent])
+const emit = defineEmits<{
+  togglePanel: []
+}>()
 
 const { t } = useI18n()
 
@@ -22,166 +15,148 @@ interface Props {
   stats?: ChatSyncStats
   loading?: boolean
   chatLabel?: string
+  showPanelToggle?: boolean
 }
 
 const isOpen = ref(true)
 
-function toggleOpen() {
-  isOpen.value = !isOpen.value
-}
-
-const chartOption = computed<EChartsOption>(() => {
-  const syncedCount = props.stats?.syncedMessages ?? 0
-  const unsyncedCount = props.stats ? Math.max(0, props.stats.totalMessages - props.stats.syncedMessages) : 0
-
-  return {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow',
-      },
-    },
-    legend: {
-      bottom: 0,
-      data: [t('sync.syncedMessages'), t('sync.unsyncedMessages')],
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '15%',
-      top: '3%',
-      containLabel: true,
-    },
-    xAxis: {
-      type: 'value',
-      name: t('sync.totalMessages'),
-    },
-    yAxis: {
-      type: 'category',
-      data: [t('sync.syncProgress')],
-    },
-    series: [
-      {
-        name: t('sync.syncedMessages'),
-        type: 'bar',
-        stack: 'total',
-        data: [syncedCount],
-        itemStyle: {
-          color: 'rgba(34, 197, 94, 0.8)',
-        },
-        emphasis: {
-          itemStyle: {
-            color: 'rgba(34, 197, 94, 1)',
-          },
-        },
-      } as BarSeriesOption,
-      {
-        name: t('sync.unsyncedMessages'),
-        type: 'bar',
-        stack: 'total',
-        data: [unsyncedCount],
-        itemStyle: {
-          color: 'rgba(229, 231, 235, 0.8)',
-        },
-        emphasis: {
-          itemStyle: {
-            color: 'rgba(229, 231, 235, 1)',
-          },
-        },
-      } as BarSeriesOption,
-    ],
+const syncedCount = computed(() => props.stats?.syncedMessages ?? 0)
+const totalCount = computed(() => props.stats?.totalMessages ?? 0)
+const unsyncedCount = computed(() => {
+  if (!props.stats) {
+    return 0
   }
+  return Math.max(0, props.stats.totalMessages - props.stats.syncedMessages)
 })
 
 const syncPercentage = computed(() => {
-  if (!props.stats || props.stats.totalMessages === 0)
+  if (!props.stats || props.stats.totalMessages === 0) {
     return 0
+  }
   return Math.round((props.stats.syncedMessages / props.stats.totalMessages) * 100)
 })
+
+const syncedWidth = computed(() => `${syncPercentage.value}%`)
+const unsyncedWidth = computed(() => `${Math.max(0, 100 - syncPercentage.value)}%`)
 </script>
 
 <template>
   <div class="space-y-3">
-    <button
-      type="button"
-      class="w-full flex items-center justify-between text-left"
-      @click="toggleOpen"
-    >
-      <div class="space-y-1">
-        <h3 class="text-base text-foreground font-semibold">
+    <div class="w-full flex items-center justify-between gap-4">
+      <button
+        type="button"
+        class="min-w-0 flex-1 text-left"
+        @click="isOpen = !isOpen"
+      >
+        <h3 class="text-sm text-foreground font-semibold">
           {{ t('sync.syncVisualization') }}
         </h3>
-        <p v-if="props.chatLabel" class="text-xs text-muted-foreground">
+        <p v-if="props.chatLabel" class="truncate pt-1 text-xs text-muted-foreground">
           {{ props.chatLabel }}
         </p>
-      </div>
+      </button>
 
       <div class="flex items-center gap-3">
-        <span v-if="stats" class="text-xs text-muted-foreground">
+        <div
+          v-if="stats"
+          class="border border-border/60 rounded-full bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground"
+        >
           {{ t('sync.syncProgress') }}:
-          <span class="text-foreground font-medium">{{ syncPercentage }}%</span>
-        </span>
-        <span
-          :class="isOpen ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
-          class="h-4 w-4 text-muted-foreground transition-transform duration-200"
-        />
+          <span class="ml-1 text-foreground font-medium">{{ syncPercentage }}%</span>
+        </div>
+        <button
+          v-if="props.showPanelToggle"
+          type="button"
+          class="h-8 w-8 flex shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+          @click="emit('togglePanel')"
+        >
+          <span class="i-lucide-panel-bottom h-4 w-4" />
+        </button>
       </div>
-    </button>
+    </div>
 
     <Transition name="collapse-vertical">
-      <div v-show="isOpen" class="space-y-4">
-        <!-- Skeleton while loading chat stats -->
-        <div v-if="loading && !stats" class="space-y-4">
-          <div class="grid grid-cols-3 gap-4">
-            <div class="h-16 animate-pulse rounded-lg bg-muted" />
-            <div class="h-16 animate-pulse rounded-lg bg-muted" />
-            <div class="h-16 animate-pulse rounded-lg bg-muted" />
+      <div v-show="isOpen" class="space-y-3">
+        <div v-if="loading && !stats" class="space-y-3">
+          <div class="grid gap-2 md:grid-cols-3">
+            <div class="h-14 animate-pulse rounded-xl bg-muted" />
+            <div class="h-14 animate-pulse rounded-xl bg-muted" />
+            <div class="h-14 animate-pulse rounded-xl bg-muted" />
           </div>
-
-          <div class="space-y-2">
-            <div class="h-4 w-24 animate-pulse rounded bg-muted" />
-            <div class="h-3 w-full animate-pulse rounded-full bg-muted" />
-          </div>
-
-          <div class="h-32 animate-pulse rounded-lg bg-muted" />
+          <div class="h-2.5 animate-pulse rounded-full bg-muted" />
         </div>
 
-        <div v-else-if="stats" class="space-y-4">
-          <!-- Stats Summary -->
-          <div class="grid grid-cols-3 gap-4">
-            <div class="rounded-lg bg-muted p-4 text-center">
-              <div class="text-2xl text-foreground font-bold">
-                {{ stats.totalMessages }}
-              </div>
-              <div class="text-xs text-muted-foreground">
+        <div v-else-if="stats" class="space-y-3">
+          <div class="grid gap-2 md:grid-cols-[repeat(3,minmax(0,1fr))]">
+            <div class="border border-border/60 rounded-xl bg-muted/35 px-3 py-2.5">
+              <div class="text-[11px] text-muted-foreground tracking-[0.16em] uppercase">
                 {{ t('sync.totalMessages') }}
               </div>
-            </div>
-            <div class="rounded-lg bg-green-100 p-4 text-center dark:bg-green-900/20">
-              <div class="text-2xl text-green-700 font-bold dark:text-green-400">
-                {{ stats.syncedMessages }}
+              <div class="pt-1 text-xl text-foreground font-semibold tabular-nums">
+                {{ totalCount }}
               </div>
-              <div class="text-xs text-green-600 dark:text-green-500">
+            </div>
+            <div class="border border-emerald-500/20 rounded-xl bg-emerald-500/8 px-3 py-2.5">
+              <div class="text-[11px] text-emerald-600 tracking-[0.16em] uppercase dark:text-emerald-400">
                 {{ t('sync.syncedMessages') }}
               </div>
-            </div>
-            <div class="rounded-lg bg-gray-100 p-4 text-center dark:bg-gray-800">
-              <div class="text-2xl text-gray-700 font-bold dark:text-gray-300">
-                {{ Math.max(0, stats.totalMessages - stats.syncedMessages) }}
+              <div class="pt-1 text-xl text-emerald-600 font-semibold tabular-nums dark:text-emerald-400">
+                {{ syncedCount }}
               </div>
-              <div class="text-xs text-gray-600 dark:text-gray-400">
+            </div>
+            <div class="border border-slate-400/20 rounded-xl bg-slate-500/8 px-3 py-2.5">
+              <div class="text-[11px] text-slate-500 tracking-[0.16em] uppercase dark:text-slate-400">
                 {{ t('sync.unsyncedMessages') }}
+              </div>
+              <div class="pt-1 text-xl text-slate-600 font-semibold tabular-nums dark:text-slate-300">
+                {{ unsyncedCount }}
               </div>
             </div>
           </div>
 
-          <!-- Chart -->
-          <div class="h-32">
-            <VChart :option="chartOption" autoresize />
+          <div class="border border-border/60 rounded-xl bg-background/70 p-3">
+            <div class="mb-2 flex items-center justify-between gap-3 text-xs">
+              <span class="text-muted-foreground">{{ t('sync.syncProgress') }}</span>
+              <span class="text-foreground font-medium tabular-nums">{{ syncPercentage }}%</span>
+            </div>
+
+            <div class="relative overflow-hidden border border-border/50 rounded-xl bg-muted/40 px-2 py-2.5">
+              <div
+                class="relative h-11 w-full flex overflow-hidden rounded-lg"
+              >
+                <div
+                  class="min-w-0 flex items-center justify-center bg-emerald-500/75 px-3 text-xs text-emerald-950 font-semibold transition-all duration-500 ease-out dark:text-emerald-50"
+                  :style="{ width: syncedWidth }"
+                >
+                  <span v-if="syncedCount > 0" class="truncate tabular-nums">
+                    {{ syncedCount }}
+                  </span>
+                </div>
+                <div
+                  class="min-w-0 flex items-center justify-center bg-slate-300/80 px-3 text-xs text-slate-700 font-semibold transition-all duration-500 ease-out dark:bg-slate-200/70 dark:text-slate-900"
+                  :style="{ width: unsyncedWidth }"
+                >
+                  <span v-if="unsyncedCount > 0" class="truncate tabular-nums">
+                    {{ unsyncedCount }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-2 w-2 rounded-full bg-emerald-500" />
+                {{ t('sync.syncedMessages') }}
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-500" />
+                {{ t('sync.unsyncedMessages') }}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div v-else class="py-8 text-center text-sm text-muted-foreground">
+        <div v-else class="py-3 text-sm text-muted-foreground">
           {{ t('sync.selectChats') }}
         </div>
       </div>

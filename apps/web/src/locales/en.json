@@ -320,11 +320,13 @@
     "syncRangeDescription": "Select the message range to sync",
     "syncVisualization": "Sync Status Visualization",
     "syncedMessages": "Synced Messages",
+    "completedRatio": "Completed",
     "syncing": "Syncing...",
     "selectDateRange": "Select Date Range",
     "timeRange": "Time Range",
     "totalMessages": "Total Messages",
     "unsyncedMessages": "Unsynced Messages",
+    "remainingRatio": "Remaining",
     "selectChatToViewStats": "Select a chat to view sync statistics"
   },
   "summaryDialog": {
