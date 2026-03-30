@@ -272,6 +272,22 @@ let dragStartX = 0
 let dragStartScrollLeft = 0
 let suppressNextTabClick = false
 
+function getNormalizedWheelDelta(event: WheelEvent, container: HTMLElement) {
+  const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+  if (dominantDelta === 0) {
+    return 0
+  }
+
+  switch (event.deltaMode) {
+    case WheelEvent.DOM_DELTA_LINE:
+      return dominantDelta * 16
+    case WheelEvent.DOM_DELTA_PAGE:
+      return dominantDelta * container.clientWidth
+    default:
+      return dominantDelta
+  }
+}
+
 function handleTabWheel(event: WheelEvent) {
   const container = containerRef.value
   if (!container) {
@@ -283,13 +299,19 @@ function handleTabWheel(event: WheelEvent) {
     return
   }
 
-  const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+  const delta = getNormalizedWheelDelta(event, container)
   if (delta === 0) {
     return
   }
 
+  const maxScrollLeft = container.scrollWidth - container.clientWidth
+  const nextScrollLeft = Math.max(0, Math.min(maxScrollLeft, container.scrollLeft + delta))
+  if (nextScrollLeft === container.scrollLeft) {
+    return
+  }
+
   event.preventDefault()
-  container.scrollLeft += delta
+  container.scrollLeft = nextScrollLeft
   updateGlider()
 }
 
@@ -331,6 +353,11 @@ function endTabDrag(event?: PointerEvent) {
   const container = containerRef.value
   if (container && dragPointerId !== undefined && event?.pointerId === dragPointerId && container.hasPointerCapture(dragPointerId)) {
     container.releasePointerCapture(dragPointerId)
+  }
+
+  // Cancelled drags do not emit a click, so clear suppression here.
+  if (event?.type === 'pointercancel') {
+    suppressNextTabClick = false
   }
 
   dragPointerId = undefined
