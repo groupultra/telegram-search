@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  abort: []
   close: []
 }>()
 
@@ -16,6 +17,7 @@ interface Props {
   stats?: ChatSyncStats
   loading?: boolean
   chatLabel?: string
+  showAbort?: boolean
   showClose?: boolean
 }
 
@@ -64,14 +66,24 @@ const unsyncedWidth = computed(() => `${Math.max(0, 100 - syncPercentage.value)}
           {{ props.chatLabel }}
         </p>
       </button>
-      <button
-        v-if="props.showClose"
-        type="button"
-        class="h-9 w-9 flex shrink-0 items-center justify-center border border-border/50 rounded-full bg-background/55 text-muted-foreground transition-colors md:h-10 md:w-10 hover:text-foreground"
-        @click="emit('close')"
-      >
-        <span class="i-lucide-x h-4 w-4" />
-      </button>
+      <div class="flex shrink-0 flex-col items-end gap-2">
+        <button
+          v-if="props.showClose"
+          type="button"
+          class="h-9 w-9 flex items-center justify-center border border-border/50 rounded-full bg-background/55 text-muted-foreground transition-colors md:h-10 md:w-10 hover:text-foreground"
+          @click="emit('close')"
+        >
+          <span class="i-lucide-x h-4 w-4" />
+        </button>
+        <button
+          v-if="props.showAbort"
+          type="button"
+          class="h-8 min-w-[3.5rem] flex items-center justify-center border border-border/50 rounded-full bg-background/55 px-3 text-xs text-muted-foreground font-medium transition-colors hover:text-foreground"
+          @click="emit('abort')"
+        >
+          {{ t('common.cancel') }}
+        </button>
+      </div>
     </div>
 
     <Transition name="collapse-vertical">

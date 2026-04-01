@@ -521,6 +521,18 @@ function handleTakeoutConfirm(useTakeout: boolean) {
   bridge.sendEvent(CoreEventType.TakeoutConfirmResponse, { useTakeout })
 }
 
+function handleAbort() {
+  if (currentTask.value) {
+    bridge.sendEvent(CoreEventType.TakeoutTaskAbort, {
+      taskId: currentTask.value.taskId,
+    })
+    NProgress.done()
+  }
+  else {
+    toast.error(t('sync.noInProgressTask'))
+  }
+}
+
 watch(currentTaskProgress, (progress) => {
   if (progress === 100) {
     toast.success(t('sync.syncCompleted'))
@@ -723,8 +735,10 @@ function startSync() {
                     :stats="chatStats"
                     :loading="chatStatsLoading"
                     :chat-label="visualizationChat.name || ''"
+                    :show-abort="isTaskInProgress"
                     :show-close="true"
                     class="w-full"
+                    @abort="handleAbort"
                     @close="isBottomPanelOpen = false"
                   />
                 </div>
