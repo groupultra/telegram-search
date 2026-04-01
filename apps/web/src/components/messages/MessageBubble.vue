@@ -452,45 +452,74 @@ function cancelLongPress() {
   animation: message-bubble-stretch 260ms ease-out;
 }
 
+:global(:root) {
+  --message-bubble-own-bg: #bcdfff;
+  --message-bubble-own-fg: #0f2740;
+  --message-bubble-own-shadow: 0 10px 24px rgba(97, 135, 179, 0.22);
+  --message-bubble-incoming-bg: #dbe8f7;
+  --message-bubble-incoming-fg: #14263a;
+  --message-bubble-incoming-shadow: 0 10px 24px rgba(125, 146, 175, 0.18);
+  --message-bubble-meta-fg: #526171;
+  --message-bubble-plain-fg: #1f2a37;
+}
+
+:global(html.dark) {
+  --message-bubble-own-bg: #254966;
+  --message-bubble-own-fg: #f5fbff;
+  --message-bubble-own-shadow: 0 12px 30px rgba(10, 22, 34, 0.34);
+  --message-bubble-incoming-bg: #1a2430;
+  --message-bubble-incoming-fg: #edf5ff;
+  --message-bubble-incoming-shadow: 0 12px 30px rgba(4, 12, 22, 0.3);
+  --message-bubble-meta-fg: rgb(255 255 255 / 0.7);
+  --message-bubble-plain-fg: #edf5ff;
+}
+
 .message-bubble-shell {
-  --message-bubble-bg: #dbe8f7;
-  --message-bubble-fg: #14263a;
-  --message-bubble-shadow: 0 10px 24px rgba(125, 146, 175, 0.18);
+  --message-bubble-bg: var(--message-bubble-incoming-bg);
+  --message-bubble-fg: var(--message-bubble-incoming-fg);
+  --message-bubble-shadow: var(--message-bubble-incoming-shadow);
   background: var(--message-bubble-bg);
   color: var(--message-bubble-fg);
   box-shadow: var(--message-bubble-shadow);
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .message-bubble-shell--own {
-  --message-bubble-bg: #bcdfff;
-  --message-bubble-fg: #0f2740;
-  --message-bubble-shadow: 0 10px 24px rgba(97, 135, 179, 0.22);
+  --message-bubble-bg: var(--message-bubble-own-bg);
+  --message-bubble-fg: var(--message-bubble-own-fg);
+  --message-bubble-shadow: var(--message-bubble-own-shadow);
 }
 
 .message-bubble-shell--incoming {
-  --message-bubble-bg: #dbe8f7;
-  --message-bubble-fg: #14263a;
-  --message-bubble-shadow: 0 10px 24px rgba(125, 146, 175, 0.18);
+  --message-bubble-bg: var(--message-bubble-incoming-bg);
+  --message-bubble-fg: var(--message-bubble-incoming-fg);
+  --message-bubble-shadow: var(--message-bubble-incoming-shadow);
 }
 
 .message-bubble-tail {
   background: var(--message-bubble-bg);
+  transition: background-color 180ms ease;
 }
 
 .message-bubble-tail--own {
-  --message-bubble-bg: #bcdfff;
+  --message-bubble-bg: var(--message-bubble-own-bg);
 }
 
 .message-bubble-tail--incoming {
-  --message-bubble-bg: #dbe8f7;
+  --message-bubble-bg: var(--message-bubble-incoming-bg);
 }
 
 .message-bubble-meta {
-  color: #526171;
+  color: var(--message-bubble-meta-fg);
+  transition: color 180ms ease;
 }
 
 .message-bubble-plain {
-  color: #1f2a37;
+  color: var(--message-bubble-plain-fg);
+  transition: color 180ms ease;
 }
 
 .message-sender-accent-0 {
@@ -515,33 +544,5 @@ function cancelLongPress() {
 
 .message-sender-accent-5 {
   color: #22d3ee;
-}
-
-:global(.dark) .message-bubble-shell--own {
-  --message-bubble-bg: #2d5f87;
-  --message-bubble-fg: #fff;
-  --message-bubble-shadow: 0 10px 30px rgba(45, 95, 135, 0.22);
-}
-
-:global(.dark) .message-bubble-shell--incoming {
-  --message-bubble-bg: #15283a;
-  --message-bubble-fg: #edf5ff;
-  --message-bubble-shadow: 0 10px 30px rgba(4, 12, 22, 0.28);
-}
-
-:global(.dark) .message-bubble-tail--own {
-  --message-bubble-bg: #2d5f87;
-}
-
-:global(.dark) .message-bubble-tail--incoming {
-  --message-bubble-bg: #15283a;
-}
-
-:global(.dark) .message-bubble-meta {
-  color: rgb(255 255 255 / 0.7);
-}
-
-:global(.dark) .message-bubble-plain {
-  color: #edf5ff;
 }
 </style>

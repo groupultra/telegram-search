@@ -8,7 +8,7 @@ import { prefillChatAvatarIntoStore, useChatStore, useSettingsStore } from '@tg-
 import { useMediaQuery } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { VList } from 'virtua/vue'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -202,10 +202,20 @@ const gliderStyle = ref({
   transform: 'translateX(0px)',
   opacity: 0,
 })
+const canDragTabs = ref(false)
+
+function updateTabScrollability() {
+  const container = containerRef.value
+  canDragTabs.value = container !== null && container.scrollWidth > container.clientWidth
+}
 
 function updateGlider() {
-  if (!containerRef.value)
+  if (!containerRef.value) {
+    canDragTabs.value = false
     return
+  }
+
+  updateTabScrollability()
 
   const containerRect = containerRef.value.getBoundingClientRect()
   let activeEl: HTMLElement | undefined
@@ -261,6 +271,117 @@ watch(containerRef, (el) => {
     resizeObserver?.disconnect()
   }
 })
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+})
+
+const isDraggingTabs = ref(false)
+let dragPointerId: number | undefined
+let dragStartX = 0
+let dragStartScrollLeft = 0
+let suppressNextTabClick = false
+
+function getNormalizedWheelDelta(event: WheelEvent, container: HTMLElement) {
+  const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+  if (dominantDelta === 0) {
+    return 0
+  }
+
+  switch (event.deltaMode) {
+    case WheelEvent.DOM_DELTA_LINE:
+      return dominantDelta * 16
+    case WheelEvent.DOM_DELTA_PAGE:
+      return dominantDelta * container.clientWidth
+    default:
+      return dominantDelta
+  }
+}
+
+function handleTabWheel(event: WheelEvent) {
+  const container = containerRef.value
+  if (!container) {
+    return
+  }
+
+  const canScrollHorizontally = container.scrollWidth > container.clientWidth
+  if (!canScrollHorizontally) {
+    return
+  }
+
+  const delta = getNormalizedWheelDelta(event, container)
+  if (delta === 0) {
+    return
+  }
+
+  const maxScrollLeft = container.scrollWidth - container.clientWidth
+  const nextScrollLeft = Math.max(0, Math.min(maxScrollLeft, container.scrollLeft + delta))
+  if (nextScrollLeft === container.scrollLeft) {
+    return
+  }
+
+  event.preventDefault()
+  container.scrollLeft = nextScrollLeft
+  updateGlider()
+}
+
+function handleTabPointerDown(event: PointerEvent) {
+  if (isCoarsePointer.value || event.pointerType === 'touch' || event.button !== 0 || !containerRef.value || !canDragTabs.value) {
+    return
+  }
+
+  dragPointerId = event.pointerId
+  dragStartX = event.clientX
+  dragStartScrollLeft = containerRef.value.scrollLeft
+  isDraggingTabs.value = false
+}
+
+function handleTabPointerMove(event: PointerEvent) {
+  const container = containerRef.value
+  if (!container || dragPointerId !== event.pointerId) {
+    return
+  }
+
+  const deltaX = event.clientX - dragStartX
+  if (!isDraggingTabs.value && Math.abs(deltaX) > 4) {
+    isDraggingTabs.value = true
+    suppressNextTabClick = true
+    container.setPointerCapture(event.pointerId)
+  }
+
+  if (!isDraggingTabs.value) {
+    return
+  }
+
+  event.preventDefault()
+  container.scrollLeft = dragStartScrollLeft - deltaX
+  updateGlider()
+}
+
+function endTabDrag(event?: PointerEvent) {
+  const container = containerRef.value
+  if (container && dragPointerId !== undefined && event?.pointerId === dragPointerId && container.hasPointerCapture(dragPointerId)) {
+    container.releasePointerCapture(dragPointerId)
+  }
+
+  // Cancelled drags do not emit a click, so clear suppression here.
+  if (event?.type === 'pointercancel') {
+    suppressNextTabClick = false
+  }
+
+  dragPointerId = undefined
+  isDraggingTabs.value = false
+}
+
+function handleTabClickCapture(event: MouseEvent) {
+  if (!suppressNextTabClick) {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+  suppressNextTabClick = false
+}
 </script>
 
 <template>
@@ -269,7 +390,14 @@ watch(containerRef, (el) => {
       <div class="flex flex-col">
         <div
           ref="containerRef"
+          :class="isDraggingTabs ? 'cursor-grabbing select-none' : canDragTabs ? 'cursor-grab' : ''"
           class="no-scrollbar relative flex items-center gap-2 overflow-x-auto px-3 py-2"
+          @click.capture="handleTabClickCapture"
+          @pointercancel="endTabDrag"
+          @pointerdown="handleTabPointerDown"
+          @pointermove="handleTabPointerMove"
+          @pointerup="endTabDrag"
+          @wheel="handleTabWheel"
         >
           <div
             aria-hidden="true"

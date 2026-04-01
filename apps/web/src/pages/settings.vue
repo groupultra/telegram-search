@@ -2,17 +2,31 @@
 import { useAccountStore, useBridge } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import { Button } from '../components/ui/Button'
 import { Switch } from '../components/ui/Switch'
+import {
+  buildDefaultMessageProcessing,
+  createAccountSettingsSavePayload,
+  ensureAccountSettingsDefaults,
+  isMatchingAccountSettingsResponse,
+} from '../utils/account-settings'
 
 const { t } = useI18n()
 
 const bridge = useBridge()
-const { accountSettings } = storeToRefs(useAccountStore())
+const accountStore = useAccountStore()
+const { accountSettings, hasFetchedSettings, isReady } = storeToRefs(accountStore)
+const isConfigLoaded = ref(false)
+const isConfigLoading = ref(false)
+const isConfigSaving = ref(false)
+const hasConfigLoadFailed = ref(false)
+
+const CONFIG_FETCH_ATTEMPTS = 4
+const CONFIG_FETCH_TIMEOUT_MS = 2000
 
 // Message resolvers configuration
 const messageResolvers = [
@@ -24,12 +38,106 @@ const messageResolvers = [
 
 const embeddingDimensions = Object.values([1536, 1024, 768])
 
-function buildDefaultMessageProcessing() {
-  return {
-    receiveMessages: { receiveAll: true, downloadMedia: true },
-    resolvers: { disabledResolvers: ['avatar'] },
-    defaults: { syncMedia: true, maxMediaSize: 0 },
-    enablePhotoEmbedding: false,
+function waitForFetchedSettings(timeout = CONFIG_FETCH_TIMEOUT_MS) {
+  if (hasFetchedSettings.value && accountSettings.value) {
+    return Promise.resolve(accountSettings.value)
+  }
+
+  return new Promise<NonNullable<typeof accountSettings.value>>((resolve, reject) => {
+    const stop = watch(
+      () => ({ fetched: hasFetchedSettings.value, settings: accountSettings.value }),
+      ({ fetched, settings }) => {
+        if (!fetched || !settings) {
+          return
+        }
+
+        cleanup()
+        resolve(settings)
+      },
+      { immediate: true },
+    )
+
+    const timer = window.setTimeout(() => {
+      cleanup()
+      reject(new Error('settings fetch timeout'))
+    }, timeout)
+
+    function cleanup() {
+      stop()
+      window.clearTimeout(timer)
+    }
+  })
+}
+
+function waitForMatchingSavedSettings(timeout: number, expectedSettings: ReturnType<typeof createAccountSettingsSavePayload>) {
+  return new Promise<NonNullable<typeof accountSettings.value>>((resolve, reject) => {
+    const stop = watch(
+      () => accountSettings.value,
+      (settings) => {
+        if (!settings || !isMatchingAccountSettingsResponse({ accountSettings: settings }, expectedSettings)) {
+          return
+        }
+
+        cleanup()
+        resolve(settings)
+      },
+    )
+
+    const timer = window.setTimeout(() => {
+      cleanup()
+      reject(new Error('settings save timeout'))
+    }, timeout)
+
+    function cleanup() {
+      stop()
+      window.clearTimeout(timer)
+    }
+  })
+}
+
+async function loadAccountSettings() {
+  if (!isReady.value || isConfigLoading.value) {
+    return
+  }
+
+  if (hasFetchedSettings.value && accountSettings.value) {
+    isConfigLoaded.value = true
+    return
+  }
+
+  isConfigLoading.value = true
+  hasConfigLoadFailed.value = false
+
+  try {
+    let fetchedSettings: NonNullable<typeof accountSettings.value> | null = null
+
+    for (let attempt = 1; attempt <= CONFIG_FETCH_ATTEMPTS; attempt += 1) {
+      bridge.sendEvent(CoreEventType.ConfigFetch)
+
+      try {
+        fetchedSettings = await waitForFetchedSettings()
+        break
+      }
+      catch {
+        if (attempt === CONFIG_FETCH_ATTEMPTS) {
+          throw new Error('settings fetch timeout')
+        }
+      }
+    }
+
+    if (!fetchedSettings) {
+      throw new Error('settings fetch timeout')
+    }
+
+    isConfigLoaded.value = true
+  }
+  catch {
+    isConfigLoaded.value = false
+    hasConfigLoadFailed.value = true
+    toast.error(t('settings.loadingSettingsFailed'))
+  }
+  finally {
+    isConfigLoading.value = false
   }
 }
 
@@ -40,20 +148,32 @@ watch(
       return
     }
 
-    settings.messageProcessing ??= buildDefaultMessageProcessing()
-    settings.messageProcessing.receiveMessages ??= { receiveAll: true, downloadMedia: true }
-    settings.messageProcessing.resolvers ??= { disabledResolvers: ['avatar'] }
-    settings.messageProcessing.resolvers.disabledResolvers ??= ['avatar']
-    settings.messageProcessing.defaults ??= { syncMedia: true, maxMediaSize: 0 }
-    settings.messageProcessing.enablePhotoEmbedding ??= false
+    ensureAccountSettingsDefaults(settings)
+  },
+  { immediate: true },
+)
 
-    // Initialize visionLLM with defaults if not present
-    settings.visionLLM ??= {
-      model: '',
-      apiKey: '',
-      apiBase: '',
-      temperature: 0.7,
-      maxTokens: 1024,
+watch(
+  () => isReady.value,
+  (ready) => {
+    if (!ready) {
+      isConfigLoaded.value = false
+      isConfigLoading.value = false
+      hasConfigLoadFailed.value = false
+      return
+    }
+
+    void loadAccountSettings()
+  },
+  { immediate: true },
+)
+
+watch(
+  () => hasFetchedSettings.value,
+  (fetched) => {
+    if (fetched) {
+      isConfigLoaded.value = true
+      hasConfigLoadFailed.value = false
     }
   },
   { immediate: true },
@@ -90,21 +210,26 @@ function toggleMessageResolver(resolverKey: string, enabled: boolean) {
   }
 }
 
-function updateConfig() {
-  if (!accountSettings.value)
+async function updateConfig() {
+  if (!accountSettings.value || isConfigSaving.value)
     return
 
-  bridge.sendEvent(CoreEventType.ConfigUpdate, { accountSettings: accountSettings.value })
+  isConfigSaving.value = true
   const toastId = toast.loading(t('settings.savingSettings'))
+  const payload = createAccountSettingsSavePayload(accountSettings.value)
 
-  Promise.race([
-    bridge.waitForEvent(CoreEventType.ConfigData),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000)),
-  ])
-    .then(() => toast.success(t('settings.settingsSavedSuccessfully'), { id: toastId }))
-    .catch((error) => {
-      toast.error(error.message, { id: toastId })
-    })
+  try {
+    const pendingSave = waitForMatchingSavedSettings(5000, payload)
+    bridge.sendEvent(CoreEventType.ConfigUpdate, { accountSettings: payload })
+    await pendingSave
+    toast.success(t('settings.settingsSavedSuccessfully'), { id: toastId })
+  }
+  catch {
+    toast.error(t('settings.settingsSaveFailed'), { id: toastId })
+  }
+  finally {
+    isConfigSaving.value = false
+  }
 }
 </script>
 
@@ -118,14 +243,42 @@ function updateConfig() {
       </div>
 
       <div class="flex items-center gap-2">
-        <Button icon="i-lucide-save" class="rounded-full" @click="updateConfig">
+        <Button icon="i-lucide-save" class="rounded-full" :disabled="!isConfigLoaded || isConfigLoading || isConfigSaving" @click="updateConfig">
           {{ t('settings.save') }}
         </Button>
       </div>
     </header>
 
     <div class="flex-1 overflow-y-auto">
-      <div class="mx-auto max-w-4xl p-4 space-y-8 md:p-6">
+      <div v-if="!isReady" class="mx-auto max-w-4xl p-4 md:p-6">
+        <section class="border rounded-xl bg-card p-6 text-sm text-muted-foreground shadow-sm">
+          <p class="text-foreground font-medium">
+            {{ t('settings.waitingForConnection') }}
+          </p>
+        </section>
+      </div>
+
+      <div v-else-if="!isConfigLoaded" class="mx-auto max-w-4xl p-4 md:p-6">
+        <section class="border rounded-xl bg-card p-6 shadow-sm space-y-4">
+          <div class="space-y-1">
+            <h2 class="text-base font-semibold">
+              {{ t('settings.loadingSettings') }}
+            </h2>
+            <p class="text-sm text-muted-foreground">
+              {{ hasConfigLoadFailed ? t('settings.loadingSettingsFailedDescription') : t('settings.loadingSettingsDescription') }}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="h-4 w-4 animate-spin border-2 border-primary/30 border-t-primary rounded-full" />
+            <Button v-if="hasConfigLoadFailed" :disabled="isConfigLoading" variant="outline" @click="loadAccountSettings">
+              {{ t('settings.retryLoadingSettings') }}
+            </Button>
+          </div>
+        </section>
+      </div>
+
+      <div v-else class="mx-auto max-w-4xl p-4 space-y-8 md:p-6">
         <!-- API settings -->
         <section class="space-y-6">
           <div class="px-2 md:px-0">

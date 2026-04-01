@@ -1,7 +1,7 @@
 import type { ClientRegisterEventHandler } from '.'
 
 import { useLogger } from '@guiiai/logg'
-import { CoreEventType } from '@tg-search/core'
+import { CoreEventType, normalizeAccountSettings } from '@tg-search/core'
 
 import { useAccountStore } from '../stores/useAccount'
 
@@ -14,7 +14,11 @@ export function registerAccountEventHandlers(
   })
 
   registerEventHandler(CoreEventType.ConfigData, ({ accountSettings }) => {
-    useLogger('AccountEventHandlers').withFields({ ...accountSettings }).verbose('Received config data')
-    useAccountStore().accountSettings = accountSettings
+    const normalizedSettings = normalizeAccountSettings(accountSettings)
+    const accountStore = useAccountStore()
+
+    useLogger('AccountEventHandlers').withFields({ ...normalizedSettings }).verbose('Received config data')
+    accountStore.accountSettings = normalizedSettings
+    accountStore.hasFetchedSettings = true
   })
 }

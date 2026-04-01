@@ -2,7 +2,7 @@
 import type { CoreChatFolder, CoreDialog } from '@tg-search/core/types'
 
 import { VList } from 'virtua/vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import EntityAvatar from './avatar/EntityAvatar.vue'
@@ -18,6 +18,10 @@ const { t, locale } = useI18n()
 
 const selectedChats = defineModel<number[]>('selectedChats', {
   required: true,
+})
+
+const visibleChatIds = defineModel<number[]>('visibleChatIds', {
+  default: () => [],
 })
 
 // Currently focused chat for status/visualization panel
@@ -91,6 +95,10 @@ const filteredChats = computed(() => {
       return 1
     return 0
   })
+})
+
+watchEffect(() => {
+  visibleChatIds.value = filteredChats.value.map(chat => chat.id)
 })
 
 /**
@@ -198,7 +206,7 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
         <VList
           v-else
           :data="filteredChats"
-          class="h-full"
+          class="no-scrollbar h-full"
         >
           <template #default="{ item: chat }">
             <div

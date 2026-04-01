@@ -65,7 +65,7 @@ const remainingPercent = computed(() => Math.max(0, 100 - progressPercent.value)
             {{ props.statusMessage }}
           </div>
         </div>
-        <Progress :model-value="progressPercent" class="h-2 rounded-full bg-muted/70" />
+        <Progress :progress="props.progress" class="h-2 rounded-full bg-muted/70" />
       </div>
 
       <div class="mt-3 min-h-0 flex flex-1 gap-3">

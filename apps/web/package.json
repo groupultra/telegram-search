@@ -46,6 +46,7 @@
     "xsai": "catalog:"
   },
   "devDependencies": {
+    "@iconify/utils": "^3.1.0",
     "@proj-airi/unocss-preset-chromatic": "^1.0.2",
     "@types/nprogress": "^0.2.3",
     "@types/pako": "^2.0.4",

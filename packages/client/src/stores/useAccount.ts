@@ -30,6 +30,7 @@ export const useAccountStore = defineStore('account', () => {
 
   // --- Account State ---
   const accountSettings = ref(generateDefaultAccountSettings())
+  const hasFetchedSettings = ref(false)
 
   const isReady = ref(false)
 
@@ -125,8 +126,13 @@ export const useAccountStore = defineStore('account', () => {
       return
 
     logger.verbose('Marking account as ready')
-    logger.verbose('Fetching config for new session')
-    bridge.sendEvent(CoreEventType.ConfigFetch)
+    // NOTICE: config:data forwarding depends on websocket event registration.
+    // Requesting immediately here can race with server:event:register on fresh
+    // reconnects, so view layers also issue an explicit fetch when needed.
+    window.setTimeout(() => {
+      logger.verbose('Fetching config for new session')
+      bridge.sendEvent(CoreEventType.ConfigFetch)
+    }, 150)
 
     isReady.value = true
     authStatus.value.isLoading = false
@@ -137,6 +143,7 @@ export const useAccountStore = defineStore('account', () => {
     isReady.value = false
     authStatus.value.isLoading = false
     syncStatus.value = 'idle'
+    hasFetchedSettings.value = false
   }
 
   // --- Watchers ---
@@ -215,6 +222,7 @@ export const useAccountStore = defineStore('account', () => {
     // State
     auth: authStatus,
     accountSettings,
+    hasFetchedSettings,
     isReady,
     syncStatus,
 

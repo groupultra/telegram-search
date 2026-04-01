@@ -44,6 +44,10 @@ import {
 import { Input } from '../components/ui/Input'
 import { Switch } from '../components/ui/Switch'
 import {
+  areAllVisibleChatsSelected,
+  toggleVisibleChatSelection,
+} from '../utils/chat-selection-scope'
+import {
   formatRangeLabel,
   sameRange,
   toDateRange,
@@ -53,6 +57,7 @@ import {
 const { t } = useI18n()
 
 const selectedChats = ref<number[]>([])
+const visibleChatIds = ref<number[]>([])
 const accountStore = useAccountStore()
 const { accountSettings } = storeToRefs(accountStore)
 
@@ -309,32 +314,17 @@ const aggregateProgress = computed(() => {
 
 /**
  * Compute disabled state for the "Select All" button.
- * Disabled when: not logged in, a task is in progress, or no chats.
+ * Disabled when a task is in progress or the current scope has no chats.
  */
 const isSelectAllDisabled = computed(() => {
-  return isTaskInProgress.value || chats.value.length === 0
+  return isTaskInProgress.value || visibleChatIds.value.length === 0
 })
 
 /**
- * Performance optimized check for whether all chats are selected.
- * Uses Set for O(1) lookup instead of O(N^2) with array.includes() for each chat.
- * Returns true when selectedChats covers all chat IDs.
+ * Treat "all selected" as all chats in the current filtered scope being selected.
  */
-/**
- * Performance optimized computed property for all chat IDs.
- * Follows DRY (Don't Repeat Yourself) principle by centralizing the mapping logic.
- */
-const allChatIds = computed(() => chats.value.map(c => c.id))
-
 const isAllSelected = computed(() => {
-  const allIds = allChatIds.value
-  if (allIds.length === 0 || selectedChats.value.length !== allIds.length) {
-    return false
-  }
-
-  // Use Set for efficient lookup to avoid O(N^2) complexity
-  const selectedSet = new Set(selectedChats.value)
-  return allIds.every(id => selectedSet.has(id))
+  return areAllVisibleChatsSelected(selectedChats.value, visibleChatIds.value)
 })
 
 /**
@@ -360,14 +350,14 @@ const isSelectAllWarning = ref<boolean>(false)
  * may take a long time.
  */
 function handleSelectAll() {
-  const allIds = allChatIds.value
   const allSelected = isAllSelected.value
+  const nextSelectedChats = toggleVisibleChatSelection(selectedChats.value, visibleChatIds.value)
 
-  selectedChats.value = allSelected ? [] : allIds
+  selectedChats.value = nextSelectedChats
 
   // Show prompt only when switching to "Select All"
   if (!allSelected) {
-    const count = allIds.length
+    const count = nextSelectedChats.length
     selectAllCount.value = count
     isSelectAllWarning.value = count >= SELECT_ALL_WARNING_THRESHOLD
     isSelectAllDialogOpen.value = true
@@ -642,6 +632,7 @@ function startSync() {
         <div class="min-h-0 flex-1 p-3 md:p-4">
           <ChatSelector
             v-model:selected-chats="selectedChats"
+            v-model:visible-chat-ids="visibleChatIds"
             v-model:active-chat-id="activeChatId"
             :chats="chats"
             :folders="folders"

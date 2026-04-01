@@ -1,6 +1,8 @@
+// @vitest-environment happy-dom
+
 import { CoreEventType } from '@tg-search/core'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useAccountStore } from '../useAccount'
 
@@ -45,9 +47,14 @@ vi.mock('../useMessage', () => ({
 
 describe('useAccountStore', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     setActivePinia(createPinia())
     vi.clearAllMocks()
     mockActiveSession = { session: 'mock-session', uuid: 'mock-uuid', me: { id: 123 } }
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('initializes correctly', () => {
@@ -98,14 +105,16 @@ describe('useAccountStore', () => {
     expect(sessionActions.removeCurrentAccount).toHaveBeenCalled()
   })
 
-  it('marks ready correctly', () => {
+  it('marks ready correctly', async () => {
     const store = useAccountStore()
     store.markReady()
 
     expect(store.isReady).toBe(true)
     expect(store.auth.isLoading).toBe(false)
-    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.ConfigFetch)
     expect(chatActions.init).toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(150)
+    expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.ConfigFetch)
   })
 
   it('resets ready correctly', () => {
