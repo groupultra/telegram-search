@@ -17,28 +17,53 @@ export function registerTakeoutEventHandlers(
 
   registerEventHandler(CoreEventType.TakeoutStatsData, (data) => {
     const store = useSyncTaskStore()
-    store.chatStats = data
-    store.chatStatsLoading = false
-    store.initialSyncedMessages = data.syncedMessages
+    store.chatStatsByChatId = {
+      ...store.chatStatsByChatId,
+      [data.chatId]: data,
+    }
+
+    if (store.chatStatsFocusedChatId === data.chatId) {
+      store.chatStats = data
+      store.chatStatsLoading = false
+      store.initialSyncedMessages = data.syncedMessages
+    }
   })
 
   registerEventHandler(CoreEventType.TakeoutMetrics, (data) => {
     const store = useSyncTaskStore()
     if (store.currentTask && store.currentTask.taskId === data.taskId) {
-      if (store.chatStats && store.currentTask.metadata.chatIds.includes(store.chatStats.chatId)) {
-        store.chatStats.syncedMessages = store.initialSyncedMessages + data.processedCount
-        if (data.totalCount > 0) {
-          store.chatStats.totalMessages = data.totalCount
-        }
+      const currentChatId = store.currentTask.metadata.chatIds[0]
+      const currentStats = store.chatStatsByChatId[currentChatId]
+        ?? (store.chatStats?.chatId === currentChatId ? store.chatStats : undefined)
 
-        // Calculate ETA based on processing speed
-        if (data.processSpeed > 0) {
-          const remainingMessages = Math.max(0, store.chatStats.totalMessages - store.chatStats.syncedMessages)
-          store.etaSeconds = Math.ceil(remainingMessages / data.processSpeed)
-        }
-        else {
-          store.etaSeconds = null
-        }
+      if (!currentStats) {
+        return
+      }
+
+      const syncedMessages = store.initialSyncedMessages + data.processedCount
+      const totalMessages = data.totalCount > 0 ? data.totalCount : currentStats.totalMessages
+      const nextStats = {
+        ...currentStats,
+        syncedMessages,
+        totalMessages,
+      }
+
+      store.chatStatsByChatId = {
+        ...store.chatStatsByChatId,
+        [currentChatId]: nextStats,
+      }
+
+      if (store.chatStatsFocusedChatId === currentChatId) {
+        store.chatStats = nextStats
+      }
+
+      // Calculate ETA based on processing speed
+      if (data.processSpeed > 0) {
+        const remainingMessages = Math.max(0, totalMessages - syncedMessages)
+        store.etaSeconds = Math.ceil(remainingMessages / data.processSpeed)
+      }
+      else {
+        store.etaSeconds = null
       }
     }
   })

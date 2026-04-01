@@ -127,7 +127,7 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-4 md:flex-row md:gap-6">
+  <div class="h-full flex flex-col gap-3 md:flex-row md:gap-6">
     <!-- Left Sidebar: Filter Groups (Desktop) -->
     <div class="w-32 flex-shrink-0 flex-col gap-1 border-r pr-4 hidden lg:flex">
       <div class="mb-2 px-2 text-xs text-muted-foreground font-semibold tracking-wider uppercase">
@@ -146,7 +146,7 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
     </div>
 
     <!-- Mobile Filters (Top Bar) -->
-    <div class="no-scrollbar flex items-center gap-2 overflow-x-auto pb-2 md:hidden">
+    <div class="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1 md:hidden">
       <button
         v-for="option in filterOptions"
         :key="option.value"
@@ -161,7 +161,7 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
     </div>
 
     <!-- Right Content: Search & List -->
-    <div class="min-w-0 flex flex-1 flex-col space-y-4">
+    <div class="min-w-0 flex flex-1 flex-col space-y-3 md:space-y-4">
       <!-- Search Input -->
       <div class="flex flex-col gap-3">
         <div class="group relative w-full">
@@ -177,13 +177,13 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
         </div>
 
         <!-- Actions Area (Below Search) -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <slot name="actions" />
         </div>
       </div>
 
       <!-- Chat List Container -->
-      <div class="min-h-0 flex-1 overflow-hidden border rounded-lg bg-card">
+      <div class="min-h-0 flex-1 overflow-hidden border rounded-2xl bg-card">
         <!-- No Results Message -->
         <div v-if="filteredChats.length === 0" class="h-full flex flex-col items-center justify-center py-16">
           <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
@@ -203,7 +203,7 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
           <template #default="{ item: chat }">
             <div
               :key="`${chat.id}-${isSelected(chat.id) ? 'checked' : 'unchecked'}`"
-              class="group flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-all hover:bg-accent/50"
+              class="group flex cursor-pointer items-center gap-3 border-b px-3 py-3 transition-all hover:bg-accent/50 md:px-4"
               :class="{
                 'bg-primary/5': isSelected(chat.id),
               }"

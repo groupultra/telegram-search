@@ -7,6 +7,8 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
   const increase = ref(false)
   const currentTask = ref<CoreTaskData<'takeout'>>()
   const chatStats = ref<ChatSyncStats>()
+  const chatStatsByChatId = ref<Record<string, ChatSyncStats>>({})
+  const chatStatsFocusedChatId = ref<string | null>(null)
   const chatStatsLoading = ref(false)
   const initialSyncedMessages = ref<number>(0)
   const etaSeconds = ref<number | null>(null)
@@ -25,6 +27,8 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
     currentTaskProgress,
     increase,
     chatStats,
+    chatStatsByChatId,
+    chatStatsFocusedChatId,
     chatStatsLoading,
     initialSyncedMessages,
     etaSeconds,

@@ -4,7 +4,7 @@ import type { DateRange, DateValue } from 'reka-ui'
 
 import NProgress from 'nprogress'
 
-import { getErrorMessage, useAccountStore, useBridge, useChatStore, useSyncTaskStore } from '@tg-search/client'
+import { useAccountStore, useBridge, useChatStore, useSyncTaskStore } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
 import { useMediaQuery } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
@@ -28,7 +28,8 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
-import SyncTaskStatusCard from '../components/SyncTaskStatusCard.vue'
+import MobileSyncStatsDrawer from '../components/MobileSyncStatsDrawer.vue'
+import SyncSelectedSummaryPanel from '../components/SyncSelectedSummaryPanel.vue'
 import SyncVisualization from '../components/SyncVisualization.vue'
 
 import { Button } from '../components/ui/Button'
@@ -90,10 +91,23 @@ const chatsStore = useChatStore()
 const { chats, folders } = storeToRefs(chatsStore)
 
 const syncTaskStore = useSyncTaskStore()
-const { currentTask, currentTaskProgress, increase, chatStats, chatStatsLoading, etaSeconds, takeoutConfirmNeeded } = storeToRefs(syncTaskStore)
+const {
+  currentTask,
+  currentTaskProgress,
+  increase,
+  chatStats,
+  chatStatsByChatId,
+  chatStatsFocusedChatId,
+  chatStatsLoading,
+  takeoutConfirmNeeded,
+} = storeToRefs(syncTaskStore)
 
 // Currently focused chat id for status panel; independent from multi-selection
 const activeChatId = ref<number | null>(null)
+// Chat IDs captured when a sync run starts; used for aggregate progress.
+const runChatIds = ref<number[]>([])
+// Accumulated processed messages from completed chats in the current run.
+const runCompletedMessages = ref(0)
 
 // Sync options dialog state
 const isSyncOptionsDialogOpen = ref(false)
@@ -146,24 +160,10 @@ watch(
   },
 )
 
-const activeChat = computed(() => {
-  if (!activeChatId.value)
-    return undefined
-  return chats.value.find(chat => chat.id === activeChatId.value)
-})
-
-// Format ETA string
-const etaMessage = computed(() => {
-  if (etaSeconds.value === null || etaSeconds.value === undefined)
-    return ''
-
-  const minutes = Math.floor(etaSeconds.value / 60)
-  const seconds = etaSeconds.value % 60
-
-  if (minutes > 0) {
-    return t('sync.etaTime', { minutes, seconds })
-  }
-  return t('sync.etaSeconds', { seconds })
+const currentSyncingChatId = computed(() => {
+  const rawChatId = currentTask.value?.metadata?.chatIds?.[0]
+  const parsed = Number(rawChatId)
+  return Number.isFinite(parsed) ? parsed : null
 })
 
 // Default to incremental sync
@@ -172,7 +172,14 @@ if (increase.value === undefined || increase.value === null) {
 }
 
 // Automatically switch active visualization to the currently syncing chat
-watch(currentTask, (task) => {
+watch(currentTask, (task, previousTask) => {
+  // Roll up completed scope from the previous task into this run's aggregate stats.
+  if (previousTask && task && previousTask.taskId !== task.taskId && previousTask.progress >= 100) {
+    const completedChatId = Number(previousTask.metadata.chatIds[0])
+    const fallbackTotal = chats.value.find(chat => chat.id === completedChatId)?.messageCount ?? 0
+    runCompletedMessages.value += previousTask.metadata.totalMessages ?? fallbackTotal
+  }
+
   if (task && task.metadata?.chatIds?.length === 1) {
     const syncingChatId = Number(task.metadata.chatIds[0])
     if (activeChatId.value !== syncingChatId) {
@@ -186,12 +193,39 @@ const isTaskInProgress = computed(() => {
   return !!currentTask.value && currentTaskProgress.value >= 0 && currentTaskProgress.value < 100
 })
 
-// Get i18n error message from raw error
-const errorMessage = computed(() => {
-  const task = currentTask.value
-  if (!task?.rawError)
-    return task?.lastError
-  return getErrorMessage(task.rawError, (key, params) => t(key, params || {}))
+// Auto-focus one selected chat for right-side visualization before sync starts.
+watch(
+  selectedChats,
+  (chatIds) => {
+    if (isTaskInProgress.value) {
+      return
+    }
+
+    if (chatIds.length === 0) {
+      activeChatId.value = null
+      return
+    }
+
+    if (activeChatId.value != null && chatIds.includes(activeChatId.value)) {
+      return
+    }
+
+    activeChatId.value = chatIds[chatIds.length - 1] ?? null
+  },
+  { immediate: true },
+)
+
+const visualizationChatId = computed(() => {
+  if (isTaskInProgress.value && currentSyncingChatId.value) {
+    return currentSyncingChatId.value
+  }
+  return activeChatId.value
+})
+
+const visualizationChat = computed(() => {
+  if (!visualizationChatId.value)
+    return undefined
+  return chats.value.find(chat => chat.id === visualizationChatId.value)
 })
 
 // Check if task was cancelled (not an error)
@@ -202,12 +236,75 @@ const isTaskCancelled = computed(() => {
 
 // Show task status area (includes in-progress and error states, but not cancelled)
 const shouldShowTaskStatus = computed(() => {
-  return !!currentTask.value && (isTaskInProgress.value || (currentTask.value.lastError && !isTaskCancelled.value))
+  return !!currentTask.value && (isTaskInProgress.value || (!!currentTask.value.lastError && !isTaskCancelled.value))
 })
 
 // Disable buttons during sync or when no chats selected
 const isButtonDisabled = computed(() => {
   return selectedChats.value.length === 0 || isTaskInProgress.value
+})
+
+const syncScopeChatIds = computed(() => {
+  if (isTaskInProgress.value && runChatIds.value.length > 0) {
+    return runChatIds.value
+  }
+  return selectedChats.value
+})
+
+const selectedTotalMessages = computed(() => {
+  if (syncScopeChatIds.value.length === 0) {
+    return 0
+  }
+
+  const chatMap = new Map(chats.value.map(chat => [chat.id, chat]))
+  return syncScopeChatIds.value.reduce((sum, chatId) => {
+    const chat = chatMap.get(chatId)
+    const fromStats = chatStatsByChatId.value[String(chatId)]?.totalMessages ?? 0
+    if (fromStats > 0) {
+      return sum + fromStats
+    }
+
+    const fromDialog = chat?.messageCount ?? 0
+    return sum + fromDialog
+  }, 0)
+})
+
+const currentTaskScopeTotalMessages = computed(() => {
+  const task = currentTask.value
+  if (!task) {
+    return 0
+  }
+
+  if (typeof task.metadata.totalMessages === 'number' && task.metadata.totalMessages > 0) {
+    return task.metadata.totalMessages
+  }
+
+  const chatId = Number(task.metadata.chatIds[0])
+  const fromStats = chatStatsByChatId.value[String(chatId)]?.totalMessages ?? 0
+  if (fromStats > 0) {
+    return fromStats
+  }
+
+  const chat = chats.value.find(c => c.id === chatId)
+  return chat?.messageCount ?? 0
+})
+
+const aggregateProcessedMessages = computed(() => {
+  const total = selectedTotalMessages.value
+  if (total <= 0) {
+    return 0
+  }
+
+  const currentProcessed = Math.round((Math.max(0, Math.min(100, currentTaskProgress.value)) / 100) * currentTaskScopeTotalMessages.value)
+  return Math.min(total, runCompletedMessages.value + currentProcessed)
+})
+
+const aggregateProgress = computed(() => {
+  const total = selectedTotalMessages.value
+  if (total <= 0) {
+    return Math.max(0, Math.min(100, Math.round(currentTaskProgress.value || 0)))
+  }
+  return Math.max(0, Math.min(100, Math.round((aggregateProcessedMessages.value / total) * 100)))
 })
 
 /**
@@ -282,37 +379,131 @@ function handleSelectAll() {
  * Converts backend English `lastMessage` to i18n-friendly text.
  * Parses "Processed X/Y messages" and maps known status strings.
  */
-const localizedTaskMessage = computed(() => {
-  const msg = currentTask.value?.lastMessage || ''
-  if (!msg)
-    return ''
-
-  // Parse progress message: "Processed 123/456 messages"
-  const processedMatch = msg.match(/^Processed\s+(\d+)\/(\d+)\s+messages$/i)
-  if (processedMatch) {
-    const processed = Number(processedMatch[1])
-    const total = Number(processedMatch[2])
-    return t('sync.processedMessages', { processed, total })
+const selectedSyncedMessages = computed(() => {
+  if (selectedChats.value.length === 0) {
+    return 0
   }
 
-  // Map known status messages
-  switch (msg) {
-    case 'Init takeout session':
-      return t('sync.initTakeoutSession')
-    case 'Get messages':
-      return t('sync.getMessages')
-    case 'Starting incremental sync':
-      return t('sync.startingIncrementalSync')
-    case 'Incremental sync completed':
-      return t('sync.incrementalSyncCompleted')
-    default:
-      // Return original text for unknown messages to avoid information loss
-      return msg
+  return selectedChats.value.reduce((sum, chatId) => {
+    return sum + (chatStatsByChatId.value[String(chatId)]?.syncedMessages ?? 0)
+  }, 0)
+})
+
+const selectionPreviewProgress = computed(() => {
+  if (selectedTotalMessages.value <= 0) {
+    return 0
+  }
+  return Math.max(0, Math.min(100, Math.round((selectedSyncedMessages.value / selectedTotalMessages.value) * 100)))
+})
+
+const shouldShowSelectionSummary = computed(() => {
+  return !shouldShowTaskStatus.value && selectedChats.value.length > 1
+})
+
+const summarySelectedCount = computed(() => {
+  if (shouldShowTaskStatus.value && runChatIds.value.length > 0) {
+    return runChatIds.value.length
+  }
+  return selectedChats.value.length
+})
+
+const summarySelectionTitle = computed(() => {
+  return t('sync.selectedChats', { count: summarySelectedCount.value })
+})
+
+const summaryProgress = computed(() => {
+  return Math.max(0, Math.min(100, Math.round(shouldShowTaskStatus.value ? aggregateProgress.value : selectionPreviewProgress.value)))
+})
+
+const summaryHasError = computed(() => {
+  return shouldShowTaskStatus.value && !!currentTask.value?.lastError
+})
+
+const summaryTotalCount = computed(() => {
+  return Math.max(0, selectedTotalMessages.value)
+})
+
+const summarySyncedCount = computed(() => {
+  const value = shouldShowTaskStatus.value ? aggregateProcessedMessages.value : selectedSyncedMessages.value
+  return Math.max(0, Math.min(summaryTotalCount.value, value))
+})
+
+const summaryUnsyncedCount = computed(() => {
+  return Math.max(0, summaryTotalCount.value - summarySyncedCount.value)
+})
+
+const currentChatTotalCount = computed(() => {
+  return Math.max(0, chatStats.value?.totalMessages ?? 0)
+})
+
+const currentChatSyncedCount = computed(() => {
+  if (!chatStats.value) {
+    return 0
+  }
+  return Math.max(0, Math.min(chatStats.value.syncedMessages, chatStats.value.totalMessages))
+})
+
+const currentChatUnsyncedCount = computed(() => {
+  return Math.max(0, currentChatTotalCount.value - currentChatSyncedCount.value)
+})
+
+const currentChatProgress = computed(() => {
+  if (currentChatTotalCount.value <= 0) {
+    return 0
+  }
+  return Math.max(0, Math.min(100, Math.round((currentChatSyncedCount.value / currentChatTotalCount.value) * 100)))
+})
+
+const hasSelectedStatusPanel = computed(() => {
+  return shouldShowTaskStatus.value || shouldShowSelectionSummary.value
+})
+
+const hasCurrentStatusPanel = computed(() => {
+  return !!visualizationChat.value
+})
+
+const hasMobileStatusContent = computed(() => {
+  return hasSelectedStatusPanel.value || hasCurrentStatusPanel.value
+})
+
+const mobileStatusTab = ref<'selected' | 'current'>('selected')
+const isMobileStatusOpen = ref(false)
+
+watch([hasSelectedStatusPanel, hasCurrentStatusPanel, isTaskInProgress], ([hasSelected, hasCurrent, syncing]) => {
+  if (syncing && hasCurrent) {
+    mobileStatusTab.value = 'current'
+    return
+  }
+
+  if (mobileStatusTab.value === 'selected' && !hasSelected && hasCurrent) {
+    mobileStatusTab.value = 'current'
+  }
+  else if (mobileStatusTab.value === 'current' && !hasCurrent && hasSelected) {
+    mobileStatusTab.value = 'selected'
   }
 })
 
+watch([isDesktop, hasMobileStatusContent, isTaskInProgress], ([desktop, hasContent, syncing]) => {
+  if (desktop) {
+    isMobileStatusOpen.value = false
+    isBottomPanelOpen.value = true
+    return
+  }
+
+  if (!hasContent) {
+    isMobileStatusOpen.value = false
+    return
+  }
+
+  if (syncing) {
+    isMobileStatusOpen.value = true
+  }
+}, { immediate: true })
+
 function handleSync() {
   increase.value = true
+  runChatIds.value = [...selectedChats.value]
+  runCompletedMessages.value = 0
   bridge.sendEvent(CoreEventType.TakeoutRun, {
     chatIds: selectedChats.value.map(id => id.toString()),
     increase: true,
@@ -324,6 +515,8 @@ function handleSync() {
 
 function handleResync() {
   increase.value = false
+  runChatIds.value = [...selectedChats.value]
+  runCompletedMessages.value = 0
   bridge.sendEvent(CoreEventType.TakeoutRun, {
     chatIds: selectedChats.value.map(id => id.toString()),
     increase: false,
@@ -333,24 +526,9 @@ function handleResync() {
   NProgress.start()
 }
 
-function handleAbort() {
-  if (currentTask.value) {
-    bridge.sendEvent(CoreEventType.TakeoutTaskAbort, {
-      taskId: currentTask.value.taskId,
-    })
-  }
-  else {
-    toast.error(t('sync.noInProgressTask'))
-  }
-}
-
 function handleTakeoutConfirm(useTakeout: boolean) {
   takeoutConfirmNeeded.value = false
   bridge.sendEvent(CoreEventType.TakeoutConfirmResponse, { useTakeout })
-}
-
-function dismissCurrentTask() {
-  syncTaskStore.currentTask = undefined
 }
 
 watch(currentTaskProgress, (progress) => {
@@ -376,19 +554,36 @@ watch(currentTaskProgress, (progress) => {
   }
 })
 
-// Fetch stats when active chat changes
-watch(activeChatId, (chatId) => {
+// Fetch stats for visualization target.
+watch(visualizationChatId, (chatId) => {
   if (!chatId) {
+    chatStatsFocusedChatId.value = null
     chatStats.value = undefined
     chatStatsLoading.value = false
     return
   }
 
+  chatStatsFocusedChatId.value = String(chatId)
   chatStatsLoading.value = true
   bridge.sendEvent(CoreEventType.TakeoutStatsFetch, {
     chatId: chatId.toString(),
   })
 })
+
+// Prefetch selected chats stats silently so aggregate totals can use real totals.
+watch(
+  selectedChats,
+  (chatIds) => {
+    for (const chatId of chatIds) {
+      const key = String(chatId)
+      if (chatStatsByChatId.value[key]?.totalMessages != null) {
+        continue
+      }
+      bridge.sendEvent(CoreEventType.TakeoutStatsFetch, { chatId: key })
+    }
+  },
+  { immediate: true },
+)
 
 function startSync() {
   isSyncOptionsDialogOpen.value = false
@@ -400,19 +595,19 @@ function startSync() {
   <div class="h-full flex flex-col bg-background">
     <!-- Header: Hidden on mobile to save space, actions moved to bottom sheet or other menu if needed -->
     <!-- Or simplified for mobile -->
-    <header class="h-14 flex items-center justify-between border-b bg-card/50 px-4 py-0 backdrop-blur-sm md:h-16 md:px-6">
+    <header class="h-14 flex items-center justify-between gap-3 border-b bg-card/50 px-4 py-0 backdrop-blur-sm md:h-16 md:px-6">
       <div class="flex items-center gap-3">
         <h1 class="text-lg font-semibold">
           {{ t('sync.sync') }}
         </h1>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="no-scrollbar min-w-0 flex items-center justify-end gap-2 overflow-x-auto md:w-auto md:justify-start md:overflow-visible">
         <Button
           icon="i-lucide-refresh-cw"
           variant="outline"
           size="sm"
-          class="h-8 rounded-full px-3 text-xs md:h-9"
+          class="h-9 shrink-0 rounded-full px-3 text-xs md:h-9"
           :disabled="isButtonDisabled"
           @click="handleSync"
         >
@@ -422,7 +617,7 @@ function startSync() {
           icon="i-lucide-rotate-ccw"
           variant="outline"
           size="sm"
-          class="h-8 rounded-full px-3 text-xs md:h-9"
+          class="h-9 shrink-0 rounded-full px-3 text-xs md:h-9"
           :disabled="isButtonDisabled"
           @click="handleResync"
         >
@@ -431,11 +626,11 @@ function startSync() {
         <Button
           variant="outline"
           size="sm"
-          class="h-8 w-8 rounded-full px-0 md:h-9 md:w-auto md:px-3"
+          class="h-9 shrink-0 rounded-full px-3 text-xs md:h-9 md:w-auto"
           @click="isSyncOptionsDialogOpen = true"
         >
-          <span class="i-lucide-sliders-horizontal h-4 w-4 md:mr-2" />
-          <span class="hidden md:inline">{{ t('sync.syncOptions') }}</span>
+          <span class="i-lucide-sliders-horizontal mr-2 h-4 w-4" />
+          <span>{{ t('sync.syncOptions') }}</span>
         </Button>
       </div>
     </header>
@@ -444,7 +639,7 @@ function startSync() {
       <!-- Main Content: Chat Selector -->
       <div class="min-w-0 flex flex-1 flex-col">
         <!-- Chat List Area -->
-        <div class="min-h-0 flex-1 p-4">
+        <div class="min-h-0 flex-1 p-3 md:p-4">
           <ChatSelector
             v-model:selected-chats="selectedChats"
             v-model:active-chat-id="activeChatId"
@@ -453,7 +648,18 @@ function startSync() {
             class="h-full"
           >
             <template #actions>
-              <div />
+              <Button
+                v-if="hasMobileStatusContent"
+                variant="outline"
+                size="sm"
+                class="h-8 rounded-full px-3 text-xs md:hidden"
+                @click="isMobileStatusOpen = true"
+              >
+                <span class="i-lucide-panel-bottom mr-2 h-3.5 w-3.5" />
+                {{ t('sync.showStats') }}
+              </Button>
+
+              <div v-else />
 
               <!-- Right side: Selection & Stats -->
               <div class="flex items-center gap-2">
@@ -481,7 +687,7 @@ function startSync() {
           </ChatSelector>
         </div>
 
-        <div v-if="!isBottomPanelOpen" class="flex justify-end px-4 pb-3">
+        <div v-if="!isBottomPanelOpen" class="justify-end px-3 pb-3 hidden md:flex md:px-4">
           <Button
             variant="ghost"
             size="icon"
@@ -496,56 +702,77 @@ function startSync() {
 
       <!-- Bottom Panel: Status & Info -->
       <div
-        class="shrink-0 overflow-hidden border-t bg-background/95 backdrop-blur-sm transition-all duration-300 ease-in-out"
+        class="shrink-0 overflow-hidden border-t bg-background/95 backdrop-blur-sm transition-all duration-300 ease-in-out hidden md:block"
         :class="[
-          isBottomPanelOpen ? 'max-h-[70vh] overflow-y-auto overscroll-contain opacity-100 md:max-h-[22rem]' : 'max-h-0 opacity-0',
+          isBottomPanelOpen ? 'max-h-[58vh] opacity-100 md:max-h-[24rem]' : 'max-h-0 opacity-0',
         ]"
       >
-        <div class="min-h-0 flex flex-col gap-3 p-3 md:flex-row md:items-stretch">
-          <!-- Active Task Status -->
-          <SyncTaskStatusCard
-            v-if="shouldShowTaskStatus"
-            :eta-message="etaMessage"
-            :error-message="errorMessage"
-            :has-error="!!currentTask?.lastError"
-            :progress="currentTaskProgress"
-            :status-message="localizedTaskMessage"
-            @abort="handleAbort"
-            @dismiss="dismissCurrentTask"
-          />
-
-          <!-- Sync Visualization (Stats) -->
-          <div class="min-w-0 flex-1 border rounded-2xl bg-card/70 p-3.5 shadow-sm">
-            <div class="mb-3 flex justify-end">
-              <Button
-                variant="ghost"
-                size="icon"
-                class="h-8 w-8 text-muted-foreground"
-                :title="t('sync.hideStats')"
-                @click="isBottomPanelOpen = false"
-              >
-                <span class="i-lucide-x h-4 w-4" />
-              </Button>
-            </div>
-
-            <div v-if="activeChat" class="space-y-3">
-              <SyncVisualization
-                :stats="chatStats"
-                :loading="chatStatsLoading"
-                :chat-label="activeChat.name || ''"
-                class="w-full"
+        <div class="max-h-[58vh] overflow-y-auto px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 md:max-h-none md:overflow-visible md:pb-3">
+          <div>
+            <div
+              class="grid min-h-0 gap-0"
+              :class="shouldShowTaskStatus || shouldShowSelectionSummary
+                ? 'md:grid-cols-[336px_minmax(0,1fr)]'
+                : 'grid-cols-1'"
+            >
+              <SyncSelectedSummaryPanel
+                v-if="shouldShowTaskStatus || shouldShowSelectionSummary"
+                :label="t('sync.selectedChatsLabel')"
+                :title="summarySelectionTitle"
+                :progress="summaryProgress"
+                :total-count="summaryTotalCount"
+                :synced-count="summarySyncedCount"
+                :unsynced-count="summaryUnsyncedCount"
+                :has-error="summaryHasError"
               />
-            </div>
 
-            <div v-else class="flex items-center gap-3 py-6 text-muted-foreground/60">
-              <span class="i-lucide-bar-chart-2 h-8 w-8 opacity-40" />
-              <p class="text-sm">
-                {{ t('sync.selectChatToViewStats') }}
-              </p>
+              <div class="min-w-0 p-3 pt-3 md:p-4 md:pt-3">
+                <div v-if="visualizationChat" class="space-y-3">
+                  <SyncVisualization
+                    :stats="chatStats"
+                    :loading="chatStatsLoading"
+                    :chat-label="visualizationChat.name || ''"
+                    :show-close="true"
+                    class="w-full"
+                    @close="isBottomPanelOpen = false"
+                  />
+                </div>
+
+                <div v-else class="flex items-center gap-3 py-8 text-muted-foreground/60">
+                  <span class="i-lucide-bar-chart-2 h-8 w-8 opacity-40" />
+                  <p class="text-sm">
+                    {{ t('sync.selectChatToViewStats') }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <MobileSyncStatsDrawer
+        v-if="hasMobileStatusContent"
+        v-model:open="isMobileStatusOpen"
+        v-model:selected-tab="mobileStatusTab"
+        :has-selected-status-panel="hasSelectedStatusPanel"
+        :has-current-status-panel="hasCurrentStatusPanel"
+        :selected-label="t('sync.selectedChatsLabel')"
+        :current-label="t('sync.currentChatLabel')"
+        :selected-title="summarySelectionTitle"
+        :selected-progress="summaryProgress"
+        :selected-total-count="summaryTotalCount"
+        :selected-synced-count="summarySyncedCount"
+        :selected-unsynced-count="summaryUnsyncedCount"
+        :selected-has-error="summaryHasError"
+        :current-title="t('sync.syncVisualization')"
+        :current-subtitle="visualizationChat?.name || ''"
+        :current-progress="currentChatProgress"
+        :current-total-count="currentChatTotalCount"
+        :current-synced-count="currentChatSyncedCount"
+        :current-unsynced-count="currentChatUnsyncedCount"
+        :current-loading="chatStatsLoading && !chatStats"
+        class="md:hidden"
+      />
     </div>
 
     <!-- Sync Options Dialog -->
