@@ -25,7 +25,6 @@ export function registerTakeoutEventHandlers(
     if (store.chatStatsFocusedChatId === data.chatId) {
       store.chatStats = data
       store.chatStatsLoading = false
-      store.initialSyncedMessages = data.syncedMessages
     }
   })
 
@@ -40,7 +39,8 @@ export function registerTakeoutEventHandlers(
         return
       }
 
-      const syncedMessages = store.initialSyncedMessages + data.processedCount
+      const initialSyncedMessages = store.currentTask.metadata.initialSyncedMessages ?? currentStats.syncedMessages
+      const syncedMessages = initialSyncedMessages + data.processedCount
       const totalMessages = data.totalCount > 0 ? data.totalCount : currentStats.totalMessages
       const nextStats = {
         ...currentStats,

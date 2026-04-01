@@ -250,7 +250,7 @@ const isButtonDisabled = computed(() => {
 })
 
 const syncScopeChatIds = computed(() => {
-  if (isTaskInProgress.value && runChatIds.value.length > 0) {
+  if (shouldShowTaskStatus.value && runChatIds.value.length > 0) {
     return runChatIds.value
   }
   return selectedChats.value
@@ -533,6 +533,17 @@ function handleAbort() {
   }
 }
 
+function handleCloseStatusPanel() {
+  isBottomPanelOpen.value = false
+  isMobileStatusOpen.value = false
+
+  if (!isTaskInProgress.value && currentTask.value?.lastError) {
+    currentTask.value = undefined
+    runChatIds.value = []
+    runCompletedMessages.value = 0
+  }
+}
+
 watch(currentTaskProgress, (progress) => {
   if (progress === 100) {
     toast.success(t('sync.syncCompleted'))
@@ -739,7 +750,7 @@ function startSync() {
                     :show-close="true"
                     class="w-full"
                     @abort="handleAbort"
-                    @close="isBottomPanelOpen = false"
+                    @close="handleCloseStatusPanel"
                   />
                 </div>
 
@@ -777,6 +788,7 @@ function startSync() {
         :current-unsynced-count="currentChatUnsyncedCount"
         :current-loading="chatStatsLoading && !chatStats"
         class="md:hidden"
+        @close="handleCloseStatusPanel"
       />
     </div>
 

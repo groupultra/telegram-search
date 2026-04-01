@@ -30,10 +30,12 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:open': [value: boolean]
   'update:selectedTab': [value: 'selected' | 'current']
+  'close': []
 }>()
 
 function closeDrawer() {
   emit('update:open', false)
+  emit('close')
 }
 </script>
 

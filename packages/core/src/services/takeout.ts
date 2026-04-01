@@ -34,6 +34,7 @@ export function createTakeoutService(
 
   // Store active tasks by taskId for abort handling
   const activeTasks = new Map<string, ReturnType<typeof createTask>>()
+  const runAbortControllersByTaskId = new Map<string, AbortController>()
 
   // Abortable min-interval waiter shared within this service
   const waitHistoryInterval = createMinIntervalWaiter(TELEGRAM_HISTORY_INTERVAL_MS)
@@ -588,8 +589,13 @@ export function createTakeoutService(
     }
 
     ctx.metrics?.takeoutRunTotal.inc()
+    const runAbortController = new AbortController()
 
     for (const chatId of chatIds) {
+      if (runAbortController.signal.aborted) {
+        break
+      }
+
       await withSpan('takeout:chat', async () => {
         const chatStart = performance.now()
         const stats = (await chatMessageStatsModels.getChatMessageStatsByChatId(ctx.getDB(), ctx.getCurrentAccountId(), chatId))?.unwrap()
@@ -597,8 +603,13 @@ export function createTakeoutService(
 
         logger.withFields({ chatId, totalCount, hasStats: !!stats }).log('Starting takeout for chat')
 
-        const task = createTask('takeout', { chatIds: [chatId], totalMessages: totalCount }, ctx.emitter, logger)
+        const task = createTask('takeout', {
+          chatIds: [chatId],
+          totalMessages: totalCount,
+          initialSyncedMessages: stats?.message_count ?? 0,
+        }, ctx.emitter, logger)
         activeTasks.set(task.state.taskId, task)
+        runAbortControllersByTaskId.set(task.state.taskId, runAbortController)
 
         try {
           const updateProgress = (count: number, expected: number) => {
@@ -681,14 +692,20 @@ export function createTakeoutService(
         }
         finally {
           activeTasks.delete(task.state.taskId)
+          runAbortControllersByTaskId.delete(task.state.taskId)
           ctx.metrics?.takeoutChatDurationMs.observe({ chatId }, performance.now() - chatStart)
         }
       }, { chatId })
+
+      if (runAbortController.signal.aborted) {
+        break
+      }
     }
   }
 
   function abortTask(taskId: string) {
     logger.withFields({ taskId }).verbose('Aborting takeout task')
+    runAbortControllersByTaskId.get(taskId)?.abort()
     const task = activeTasks.get(taskId)
     if (task) {
       task.abort()

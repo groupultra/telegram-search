@@ -712,4 +712,152 @@ describe('takeout service', () => {
     expect(task.updateError).not.toHaveBeenCalled()
     expect(task.updateProgress).toHaveBeenCalledWith(100)
   })
+
+  it('runTakeout should include the initial synced count in takeout task metadata', async () => {
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockReset()
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockResolvedValue({
+      unwrap: () => ({
+        message_count: 123,
+        first_message_id: 1,
+        latest_message_id: 123,
+      }),
+    })
+
+    const client = {
+      getInputEntity: vi.fn(async (_chatId: string) => ({})),
+      invoke: vi.fn(async (query: any) => {
+        if (query instanceof Api.messages.GetHistory) {
+          return { count: 200, messages: [] }
+        }
+
+        if (query instanceof Api.account.InitTakeoutSession) {
+          return { id: bigInt(1) }
+        }
+
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
+
+        if (query instanceof Api.InvokeWithTakeout) {
+          const rangeWrapper = query.query
+          if (rangeWrapper instanceof Api.InvokeWithMessagesRange) {
+            const inner = rangeWrapper.query
+            if (inner instanceof Api.messages.GetHistory) {
+              return { messages: [] }
+            }
+          }
+
+          if (rangeWrapper instanceof Api.account.FinishTakeoutSession) {
+            return {}
+          }
+        }
+
+        throw new Error('unexpected query')
+      }),
+    }
+
+    const { ctx } = createMockCtx(client)
+    let firstProgressPayload: any
+
+    ctx.emitter.on(CoreEventType.TakeoutConfirmNeeded, () => {
+      queueMicrotask(() => {
+        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { useTakeout: true })
+      })
+    })
+
+    ctx.emitter.on(CoreEventType.TakeoutTaskProgress, (data) => {
+      firstProgressPayload ??= data
+    })
+
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+
+    await service.runTakeout({
+      chatIds: ['123'],
+      increase: true,
+      syncOptions: {},
+    })
+
+    expect(firstProgressPayload?.metadata.initialSyncedMessages).toBe(123)
+  })
+
+  it('runTakeout should stop the remaining chats after aborting the current task', async () => {
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockReset()
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockImplementation(async (_db: any, _accountId: any, chatId: string) => ({
+      unwrap: () => ({
+        message_count: 0,
+        first_message_id: 0,
+        latest_message_id: 0,
+        chatId,
+      }),
+    }))
+
+    const client = {
+      getInputEntity: vi.fn(async (_chatId: string) => ({})),
+      invoke: vi.fn(async (query: any) => {
+        if (query instanceof Api.messages.GetHistory) {
+          return { count: 1, messages: [] }
+        }
+
+        if (query instanceof Api.account.InitTakeoutSession) {
+          return { id: bigInt(1) }
+        }
+
+        if (query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
+
+        if (query instanceof Api.InvokeWithTakeout) {
+          const rangeWrapper = query.query
+          if (rangeWrapper instanceof Api.InvokeWithMessagesRange) {
+            const inner = rangeWrapper.query
+            if (inner instanceof Api.messages.GetHistory) {
+              if (inner.offsetId === 0) {
+                return { messages: [{ id: 1 }] }
+              }
+              return { messages: [] }
+            }
+          }
+
+          if (rangeWrapper instanceof Api.account.FinishTakeoutSession) {
+            return {}
+          }
+        }
+
+        throw new Error('unexpected query')
+      }),
+    }
+
+    const { ctx } = createMockCtx(client)
+    let service: ReturnType<typeof createTakeoutService>
+
+    ctx.emitter.on(CoreEventType.TakeoutConfirmNeeded, () => {
+      queueMicrotask(() => {
+        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { useTakeout: true })
+      })
+    })
+
+    ctx.emitter.on(CoreEventType.TakeoutTaskProgress, (data) => {
+      if (data.metadata.chatIds[0] === 'chat-1' && data.progress >= 0) {
+        service.abortTask(data.taskId)
+      }
+    })
+
+    ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, batchId }) => {
+      ctx.emitter.emit(CoreEventType.MessageProcessed, {
+        batchId: batchId ?? 'batch-id',
+        count: messages.length,
+        resolverSpans: [],
+      })
+    })
+
+    service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+
+    await service.runTakeout({
+      chatIds: ['chat-1', 'chat-2'],
+      increase: false,
+      syncOptions: {},
+    })
+
+    expect(mockChatMessageStatsModels.getChatMessageStatsByChatId.mock.calls.map((call: any[]) => call[2])).toEqual(['chat-1'])
+  })
 })
