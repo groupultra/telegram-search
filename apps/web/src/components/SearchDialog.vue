@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { SearchMode, SearchScope } from '../utils/search-dialog'
-
 import { useDebounce, useMediaQuery } from '@vueuse/core'
 import {
   DrawerRoot as Drawer,
@@ -8,7 +6,7 @@ import {
   DrawerOverlay,
   DrawerPortal,
 } from 'vaul-vue'
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -16,6 +14,7 @@ import MessageList from './messages/MessageList.vue'
 import PhotoSearchResults from './PhotoSearchResults.vue'
 
 import { useSearchDialogResults } from '../composables/use-search-dialog-results'
+import { useSearchDialogState } from '../composables/use-search-dialog-state'
 import {
   createSearchDialogCommands,
   createSearchModes,
@@ -34,12 +33,15 @@ const isMobile = useMediaQuery('(max-width: 768px)')
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
-const keyword = ref('')
-const keywordDebounced = useDebounce(keyword, 1000)
-
-const activeMode = ref<SearchMode>('all')
-const searchScope = ref<SearchScope>('all')
+const cacheKey = computed(() => props.chatId ? `chat:${props.chatId}` : 'global')
 const hasCurrentChatScope = computed(() => !!props.chatId)
+
+const {
+  activeMode,
+  keyword,
+  searchScope,
+} = useSearchDialogState(cacheKey, hasCurrentChatScope)
+const keywordDebounced = useDebounce(keyword, 1000)
 
 const OPEN_AI_CHAT_EVENT = 'tg-search:open-ai-chat'
 
@@ -105,14 +107,6 @@ const {
   keywordDebounced,
   scopedChatId,
 })
-
-watch(
-  () => props.chatId,
-  (chatId) => {
-    searchScope.value = chatId ? 'current' : 'all'
-  },
-  { immediate: true },
-)
 </script>
 
 <template>

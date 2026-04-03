@@ -109,7 +109,7 @@ export function useSearchDialogResults({
         isLoading.value = false
       }
     })
-  })
+  }, { immediate: true })
 
   async function loadMoreMessages() {
     const currentKeyword = keywordDebounced.value.trim()
