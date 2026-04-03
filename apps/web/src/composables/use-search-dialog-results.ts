@@ -16,34 +16,100 @@ function createRequestId() {
 
 interface UseSearchDialogResultsOptions {
   activeMode: Ref<SearchMode>
+  cacheKey: Ref<string>
   keywordDebounced: Ref<string>
   scopedChatId: Ref<string | undefined>
 }
 
+interface SearchDialogResultsSnapshot {
+  messagesHasMore: boolean
+  photosHasMore: boolean
+  photoResult: CoreRetrievalPhoto[]
+  photosOffset: number
+  searchResult: CoreRetrievalMessages[]
+  messagesOffset: number
+}
+
+const searchDialogResultsCache = new Map<string, SearchDialogResultsSnapshot>()
+
+function createEmptySnapshot(): SearchDialogResultsSnapshot {
+  return {
+    searchResult: [],
+    photoResult: [],
+    messagesHasMore: false,
+    photosHasMore: false,
+    messagesOffset: 0,
+    photosOffset: 0,
+  }
+}
+
+function createResultsSnapshot(cacheKey: string): SearchDialogResultsSnapshot {
+  const cachedSnapshot = searchDialogResultsCache.get(cacheKey)
+  if (!cachedSnapshot) {
+    return createEmptySnapshot()
+  }
+
+  return {
+    searchResult: [...cachedSnapshot.searchResult],
+    photoResult: [...cachedSnapshot.photoResult],
+    messagesHasMore: cachedSnapshot.messagesHasMore,
+    photosHasMore: cachedSnapshot.photosHasMore,
+    messagesOffset: cachedSnapshot.messagesOffset,
+    photosOffset: cachedSnapshot.photosOffset,
+  }
+}
+
 export function useSearchDialogResults({
   activeMode,
+  cacheKey,
   keywordDebounced,
   scopedChatId,
 }: UseSearchDialogResultsOptions) {
   const bridge = useBridge()
   const logger = useLogger('composables:search-dialog')
 
+  const initialSnapshot = createResultsSnapshot(cacheKey.value)
+
   const isLoading = ref(false)
   const isLoadingMoreMessages = ref(false)
   const isLoadingMorePhotos = ref(false)
-  const messagesHasMore = ref(false)
-  const photosHasMore = ref(false)
-  const photoResult = ref<CoreRetrievalPhoto[]>([])
-  const searchResult = ref<CoreRetrievalMessages[]>([])
+  const messagesHasMore = ref(initialSnapshot.messagesHasMore)
+  const photosHasMore = ref(initialSnapshot.photosHasMore)
+  const photoResult = ref<CoreRetrievalPhoto[]>(initialSnapshot.photoResult)
+  const searchResult = ref<CoreRetrievalMessages[]>(initialSnapshot.searchResult)
 
-  let messagesOffset = 0
-  let photosOffset = 0
+  let messagesOffset = initialSnapshot.messagesOffset
+  let photosOffset = initialSnapshot.photosOffset
   let requestSeq = 0
 
   const hasResults = computed(() => searchResult.value.length > 0 || photoResult.value.length > 0)
   const shouldRunSearch = computed(() => keywordDebounced.value.trim().length > 0 && activeMode.value !== 'commands')
   const showMessagesPanel = computed(() => activeMode.value === 'all' || activeMode.value === 'messages')
   const showPhotosPanel = computed(() => activeMode.value === 'all' || activeMode.value === 'photos')
+
+  function persistSnapshot() {
+    searchDialogResultsCache.set(cacheKey.value, {
+      searchResult: [...searchResult.value],
+      photoResult: [...photoResult.value],
+      messagesHasMore: messagesHasMore.value,
+      photosHasMore: photosHasMore.value,
+      messagesOffset,
+      photosOffset,
+    })
+  }
+
+  watch(cacheKey, (nextCacheKey) => {
+    const nextSnapshot = createResultsSnapshot(nextCacheKey)
+    searchResult.value = nextSnapshot.searchResult
+    photoResult.value = nextSnapshot.photoResult
+    messagesHasMore.value = nextSnapshot.messagesHasMore
+    photosHasMore.value = nextSnapshot.photosHasMore
+    messagesOffset = nextSnapshot.messagesOffset
+    photosOffset = nextSnapshot.photosOffset
+    isLoading.value = false
+    isLoadingMoreMessages.value = false
+    isLoadingMorePhotos.value = false
+  }, { flush: 'sync' })
 
   watch([keywordDebounced, activeMode, scopedChatId], ([newKeyword, mode]) => {
     if (newKeyword.length === 0 || mode === 'commands') {
@@ -55,6 +121,7 @@ export function useSearchDialogResults({
       photosOffset = 0
       requestSeq += 1
       isLoading.value = false
+      persistSnapshot()
       return
     }
 
@@ -103,6 +170,7 @@ export function useSearchDialogResults({
       messagesOffset = messagesData.messages.length
       photosOffset = photosData.photos.length
       isLoading.value = false
+      persistSnapshot()
     }).catch((error) => {
       logger.withError(error).warn('Search request failed or timed out')
       if (currentRequest === requestSeq) {
@@ -141,6 +209,7 @@ export function useSearchDialogResults({
       searchResult.value = [...searchResult.value, ...result.messages]
       messagesHasMore.value = result.hasMore
       messagesOffset += result.messages.length
+      persistSnapshot()
     }
     finally {
       if (currentRequest === requestSeq) {
@@ -179,6 +248,7 @@ export function useSearchDialogResults({
       photoResult.value = [...photoResult.value, ...result.photos]
       photosHasMore.value = result.hasMore
       photosOffset += result.photos.length
+      persistSnapshot()
     }
     finally {
       if (currentRequest === requestSeq) {
@@ -202,4 +272,8 @@ export function useSearchDialogResults({
     showMessagesPanel,
     showPhotosPanel,
   }
+}
+
+export function resetSearchDialogResultsCache() {
+  searchDialogResultsCache.clear()
 }
