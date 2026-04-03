@@ -1,7 +1,7 @@
 import type { SearchMode } from '../../utils/search-dialog'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 
 import {
   resetSearchDialogResultsCache,
@@ -69,5 +69,97 @@ describe('useSearchDialogResults', () => {
 
     expect(restoredSearch.searchResult.value).toEqual(searchMessagesPayload.messages)
     expect(restoredSearch.photoResult.value).toEqual(searchPhotosPayload.photos)
+  })
+
+  it('ignores stale responses after switching cache keys without changing scope', async () => {
+    bridge.waitForEvent
+      .mockResolvedValueOnce({
+        messages: [{
+          uuid: 'message-new',
+          chatId: '2',
+          fromId: '456',
+          fromName: 'Yukie',
+          content: 'new chat result',
+          platformMessageId: '170320',
+          platformTimestamp: Date.now(),
+        }],
+        hasMore: false,
+      })
+      .mockResolvedValueOnce({
+        photos: [],
+        hasMore: false,
+      })
+
+    const cachedKeyword = ref('')
+    useSearchDialogResults({
+      activeMode: ref<SearchMode>('messages'),
+      cacheKey: ref('chat:2'),
+      keywordDebounced: cachedKeyword,
+      scopedChatId: ref(undefined),
+    })
+
+    cachedKeyword.value = 'device code'
+    await nextTick()
+    await vi.waitFor(() => {
+      expect(bridge.sendEvent).toHaveBeenCalled()
+    })
+
+    let resolveMessages: ((value: { messages: { uuid: string, chatId: string, fromId: string, fromName: string, content: string, platformMessageId: string, platformTimestamp: number }[], hasMore: boolean }) => void) | undefined
+    let resolvePhotos: ((value: { photos: never[], hasMore: boolean }) => void) | undefined
+
+    bridge.waitForEvent
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveMessages = resolve
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolvePhotos = resolve
+      }))
+
+    const cacheKey = ref('chat:1')
+    const keywordDebounced = ref('')
+    const search = useSearchDialogResults({
+      activeMode: ref<SearchMode>('messages'),
+      cacheKey,
+      keywordDebounced,
+      scopedChatId: ref(undefined),
+    })
+
+    keywordDebounced.value = 'device code'
+    await nextTick()
+
+    expect(resolveMessages).toBeTypeOf('function')
+    expect(resolvePhotos).toBeTypeOf('function')
+
+    cacheKey.value = 'chat:2'
+    await nextTick()
+    expect(search.searchResult.value).toEqual([expect.objectContaining({
+      uuid: 'message-new',
+      chatId: '2',
+    })])
+
+    resolveMessages?.({
+      messages: [{
+        uuid: 'message-old',
+        chatId: '1',
+        fromId: '123',
+        fromName: 'Old Chat',
+        content: 'stale result',
+        platformMessageId: '170319',
+        platformTimestamp: Date.now(),
+      }],
+      hasMore: false,
+    })
+    resolvePhotos?.({
+      photos: [],
+      hasMore: false,
+    })
+
+    await Promise.resolve()
+    await nextTick()
+
+    expect(search.searchResult.value).toEqual([expect.objectContaining({
+      uuid: 'message-new',
+      chatId: '2',
+    })])
   })
 })

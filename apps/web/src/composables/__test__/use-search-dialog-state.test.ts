@@ -36,4 +36,26 @@ describe('useSearchDialogState', () => {
     const restoredState = useSearchDialogState(computed(() => 'global'), ref(false))
     expect(restoredState.searchScope.value).toBe('all')
   })
+
+  it('defaults chat-scoped search to the current conversation when there is no cache', () => {
+    const state = useSearchDialogState(ref('chat:42'), ref(true))
+
+    expect(state.searchScope.value).toBe('current')
+  })
+
+  it('does not overwrite another cache entry when switching cache keys', () => {
+    useSearchDialogState(ref('chat:2'), ref(true)).keyword.value = 'saved for chat 2'
+
+    const cacheKey = ref('chat:1')
+    const hasCurrentChatScope = ref(true)
+    const state = useSearchDialogState(cacheKey, hasCurrentChatScope)
+    state.keyword.value = 'saved for chat 1'
+
+    cacheKey.value = 'chat:2'
+
+    expect(state.keyword.value).toBe('saved for chat 2')
+
+    const restoredChatTwoState = useSearchDialogState(ref('chat:2'), ref(true))
+    expect(restoredChatTwoState.keyword.value).toBe('saved for chat 2')
+  })
 })

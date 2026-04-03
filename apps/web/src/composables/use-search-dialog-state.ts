@@ -21,7 +21,10 @@ const searchDialogStateCache = new Map<string, SearchDialogStateSnapshot>()
 function createStateSnapshot(cacheKey: string, hasCurrentChatScope: boolean): SearchDialogStateSnapshot {
   const cachedState = searchDialogStateCache.get(cacheKey)
   if (!cachedState) {
-    return { ...DEFAULT_STATE }
+    return {
+      ...DEFAULT_STATE,
+      searchScope: hasCurrentChatScope ? 'current' : 'all',
+    }
   }
 
   return {
@@ -62,9 +65,9 @@ export function useSearchDialogState(cacheKey: Ref<string>, hasCurrentChatScope:
   }, { flush: 'sync' })
 
   watch(
-    [cacheKey, keyword, activeMode, searchScope, hasCurrentChatScope],
-    ([nextCacheKey, nextKeyword, nextActiveMode, nextSearchScope, nextHasCurrentChatScope]) => {
-      searchDialogStateCache.set(nextCacheKey, {
+    [keyword, activeMode, searchScope, hasCurrentChatScope],
+    ([nextKeyword, nextActiveMode, nextSearchScope, nextHasCurrentChatScope]) => {
+      searchDialogStateCache.set(cacheKey.value, {
         keyword: nextKeyword,
         activeMode: nextActiveMode,
         searchScope: nextHasCurrentChatScope ? nextSearchScope : 'all',

@@ -99,6 +99,7 @@ export function useSearchDialogResults({
   }
 
   watch(cacheKey, (nextCacheKey) => {
+    requestSeq += 1
     const nextSnapshot = createResultsSnapshot(nextCacheKey)
     searchResult.value = nextSnapshot.searchResult
     photoResult.value = nextSnapshot.photoResult
