@@ -104,6 +104,7 @@ const {
   showPhotosPanel,
 } = useSearchDialogResults({
   activeMode,
+  keyword,
   keywordDebounced,
   scopedChatId,
 })

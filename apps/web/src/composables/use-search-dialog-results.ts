@@ -16,12 +16,14 @@ function createRequestId() {
 
 interface UseSearchDialogResultsOptions {
   activeMode: Ref<SearchMode>
+  keyword: Ref<string>
   keywordDebounced: Ref<string>
   scopedChatId: Ref<string | undefined>
 }
 
 export function useSearchDialogResults({
   activeMode,
+  keyword,
   keywordDebounced,
   scopedChatId,
 }: UseSearchDialogResultsOptions) {
@@ -40,12 +42,18 @@ export function useSearchDialogResults({
   let photosOffset = 0
   let requestSeq = 0
 
+  const settledKeyword = computed(() => {
+    const currentKeyword = keyword.value.trim()
+    const debouncedKeyword = keywordDebounced.value.trim()
+
+    return currentKeyword === debouncedKeyword ? debouncedKeyword : ''
+  })
   const hasResults = computed(() => searchResult.value.length > 0 || photoResult.value.length > 0)
-  const shouldRunSearch = computed(() => keywordDebounced.value.trim().length > 0 && activeMode.value !== 'commands')
+  const shouldRunSearch = computed(() => settledKeyword.value.length > 0 && activeMode.value !== 'commands')
   const showMessagesPanel = computed(() => activeMode.value === 'all' || activeMode.value === 'messages')
   const showPhotosPanel = computed(() => activeMode.value === 'all' || activeMode.value === 'photos')
 
-  watch([keywordDebounced, activeMode, scopedChatId], ([newKeyword, mode]) => {
+  watch([settledKeyword, activeMode, scopedChatId], ([newKeyword, mode]) => {
     if (newKeyword.length === 0 || mode === 'commands') {
       searchResult.value = []
       photoResult.value = []
@@ -112,7 +120,7 @@ export function useSearchDialogResults({
   }, { immediate: true })
 
   async function loadMoreMessages() {
-    const currentKeyword = keywordDebounced.value.trim()
+    const currentKeyword = settledKeyword.value
     if (!currentKeyword || isLoadingMoreMessages.value || !messagesHasMore.value || activeMode.value === 'commands') {
       return
     }
@@ -150,7 +158,7 @@ export function useSearchDialogResults({
   }
 
   async function loadMorePhotos() {
-    const currentKeyword = keywordDebounced.value.trim()
+    const currentKeyword = settledKeyword.value
     if (!currentKeyword || isLoadingMorePhotos.value || !photosHasMore.value || activeMode.value === 'commands') {
       return
     }

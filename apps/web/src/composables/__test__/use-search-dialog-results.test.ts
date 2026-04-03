@@ -28,6 +28,7 @@ describe('useSearchDialogResults', () => {
 
     useSearchDialogResults({
       activeMode: ref<SearchMode>('messages'),
+      keyword: ref('device code'),
       keywordDebounced: ref('device code'),
       scopedChatId: ref('123'),
     })
@@ -36,6 +37,35 @@ describe('useSearchDialogResults', () => {
       expect(bridge.sendEvent).toHaveBeenCalledWith('storage:search:messages', expect.objectContaining({
         chatId: '123',
         content: 'device code',
+      }))
+    })
+  })
+
+  it('does not search a new chat with a stale debounced keyword', async () => {
+    bridge.waitForEvent
+      .mockResolvedValueOnce({ messages: [], hasMore: false })
+      .mockResolvedValueOnce({ photos: [], hasMore: false })
+
+    const keyword = ref('new chat keyword')
+    const keywordDebounced = ref('old chat keyword')
+
+    useSearchDialogResults({
+      activeMode: ref<SearchMode>('messages'),
+      keyword,
+      keywordDebounced,
+      scopedChatId: ref('456'),
+    })
+
+    await Promise.resolve()
+
+    expect(bridge.sendEvent).not.toHaveBeenCalled()
+
+    keywordDebounced.value = keyword.value
+
+    await vi.waitFor(() => {
+      expect(bridge.sendEvent).toHaveBeenCalledWith('storage:search:messages', expect.objectContaining({
+        chatId: '456',
+        content: 'new chat keyword',
       }))
     })
   })
