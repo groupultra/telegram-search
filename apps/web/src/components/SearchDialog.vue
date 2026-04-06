@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useDebounce, useMediaQuery } from '@vueuse/core'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onKeyStroke, useDebounce, useMediaQuery } from '@vueuse/core'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -103,18 +103,10 @@ const {
   scopedChatId,
 })
 
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && isOpen.value) {
+onKeyStroke('Escape', () => {
+  if (isOpen.value) {
     isOpen.value = false
   }
-}
-
-onMounted(() => {
-  document.addEventListener('keydown', onKeydown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', onKeydown)
 })
 
 // Focus the search input when the dialog opens
@@ -185,9 +177,7 @@ watch(isOpen, (open) => {
 
             <div
               v-if="hasCurrentChatScope"
-              :class="isMobile
-                ? 'flex items-center justify-end'
-                : ''"
+              :class="isMobile && 'flex items-center justify-end'"
             >
               <div
                 class="no-scrollbar inline-flex items-center gap-1 overflow-x-auto border border-border/60 rounded-xl bg-muted/30 p-1"
