@@ -2,7 +2,7 @@ import type { Ref } from 'vue'
 
 import type { SearchMode, SearchScope } from '../utils/search-dialog'
 
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 interface SearchDialogStateSnapshot {
   activeMode: SearchMode
@@ -39,7 +39,13 @@ export function useSearchDialogState(cacheKey: Ref<string>, hasCurrentChatScope:
 
   const keyword = ref(initialState.keyword)
   const activeMode = ref<SearchMode>(initialState.activeMode)
-  const searchScope = ref<SearchScope>(initialState.searchScope)
+  const _searchScope = ref<SearchScope>(initialState.searchScope)
+
+  // Guard: never allow 'current' scope when there is no current chat
+  const searchScope = computed<SearchScope>({
+    get: () => !hasCurrentChatScope.value && _searchScope.value === 'current' ? 'all' : _searchScope.value,
+    set: (v) => { _searchScope.value = v },
+  })
 
   watch(
     [cacheKey, hasCurrentChatScope],
@@ -47,22 +53,10 @@ export function useSearchDialogState(cacheKey: Ref<string>, hasCurrentChatScope:
       const nextState = createStateSnapshot(nextCacheKey, nextHasCurrentChatScope)
       keyword.value = nextState.keyword
       activeMode.value = nextState.activeMode
-      searchScope.value = nextState.searchScope
+      _searchScope.value = nextState.searchScope
     },
     { flush: 'sync' },
   )
-
-  watch(hasCurrentChatScope, (nextHasCurrentChatScope) => {
-    if (!nextHasCurrentChatScope && searchScope.value === 'current') {
-      searchScope.value = 'all'
-    }
-  }, { flush: 'sync' })
-
-  watch(searchScope, (nextSearchScope) => {
-    if (!hasCurrentChatScope.value && nextSearchScope === 'current') {
-      searchScope.value = 'all'
-    }
-  }, { flush: 'sync' })
 
   watch(
     [keyword, activeMode, searchScope, hasCurrentChatScope],

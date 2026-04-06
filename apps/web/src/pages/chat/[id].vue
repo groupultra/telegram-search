@@ -391,19 +391,10 @@ watch(
       </div>
     </div>
 
-    <Teleport to="body">
-      <SearchDialog
-        ref="searchDialogRef"
-        v-model:open="isGlobalSearchOpen"
-        :chat-id="id.toString()"
-      >
-        <template #settings>
-          <div class="flex items-center">
-            <input id="searchContent" type="checkbox" class="mr-1 border-border rounded">
-            <label for="searchContent" class="text-sm text-gray-900 dark:text-gray-100">{{ t('chat.searchContent') }}</label>
-          </div>
-        </template>
-      </SearchDialog>
-    </Teleport>
+    <SearchDialog
+      ref="searchDialogRef"
+      v-model:open="isGlobalSearchOpen"
+      :chat-id="id.toString()"
+    />
   </div>
 </template>

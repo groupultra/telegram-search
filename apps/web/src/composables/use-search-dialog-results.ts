@@ -42,6 +42,8 @@ export function useSearchDialogResults({
   let photosOffset = 0
   let requestSeq = 0
 
+  // Only trigger search when the debounced value has caught up with the current input,
+  // preventing stale keyword searches after chat switches restore a cached keyword.
   const settledKeyword = computed(() => {
     const currentKeyword = keyword.value.trim()
     const debouncedKeyword = keywordDebounced.value.trim()
