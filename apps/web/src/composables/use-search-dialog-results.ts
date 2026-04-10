@@ -166,6 +166,11 @@ export function useSearchDialogResults({
     }
     catch (error) {
       logger.withError(error).warn('Load more messages failed')
+      if (currentSeq === messagesSeq) {
+        // Stop claiming more data exists so the auto-load watcher in
+        // SearchDialog does not retry the same failing request forever.
+        messagesHasMore.value = false
+      }
     }
     finally {
       if (currentSeq === messagesSeq) {
@@ -207,6 +212,9 @@ export function useSearchDialogResults({
     }
     catch (error) {
       logger.withError(error).warn('Load more photos failed')
+      if (currentSeq === photosSeq) {
+        photosHasMore.value = false
+      }
     }
     finally {
       if (currentSeq === photosSeq) {
