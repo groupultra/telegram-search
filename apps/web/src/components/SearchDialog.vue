@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { DialogType } from '@tg-search/core/types'
+
+import { useChatStore } from '@tg-search/client'
 import { onKeyStroke, useDebounce, useMediaQuery } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -10,10 +13,20 @@ import PhotoSearchResults from './PhotoSearchResults.vue'
 import { useSearchDialogResults } from '../composables/use-search-dialog-results'
 import { useSearchDialogState } from '../composables/use-search-dialog-state'
 import {
+  createSearchChatTypeFilters,
   createSearchDialogCommands,
   createSearchModes,
   filterSearchDialogCommands,
+  matchesSearchChatTypeFilter,
 } from '../utils/search-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/DropdownMenu'
 import { Input } from './ui/Input'
 
 const props = defineProps<{
@@ -23,6 +36,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const router = useRouter()
 const isMobile = useMediaQuery('(max-width: 768px)')
+const chatStore = useChatStore()
 
 const isOpen = defineModel<boolean>('open', { required: true })
 const inputRef = ref<InstanceType<typeof Input> | null>(null)
@@ -32,6 +46,7 @@ const hasCurrentChatScope = computed(() => !!props.chatId)
 
 const {
   activeMode,
+  chatTypeFilter,
   keyword,
   searchScope,
 } = useSearchDialogState(cacheKey, hasCurrentChatScope)
@@ -40,6 +55,12 @@ const keywordDebounced = useDebounce(keyword, 1000)
 const OPEN_AI_CHAT_EVENT = 'tg-search:open-ai-chat'
 
 const activeModeMeta = computed(() => createSearchModes(t))
+const chatTypeFilterMeta = computed(() => createSearchChatTypeFilters(t))
+const activeChatTypeFilterMeta = computed(() => {
+  return chatTypeFilterMeta.value.find(item => item.key === chatTypeFilter.value)
+    ?? chatTypeFilterMeta.value[0]
+})
+const hasCustomChatTypeFilter = computed(() => chatTypeFilter.value !== 'all')
 
 const scopedCommandChatIds = computed(() => {
   return (searchScope.value === 'current' && props.chatId)
@@ -75,6 +96,26 @@ const filteredCommandItems = computed(() => {
   return filterSearchDialogCommands(commandItems.value, keywordDebounced.value)
 })
 
+function resolveMessageDialogType(message: { inChatType?: DialogType, chatId: string }): DialogType | undefined {
+  return message.inChatType ?? chatStore.getChat(message.chatId)?.type
+}
+
+function resolvePhotoDialogType(photo: { chatId?: string, chatType?: DialogType }): DialogType | undefined {
+  if (photo.chatType) {
+    return photo.chatType
+  }
+
+  if (!photo.chatId) {
+    return undefined
+  }
+
+  return chatStore.getChat(photo.chatId)?.type
+}
+
+function selectChatTypeFilter(nextFilter: typeof chatTypeFilter.value) {
+  chatTypeFilter.value = nextFilter
+}
+
 const scopedChatId = computed(() => {
   if (searchScope.value !== 'current') {
     return undefined
@@ -101,6 +142,50 @@ const {
   keyword,
   keywordDebounced,
   scopedChatId,
+})
+
+const filteredMessages = computed(() => {
+  return searchResult.value.filter(message =>
+    matchesSearchChatTypeFilter(chatTypeFilter.value, resolveMessageDialogType(message)),
+  )
+})
+
+const filteredPhotos = computed(() => {
+  return photoResult.value.filter(photo =>
+    matchesSearchChatTypeFilter(chatTypeFilter.value, resolvePhotoDialogType(photo)),
+  )
+})
+
+const hasFilteredResults = computed(() => {
+  return filteredMessages.value.length > 0 || filteredPhotos.value.length > 0
+})
+
+// True while the auto-load watcher is fetching more pages to satisfy the
+// current filter — used to show a spinner instead of a premature empty state.
+const isAutoLoadingForFilter = computed(() => {
+  if (!hasCustomChatTypeFilter.value || hasFilteredResults.value) {
+    return false
+  }
+
+  return (isLoadingMoreMessages.value && messagesHasMore.value)
+    || (isLoadingMorePhotos.value && photosHasMore.value)
+})
+
+// When the client-side filter hides all loaded results but the server has more
+// data, automatically fetch the next page so the user doesn't see a false
+// "no results" state.
+watch([filteredMessages, filteredPhotos, messagesHasMore, photosHasMore, isLoadingMoreMessages, isLoadingMorePhotos], () => {
+  if (isLoading.value || !hasCustomChatTypeFilter.value) {
+    return
+  }
+
+  if (showMessagesPanel.value && filteredMessages.value.length === 0 && messagesHasMore.value && !isLoadingMoreMessages.value) {
+    void loadMoreMessages()
+  }
+
+  if (showPhotosPanel.value && filteredPhotos.value.length === 0 && photosHasMore.value && !isLoadingMorePhotos.value) {
+    void loadMorePhotos()
+  }
 })
 
 onKeyStroke('Escape', () => {
@@ -219,19 +304,56 @@ watch(isOpen, (open) => {
         </div>
 
         <!-- Mode tabs -->
-        <div class="no-scrollbar flex items-center gap-1 overflow-x-auto border-b px-3 py-2">
-          <button
-            v-for="mode in activeModeMeta"
-            :key="mode.key"
-            class="h-8 inline-flex items-center gap-1.5 rounded-full px-3 text-xs transition-colors"
-            :class="activeMode === mode.key
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-            @click="activeMode = mode.key"
-          >
-            <span :class="mode.icon" class="h-3.5 w-3.5" />
-            <span>{{ mode.label }}</span>
-          </button>
+        <div class="border-b">
+          <div class="flex items-center justify-between gap-3 px-3 py-2">
+            <div class="no-scrollbar min-w-0 flex items-center gap-1 overflow-x-auto">
+              <button
+                v-for="mode in activeModeMeta"
+                :key="mode.key"
+                class="h-8 inline-flex items-center gap-1.5 border rounded-full px-3 text-xs transition-colors"
+                :class="activeMode === mode.key
+                  ? 'border-primary/20 bg-primary/10 text-primary'
+                  : 'border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground'"
+                @click="activeMode = mode.key"
+              >
+                <span :class="mode.icon" class="h-3.5 w-3.5" />
+                <span>{{ mode.label }}</span>
+              </button>
+            </div>
+
+            <DropdownMenu v-if="activeMode !== 'commands'">
+              <DropdownMenuTrigger as-child>
+                <button
+                  class="h-8 inline-flex shrink-0 items-center gap-2 border rounded-full px-3 text-xs transition-colors"
+                  :class="hasCustomChatTypeFilter
+                    ? 'border-primary/20 bg-primary/10 text-primary'
+                    : 'border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground'"
+                >
+                  <span class="i-lucide-filter h-3.5 w-3.5" />
+                  <span>{{ activeChatTypeFilterMeta?.label }}</span>
+                  <span class="i-lucide-chevron-down h-3.5 w-3.5 opacity-70" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="min-w-[220px] border-border/60 rounded-2xl bg-background/95 p-2 backdrop-blur-xl">
+                <DropdownMenuLabel class="px-2 py-1.5 text-xs text-muted-foreground">
+                  {{ t('searchDialog.filters') }}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator class="my-1" />
+                <DropdownMenuItem
+                  v-for="chatType in chatTypeFilterMeta"
+                  :key="chatType.key"
+                  class="flex items-center justify-between rounded-xl px-3 py-2"
+                  @select="selectChatTypeFilter(chatType.key)"
+                >
+                  <span>{{ chatType.label }}</span>
+                  <span
+                    v-if="chatTypeFilter === chatType.key"
+                    class="i-lucide-check h-4 w-4 text-primary"
+                  />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         <!-- Results area -->
@@ -282,17 +404,17 @@ watch(isOpen, (open) => {
                   <span class="text-base font-medium">{{ t('searchDialog.searching') }}</span>
                 </div>
               </template>
-              <template v-else-if="hasResults">
-                <div v-if="showMessagesPanel && searchResult.length > 0" class="h-full">
+              <template v-else-if="hasFilteredResults">
+                <div v-if="showMessagesPanel && filteredMessages.length > 0" class="h-full">
                   <div
                     v-if="activeMode === 'all'"
                     class="sticky top-0 z-10 border-b bg-background/80 px-4 py-2 text-xs text-muted-foreground backdrop-blur"
                     :class="!isMobile && 'md:px-6'"
                   >
-                    {{ t('searchDialog.messages') }} ({{ searchResult.length }}{{ messagesHasMore ? '+' : '' }})
+                    {{ t('searchDialog.messages') }} ({{ filteredMessages.length }}{{ messagesHasMore ? '+' : '' }})
                   </div>
                   <MessageList
-                    :messages="searchResult"
+                    :messages="filteredMessages"
                     :keyword="keyword"
                     :has-more="messagesHasMore"
                     :is-loading-more="isLoadingMoreMessages"
@@ -300,20 +422,36 @@ watch(isOpen, (open) => {
                   />
                 </div>
 
-                <div v-if="showPhotosPanel && photoResult.length > 0" class="h-full">
+                <div v-if="showPhotosPanel && filteredPhotos.length > 0" class="h-full">
                   <div
                     v-if="activeMode === 'all'"
                     class="sticky top-0 z-10 border-b bg-background/80 px-4 py-2 text-xs text-muted-foreground backdrop-blur"
                     :class="!isMobile && 'md:px-6'"
                   >
-                    {{ t('searchDialog.photos') }} ({{ photoResult.length }}{{ photosHasMore ? '+' : '' }})
+                    {{ t('searchDialog.photos') }} ({{ filteredPhotos.length }}{{ photosHasMore ? '+' : '' }})
                   </div>
                   <PhotoSearchResults
-                    :photos="photoResult"
+                    :photos="filteredPhotos"
                     :has-more="photosHasMore"
                     :is-loading-more="isLoadingMorePhotos"
                     @load-more="loadMorePhotos"
                   />
+                </div>
+              </template>
+              <template v-else-if="isAutoLoadingForFilter">
+                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <div class="relative mb-4">
+                    <span class="i-lucide-loader-circle animate-spin text-5xl text-primary" />
+                  </div>
+                  <span class="text-base font-medium">{{ t('searchDialog.searching') }}</span>
+                </div>
+              </template>
+              <template v-else-if="hasResults && hasCustomChatTypeFilter">
+                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <div class="relative mb-4">
+                    <span class="i-lucide-filter-x text-5xl text-muted" />
+                  </div>
+                  <span class="text-base font-medium">{{ t('searchDialog.noFilteredResults') }}</span>
                 </div>
               </template>
               <template v-else>

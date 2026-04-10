@@ -4,6 +4,7 @@
 import type { Buffer } from 'buffer'
 
 import type { CoreDB } from '../db'
+import type { JoinedChatType } from '../schemas/joined-chats'
 import type { CoreMessageMediaPhoto } from '../types/media'
 import type { PromiseResult } from '../utils/result'
 import type { DBInsertPhoto, DBSelectPhoto } from './utils/types'
@@ -188,7 +189,13 @@ async function searchPhotosByVector(
   dimension: 768 | 1024 | 1536,
   limit: number = 10,
   minSimilarity: number = 0.2,
-): PromiseResult<Array<DBSelectPhoto & { similarity: number, chat_id?: string, chat_name?: string, platform_message_id?: string }>> {
+): PromiseResult<Array<DBSelectPhoto & {
+  similarity: number
+  chat_id?: string
+  chat_name?: string
+  chat_type?: JoinedChatType
+  platform_message_id?: string
+}>> {
   return withResult(async () => {
     const vectorColumn = dimension === 1536
       ? photosTable.description_vector_1536
@@ -220,6 +227,7 @@ async function searchPhotosByVector(
         // Message and chat info
         chat_id: chatMessagesTable.in_chat_id,
         chat_name: joinedChatsTable.chat_name,
+        chat_type: joinedChatsTable.chat_type,
         platform_message_id: chatMessagesTable.platform_message_id,
       })
       .from(photosTable)
@@ -233,7 +241,13 @@ async function searchPhotosByVector(
       .orderBy(cosineDistance(vectorColumn, embedding))
       .limit(limit)
 
-    return results as Array<DBSelectPhoto & { similarity: number, chat_id?: string, chat_name?: string, platform_message_id?: string }>
+    return results as Array<DBSelectPhoto & {
+      similarity: number
+      chat_id?: string
+      chat_name?: string
+      chat_type?: JoinedChatType
+      platform_message_id?: string
+    }>
   })
 }
 
@@ -245,7 +259,12 @@ async function searchPhotosByText(
   db: CoreDB,
   searchText: string,
   limit: number = 10,
-): PromiseResult<Array<DBSelectPhoto & { chat_id?: string, chat_name?: string, platform_message_id?: string }>> {
+): PromiseResult<Array<DBSelectPhoto & {
+  chat_id?: string
+  chat_name?: string
+  chat_type?: JoinedChatType
+  platform_message_id?: string
+}>> {
   return withResult(async () => {
     const results = await db
       .select({
@@ -270,6 +289,7 @@ async function searchPhotosByText(
         // Message and chat info
         chat_id: chatMessagesTable.in_chat_id,
         chat_name: joinedChatsTable.chat_name,
+        chat_type: joinedChatsTable.chat_type,
         platform_message_id: chatMessagesTable.platform_message_id,
       })
       .from(photosTable)
@@ -282,7 +302,12 @@ async function searchPhotosByText(
       .orderBy(photosTable.created_at)
       .limit(limit)
 
-    return results as Array<DBSelectPhoto & { chat_id?: string, chat_name?: string, platform_message_id?: string }>
+    return results as Array<DBSelectPhoto & {
+      chat_id?: string
+      chat_name?: string
+      chat_type?: JoinedChatType
+      platform_message_id?: string
+    }>
   })
 }
 

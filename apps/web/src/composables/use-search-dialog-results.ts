@@ -40,7 +40,11 @@ export function useSearchDialogResults({
 
   let messagesOffset = 0
   let photosOffset = 0
-  let requestSeq = 0
+  // Separate sequence counters so that message and photo pagination don't
+  // invalidate each other. A new keyword search bumps both to discard any
+  // in-flight load-more requests.
+  let messagesSeq = 0
+  let photosSeq = 0
 
   // Only trigger search when the debounced value has caught up with the current input,
   // preventing stale keyword searches after chat switches restore a cached keyword.
@@ -56,6 +60,14 @@ export function useSearchDialogResults({
   const showPhotosPanel = computed(() => activeMode.value === 'all' || activeMode.value === 'photos')
 
   watch([settledKeyword, activeMode, scopedChatId], ([newKeyword, mode]) => {
+    // Bump sequence counters first so any in-flight load-more requests
+    // become stale, then forcibly clear their loading flags so they can't
+    // block future pagination.
+    messagesSeq += 1
+    photosSeq += 1
+    isLoadingMoreMessages.value = false
+    isLoadingMorePhotos.value = false
+
     if (newKeyword.length === 0 || mode === 'commands') {
       searchResult.value = []
       photoResult.value = []
@@ -63,12 +75,12 @@ export function useSearchDialogResults({
       photosHasMore.value = false
       messagesOffset = 0
       photosOffset = 0
-      requestSeq += 1
       isLoading.value = false
       return
     }
 
-    const currentRequest = ++requestSeq
+    const currentMsgSeq = messagesSeq
+    const currentPhotoSeq = photosSeq
     isLoading.value = true
     messagesOffset = 0
     photosOffset = 0
@@ -102,7 +114,7 @@ export function useSearchDialogResults({
       waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageSearchMessagesData, data => data.requestId === messageRequestId)),
       waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageSearchPhotosData, data => data.requestId === photoRequestId)),
     ]).then(([messagesData, photosData]) => {
-      if (currentRequest !== requestSeq) {
+      if (currentMsgSeq !== messagesSeq || currentPhotoSeq !== photosSeq) {
         return
       }
 
@@ -115,7 +127,7 @@ export function useSearchDialogResults({
       isLoading.value = false
     }).catch((error) => {
       logger.withError(error).warn('Search request failed or timed out')
-      if (currentRequest === requestSeq) {
+      if (currentMsgSeq === messagesSeq && currentPhotoSeq === photosSeq) {
         isLoading.value = false
       }
     })
@@ -127,7 +139,7 @@ export function useSearchDialogResults({
       return
     }
 
-    const currentRequest = ++requestSeq
+    const currentSeq = ++messagesSeq
     isLoadingMoreMessages.value = true
     const requestId = createRequestId()
 
@@ -144,7 +156,7 @@ export function useSearchDialogResults({
 
     try {
       const result = await waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageSearchMessagesData, data => data.requestId === requestId))
-      if (currentRequest !== requestSeq) {
+      if (currentSeq !== messagesSeq) {
         return
       }
 
@@ -153,7 +165,7 @@ export function useSearchDialogResults({
       messagesOffset += result.messages.length
     }
     finally {
-      if (currentRequest === requestSeq) {
+      if (currentSeq === messagesSeq) {
         isLoadingMoreMessages.value = false
       }
     }
@@ -165,7 +177,7 @@ export function useSearchDialogResults({
       return
     }
 
-    const currentRequest = ++requestSeq
+    const currentSeq = ++photosSeq
     isLoadingMorePhotos.value = true
     const requestId = createRequestId()
 
@@ -182,7 +194,7 @@ export function useSearchDialogResults({
 
     try {
       const result = await waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageSearchPhotosData, data => data.requestId === requestId))
-      if (currentRequest !== requestSeq) {
+      if (currentSeq !== photosSeq) {
         return
       }
 
@@ -191,7 +203,7 @@ export function useSearchDialogResults({
       photosOffset += result.photos.length
     }
     finally {
-      if (currentRequest === requestSeq) {
+      if (currentSeq === photosSeq) {
         isLoadingMorePhotos.value = false
       }
     }

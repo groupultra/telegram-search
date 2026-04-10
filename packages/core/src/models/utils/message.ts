@@ -96,5 +96,6 @@ export function convertToCoreRetrievalMessages(messages: DBRetrievalMessages[]):
     timeRelevance: message?.time_relevance,
     combinedScore: message?.combined_score,
     chatName: message?.chat_name ?? undefined,
+    inChatType: message?.in_chat_type,
   })) satisfies CoreRetrievalMessages[]
 }

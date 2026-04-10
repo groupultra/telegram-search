@@ -15,12 +15,14 @@ describe('useSearchDialogState', () => {
     const firstState = useSearchDialogState(cacheKey, hasCurrentChatScope)
     firstState.keyword.value = 'device code'
     firstState.activeMode.value = 'messages'
+    firstState.chatTypeFilter.value = 'bot'
     firstState.searchScope.value = 'current'
 
     const secondState = useSearchDialogState(cacheKey, hasCurrentChatScope)
 
     expect(secondState.keyword.value).toBe('device code')
     expect(secondState.activeMode.value).toBe('messages')
+    expect(secondState.chatTypeFilter.value).toBe('bot')
     expect(secondState.searchScope.value).toBe('current')
   })
 

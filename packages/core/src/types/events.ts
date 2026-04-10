@@ -3,7 +3,7 @@ import type { EventEmitter } from 'eventemitter3'
 import type { Api } from 'telegram'
 
 import type { AccountSettings } from './account-settings'
-import type { CoreChatFolder, CoreDialog } from './dialog'
+import type { CoreChatFolder, CoreDialog, DialogType } from './dialog'
 import type { CoreMessage } from './message'
 import type { CoreTask, CoreTaskData } from './task'
 
@@ -373,6 +373,7 @@ export type CoreRetrievalMessages = CoreMessage & {
   timeRelevance?: number
   combinedScore?: number
   chatName?: string
+  inChatType?: DialogType
 }
 
 export interface CoreRetrievalPhoto {
@@ -381,6 +382,7 @@ export interface CoreRetrievalPhoto {
   platformMessageId?: string
   chatId?: string
   chatName?: string
+  chatType?: DialogType
   description: string
   mimeType: string
   imageBytes?: Uint8Array | string

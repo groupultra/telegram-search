@@ -3,7 +3,7 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext } from '../context'
 import type { Models } from '../models'
 import type { DBRetrievalMessages } from '../models/utils/message'
-import type { CoreDialog } from '../types/dialog'
+import type { CoreDialog, DialogType } from '../types/dialog'
 import type { CoreMessage } from '../types/message'
 
 import { convertToCoreRetrievalMessages } from '../models/utils/message'
@@ -290,6 +290,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         platformMessageId?: string
         chatId?: string
         chatName?: string
+        chatType?: DialogType
         description: string
         mimeType: string
         createdAt: number
@@ -329,6 +330,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
           platformMessageId: photo.platform_message_id,
           chatId: photo.chat_id,
           chatName: photo.chat_name || undefined,
+          chatType: photo.chat_type,
           description: photo.description,
           mimeType: photo.image_mime_type,
           createdAt: photo.created_at,
@@ -357,6 +359,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
           platformMessageId: photo.platform_message_id,
           chatId: photo.chat_id,
           chatName: photo.chat_name || undefined,
+          chatType: photo.chat_type,
           description: photo.description,
           mimeType: photo.image_mime_type,
           createdAt: photo.created_at,
