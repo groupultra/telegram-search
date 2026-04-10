@@ -164,6 +164,9 @@ export function useSearchDialogResults({
       messagesHasMore.value = result.hasMore
       messagesOffset += result.messages.length
     }
+    catch (error) {
+      logger.withError(error).warn('Load more messages failed')
+    }
     finally {
       if (currentSeq === messagesSeq) {
         isLoadingMoreMessages.value = false
@@ -201,6 +204,9 @@ export function useSearchDialogResults({
       photoResult.value = [...photoResult.value, ...result.photos]
       photosHasMore.value = result.hasMore
       photosOffset += result.photos.length
+    }
+    catch (error) {
+      logger.withError(error).warn('Load more photos failed')
     }
     finally {
       if (currentSeq === photosSeq) {

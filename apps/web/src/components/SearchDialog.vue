@@ -160,31 +160,29 @@ const hasFilteredResults = computed(() => {
   return filteredMessages.value.length > 0 || filteredPhotos.value.length > 0
 })
 
-// True while the auto-load watcher is fetching more pages to satisfy the
-// current filter — used to show a spinner instead of a premature empty state.
+// True while the auto-load watcher is fetching more message pages to satisfy
+// the current filter — used to show a spinner instead of a premature empty state.
 const isAutoLoadingForFilter = computed(() => {
   if (!hasCustomChatTypeFilter.value || hasFilteredResults.value) {
     return false
   }
 
-  return (isLoadingMoreMessages.value && messagesHasMore.value)
-    || (isLoadingMorePhotos.value && photosHasMore.value)
+  return isLoadingMoreMessages.value && messagesHasMore.value
 })
 
-// When the client-side filter hides all loaded results but the server has more
+// When the client-side filter hides all loaded messages but the server has more
 // data, automatically fetch the next page so the user doesn't see a false
 // "no results" state.
-watch([filteredMessages, filteredPhotos, messagesHasMore, photosHasMore, isLoadingMoreMessages, isLoadingMorePhotos], () => {
+// NOTICE: only messages support offset-based pagination; photo search always
+// returns the same top-N results regardless of offset, so auto-loading photos
+// would cause an infinite request loop.
+watch([filteredMessages, messagesHasMore, isLoadingMoreMessages], () => {
   if (isLoading.value || !hasCustomChatTypeFilter.value) {
     return
   }
 
   if (showMessagesPanel.value && filteredMessages.value.length === 0 && messagesHasMore.value && !isLoadingMoreMessages.value) {
-    void loadMoreMessages()
-  }
-
-  if (showPhotosPanel.value && filteredPhotos.value.length === 0 && photosHasMore.value && !isLoadingMorePhotos.value) {
-    void loadMorePhotos()
+    loadMoreMessages().catch(() => {})
   }
 })
 
