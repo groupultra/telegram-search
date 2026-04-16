@@ -25,7 +25,7 @@ jobs:
           git rebase origin/main
           git push origin release
 
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v6
 
       - name: Set node
         uses: actions/setup-node@v6
