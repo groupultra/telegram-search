@@ -18,7 +18,7 @@
     "build": "tsdown"
   },
   "peerDependencies": {
-    "@opentelemetry/auto-instrumentations-node": "^0.69.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.75.0",
     "@opentelemetry/context-async-hooks": "^2.5.0",
     "@opentelemetry/sdk-node": "^0.211.0",
     "@opentelemetry/sdk-trace-node": "^2.5.0"

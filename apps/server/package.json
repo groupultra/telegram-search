@@ -15,7 +15,7 @@
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.211.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.69.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.75.0",
     "@opentelemetry/context-async-hooks": "^2.5.0",
     "@opentelemetry/instrumentation-http": "^0.211.0",
     "@opentelemetry/instrumentation-pg": "^0.63.0",
