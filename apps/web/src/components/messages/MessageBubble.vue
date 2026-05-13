@@ -10,7 +10,12 @@ import EntityAvatar from '../avatar/EntityAvatar.vue'
 import MediaRenderer from './media/MediaRenderer.vue'
 
 import { getChatLink, getMessageLink, getMessageWebLink, getUserLink } from '../../utils/telegram-links'
-import { ContextMenu } from '../ui/ContextMenu'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '../ui/ContextMenu'
 
 const props = defineProps<{
   message: CoreMessage
@@ -221,12 +226,14 @@ const chatTelegramLink = computed(() => {
   return getChatLink(currentChat.value)
 })
 
-// Context menu state
-const contextMenuOpen = ref(false)
-const contextMenuX = ref(0)
-const contextMenuY = ref(0)
+interface ContextMenuActionItem {
+  label: string
+  icon: string
+  action: () => void
+  disabled?: boolean
+}
 
-const contextMenuItems = computed(() => {
+const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
   const items = [
     {
       label: t('messages.copyText'),
@@ -283,154 +290,130 @@ const contextMenuItems = computed(() => {
 
   return items
 })
-
-function showContextMenu(e: MouseEvent | PointerEvent) {
-  e.preventDefault()
-  contextMenuX.value = e.clientX
-  contextMenuY.value = e.clientY
-  contextMenuOpen.value = true
-}
-
-// Long-press support for mobile
-let longPressTimer: ReturnType<typeof setTimeout> | null = null
-
-function onPointerDown(e: PointerEvent) {
-  // Only handle touch events for long-press (mouse uses contextmenu event)
-  if (e.pointerType !== 'touch')
-    return
-
-  longPressTimer = setTimeout(() => {
-    showContextMenu(e)
-    longPressTimer = null
-  }, 500)
-}
-
-function cancelLongPress() {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer)
-    longPressTimer = null
-  }
-}
 </script>
 
 <template>
-  <div
-    class="group mx-1.5 flex items-end gap-2 px-3 py-0 md:mx-3"
-    :class="[
-      isOwnMessage ? 'justify-end' : 'justify-start',
-      isDeletingMessage ? 'pointer-events-none opacity-0 scale-[0.96] blur-[1px] transition-all duration-300 ease-out' : '',
-    ]"
-    @contextmenu="showContextMenu"
-    @pointerdown="onPointerDown"
-    @pointerup="cancelLongPress"
-    @pointermove="cancelLongPress"
-    @pointercancel="cancelLongPress"
-  >
-    <div
-      v-if="!isOwnMessage"
-      class="h-10 w-10 shrink-0"
-    >
-      <a
-        v-if="showAvatar"
-        class="block"
-        :class="senderTelegramLink ? 'cursor-pointer' : ''"
-        :href="senderTelegramLink ?? undefined"
-        target="_blank"
-        rel="noopener noreferrer"
-        @click.stop
-      >
-        <EntityAvatar
-          :id="message.fromId"
-          entity="other"
-          entity-type="user"
-          :name="message.fromName"
-          size="md"
-        />
-      </a>
-    </div>
-
-    <div
-      class="relative max-w-[min(82vw,38rem)] min-w-0 flex flex-col"
-      :class="[isOwnMessage ? 'items-end' : 'items-start', messageSpacingClass]"
-    >
+  <ContextMenu :press-open-delay="500">
+    <ContextMenuTrigger as-child>
       <div
-        class="relative max-w-full min-w-0 w-fit transition-transform duration-150 group-hover:translate-y-[-1px]"
+        class="group mx-1.5 flex items-end gap-2 px-3 py-0 md:mx-3"
         :class="[
-          bubbleStretchClass,
-          usesBubbleShell
-            ? [
-              'message-bubble-shell px-3.5 py-1.5 shadow-sm',
-              bubbleShapeClass,
-              isOwnMessage
-                ? 'message-bubble-shell--own'
-                : 'message-bubble-shell--incoming',
-              showSenderName ? 'pt-1.5' : '',
-            ]
-            : 'message-bubble-plain px-0 py-0 shadow-none',
+          isOwnMessage ? 'justify-end' : 'justify-start',
+          isDeletingMessage ? 'pointer-events-none opacity-0 scale-[0.96] blur-[1px] transition-all duration-300 ease-out' : '',
         ]"
       >
-        <span
-          v-if="usesBubbleShell && !isOwnMessage && !isGroupedWithNext"
-          class="message-bubble-tail [clip-path:polygon(100%_0,100%_100%,0_100%)] absolute bottom-[0.18rem] left-0 z-0 h-3.5 w-3.5 rounded-bl-[0.95rem] -translate-x-[0.52rem]"
-          :class="tailClass"
-        />
-
-        <span
-          v-if="usesBubbleShell && isOwnMessage && !isGroupedWithNext"
-          class="message-bubble-tail [clip-path:polygon(0_0,100%_100%,0_100%)] absolute bottom-[0.18rem] right-0 z-0 h-3.5 w-3.5 translate-x-[0.52rem] rounded-br-[0.95rem]"
-          :class="tailClass"
-        />
-
         <div
-          v-if="showSenderName"
-          class="relative z-10 mb-0.5 flex items-center gap-2 text-[14px] font-semibold leading-[1.15]"
+          v-if="!isOwnMessage"
+          class="h-10 w-10 shrink-0"
         >
-          <span class="truncate" :class="senderAccentClass">{{ message.fromName }}</span>
+          <a
+            v-if="showAvatar"
+            class="block"
+            :class="senderTelegramLink ? 'cursor-pointer' : ''"
+            :href="senderTelegramLink ?? undefined"
+            target="_blank"
+            rel="noopener noreferrer"
+            @click.stop
+          >
+            <EntityAvatar
+              :id="message.fromId"
+              entity="other"
+              entity-type="user"
+              :name="message.fromName"
+              size="md"
+            />
+          </a>
         </div>
 
         <div
-          class="relative z-10 max-w-full min-w-0 text-[14px] leading-[1.35]"
-          :class="[
-            messageBodyPaddingClass,
-          ]"
+          class="relative max-w-[min(82vw,38rem)] min-w-0 flex flex-col"
+          :class="[isOwnMessage ? 'items-end' : 'items-start', messageSpacingClass]"
         >
-          <MediaRenderer :message="animatedMessage" />
-        </div>
+          <div
+            class="relative max-w-full min-w-0 w-fit transition-transform duration-150 group-hover:translate-y-[-1px]"
+            :class="[
+              bubbleStretchClass,
+              usesBubbleShell
+                ? [
+                  'message-bubble-shell px-3.5 py-1.5 shadow-sm',
+                  bubbleShapeClass,
+                  isOwnMessage
+                    ? 'message-bubble-shell--own'
+                    : 'message-bubble-shell--incoming',
+                  showSenderName ? 'pt-1.5' : '',
+                ]
+                : 'message-bubble-plain px-0 py-0 shadow-none',
+            ]"
+          >
+            <span
+              v-if="usesBubbleShell && !isOwnMessage && !isGroupedWithNext"
+              class="message-bubble-tail [clip-path:polygon(100%_0,100%_100%,0_100%)] absolute bottom-[0.18rem] left-0 z-0 h-3.5 w-3.5 rounded-bl-[0.95rem] -translate-x-[0.52rem]"
+              :class="tailClass"
+            />
 
-        <div
-          v-if="usesBubbleShell"
-          class="message-bubble-meta pointer-events-none z-10 flex items-center gap-1.5 text-[10px] leading-none opacity-80"
-          :class="bubbleMetaClass"
-        >
-          <span v-if="isUpdatedMessage">{{ t('messages.updated') }}</span>
-          <span>{{ bubbleTime }}</span>
+            <span
+              v-if="usesBubbleShell && isOwnMessage && !isGroupedWithNext"
+              class="message-bubble-tail [clip-path:polygon(0_0,100%_100%,0_100%)] absolute bottom-[0.18rem] right-0 z-0 h-3.5 w-3.5 translate-x-[0.52rem] rounded-br-[0.95rem]"
+              :class="tailClass"
+            />
+
+            <div
+              v-if="showSenderName"
+              class="relative z-10 mb-0.5 flex items-center gap-2 text-[14px] font-semibold leading-[1.15]"
+            >
+              <span class="truncate" :class="senderAccentClass">{{ message.fromName }}</span>
+            </div>
+
+            <div
+              class="relative z-10 max-w-full min-w-0 text-[14px] leading-[1.35]"
+              :class="[
+                messageBodyPaddingClass,
+              ]"
+            >
+              <MediaRenderer :message="animatedMessage" />
+            </div>
+
+            <div
+              v-if="usesBubbleShell"
+              class="message-bubble-meta pointer-events-none z-10 flex items-center gap-1.5 text-[10px] leading-none opacity-80"
+              :class="bubbleMetaClass"
+            >
+              <span v-if="isUpdatedMessage">{{ t('messages.updated') }}</span>
+              <span>{{ bubbleTime }}</span>
+            </div>
+          </div>
+
+          <div
+            v-if="!usesBubbleShell"
+            class="message-bubble-meta mt-1 px-1 text-[11px] leading-none opacity-80"
+          >
+            {{ bubbleTime }}
+          </div>
+
+          <div
+            class="pointer-events-none absolute left-full top-1/2 z-10 ml-2 flex items-center gap-2 opacity-0 transition-opacity duration-150 -translate-y-1/2 group-hover:opacity-100"
+          >
+            <span class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              <span class="i-lucide-hash mr-1 h-3 w-3" />
+              {{ message.platformMessageId }}
+            </span>
+          </div>
         </div>
       </div>
+    </ContextMenuTrigger>
 
-      <div
-        v-if="!usesBubbleShell"
-        class="message-bubble-meta mt-1 px-1 text-[11px] leading-none opacity-80"
+    <ContextMenuContent>
+      <ContextMenuItem
+        v-for="item in contextMenuItems"
+        :key="item.label"
+        :disabled="item.disabled"
+        @select="item.action"
       >
-        {{ bubbleTime }}
-      </div>
-
-      <div
-        class="pointer-events-none absolute left-full top-1/2 z-10 ml-2 flex items-center gap-2 opacity-0 transition-opacity duration-150 -translate-y-1/2 group-hover:opacity-100"
-      >
-        <span class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-          <span class="i-lucide-hash mr-1 h-3 w-3" />
-          {{ message.platformMessageId }}
-        </span>
-      </div>
-    </div>
-
-    <ContextMenu
-      v-model:open="contextMenuOpen"
-      :items="contextMenuItems"
-      :x="contextMenuX"
-      :y="contextMenuY"
-    />
-  </div>
+        <span :class="item.icon" class="mr-2 h-4 w-4" />
+        {{ item.label }}
+      </ContextMenuItem>
+    </ContextMenuContent>
+  </ContextMenu>
 </template>
 
 <style scoped>
