@@ -27,7 +27,7 @@
     "date-fns": "^4.1.0",
     "defu": "^6.1.7",
     "lottie-web": "^5.13.0",
-    "markstream-vue": "0.0.6",
+    "markstream-vue": "1.0.0",
     "nanoid": "^5.1.7",
     "nprogress": "^0.2.0",
     "pako": "^2.1.0",
