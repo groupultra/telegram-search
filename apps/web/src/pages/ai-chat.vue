@@ -435,7 +435,8 @@ onMounted(() => {
             <MarkdownRender
               :custom-id="`ai-chat-${message.id}`"
               :content="message.content"
-              :streaming="message.isStreaming"
+              :final="!message.isStreaming"
+              :smooth-streaming="true"
             />
           </div>
 

@@ -250,6 +250,7 @@ const canMarkRead = computed(() => {
               <MarkdownRender
                 :custom-id="`unread-summary-${props.chatId}`"
                 :content="session.content"
+                :smooth-streaming="true"
               />
             </div>
           </div>
