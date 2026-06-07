@@ -21,11 +21,11 @@ describe('llm-providers', () => {
       const minimax = LLM_PROVIDERS.minimax
       expect(minimax.label).toBe('MiniMax')
       expect(minimax.apiBase).toBe('https://api.minimax.io/v1')
-      expect(minimax.defaultModel).toBe('MiniMax-M2.7')
+      expect(minimax.defaultModel).toBe('MiniMax-M3')
+      expect(minimax.models).toContain('MiniMax-M3')
       expect(minimax.models).toContain('MiniMax-M2.7')
       expect(minimax.models).toContain('MiniMax-M2.7-highspeed')
-      expect(minimax.models).toContain('MiniMax-M2.5')
-      expect(minimax.models).toContain('MiniMax-M2.5-highspeed')
+      expect(minimax.models[0]).toBe('MiniMax-M3')
     })
 
     it('should have unique apiBase for each provider', () => {
