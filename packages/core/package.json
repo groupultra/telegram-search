@@ -33,7 +33,7 @@
     "pg": "^8.22.0",
     "telegram": "^2.26.22",
     "tiny-lru": "^11.4.7",
-    "uuid": "^13.0.2",
+    "uuid": "^14.0.1",
     "valibot": "^1.4.2"
   },
   "devDependencies": {
