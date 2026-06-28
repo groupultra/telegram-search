@@ -30,7 +30,7 @@
     "markstream-vue": "0.0.6",
     "nanoid": "^5.1.16",
     "nprogress": "^0.2.0",
-    "pako": "^2.2.0",
+    "pako": "^3.0.0",
     "pinia": "^3.0.4",
     "posthog-js": "^1.395.0",
     "reka-ui": "^2.10.1",
