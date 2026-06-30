@@ -38,7 +38,7 @@
     "postinstall": "pnpm run packages:build"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.75.1",
+    "@dotenvx/dotenvx": "^2.0.0",
     "@guiiai/logg": "catalog:"
   },
   "devDependencies": {
