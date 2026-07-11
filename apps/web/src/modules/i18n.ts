@@ -2,7 +2,7 @@ import type { I18n } from 'vue-i18n'
 
 import { createI18n } from 'vue-i18n'
 
-import { en, zhCN } from '../locales'
+import { en, ko, zhCN } from '../locales'
 
 /**
  * Language code remapping for compatibility with various browser locales.
@@ -14,10 +14,13 @@ const languageRemap: Record<string, string> = {
   'zhCN': 'zh-CN',
   'en-US': 'en',
   'en': 'en',
+  'ko-KR': 'ko',
+  'ko': 'ko',
 }
 
 const messages = {
   en,
+  ko,
   'zh-CN': zhCN,
 }
 

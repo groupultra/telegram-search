@@ -20,6 +20,7 @@ const { language } = storeToRefs(settingsStore)
 const languageOptions = computed(() => [
   { label: '简体中文', value: 'zh-CN' },
   { label: 'English', value: 'en' },
+  { label: '한국어', value: 'ko' },
 ])
 
 watch(language, (newValue) => {
