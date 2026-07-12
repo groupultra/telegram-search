@@ -21,7 +21,7 @@ Profiles isolate Telegram credentials, the StringSession, PGlite data, and expor
 
 ```bash
 tg-search --profile work profile create work
-tg-search --profile work profile configure --api-id 123456 --api-hash abcdef
+tg-search --profile work profile configure --apiId 123456 --apiHash abcdef
 tg-search --profile work auth login --phone +6512345678
 ```
 

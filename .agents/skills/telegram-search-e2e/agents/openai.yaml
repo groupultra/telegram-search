@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Telegram Search E2E'
+  short_description: 'Run a real Telegram CLI canary with evidence'
+  default_prompt: 'Use $telegram-search-e2e to run a real Telegram CLI end-to-end canary and report the evidence.'
