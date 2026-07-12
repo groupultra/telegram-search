@@ -17,7 +17,7 @@ The package exposes the `tg-search` executable when installed from a registry.
 
 ## Profiles and login
 
-Profiles isolate Telegram credentials, the StringSession, PGlite data, and exports under `~/.tg-search/profiles/<name>/`. Config and session files use mode `0600`.
+Profiles isolate Telegram credentials, the StringSession, PGlite data, and exports under `~/telegram-search/profiles/<name>/`. Config and session files use mode `0600`.
 
 ```bash
 tg-search --profile work profile create work

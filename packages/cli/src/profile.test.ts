@@ -1,16 +1,22 @@
 import { stat } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { ensureProfile, resolveProfilePaths, writeSession } from './profile'
+import { ensureProfile, profilesRoot, resolveProfilePaths, writeSession } from './profile'
 
 afterEach(() => {
   delete process.env.TG_SEARCH_HOME
 })
 
 describe('named profiles', () => {
+  it('uses ~/telegram-search as the default data root', () => {
+    delete process.env.TG_SEARCH_HOME
+
+    expect(profilesRoot()).toBe(join(homedir(), 'telegram-search'))
+  })
+
   it('uses default and isolates named profile paths', () => {
     process.env.TG_SEARCH_HOME = join(tmpdir(), 'tg-search-profile-test')
     const defaultProfile = resolveProfilePaths()

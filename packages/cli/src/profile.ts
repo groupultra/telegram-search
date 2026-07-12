@@ -21,7 +21,7 @@ export interface ProfileConfig {
 const PROFILE_PATTERN = /^[\w.-]+$/
 
 export function profilesRoot(): string {
-  return process.env.TG_SEARCH_HOME ?? join(homedir(), '.tg-search')
+  return process.env.TG_SEARCH_HOME ?? join(homedir(), 'telegram-search')
 }
 
 export function resolveProfilePaths(name = 'default'): ProfilePaths {
