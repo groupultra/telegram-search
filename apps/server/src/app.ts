@@ -11,14 +11,16 @@
 
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
-import type { ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
+import type { ExtractData, FromCoreEvent, TelegramApplicationRuntime, ToCoreEvent } from '@tg-search/core'
+import type { Peer } from 'crossws'
 import type { H3 } from 'h3'
 
 import type { AccountState, CoreEventListener } from './account'
 import type { WsEventToClientData, WsMessageToServer } from './events'
 
 import { useLogger } from '@guiiai/logg'
-import { CoreEventType, destroyCoreInstance } from '@tg-search/core'
+import { createPeerContext } from '@moeru/eventa/adapters/websocket/h3'
+import { CoreEventType, createTelegramApplicationRuntime, destroyCoreInstance, registerApplicationHandlers } from '@tg-search/core'
 import { coreEventsInTotal, wsConnectionsActive } from '@tg-search/observability'
 import { defineWebSocketHandler, HTTPError } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
@@ -27,6 +29,31 @@ import { accountStates, getOrCreateAccount, peerObjects, peerToAccountId } from 
 import { sendWsEvent } from './events'
 
 const WS_MODE_LABEL = 'server' as const
+
+interface PeerRpcState {
+  eventa: ReturnType<typeof createPeerContext>
+  runtime?: TelegramApplicationRuntime
+  unregister?: () => void
+}
+
+const peerRpcStates = new Map<string, PeerRpcState>()
+type EventaPeer = Parameters<typeof createPeerContext>[0]
+
+// NOTICE: H3 and Eventa resolve nominally distinct crossws Peer declarations
+// from the same runtime version. The objects are runtime-compatible, but the
+// private class field prevents TypeScript structural assignment.
+function asEventaPeer(peer: Peer): EventaPeer {
+  return peer as unknown as EventaPeer
+}
+
+function ensurePeerApplication(account: AccountState, peerId: string, logger: Logger) {
+  const state = peerRpcStates.get(peerId)
+  if (!state || state.runtime || !account.accountReady)
+    return
+
+  state.runtime = createTelegramApplicationRuntime({ context: account.ctx, logger })
+  state.unregister = registerApplicationHandlers(state.eventa.context, state.runtime)
+}
 
 export function registerCoreEventListeners(logger: Logger, account: AccountState, accountId: string, eventName: keyof FromCoreEvent) {
   if (eventName.startsWith('server:')) {
@@ -100,6 +127,7 @@ export function setupWsRoutes(app: H3, config: Config) {
       peerToAccountId.set(peer.id, accountId)
       account.activePeers.add(peer.id)
       peerObjects.set(peer.id, peer)
+      peerRpcStates.set(peer.id, { eventa: createPeerContext(asEventaPeer(peer)) })
 
       logger.withFields({ accountId, activePeers: account.activePeers.size }).log('Peer added to account')
 
@@ -122,6 +150,18 @@ export function setupWsRoutes(app: H3, config: Config) {
       const event = message.json<WsMessageToServer>()
 
       try {
+        const rpcState = peerRpcStates.get(peer.id)
+        ensurePeerApplication(account, peer.id, logger)
+        if (rpcState) {
+          await rpcState.eventa.hooks.message(asEventaPeer(peer), message as never)
+        }
+
+        // Eventa frames use an event id/body envelope. Legacy UI events keep
+        // their type/data envelope until the remaining UI notifications move.
+        if ('id' in (event as unknown as Record<string, unknown>)) {
+          return
+        }
+
         if (event.type === 'server:event:register') {
           registerCoreEventListeners(logger, account, accountId, event.data.event as keyof FromCoreEvent)
           return
@@ -163,6 +203,14 @@ export function setupWsRoutes(app: H3, config: Config) {
       account.activePeers.delete(peer.id)
       peerToAccountId.delete(peer.id)
       peerObjects.delete(peer.id)
+
+      const rpcState = peerRpcStates.get(peer.id)
+      if (rpcState) {
+        rpcState.unregister?.()
+        await rpcState.runtime?.dispose()
+        await rpcState.eventa.hooks.close(asEventaPeer(peer), {})
+        peerRpcStates.delete(peer.id)
+      }
 
       logger.withFields({ accountId, remainingPeers: account.activePeers.size }).log('Peer removed from account')
 
