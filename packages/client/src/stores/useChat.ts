@@ -230,7 +230,19 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function fetchDialogs() {
-    bridge.sendEvent(CoreEventType.DialogFetch)
+    void bridge.application.listChats({ limit: 1000 }).then((result) => {
+      if (!result.ok) {
+        throw new Error(`${result.error.code}: ${result.error.message}`)
+      }
+      mergeDialogs(result.data.items.map(chat => ({
+        id: Number(chat.id),
+        name: chat.name,
+        type: chat.type,
+        username: chat.username,
+        lastMessage: chat.lastMessage,
+        lastMessageDate: chat.lastMessageAt ? new Date(chat.lastMessageAt * 1000) : undefined,
+      })), { preserveUnreadCount: true })
+    }).catch(error => logger.withError(error).error('Failed to fetch dialogs through Eventa'))
   }
 
   function fetchFolders() {

@@ -398,12 +398,18 @@ importers:
 
   packages/client:
     dependencies:
+      '@moeru/eventa':
+        specifier: 1.0.0-beta.11
+        version: 1.0.0-beta.11(h3@2.0.1-rc.22(crossws@0.4.6(srvx@0.11.15)))
       '@tg-search/common':
         specifier: workspace:*
         version: link:../common
       '@tg-search/core':
         specifier: workspace:*
         version: link:../core
+      '@tg-search/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@tg-search/server':
         specifier: workspace:*
         version: link:../../apps/server
