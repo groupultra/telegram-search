@@ -344,6 +344,10 @@ function normalizeRawArgs(args: string[]): string[] {
   const normalized: string[] = []
   let index = 0
   while (index < args.length) {
+    if (args[index] === '--json') {
+      index += 1
+      continue
+    }
     if (args[index] === '--profile' && args[index + 1] && !args[index + 1].startsWith('-')) {
       normalized.push(`--profile=${args[index + 1]}`)
       index += 2
