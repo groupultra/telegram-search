@@ -447,6 +447,9 @@ importers:
       '@tg-search/observability':
         specifier: workspace:*
         version: link:../observability
+      '@tg-search/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@tg-search/schema':
         specifier: workspace:*
         version: link:../schema

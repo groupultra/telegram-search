@@ -20,6 +20,7 @@
     "@proj-airi/drizzle-orm-browser-migrator": "^0.1.6",
     "@tg-search/common": "workspace:*",
     "@tg-search/observability": "workspace:*",
+    "@tg-search/protocol": "workspace:*",
     "@tg-search/schema": "workspace:*",
     "@unbird/result": "catalog:",
     "@xsai/embed": "catalog:",
