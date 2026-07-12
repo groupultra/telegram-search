@@ -4,7 +4,6 @@ import { useLogger } from '@guiiai/logg'
 import { CoreEventType } from '@tg-search/core'
 
 import { useChatStore } from '../stores/useChat'
-import { useMessageStore } from '../stores/useMessage'
 import { prefillChatAvatarIntoStore } from '../utils/avatar-cache'
 
 /**
@@ -29,13 +28,8 @@ export function registerStorageEventHandlers(
     })
   })
 
-  registerEventHandler(CoreEventType.StorageMessages, ({ messages }) => {
-    useMessageStore().pushMessages(messages)
-  })
-
   // Wait for result event
   registerEventHandler(CoreEventType.StorageSearchMessagesData, (_) => {})
-  registerEventHandler(CoreEventType.StorageMessagesContext, (_) => {})
   registerEventHandler(CoreEventType.StorageMessageEditMarks, (_) => {})
   registerEventHandler(CoreEventType.StorageChatNoteData, (_) => {})
   registerEventHandler(CoreEventType.StorageSearchPhotosData, (_) => {})
