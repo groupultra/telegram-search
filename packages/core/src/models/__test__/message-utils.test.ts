@@ -26,6 +26,9 @@ function buildDBSelectMessage(overrides: Partial<DBSelectMessage> = {}): DBSelec
     is_reply: overrides.is_reply ?? false,
     reply_to_name: overrides.reply_to_name ?? '',
     reply_to_id: overrides.reply_to_id ?? '',
+    forward: overrides.forward ?? { isForward: false },
+    media: overrides.media ?? [],
+    links: overrides.links ?? [],
     platform_timestamp: overrides.platform_timestamp ?? 1,
     content_vector_model: overrides.content_vector_model ?? '',
     created_at: overrides.created_at ?? 1,
@@ -54,6 +57,7 @@ function buildCoreMessage(overrides: Partial<CoreMessage> = {}): CoreMessage {
     updatedAt: overrides.updatedAt,
     deletedAt: overrides.deletedAt,
     media: overrides.media,
+    links: overrides.links,
     fromUserUuid: overrides.fromUserUuid,
   }
 }
@@ -73,6 +77,14 @@ describe('models/utils/message', () => {
         is_reply: true,
         reply_to_id: '21',
         reply_to_name: 'Reply To',
+        forward: {
+          isForward: true,
+          forwardFromChatId: 'source-chat',
+          forwardFromChatName: 'Source Chat',
+          forwardFromMessageId: '7',
+        },
+        media: [{ type: 'document', platformId: 'document-1', mimeType: 'application/pdf' }],
+        links: [{ url: 'https://example.com', title: 'Example' }],
         platform_timestamp: 123456,
         created_at: 111,
         updated_at: 222,
@@ -91,7 +103,9 @@ describe('models/utils/message', () => {
       expect(core.reply.isReply).toBe(true)
       expect(core.reply.replyToId).toBe('21')
       expect(core.reply.replyToName).toBe('Reply To')
-      expect(core.forward.isForward).toBe(false)
+      expect(core.forward).toEqual(dbMessage.forward)
+      expect(core.media).toEqual(dbMessage.media)
+      expect(core.links).toEqual(dbMessage.links)
       expect(core.createdAt).toBe(111)
       expect(core.updatedAt).toBe(222)
       expect(core.platformTimestamp).toBe(123456)
@@ -176,6 +190,32 @@ describe('models/utils/message', () => {
       expect(dbInsert.content_vector_768).toEqual([6])
       expect(dbInsert.jieba_tokens).toEqual(['a', 'b'])
       expect(dbInsert.in_chat_type).toBe('group')
+    })
+
+    it('preserves forward, media, and link metadata for persistence', () => {
+      const core = {
+        ...buildCoreMessage(),
+        forward: {
+          isForward: true,
+          forwardFromChatId: 'source-chat',
+          forwardFromChatName: 'Source Chat',
+          forwardFromMessageId: '7',
+        },
+        media: [{
+          type: 'document' as const,
+          platformId: 'document-1',
+          mimeType: 'application/pdf',
+        }],
+        links: [{ url: 'https://example.com', title: 'Example' }],
+      } as CoreMessage & { links: Array<{ title?: string, url: string }> }
+
+      const dbInsert = convertToDBInsertMessage('owner-uuid', 'group', core)
+
+      expect(dbInsert).toMatchObject({
+        forward: core.forward,
+        media: core.media,
+        links: core.links,
+      })
     })
   })
 

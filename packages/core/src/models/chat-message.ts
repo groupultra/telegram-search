@@ -95,6 +95,9 @@ async function recordMessages(
       set: {
         // Content: always update with new content
         content: sql`excluded.content`,
+        forward: sql`excluded.forward`,
+        media: sql`excluded.media`,
+        links: sql`excluded.links`,
 
         // User UUID: update if not null
         from_user_uuid: sql`COALESCE(excluded.from_user_uuid, ${chatMessagesTable.from_user_uuid})`,

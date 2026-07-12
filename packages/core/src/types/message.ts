@@ -13,6 +13,7 @@ export interface CoreMessage {
 
   content: string
   media?: CoreMessageMedia[]
+  links?: CoreMessageLink[]
 
   reply: CoreMessageReply
   forward: CoreMessageForward
@@ -39,6 +40,11 @@ export interface CoreMessageForward {
   forwardFromChatId?: string
   forwardFromChatName?: string
   forwardFromMessageId?: string
+}
+
+export interface CoreMessageLink {
+  url: string
+  title?: string
 }
 
 export interface CoreMessageVector {
