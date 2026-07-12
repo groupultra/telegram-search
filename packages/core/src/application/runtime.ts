@@ -61,7 +61,6 @@ export function createTelegramApplicationRuntime(options: {
   const { context } = options
   const logger = options.logger ?? useLogger('application')
   const runtimeModels = options.models ?? defaultModels
-  const remoteMessages = createRemoteMessagesService(context.getClient())
   const localMessages = createLocalMessagesService({
     accountId: context.getCurrentAccountId(),
     db: context.getDB(),
@@ -152,7 +151,7 @@ export function createTelegramApplicationRuntime(options: {
         nextCursor: items.length > offset + input.limit ? String(offset + input.limit) : null,
       }
     }),
-    listRemoteMessages: input => appResult(() => remoteMessages(input)),
+    listRemoteMessages: input => appResult(() => createRemoteMessagesService(context.getClient())(input)),
     queryLocalMessages: input => appResult(() => localMessages.query(input)),
     searchLocalMessages: input => appResult(() => localMessages.search(input)),
     getLocalMessageContext: input => appResult(() => localMessages.context(input)),

@@ -35,6 +35,7 @@
     "bump:deps": "taze -I -f -w -r",
     "db:generate": "pnpm apply:env -- drizzle-kit generate",
     "db:kit": "pnpm apply:env -- drizzle-kit",
+    "cli": "pnpm -F @tg-search/cli start",
     "postinstall": "pnpm run packages:build"
   },
   "dependencies": {

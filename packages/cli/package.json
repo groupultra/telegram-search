@@ -1,0 +1,32 @@
+{
+  "name": "@tg-search/cli",
+  "type": "module",
+  "version": "1.2.8",
+  "bin": {
+    "tg-search": "./dist/index.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "start": "node dist/index.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.3.16",
+    "@guiiai/logg": "catalog:",
+    "@moeru/eventa": "1.0.0-beta.11",
+    "@node-rs/jieba": "2.0.1",
+    "@tg-search/common": "workspace:*",
+    "@tg-search/core": "workspace:*",
+    "@tg-search/protocol": "workspace:*",
+    "citty": "0.1.6",
+    "telegram": "2.26.22"
+  }
+}
