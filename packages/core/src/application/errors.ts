@@ -1,6 +1,6 @@
 import type { AppError, AppResult } from '@tg-search/protocol'
 
-export function invalidArgument(message: string, details?: Record<string, unknown>): AppResult<never> {
+export function invalidArgument(message: string, details?: Record<string, unknown>): Extract<AppResult<never>, { ok: false }> {
   return {
     ok: false,
     error: {

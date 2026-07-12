@@ -12,9 +12,9 @@ export const appErrorSchema = object({
 
 export type AppError = InferOutput<typeof appErrorSchema>
 
-export type AppResult<T> =
-  | { ok: true, data: T }
-  | { ok: false, error: AppError }
+export type AppResult<T>
+  = | { ok: true, data: T }
+    | { ok: false, error: AppError }
 
 export function ok<T>(data: T): AppResult<T> {
   return { ok: true, data }

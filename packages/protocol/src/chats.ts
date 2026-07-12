@@ -1,10 +1,10 @@
 import type { InferOutput } from 'valibot'
 
-import { defineInvokeEventa } from '@moeru/eventa'
-import { array, maxValue, minValue, number, object, optional, picklist, pipe, string } from 'valibot'
-
 import type { AppResult } from './errors'
 import type { CursorPage } from './pagination'
+
+import { defineInvokeEventa } from '@moeru/eventa'
+import { array, maxValue, minValue, number, object, optional, picklist, pipe, string } from 'valibot'
 
 export const chatTypeSchema = picklist(['user', 'bot', 'channel', 'group', 'supergroup'])
 
