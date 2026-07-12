@@ -167,9 +167,11 @@ RPC returns one explicit result or one serializable application error.
 - `messages.sync`
 - `messages.export`
 
-Stream outputs are discriminated unions. For example, sync emits `started`, `progress`, `checkpoint`, `completed`, or `failed`. A stream has one terminal state. Cancellation propagates to the underlying Telegram request and task controller.
+Stream outputs are discriminated unions. For example, sync emits `started`, `progress`, `checkpoint`, `completed`, or `failed`. A stream has one terminal state.
 
-The login stream emits a `challenge` update containing a generated `flowId` and a challenge type such as phone code or 2FA password. The caller submits the answer through `auth.login.submit_challenge` with that `flowId`. The login handler waits for the matching answer within the account runtime, then continues the same stream. Challenge answers are never echoed back in stream output or logs. Cancelling or disconnecting the login stream invalidates the flow and rejects later submissions.
+Upgrade Eventa from `1.0.0-alpha.11` to `1.0.0-beta.11` before introducing the new contracts. The beta release propagates an invoke `AbortSignal` through `sendEventAbort` to the handler's `AbortController`. Cancelling a stream or aborting its signal must therefore cancel the matching Core task without a separate cancellation RPC.
+
+The login stream emits a `challenge` update containing a generated `flowId` and a challenge type such as phone code or 2FA password. The caller submits the answer through `auth.login.submit_challenge` with that `flowId`. The login handler waits for the matching answer within the account runtime, then continues the same stream. Challenge answers are never echoed back in stream output or logs. Cancelling the login stream invalidates the flow and rejects later submissions. A remote disconnect aborts the Eventa context and propagates cancellation to the login handler.
 
 ### 6.3 Event contracts
 
@@ -349,7 +351,7 @@ Unknown exceptions are logged with redaction and converted to `INTERNAL_ERROR` w
 - Disconnecting one peer does not destroy an account runtime required by another peer.
 - Logging applies the repository's redaction utilities before serialization.
 - Eventa payload size limits remain enforced. Large binary data and export files use HTTP or local file paths.
-- Eventa is currently an alpha dependency, so contracts remain in a separate package and Core services remain transport-independent. This limits replacement cost if the adapter API changes.
+- Eventa is upgraded and pinned to `1.0.0-beta.11`. Contracts remain in a separate package and Core services remain transport-independent because the library is still pre-1.0 and adapter APIs may continue to change.
 
 ## 13. Migration Strategy
 
@@ -411,7 +413,7 @@ An environment-gated smoke test may use a real Telegram account to prove login, 
 - No migrated command or query uses paired request and response events or manual `requestId` correlation.
 - Remote reads do not persist domain messages.
 - Only explicit `sync` persists selected chats.
-- Long operations report typed progress and support cancellation.
+- Long operations report typed progress and support cancellation through Eventa's propagated `AbortSignal`.
 - CLI local query and export work without Telegram connectivity.
 - Named profiles isolate sessions and PGlite data.
 - Structured reply, forward, link, and media metadata survives sync and export.
