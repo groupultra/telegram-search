@@ -1,0 +1,47 @@
+import type { MessageRecord } from '@tg-search/protocol'
+
+import { mkdtemp, readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+import { describe, expect, it } from 'vitest'
+
+import { createExportService } from '../export'
+
+function message(id: string, chatId: string, timestamp: number): MessageRecord {
+  return {
+    id,
+    chatId,
+    senderId: 'sender',
+    senderName: 'Sender',
+    timestamp,
+    text: id,
+    forward: { isForward: false },
+    media: [],
+    links: [],
+  }
+}
+
+describe('local JSONL export', () => {
+  it('writes deterministic month files and a checksummed manifest', async () => {
+    const outputDir = await mkdtemp(join(tmpdir(), 'tg-search-export-'))
+    const messages = [
+      message('2', 'b', 1769904000),
+      message('1', 'a', 1767225600),
+    ]
+    const updates = []
+
+    for await (const update of createExportService(async () => ({ items: messages, nextCursor: null }))({ outputDir, format: 'jsonl' })) {
+      updates.push(update)
+    }
+
+    expect(await readFile(join(outputDir, '2026-01.jsonl'), 'utf8')).toContain('"id":"1"')
+    expect(await readFile(join(outputDir, '2026-02.jsonl'), 'utf8')).toContain('"id":"2"')
+    const manifest = JSON.parse(await readFile(join(outputDir, 'manifest.json'), 'utf8'))
+    expect(manifest.files).toEqual([
+      expect.objectContaining({ file: '2026-01.jsonl', count: 1, sha256: expect.any(String) }),
+      expect.objectContaining({ file: '2026-02.jsonl', count: 1, sha256: expect.any(String) }),
+    ])
+    expect(updates.at(-1)).toMatchObject({ type: 'completed', exported: 2 })
+  })
+})

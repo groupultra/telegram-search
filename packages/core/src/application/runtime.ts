@@ -4,6 +4,8 @@ import type {
   AuthUpdate,
   ChatRecord,
   CursorPage,
+  ExportInput,
+  ExportUpdate,
   ListChatsInput,
   ListRemoteMessagesInput,
   MessageContext,
@@ -12,6 +14,8 @@ import type {
   QueryLocalMessagesInput,
   SearchMessageRecord,
   SearchMessagesInput,
+  StatsInput,
+  StatsResult,
   SubmitChallengeInput,
   SyncInput,
   SyncUpdate,
@@ -25,8 +29,10 @@ import { Api } from 'telegram'
 import { v4 as uuidv4 } from 'uuid'
 
 import { models as defaultModels } from '../models'
+import { createExportService } from '../services/export'
 import { createLocalMessagesService } from '../services/local-messages'
 import { createRemoteMessagesService } from '../services/remote-messages'
+import { calculateStats } from '../services/stats'
 import { convertToCoreMessage } from '../utils/message'
 import { appResult } from './errors'
 
@@ -36,7 +42,8 @@ export interface TelegramApplication {
   queryLocalMessages: (input: QueryLocalMessagesInput) => Promise<AppResult<CursorPage<MessageRecord>>>
   searchLocalMessages: (input: SearchMessagesInput) => Promise<AppResult<CursorPage<SearchMessageRecord>>>
   getLocalMessageContext: (input: MessageContextInput) => Promise<AppResult<MessageContext>>
-  getLocalStats: (input: unknown) => Promise<AppResult<unknown>>
+  getLocalStats: (input: StatsInput) => Promise<AppResult<StatsResult>>
+  exportLocal: (input: ExportInput, signal?: AbortSignal) => AsyncGenerator<ExportUpdate>
   login: (input: { phoneNumber: string }, signal?: AbortSignal) => AsyncGenerator<AuthUpdate>
   submitAuthChallenge: (input: SubmitChallengeInput) => Promise<AppResult<{ accepted: true }>>
   sync: (input: SyncInput, signal?: AbortSignal) => AsyncGenerator<SyncUpdate>
@@ -61,6 +68,17 @@ export function createTelegramApplicationRuntime(options: {
     logger,
     models: runtimeModels,
   })
+
+  async function collectLocalMessages(input: { chatIds?: string[], from?: number, to?: number }): Promise<MessageRecord[]> {
+    const messages: MessageRecord[] = []
+    let cursor: string | undefined
+    do {
+      const page = await localMessages.query({ ...input, cursor, limit: 1000 })
+      messages.push(...page.items)
+      cursor = page.nextCursor ?? undefined
+    } while (cursor)
+    return messages
+  }
 
   async function* sync(input: SyncInput, signal?: AbortSignal): AsyncGenerator<SyncUpdate> {
     const taskId = uuidv4()
@@ -138,7 +156,14 @@ export function createTelegramApplicationRuntime(options: {
     queryLocalMessages: input => appResult(() => localMessages.query(input)),
     searchLocalMessages: input => appResult(() => localMessages.search(input)),
     getLocalMessageContext: input => appResult(() => localMessages.context(input)),
-    getLocalStats: async () => ({ ok: true, data: {} }),
+    getLocalStats: input => appResult(async () => calculateStats(await collectLocalMessages(input), input)),
+    exportLocal: (input, signal) => createExportService(cursor => localMessages.query({
+      chatIds: input.chatIds,
+      from: input.from,
+      to: input.to,
+      cursor,
+      limit: 1000,
+    }))(input, signal),
     async* login() {
       const flowId = uuidv4()
       yield { type: 'failed', flowId, error: { code: 'NOT_CONFIGURED', message: 'Login runtime is not configured', retryable: false } }
