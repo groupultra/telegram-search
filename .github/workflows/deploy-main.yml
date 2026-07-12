@@ -23,7 +23,7 @@ jobs:
       contents: read
       deployments: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           lfs: true
           fetch-depth: 0
