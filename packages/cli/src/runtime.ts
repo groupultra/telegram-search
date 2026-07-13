@@ -27,6 +27,7 @@ import { TelegramClient as GramJsClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient } from './auth-support'
+import { createGramJsStderrLogger } from './gramjs-logger'
 import { readProfileConfig, readSession, writeProfileConfig } from './profile'
 
 function createSilentLogger(): Logger {
@@ -91,7 +92,7 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
       new StringSession(session),
       Number(config.api.telegram.apiId),
       config.api.telegram.apiHash,
-      { connectionRetries: 3 },
+      { connectionRetries: 3, baseLogger: createGramJsStderrLogger() },
     )
     await client.connect()
     if (!await client.isUserAuthorized()) {

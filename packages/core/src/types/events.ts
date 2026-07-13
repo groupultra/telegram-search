@@ -438,7 +438,7 @@ export interface TakeoutEventFromCore {
   [CoreEventType.TakeoutTaskProgress]: (data: CoreTaskData<'takeout'>) => void
   [CoreEventType.TakeoutStatsData]: (data: ChatSyncStats) => void
   [CoreEventType.TakeoutMetrics]: (data: TakeoutMetrics) => void
-  /** Core requests user to choose between takeout authorization and GetHistory fallback. */
+  /** Core requests explicit authorization before starting a takeout export. */
   [CoreEventType.TakeoutConfirmNeeded]: () => void
 }
 
@@ -462,6 +462,9 @@ export interface TakeoutOpts {
   // Expected total count for progress calculation (optional, will fetch from Telegram if not provided)
   expectedCount?: number
 
+  // Maximum number of messages to yield for this explicitly approved export.
+  maxMessages?: number
+
   // Disable auto progress emission (for manual progress management in handler)
   disableAutoProgress?: boolean
 
@@ -471,9 +474,8 @@ export interface TakeoutOpts {
   // Sync options (media size limit, etc.)
   syncOptions?: SyncOptions
 
-  // Skip takeout session initialization; use regular GetHistory instead.
-  // Set when the user explicitly declines takeout authorization.
-  skipTakeout?: boolean
+  // Bulk history export is allowed only after explicit user consent.
+  takeoutConsent: boolean
 }
 
 // ============================================================================

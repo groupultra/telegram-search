@@ -20,6 +20,18 @@ export function registerSyncHandler(context: EventContext<any, any>, application
       }
       return
     }
+    if (!parsed.output.takeout) {
+      yield {
+        type: 'failed',
+        taskId: uuidv4(),
+        error: {
+          code: 'TAKEOUT_CONSENT_REQUIRED',
+          message: 'Bulk sync requires explicit Telegram Takeout consent',
+          retryable: false,
+        },
+      }
+      return
+    }
     yield* application.sync(parsed.output, options?.abortController?.signal)
   })
 }

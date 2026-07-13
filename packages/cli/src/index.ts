@@ -9,6 +9,7 @@ import { TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient, createAuthPrompts } from './auth-support'
+import { createGramJsStderrLogger } from './gramjs-logger'
 import { writeOutput, writeProgress } from './output'
 import {
   ensureProfile,
@@ -117,7 +118,10 @@ const authCommand = defineCommand({
         if (!apiId || !apiHash)
           throw new Error('Configure Telegram API credentials first')
 
-        const client = new TelegramClient(new StringSession(''), Number(apiId), apiHash, { connectionRetries: 3 })
+        const client = new TelegramClient(new StringSession(''), Number(apiId), apiHash, {
+          connectionRetries: 3,
+          baseLogger: createGramJsStderrLogger(),
+        })
         try {
           const prompts = createAuthPrompts({
             phone: stringArg(context.args.phone),
@@ -174,12 +178,14 @@ const messagesCommand = defineCommand({
         cursor: { type: 'string' },
         from: { type: 'string' },
         to: { type: 'string' },
+        sender: { type: 'string' },
       },
       async run(context) {
         await withRuntime(profileFrom(context), true, async runtime => emitResult(await runtime.invokes.messages.listRemote({
           chatId: stringArg(context.args.chat),
           limit: Number(context.args.limit),
           cursor: stringArg(context.args.cursor) || undefined,
+          fromUserId: stringArg(context.args.sender) || undefined,
           from: parseTimestamp(stringArg(context.args.from)),
           to: parseTimestamp(stringArg(context.args.to)),
         })))
@@ -268,10 +274,11 @@ const statsCommand = defineCommand({
 })
 
 const syncCommand = defineCommand({
-  meta: { name: 'sync', description: 'Explicitly persist Telegram messages locally' },
+  meta: { name: 'sync', description: 'Persist messages with explicitly authorized Telegram Takeout' },
   args: {
     chat: { type: 'string' },
     all: { type: 'boolean', default: false },
+    takeout: { type: 'boolean', default: false },
     limit: { type: 'string', default: '100000' },
     from: { type: 'string' },
     to: { type: 'string' },
@@ -285,6 +292,7 @@ const syncCommand = defineCommand({
       for await (const update of runtime.streams.sync({
         chatIds,
         all: context.args.all,
+        takeout: context.args.takeout,
         limit: Number(context.args.limit),
         from: parseTimestamp(context.args.from),
         to: parseTimestamp(context.args.to),

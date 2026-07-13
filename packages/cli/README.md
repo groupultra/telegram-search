@@ -42,14 +42,21 @@ tg-search --profile work chats list --limit 200 --json
 # Read one chat remotely. No messages are persisted.
 tg-search --profile work messages list --chat 123456 --from 2026-01-01 --to 2026-12-31 --json
 
-# Explicitly persist selected chats. At least --chat or --all is required.
-tg-search --profile work sync --chat 123456,789012 --from 2026-01-01 --to 2026-12-31
+# After the user explicitly approves Telegram Takeout, persist selected chats.
+# At least --chat or --all is required. Never add --takeout without that approval.
+tg-search --profile work sync --takeout --chat 123456,789012 --from 2026-01-01 --to 2026-12-31
 
 # Query and search only the local PGlite database. These commands do not connect to Telegram.
 tg-search --profile work messages query --from 2026-01-01 --to 2026-12-31 --json
 tg-search --profile work search "项目进展" --chat 123456 --json
 tg-search --profile work context --chat 123456 --message 42 --before 20 --after 20 --json
 tg-search --profile work stats --group-by month --from 2026-01-01 --to 2026-12-31 --json
+```
+
+When Telegram provides an exact matching-message count (for example with `--sender`), the JSON page includes `total`. An Agent can compare bounded `--limit 1` reads at adjacent date boundaries without bulk-downloading message bodies:
+
+```bash
+tg-search --profile work messages list --chat 123456 --sender me --to 2026-01-31 --limit 1
 ```
 
 ## Annual export
@@ -69,6 +76,7 @@ The CLI performs no AI analysis. An Agent can read the JSONL files and produce a
 ## Privacy boundary
 
 - Remote `chats list` and `messages list` read Telegram without persisting message domain data.
-- Only explicit `sync` persists messages.
+- Only `sync --takeout` persists messages, and the Agent may add `--takeout` only after explicit user approval.
+- Declined consent or Takeout initialization failure stops the sync; it never falls back to ordinary `GetHistory` bulk reads.
 - Local query, search, context, stats, and export do not create a Telegram connection.
 - Media references and metadata may be stored; media binaries are not downloaded by these CLI commands.

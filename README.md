@@ -108,11 +108,11 @@ pnpm -F @tg-search/cli build
 pnpm cli --profile work profile configure --apiId 123456 --apiHash abcdef
 pnpm cli --profile work auth login
 pnpm cli --profile work chats list --json
-pnpm cli --profile work sync --chat 123456 --from 2026-01-01 --to 2026-12-31
+pnpm cli --profile work sync --takeout --chat 123456 --from 2026-01-01 --to 2026-12-31
 pnpm cli --profile work export --from 2026-01-01 --to 2026-12-31 --output ./telegram-2026
 ```
 
-`chats list` 和 `messages list` 只做远端读取，不持久化消息；只有显式 `sync` 会写入 profile 独立的 PGlite。CLI 的 stdout 只输出 JSON 结果，提示与进度写入 stderr。导出包含按月 JSONL 和校验清单，不包含媒体二进制、登录 session、向量或密钥，也不会替用户执行 AI 总结。
+`chats list` 和 `messages list` 只做有界的远端读取，不持久化消息。批量同步必须先征得用户同意，并由 Agent 在 `sync` 命令中显式加入 `--takeout`；未授权、用户拒绝或 Takeout 初始化失败都会停止，不会退回普通 `GetHistory`。同步结果写入 profile 独立的 PGlite。CLI 的 stdout 只输出 JSON 结果，Telegram 日志、提示与进度写入 stderr。导出包含按月 JSONL 和校验清单，不包含媒体二进制、登录 session、向量或密钥，也不会替用户执行 AI 总结。
 
 完整命令与隐私边界见 [`packages/cli/README.md`](./packages/cli/README.md)。
 

@@ -48,6 +48,9 @@ export function createRemoteMessagesService(
     const rawMessages = await client.getMessages(peer, {
       limit: input.limit + 1,
       addOffset: offset,
+      fromUser: input.fromUserId,
+      // GramJS treats offsetDate as exclusive; +1 preserves the CLI's inclusive --to contract.
+      offsetDate: input.to === undefined ? undefined : input.to + 1,
     })
 
     const records = rawMessages
@@ -63,6 +66,7 @@ export function createRemoteMessagesService(
     return {
       items: records.slice(0, input.limit),
       nextCursor: hasMore ? String(offset + input.limit) : null,
+      total: rawMessages.total,
     }
   }
 }

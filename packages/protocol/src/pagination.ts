@@ -12,4 +12,6 @@ export type CursorInput = InferOutput<typeof cursorInputSchema>
 export interface CursorPage<T> {
   items: T[]
   nextCursor: string | null
+  /** Total matching records when the upstream API provides an exact count. */
+  total?: number
 }

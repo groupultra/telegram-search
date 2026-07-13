@@ -15,6 +15,7 @@ export const listRemoteMessagesInputSchema = object({
   chatId: pipe(string(), minLength(1), maxLength(128)),
   cursor: optional(string()),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
+  fromUserId: optional(string()),
   ...timeRangeFields,
 })
 

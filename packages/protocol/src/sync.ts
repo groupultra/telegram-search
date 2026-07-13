@@ -8,6 +8,7 @@ import { array, boolean, maxValue, minValue, number, object, optional, pipe, str
 export const syncInputSchema = object({
   chatIds: optional(array(string()), []),
   all: optional(boolean(), false),
+  takeout: optional(boolean(), false),
   from: optional(number()),
   to: optional(number()),
   limit: optional(pipe(number(), minValue(1), maxValue(1000000)), 100000),

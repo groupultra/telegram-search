@@ -3,6 +3,7 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext } from '../context'
 import type { Models } from '../models'
 import type { EntityService } from '../services/entity'
+import type { TakeoutService } from '../services/takeout'
 
 import bigInt from 'big-integer'
 
@@ -42,7 +43,14 @@ function createHarness(messages: Api.Message[] = []) {
   const recordChats = vi.fn(async () => [])
   const recordMessages = vi.fn(async () => [])
   const getInputPeer = vi.fn(async () => inputPeer)
+  const takeoutMessages = vi.fn(async function* (
+    _chatId: string,
+    _options: Parameters<TakeoutService['takeoutMessages']>[1],
+  ) {
+    yield* messages
+  })
   const context = {
+    emitter: { emit: vi.fn() },
     getClient: () => client,
     getCurrentAccountId: () => 'account-1',
     getDB: () => ({}),
@@ -52,6 +60,7 @@ function createHarness(messages: Api.Message[] = []) {
     chatMessageModels: { recordMessages },
   } as unknown as Models
   const entityService = { getInputPeer } as Pick<EntityService, 'getInputPeer'>
+  const takeoutService = { takeoutMessages } as Pick<TakeoutService, 'takeoutMessages'>
   const logger = createTestLogger()
 
   return {
@@ -68,6 +77,8 @@ function createHarness(messages: Api.Message[] = []) {
     models,
     recordChats,
     recordMessages,
+    takeoutMessages,
+    takeoutService,
   }
 }
 
@@ -101,12 +112,31 @@ describe('telegram application runtime remote boundaries', () => {
     )
   })
 
+  it('passes a sender filter to Telegram for server-side message filtering', async () => {
+    const harness = createHarness()
+    harness.getMessages.mockResolvedValue(Object.assign([], { total: 321 }))
+    const runtime = createTelegramApplicationRuntime(harness)
+
+    const result = await runtime.listRemoteMessages({
+      chatId: '42',
+      fromUserId: 'me',
+      limit: 100,
+      to: 20,
+    })
+
+    expect(harness.getMessages).toHaveBeenCalledWith(
+      harness.inputPeer,
+      expect.objectContaining({ fromUser: 'me', limit: 101, offsetDate: 21 }),
+    )
+    expect(result).toMatchObject({ ok: true, data: { total: 321 } })
+  })
+
   it('persists a resolved chat before recording its synced messages', async () => {
     const harness = createHarness()
     const runtime = createTelegramApplicationRuntime(harness)
 
     const updates = []
-    for await (const update of runtime.sync({ chatIds: ['public-channel'], all: false, limit: 1 }))
+    for await (const update of runtime.sync({ chatIds: ['public-channel'], all: false, limit: 1, takeout: true }))
       updates.push(update)
 
     expect(updates.at(-1)).toMatchObject({ type: 'completed', processed: 0 })
@@ -118,8 +148,48 @@ describe('telegram application runtime remote boundaries', () => {
       'account-1',
     )
     expect(harness.recordChats.mock.invocationCallOrder[0]).toBeLessThan(
-      harness.recordMessages.mock.invocationCallOrder[0],
+      harness.takeoutMessages.mock.invocationCallOrder[0],
     )
+    expect(harness.takeoutMessages).toHaveBeenCalledWith(
+      'public-channel',
+      expect.objectContaining({ takeoutConsent: true }),
+    )
+  })
+
+  it('fails closed when takeout consent is absent', async () => {
+    const harness = createHarness()
+    const runtime = createTelegramApplicationRuntime(harness)
+
+    const updates = []
+    for await (const update of runtime.sync({ chatIds: ['public-channel'], all: false, limit: 1, takeout: false }))
+      updates.push(update)
+
+    expect(updates.at(-1)).toMatchObject({ type: 'failed', error: { code: 'TAKEOUT_CONSENT_REQUIRED' } })
+    expect(harness.takeoutMessages).not.toHaveBeenCalled()
+    expect(harness.getMessages).not.toHaveBeenCalled()
+  })
+
+  it('reports Telegram takeout delays as retryable structured errors', async () => {
+    const harness = createHarness()
+    harness.takeoutMessages.mockImplementation(async function* (_chatId, options) {
+      options.task.updateError(new Error('420: TAKEOUT_INIT_DELAY_86400 (caused by account.InitTakeoutSession)'))
+      yield* []
+    })
+    const runtime = createTelegramApplicationRuntime(harness)
+
+    const updates = []
+    for await (const update of runtime.sync({ chatIds: ['public-channel'], all: false, limit: 1, takeout: true }))
+      updates.push(update)
+
+    expect(updates.at(-1)).toMatchObject({
+      type: 'failed',
+      error: {
+        code: 'TAKEOUT_INIT_DELAY',
+        retryable: true,
+        retryAfterSeconds: 86400,
+      },
+    })
+    expect(harness.getMessages).not.toHaveBeenCalled()
   })
 
   it('stores jieba tokens so synced text is searchable', async () => {
@@ -133,7 +203,7 @@ describe('telegram application runtime remote boundaries', () => {
     const harness = createHarness([message])
     const runtime = createTelegramApplicationRuntime(harness)
 
-    for await (const _update of runtime.sync({ chatIds: ['public-channel'], all: false, limit: 1 })) {
+    for await (const _update of runtime.sync({ chatIds: ['public-channel'], all: false, limit: 1, takeout: true })) {
       // Consume the stream so the sync completes.
     }
 

@@ -348,6 +348,7 @@ async function fetchMessagesByTimeRange(
   timeRange: { start: number, end: number },
   chatIds?: string[],
   pagination?: CorePagination,
+  fromUserId?: string,
 ): PromiseResult<DBSelectMessage[]> {
   return withResult(async () => {
     const conditions = [
@@ -364,6 +365,9 @@ async function fetchMessagesByTimeRange(
 
     if (chatIds && chatIds.length > 0) {
       conditions.push(inArray(chatMessagesTable.in_chat_id, chatIds))
+    }
+    if (fromUserId) {
+      conditions.push(eq(chatMessagesTable.from_id, fromUserId))
     }
 
     const results = await db

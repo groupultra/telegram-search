@@ -31,7 +31,7 @@ describe('stream application handlers', () => {
     })
     const context = createContext()
     registerApplicationHandlers(context, application)
-    const stream = defineStreamInvoke(context, syncContracts.run)({ chatIds: ['chat-1'], all: false, limit: 100000 })
+    const stream = defineStreamInvoke(context, syncContracts.run)({ chatIds: ['chat-1'], all: false, limit: 100000, takeout: true })
     const reader = stream.getReader()
 
     await expect(reader.read()).resolves.toEqual({ done: false, value: { type: 'started', taskId: 'task-1' } })
@@ -44,11 +44,23 @@ describe('stream application handlers', () => {
     const application = fakeApplication(vi.fn())
     const context = createContext()
     registerApplicationHandlers(context, application)
-    const reader = defineStreamInvoke(context, syncContracts.run)({ chatIds: [], all: false, limit: 100000 }).getReader()
+    const reader = defineStreamInvoke(context, syncContracts.run)({ chatIds: [], all: false, limit: 100000, takeout: false }).getReader()
 
     const update = await reader.read()
 
     expect(update.value).toMatchObject({ type: 'failed', error: { code: 'INVALID_ARGUMENT' } })
+    expect(application.sync).not.toHaveBeenCalled()
+  })
+
+  it('rejects bulk sync without explicit takeout consent', async () => {
+    const application = fakeApplication(vi.fn())
+    const context = createContext()
+    registerApplicationHandlers(context, application)
+    const reader = defineStreamInvoke(context, syncContracts.run)({ chatIds: ['chat-1'], all: false, limit: 100000, takeout: false }).getReader()
+
+    const update = await reader.read()
+
+    expect(update.value).toMatchObject({ type: 'failed', error: { code: 'TAKEOUT_CONSENT_REQUIRED' } })
     expect(application.sync).not.toHaveBeenCalled()
   })
 })

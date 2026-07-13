@@ -37,6 +37,7 @@ export function createLocalMessagesService(options: {
       { start: input.from ?? 0, end: input.to ?? Number.MAX_SAFE_INTEGER },
       input.chatIds,
       { offset, limit: input.limit + 1 },
+      input.fromUserId,
     )).expect('Failed to query local messages')
 
     const items = rows.map(convertToCoreMessageFromDB).map(coreMessageToRecord)
