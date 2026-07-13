@@ -1,12 +1,14 @@
 import type { MessageRecord, StatsInput, StatsResult } from '@tg-search/protocol'
 
+import { monthKey } from '../utils/month-key'
+
 export function calculateStats(messages: MessageRecord[], input: StatsInput): StatsResult {
   const groups = Map.groupBy(messages, (message) => {
     if (input.groupBy === 'chat')
       return message.chatId
     if (input.groupBy === 'sender')
       return message.senderId
-    return new Date(message.timestamp * 1000).toISOString().slice(0, 7)
+    return monthKey(message.timestamp, input.timeZone)
   })
 
   return {

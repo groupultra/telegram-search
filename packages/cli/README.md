@@ -50,10 +50,10 @@ tg-search --profile work sync --takeout --chat 123456,789012 --from 2026-01-01 -
 tg-search --profile work messages query --from 2026-01-01 --to 2026-12-31 --json
 tg-search --profile work search "项目进展" --chat 123456 --json
 tg-search --profile work context --chat 123456 --message 42 --before 20 --after 20 --json
-tg-search --profile work stats --group-by month --from 2026-01-01 --to 2026-12-31 --json
+tg-search --profile work stats --group-by month --timezone Asia/Singapore --from 2026-01-01 --to 2026-12-31 --json
 ```
 
-When Telegram provides an exact matching-message count (for example with `--sender`), the JSON page includes `total`. An Agent can compare bounded `--limit 1` reads at adjacent date boundaries without bulk-downloading message bodies:
+Remote pages may include Telegram's raw `total`, but Telegram does not guarantee that it reflects the CLI's sender and date filters. Treat it as informational rather than as an exact filtered count. Use Takeout plus local queries when exact filtered counts are required.
 
 ```bash
 tg-search --profile work messages list --chat 123456 --sender me --to 2026-01-31 --limit 1
@@ -65,11 +65,12 @@ tg-search --profile work messages list --chat 123456 --sender me --to 2026-01-31
 tg-search --profile work export \
   --from 2026-01-01 \
   --to 2026-12-31 \
+  --timezone Asia/Singapore \
   --format jsonl \
   --output ./telegram-2026
 ```
 
-The export contains deterministic monthly JSONL files plus `manifest.json` with per-file SHA-256 checksums. It exports text and structured forward/media/link metadata, but not media binaries, Telegram sessions, embeddings, or credentials.
+The export contains deterministic monthly JSONL files plus `manifest.json` with the selected IANA time zone and per-file SHA-256 checksums. `--timezone` defaults to `UTC`; set it explicitly when local calendar months matter. The export includes text and structured forward/media/link metadata, but not media binaries, Telegram sessions, embeddings, or credentials.
 
 The CLI performs no AI analysis. An Agent can read the JSONL files and produce a monthly or annual summary separately.
 

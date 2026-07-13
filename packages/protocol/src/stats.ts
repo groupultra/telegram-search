@@ -7,6 +7,7 @@ import { array, number, object, optional, picklist, string } from 'valibot'
 
 export const statsInputSchema = object({
   groupBy: optional(picklist(['month', 'chat', 'sender']), 'month'),
+  timeZone: optional(string(), 'UTC'),
   chatIds: optional(array(string())),
   from: optional(number()),
   to: optional(number()),

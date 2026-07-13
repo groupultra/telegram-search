@@ -258,6 +258,7 @@ const statsCommand = defineCommand({
   meta: { name: 'stats', description: 'Aggregate persisted local messages' },
   args: {
     groupBy: { type: 'string', default: 'month' },
+    timezone: { type: 'string', default: 'UTC' },
     chat: { type: 'string' },
     from: { type: 'string' },
     to: { type: 'string' },
@@ -266,6 +267,7 @@ const statsCommand = defineCommand({
     const groupBy = context.args.groupBy as 'month' | 'chat' | 'sender'
     await withRuntime(profileFrom(context), false, async runtime => emitResult(await runtime.invokes.stats.get({
       groupBy,
+      timeZone: context.args.timezone,
       chatIds: parseChatIds(context.args.chat),
       from: parseTimestamp(context.args.from),
       to: parseTimestamp(context.args.to),
@@ -315,6 +317,7 @@ const exportCommand = defineCommand({
     from: { type: 'string' },
     to: { type: 'string' },
     format: { type: 'string', default: 'jsonl' },
+    timezone: { type: 'string', default: 'UTC' },
   },
   async run(context) {
     const profile = profileFrom(context)
@@ -324,6 +327,7 @@ const exportCommand = defineCommand({
       for await (const update of runtime.streams.export({
         outputDir: context.args.output || paths.exports,
         format: 'jsonl',
+        timeZone: context.args.timezone,
         chatIds: parseChatIds(context.args.chat),
         from: parseTimestamp(context.args.from),
         to: parseTimestamp(context.args.to),

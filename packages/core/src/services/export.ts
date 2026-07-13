@@ -6,9 +6,7 @@ import { basename, join } from 'node:path'
 
 import { v4 as uuidv4 } from 'uuid'
 
-function monthKey(timestamp: number): string {
-  return new Date(timestamp * 1000).toISOString().slice(0, 7)
-}
+import { monthKey } from '../utils/month-key'
 
 function assertNotAborted(signal?: AbortSignal) {
   if (signal?.aborted) {
@@ -32,7 +30,7 @@ export function createExportService(fetchPage: (cursor?: string) => Promise<Curs
     } while (cursor)
 
     messages.sort((a, b) => a.timestamp - b.timestamp || a.chatId.localeCompare(b.chatId) || a.id.localeCompare(b.id))
-    const grouped = Map.groupBy(messages, message => monthKey(message.timestamp))
+    const grouped = Map.groupBy(messages, message => monthKey(message.timestamp, input.timeZone))
     const files: string[] = []
     const manifestFiles: Array<{ file: string, count: number, sha256: string }> = []
 
@@ -56,6 +54,7 @@ export function createExportService(fetchPage: (cursor?: string) => Promise<Curs
     const manifest = JSON.stringify({
       version: 1,
       format: input.format,
+      timeZone: input.timeZone,
       exported: messages.length,
       files: manifestFiles,
     }, null, 2)

@@ -8,6 +8,7 @@ import { array, literal, number, object, optional, string } from 'valibot'
 export const exportInputSchema = object({
   outputDir: string(),
   format: optional(literal('jsonl'), 'jsonl'),
+  timeZone: optional(string(), 'UTC'),
   chatIds: optional(array(string())),
   from: optional(number()),
   to: optional(number()),

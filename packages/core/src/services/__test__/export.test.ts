@@ -31,17 +31,34 @@ describe('local JSONL export', () => {
     ]
     const updates = []
 
-    for await (const update of createExportService(async () => ({ items: messages, nextCursor: null }))({ outputDir, format: 'jsonl' })) {
+    for await (const update of createExportService(async () => ({ items: messages, nextCursor: null }))({ outputDir, format: 'jsonl', timeZone: 'UTC' })) {
       updates.push(update)
     }
 
     expect(await readFile(join(outputDir, '2026-01.jsonl'), 'utf8')).toContain('"id":"1"')
     expect(await readFile(join(outputDir, '2026-02.jsonl'), 'utf8')).toContain('"id":"2"')
     const manifest = JSON.parse(await readFile(join(outputDir, 'manifest.json'), 'utf8'))
+    expect(manifest.timeZone).toBe('UTC')
     expect(manifest.files).toEqual([
       expect.objectContaining({ file: '2026-01.jsonl', count: 1, sha256: expect.any(String) }),
       expect.objectContaining({ file: '2026-02.jsonl', count: 1, sha256: expect.any(String) }),
     ])
     expect(updates.at(-1)).toMatchObject({ type: 'completed', exported: 2 })
+  })
+
+  it('groups month files in the explicitly selected time zone', async () => {
+    // A UTC month boundary previously put local New Year messages in December.
+    const outputDir = await mkdtemp(join(tmpdir(), 'tg-search-export-timezone-'))
+    const messages = [message('new-year', 'a', 1767197312)]
+
+    for await (const _update of createExportService(async () => ({ items: messages, nextCursor: null }))({
+      outputDir,
+      format: 'jsonl',
+      timeZone: 'Asia/Singapore',
+    })) {
+      // Consume the export stream so all files are committed.
+    }
+
+    expect(await readFile(join(outputDir, '2026-01.jsonl'), 'utf8')).toContain('new-year')
   })
 })
