@@ -8,6 +8,7 @@ import { defineCommand, runMain } from 'citty'
 import { TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
 
+import { closeOwnedTelegramClient, createAuthPrompts } from './auth-support'
 import { writeOutput, writeProgress } from './output'
 import {
   ensureProfile,
@@ -116,13 +117,22 @@ const authCommand = defineCommand({
         if (!apiId || !apiHash)
           throw new Error('Configure Telegram API credentials first')
 
-        const readline = createInterface({ input: process.stdin, output: process.stderr })
         const client = new TelegramClient(new StringSession(''), Number(apiId), apiHash, { connectionRetries: 3 })
         try {
+          const prompts = createAuthPrompts({
+            phone: stringArg(context.args.phone),
+            question: async (message) => {
+              const readline = createInterface({ input: process.stdin, output: process.stderr })
+              try {
+                return await readline.question(message)
+              }
+              finally {
+                readline.close()
+              }
+            },
+          })
           await client.start({
-            phoneNumber: async () => stringArg(context.args.phone) || await readline.question('Phone number: '),
-            phoneCode: async () => await readline.question('Telegram code: '),
-            password: async () => await readline.question('2FA password: '),
+            ...prompts,
             onError: error => writeProgress({ type: 'auth-error', message: error.message }),
           })
           const me = await client.getMe()
@@ -130,8 +140,7 @@ const authCommand = defineCommand({
           writeOutput({ profile, userId: String(me.id), username: me.username })
         }
         finally {
-          readline.close()
-          await client.disconnect()
+          await closeOwnedTelegramClient(client)
         }
       },
     }),

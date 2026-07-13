@@ -26,6 +26,7 @@ import {
 import { TelegramClient as GramJsClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
 
+import { closeOwnedTelegramClient } from './auth-support'
 import { readProfileConfig, readSession, writeProfileConfig } from './profile'
 
 function createSilentLogger(): Logger {
@@ -132,8 +133,8 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
       eventContext.abort()
       await application.dispose()
       context.cleanup()
-      if (client?.connected)
-        await client.disconnect()
+      if (client)
+        await closeOwnedTelegramClient(client)
       await pglite?.close()
     },
   }
