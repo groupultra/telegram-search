@@ -27,6 +27,7 @@
     "@tg-search/core": "workspace:*",
     "@tg-search/protocol": "workspace:*",
     "citty": "0.1.6",
+    "env-paths": "^4.0.0",
     "telegram": "2.26.22"
   }
 }

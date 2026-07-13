@@ -1,6 +1,8 @@
 import { stat } from 'node:fs/promises'
-import { homedir, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+
+import envPaths from 'env-paths'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -11,10 +13,10 @@ afterEach(() => {
 })
 
 describe('named profiles', () => {
-  it('uses ~/telegram-search as the default data root', () => {
+  it('uses the operating system application data directory by default', () => {
     delete process.env.TG_SEARCH_HOME
 
-    expect(profilesRoot()).toBe(join(homedir(), 'telegram-search'))
+    expect(profilesRoot()).toBe(envPaths('telegram-search', { suffix: '' }).data)
   })
 
   it('uses default and isolates named profile paths', () => {

@@ -1,8 +1,9 @@
 import process from 'node:process'
 
 import { chmod, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
+
+import envPaths from 'env-paths'
 
 export interface ProfilePaths {
   root: string
@@ -19,9 +20,10 @@ export interface ProfileConfig {
 }
 
 const PROFILE_PATTERN = /^[\w.-]+$/
+const DEFAULT_PATHS = envPaths('telegram-search', { suffix: '' })
 
 export function profilesRoot(): string {
-  return process.env.TG_SEARCH_HOME ?? join(homedir(), 'telegram-search')
+  return process.env.TG_SEARCH_HOME ?? DEFAULT_PATHS.data
 }
 
 export function resolveProfilePaths(name = 'default'): ProfilePaths {
