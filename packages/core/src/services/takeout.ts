@@ -64,9 +64,12 @@ export function createTakeoutService(
    * https://core.telegram.org/api/takeout
    * https://core.telegram.org/method/messages.getSplitRanges
    */
-  async function getSplitRanges(): Promise<Api.MessageRange[]> {
+  async function getSplitRanges(takeout: Api.account.Takeout): Promise<Api.MessageRange[]> {
     return withSpan('takeout:getSplitRanges', async () => {
-      const ranges = await ctx.getClient().invoke(new Api.messages.GetSplitRanges())
+      const ranges = await ctx.getClient().invoke(new Api.InvokeWithTakeout({
+        takeoutId: takeout.id,
+        query: new Api.messages.GetSplitRanges(),
+      })) as Api.MessageRange[]
       logger.withFields({ rangeCount: ranges.length }).log('Fetched split ranges')
       return ranges
     })
@@ -74,20 +77,34 @@ export function createTakeoutService(
 
   const TAKEOUT_INIT_TIMEOUT_MS = 30_000
 
-  async function initTakeout(): Promise<Api.account.Takeout> {
-    return withSpan('takeout:initSession', async () => {
-      const fileMaxSize = bigInt(1024 * 1024 * 1024) // 1GB
+  async function resolveTakeoutMessageFlags(chatId: string) {
+    const peer = await entityService.getInputPeer(chatId)
+    if (peer instanceof Api.InputPeerUser) {
+      return { messageUsers: true }
+    }
+    if (peer instanceof Api.InputPeerChat) {
+      // Telegram requires both flags for basic groups so migrated supergroup
+      // history remains exportable.
+      return { messageChats: true, messageMegagroups: true }
+    }
+    if (peer instanceof Api.InputPeerChannel) {
+      const entity = await ctx.getClient().getEntity(peer)
+      if (entity instanceof Api.Channel && entity.megagroup)
+        return { messageMegagroups: true }
+      return { messageChannels: true }
+    }
+    throw new Error(`Unsupported Telegram peer for takeout: ${peer.className}`)
+  }
 
+  async function initTakeout(chatId: string): Promise<Api.account.Takeout> {
+    return withSpan('takeout:initSession', async () => {
       logger.log('Initializing takeout session...')
+      const messageFlags = await resolveTakeoutMessageFlags(chatId)
 
       const invokePromise = ctx.getClient().invoke(new Api.account.InitTakeoutSession({
         contacts: false,
-        messageUsers: true,
-        messageChats: true,
-        messageMegagroups: true,
-        messageChannels: true,
+        ...messageFlags,
         files: false,
-        fileMaxSize,
       }))
 
       let timeoutHandle: ReturnType<typeof setTimeout> | undefined
@@ -236,11 +253,6 @@ export function createTakeoutService(
       if (options.maxMessages !== undefined && processedCount.value >= options.maxMessages) {
         break
       }
-      // https://core.telegram.org/api/offsets#hash-generation
-      const id = BigInt(chatId)
-      const hashBigInt = id ^ (id >> 21n) ^ (id << 35n) ^ (id >> 4n) + id
-      const hash = bigInt(hashBigInt.toString())
-
       // Resolve peer via entityService to get the correct InputPeer type and accessHash
       // from the DB, avoiding misidentification (e.g. channel treated as PeerUser).
       const peer = await entityService.getInputPeer(chatId)
@@ -252,7 +264,9 @@ export function createTakeoutService(
         limit,
         maxId,
         minId,
-        hash,
+        // Takeout exports must force a complete response. A result hash is only
+        // valid when calculated from a previously fetched result set.
+        hash: bigInt.zero,
       })
 
       logger.withFields(historyQuery).verbose('Historical messages query')
@@ -285,7 +299,7 @@ export function createTakeoutService(
         break
       }
 
-      const messages = result.messages as Api.Message[]
+      const messages = result.messages
 
       ctx.metrics?.takeoutPageMessages.observe({}, messages.length)
 
@@ -305,8 +319,9 @@ export function createTakeoutService(
           break
         }
 
-        // Skip empty messages
-        if (message instanceof Api.MessageEmpty) {
+        // Service and empty messages do not contain user-authored text and do
+        // not satisfy the CoreMessage persistence contract.
+        if (message instanceof Api.MessageEmpty || message instanceof Api.MessageService) {
           continue
         }
 
@@ -358,7 +373,7 @@ export function createTakeoutService(
 
     let takeoutSession: Api.account.Takeout
     try {
-      takeoutSession = await initTakeout()
+      takeoutSession = await initTakeout(chatId)
     }
     catch (error) {
       task.updateError(error)
@@ -380,7 +395,7 @@ export function createTakeoutService(
       // Fetch split ranges so we iterate every message box on the server.
       // Without this, messages beyond the 500K/1M boundaries may be missed.
       // https://core.telegram.org/api/takeout
-      const splitRanges = await getSplitRanges()
+      const splitRanges = await getSplitRanges(takeoutSession)
       logger.withFields({ splitRangeCount: splitRanges.length }).log('Using split ranges for message fetch')
 
       if (splitRanges.length > 0) {

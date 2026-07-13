@@ -78,5 +78,6 @@ The CLI performs no AI analysis. An Agent can read the JSONL files and produce a
 - Remote `chats list` and `messages list` read Telegram without persisting message domain data.
 - Only `sync --takeout` persists messages, and the Agent may add `--takeout` only after explicit user approval.
 - Declined consent or Takeout initialization failure stops the sync; it never falls back to ordinary `GetHistory` bulk reads.
+- Takeout requests only the selected chat category and does not request contacts or files for text sync.
 - Local query, search, context, stats, and export do not create a Telegram connection.
 - Media references and metadata may be stored; media binaries are not downloaded by these CLI commands.

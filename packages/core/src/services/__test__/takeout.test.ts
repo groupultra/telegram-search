@@ -25,7 +25,7 @@ const mockChatMessageStatsModels = {
 } as any
 
 const mockEntityService = {
-  getInputPeer: vi.fn(async (peerId: string | number) => ({ peerId })),
+  getInputPeer: vi.fn(async () => new Api.InputPeerChat({ chatId: bigInt(123) })),
 } as any
 
 vi.mock('../../utils/min-interval', () => {
@@ -140,7 +140,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -154,6 +154,12 @@ describe('takeout service', () => {
                 return {
                   messages: [
                     new Api.MessageEmpty({ id: 1 }),
+                    new Api.MessageService({
+                      id: 4,
+                      peerId: new Api.PeerChat({ chatId: bigInt(123) }),
+                      date: 1,
+                      action: new Api.MessageActionChatCreate({ title: 'Created', users: [] }),
+                    }),
                     { id: 2 },
                     { id: 3 },
                   ],
@@ -196,6 +202,28 @@ describe('takeout service', () => {
 
     expect(yielded.map(m => m.id)).toEqual([2, 3])
 
+    const init = calls.find(query => query instanceof Api.account.InitTakeoutSession) as Api.account.InitTakeoutSession
+    expect(init).toMatchObject({
+      contacts: false,
+      files: false,
+      messageChats: true,
+      messageMegagroups: true,
+    })
+    expect(init.messageUsers).toBeUndefined()
+    expect(init.messageChannels).toBeUndefined()
+    expect(init.fileMaxSize).toBeUndefined()
+
+    const splitRanges = calls.find(query => query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges)
+    expect(splitRanges).toBeInstanceOf(Api.InvokeWithTakeout)
+
+    const history = calls
+      .filter((query): query is Api.InvokeWithTakeout => query instanceof Api.InvokeWithTakeout)
+      .map(query => query.query)
+      .filter((query): query is Api.InvokeWithMessagesRange => query instanceof Api.InvokeWithMessagesRange)
+      .map(query => query.query)
+      .find((query): query is Api.messages.GetHistory => query instanceof Api.messages.GetHistory)
+    expect(history?.hash.equals(bigInt.zero)).toBe(true)
+
     // Init + get messages + final complete
     expect(task.updateProgress).toHaveBeenCalledWith(0, 'Init takeout session')
     expect(task.updateProgress).toHaveBeenCalledWith(0, 'Get messages')
@@ -207,6 +235,49 @@ describe('takeout service', () => {
     expect((finished).query.success).toBe(true)
   })
 
+  it('takeoutMessages should request only the selected megagroup data category', async () => {
+    let init: Api.account.InitTakeoutSession | undefined
+    const channel = new Api.Channel({
+      id: bigInt(42),
+      accessHash: bigInt(99),
+      title: 'Megagroup',
+      photo: new Api.ChatPhotoEmpty(),
+      date: 0,
+      megagroup: true,
+    })
+    const client = {
+      getEntity: vi.fn(async () => channel),
+      invoke: vi.fn(async (query: Api.AnyRequest) => {
+        if (query instanceof Api.account.InitTakeoutSession) {
+          init = query
+          throw new Error('stop after scope assertion')
+        }
+        throw new Error('unexpected query')
+      }),
+    }
+    const entityService = {
+      getInputPeer: vi.fn(async () => new Api.InputPeerChannel({ channelId: bigInt(42), accessHash: bigInt(99) })),
+    }
+    const { ctx } = createMockCtx(client)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, entityService as any)
+    const task = createTask()
+
+    for await (const _message of service.takeoutMessages('42', {
+      pagination: { limit: 100, offset: 0 },
+      skipMedia: true,
+      takeoutConsent: true,
+      task,
+    })) {
+      // Init is expected to fail before any message can be yielded.
+    }
+
+    expect(init).toMatchObject({ contacts: false, files: false, messageMegagroups: true })
+    expect(init?.messageUsers).toBeUndefined()
+    expect(init?.messageChats).toBeUndefined()
+    expect(init?.messageChannels).toBeUndefined()
+    expect(init?.fileMaxSize).toBeUndefined()
+  })
+
   it('takeoutMessages should finish unsuccessfully when its consumer stops early', async () => {
     const calls: Api.AnyRequest[] = []
     const client = {
@@ -214,7 +285,7 @@ describe('takeout service', () => {
         calls.push(query)
         if (query instanceof Api.account.InitTakeoutSession)
           return { id: bigInt(1) }
-        if (query instanceof Api.messages.GetSplitRanges)
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges)
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         if (query instanceof Api.InvokeWithTakeout) {
           if (query.query instanceof Api.account.FinishTakeoutSession)
@@ -254,7 +325,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -393,7 +464,7 @@ describe('takeout service', () => {
           })
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -460,7 +531,7 @@ describe('takeout service', () => {
         if (query instanceof Api.account.InitTakeoutSession) {
           throw new TypeError('init failed')
         }
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
         if (query instanceof Api.InvokeWithMessagesRange) {
@@ -516,7 +587,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -597,7 +668,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -680,7 +751,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [
             new Api.MessageRange({ minId: 1, maxId: 500000 }),
             new Api.MessageRange({ minId: 500001, maxId: 1000000 }),
@@ -769,7 +840,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -837,7 +908,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
