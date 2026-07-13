@@ -14,7 +14,7 @@ export default defineConfig({
   ],
   noExternal: [
     /^@tg-search\//,
-    /^telegram\//,
+    /^telegram(?:\/|$)/,
   ],
   banner: { js: '#!/usr/bin/env node' },
 })

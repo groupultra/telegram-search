@@ -105,11 +105,11 @@
 pnpm run build:packages
 pnpm -F @tg-search/cli build
 
-node packages/cli/dist/index.mjs --profile work profile configure --api-id 123456 --api-hash abcdef
-node packages/cli/dist/index.mjs --profile work auth login
-node packages/cli/dist/index.mjs --profile work chats list --json
-node packages/cli/dist/index.mjs --profile work sync --chat 123456 --from 2026-01-01 --to 2026-12-31
-node packages/cli/dist/index.mjs --profile work export --from 2026-01-01 --to 2026-12-31 --output ./telegram-2026
+pnpm cli --profile work profile configure --apiId 123456 --apiHash abcdef
+pnpm cli --profile work auth login
+pnpm cli --profile work chats list --json
+pnpm cli --profile work sync --chat 123456 --from 2026-01-01 --to 2026-12-31
+pnpm cli --profile work export --from 2026-01-01 --to 2026-12-31 --output ./telegram-2026
 ```
 
 `chats list` 和 `messages list` 只做远端读取，不持久化消息；只有显式 `sync` 会写入 profile 独立的 PGlite。CLI 的 stdout 只输出 JSON 结果，提示与进度写入 stderr。导出包含按月 JSONL 和校验清单，不包含媒体二进制、登录 session、向量或密钥，也不会替用户执行 AI 总结。

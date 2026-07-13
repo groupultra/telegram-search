@@ -13,8 +13,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && node scripts/check-gramjs-bundle.mjs",
     "start": "node dist/index.mjs",
+    "test:bundle": "node scripts/check-gramjs-bundle.mjs",
     "typecheck": "tsc --noEmit",
     "test:run": "vitest run"
   },

@@ -10,7 +10,7 @@ From this monorepo:
 pnpm install
 pnpm run build:packages
 pnpm -F @tg-search/cli build
-node packages/cli/dist/index.mjs --help
+pnpm cli --help
 ```
 
 The package exposes the `tg-search` executable when installed from a registry.

@@ -29,7 +29,7 @@ Report **blocked**, not failed, when credentials, an authorized StringSession, o
 3. List profiles without exposing their config or session contents:
 
    ```bash
-   node packages/cli/dist/index.mjs profile list
+   pnpm cli profile list
    ```
 
 4. Discover chats for the selected profile:
@@ -57,8 +57,8 @@ Report **blocked**, not failed, when credentials, an authorized StringSession, o
 If discovery reports missing credentials or session authorization, ask the user to perform the local interactive step:
 
 ```bash
-node packages/cli/dist/index.mjs --profile=<profile> profile configure --apiId <id> --apiHash <hash>
-node packages/cli/dist/index.mjs --profile=<profile> auth login --phone <phone>
+pnpm cli --profile=<profile> profile configure --apiId <id> --apiHash <hash>
+pnpm cli --profile=<profile> auth login --phone <phone>
 ```
 
 Do not request the API hash, login code, 2FA password, or StringSession in chat. Resume discovery after the user confirms local login.
