@@ -14,12 +14,12 @@ const cliPath = join(repoRoot, 'packages/cli/dist/index.mjs')
 class CanaryBlockedError extends Error {}
 
 function parseArgs(raw) {
-  const values = { discover: false }
+  const values = { discover: false, takeout: false }
   const remaining = [...raw]
   while (remaining.length > 0) {
     const argument = remaining.shift()
-    if (argument === '--discover') {
-      values.discover = true
+    if (argument === '--discover' || argument === '--takeout') {
+      values[argument.slice(2)] = true
       continue
     }
     const value = remaining.shift()
@@ -54,12 +54,12 @@ async function main() {
   if (!args.profile)
     throw new Error('--profile is required')
 
-  const evidenceDir = resolve(args.output ?? join('/tmp', `tg-search-e2e-${timestampSlug()}`))
+  const evidenceDir = resolve(args.output ?? join('/tmp', `telegram-search-cli-e2e-${timestampSlug()}`))
   await mkdir(evidenceDir, { recursive: true, mode: 0o700 })
   await chmod(evidenceDir, 0o700)
 
   const summary = {
-    version: 1,
+    version: 2,
     status: 'running',
     profile: args.profile,
     chatId: args.chat,
@@ -94,6 +94,13 @@ async function main() {
   }
 
   try {
+    if (!args.discover && args.chat) {
+      if (!args.from || !args.to)
+        throw new Error('--from and --to are required for a bounded canary')
+      if (!args.takeout)
+        throw new CanaryBlockedError('Explicit user-approved --takeout is required before the canary may persist messages')
+    }
+
     const chats = await run('chats', ['chats', 'list', '--limit', '100'])
     summary.stages.chats.count = chats.items?.length ?? 0
     if (summary.stages.chats.count === 0)
@@ -106,16 +113,13 @@ async function main() {
       return
     }
 
-    if (!args.from || !args.to)
-      throw new Error('--from and --to are required for a bounded canary')
-
     const rangeArgs = ['--chat', args.chat, '--from', args.from, '--to', args.to]
     const remote = await run('remote-messages', ['messages', 'list', ...rangeArgs, '--limit', '20'])
     summary.stages['remote-messages'].count = remote.items?.length ?? 0
     if (summary.stages['remote-messages'].count === 0)
       throw new CanaryBlockedError('The selected remote chat/time range contained no messages')
 
-    const sync = await run('sync', ['sync', ...rangeArgs, '--limit', '200'])
+    const sync = await run('sync', ['sync', '--takeout', ...rangeArgs, '--limit', '200'])
     summary.stages.sync.processed = sync.processed ?? 0
     if (sync.type !== 'completed' || sync.processed < 1)
       throw new Error(`Sync did not complete with persisted messages (type=${sync.type}, processed=${sync.processed ?? 0})`)
