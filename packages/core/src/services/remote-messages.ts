@@ -38,10 +38,14 @@ export function coreMessageToRecord(message: CoreMessage): MessageRecord {
   }
 }
 
-export function createRemoteMessagesService(client: TelegramClient) {
+export function createRemoteMessagesService(
+  client: TelegramClient,
+  resolveInputPeer: (chatId: string) => Promise<Api.TypeInputPeer> = chatId => client.getInputEntity(chatId),
+) {
   return async function listRemoteMessages(input: ListRemoteMessagesInput): Promise<CursorPage<MessageRecord>> {
     const offset = cursorOffset(input.cursor)
-    const rawMessages = await client.getMessages(input.chatId, {
+    const peer = await resolveInputPeer(input.chatId)
+    const rawMessages = await client.getMessages(peer, {
       limit: input.limit + 1,
       addOffset: offset,
     })
