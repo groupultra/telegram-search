@@ -32,7 +32,7 @@ function createHarness(messages: Api.Message[] = []) {
     date: 0,
   })
   const inputPeer = new Api.InputPeerChannel({ channelId: bigInt(42), accessHash: bigInt(99) })
-  const getDialogs = vi.fn(async (options: { limit: number, offsetDate?: number }) => {
+  const getDialogs = vi.fn(async (options: { limit?: number, offsetDate?: number }) => {
     // Regression: GramJS 2.26 returns an empty page when offsetDate: 0 is
     // supplied explicitly, even though the default call returns dialogs.
     return options.offsetDate === 0 ? [] : [{ entity: channel, message: undefined }]
@@ -131,6 +131,18 @@ describe('telegram application runtime remote boundaries', () => {
     expect(result).toMatchObject({ ok: true, data: { total: 321 } })
   })
 
+  it('passes the newer-message anchor to GramJS', async () => {
+    const harness = createHarness()
+    const runtime = createTelegramApplicationRuntime(harness)
+
+    await runtime.listRemoteMessages({ chatId: '42', limit: 100, minMessageId: 77 })
+
+    expect(harness.getMessages).toHaveBeenCalledWith(
+      harness.inputPeer,
+      expect.objectContaining({ minId: 77 }),
+    )
+  })
+
   it('persists a resolved chat before recording its synced messages', async () => {
     const harness = createHarness()
     const runtime = createTelegramApplicationRuntime(harness)
@@ -154,6 +166,18 @@ describe('telegram application runtime remote boundaries', () => {
       'public-channel',
       expect.objectContaining({ takeoutConsent: true }),
     )
+  })
+
+  it('lets GramJS paginate every dialog for an explicit sync --all', async () => {
+    const harness = createHarness()
+    const runtime = createTelegramApplicationRuntime(harness)
+
+    for await (const _update of runtime.sync({ chatIds: [], all: true, limit: 1, takeout: true })) {
+      // Consume the stream so dialog discovery and sync complete.
+    }
+
+    expect(harness.getDialogs).toHaveBeenCalledWith({})
+    expect(harness.takeoutMessages).toHaveBeenCalledWith('42', expect.anything())
   })
 
   it('fails closed when takeout consent is absent', async () => {

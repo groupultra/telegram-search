@@ -8,6 +8,8 @@
 
 **Tech Stack:** TypeScript 5.9, Node.js 24, pnpm 10, Eventa 1.0.0-beta.11, Valibot 1.4, GramJS 2.26, PGlite 0.3, Drizzle ORM 0.45, H3 2 RC, Vue 3, Pinia, Vitest 4, tsdown 0.20.
 
+> **Implementation note:** interactive CLI login remains a local bootstrap operation. The auth Stream RPC and challenge steps below were superseded because they had no working shared runtime consumer; sync and export remain Stream RPCs.
+
 ## Global Constraints
 
 - Upgrade and pin `@moeru/eventa` to `1.0.0-beta.11` before adding contracts.

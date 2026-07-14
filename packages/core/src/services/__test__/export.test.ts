@@ -61,4 +61,25 @@ describe('local JSONL export', () => {
 
     expect(await readFile(join(outputDir, '2026-01.jsonl'), 'utf8')).toContain('new-year')
   })
+
+  it('writes ordered pages incrementally across a month boundary', async () => {
+    // Export previously retained the complete archive before writing any file.
+    const outputDir = await mkdtemp(join(tmpdir(), 'tg-search-export-pages-'))
+    const pages = new Map([
+      [undefined, { items: [message('2', 'b', 1767225601), message('1', 'a', 1767225600)], nextCursor: '2' }],
+      ['2', { items: [message('3', 'a', 1769904000)], nextCursor: null }],
+    ])
+
+    for await (const _update of createExportService(async cursor => pages.get(cursor)!)({
+      outputDir,
+      format: 'jsonl',
+      timeZone: 'UTC',
+    })) {
+      // Consume the stream so all pages and files are committed.
+    }
+
+    const january = (await readFile(join(outputDir, '2026-01.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line))
+    expect(january.map(item => item.id)).toEqual(['1', '2'])
+    expect(await readFile(join(outputDir, '2026-02.jsonl'), 'utf8')).toContain('"id":"3"')
+  })
 })

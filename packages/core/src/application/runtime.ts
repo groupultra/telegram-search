@@ -2,7 +2,6 @@ import type { Logger } from '@guiiai/logg'
 import type {
   AppError,
   AppResult,
-  AuthUpdate,
   ChatRecord,
   CursorPage,
   ExportInput,
@@ -17,7 +16,6 @@ import type {
   SearchMessagesInput,
   StatsInput,
   StatsResult,
-  SubmitChallengeInput,
   SyncInput,
   SyncUpdate,
 } from '@tg-search/protocol'
@@ -39,7 +37,7 @@ import { createEntityService } from '../services/entity'
 import { createExportService } from '../services/export'
 import { createLocalMessagesService } from '../services/local-messages'
 import { createRemoteMessagesService } from '../services/remote-messages'
-import { calculateStats } from '../services/stats'
+import { createStatsAccumulator } from '../services/stats'
 import { createTakeoutService } from '../services/takeout'
 import { convertToCoreMessage } from '../utils/message'
 import { createTask } from '../utils/task'
@@ -67,8 +65,6 @@ export interface TelegramApplication {
   getLocalMessageContext: (input: MessageContextInput) => Promise<AppResult<MessageContext>>
   getLocalStats: (input: StatsInput) => Promise<AppResult<StatsResult>>
   exportLocal: (input: ExportInput, signal?: AbortSignal) => AsyncGenerator<ExportUpdate>
-  login: (input: { phoneNumber: string }, signal?: AbortSignal) => AsyncGenerator<AuthUpdate>
-  submitAuthChallenge: (input: SubmitChallengeInput) => Promise<AppResult<{ accepted: true }>>
   sync: (input: SyncInput, signal?: AbortSignal) => AsyncGenerator<SyncUpdate>
 }
 
@@ -102,15 +98,15 @@ export function createTelegramApplicationRuntime(options: {
     models: runtimeModels,
   })
 
-  async function collectLocalMessages(input: { chatIds?: string[], from?: number, to?: number }): Promise<MessageRecord[]> {
-    const messages: MessageRecord[] = []
+  async function calculateLocalStats(input: StatsInput): Promise<StatsResult> {
+    const accumulator = createStatsAccumulator(input)
     let cursor: string | undefined
     do {
       const page = await localMessages.query({ ...input, cursor, limit: 1000 })
-      messages.push(...page.items)
+      accumulator.add(page.items)
       cursor = page.nextCursor ?? undefined
     } while (cursor)
-    return messages
+    return accumulator.result()
   }
 
   function mapDialog(dialog: Dialog): { chat: ChatRecord, core: CoreDialog } | undefined {
@@ -169,8 +165,8 @@ export function createTelegramApplicationRuntime(options: {
     return mapDialog({ entity } as Dialog)?.core
   }
 
-  async function fetchAndPersistDialogs(limit: number): Promise<ChatRecord[]> {
-    const dialogs = await context.getClient().getDialogs({ limit })
+  async function fetchAndPersistDialogs(limit?: number): Promise<ChatRecord[]> {
+    const dialogs = await context.getClient().getDialogs(limit === undefined ? {} : { limit })
     const mapped = dialogs.flatMap((dialog) => {
       const value = mapDialog(dialog)
       return value ? [value] : []
@@ -218,7 +214,7 @@ export function createTelegramApplicationRuntime(options: {
     yield { type: 'started', taskId }
 
     const chatIds = input.all
-      ? (await fetchAndPersistDialogs(1000)).map(chat => chat.id)
+      ? (await fetchAndPersistDialogs()).map(chat => chat.id)
       : input.chatIds
 
     for (const chatId of chatIds) {
@@ -312,7 +308,7 @@ export function createTelegramApplicationRuntime(options: {
     queryLocalMessages: input => appResult(() => localMessages.query(input)),
     searchLocalMessages: input => appResult(() => localMessages.search(input)),
     getLocalMessageContext: input => appResult(() => localMessages.context(input)),
-    getLocalStats: input => appResult(async () => calculateStats(await collectLocalMessages(input), input)),
+    getLocalStats: input => appResult(() => calculateLocalStats(input)),
     exportLocal: (input, signal) => createExportService(cursor => localMessages.query({
       chatIds: input.chatIds,
       from: input.from,
@@ -320,11 +316,6 @@ export function createTelegramApplicationRuntime(options: {
       cursor,
       limit: 1000,
     }))(input, signal),
-    async* login() {
-      const flowId = uuidv4()
-      yield { type: 'failed', flowId, error: { code: 'NOT_CONFIGURED', message: 'Login runtime is not configured', retryable: false } }
-    },
-    submitAuthChallenge: async () => ({ ok: false, error: { code: 'NOT_FOUND', message: 'Authentication flow not found', retryable: false } }),
     sync,
     dispose: async () => {},
   }

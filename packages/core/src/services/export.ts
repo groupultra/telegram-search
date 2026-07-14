@@ -1,7 +1,7 @@
 import type { CursorPage, ExportInput, ExportUpdate, MessageRecord } from '@tg-search/protocol'
 
 import { createHash } from 'node:crypto'
-import { mkdir, rename, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 import { v4 as uuidv4 } from 'uuid'
@@ -20,42 +20,75 @@ export function createExportService(fetchPage: (cursor?: string) => Promise<Curs
     yield { type: 'started', taskId }
     await mkdir(input.outputDir, { recursive: true })
 
-    const messages: MessageRecord[] = []
-    let cursor: string | undefined
-    do {
-      assertNotAborted(signal)
-      const page = await fetchPage(cursor)
-      messages.push(...page.items)
-      cursor = page.nextCursor ?? undefined
-    } while (cursor)
-
-    messages.sort((a, b) => a.timestamp - b.timestamp || a.chatId.localeCompare(b.chatId) || a.id.localeCompare(b.id))
-    const grouped = Map.groupBy(messages, message => monthKey(message.timestamp, input.timeZone))
     const files: string[] = []
     const manifestFiles: Array<{ file: string, count: number, sha256: string }> = []
+    let exported = 0
+    let cursor: string | undefined
+    let current: { month: string, file: string, temporaryPath: string, count: number, hash: ReturnType<typeof createHash> } | undefined
+    let pendingContent = ''
 
-    for (const [month, monthMessages] of [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    async function flush() {
+      if (!current || !pendingContent)
+        return
+      await appendFile(current.temporaryPath, pendingContent)
+      pendingContent = ''
+    }
+
+    async function finalizeMonth() {
+      if (!current)
+        return undefined
+      await flush()
       assertNotAborted(signal)
-      const file = `${month}.jsonl`
-      const content = monthMessages.map(message => JSON.stringify(message)).join('\n') + (monthMessages.length ? '\n' : '')
-      const temporaryPath = join(input.outputDir, `.${file}.${taskId}.tmp`)
-      await writeFile(temporaryPath, content, { mode: 0o600 })
-      assertNotAborted(signal)
-      await rename(temporaryPath, join(input.outputDir, file))
-      files.push(file)
-      manifestFiles.push({
-        file,
-        count: monthMessages.length,
-        sha256: createHash('sha256').update(content).digest('hex'),
-      })
-      yield { type: 'progress', taskId, file, exported: monthMessages.length }
+      await rename(current.temporaryPath, join(input.outputDir, current.file))
+      files.push(current.file)
+      manifestFiles.push({ file: current.file, count: current.count, sha256: current.hash.digest('hex') })
+      const progress: ExportUpdate = { type: 'progress', taskId, file: current.file, exported: current.count }
+      current = undefined
+      return progress
+    }
+
+    try {
+      do {
+        assertNotAborted(signal)
+        const page = await fetchPage(cursor)
+        const pageItems = [...page.items]
+          .sort((a, b) => a.timestamp - b.timestamp || a.chatId.localeCompare(b.chatId) || a.id.localeCompare(b.id))
+        for (const message of pageItems) {
+          const month = monthKey(message.timestamp, input.timeZone)
+          if (current?.month !== month) {
+            const progress = await finalizeMonth()
+            if (progress)
+              yield progress
+            const file = `${month}.jsonl`
+            const temporaryPath = join(input.outputDir, `.${file}.${taskId}.tmp`)
+            await writeFile(temporaryPath, '', { mode: 0o600 })
+            current = { month, file, temporaryPath, count: 0, hash: createHash('sha256') }
+          }
+          const line = `${JSON.stringify(message)}\n`
+          current.count += 1
+          current.hash.update(line)
+          pendingContent += line
+          exported += 1
+        }
+        await flush()
+        cursor = page.nextCursor ?? undefined
+      } while (cursor)
+
+      const progress = await finalizeMonth()
+      if (progress)
+        yield progress
+    }
+    catch (error) {
+      if (current)
+        await rm(current.temporaryPath, { force: true })
+      throw error
     }
 
     const manifest = JSON.stringify({
       version: 1,
       format: input.format,
       timeZone: input.timeZone,
-      exported: messages.length,
+      exported,
       files: manifestFiles,
     }, null, 2)
     const manifestTemporaryPath = join(input.outputDir, `.manifest.json.${taskId}.tmp`)
@@ -64,6 +97,6 @@ export function createExportService(fetchPage: (cursor?: string) => Promise<Curs
     await rename(manifestTemporaryPath, join(input.outputDir, 'manifest.json'))
     files.push('manifest.json')
 
-    yield { type: 'completed', taskId, files: files.map(file => basename(file)), exported: messages.length }
+    yield { type: 'completed', taskId, files: files.map(file => basename(file)), exported }
   }
 }

@@ -23,5 +23,5 @@ export type ExportUpdate
     | { type: 'failed', taskId: string, error: AppError }
 
 export const exportContracts = {
-  run: defineInvokeEventa<ExportUpdate, ExportInput>('tg.v1.export.run.local'),
+  run: defineInvokeEventa<ExportUpdate, ExportInput>('tg.v1.export.run'),
 }

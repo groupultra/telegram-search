@@ -16,6 +16,7 @@ export const listRemoteMessagesInputSchema = object({
   cursor: optional(string()),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
   fromUserId: optional(string()),
+  minMessageId: optional(pipe(number(), minValue(0))),
   ...timeRangeFields,
 })
 

@@ -1,10 +1,11 @@
 import type { Logger } from '@guiiai/logg'
-import type { AppResult } from '@tg-search/protocol'
 import type { TelegramClient } from 'telegram'
 
 import type { ProfilePaths } from './profile'
 
 import process from 'node:process'
+
+import { createHash } from 'node:crypto'
 
 import { LogLevel, setGlobalLogLevel } from '@guiiai/logg'
 import { createContext, defineInvokes, defineStreamInvoke } from '@moeru/eventa'
@@ -40,13 +41,6 @@ function createSilentLogger(): Logger {
   return logger as unknown as Logger
 }
 
-export function unwrap<T>(result: AppResult<T>): T {
-  if (!result.ok) {
-    throw new Error(`${result.error.code}: ${result.error.message}`)
-  }
-  return result.data
-}
-
 async function withStdoutRedirectedToStderr<T>(operation: () => Promise<T>): Promise<T> {
   const originalWrite = process.stdout.write.bind(process.stdout)
   process.stdout.write = ((...args: Parameters<typeof process.stdout.write>) => {
@@ -60,6 +54,11 @@ async function withStdoutRedirectedToStderr<T>(operation: () => Promise<T>): Pro
   }
 }
 
+export function profileScopeId(profileRoot: string): string {
+  const digest = createHash('sha256').update(profileRoot).digest('hex')
+  return `${digest.slice(0, 8)}-${digest.slice(8, 12)}-${digest.slice(12, 16)}-${digest.slice(16, 20)}-${digest.slice(20, 32)}`
+}
+
 export async function createCliRuntime(paths: ProfilePaths, options: { remote: boolean }) {
   setGlobalLogLevel(LogLevel.Error)
   const logger = createSilentLogger()
@@ -71,10 +70,10 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
   const { db, pglite } = await withStdoutRedirectedToStderr(
     () => initDrizzle(logger, config, { dbPath: paths.database }),
   )
-  let accountId = profileConfig.accountId
-  if (!accountId) {
-    accountId = (await models.accountModels.recordAccount(db, 'telegram', `profile:${paths.root}`)).id
-  }
+  // A pre-login local runtime still needs a UUID-shaped owner scope for SQL
+  // comparisons, but it must not create a fake account row that will be
+  // orphaned after Telegram resolves the real account.
+  let accountId = profileConfig.accountId ?? profileScopeId(paths.root)
 
   const context = createCoreContext(() => db, models, logger)
   context.setCurrentAccountId(accountId)

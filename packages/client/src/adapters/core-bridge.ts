@@ -40,7 +40,7 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
       return
 
     logger.withFields({ oldId, newId }).debug('Active session changed, destroying CoreContext')
-    coreRuntime.destroy().then(() => {
+    application.reset().then(() => coreRuntime.destroy()).then(() => {
       // Re-register handlers for the new context
       registerAllEventHandlers(registerEventHandler)
     }).catch((error) => {

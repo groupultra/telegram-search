@@ -44,4 +44,5 @@ export interface ApplicationBridge {
   searchLocalMessages: (input: SearchMessagesInput) => Promise<AppResult<CursorPage<SearchMessageRecord>>>
   getLocalMessageContext: (input: MessageContextInput) => Promise<AppResult<MessageContext>>
   getLocalStats: (input: StatsInput) => Promise<AppResult<StatsResult>>
+  dispose?: () => void | Promise<void>
 }

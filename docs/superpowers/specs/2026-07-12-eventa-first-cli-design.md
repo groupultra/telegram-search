@@ -16,7 +16,8 @@ The CLI creates an opportunity to establish one clear typed boundary shared by W
 ## 2. Goals
 
 - Replace manual request and response event pairs with typed Eventa RPC contracts.
-- Use Eventa Stream RPC for login, synchronization, and export progress.
+- Use Eventa Stream RPC for synchronization and export progress.
+- Keep interactive CLI login as a local bootstrap boundary so phone codes and 2FA secrets never cross Eventa.
 - Use Eventa events only for asynchronous notifications and realtime updates.
 - Keep Core business logic in ordinary services with explicit inputs, outputs, transactions, cancellation, and errors.
 - Add a publishable TypeScript CLI package inside the monorepo.
@@ -150,7 +151,6 @@ The existing media HTTP routes and `/health` remain HTTP endpoints.
 ### 6.1 RPC contracts
 
 - `auth.status`
-- `auth.login.submit_challenge`
 - `auth.logout`
 - `chats.list`
 - `messages.list.remote`
@@ -163,7 +163,6 @@ RPC returns one explicit result or one serializable application error.
 
 ### 6.2 Stream RPC contracts
 
-- `auth.login`
 - `messages.sync`
 - `messages.export`
 
@@ -171,7 +170,7 @@ Stream outputs are discriminated unions. For example, sync emits `started`, `pro
 
 Upgrade Eventa from `1.0.0-alpha.11` to `1.0.0-beta.11` before introducing the new contracts. The beta release propagates an invoke `AbortSignal` through `sendEventAbort` to the handler's `AbortController`. Cancelling a stream or aborting its signal must therefore cancel the matching Core task without a separate cancellation RPC.
 
-The login stream emits a `challenge` update containing a generated `flowId` and a challenge type such as phone code or 2FA password. The caller submits the answer through `auth.login.submit_challenge` with that `flowId`. The login handler waits for the matching answer within the account runtime, then continues the same stream. Challenge answers are never echoed back in stream output or logs. Cancelling the login stream invalidates the flow and rejects later submissions. A remote disconnect aborts the Eventa context and propagates cancellation to the login handler.
+Interactive `tg-search auth login` runs only in the local CLI bootstrap layer and writes the resulting `StringSession` into the selected profile. Phone codes and 2FA passwords are read from the terminal and are never sent through Eventa, stdout, or logs. A shared auth contract should only be added when another runtime has a real consumer and a complete challenge lifecycle.
 
 ### 6.3 Event contracts
 
@@ -361,7 +360,7 @@ Migration proceeds by vertical slice. The repository does not keep permanent bac
 2. Migrate `chats.list`; update both Web modes; delete its old request and response event pair.
 3. Migrate remote and local message listing; delete the corresponding old pairs.
 4. Migrate local search, context, and stats.
-5. Migrate login to Stream RPC.
+5. Keep interactive CLI login local and store only the resulting session in the selected profile.
 6. Migrate sync and export to Stream RPC with cancellation and checkpoint events.
 7. Add `@tg-search/cli` on the migrated contracts.
 8. Migrate realtime notifications to Eventa events.

@@ -311,7 +311,11 @@ async function fetchMessageContextWithPhotos(
         OR ${chatMessagesTable.owner_account_id} IS NULL
       )`,
       ))
-      .orderBy(asc(chatMessagesTable.platform_timestamp))
+      .orderBy(
+        asc(chatMessagesTable.platform_timestamp),
+        asc(chatMessagesTable.in_chat_id),
+        asc(chatMessagesTable.platform_message_id),
+      )
       .limit(after)
 
     const combinedDbMessages = [
@@ -375,7 +379,11 @@ async function fetchMessagesByTimeRange(
       .from(chatMessagesTable)
       .innerJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
       .where(and(...conditions))
-      .orderBy(asc(chatMessagesTable.platform_timestamp))
+      .orderBy(
+        asc(chatMessagesTable.platform_timestamp),
+        asc(chatMessagesTable.in_chat_id),
+        asc(chatMessagesTable.platform_message_id),
+      )
       .limit(pagination?.limit ?? 1000)
       .offset(pagination?.offset ?? 0)
 

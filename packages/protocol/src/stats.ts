@@ -28,5 +28,5 @@ export interface StatsResult {
 export type StatsInput = InferOutput<typeof statsInputSchema>
 
 export const statsContracts = {
-  get: defineInvokeEventa<AppResult<StatsResult>, StatsInput>('tg.v1.stats.get.local'),
+  get: defineInvokeEventa<AppResult<StatsResult>, StatsInput>('tg.v1.stats.get'),
 }

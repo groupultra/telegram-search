@@ -2,7 +2,6 @@ import type { EventContext } from '@moeru/eventa'
 
 import type { TelegramApplication } from '../application/runtime'
 
-import { registerAuthHandlers } from './auth'
 import { registerChatHandlers } from './chats'
 import { registerExportHandler } from './export'
 import { registerMessageHandlers } from './messages'
@@ -13,11 +12,9 @@ export function registerApplicationHandlers(context: EventContext<any, any>, app
   const chatDisposers = registerChatHandlers(context, application)
   const messageDisposers = registerMessageHandlers(context, application)
   const disposeStats = registerStatsHandler(context, application)
-  const disposeAuth = registerAuthHandlers(context, application)
   registerSyncHandler(context, application)
   registerExportHandler(context, application)
   return () => {
-    disposeAuth()
     disposeStats()
     for (const dispose of [...Object.values(chatDisposers), ...Object.values(messageDisposers)]) {
       dispose()

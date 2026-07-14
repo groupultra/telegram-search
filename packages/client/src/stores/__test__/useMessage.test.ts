@@ -155,4 +155,19 @@ describe('useMessageStore', () => {
 
     expect(isLoading.value).toBe(false)
   })
+
+  it('preserves the message anchor when fetching newer messages', async () => {
+    const store = useMessageStore()
+    const { fetchMessages } = store.useFetchMessages('chat-1', 50)
+    listRemoteMessagesMock.mockResolvedValue({ ok: true, data: { items: [], nextCursor: null } })
+
+    await fetchMessages({ offset: 0, limit: 20, minId: 42 }, 'newer')
+
+    expect(listRemoteMessagesMock).toHaveBeenCalledWith({
+      chatId: 'chat-1',
+      limit: 20,
+      cursor: undefined,
+      minMessageId: 42,
+    })
+  })
 })

@@ -15,8 +15,6 @@ function fakeApplication(): TelegramApplication {
     getLocalMessageContext: vi.fn(),
     getLocalStats: vi.fn(),
     exportLocal: vi.fn(),
-    login: vi.fn(),
-    submitAuthChallenge: vi.fn(),
     sync: vi.fn(),
   }
 }

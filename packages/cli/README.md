@@ -33,7 +33,7 @@ You may use `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` instead of storing API cre
 
 ## Agent commands
 
-Every successful command writes one JSON envelope to stdout. Diagnostics, prompts, migration logs, and streaming progress go to stderr. `--json` is accepted for compatibility but JSON is always enabled.
+Every command writes one JSON envelope to stdout. Successful envelopes contain `ok`, `data`, top-level `next_cursor` when pagination applies, and `meta.profile` / `meta.source`. Failed envelopes contain `ok: false` and a structured `error`; the process also exits non-zero. Diagnostics, prompts, GramJS logs, migration logs, and streaming progress go to stderr. `--json` is accepted for compatibility but JSON is always enabled.
 
 ```bash
 # Discover chats remotely. No messages are persisted.
@@ -52,6 +52,8 @@ tg-search --profile work search "项目进展" --chat 123456 --json
 tg-search --profile work context --chat 123456 --message 42 --before 20 --after 20 --json
 tg-search --profile work stats --group-by month --timezone Asia/Singapore --from 2026-01-01 --to 2026-12-31 --json
 ```
+
+The current CLI `search` command uses local jieba text retrieval. It does not generate query embeddings, so vector retrieval is not enabled by this command.
 
 Remote pages may include Telegram's raw `total`, but Telegram does not guarantee that it reflects the CLI's sender and date filters. Treat it as informational rather than as an exact filtered count. Use Takeout plus local queries when exact filtered counts are required.
 

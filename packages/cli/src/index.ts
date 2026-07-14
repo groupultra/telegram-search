@@ -1,7 +1,10 @@
-import type { AppResult } from '@tg-search/protocol'
+import type { AppError, AppResult } from '@tg-search/protocol'
+
+import type { OutputMeta } from './output'
 
 import process from 'node:process'
 
+import { createRequire } from 'node:module'
 import { createInterface } from 'node:readline/promises'
 
 import { defineCommand, runMain } from 'citty'
@@ -10,7 +13,7 @@ import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient, createAuthPrompts } from './auth-support'
 import { createGramJsStderrLogger } from './gramjs-logger'
-import { writeOutput, writeProgress } from './output'
+import { hasWrittenEnvelope, resetEnvelopeState, writeFailure, writeOutput, writeProgress } from './output'
 import {
   ensureProfile,
   listProfiles,
@@ -18,14 +21,14 @@ import {
   writeProfileConfig,
   writeSession,
 } from './profile'
-import { createCliRuntime, unwrap } from './runtime'
+import { createCliRuntime } from './runtime'
 
-interface RootData {
-  profile: string
-}
+const CLI_VERSION = (createRequire(import.meta.url)('../package.json') as { version: string }).version
+const profileArg = { profile: { type: 'string' as const, default: 'default' } }
 
-function profileFrom(context: { data?: RootData }): string {
-  return context.data?.profile ?? 'default'
+function profileFrom(context: { args: object }): string {
+  const profile = (context.args as { profile?: unknown }).profile
+  return typeof profile === 'string' ? profile : 'default'
 }
 
 function stringArg(value: string | boolean | string[] | undefined): string {
@@ -64,8 +67,52 @@ async function withRuntime<T>(profile: string, remote: boolean, operation: (runt
   }
 }
 
-function emitResult<T>(result: AppResult<T>): void {
-  writeOutput(unwrap(result))
+function outputMeta(profile: string, source: OutputMeta['source']): OutputMeta {
+  return { profile, source }
+}
+
+function nextCursorOf(value: unknown): string | null | undefined {
+  if (!value || typeof value !== 'object' || !('nextCursor' in value))
+    return undefined
+  const nextCursor = (value as { nextCursor?: unknown }).nextCursor
+  return typeof nextCursor === 'string' || nextCursor === null ? nextCursor : undefined
+}
+
+export function emitResult<T>(result: AppResult<T>, meta: OutputMeta): void {
+  if (!result.ok) {
+    writeFailure(result.error, meta)
+    process.exitCode = 1
+    return
+  }
+  const data = result.data
+  writeOutput(data, meta, nextCursorOf(data))
+}
+
+interface StreamUpdate { type: string, error?: AppError }
+
+export async function emitStreamResult<T extends StreamUpdate>(stream: AsyncIterable<T>, meta: OutputMeta): Promise<void> {
+  let terminal: T | undefined
+  for await (const update of stream) {
+    if (terminal)
+      throw new Error(`Stream emitted ${update.type} after terminal state ${terminal.type}`)
+    if (update.type === 'completed' || update.type === 'failed')
+      terminal = update
+    else
+      writeProgress(update)
+  }
+
+  if (!terminal)
+    throw new Error('Stream ended without a terminal completed or failed update')
+  if (terminal.type === 'failed') {
+    writeFailure(terminal.error ?? {
+      code: 'STREAM_FAILED',
+      message: 'Stream failed without a structured error',
+      retryable: false,
+    }, meta)
+    process.exitCode = 1
+    return
+  }
+  writeOutput(terminal, meta)
 }
 
 const profileCommand = defineCommand({
@@ -73,17 +120,19 @@ const profileCommand = defineCommand({
   subCommands: {
     list: defineCommand({
       meta: { name: 'list', description: 'List profiles' },
-      async run() {
-        writeOutput({ profiles: await listProfiles() })
+      args: profileArg,
+      async run(context) {
+        const profile = profileFrom(context)
+        writeOutput({ profiles: await listProfiles() }, outputMeta(profile, 'local'))
       },
     }),
     create: defineCommand({
       meta: { name: 'create', description: 'Create a profile' },
-      args: { name: { type: 'positional', required: true } },
+      args: { name: { type: 'positional', required: true }, ...profileArg },
       async run({ args }) {
         const name = stringArg(args.name)
         await ensureProfile(name)
-        writeOutput({ profile: name })
+        writeOutput({ profile: name }, outputMeta(name, 'local'))
       },
     }),
     configure: defineCommand({
@@ -91,13 +140,14 @@ const profileCommand = defineCommand({
       args: {
         apiId: { type: 'string', required: true },
         apiHash: { type: 'string', required: true },
+        ...profileArg,
       },
       async run(context) {
         const profile = profileFrom(context)
         const paths = await ensureProfile(profile)
         const existing = await readProfileConfig(paths)
         await writeProfileConfig(paths, { ...existing, apiId: stringArg(context.args.apiId), apiHash: stringArg(context.args.apiHash) })
-        writeOutput({ profile, configured: true })
+        writeOutput({ profile, configured: true }, outputMeta(profile, 'local'))
       },
     }),
   },
@@ -108,7 +158,7 @@ const authCommand = defineCommand({
   subCommands: {
     login: defineCommand({
       meta: { name: 'login', description: 'Interactive Telegram login' },
-      args: { phone: { type: 'string' } },
+      args: { phone: { type: 'string' }, ...profileArg },
       async run(context) {
         const profile = profileFrom(context)
         const paths = await ensureProfile(profile)
@@ -141,7 +191,7 @@ const authCommand = defineCommand({
           })
           const me = await client.getMe()
           await writeSession(paths, String(client.session.save()))
-          writeOutput({ profile, userId: String(me.id), username: me.username })
+          writeOutput({ profile, userId: String(me.id), username: me.username }, outputMeta(profile, 'telegram'))
         }
         finally {
           await closeOwnedTelegramClient(client)
@@ -156,12 +206,13 @@ const chatsCommand = defineCommand({
   subCommands: {
     list: defineCommand({
       meta: { name: 'list', description: 'List remote chats' },
-      args: { limit: { type: 'string', default: '100' }, cursor: { type: 'string' } },
+      args: { limit: { type: 'string', default: '100' }, cursor: { type: 'string' }, ...profileArg },
       async run(context) {
-        await withRuntime(profileFrom(context), true, async runtime => emitResult(await runtime.invokes.chats.list({
+        const profile = profileFrom(context)
+        await withRuntime(profile, true, async runtime => emitResult(await runtime.invokes.chats.list({
           limit: Number(context.args.limit),
           cursor: stringArg(context.args.cursor) || undefined,
-        })))
+        }), outputMeta(profile, 'telegram')))
       },
     }),
   },
@@ -179,16 +230,18 @@ const messagesCommand = defineCommand({
         from: { type: 'string' },
         to: { type: 'string' },
         sender: { type: 'string' },
+        ...profileArg,
       },
       async run(context) {
-        await withRuntime(profileFrom(context), true, async runtime => emitResult(await runtime.invokes.messages.listRemote({
+        const profile = profileFrom(context)
+        await withRuntime(profile, true, async runtime => emitResult(await runtime.invokes.messages.listRemote({
           chatId: stringArg(context.args.chat),
           limit: Number(context.args.limit),
           cursor: stringArg(context.args.cursor) || undefined,
           fromUserId: stringArg(context.args.sender) || undefined,
           from: parseTimestamp(stringArg(context.args.from)),
           to: parseTimestamp(stringArg(context.args.to)),
-        })))
+        }), outputMeta(profile, 'telegram')))
       },
     }),
     query: defineCommand({
@@ -200,16 +253,18 @@ const messagesCommand = defineCommand({
         from: { type: 'string' },
         to: { type: 'string' },
         sender: { type: 'string' },
+        ...profileArg,
       },
       async run(context) {
-        await withRuntime(profileFrom(context), false, async runtime => emitResult(await runtime.invokes.messages.queryLocal({
+        const profile = profileFrom(context)
+        await withRuntime(profile, false, async runtime => emitResult(await runtime.invokes.messages.queryLocal({
           chatIds: parseChatIds(stringArg(context.args.chat)),
           fromUserId: stringArg(context.args.sender) || undefined,
           limit: Number(context.args.limit),
           cursor: stringArg(context.args.cursor) || undefined,
           from: parseTimestamp(stringArg(context.args.from)),
           to: parseTimestamp(stringArg(context.args.to)),
-        })))
+        }), outputMeta(profile, 'local')))
       },
     }),
   },
@@ -223,16 +278,18 @@ const searchCommand = defineCommand({
     limit: { type: 'string', default: '100' },
     from: { type: 'string' },
     to: { type: 'string' },
+    ...profileArg,
   },
   async run(context) {
-    await withRuntime(profileFrom(context), false, async runtime => emitResult(await runtime.invokes.messages.searchLocal({
+    const profile = profileFrom(context)
+    await withRuntime(profile, false, async runtime => emitResult(await runtime.invokes.messages.searchLocal({
       query: context.args.query,
       chatIds: parseChatIds(context.args.chat),
       limit: Number(context.args.limit),
       useVector: false,
       from: parseTimestamp(context.args.from),
       to: parseTimestamp(context.args.to),
-    })))
+    }), outputMeta(profile, 'local')))
   },
 })
 
@@ -243,14 +300,16 @@ const contextCommand = defineCommand({
     message: { type: 'string', required: true },
     before: { type: 'string', default: '20' },
     after: { type: 'string', default: '20' },
+    ...profileArg,
   },
   async run(context) {
-    await withRuntime(profileFrom(context), false, async runtime => emitResult(await runtime.invokes.messages.contextLocal({
+    const profile = profileFrom(context)
+    await withRuntime(profile, false, async runtime => emitResult(await runtime.invokes.messages.contextLocal({
       chatId: context.args.chat,
       messageId: context.args.message,
       before: Number(context.args.before),
       after: Number(context.args.after),
-    })))
+    }), outputMeta(profile, 'local')))
   },
 })
 
@@ -262,16 +321,18 @@ const statsCommand = defineCommand({
     chat: { type: 'string' },
     from: { type: 'string' },
     to: { type: 'string' },
+    ...profileArg,
   },
   async run(context) {
     const groupBy = context.args.groupBy as 'month' | 'chat' | 'sender'
-    await withRuntime(profileFrom(context), false, async runtime => emitResult(await runtime.invokes.stats.get({
+    const profile = profileFrom(context)
+    await withRuntime(profile, false, async runtime => emitResult(await runtime.invokes.stats.get({
       groupBy,
       timeZone: context.args.timezone,
       chatIds: parseChatIds(context.args.chat),
       from: parseTimestamp(context.args.from),
       to: parseTimestamp(context.args.to),
-    })))
+    }), outputMeta(profile, 'local')))
   },
 })
 
@@ -284,27 +345,22 @@ const syncCommand = defineCommand({
     limit: { type: 'string', default: '100000' },
     from: { type: 'string' },
     to: { type: 'string' },
+    ...profileArg,
   },
   async run(context) {
     const chatIds = parseChatIds(context.args.chat) ?? []
     if (!context.args.all && chatIds.length === 0)
       throw new Error('sync requires --chat <id[,id]> or --all')
-    await withRuntime(profileFrom(context), true, async (runtime) => {
-      let completed: unknown
-      for await (const update of runtime.streams.sync({
+    const profile = profileFrom(context)
+    await withRuntime(profile, true, async (runtime) => {
+      await emitStreamResult(runtime.streams.sync({
         chatIds,
         all: context.args.all,
         takeout: context.args.takeout,
         limit: Number(context.args.limit),
         from: parseTimestamp(context.args.from),
         to: parseTimestamp(context.args.to),
-      })) {
-        if (update.type === 'completed' || update.type === 'failed')
-          completed = update
-        else
-          writeProgress(update)
-      }
-      writeOutput(completed)
+      }), outputMeta(profile, 'telegram'))
     })
   },
 })
@@ -318,36 +374,27 @@ const exportCommand = defineCommand({
     to: { type: 'string' },
     format: { type: 'string', default: 'jsonl' },
     timezone: { type: 'string', default: 'UTC' },
+    ...profileArg,
   },
   async run(context) {
     const profile = profileFrom(context)
     const paths = await ensureProfile(profile)
     await withRuntime(profile, false, async (runtime) => {
-      let completed: unknown
-      for await (const update of runtime.streams.export({
+      await emitStreamResult(runtime.streams.export({
         outputDir: context.args.output || paths.exports,
-        format: 'jsonl',
+        format: context.args.format as 'jsonl',
         timeZone: context.args.timezone,
         chatIds: parseChatIds(context.args.chat),
         from: parseTimestamp(context.args.from),
         to: parseTimestamp(context.args.to),
-      })) {
-        if (update.type === 'completed' || update.type === 'failed')
-          completed = update
-        else
-          writeProgress(update)
-      }
-      writeOutput(completed)
+      }), outputMeta(profile, 'local'))
     })
   },
 })
 
 export const main = defineCommand({
-  meta: { name: 'tg-search', version: '1.2.8', description: 'Agent-friendly local Telegram search and export CLI' },
-  args: { profile: { type: 'string', default: 'default' } },
-  setup(context) {
-    context.data = { profile: context.args.profile } satisfies RootData
-  },
+  meta: { name: 'tg-search', version: CLI_VERSION, description: 'Agent-friendly local Telegram search and export CLI' },
+  args: profileArg,
   subCommands: {
     profile: profileCommand,
     auth: authCommand,
@@ -361,8 +408,9 @@ export const main = defineCommand({
   },
 })
 
-function normalizeRawArgs(args: string[]): string[] {
+export function normalizeRawArgs(args: string[]): string[] {
   const normalized: string[] = []
+  let profile: string | undefined
   let index = 0
   while (index < args.length) {
     if (args[index] === '--json') {
@@ -370,19 +418,45 @@ function normalizeRawArgs(args: string[]): string[] {
       continue
     }
     if (args[index] === '--profile' && args[index + 1] && !args[index + 1].startsWith('-')) {
-      normalized.push(`--profile=${args[index + 1]}`)
+      profile = args[index + 1]
       index += 2
+    }
+    else if (args[index].startsWith('--profile=')) {
+      profile = args[index].slice('--profile='.length)
+      index += 1
     }
     else {
       normalized.push(args[index])
       index += 1
     }
   }
+  if (profile !== undefined)
+    normalized.push(`--profile=${profile}`)
   return normalized
 }
 
+function profileFromRawArgs(args: string[]): string {
+  return args.find(arg => arg.startsWith('--profile='))?.slice('--profile='.length) || 'default'
+}
+
+export async function runCli(args = process.argv.slice(2)): Promise<void> {
+  resetEnvelopeState()
+  const normalizedArgs = normalizeRawArgs(args)
+  const profile = profileFromRawArgs(normalizedArgs)
+  try {
+    await runMain(main, { rawArgs: normalizedArgs })
+  }
+  catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!hasWrittenEnvelope())
+      writeFailure({ code: 'CLI_ERROR', message, retryable: false }, outputMeta(profile, 'cli'))
+    process.stderr.write(`${message}\n`)
+    process.exitCode = 1
+  }
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runMain(main, { rawArgs: normalizeRawArgs(process.argv.slice(2)) }).catch((error) => {
+  runCli().catch((error) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
     process.exitCode = 1
   })

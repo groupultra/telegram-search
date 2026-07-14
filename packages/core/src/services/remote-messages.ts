@@ -49,6 +49,7 @@ export function createRemoteMessagesService(
       limit: input.limit + 1,
       addOffset: offset,
       fromUser: input.fromUserId,
+      minId: input.minMessageId,
       // GramJS treats offsetDate as exclusive; +1 preserves the CLI's inclusive --to contract.
       offsetDate: input.to === undefined ? undefined : input.to + 1,
     })

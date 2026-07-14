@@ -488,6 +488,7 @@ export const useMessageStore = defineStore('message', () => {
           chatId,
           limit: pagination.limit,
           cursor: direction === 'older' ? String(pagination.offset) : undefined,
+          minMessageId: direction === 'newer' ? pagination.minId : undefined,
         })
         if (!result.ok) {
           throw new Error(`${result.error.code}: ${result.error.message}`)

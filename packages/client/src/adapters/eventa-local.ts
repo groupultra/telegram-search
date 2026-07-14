@@ -7,50 +7,67 @@ import { createContext, defineInvokes } from '@moeru/eventa'
 import { createTelegramApplicationRuntime, registerApplicationHandlers } from '@tg-search/core'
 import { chatContracts, messageContracts, statsContracts } from '@tg-search/protocol'
 
-export function createLocalApplicationBridge(getCoreContext: () => CoreContext): ApplicationBridge & { dispose: () => Promise<void> } {
-  const eventContext: EventContext<any, any> = createContext()
-  const chatInvokes = defineInvokes(eventContext, chatContracts)
-  const messageInvokes = defineInvokes(eventContext, messageContracts)
-  const statsInvokes = defineInvokes(eventContext, statsContracts)
+export function createLocalApplicationBridge(
+  getCoreContext: () => CoreContext,
+  options: { createRuntime?: typeof createTelegramApplicationRuntime } = {},
+): ApplicationBridge & { dispose: () => Promise<void>, reset: () => Promise<void> } {
+  const createRuntime = options.createRuntime ?? createTelegramApplicationRuntime
+  function createEventaState() {
+    const context: EventContext<any, any> = createContext()
+    return {
+      context,
+      chats: defineInvokes(context, chatContracts),
+      messages: defineInvokes(context, messageContracts),
+      stats: defineInvokes(context, statsContracts),
+    }
+  }
+
+  let eventa = createEventaState()
   let runtime: TelegramApplicationRuntime | undefined
   let unregister: (() => void) | undefined
 
   function ensureRuntime() {
     if (!runtime) {
-      runtime = createTelegramApplicationRuntime({ context: getCoreContext() })
-      unregister = registerApplicationHandlers(eventContext, runtime)
+      runtime = createRuntime({ context: getCoreContext() })
+      unregister = registerApplicationHandlers(eventa.context, runtime)
     }
+  }
+
+  async function reset() {
+    unregister?.()
+    unregister = undefined
+    await runtime?.dispose()
+    runtime = undefined
+    eventa.context.abort(new Error('Local application bridge reset'))
+    eventa = createEventaState()
   }
 
   return {
     listChats: (input) => {
       ensureRuntime()
-      return chatInvokes.list(input)
+      return eventa.chats.list(input)
     },
     listRemoteMessages: (input) => {
       ensureRuntime()
-      return messageInvokes.listRemote(input)
+      return eventa.messages.listRemote(input)
     },
     queryLocalMessages: (input) => {
       ensureRuntime()
-      return messageInvokes.queryLocal(input)
+      return eventa.messages.queryLocal(input)
     },
     searchLocalMessages: (input) => {
       ensureRuntime()
-      return messageInvokes.searchLocal(input)
+      return eventa.messages.searchLocal(input)
     },
     getLocalMessageContext: (input) => {
       ensureRuntime()
-      return messageInvokes.contextLocal(input)
+      return eventa.messages.contextLocal(input)
     },
     getLocalStats: (input) => {
       ensureRuntime()
-      return statsInvokes.get(input)
+      return eventa.stats.get(input)
     },
-    dispose: async () => {
-      unregister?.()
-      await runtime?.dispose()
-      eventContext.abort()
-    },
+    reset,
+    dispose: reset,
   }
 }
