@@ -7,6 +7,7 @@ export default defineConfig({
   platform: 'node',
   clean: true,
   dts: false,
+  inlineOnly: false,
   external: [
     /^@electric-sql\/pglite/,
     /^@node-rs\/jieba/,
