@@ -5,7 +5,9 @@ export default defineConfig({
   target: 'node22',
   platform: 'node',
   treeshake: true,
-  unused: true,
+  unused: {
+    depKinds: ['dependencies'],
+  },
   shims: true,
   fixedExtension: true,
   sourcemap: true,

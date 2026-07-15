@@ -7,6 +7,8 @@ export default defineConfig({
   ],
   dts: true,
   sourcemap: true,
-  unused: true,
+  unused: {
+    depKinds: ['dependencies'],
+  },
   fixedExtension: true,
 })

@@ -2,7 +2,7 @@
   "name": "@tg-search/client",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@10.34.4",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -10,16 +10,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@moeru/eventa": "1.0.0-beta.11",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
+    "@tg-search/protocol": "workspace:*",
     "@tg-search/server": "workspace:*",
-    "@vueuse/core": "^14.2.1",
+    "@vueuse/core": "^14.3.0",
     "culori": "^4.0.2",
     "defu": "^6.1.7",
     "ofetch": "^1.5.1",
     "pinia": "^3.0.4",
-    "uuid": "^13.0.0",
-    "vue": "^3.5.32",
+    "uuid": "^13.0.2",
+    "vue": "^3.5.39",
     "vue-sonner": "catalog:"
   },
   "devDependencies": {

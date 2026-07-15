@@ -1,10 +1,10 @@
 import type { PGlite } from '@electric-sql/pglite'
-import type { App } from 'vue'
+import type { PluginDescriptor } from '@vue/devtools-kit'
 
 import { setupDevToolsPlugin } from '@vue/devtools-kit'
 
 export interface PGliteDevtoolsOptions {
-  app: App
+  app: PluginDescriptor['app']
   db: PGlite
 }
 

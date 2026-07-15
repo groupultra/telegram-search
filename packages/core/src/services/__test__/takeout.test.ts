@@ -25,7 +25,7 @@ const mockChatMessageStatsModels = {
 } as any
 
 const mockEntityService = {
-  getInputPeer: vi.fn(async (peerId: string | number) => ({ peerId })),
+  getInputPeer: vi.fn(async () => new Api.InputPeerChat({ chatId: bigInt(123) })),
 } as any
 
 vi.mock('../../utils/min-interval', () => {
@@ -140,7 +140,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -154,6 +154,12 @@ describe('takeout service', () => {
                 return {
                   messages: [
                     new Api.MessageEmpty({ id: 1 }),
+                    new Api.MessageService({
+                      id: 4,
+                      peerId: new Api.PeerChat({ chatId: bigInt(123) }),
+                      date: 1,
+                      action: new Api.MessageActionChatCreate({ title: 'Created', users: [] }),
+                    }),
                     { id: 2 },
                     { id: 3 },
                   ],
@@ -189,11 +195,34 @@ describe('takeout service', () => {
       expectedCount: 3,
       disableAutoProgress: false,
       syncOptions: undefined,
+      takeoutConsent: true,
     })) {
       yielded.push(m)
     }
 
     expect(yielded.map(m => m.id)).toEqual([2, 3])
+
+    const init = calls.find(query => query instanceof Api.account.InitTakeoutSession) as Api.account.InitTakeoutSession
+    expect(init).toMatchObject({
+      contacts: false,
+      files: false,
+      messageChats: true,
+      messageMegagroups: true,
+    })
+    expect(init.messageUsers).toBeUndefined()
+    expect(init.messageChannels).toBeUndefined()
+    expect(init.fileMaxSize).toBeUndefined()
+
+    const splitRanges = calls.find(query => query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges)
+    expect(splitRanges).toBeInstanceOf(Api.InvokeWithTakeout)
+
+    const history = calls
+      .filter((query): query is Api.InvokeWithTakeout => query instanceof Api.InvokeWithTakeout)
+      .map(query => query.query)
+      .filter((query): query is Api.InvokeWithMessagesRange => query instanceof Api.InvokeWithMessagesRange)
+      .map(query => query.query)
+      .find((query): query is Api.messages.GetHistory => query instanceof Api.messages.GetHistory)
+    expect(history?.hash.equals(bigInt.zero)).toBe(true)
 
     // Init + get messages + final complete
     expect(task.updateProgress).toHaveBeenCalledWith(0, 'Init takeout session')
@@ -204,6 +233,85 @@ describe('takeout service', () => {
     const finished = calls.find(q => q instanceof Api.InvokeWithTakeout && (q).query instanceof Api.account.FinishTakeoutSession)
     expect(finished).toBeTruthy()
     expect((finished).query.success).toBe(true)
+  })
+
+  it('takeoutMessages should request only the selected megagroup data category', async () => {
+    let init: Api.account.InitTakeoutSession | undefined
+    const channel = new Api.Channel({
+      id: bigInt(42),
+      accessHash: bigInt(99),
+      title: 'Megagroup',
+      photo: new Api.ChatPhotoEmpty(),
+      date: 0,
+      megagroup: true,
+    })
+    const client = {
+      getEntity: vi.fn(async () => channel),
+      invoke: vi.fn(async (query: Api.AnyRequest) => {
+        if (query instanceof Api.account.InitTakeoutSession) {
+          init = query
+          throw new Error('stop after scope assertion')
+        }
+        throw new Error('unexpected query')
+      }),
+    }
+    const entityService = {
+      getInputPeer: vi.fn(async () => new Api.InputPeerChannel({ channelId: bigInt(42), accessHash: bigInt(99) })),
+    }
+    const { ctx } = createMockCtx(client)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, entityService as any)
+    const task = createTask()
+
+    for await (const _message of service.takeoutMessages('42', {
+      pagination: { limit: 100, offset: 0 },
+      skipMedia: true,
+      takeoutConsent: true,
+      task,
+    })) {
+      // Init is expected to fail before any message can be yielded.
+    }
+
+    expect(init).toMatchObject({ contacts: false, files: false, messageMegagroups: true })
+    expect(init?.messageUsers).toBeUndefined()
+    expect(init?.messageChats).toBeUndefined()
+    expect(init?.messageChannels).toBeUndefined()
+    expect(init?.fileMaxSize).toBeUndefined()
+  })
+
+  it('takeoutMessages should finish unsuccessfully when its consumer stops early', async () => {
+    const calls: Api.AnyRequest[] = []
+    const client = {
+      invoke: vi.fn(async (query: Api.AnyRequest) => {
+        calls.push(query)
+        if (query instanceof Api.account.InitTakeoutSession)
+          return { id: bigInt(1) }
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges)
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        if (query instanceof Api.InvokeWithTakeout) {
+          if (query.query instanceof Api.account.FinishTakeoutSession)
+            return {}
+          return { messages: [{ id: 1, date: 1 }] }
+        }
+        throw new Error('unexpected query')
+      }),
+    }
+    const { ctx } = createMockCtx(client)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+    const task = createTask()
+
+    const generator = service.takeoutMessages('123', {
+      pagination: { limit: 100, offset: 0 },
+      skipMedia: true,
+      expectedCount: 1,
+      takeoutConsent: true,
+      task,
+    })
+    await expect(generator.next()).resolves.toMatchObject({ done: false, value: { id: 1 } })
+    await generator.return(undefined)
+
+    const finished = calls.find(query => query instanceof Api.InvokeWithTakeout && query.query instanceof Api.account.FinishTakeoutSession)
+    expect(finished).toBeInstanceOf(Api.InvokeWithTakeout)
+    expect(((finished as Api.InvokeWithTakeout).query as Api.account.FinishTakeoutSession).success).toBe(false)
   })
 
   it('takeoutMessages should accept millisecond startTime and filter correctly', async () => {
@@ -217,7 +325,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -266,6 +374,7 @@ describe('takeout service', () => {
       expectedCount: 3,
       disableAutoProgress: true,
       syncOptions: undefined,
+      takeoutConsent: true,
     })) {
       yielded.push(m)
     }
@@ -274,10 +383,28 @@ describe('takeout service', () => {
     expect(task.updateError).not.toHaveBeenCalled()
   })
 
-  it('takeoutMessages should fall back to regular GetHistory when initTakeout fails', async () => {
-    // When initTakeout fails, the generator should NOT abort but instead
-    // fall back to plain GetHistory calls (without InvokeWithTakeout wrapper).
-    // GetHistory is still wrapped in InvokeWithMessagesRange for split ranges.
+  it('takeoutMessages should reject missing consent before calling Telegram', async () => {
+    const client = { invoke: vi.fn() }
+    const { ctx } = createMockCtx(client)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+    const task = createTask()
+
+    const yielded: Api.Message[] = []
+    for await (const message of service.takeoutMessages('123', {
+      pagination: { limit: 100, offset: 0 },
+      skipMedia: true,
+      task,
+      takeoutConsent: false,
+    })) {
+      yielded.push(message)
+    }
+
+    expect(yielded).toEqual([])
+    expect(task.state.lastError).toBe('Explicit Telegram Takeout consent is required')
+    expect(client.invoke).not.toHaveBeenCalled()
+  })
+
+  it('takeoutMessages should fail closed when takeout initialization fails', async () => {
     const calls: any[] = []
 
     const client = {
@@ -287,21 +414,6 @@ describe('takeout service', () => {
 
         if (query instanceof Api.account.InitTakeoutSession) {
           throw new TypeError('init failed')
-        }
-
-        if (query instanceof Api.messages.GetSplitRanges) {
-          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
-        }
-
-        // Fallback path: InvokeWithMessagesRange wrapping GetHistory (no InvokeWithTakeout)
-        if (query instanceof Api.InvokeWithMessagesRange) {
-          const inner = query.query
-          if (inner instanceof Api.messages.GetHistory) {
-            if ((inner).offsetId === 0) {
-              return { messages: [{ id: 10 }, { id: 11 }] }
-            }
-            return { messages: [] }
-          }
         }
 
         throw new Error('unexpected query')
@@ -325,17 +437,14 @@ describe('takeout service', () => {
       expectedCount: 2,
       disableAutoProgress: false,
       syncOptions: undefined,
+      takeoutConsent: true,
     })) {
       yielded.push(m)
     }
 
-    // Messages should still be yielded via regular GetHistory fallback
-    expect(yielded.map(m => m.id)).toEqual([10, 11])
-    expect(task.updateError).not.toHaveBeenCalled()
-
-    // No InvokeWithTakeout calls should have been made
-    const takeoutCalls = calls.filter(q => q instanceof Api.InvokeWithTakeout)
-    expect(takeoutCalls).toHaveLength(0)
+    expect(yielded).toEqual([])
+    expect(task.updateError).toHaveBeenCalledWith(expect.objectContaining({ message: 'init failed' }))
+    expect(calls).toHaveLength(1)
   })
 
   it('takeoutMessages should finish late takeout session when init times out', async () => {
@@ -355,16 +464,8 @@ describe('takeout service', () => {
           })
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
-        }
-
-        // Fallback: InvokeWithMessagesRange wrapping GetHistory (no takeout since init timed out)
-        if (query instanceof Api.InvokeWithMessagesRange) {
-          const inner = query.query
-          if (inner instanceof Api.messages.GetHistory) {
-            return { messages: [{ id: 88 }] }
-          }
         }
 
         if (query instanceof Api.InvokeWithTakeout) {
@@ -396,6 +497,7 @@ describe('takeout service', () => {
           expectedCount: 1,
           disableAutoProgress: false,
           syncOptions: undefined,
+          takeoutConsent: true,
         })) {
           yielded.push(m)
         }
@@ -405,8 +507,8 @@ describe('takeout service', () => {
       await vi.advanceTimersByTimeAsync(30_000)
       const yielded = await collectPromise
 
-      expect(yielded.map(m => m.id)).toEqual([88])
-      expect(task.updateError).not.toHaveBeenCalled()
+      expect(yielded).toEqual([])
+      expect(task.updateError).toHaveBeenCalledWith(expect.objectContaining({ message: 'Takeout session init timed out after 30s' }))
 
       // Resolve the late init after timeout and ensure cleanup finish(false) happens.
       resolveInitTakeout?.({ id: bigInt(99) })
@@ -423,13 +525,13 @@ describe('takeout service', () => {
     }
   })
 
-  it('takeoutMessages should not emit fallback progress when auto progress is disabled', async () => {
+  it('takeoutMessages should report init failure without fallback progress', async () => {
     const client = {
       invoke: vi.fn(async (query: any) => {
         if (query instanceof Api.account.InitTakeoutSession) {
           throw new TypeError('init failed')
         }
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
         if (query instanceof Api.InvokeWithMessagesRange) {
@@ -456,11 +558,13 @@ describe('takeout service', () => {
       expectedCount: 0,
       disableAutoProgress: true,
       syncOptions: undefined,
+      takeoutConsent: true,
     })) {
       void message
     }
 
     expect(task.updateProgress).not.toHaveBeenCalledWith(0, 'Takeout unavailable, using regular sync')
+    expect(task.state.lastError).toBe('init failed')
   })
 
   it('takeoutMessages should stop when aborted during rate-limit wait', async () => {
@@ -483,7 +587,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -524,16 +628,17 @@ describe('takeout service', () => {
       expectedCount: 10,
       disableAutoProgress: false,
       syncOptions: undefined,
+      takeoutConsent: true,
     })) {
       yielded.push(m)
     }
 
     expect(yielded).toEqual([])
 
-    // Should still finish takeout session successfully after breaking.
+    // Aborted exports must close the takeout session as unsuccessful.
     const finished = calls.find(q => q instanceof Api.InvokeWithTakeout && (q).query instanceof Api.account.FinishTakeoutSession)
     expect(finished).toBeTruthy()
-    expect((finished).query.success).toBe(true)
+    expect((finished).query.success).toBe(false)
   })
 
   it('runTakeout should normalize string IDs from stats/syncOptions to numbers', async () => {
@@ -563,7 +668,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -646,7 +751,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [
             new Api.MessageRange({ minId: 1, maxId: 500000 }),
             new Api.MessageRange({ minId: 500001, maxId: 1000000 }),
@@ -699,6 +804,7 @@ describe('takeout service', () => {
       expectedCount: 4,
       disableAutoProgress: false,
       syncOptions: undefined,
+      takeoutConsent: true,
     })) {
       yielded.push(m)
     }
@@ -734,7 +840,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 
@@ -802,7 +908,7 @@ describe('takeout service', () => {
           return { id: bigInt(1) }
         }
 
-        if (query instanceof Api.messages.GetSplitRanges) {
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
           return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
         }
 

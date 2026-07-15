@@ -1,9 +1,9 @@
 {
   "name": "telegram-search",
   "type": "module",
-  "version": "1.2.6",
+  "version": "1.3.0",
   "private": true,
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@10.34.4",
   "engines": {
     "node": ">=24.13.0"
   },
@@ -35,27 +35,28 @@
     "bump:deps": "taze -I -f -w -r",
     "db:generate": "pnpm apply:env -- drizzle-kit generate",
     "db:kit": "pnpm apply:env -- drizzle-kit",
+    "cli": "pnpm -F @tg-search/cli start",
     "postinstall": "pnpm run packages:build"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.61.0",
+    "@dotenvx/dotenvx": "^1.75.1",
     "@guiiai/logg": "catalog:"
   },
   "devDependencies": {
     "@moeru/eslint-config": "0.1.0-beta.15",
-    "@types/node": "^25.6.0",
-    "@vitest/coverage-v8": "^4.1.4",
+    "@types/node": "^25.9.4",
+    "@vitest/coverage-v8": "^4.1.9",
     "@vitest/ui": "4.0.18",
     "bumpp": "^10.4.1",
-    "concurrently": "^9.2.1",
+    "concurrently": "^9.2.3",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.4",
-    "happy-dom": "^20.8.9",
-    "taze": "^19.11.0",
+    "happy-dom": "^20.10.6",
+    "taze": "^19.14.1",
     "tsdown": "catalog:",
-    "turbo": "^2.9.5",
+    "turbo": "^2.10.0",
     "typescript": "^5.9.3",
-    "vite": "^8.0.8",
-    "vitest": "^4.1.4"
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
   }
 }

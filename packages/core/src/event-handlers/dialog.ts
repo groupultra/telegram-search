@@ -39,14 +39,10 @@ export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: M
   ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs, accountId })
 }
 
-export function registerDialogEventHandlers(ctx: CoreContext, logger: Logger, dbModels: Models) {
+export function registerDialogEventHandlers(ctx: CoreContext, logger: Logger) {
   logger = logger.withContext('core:dialog:event')
 
   return (dialogService: DialogService) => {
-    ctx.emitter.on(CoreEventType.DialogFetch, async () => {
-      await fetchDialogs(ctx, logger, dbModels, dialogService)
-    })
-
     ctx.emitter.on(CoreEventType.DialogFoldersFetch, async () => {
       logger.verbose('Fetching chat folders')
 

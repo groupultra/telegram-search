@@ -1,6 +1,5 @@
 import type { Logger } from '@guiiai/logg'
 import type { Result } from '@unbird/result'
-import type { Dialog } from 'telegram/tl/custom/dialog'
 
 import type { CoreContext } from '../context'
 import type { UserModels } from '../models/users'
@@ -12,7 +11,8 @@ import bigInt from 'big-integer'
 import { circularObject } from '@tg-search/common'
 import { withSpan } from '@tg-search/observability'
 import { Ok } from '@unbird/result'
-import { Api } from 'telegram'
+import { Api, utils } from 'telegram'
+import { Dialog } from 'telegram/tl/custom/dialog'
 
 import { useAvatarHelper } from '../message-resolvers/avatar-resolver'
 import { CoreEventType } from '../types/events'
@@ -167,6 +167,180 @@ export function createDialogService(ctx: CoreContext, logger: Logger, userModels
     })
   }
 
+  // Mirror tdesktop's kChatsSliceLimit (Telegram/SourceFiles/export/export_api_wrap.cpp).
+  const CHATS_SLICE_LIMIT = 100
+
+  // Channel message ids collide across peers, so a top message is keyed by
+  // (channelId, messageId). The key is internal to this file; it only needs to
+  // be unique per (channelId|undefined, messageId), not match any gramjs format.
+  function dialogMessageKey(peer: Api.TypePeer, messageId: number): string {
+    const channelId = peer instanceof Api.PeerChannel ? peer.channelId : undefined
+    return `${channelId},${messageId}`
+  }
+
+  /**
+   * Fetch split ranges so dialogs are iterated across every server-side message
+   * box. Without this, accounts whose total message volume crosses the 500K/1M
+   * boundaries lose the dialogs whose top message sits in an older box.
+   *
+   * NOTICE: tdesktop only ever calls getSplitRanges and InvokeWithMessagesRange
+   * inside a takeout session; whether the server honors them on the regular
+   * connection (as used here, since dialog sync is not a takeout flow) is not
+   * verified against a real multi-box account. Returning [] on failure makes the
+   * caller fall back to plain unranged pagination, so this can never regress
+   * below the previous client.getDialogs() behavior — it only helps when the
+   * server does honor the range.
+   *
+   * https://core.telegram.org/api/takeout
+   * https://core.telegram.org/method/messages.getSplitRanges
+   */
+  async function getSplitRanges(): Promise<Api.MessageRange[]> {
+    try {
+      return await ctx.getClient().invoke(new Api.messages.GetSplitRanges())
+    }
+    catch (error) {
+      logger.withError(error).warn('getSplitRanges failed, falling back to unranged dialog pagination')
+      return []
+    }
+  }
+
+  /**
+   * Paginate dialogs within a single split range (or the whole account when
+   * range is undefined), appending resolved Dialog objects to acc. seen is
+   * shared across ranges to drop dialogs that appear in more than one box.
+   *
+   * Mirrors tdesktop ApiWrap::requestDialogsSlice and gramjs _DialogsIter:
+   * each range restarts pagination from offset 0.
+   */
+  async function collectDialogsForRange(
+    range: Api.MessageRange | undefined,
+    seen: Set<string>,
+    acc: Dialog[],
+  ): Promise<void> {
+    const client = ctx.getClient()
+    let offsetDate = 0
+    let offsetId = 0
+    let offsetPeer: Api.TypeInputPeer = new Api.InputPeerEmpty()
+    let excludePinned = false
+
+    while (true) {
+      const getDialogs = new Api.messages.GetDialogs({
+        offsetDate,
+        offsetId,
+        offsetPeer,
+        limit: CHATS_SLICE_LIMIT,
+        hash: bigInt(0),
+        excludePinned,
+      })
+      const query = range
+        ? new Api.InvokeWithMessagesRange({ range, query: getDialogs })
+        : getDialogs
+
+      const result = await client.invoke(query) as Api.messages.TypeDialogs
+      if (result instanceof Api.messages.DialogsNotModified) {
+        break
+      }
+
+      const entities = new Map<string, Api.TypeUser | Api.TypeChat>()
+      for (const entity of [...result.users, ...result.chats]) {
+        if (entity instanceof Api.UserEmpty || entity instanceof Api.ChatEmpty) {
+          continue
+        }
+        entities.set(utils.getPeerId(entity), entity)
+      }
+
+      // MessageEmpty/MessageService carry no usable date for the Dialog ctor and
+      // no top-message preview, so only real messages enter the lookup map.
+      const messages = new Map<string, Api.Message>()
+      for (const message of result.messages) {
+        if (!(message instanceof Api.Message)) {
+          continue
+        }
+        // NOTICE: _finishInit is a gramjs-internal method (telegram@2.26.22,
+        // tl/custom/message.js) that wires sender/chat refs onto the message via
+        // _entityCache. We reuse it so dialog preview/sender resolution matches
+        // client.getDialogs(). If a future gramjs drops it, the 'in' guard skips
+        // enrichment and group last-message sender names degrade silently — the
+        // warn log is the only signal, so re-verify on gramjs upgrade.
+        if ('_finishInit' in message) {
+          try {
+            (message as unknown as { _finishInit: (c: unknown, e: unknown, i: unknown) => void })
+              ._finishInit(client, entities, undefined)
+          }
+          catch (error) {
+            logger.withError(error).warn('Failed to finish init dialog message')
+          }
+        }
+        messages.set(dialogMessageKey(message.peerId, message.id), message)
+      }
+
+      for (const dialog of result.dialogs) {
+        if (dialog instanceof Api.DialogFolder) {
+          continue
+        }
+        const peerId = utils.getPeerId(dialog.peer)
+        if (seen.has(peerId)) {
+          continue
+        }
+
+        const entity = entities.get(peerId)
+        const message = messages.get(dialogMessageKey(dialog.peer, dialog.topMessage))
+        // Dialog ctor reads message.date and throws when entity is missing. Skip
+        // without marking seen, so a later range carrying full data still emits it.
+        if (!entity || !message) {
+          continue
+        }
+        try {
+          acc.push(new Dialog(client, dialog, entities, message))
+          seen.add(peerId)
+        }
+        catch (error) {
+          logger.withError(error).warn('Failed to construct dialog')
+        }
+      }
+
+      const finished = result.dialogs.length < CHATS_SLICE_LIMIT
+        || !(result instanceof Api.messages.DialogsSlice)
+      if (finished) {
+        break
+      }
+
+      // Advance offsetId/offsetDate/offsetPeer from a single dialog so the tuple
+      // stays internally consistent (the server tie-breaks pages on the peer).
+      // When no dialog on the page yields both a message and a resolvable input
+      // peer, the offset cannot advance, so stop rather than spin forever.
+      let nextOffsetId: number | undefined
+      let nextOffsetDate: number | undefined
+      let nextOffsetPeer: Api.TypeInputPeer | undefined
+      for (const dialog of [...result.dialogs].reverse()) {
+        if (dialog instanceof Api.DialogFolder) {
+          continue
+        }
+        const message = messages.get(dialogMessageKey(dialog.peer, dialog.topMessage))
+        const entity = entities.get(utils.getPeerId(dialog.peer))
+        if (!message || !entity) {
+          continue
+        }
+        try {
+          nextOffsetPeer = utils.getInputPeer(entity)
+        }
+        catch {
+          continue
+        }
+        nextOffsetId = message.id
+        nextOffsetDate = message.date
+        break
+      }
+      if (nextOffsetPeer === undefined || nextOffsetId === undefined || nextOffsetDate === undefined) {
+        break
+      }
+      excludePinned = true
+      offsetId = nextOffsetId
+      offsetDate = nextOffsetDate
+      offsetPeer = nextOffsetPeer
+    }
+  }
+
   /**
    * Fetch dialogs and emit base data. Then asynchronously fetch avatars.
    *
@@ -175,11 +349,19 @@ export function createDialogService(ctx: CoreContext, logger: Logger, userModels
    */
   async function fetchDialogs(): Promise<Result<CoreDialog[]>> {
     return withSpan('core:dialog:service:fetchDialogs', async () => {
-      // TODO: use invoke api
-      // TODO: use pagination
-      // Total list has a total property
-      const dialogList = await ctx.getClient().getDialogs()
-      // const dialogs = await getClient().invoke(new Api.messages.GetDialogs({})) as Api.messages.Dialogs
+      const splitRanges = await getSplitRanges()
+      logger.withFields({ splitRangeCount: splitRanges.length }).verbose('Fetched split ranges for dialogs')
+
+      const seen = new Set<string>()
+      const dialogList: Dialog[] = []
+      if (splitRanges.length > 0) {
+        for (const range of splitRanges) {
+          await collectDialogsForRange(range, seen, dialogList)
+        }
+      }
+      else {
+        await collectDialogsForRange(undefined, seen, dialogList)
+      }
 
       const senderNameMap = await resolveDialogSenderNames(dialogList)
       const dialogs: CoreDialog[] = []

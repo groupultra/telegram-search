@@ -18,6 +18,7 @@ import { useSessionStore } from '../stores/useSession'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { initDB } from './core-db'
 import { createCoreRuntime } from './core-runtime'
+import { createLocalApplicationBridge } from './eventa-local'
 
 export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
   const sessionStore = useSessionStore()
@@ -29,6 +30,7 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
   const isInitialized = ref(false)
   const config = useLocalStorage<Config>('core-bridge/config', generateDefaultConfig())
   const coreRuntime = createCoreRuntime(config, logger)
+  const application = createLocalApplicationBridge(() => coreRuntime.getCtx())
 
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
 
@@ -38,7 +40,7 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
       return
 
     logger.withFields({ oldId, newId }).debug('Active session changed, destroying CoreContext')
-    coreRuntime.destroy().then(() => {
+    application.reset().then(() => coreRuntime.destroy()).then(() => {
       // Re-register handlers for the new context
       registerAllEventHandlers(registerEventHandler)
     }).catch((error) => {
@@ -146,6 +148,7 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
   }
 
   return {
+    application,
     init,
     sendEvent,
     waitForEvent,

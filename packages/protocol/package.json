@@ -1,0 +1,22 @@
+{
+  "name": "@tg-search/protocol",
+  "type": "module",
+  "version": "1.3.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "scripts": {
+    "build": "tsdown",
+    "test:run": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@moeru/eventa": "1.0.0-beta.11",
+    "valibot": "^1.4.2"
+  }
+}

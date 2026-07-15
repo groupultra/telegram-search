@@ -23,18 +23,15 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
     fromUserUuid: message.from_user_uuid ?? undefined,
 
     content: message.content,
+    media: message.media.length > 0 ? message.media : undefined,
+    links: message.links.length > 0 ? message.links : undefined,
 
     reply: {
       isReply: message.is_reply,
       replyToId: message.reply_to_id,
       replyToName: message.reply_to_name,
     },
-    forward: {
-      isForward: false,
-      // forwardFromChatId: message.forward_from_chat_id,
-      // forwardFromChatName: message.forward_from_chat_name,
-      // forwardFromMessageId: message.forward_from_message_id,
-    },
+    forward: message.forward,
 
     createdAt: message.created_at,
     updatedAt: message.updated_at,
@@ -61,6 +58,9 @@ export function convertToDBInsertMessage(
     is_reply: message.reply.isReply,
     reply_to_name: message.reply.replyToName,
     reply_to_id: message.reply.replyToId,
+    forward: message.forward,
+    media: message.media ?? [],
+    links: message.links ?? [],
     platform_timestamp: message.platformTimestamp,
   }
 

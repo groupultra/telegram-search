@@ -1,5 +1,6 @@
 import type { CorePagination } from '@tg-search/common'
 import type { CoreMessage } from '@tg-search/core'
+import type { MessageRecord } from '@tg-search/protocol'
 
 import type { VersionedScopedStorage } from '../utils/versioned-local-cache'
 
@@ -44,6 +45,34 @@ export const useMessageStore = defineStore('message', () => {
 
   function createRequestId() {
     return `message-store:${Date.now()}:${Math.random().toString(36).slice(2)}`
+  }
+
+  function fromMessageRecord(message: MessageRecord): CoreMessage {
+    return {
+      uuid: `${message.chatId}:${message.id}`,
+      platform: 'telegram',
+      platformMessageId: message.id,
+      chatId: message.chatId,
+      fromId: message.senderId,
+      fromName: message.senderName,
+      content: message.text,
+      reply: { isReply: !!message.replyToId, replyToId: message.replyToId },
+      forward: {
+        isForward: message.forward.isForward,
+        forwardFromChatId: message.forward.fromChatId,
+        forwardFromChatName: message.forward.fromChatName,
+        forwardFromMessageId: message.forward.fromMessageId,
+      },
+      media: message.media.map(media => ({
+        type: ['photo', 'sticker', 'document', 'webpage'].includes(media.type) ? media.type : 'unknown',
+        platformId: media.telegramReference ?? '',
+        mimeType: media.mimeType,
+      } as NonNullable<CoreMessage['media']>[number])),
+      links: message.links,
+      platformTimestamp: message.timestamp,
+      updatedAt: message.editedAt,
+      deletedAt: message.deletedAt,
+    }
   }
 
   const senderNames = computed({
@@ -348,14 +377,16 @@ export const useMessageStore = defineStore('message', () => {
     const after = options.after ?? 20
     const limit = options.limit ?? Math.max(messageWindow.value?.maxSize ?? 0, before + after + 1, 50)
 
-    bridge.sendEvent(CoreEventType.StorageFetchMessageContext, {
+    const result = await bridge.application.getLocalMessageContext({
       chatId,
       messageId,
       before,
       after,
     })
-
-    const { messages } = await waitForEventWithTimeout(bridge.waitForEvent(CoreEventType.StorageMessagesContext))
+    if (!result.ok) {
+      throw new Error(`${result.error.code}: ${result.error.message}`)
+    }
+    const messages = result.data.messages.map(fromMessageRecord)
 
     replaceMessages(messages, { chatId, limit })
 
@@ -452,33 +483,20 @@ export const useMessageStore = defineStore('message', () => {
 
       logger.log(`Fetching messages for chat ${chatId}`, pagination.offset)
 
-      // Then, fetch the messages from server & update the cache
-      switch (direction) {
-        case 'older':
-          bridge.sendEvent(CoreEventType.MessageFetch, { chatId, pagination })
-          break
-        case 'newer':
-          bridge.sendEvent(CoreEventType.MessageFetch, {
-            chatId,
-            pagination: {
-              offset: 0,
-              limit: pagination.limit,
-            },
-            minId: pagination.minId,
-          })
-          break
-      }
-
       try {
-        const result = await waitForEventWithTimeout(Promise.race([
-          bridge.waitForEvent(CoreEventType.MessageData),
-          bridge.waitForEvent(CoreEventType.StorageMessages),
-        ]))
-
-        // Let the registered event handler push the fetched messages into the
-        // store before callers continue with follow-up scroll logic.
+        const result = await bridge.application.listRemoteMessages({
+          chatId,
+          limit: pagination.limit,
+          cursor: direction === 'older' ? String(pagination.offset) : undefined,
+          minMessageId: direction === 'newer' ? pagination.minId : undefined,
+        })
+        if (!result.ok) {
+          throw new Error(`${result.error.code}: ${result.error.message}`)
+        }
+        const messages = result.data.items.map(fromMessageRecord)
+        await pushMessages(messages)
         await nextTick()
-        return result
+        return { messages }
       }
       catch {
         logger.warn('Message fetch timed out or failed')

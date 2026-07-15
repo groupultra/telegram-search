@@ -95,6 +95,9 @@ async function recordMessages(
       set: {
         // Content: always update with new content
         content: sql`excluded.content`,
+        forward: sql`excluded.forward`,
+        media: sql`excluded.media`,
+        links: sql`excluded.links`,
 
         // User UUID: update if not null
         from_user_uuid: sql`COALESCE(excluded.from_user_uuid, ${chatMessagesTable.from_user_uuid})`,
@@ -308,7 +311,11 @@ async function fetchMessageContextWithPhotos(
         OR ${chatMessagesTable.owner_account_id} IS NULL
       )`,
       ))
-      .orderBy(asc(chatMessagesTable.platform_timestamp))
+      .orderBy(
+        asc(chatMessagesTable.platform_timestamp),
+        asc(chatMessagesTable.in_chat_id),
+        asc(chatMessagesTable.platform_message_id),
+      )
       .limit(after)
 
     const combinedDbMessages = [
@@ -345,6 +352,7 @@ async function fetchMessagesByTimeRange(
   timeRange: { start: number, end: number },
   chatIds?: string[],
   pagination?: CorePagination,
+  fromUserId?: string,
 ): PromiseResult<DBSelectMessage[]> {
   return withResult(async () => {
     const conditions = [
@@ -362,13 +370,20 @@ async function fetchMessagesByTimeRange(
     if (chatIds && chatIds.length > 0) {
       conditions.push(inArray(chatMessagesTable.in_chat_id, chatIds))
     }
+    if (fromUserId) {
+      conditions.push(eq(chatMessagesTable.from_id, fromUserId))
+    }
 
     const results = await db
       .select({ chat_messages: chatMessagesTable })
       .from(chatMessagesTable)
       .innerJoin(joinedChatsTable, eq(chatMessagesTable.in_chat_id, joinedChatsTable.chat_id))
       .where(and(...conditions))
-      .orderBy(asc(chatMessagesTable.platform_timestamp))
+      .orderBy(
+        asc(chatMessagesTable.platform_timestamp),
+        asc(chatMessagesTable.in_chat_id),
+        asc(chatMessagesTable.platform_message_id),
+      )
       .limit(pagination?.limit ?? 1000)
       .offset(pagination?.offset ?? 0)
 

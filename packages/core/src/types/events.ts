@@ -28,14 +28,11 @@ export enum CoreEventType {
   ConfigUpdate = 'config:update',
   ConfigData = 'config:data',
 
-  MessageFetch = 'message:fetch',
-  MessageFetchAbort = 'message:fetch:abort',
   MessageFetchSpecific = 'message:fetch:specific',
   MessageFetchUnread = 'message:fetch:unread',
   MessageFetchSummary = 'message:fetch:summary',
   MessageSend = 'message:send',
   MessageRead = 'message:read',
-  MessageFetchProgress = 'message:fetch:progress',
   MessageData = 'message:data',
   MessageUnreadData = 'message:unread-data',
   MessageSummaryData = 'message:summary-data',
@@ -45,7 +42,6 @@ export enum CoreEventType {
   MessageUpdated = 'message:updated',
   MessageDeleted = 'message:deleted',
 
-  DialogFetch = 'dialog:fetch',
   DialogFoldersFetch = 'dialog:folders:fetch',
   DialogAvatarFetch = 'dialog:avatar:fetch',
   DialogData = 'dialog:data',
@@ -60,20 +56,16 @@ export enum CoreEventType {
   EntityMeData = 'entity:me:data',
   EntityAvatarData = 'entity:avatar:data',
 
-  StorageFetchMessages = 'storage:fetch:messages',
   StorageRecordMessages = 'storage:record:messages',
   StorageFetchDialogs = 'storage:fetch:dialogs',
   StorageRecordDialogs = 'storage:record:dialogs',
   StorageRecordChatFolders = 'storage:record:chat-folders',
   StorageSearchMessages = 'storage:search:messages',
   StorageSearchPhotos = 'storage:search:photos',
-  StorageFetchMessageContext = 'storage:fetch:message-context',
   StorageFetchMessageEditMarks = 'storage:fetch:message-edit-marks',
-  StorageMessages = 'storage:messages',
   StorageDialogs = 'storage:dialogs',
   StorageSearchMessagesData = 'storage:search:messages:data',
   StorageSearchPhotosData = 'storage:search:photos:data',
-  StorageMessagesContext = 'storage:messages:context',
   StorageMessageEditMarks = 'storage:message-edit-marks',
   StorageChatNote = 'storage:record:dialog-note',
   StorageChatNoteData = 'storage:dialog-note',
@@ -168,8 +160,6 @@ export interface AccountSettingsEventFromCore {
 // ============================================================================
 
 export interface MessageEventToCore {
-  [CoreEventType.MessageFetch]: (data: FetchMessageOpts) => void
-  [CoreEventType.MessageFetchAbort]: (data: { taskId: string }) => void
   [CoreEventType.MessageFetchSpecific]: (data: { chatId: string, messageIds: number[] }) => void
   [CoreEventType.MessageFetchUnread]: (data: FetchUnreadMessageOpts) => void
   [CoreEventType.MessageFetchSummary]: (data: FetchSummaryMessageOpts) => void
@@ -196,7 +186,6 @@ export interface FetchSummaryMessageOpts {
 }
 
 export interface MessageEventFromCore {
-  [CoreEventType.MessageFetchProgress]: (data: { taskId: string, progress: number }) => void
   [CoreEventType.MessageData]: (data: { messages: CoreMessage[] }) => void
   [CoreEventType.MessageUnreadData]: (data: { messages: CoreMessage[] }) => void
   [CoreEventType.MessageSummaryData]: (data: { messages: CoreMessage[], mode: SummaryMode, requestId?: string }) => void
@@ -227,7 +216,6 @@ export interface FetchMessageOpts {
 // ============================================================================
 
 export interface DialogEventToCore {
-  [CoreEventType.DialogFetch]: () => void
   [CoreEventType.DialogFoldersFetch]: () => void
   /**
    * Request fetching a single dialog's avatar immediately.
@@ -307,7 +295,6 @@ export type CoreEntity = CoreUserEntity | CoreChatEntity | CoreChannelEntity
 // ============================================================================
 
 export interface StorageEventToCore {
-  [CoreEventType.StorageFetchMessages]: (data: { chatId: string, pagination: CorePagination }) => void
   [CoreEventType.StorageRecordMessages]: (data: { messages: CoreMessage[] }) => void
 
   [CoreEventType.StorageFetchDialogs]: (data: { accountId: string }) => void
@@ -317,21 +304,17 @@ export interface StorageEventToCore {
   [CoreEventType.StorageSearchMessages]: (data: CoreMessageSearchParams) => void
   [CoreEventType.StorageSearchPhotos]: (data: CorePhotoSearchParams) => void
 
-  [CoreEventType.StorageFetchMessageContext]: (data: StorageMessageContextParams) => void
   [CoreEventType.StorageFetchMessageEditMarks]: (data: { chatId: string, messageIds: string[], requestId?: string }) => void
 
   [CoreEventType.StorageChatNote]: (data: { chatId: string, note: string, modify: boolean }) => void
 }
 
 export interface StorageEventFromCore {
-  [CoreEventType.StorageMessages]: (data: { messages: CoreMessage[] }) => void
-
   [CoreEventType.StorageDialogs]: (data: { dialogs: CoreDialog[] }) => void
 
   [CoreEventType.StorageSearchMessagesData]: (data: { messages: CoreRetrievalMessages[], hasMore: boolean, requestId?: string }) => void
   [CoreEventType.StorageSearchPhotosData]: (data: { photos: CoreRetrievalPhoto[], hasMore: boolean, requestId?: string }) => void
 
-  [CoreEventType.StorageMessagesContext]: (data: { messages: CoreMessage[] } & StorageMessageContextParams) => void
   [CoreEventType.StorageMessageEditMarks]: (data: { chatId: string, editedMessageIds: string[], requestId?: string }) => void
 
   [CoreEventType.StorageChatNoteData]: (data: { chatId: string, note: string }) => void
@@ -455,7 +438,7 @@ export interface TakeoutEventFromCore {
   [CoreEventType.TakeoutTaskProgress]: (data: CoreTaskData<'takeout'>) => void
   [CoreEventType.TakeoutStatsData]: (data: ChatSyncStats) => void
   [CoreEventType.TakeoutMetrics]: (data: TakeoutMetrics) => void
-  /** Core requests user to choose between takeout authorization and GetHistory fallback. */
+  /** Core requests explicit authorization before starting a takeout export. */
   [CoreEventType.TakeoutConfirmNeeded]: () => void
 }
 
@@ -479,6 +462,9 @@ export interface TakeoutOpts {
   // Expected total count for progress calculation (optional, will fetch from Telegram if not provided)
   expectedCount?: number
 
+  // Maximum number of messages to yield for this explicitly approved export.
+  maxMessages?: number
+
   // Disable auto progress emission (for manual progress management in handler)
   disableAutoProgress?: boolean
 
@@ -488,9 +474,8 @@ export interface TakeoutOpts {
   // Sync options (media size limit, etc.)
   syncOptions?: SyncOptions
 
-  // Skip takeout session initialization; use regular GetHistory instead.
-  // Set when the user explicitly declines takeout authorization.
-  skipTakeout?: boolean
+  // Bulk history export is allowed only after explicit user consent.
+  takeoutConsent: boolean
 }
 
 // ============================================================================
