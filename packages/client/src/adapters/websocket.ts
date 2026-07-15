@@ -20,6 +20,7 @@ import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
 import { useSessionStore } from '../stores/useSession'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
+import { createWebSocketApplicationBridge } from './eventa-websocket'
 
 export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
 export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
@@ -74,6 +75,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     // Only connect when URL is defined
     immediate: !!wsUrlComputed.value,
   })
+  const application = createWebSocketApplicationBridge(() => wsSocket.ws.value)
 
   // Explicitly watch URL to open/close if it transitions between undefined/defined
   watch(wsUrlComputed, (url) => {
@@ -136,6 +138,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
   })
 
   return {
+    application,
     init,
     sendEvent,
     waitForEvent,

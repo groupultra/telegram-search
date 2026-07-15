@@ -6,9 +6,11 @@ import { useChatStore } from '../useChat'
 
 // Mock dependencies
 const sendEventMock = vi.fn()
+const listChatsMock = vi.fn(async () => ({ ok: true, data: { items: [], nextCursor: null } }))
 vi.mock('../../composables/useBridge', () => ({
   useBridge: () => ({
     sendEvent: sendEventMock,
+    application: { listChats: listChatsMock },
   }),
 }))
 
@@ -54,6 +56,7 @@ describe('useChatStore', () => {
 
     expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.StorageFetchDialogs)
     expect(sendEventMock).toHaveBeenCalledWith(CoreEventType.DialogFoldersFetch)
+    expect(listChatsMock).toHaveBeenCalledWith({ limit: 1000 })
   })
 
   it('manages chats correctly', () => {

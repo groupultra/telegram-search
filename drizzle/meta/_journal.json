@@ -253,6 +253,13 @@
       "when": 1773311604354,
       "tag": "0035_nasty_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1783865832421,
+      "tag": "0036_add-message-structured-metadata",
+      "breakpoints": true
     }
   ]
 }

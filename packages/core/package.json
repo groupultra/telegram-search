@@ -1,7 +1,7 @@
 {
   "name": "@tg-search/core",
   "type": "module",
-  "version": "1.2.8",
+  "version": "1.3.0",
   "exports": {
     ".": "./src/index.ts",
     "./types": "./src/types/index.ts"
@@ -14,12 +14,13 @@
     "@electric-sql/pglite": "^0.3.16",
     "@guiiai/logg": "catalog:",
     "@henrygd/queue": "^1.2.0",
-    "@moeru/eventa": "1.0.0-alpha.11",
+    "@moeru/eventa": "1.0.0-beta.11",
     "@moeru/std": "0.1.0-beta.15",
     "@node-rs/jieba": "^2.0.1",
     "@proj-airi/drizzle-orm-browser-migrator": "^0.1.6",
     "@tg-search/common": "workspace:*",
     "@tg-search/observability": "workspace:*",
+    "@tg-search/protocol": "workspace:*",
     "@tg-search/schema": "workspace:*",
     "@unbird/result": "catalog:",
     "@xsai/embed": "catalog:",

@@ -7,7 +7,6 @@ import type { CoreMessage } from '../types/message'
 import { Api } from 'telegram/tl'
 import { v4 as uuidv4 } from 'uuid'
 
-import { MESSAGE_PROCESS_BATCH_SIZE } from '../constants'
 import { CoreEventType } from '../types/events'
 import { convertToCoreMessage } from '../utils/message'
 
@@ -20,35 +19,6 @@ export function registerMessageEventHandlers(ctx: CoreContext, logger: Logger) {
         .map(convertToCoreMessage)
         .map(result => result.unwrap())
     }
-
-    ctx.emitter.on(CoreEventType.MessageFetch, async (opts) => {
-      logger.withFields({ chatId: opts.chatId, minId: opts.minId, maxId: opts.maxId }).verbose('Fetching messages')
-
-      let messages: Api.Message[] = []
-      try {
-        for await (const message of messageService.fetchMessages(opts.chatId, opts)) {
-          messages.push(message)
-
-          const batchSize = MESSAGE_PROCESS_BATCH_SIZE
-          if (messages.length >= batchSize) {
-            logger.withFields({
-              total: messages.length,
-              batchSize,
-            }).debug('Processing message batch')
-
-            ctx.emitter.emit(CoreEventType.MessageProcess, { messages })
-            messages = []
-          }
-        }
-
-        if (messages.length > 0) {
-          ctx.emitter.emit(CoreEventType.MessageProcess, { messages })
-        }
-      }
-      catch (error) {
-        ctx.withError(error, 'Failed to fetch messages')
-      }
-    })
 
     ctx.emitter.on(CoreEventType.MessageFetchSpecific, async ({ chatId, messageIds }) => {
       logger.withFields({ chatId, count: messageIds.length }).verbose('Fetching specific messages for media')

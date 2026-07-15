@@ -1,0 +1,35 @@
+{
+  "name": "@tg-search/cli",
+  "type": "module",
+  "version": "1.3.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "tg-search": "./dist/index.mjs"
+  },
+  "files": [
+    "README.md",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown && node scripts/check-gramjs-bundle.mjs",
+    "start": "node dist/index.mjs",
+    "test:bundle": "node scripts/check-gramjs-bundle.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.3.16",
+    "@guiiai/logg": "catalog:",
+    "@inquirer/password": "^5.1.1",
+    "@moeru/eventa": "1.0.0-beta.11",
+    "@node-rs/jieba": "2.0.1",
+    "@tg-search/common": "workspace:*",
+    "@tg-search/core": "workspace:*",
+    "@tg-search/protocol": "workspace:*",
+    "citty": "0.1.6",
+    "env-paths": "^4.0.0",
+    "telegram": "2.26.22"
+  }
+}

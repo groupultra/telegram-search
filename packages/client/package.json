@@ -10,8 +10,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@moeru/eventa": "1.0.0-beta.11",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",
+    "@tg-search/protocol": "workspace:*",
     "@tg-search/server": "workspace:*",
     "@vueuse/core": "^14.3.0",
     "culori": "^4.0.2",

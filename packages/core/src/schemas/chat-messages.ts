@@ -1,5 +1,7 @@
 // https://github.com/moeru-ai/airi/blob/main/services/telegram-bot/src/db/schema.ts
 
+import type { CoreMessageMedia } from '../types/media'
+import type { CoreMessageForward, CoreMessageLink } from '../types/message'
 import type { JoinedChatType } from './joined-chats'
 
 import { bigint, boolean, index, jsonb, pgTable, text, unique, uuid, vector } from 'drizzle-orm/pg-core'
@@ -24,6 +26,9 @@ export const chatMessagesTable = pgTable('chat_messages', {
   is_reply: boolean().notNull().default(false),
   reply_to_name: text().notNull().default(''),
   reply_to_id: text().notNull().default(''),
+  forward: jsonb().$type<CoreMessageForward>().notNull().default({ isForward: false }),
+  media: jsonb().$type<CoreMessageMedia[]>().notNull().default([]),
+  links: jsonb().$type<CoreMessageLink[]>().notNull().default([]),
   platform_timestamp: bigint({ mode: 'number' }).notNull().default(0),
   created_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),
   updated_at: bigint({ mode: 'number' }).notNull().default(0).$defaultFn(() => Date.now()),

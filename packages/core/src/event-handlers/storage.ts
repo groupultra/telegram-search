@@ -4,80 +4,13 @@ import type { CoreContext } from '../context'
 import type { Models } from '../models'
 import type { DBRetrievalMessages } from '../models/utils/message'
 import type { CoreDialog, DialogType } from '../types/dialog'
-import type { CoreMessage } from '../types/message'
 
 import { convertToCoreRetrievalMessages } from '../models/utils/message'
 import { CoreEventType } from '../types/events'
 import { embedContents } from '../utils/embed'
 
-/**
- * Check if a message has no media attached
- */
-function hasNoMedia(message: CoreMessage): boolean {
-  return !message.media || message.media.length === 0
-}
-
 export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, dbModels: Models) {
   logger = logger.withContext('core:storage:event')
-
-  ctx.emitter.on(CoreEventType.StorageFetchMessages, async ({ chatId, pagination }) => {
-    logger.withFields({ chatId, pagination }).verbose('Fetching messages')
-
-    const accountId = ctx.getCurrentAccountId()
-    const hasAccess = (await dbModels.chatModels.isChatAccessibleByAccount(ctx.getDB(), accountId, chatId)).expect('Failed to check chat access')
-
-    if (!hasAccess) {
-      ctx.withError('Unauthorized chat access', 'Account does not have access to requested chat messages')
-      return
-    }
-
-    const messages = (await dbModels.chatMessageModels.fetchMessagesWithPhotos(ctx.getDB(), dbModels.photoModels, accountId, chatId, pagination)).unwrap()
-    ctx.emitter.emit(CoreEventType.StorageMessages, { messages })
-  })
-
-  ctx.emitter.on(CoreEventType.StorageFetchMessageContext, async ({ chatId, messageId, before = 20, after = 20 }) => {
-    const safeBefore = Math.max(0, before)
-    const safeAfter = Math.max(0, after)
-
-    logger.withFields({ chatId, messageId, before: safeBefore, after: safeAfter }).verbose('Fetching message context')
-
-    const accountId = ctx.getCurrentAccountId()
-    const hasAccess = (await dbModels.chatModels.isChatAccessibleByAccount(ctx.getDB(), accountId, chatId)).expect('Failed to check chat access')
-
-    if (!hasAccess) {
-      ctx.withError('Unauthorized chat access', 'Account does not have access to requested message context')
-      return
-    }
-
-    const messages = (await dbModels.chatMessageModels.fetchMessageContextWithPhotos(
-      ctx.getDB(),
-      dbModels.photoModels,
-      accountId,
-      { chatId, messageId, before: safeBefore, after: safeAfter },
-    )).unwrap()
-
-    ctx.emitter.emit(CoreEventType.StorageMessagesContext, { chatId, messageId, messages })
-
-    // After emitting the initial messages, identify messages that might be missing media
-    // and trigger a fetch from Telegram to download them
-    // We only fetch messages that have no media in the database, as media is optional
-    // The media resolver will check if media already exists before downloading
-    const messageIdsToFetch = messages
-      .filter(hasNoMedia)
-      .map(m => Number.parseInt(m.platformMessageId))
-      .filter(id => !Number.isNaN(id))
-
-    if (messageIdsToFetch.length > 0) {
-      logger.withFields({ chatId, count: messageIdsToFetch.length }).verbose('Fetching messages from Telegram to check for missing media')
-
-      // Fetch these specific messages from Telegram which will download any missing media
-      // This is done asynchronously and will update the messages once media is downloaded
-      ctx.emitter.emit(CoreEventType.MessageFetchSpecific, {
-        chatId,
-        messageIds: messageIdsToFetch,
-      })
-    }
-  })
 
   ctx.emitter.on(CoreEventType.StorageFetchMessageEditMarks, async ({ chatId, messageIds, requestId }) => {
     logger.withFields({ chatId, count: messageIds.length }).verbose('Fetching message edit marks')

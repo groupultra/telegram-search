@@ -51,9 +51,6 @@ const recordChats = vi.fn(async (_db: unknown, _dialogs: CoreDialog[], _accountI
 
 // Message-related mocks
 const isChatAccessibleByAccount = vi.fn(async (_db: unknown, _accountId: string, _chatId: string) => Ok(true))
-const fetchMessageContextWithPhotos = vi.fn()
-const fetchMessagesWithPhotos = vi.fn(async (_db: unknown, _accountId: string, _chatId: string, _pagination: unknown) => Ok([] as unknown[]))
-const recordMessagesWithMedia = vi.fn()
 const retrieveMessages = vi.fn(async (_db: unknown, _accountId: string, _dimension: unknown, _content: unknown, _pagination: unknown, _filters: unknown) => Ok([] as unknown[]))
 
 const models = {
@@ -62,9 +59,6 @@ const models = {
     getChatMessagesStats,
     recordChats,
     isChatAccessibleByAccount,
-    fetchMessageContextWithPhotos,
-    fetchMessagesWithPhotos,
-    recordMessagesWithMedia,
     retrieveMessages,
   },
   chatMessageStatsModels: {
@@ -131,36 +125,6 @@ describe('storage event handlers - dialogs with accounts', () => {
 })
 
 describe('storage event handlers - message access control', () => {
-  it('storage:fetch:messages should reject when account has no access to chat', async () => {
-    const ctx = createCoreContext(getMockEmptyDB, models, logger)
-    registerStorageEventHandlers(ctx, logger, models)
-
-    const ACCOUNT_ID = 'account-no-access'
-    const CHAT_ID = '1001'
-
-    ctx.setCurrentAccountId(ACCOUNT_ID)
-
-    // For this test, deny access
-    ;(isChatAccessibleByAccount as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(Ok(false))
-
-    const errorPromise = new Promise<string>((resolve) => {
-      ctx.emitter.on(CoreEventType.CoreError, ({ error }) => {
-        resolve(error)
-      })
-    })
-
-    ctx.emitter.emit(CoreEventType.StorageFetchMessages, {
-      chatId: CHAT_ID,
-      pagination: { limit: 20, offset: 0 },
-    })
-
-    const error = await errorPromise
-
-    expect(error).toBe('Unauthorized chat access')
-    expect(isChatAccessibleByAccount).toHaveBeenCalledWith(expect.anything(), ACCOUNT_ID, CHAT_ID)
-    expect(fetchMessagesWithPhotos).not.toHaveBeenCalled()
-  })
-
   it('storage:search:messages should reject when account has no access to specified chatId', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
     registerStorageEventHandlers(ctx, logger, models)

@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Telegram Search CLI'
+  short_description: 'Operate Telegram Search safely from an agent'
+  default_prompt: 'Use $telegram-search-cli to retrieve and analyze Telegram data through the local CLI.'

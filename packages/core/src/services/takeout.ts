@@ -28,7 +28,7 @@ export function createTakeoutService(
   logger: Logger,
   chatModels: ChatModels,
   chatMessageStatsModels: ChatMessageStatsModels,
-  entityService: EntityService,
+  entityService: Pick<EntityService, 'getInputPeer'>,
 ) {
   logger = logger.withContext('core:takeout:service')
 
@@ -64,9 +64,12 @@ export function createTakeoutService(
    * https://core.telegram.org/api/takeout
    * https://core.telegram.org/method/messages.getSplitRanges
    */
-  async function getSplitRanges(): Promise<Api.MessageRange[]> {
+  async function getSplitRanges(takeout: Api.account.Takeout): Promise<Api.MessageRange[]> {
     return withSpan('takeout:getSplitRanges', async () => {
-      const ranges = await ctx.getClient().invoke(new Api.messages.GetSplitRanges())
+      const ranges = await ctx.getClient().invoke(new Api.InvokeWithTakeout({
+        takeoutId: takeout.id,
+        query: new Api.messages.GetSplitRanges(),
+      })) as Api.MessageRange[]
       logger.withFields({ rangeCount: ranges.length }).log('Fetched split ranges')
       return ranges
     })
@@ -74,20 +77,34 @@ export function createTakeoutService(
 
   const TAKEOUT_INIT_TIMEOUT_MS = 30_000
 
-  async function initTakeout(): Promise<Api.account.Takeout> {
-    return withSpan('takeout:initSession', async () => {
-      const fileMaxSize = bigInt(1024 * 1024 * 1024) // 1GB
+  async function resolveTakeoutMessageFlags(chatId: string) {
+    const peer = await entityService.getInputPeer(chatId)
+    if (peer instanceof Api.InputPeerUser) {
+      return { messageUsers: true }
+    }
+    if (peer instanceof Api.InputPeerChat) {
+      // Telegram requires both flags for basic groups so migrated supergroup
+      // history remains exportable.
+      return { messageChats: true, messageMegagroups: true }
+    }
+    if (peer instanceof Api.InputPeerChannel) {
+      const entity = await ctx.getClient().getEntity(peer)
+      if (entity instanceof Api.Channel && entity.megagroup)
+        return { messageMegagroups: true }
+      return { messageChannels: true }
+    }
+    throw new Error(`Unsupported Telegram peer for takeout: ${peer.className}`)
+  }
 
+  async function initTakeout(chatId: string): Promise<Api.account.Takeout> {
+    return withSpan('takeout:initSession', async () => {
       logger.log('Initializing takeout session...')
+      const messageFlags = await resolveTakeoutMessageFlags(chatId)
 
       const invokePromise = ctx.getClient().invoke(new Api.account.InitTakeoutSession({
-        contacts: true,
-        messageUsers: true,
-        messageChats: true,
-        messageMegagroups: true,
-        messageChannels: true,
-        files: true,
-        fileMaxSize,
+        contacts: false,
+        ...messageFlags,
+        files: false,
       }))
 
       let timeoutHandle: ReturnType<typeof setTimeout> | undefined
@@ -190,14 +207,14 @@ export function createTakeoutService(
   }
 
   /**
-   * Build the final invoke query, optionally wrapping in InvokeWithMessagesRange
-   * and InvokeWithTakeout as required by the takeout protocol.
+   * Build the final invoke query, wrapping every history request in the
+   * explicitly authorized takeout session.
    *
    * https://core.telegram.org/api/takeout
    */
   function buildInvokeQuery(
     historyQuery: Api.messages.GetHistory,
-    takeoutSession: Api.account.Takeout | undefined,
+    takeoutSession: Api.account.Takeout,
     range: Api.MessageRange | undefined,
   ): Api.AnyRequest {
     // Innermost: the raw GetHistory query
@@ -208,12 +225,7 @@ export function createTakeoutService(
       query = new Api.InvokeWithMessagesRange({ range, query })
     }
 
-    // Wrap with takeout if a session is active
-    if (takeoutSession) {
-      query = new Api.InvokeWithTakeout({ takeoutId: takeoutSession.id, query })
-    }
-
-    return query
+    return new Api.InvokeWithTakeout({ takeoutId: takeoutSession.id, query })
   }
 
   /**
@@ -223,7 +235,7 @@ export function createTakeoutService(
   async function* paginateRange(
     chatId: string,
     options: Omit<TakeoutOpts, 'chatId'>,
-    takeoutSession: Api.account.Takeout | undefined,
+    takeoutSession: Api.account.Takeout,
     range: Api.MessageRange | undefined,
     count: number,
     processedCount: { value: number },
@@ -238,11 +250,9 @@ export function createTakeoutService(
     let hasMore = true
 
     while (hasMore && !task.state.abortController.signal.aborted) {
-      // https://core.telegram.org/api/offsets#hash-generation
-      const id = BigInt(chatId)
-      const hashBigInt = id ^ (id >> 21n) ^ (id << 35n) ^ (id >> 4n) + id
-      const hash = bigInt(hashBigInt.toString())
-
+      if (options.maxMessages !== undefined && processedCount.value >= options.maxMessages) {
+        break
+      }
       // Resolve peer via entityService to get the correct InputPeer type and accessHash
       // from the DB, avoiding misidentification (e.g. channel treated as PeerUser).
       const peer = await entityService.getInputPeer(chatId)
@@ -254,7 +264,9 @@ export function createTakeoutService(
         limit,
         maxId,
         minId,
-        hash,
+        // Takeout exports must force a complete response. A result hash is only
+        // valid when calculated from a previously fetched result set.
+        hash: bigInt.zero,
       })
 
       logger.withFields(historyQuery).verbose('Historical messages query')
@@ -287,7 +299,7 @@ export function createTakeoutService(
         break
       }
 
-      const messages = result.messages as Api.Message[]
+      const messages = result.messages
 
       ctx.metrics?.takeoutPageMessages.observe({}, messages.length)
 
@@ -307,8 +319,9 @@ export function createTakeoutService(
           break
         }
 
-        // Skip empty messages
-        if (message instanceof Api.MessageEmpty) {
+        // Service and empty messages do not contain user-authored text and do
+        // not satisfy the CoreMessage persistence contract.
+        if (message instanceof Api.MessageEmpty || message instanceof Api.MessageService) {
           continue
         }
 
@@ -317,6 +330,10 @@ export function createTakeoutService(
           continue
         }
         if (options.startTime && message.date < options.startTime / 1000) {
+          hasMore = false
+          break
+        }
+        if (options.maxMessages !== undefined && processedCount.value >= options.maxMessages) {
           hasMore = false
           break
         }
@@ -349,31 +366,21 @@ export function createTakeoutService(
 
     const processedCount = { value: 0 }
 
-    // Try to initialize a takeout session. If it fails (timeout, flood-wait,
-    // or other error), fall back to regular GetHistory calls. Takeout is
-    // preferred because it avoids per-chat rate limits, but is not required.
-    // When skipTakeout is true the user has explicitly chosen GetHistory.
-    let takeoutSession: Api.account.Takeout | undefined
-
-    if (options.skipTakeout) {
-      logger.log('Takeout skipped by user choice, using regular GetHistory')
-      if (!options.disableAutoProgress) {
-        task.updateProgress(0, 'Using regular sync (takeout declined)')
-      }
-    }
-    else {
-      try {
-        takeoutSession = await initTakeout()
-      }
-      catch (error) {
-        const errMsg = error instanceof Error ? error.message : String(error)
-        logger.withError(error).warn(`Takeout session init failed, falling back to regular GetHistory: ${errMsg}`)
-        if (!options.disableAutoProgress) {
-          task.updateProgress(0, 'Takeout unavailable, using regular sync')
-        }
-      }
+    if (!options.takeoutConsent) {
+      task.updateError(new Error('Explicit Telegram Takeout consent is required'))
+      return
     }
 
+    let takeoutSession: Api.account.Takeout
+    try {
+      takeoutSession = await initTakeout(chatId)
+    }
+    catch (error) {
+      task.updateError(error)
+      return
+    }
+
+    let sessionFinished = false
     try {
       // Only emit initial progress if auto-progress is enabled
       if (!options.disableAutoProgress) {
@@ -383,12 +390,12 @@ export function createTakeoutService(
       // Use provided expected count, or fetch from Telegram
       const count = options.expectedCount ?? (await getHistoryWithMessagesCount(chatId)).expect('Failed to get history').count
 
-      logger.withFields({ expectedCount: count, providedCount: options.expectedCount, useTakeout: !!takeoutSession }).log('Starting message fetch')
+      logger.withFields({ expectedCount: count, providedCount: options.expectedCount, useTakeout: true }).log('Starting message fetch')
 
       // Fetch split ranges so we iterate every message box on the server.
       // Without this, messages beyond the 500K/1M boundaries may be missed.
       // https://core.telegram.org/api/takeout
-      const splitRanges = await getSplitRanges()
+      const splitRanges = await getSplitRanges(takeoutSession)
       logger.withFields({ splitRangeCount: splitRanges.length }).log('Using split ranges for message fetch')
 
       if (splitRanges.length > 0) {
@@ -401,6 +408,8 @@ export function createTakeoutService(
           logger.withFields({ rangeMinId: range.minId, rangeMaxId: range.maxId }).log('Fetching messages for split range')
 
           yield* paginateRange(chatId, options, takeoutSession, range, count, processedCount)
+          if (options.maxMessages !== undefined && processedCount.value >= options.maxMessages)
+            break
         }
       }
       else {
@@ -408,15 +417,17 @@ export function createTakeoutService(
         yield* paginateRange(chatId, options, takeoutSession, undefined, count, processedCount)
       }
 
-      if (takeoutSession) {
-        await finishTakeout(takeoutSession, true)
-      }
+      const completed = !task.state.abortController.signal.aborted && !task.state.lastError
+      await finishTakeout(takeoutSession, completed)
+      sessionFinished = true
 
       if (task.state.abortController.signal.aborted) {
         // Task was aborted, handler layer already updated task status
         logger.withFields({ taskId: task.state.taskId }).verbose('Takeout messages aborted')
         return
       }
+      if (task.state.lastError)
+        return
 
       // Only emit final progress if auto-progress is enabled
       if (!options.disableAutoProgress) {
@@ -430,10 +441,17 @@ export function createTakeoutService(
       // Preserve the original error for better error reporting
       const errorToEmit = error instanceof Error ? error : new Error('Takeout messages failed')
 
-      if (takeoutSession) {
-        await finishTakeout(takeoutSession, false)
-      }
       task.updateError(errorToEmit)
+    }
+    finally {
+      if (!sessionFinished) {
+        try {
+          await finishTakeout(takeoutSession, false)
+        }
+        catch (finishError) {
+          logger.withError(finishError).warn('Failed to finish unsuccessful takeout session')
+        }
+      }
     }
   }
 
@@ -576,11 +594,14 @@ export function createTakeoutService(
     const { increase, syncOptions } = params
     const pagination = usePagination()
 
-    // Ask the user once per sync run whether to use takeout or fall back to
-    // GetHistory. Core emits the event and waits for the client to respond.
+    // Ask the user once per sync run for explicit takeout authorization.
+    // Declining stops the run; bulk sync never falls back to GetHistory.
     ctx.emitter.emit(CoreEventType.TakeoutConfirmNeeded)
     const { useTakeout } = await waitForEvent(ctx.emitter, CoreEventType.TakeoutConfirmResponse)
-    const skipTakeout = !useTakeout
+    if (!useTakeout) {
+      logger.warn('Takeout sync declined by user')
+      return
+    }
 
     if (chatIds.length === 0) {
       const accountId = ctx.getCurrentAccountId()
@@ -627,7 +648,7 @@ export function createTakeoutService(
               skipMedia: !syncOptions?.syncMedia,
               expectedCount: totalCount,
               disableAutoProgress: true,
-              skipTakeout,
+              takeoutConsent: true,
               task,
               syncOptions,
             }
@@ -651,7 +672,7 @@ export function createTakeoutService(
               skipMedia: !syncOptions?.syncMedia,
               expectedCount: needToSyncCount,
               disableAutoProgress: true,
-              skipTakeout,
+              takeoutConsent: true,
               task,
               syncOptions,
             }
@@ -673,7 +694,7 @@ export function createTakeoutService(
               skipMedia: !syncOptions?.syncMedia,
               expectedCount: needToSyncCount,
               disableAutoProgress: true,
-              skipTakeout,
+              takeoutConsent: true,
               task,
               syncOptions,
             }

@@ -1,7 +1,7 @@
 {
   "name": "telegram-search",
   "type": "module",
-  "version": "1.2.8",
+  "version": "1.3.0",
   "private": true,
   "packageManager": "pnpm@10.34.4",
   "engines": {
@@ -35,6 +35,7 @@
     "bump:deps": "taze -I -f -w -r",
     "db:generate": "pnpm apply:env -- drizzle-kit generate",
     "db:kit": "pnpm apply:env -- drizzle-kit",
+    "cli": "pnpm -F @tg-search/cli start",
     "postinstall": "pnpm run packages:build"
   },
   "dependencies": {
