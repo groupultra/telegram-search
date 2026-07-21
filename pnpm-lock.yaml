@@ -52,8 +52,8 @@ importers:
         specifier: 4.0.18
         version: 4.0.18(vitest@4.1.9)
       bumpp:
-        specifier: ^10.4.1
-        version: 10.4.1(magicast@0.5.2)
+        specifier: ^12.0.0
+        version: 12.0.0
       concurrently:
         specifier: ^9.2.3
         version: 9.2.3
@@ -4437,9 +4437,9 @@ packages:
     resolution: {integrity: sha512-bkXY9WsVpY7CvMhKSR6pZilZu9Ln5WDrKVBUXf2S443etkmEO4V58heTecXcUIsNsi4Rx8JUO4NfX1IcQl4deg==}
     engines: {node: '>=18.20'}
 
-  bumpp@10.4.1:
-    resolution: {integrity: sha512-X/bwWs5Gbb/D7rN4aHLB7zdjiA6nGdjckM1sTHhI9oovIbEw2L5pw5S4xzk8ZTeOZ8EnwU/Ze4SoZ6/Vr3pM2Q==}
-    engines: {node: '>=18'}
+  bumpp@12.0.0:
+    resolution: {integrity: sha512-2uuObtROJvEGZJk4T6t3fDgUAmgDYF0PeSZt23GCn1ItxECvR+ROVJNYT7r1lS8nIMJae6IkIgcDEIbT5iwWAA==}
+    engines: {node: ^22.18.0 || ^24.11.0 || >=26.0.0}
     hasBin: true
 
   bundle-name@4.1.0:
@@ -6464,6 +6464,9 @@ packages:
   package-manager-detector@1.6.0:
     resolution: {integrity: sha512-61A5ThoTiDG/C8s8UMZwSorAGwMJ0ERVGj2OjoW5pAalsNOg15+iQiPzrLJ4jhZ1HJzmC2PIHT2oEiH3R5fzNA==}
 
+  package-manager-detector@1.8.0:
+    resolution: {integrity: sha512-yQA4H19AmPEoMUeavPMDIe1higySl/gH/yaQrkT/s07Qp+7pp2hYz30N3z2l5BkjVkF9Ow6o0wjJamm2y7Sn0A==}
+
   pako@2.2.0:
     resolution: {integrity: sha512-zJq6RP/5q+TO2OpFV3FHzlPnFjmkb7Nc99a5SNjJE+uu/PkpChs+NIZSSzbBoD+6kjiISXjfYdwj1ZRQ81dz/w==}
 
@@ -7147,9 +7150,11 @@ packages:
 
   telegram@2.26.21:
     resolution: {integrity: sha512-I8Lit2CdZe5tHzJbBTiDvRAa1A9iYzXljwDGBspY2XgR0VAWzQwmm49a3n8Kxl7T/2rYOwACRwGXuUwUQmEzVA==}
+    deprecated: This package is archived and no longer maintained. Development continues in teleproto (https://npmjs.com/package/teleproto), a largely compatible, actively maintained fork. See the migration guide at https://docs.teleproto.dev/migrating-from-gramjs
 
   telegram@2.26.22:
     resolution: {integrity: sha512-EIj7Yrjiu0Yosa3FZ/7EyPg9s6UiTi/zDQrFmR/2Mg7pIUU+XjAit1n1u9OU9h2oRnRM5M+67/fxzQluZpaJJg==}
+    deprecated: This package is archived and no longer maintained. Development continues in teleproto (https://npmjs.com/package/teleproto), a largely compatible, actively maintained fork. See the migration guide at https://docs.teleproto.dev/migrating-from-gramjs
 
   temp-dir@2.0.0:
     resolution: {integrity: sha512-aoBAniQmmwtcKp/7BzsH8Cxzv8OL736p7v1ihGb5e9DJ9kTwGWHrQrVB5+lfVDzfGrdRzXch+ig7LHaY1JTOrg==}
@@ -7553,6 +7558,10 @@ packages:
     peerDependencies:
       reka-ui: ^2.0.0
       vue: ^3.3.0
+
+  verkit@0.1.2:
+    resolution: {integrity: sha512-WqkT8n3hqizuCu71W3bUzf5fjBmkbXcudsehe/NbxA8PgqoKnSOY5K0Ba2ckg1qaRaSpSz7as/n9K1R9JXjQKg==}
+    engines: {node: '>=18.12.0'}
 
   virtua@0.48.8:
     resolution: {integrity: sha512-jpsxOw5V4B6hg44JePRLo9DL0TV7N1lBEVtPjKpAJebXyhI2s9lfiXJESaLapNtr3vtiSk/pWHiLf7B2a6UcgQ==}
@@ -12191,21 +12200,17 @@ snapshots:
 
   builtin-modules@5.0.0: {}
 
-  bumpp@10.4.1(magicast@0.5.2):
+  bumpp@12.0.0:
     dependencies:
-      ansis: 4.3.1
       args-tokenizer: 0.3.0
-      c12: 3.3.3(magicast@0.5.2)
-      cac: 6.7.14
-      escalade: 3.2.0
+      cac: 7.0.0
       jsonc-parser: 3.3.1
-      package-manager-detector: 1.6.0
-      semver: 7.7.3
+      package-manager-detector: 1.8.0
       tinyexec: 1.2.4
       tinyglobby: 0.2.17
+      unconfig: 7.5.0
+      verkit: 0.1.2
       yaml: 2.9.0
-    transitivePeerDependencies:
-      - magicast
 
   bundle-name@4.1.0:
     dependencies:
@@ -14465,6 +14470,8 @@ snapshots:
 
   package-manager-detector@1.6.0: {}
 
+  package-manager-detector@1.8.0: {}
+
   pako@2.2.0: {}
 
   parent-module@1.0.1:
@@ -15748,6 +15755,8 @@ snapshots:
       vue: 3.5.39(typescript@5.9.3)
     transitivePeerDependencies:
       - '@vue/composition-api'
+
+  verkit@0.1.2: {}
 
   virtua@0.48.8(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vue@3.5.39(typescript@5.9.3)):
     optionalDependencies:

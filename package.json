@@ -47,7 +47,7 @@
     "@types/node": "^25.9.4",
     "@vitest/coverage-v8": "^4.1.9",
     "@vitest/ui": "4.0.18",
-    "bumpp": "^10.4.1",
+    "bumpp": "^12.0.0",
     "concurrently": "^9.2.3",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.4",
