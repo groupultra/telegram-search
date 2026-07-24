@@ -55,7 +55,7 @@
     "taze": "^19.14.1",
     "tsdown": "catalog:",
     "turbo": "^2.10.0",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vite": "^8.1.0",
     "vitest": "^4.1.9"
   }
