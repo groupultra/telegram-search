@@ -50,7 +50,7 @@
     "bumpp": "^10.4.1",
     "concurrently": "^9.2.3",
     "drizzle-kit": "^0.31.10",
-    "eslint": "^9.39.4",
+    "eslint": "^10.8.0",
     "happy-dom": "^20.10.6",
     "taze": "^19.14.1",
     "tsdown": "catalog:",
