@@ -283,4 +283,25 @@ describe('telegram application runtime remote boundaries', () => {
       [expect.objectContaining({ jiebaTokens: expect.arrayContaining(['中文', '搜索']) })],
     )
   })
+
+  // Regression: static export.ts import pulled node:crypto into Vite browser boot.
+  it('omits exportLocal in browser runtimes', () => {
+    const originalWindow = (globalThis as { window?: unknown }).window
+    ;(globalThis as { window?: unknown }).window = {}
+    try {
+      const runtime = createTelegramApplicationRuntime(createHarness())
+      expect(runtime.exportLocal).toBeUndefined()
+    }
+    finally {
+      if (originalWindow === undefined)
+        delete (globalThis as { window?: unknown }).window
+      else
+        (globalThis as { window?: unknown }).window = originalWindow
+    }
+  })
+
+  it('exposes exportLocal in Node runtimes', () => {
+    const runtime = createTelegramApplicationRuntime(createHarness())
+    expect(runtime.exportLocal).toEqual(expect.any(Function))
+  })
 })

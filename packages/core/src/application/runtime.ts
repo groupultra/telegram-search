@@ -28,13 +28,13 @@ import type { TakeoutService } from '../services/takeout'
 import type { CoreDialog } from '../types/dialog'
 
 import { useLogger } from '@guiiai/logg'
+import { isBrowser } from '@tg-search/common'
 import { Api } from 'telegram'
 import { v4 as uuidv4 } from 'uuid'
 
 import { createJiebaResolver } from '../message-resolvers/jieba-resolver'
 import { models as defaultModels } from '../models'
 import { createEntityService } from '../services/entity'
-import { createExportService } from '../services/export'
 import { createLocalMessagesService } from '../services/local-messages'
 import { createRemoteMessagesService } from '../services/remote-messages'
 import { createStatsAccumulator } from '../services/stats'
@@ -57,7 +57,7 @@ export interface TelegramApplication {
   searchLocalMessages: (input: SearchMessagesInput) => Promise<AppResult<CursorPage<SearchMessageRecord>>>
   getLocalMessageContext: (input: MessageContextInput) => Promise<AppResult<MessageContext>>
   getLocalStats: (input: StatsInput) => Promise<AppResult<StatsResult>>
-  exportLocal: (input: ExportInput, signal?: AbortSignal) => AsyncGenerator<ExportUpdate>
+  exportLocal?: (input: ExportInput, signal?: AbortSignal) => AsyncGenerator<ExportUpdate>
   sync: (input: SyncInput, signal?: AbortSignal) => AsyncGenerator<SyncUpdate>
 }
 
@@ -295,6 +295,19 @@ export function createTelegramApplicationRuntime(options: {
     yield { type: 'completed', taskId, processed }
   }
 
+  // NOTICE: Lazy-import export.ts so Vite's browser bundle never evaluates its node:crypto/fs
+  // deps. Browser runtimes omit exportLocal entirely (see TelegramApplication['exportLocal']).
+  async function* exportLocal(input: ExportInput, signal?: AbortSignal): AsyncGenerator<ExportUpdate> {
+    const { createExportService } = await import('../services/export')
+    yield* createExportService(cursor => localMessages.queryForExport({
+      chatIds: input.chatIds,
+      from: input.from,
+      to: input.to,
+      cursor,
+      limit: 1000,
+    }))(input, signal)
+  }
+
   return {
     listChats: input => appResult(async () => {
       const offset = Number.parseInt(input.cursor ?? '0', 10) || 0
@@ -310,13 +323,7 @@ export function createTelegramApplicationRuntime(options: {
     searchLocalMessages: input => appResult(() => localMessages.search(input)),
     getLocalMessageContext: input => appResult(() => localMessages.context(input)),
     getLocalStats: input => appResult(() => calculateLocalStats(input)),
-    exportLocal: (input, signal) => createExportService(cursor => localMessages.queryForExport({
-      chatIds: input.chatIds,
-      from: input.from,
-      to: input.to,
-      cursor,
-      limit: 1000,
-    }))(input, signal),
+    exportLocal: isBrowser() ? undefined : exportLocal,
     sync,
     dispose: async () => {},
   }

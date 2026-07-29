@@ -13,7 +13,14 @@ export function registerApplicationHandlers(context: EventContext<any, any>, app
   const messageDisposers = registerMessageHandlers(context, application)
   const disposeStats = registerStatsHandler(context, application)
   registerSyncHandler(context, application)
-  registerExportHandler(context, application)
+  // NOTICE: exportLocal is absent in browser runtimes (see application/runtime.ts), so its
+  // presence alone determines whether the Node-only export handler should be registered.
+  if (application.exportLocal) {
+    registerExportHandler(context, {
+      ...application,
+      exportLocal: application.exportLocal,
+    })
+  }
   return () => {
     disposeStats()
     for (const dispose of [...Object.values(chatDisposers), ...Object.values(messageDisposers)]) {
