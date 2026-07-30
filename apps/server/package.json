@@ -62,10 +62,10 @@
     "@tg-search/core": "workspace:*",
     "@tg-search/protocol": "workspace:*",
     "@unbird/result": "catalog:",
-    "crossws": "^0.4.6",
-    "figlet": "^1.11.0",
+    "crossws": "^0.4.10",
+    "figlet": "^1.11.4",
     "file-type": "^21.3.4",
-    "h3": "^2.0.1-rc.22",
+    "h3": "^2.0.1-rc.26",
     "minio": "^8.0.7",
     "uuid": "^13.0.2"
   },
