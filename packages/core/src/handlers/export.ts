@@ -9,7 +9,11 @@ import { safeParse } from 'valibot'
 
 import { invalidArgument } from '../application/errors'
 
-export function registerExportHandler(context: EventContext<any, any>, application: TelegramApplication) {
+type ExportApplication = TelegramApplication & {
+  exportLocal: NonNullable<TelegramApplication['exportLocal']>
+}
+
+export function registerExportHandler(context: EventContext<any, any>, application: ExportApplication) {
   defineStreamInvokeHandler(context, exportContracts.run, async function* (input, options) {
     const parsed = safeParse(exportInputSchema, input)
     if (!parsed.success) {
