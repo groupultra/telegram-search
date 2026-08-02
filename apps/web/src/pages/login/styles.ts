@@ -1,3 +1,4 @@
+// @unocss-include
 export const LOGIN_TRANSITION_ENTER_ACTIVE_CLASS = 'transition duration-500 cubic-bezier(0.16, 1, 0.3, 1) absolute inset-0'
 export const LOGIN_TRANSITION_ENTER_FROM_CLASS = 'opacity-0 translate-x-8 scale-95'
 export const LOGIN_TRANSITION_ENTER_TO_CLASS = 'opacity-100 translate-x-0 scale-100'
