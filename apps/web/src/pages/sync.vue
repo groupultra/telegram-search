@@ -304,14 +304,6 @@ const aggregateProcessedMessages = computed(() => {
   return Math.min(total, runCompletedMessages.value + currentProcessed)
 })
 
-const aggregateProgress = computed(() => {
-  const total = selectedTotalMessages.value
-  if (total <= 0) {
-    return Math.max(0, Math.min(100, Math.round(currentTaskProgress.value || 0)))
-  }
-  return Math.max(0, Math.min(100, Math.round((aggregateProcessedMessages.value / total) * 100)))
-})
-
 /**
  * Compute disabled state for the "Select All" button.
  * Disabled when a task is in progress or the current scope has no chats.
@@ -370,20 +362,13 @@ function handleSelectAll() {
  * Parses "Processed X/Y messages" and maps known status strings.
  */
 const selectedSyncedMessages = computed(() => {
-  if (selectedChats.value.length === 0) {
+  if (syncScopeChatIds.value.length === 0) {
     return 0
   }
 
-  return selectedChats.value.reduce((sum, chatId) => {
+  return syncScopeChatIds.value.reduce((sum, chatId) => {
     return sum + (chatStatsByChatId.value[String(chatId)]?.syncedMessages ?? 0)
   }, 0)
-})
-
-const selectionPreviewProgress = computed(() => {
-  if (selectedTotalMessages.value <= 0) {
-    return 0
-  }
-  return Math.max(0, Math.min(100, Math.round((selectedSyncedMessages.value / selectedTotalMessages.value) * 100)))
 })
 
 const shouldShowSelectionSummary = computed(() => {
@@ -402,7 +387,16 @@ const summarySelectionTitle = computed(() => {
 })
 
 const summaryProgress = computed(() => {
-  return Math.max(0, Math.min(100, Math.round(shouldShowTaskStatus.value ? aggregateProgress.value : selectionPreviewProgress.value)))
+  const total = selectedTotalMessages.value
+  if (total <= 0) {
+    return Math.max(0, Math.min(100, Math.round(currentTaskProgress.value || 0)))
+  }
+  // chatStatsByChatId is updated live by TakeoutMetrics, so synced/total reflects
+  // cumulative progress instead of restarting at 0 for each run
+  const live = shouldShowTaskStatus.value
+    ? Math.max(selectedSyncedMessages.value, aggregateProcessedMessages.value)
+    : selectedSyncedMessages.value
+  return Math.max(0, Math.min(100, Math.round((Math.min(total, live) / total) * 100)))
 })
 
 const summaryHasError = computed(() => {
@@ -414,8 +408,10 @@ const summaryTotalCount = computed(() => {
 })
 
 const summarySyncedCount = computed(() => {
-  const value = shouldShowTaskStatus.value ? aggregateProcessedMessages.value : selectedSyncedMessages.value
-  return Math.max(0, Math.min(summaryTotalCount.value, value))
+  const live = shouldShowTaskStatus.value
+    ? Math.max(selectedSyncedMessages.value, aggregateProcessedMessages.value)
+    : selectedSyncedMessages.value
+  return Math.max(0, Math.min(summaryTotalCount.value, live))
 })
 
 const summaryUnsyncedCount = computed(() => {
