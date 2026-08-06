@@ -27,11 +27,18 @@ const hoveredMessage = ref<CoreMessage | null>(null)
 const listRef = ref<HTMLElement | null>(null)
 const { copy } = useClipboard()
 
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' } as Record<string, string>)[c])
+}
+
 function highlightKeyword(text: string, keyword: string) {
+  const safe = escapeHtml(text)
   if (!keyword)
-    return text
-  const regex = new RegExp(`(${keyword})`, 'gi')
-  return text.replace(regex, '<span class="bg-yellow-200 dark:bg-yellow-800">$1</span>')
+    return safe
+  const escaped = escapeHtml(keyword).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escaped})`, 'gi')
+  return safe.replace(regex, '<span class="bg-yellow-200 dark:bg-yellow-800">$1</span>')
 }
 
 function copyMessageLink(message: CoreMessage) {
