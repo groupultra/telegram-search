@@ -386,17 +386,27 @@ const summarySelectionTitle = computed(() => {
   return t('sync.selectedChats', { count: summarySelectedCount.value })
 })
 
+// chatStatsByChatId is updated live by TakeoutMetrics, so synced/total reflects
+// cumulative progress instead of restarting at 0 for each run. Full resync
+// (increase=false) rebuilds coverage, so only the run counter is meaningful there.
+const liveSyncedCount = computed(() => {
+  if (!shouldShowTaskStatus.value) {
+    return selectedSyncedMessages.value
+  }
+  if (increase.value === false) {
+    return aggregateProcessedMessages.value
+  }
+  return Math.max(selectedSyncedMessages.value, aggregateProcessedMessages.value)
+})
+
 const summaryProgress = computed(() => {
   const total = selectedTotalMessages.value
   if (total <= 0) {
-    return Math.max(0, Math.min(100, Math.round(currentTaskProgress.value || 0)))
+    return shouldShowTaskStatus.value
+      ? Math.max(0, Math.min(100, Math.round(currentTaskProgress.value || 0)))
+      : 0
   }
-  // chatStatsByChatId is updated live by TakeoutMetrics, so synced/total reflects
-  // cumulative progress instead of restarting at 0 for each run
-  const live = shouldShowTaskStatus.value
-    ? Math.max(selectedSyncedMessages.value, aggregateProcessedMessages.value)
-    : selectedSyncedMessages.value
-  return Math.max(0, Math.min(100, Math.round((Math.min(total, live) / total) * 100)))
+  return Math.max(0, Math.min(100, Math.round((Math.min(total, liveSyncedCount.value) / total) * 100)))
 })
 
 const summaryHasError = computed(() => {
@@ -408,10 +418,7 @@ const summaryTotalCount = computed(() => {
 })
 
 const summarySyncedCount = computed(() => {
-  const live = shouldShowTaskStatus.value
-    ? Math.max(selectedSyncedMessages.value, aggregateProcessedMessages.value)
-    : selectedSyncedMessages.value
-  return Math.max(0, Math.min(summaryTotalCount.value, live))
+  return Math.max(0, Math.min(summaryTotalCount.value, liveSyncedCount.value))
 })
 
 const summaryUnsyncedCount = computed(() => {
