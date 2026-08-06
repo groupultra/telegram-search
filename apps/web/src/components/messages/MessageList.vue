@@ -29,7 +29,7 @@ const { copy } = useClipboard()
 
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, c =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c])
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' } as Record<string, string>)[c])
 }
 
 function highlightKeyword(text: string, keyword: string) {
