@@ -657,6 +657,10 @@ export function createTakeoutService(
             await processMessageBatch(task, takeoutMessages(chatId, opts), syncOptions, (c) => {
               updateProgress(c, totalCount)
             })
+
+            if (!task.state.abortController.signal.aborted && !task.state.lastError) {
+              task.updateProgress(100, 'Full sync completed')
+            }
           }
           else {
             const needToSyncCount = Math.max(0, totalCount - stats.message_count)

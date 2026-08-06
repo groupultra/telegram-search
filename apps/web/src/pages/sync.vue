@@ -113,6 +113,8 @@ const activeChatId = ref<number | null>(null)
 const runChatIds = ref<number[]>([])
 // Accumulated processed messages from completed chats in the current run.
 const runCompletedMessages = ref(0)
+// Mode snapshot for the current run; `increase` itself is mutated on completion toasts.
+const runIsIncremental = ref(true)
 
 // Sync options dialog state
 const isSyncOptionsDialogOpen = ref(false)
@@ -178,8 +180,9 @@ if (increase.value === undefined || increase.value === null) {
 
 // Automatically switch active visualization to the currently syncing chat
 watch(currentTask, (task, previousTask) => {
-  // Roll up completed scope from the previous task into this run's aggregate stats.
-  if (previousTask && task && previousTask.taskId !== task.taskId && previousTask.progress >= 100) {
+  // Roll up the previous task's scope when the run moves to the next chat.
+  // Full sync never reports exactly 100, so any non-errored task switch counts.
+  if (previousTask && task && previousTask.taskId !== task.taskId && !previousTask.lastError) {
     const completedChatId = Number(previousTask.metadata.chatIds[0])
     const fallbackTotal = chats.value.find(chat => chat.id === completedChatId)?.messageCount ?? 0
     runCompletedMessages.value += previousTask.metadata.totalMessages ?? fallbackTotal
@@ -304,14 +307,6 @@ const aggregateProcessedMessages = computed(() => {
   return Math.min(total, runCompletedMessages.value + currentProcessed)
 })
 
-const aggregateProgress = computed(() => {
-  const total = selectedTotalMessages.value
-  if (total <= 0) {
-    return Math.max(0, Math.min(100, Math.round(currentTaskProgress.value || 0)))
-  }
-  return Math.max(0, Math.min(100, Math.round((aggregateProcessedMessages.value / total) * 100)))
-})
-
 /**
  * Compute disabled state for the "Select All" button.
  * Disabled when a task is in progress or the current scope has no chats.
@@ -370,20 +365,13 @@ function handleSelectAll() {
  * Parses "Processed X/Y messages" and maps known status strings.
  */
 const selectedSyncedMessages = computed(() => {
-  if (selectedChats.value.length === 0) {
+  if (syncScopeChatIds.value.length === 0) {
     return 0
   }
 
-  return selectedChats.value.reduce((sum, chatId) => {
+  return syncScopeChatIds.value.reduce((sum, chatId) => {
     return sum + (chatStatsByChatId.value[String(chatId)]?.syncedMessages ?? 0)
   }, 0)
-})
-
-const selectionPreviewProgress = computed(() => {
-  if (selectedTotalMessages.value <= 0) {
-    return 0
-  }
-  return Math.max(0, Math.min(100, Math.round((selectedSyncedMessages.value / selectedTotalMessages.value) * 100)))
 })
 
 const shouldShowSelectionSummary = computed(() => {
@@ -401,8 +389,27 @@ const summarySelectionTitle = computed(() => {
   return t('sync.selectedChats', { count: summarySelectedCount.value })
 })
 
+// chatStatsByChatId is updated live by TakeoutMetrics, so synced/total reflects
+// cumulative progress instead of restarting at 0 for each run. Full resync
+// (increase=false) rebuilds coverage, so only the run counter is meaningful there.
+const liveSyncedCount = computed(() => {
+  if (!shouldShowTaskStatus.value) {
+    return selectedSyncedMessages.value
+  }
+  if (!runIsIncremental.value) {
+    return aggregateProcessedMessages.value
+  }
+  return Math.max(selectedSyncedMessages.value, aggregateProcessedMessages.value)
+})
+
 const summaryProgress = computed(() => {
-  return Math.max(0, Math.min(100, Math.round(shouldShowTaskStatus.value ? aggregateProgress.value : selectionPreviewProgress.value)))
+  const total = selectedTotalMessages.value
+  if (total <= 0) {
+    return shouldShowTaskStatus.value
+      ? Math.max(0, Math.min(100, Math.round(currentTaskProgress.value || 0)))
+      : 0
+  }
+  return Math.max(0, Math.min(100, Math.round((Math.min(total, liveSyncedCount.value) / total) * 100)))
 })
 
 const summaryHasError = computed(() => {
@@ -414,8 +421,7 @@ const summaryTotalCount = computed(() => {
 })
 
 const summarySyncedCount = computed(() => {
-  const value = shouldShowTaskStatus.value ? aggregateProcessedMessages.value : selectedSyncedMessages.value
-  return Math.max(0, Math.min(summaryTotalCount.value, value))
+  return Math.max(0, Math.min(summaryTotalCount.value, liveSyncedCount.value))
 })
 
 const summaryUnsyncedCount = computed(() => {
@@ -492,6 +498,7 @@ watch([isDesktop, hasMobileStatusContent, isTaskInProgress], ([desktop, hasConte
 
 function handleSync() {
   increase.value = true
+  runIsIncremental.value = true
   runChatIds.value = [...selectedChats.value]
   runCompletedMessages.value = 0
   bridge.sendEvent(CoreEventType.TakeoutRun, {
@@ -505,6 +512,7 @@ function handleSync() {
 
 function handleResync() {
   increase.value = false
+  runIsIncremental.value = false
   runChatIds.value = [...selectedChats.value]
   runCompletedMessages.value = 0
   bridge.sendEvent(CoreEventType.TakeoutRun, {
