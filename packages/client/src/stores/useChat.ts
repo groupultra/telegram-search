@@ -129,6 +129,10 @@ export const useChatStore = defineStore('chat', () => {
 
       return {
         ...incomingChat,
+        // Telegram-sourced dialog lists carry no messageCount; keep the DB-derived one
+        ...(incomingChat.messageCount == null && existingChat.messageCount != null
+          ? { messageCount: existingChat.messageCount }
+          : {}),
         ...(shouldReuseSenderName ? { lastMessageFromName: existingChat.lastMessageFromName } : {}),
         ...(options.preserveUnreadCount && existingChat.unreadCount != null
           ? { unreadCount: existingChat.unreadCount }
