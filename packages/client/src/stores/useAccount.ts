@@ -25,8 +25,6 @@ export const useAccountStore = defineStore('account', () => {
   const attemptCounter = ref(0)
   const MAX_ATTEMPTS = 3
   let reconnectTimer: number | undefined
-  const AUTH_TIMEOUT_MS = 20000
-  let authTimeoutTimer: number | undefined
 
   // --- Account State ---
   const accountSettings = ref(generateDefaultAccountSettings())
@@ -147,29 +145,6 @@ export const useAccountStore = defineStore('account', () => {
   }
 
   // --- Watchers ---
-  watch(
-    () => authStatus.value.isLoading,
-    (isLoading) => {
-      if (!isLoading) {
-        if (authTimeoutTimer) {
-          window.clearTimeout(authTimeoutTimer)
-          authTimeoutTimer = undefined
-        }
-        return
-      }
-
-      if (authTimeoutTimer)
-        window.clearTimeout(authTimeoutTimer)
-
-      authTimeoutTimer = window.setTimeout(() => {
-        if (!authStatus.value.isLoading)
-          return
-        authStatus.value.isLoading = false
-        toast.error('Login timed out')
-      }, AUTH_TIMEOUT_MS)
-    },
-  )
-
   /**
    * Watch the active session's readiness status and handle reconnection logic.
    */
