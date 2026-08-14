@@ -236,6 +236,13 @@ const visualizationChat = computed(() => {
   return chats.value.find(chat => chat.id === visualizationChatId.value)
 })
 
+// The stats cache is keyed by chat. Do not render the mutable focused value here:
+// prefetch responses for a previous focus can otherwise briefly show stale data.
+const focusedChatStats = computed(() => {
+  const chatId = visualizationChatId.value
+  return chatId ? chatStatsByChatId.value[String(chatId)] : undefined
+})
+
 // Check if task was cancelled (not an error)
 const isTaskCancelled = computed(() => {
   const task = currentTask.value
@@ -429,14 +436,14 @@ const summaryUnsyncedCount = computed(() => {
 })
 
 const currentChatTotalCount = computed(() => {
-  return Math.max(0, chatStats.value?.totalMessages ?? 0)
+  return Math.max(0, focusedChatStats.value?.totalMessages ?? 0)
 })
 
 const currentChatSyncedCount = computed(() => {
-  if (!chatStats.value) {
+  if (!focusedChatStats.value) {
     return 0
   }
-  return Math.max(0, Math.min(chatStats.value.syncedMessages, chatStats.value.totalMessages))
+  return Math.max(0, Math.min(focusedChatStats.value.syncedMessages, focusedChatStats.value.totalMessages))
 })
 
 const currentChatUnsyncedCount = computed(() => {
@@ -524,9 +531,17 @@ function handleResync() {
   NProgress.start()
 }
 
-function handleTakeoutConfirm(useTakeout: boolean) {
+function handleTakeoutConfirm(authorized: boolean) {
   takeoutConfirmNeeded.value = false
-  bridge.sendEvent(CoreEventType.TakeoutConfirmResponse, { useTakeout })
+  bridge.sendEvent(CoreEventType.TakeoutConfirmResponse, { authorized })
+}
+
+function handleTakeoutDialogOpen(open: boolean) {
+  if (!open && takeoutConfirmNeeded.value) {
+    handleTakeoutConfirm(false)
+    return
+  }
+  takeoutConfirmNeeded.value = open
 }
 
 function handleAbort() {
@@ -575,7 +590,8 @@ watch(currentTaskProgress, (progress) => {
   }
 })
 
-// Fetch stats for visualization target.
+// Fetch stats for the visualization target. The visualization itself reads the
+// per-chat cache, so prefetch responses cannot overwrite the focused display.
 watch(visualizationChatId, (chatId) => {
   if (!chatId) {
     chatStatsFocusedChatId.value = null
@@ -584,10 +600,12 @@ watch(visualizationChatId, (chatId) => {
     return
   }
 
-  chatStatsFocusedChatId.value = String(chatId)
-  chatStatsLoading.value = true
+  const focusedChatId = String(chatId)
+  chatStatsFocusedChatId.value = focusedChatId
+  chatStats.value = chatStatsByChatId.value[focusedChatId]
+  chatStatsLoading.value = !chatStats.value
   bridge.sendEvent(CoreEventType.TakeoutStatsFetch, {
-    chatId: chatId.toString(),
+    chatId: focusedChatId,
   })
 })
 
@@ -751,7 +769,7 @@ function startSync() {
               <div class="min-w-0 p-3 pt-3 md:p-4 md:pt-3">
                 <div v-if="visualizationChat" class="space-y-3">
                   <SyncVisualization
-                    :stats="chatStats"
+                    :stats="focusedChatStats"
                     :loading="chatStatsLoading"
                     :chat-label="visualizationChat.name || ''"
                     :show-abort="isTaskInProgress"
@@ -794,7 +812,7 @@ function startSync() {
         :current-total-count="currentChatTotalCount"
         :current-synced-count="currentChatSyncedCount"
         :current-unsynced-count="currentChatUnsyncedCount"
-        :current-loading="chatStatsLoading && !chatStats"
+        :current-loading="chatStatsLoading && !focusedChatStats"
         class="md:hidden"
         @close="handleCloseStatusPanel"
       />
@@ -941,7 +959,7 @@ function startSync() {
       </DialogContent>
     </Dialog>
 
-    <Dialog v-model:open="takeoutConfirmNeeded">
+    <Dialog :open="takeoutConfirmNeeded" @update:open="handleTakeoutDialogOpen">
       <DialogContent class="max-w-[calc(100%-2rem)] rounded-2xl sm:max-w-[560px]" :show-close-button="false">
         <DialogHeader>
           <div class="flex items-start gap-4 text-left">
@@ -957,21 +975,12 @@ function startSync() {
           </div>
         </DialogHeader>
 
-        <div class="flex items-start gap-3 border border-destructive/30 rounded-lg bg-destructive/5 p-3">
-          <span class="i-lucide-alert-triangle mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-          <p class="text-sm text-destructive leading-relaxed">
-            {{ t('sync.takeoutConfirmRisk') }}
-          </p>
-        </div>
-
         <DialogFooter class="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
-            icon="i-lucide-shield-off"
             variant="outline"
-            class="w-full border-destructive/40 text-destructive sm:w-auto hover:bg-destructive/10"
             @click="handleTakeoutConfirm(false)"
           >
-            {{ t('sync.takeoutConfirmUseGetHistory') }}
+            {{ t('common.cancel') }}
           </Button>
           <Button
             icon="i-lucide-shield-check"

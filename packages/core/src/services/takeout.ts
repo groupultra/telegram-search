@@ -392,7 +392,7 @@ export function createTakeoutService(
       // Use provided expected count, or fetch from Telegram
       const count = options.expectedCount ?? (await getHistoryWithMessagesCount(chatId)).expect('Failed to get history').count
 
-      logger.withFields({ expectedCount: count, providedCount: options.expectedCount, useTakeout: true }).log('Starting message fetch')
+      logger.withFields({ expectedCount: count, providedCount: options.expectedCount, takeout: true }).log('Starting message fetch')
 
       // Fetch split ranges so we iterate every message box on the server.
       // Without this, messages beyond the 500K/1M boundaries may be missed.
@@ -599,8 +599,8 @@ export function createTakeoutService(
     // Ask the user once per sync run for explicit takeout authorization.
     // Declining stops the run; bulk sync never falls back to GetHistory.
     ctx.emitter.emit(CoreEventType.TakeoutConfirmNeeded)
-    const { useTakeout } = await waitForEvent(ctx.emitter, CoreEventType.TakeoutConfirmResponse)
-    if (!useTakeout) {
+    const { authorized } = await waitForEvent(ctx.emitter, CoreEventType.TakeoutConfirmResponse)
+    if (!authorized) {
       logger.warn('Takeout sync declined by user')
       return
     }
@@ -708,7 +708,7 @@ export function createTakeoutService(
               updateProgress(backwardProcessed + c, needToSyncCount)
             })
 
-            if (!task.state.abortController.signal.aborted) {
+            if (!task.state.abortController.signal.aborted && !task.state.lastError) {
               task.updateProgress(100, 'Incremental sync completed')
             }
           }
@@ -718,6 +718,11 @@ export function createTakeoutService(
           task.updateError(error)
         }
         finally {
+          if (!task.state.abortController.signal.aborted && !task.state.lastError) {
+            // Read persisted state after processing, rather than returning the
+            // stale pre-download snapshot captured before the Telegram request.
+            await fetchChatSyncStats(chatId)
+          }
           activeTasks.delete(task.state.taskId)
           runAbortControllersByTaskId.delete(task.state.taskId)
           ctx.metrics?.takeoutChatDurationMs.observe({ chatId }, performance.now() - chatStart)
@@ -747,11 +752,12 @@ export function createTakeoutService(
     logger.withFields({ chatId }).verbose('Fetching chat sync stats')
 
     try {
-      // Get chat message stats from DB
-      const stats = (await chatMessageStatsModels.getChatMessageStatsByChatId(ctx.getDB(), ctx.getCurrentAccountId(), chatId))?.unwrap()
-
       // Get total message count from Telegram
       const totalMessageCount = (await getTotalMessageCount(chatId)) ?? 0
+
+      // Read local state after the remote request. A slow Telegram count must
+      // not overwrite newer persisted-message statistics with an old snapshot.
+      const stats = (await chatMessageStatsModels.getChatMessageStatsByChatId(ctx.getDB(), ctx.getCurrentAccountId(), chatId))?.unwrap()
 
       const syncedMessages = stats?.message_count ?? 0
       const firstMessageId = stats?.first_message_id ?? 0
