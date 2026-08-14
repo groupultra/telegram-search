@@ -55,6 +55,15 @@ function ensurePeerApplication(account: AccountState, peerId: string, logger: Lo
   state.unregister = registerApplicationHandlers(state.eventa.context, state.runtime)
 }
 
+export function respondToReadyLogin(peer: Peer, account: AccountState): boolean {
+  if (!account.accountReady) {
+    return false
+  }
+
+  sendWsEvent(peer, CoreEventType.AccountReady, { accountId: account.ctx.getCurrentAccountId() })
+  return true
+}
+
 export function registerCoreEventListeners(logger: Logger, account: AccountState, accountId: string, eventName: keyof FromCoreEvent) {
   if (eventName.startsWith('server:')) {
     return
@@ -164,6 +173,12 @@ export function setupWsRoutes(app: H3, config: Config) {
 
         if (event.type === 'server:event:register') {
           registerCoreEventListeners(logger, account, accountId, event.data.event as keyof FromCoreEvent)
+          return
+        }
+
+        // An account-scoped context already has an authorized Telegram client.
+        // Replaying auth:login from another tab must not create and replace it.
+        if (event.type === CoreEventType.AuthLogin && respondToReadyLogin(peer, account)) {
           return
         }
 

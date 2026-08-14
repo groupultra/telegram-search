@@ -110,89 +110,136 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
   }
 
   async function connectOrThrow(client: TelegramClient): Promise<void> {
-    const CONNECT_TIMEOUT = 5000
-
-    const isConnected = await Promise.race<boolean>([
-      client.connect(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout connecting to Telegram, check your internet connection and try again')), CONNECT_TIMEOUT)),
-    ])
+    // TelegramClient owns connection retries and their delay. Racing it against
+    // an unrelated timeout leaves a live connection attempt behind after the
+    // caller has already treated it as failed.
+    const isConnected = await client.connect()
 
     if (!isConnected) {
       throw new Error('Connected failed, check your internet connection and try again')
     }
   }
 
-  async function loginWithSession(session: StringSession | string): Promise<Result<TelegramClient>> {
+  let loginInFlight: Promise<Result<TelegramClient>> | undefined
+
+  async function destroyCandidate(client: TelegramClient | undefined) {
+    if (!client) {
+      return
+    }
+
     try {
-      const client = (await init(session)).expect('Failed to initialize Telegram client')
-      await connectOrThrow(client)
-
-      const isAuthorized = await client.isUserAuthorized()
-      if (!isAuthorized) {
-        // Surface this as an auth-specific error so the frontend can fall
-        // back to manual login and optionally clear the stored session.
-        ctx.emitter.emit(CoreEventType.AuthError)
-        ctx.emitter.emit(CoreEventType.AuthDisconnected)
-        return Err(ctx.withError('User is not authorized'))
-      }
-
-      // NOTE: The client will return string session, so forward it to frontend
-      const sessionString = String(await client.session.save())
-      logger.withFields({ hasSession: !!sessionString }).verbose('Forwarding session to client')
-
-      // 1) Forward updated session to frontend so it can persist it.
-      ctx.emitter.emit(CoreEventType.SessionUpdate, { session: sessionString })
-
-      // 2) Attach client to context for subsequent services.
-      ctx.setClient(client)
-
-      // 3) Finally signal that auth is connected; this will trigger
-      //    afterConnectedEventHandler, which will establish current
-      //    account ID and bootstrap dialogs/storage.
-      ctx.emitter.emit(CoreEventType.AuthConnected)
-
-      logger.log('Login with session successful')
-
-      return Ok(client)
+      await client.destroy()
     }
     catch (error) {
-      ctx.emitter.emit(CoreEventType.AuthError)
-      return Err(ctx.withError(error, 'Failed to login with session'))
+      logger.withError(error).warn('Failed to destroy unsuccessful Telegram client')
     }
   }
 
-  async function loginWithPhone(phoneNumber: string): Promise<Result<TelegramClient>> {
-    try {
-      const client = (await init()).expect('Failed to initialize Telegram client')
-      await connectOrThrow(client)
+  function runLogin(login: () => Promise<Result<TelegramClient>>): Promise<Result<TelegramClient>> {
+    if (loginInFlight) {
+      logger.verbose('Reusing in-flight Telegram login')
+      return loginInFlight
+    }
 
-      const isAuthorized = await client.isUserAuthorized()
-      if (!isAuthorized) {
-        await signIn(phoneNumber, client)
+    loginInFlight = login().finally(() => {
+      loginInFlight = undefined
+    })
+    return loginInFlight
+  }
+
+  async function loginWithSession(session: StringSession | string): Promise<Result<TelegramClient>> {
+    return runLogin(async () => {
+      let client: TelegramClient | undefined
+      let retained = false
+
+      try {
+        client = (await init(session)).expect('Failed to initialize Telegram client')
+        await connectOrThrow(client)
+
+        const isAuthorized = await client.isUserAuthorized()
+        if (!isAuthorized) {
+          // Surface this as an auth-specific error so the frontend can fall
+          // back to manual login and optionally clear the stored session.
+          ctx.emitter.emit(CoreEventType.AuthError)
+          ctx.emitter.emit(CoreEventType.AuthDisconnected)
+          return Err(ctx.withError('User is not authorized'))
+        }
+
+        // NOTE: The client will return string session, so forward it to frontend
+        const sessionString = String(await client.session.save())
+        logger.withFields({ hasSession: !!sessionString }).verbose('Forwarding session to client')
+
+        // 1) Forward updated session to frontend so it can persist it.
+        ctx.emitter.emit(CoreEventType.SessionUpdate, { session: sessionString })
+
+        // 2) Attach client to context for subsequent services.
+        ctx.setClient(client)
+        retained = true
+
+        // 3) Finally signal that auth is connected; this will trigger
+        //    afterConnectedEventHandler, which will establish current
+        //    account ID and bootstrap dialogs/storage.
+        ctx.emitter.emit(CoreEventType.AuthConnected)
+
+        logger.log('Login with session successful')
+
+        return Ok(client)
       }
+      catch (error) {
+        ctx.emitter.emit(CoreEventType.AuthError)
+        return Err(ctx.withError(error, 'Failed to login with session'))
+      }
+      finally {
+        if (!retained) {
+          await destroyCandidate(client)
+        }
+      }
+    })
+  }
 
-      // NOTE: The client will return string session, so forward it to frontend
-      const sessionString = String(await client.session.save())
-      logger.withFields({ hasSession: !!sessionString }).verbose('Forwarding session to client')
+  async function loginWithPhone(phoneNumber: string): Promise<Result<TelegramClient>> {
+    return runLogin(async () => {
+      let client: TelegramClient | undefined
+      let retained = false
 
-      // 1) Forward updated session
-      ctx.emitter.emit(CoreEventType.SessionUpdate, { session: sessionString })
+      try {
+        client = (await init()).expect('Failed to initialize Telegram client')
+        await connectOrThrow(client)
 
-      // 2) Attach client
-      ctx.setClient(client)
+        const isAuthorized = await client.isUserAuthorized()
+        if (!isAuthorized) {
+          await signIn(phoneNumber, client)
+        }
 
-      // 3) Notify connected; afterConnectedEventHandler will establish
-      //    current account ID and bootstrap dialogs/storage.
-      ctx.emitter.emit(CoreEventType.AuthConnected)
+        // NOTE: The client will return string session, so forward it to frontend
+        const sessionString = String(await client.session.save())
+        logger.withFields({ hasSession: !!sessionString }).verbose('Forwarding session to client')
 
-      logger.log('Login with phone successful')
+        // 1) Forward updated session
+        ctx.emitter.emit(CoreEventType.SessionUpdate, { session: sessionString })
 
-      return Ok(client)
-    }
-    catch (error) {
-      ctx.emitter.emit(CoreEventType.AuthError)
-      return Err(ctx.withError(error, 'Failed to login with phone'))
-    }
+        // 2) Attach client
+        ctx.setClient(client)
+        retained = true
+
+        // 3) Notify connected; afterConnectedEventHandler will establish
+        //    current account ID and bootstrap dialogs/storage.
+        ctx.emitter.emit(CoreEventType.AuthConnected)
+
+        logger.log('Login with phone successful')
+
+        return Ok(client)
+      }
+      catch (error) {
+        ctx.emitter.emit(CoreEventType.AuthError)
+        return Err(ctx.withError(error, 'Failed to login with phone'))
+      }
+      finally {
+        if (!retained) {
+          await destroyCandidate(client)
+        }
+      }
+    })
   }
 
   async function signIn(phoneNumber: string, client: TelegramClient): Promise<Api.TypeUser> {
