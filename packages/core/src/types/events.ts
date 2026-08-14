@@ -407,7 +407,7 @@ export interface TakeoutEventToCore {
   [CoreEventType.TakeoutTaskAbort]: (data: { taskId: string }) => void
   [CoreEventType.TakeoutStatsFetch]: (data: { chatId: string }) => void
   /** User response to the takeout authorization dialog. */
-  [CoreEventType.TakeoutConfirmResponse]: (data: { useTakeout: boolean }) => void
+  [CoreEventType.TakeoutConfirmResponse]: (data: { authorized: boolean }) => void
 }
 
 export interface ChatSyncStats {

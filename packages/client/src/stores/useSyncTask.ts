@@ -11,7 +11,7 @@ export const useSyncTaskStore = defineStore('sync-task', () => {
   const chatStatsFocusedChatId = ref<string | null>(null)
   const chatStatsLoading = ref(false)
   const etaSeconds = ref<number | null>(null)
-  /** True when core is waiting for the user to choose takeout vs GetHistory. */
+  /** True when core is waiting for explicit Telegram Takeout authorization. */
   const takeoutConfirmNeeded = ref(false)
 
   const currentTaskProgress = computed(() => {

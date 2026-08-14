@@ -241,4 +241,38 @@ describe('models/chat-message-stats', () => {
     expect(stat.first_message_at).toBe(1000)
     expect(stat.latest_message_at).toBe(3000)
   })
+
+  it('orders numeric Telegram IDs numerically and ignores malformed legacy IDs', async () => {
+    const db = await setupDb()
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+    const [chat] = await db.insert(joinedChatsTable).values({
+      platform: 'telegram',
+      chat_id: 'numeric-id-chat',
+      chat_name: 'Numeric IDs',
+      chat_type: 'group',
+    }).returning()
+
+    await db.insert(chatMessagesTable).values(['9', '10', '1037', '', 'not-a-number'].map((platform_message_id, index) => ({
+      platform: 'telegram' as const,
+      platform_message_id,
+      from_id: `user-${index}`,
+      from_name: `User ${index}`,
+      in_chat_id: chat.chat_id,
+      in_chat_type: 'group' as const,
+      content: platform_message_id,
+      is_reply: false,
+      reply_to_name: '',
+      reply_to_id: '',
+      platform_timestamp: index + 1,
+    })))
+
+    const stats = (await chatMessageStatsModels.getChatMessageStatsByChatId(db, account.id, chat.chat_id)).unwrap()
+
+    expect(stats.message_count).toBe(5)
+    expect(stats.first_message_id).toBe(9)
+    expect(stats.latest_message_id).toBe(1037)
+  })
 })

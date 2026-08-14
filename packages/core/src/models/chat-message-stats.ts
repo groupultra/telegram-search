@@ -49,6 +49,11 @@ function normalizeStatsRow<T extends {
   }
 }
 
+// Telegram message IDs are numeric, but this column also contains legacy text.
+// Cast only digit-only IDs so malformed rows do not make the aggregate fail.
+const firstNumericMessageId = sql<number | null>`min(case when ${chatMessagesTable.platform_message_id} ~ '^[0-9]+$' then (${chatMessagesTable.platform_message_id})::bigint end)`
+const latestNumericMessageId = sql<number | null>`max(case when ${chatMessagesTable.platform_message_id} ~ '^[0-9]+$' then (${chatMessagesTable.platform_message_id})::bigint end)`
+
 /**
  * Get per-chat message stats for a specific logical account.
  *
@@ -65,9 +70,9 @@ async function getChatMessagesStats(db: CoreDB, accountId: string): PromiseResul
         chat_id: joinedChatsTable.chat_id,
         chat_name: joinedChatsTable.chat_name,
         message_count: count(chatMessagesTable.id).as('message_count'),
-        first_message_id: min(chatMessagesTable.platform_message_id).as('first_message_id'),
+        first_message_id: firstNumericMessageId.as('first_message_id'),
         first_message_at: min(chatMessagesTable.created_at).as('first_message_at'),
-        latest_message_id: max(chatMessagesTable.platform_message_id).as('latest_message_id'),
+        latest_message_id: latestNumericMessageId.as('latest_message_id'),
         latest_message_at: max(chatMessagesTable.created_at).as('latest_message_at'),
       })
       .from(joinedChatsTable)
@@ -106,9 +111,9 @@ async function getChatMessageStatsByChatId(db: CoreDB, accountId: string, chatId
         chat_id: joinedChatsTable.chat_id,
         chat_name: joinedChatsTable.chat_name,
         message_count: count(chatMessagesTable.id).as('message_count'),
-        first_message_id: min(chatMessagesTable.platform_message_id).as('first_message_id'),
+        first_message_id: firstNumericMessageId.as('first_message_id'),
         first_message_at: min(chatMessagesTable.created_at).as('first_message_at'),
-        latest_message_id: max(chatMessagesTable.platform_message_id).as('latest_message_id'),
+        latest_message_id: latestNumericMessageId.as('latest_message_id'),
         latest_message_at: max(chatMessagesTable.created_at).as('latest_message_at'),
       })
       .from(joinedChatsTable)

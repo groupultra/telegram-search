@@ -13,7 +13,6 @@ import { CoreEventType } from '../../types/events'
 import { createTask as createCoreTask } from '../../utils/task'
 import { createTakeoutService } from '../takeout'
 
-const mockWaiter = vi.fn(async (_signal?: AbortSignal) => {})
 const logger = useLogger()
 
 const mockChatModels = {
@@ -27,12 +26,6 @@ const mockChatMessageStatsModels = {
 const mockEntityService = {
   getInputPeer: vi.fn(async () => new Api.InputPeerChat({ chatId: bigInt(123) })),
 } as any
-
-vi.mock('../../utils/min-interval', () => {
-  return {
-    createMinIntervalWaiter: () => mockWaiter,
-  }
-})
 
 function createMockCtx(client: any) {
   const withError = vi.fn((error: unknown) => (error instanceof Error ? error : new Error(String(error))))
@@ -428,6 +421,103 @@ describe('takeout service', () => {
     expect(client.invoke).not.toHaveBeenCalled()
   })
 
+  it('runTakeout should stop after cancellation without reading or persisting messages', async () => {
+    mockChatModels.fetchChatsByAccountId.mockClear()
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockClear()
+
+    const client = { invoke: vi.fn() }
+    const { ctx } = createMockCtx(client)
+    const messageProcess = vi.fn()
+    ctx.emitter.on(CoreEventType.TakeoutConfirmNeeded, () => {
+      queueMicrotask(() => {
+        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { authorized: false })
+      })
+    })
+    ctx.emitter.on(CoreEventType.MessageProcess, messageProcess)
+
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+    await service.runTakeout({ chatIds: ['123'], increase: true })
+
+    expect(client.invoke).not.toHaveBeenCalled()
+    expect(mockChatMessageStatsModels.getChatMessageStatsByChatId).not.toHaveBeenCalled()
+    expect(messageProcess).not.toHaveBeenCalled()
+  })
+
+  it('runTakeout should persist authorized exports through InvokeWithTakeout', async () => {
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockReset()
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockResolvedValue(undefined)
+
+    const calls: Api.AnyRequest[] = []
+    const client = {
+      invoke: vi.fn(async (query: Api.AnyRequest) => {
+        calls.push(query)
+        if (query instanceof Api.messages.GetHistory) {
+          return { count: 1, messages: [] }
+        }
+        if (query instanceof Api.account.InitTakeoutSession) {
+          return { id: bigInt(1) }
+        }
+        if (query instanceof Api.InvokeWithTakeout && query.query instanceof Api.messages.GetSplitRanges) {
+          return [new Api.MessageRange({ minId: 1, maxId: 1000000 })]
+        }
+        if (query instanceof Api.InvokeWithTakeout) {
+          if (query.query instanceof Api.InvokeWithMessagesRange) {
+            return { messages: [] }
+          }
+          if (query.query instanceof Api.account.FinishTakeoutSession) {
+            return {}
+          }
+        }
+        throw new Error('unexpected query')
+      }),
+    }
+    const { ctx } = createMockCtx(client)
+    ctx.emitter.on(CoreEventType.TakeoutConfirmNeeded, () => {
+      queueMicrotask(() => {
+        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { authorized: true })
+      })
+    })
+
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+    await service.runTakeout({ chatIds: ['123'], increase: true })
+
+    expect(calls.some(query => query instanceof Api.InvokeWithTakeout && query.query instanceof Api.InvokeWithMessagesRange)).toBe(true)
+  })
+
+  it('fetchChatSyncStats should read local stats after the remote count resolves', async () => {
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockReset()
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockResolvedValue({
+      unwrap: () => ({
+        message_count: 3,
+        first_message_id: 9,
+        latest_message_id: 1037,
+      }),
+    })
+
+    let resolveHistory: ((value: { count: number, messages: never[] }) => void) | undefined
+    const client = {
+      invoke: vi.fn((query: Api.AnyRequest) => {
+        if (query instanceof Api.messages.GetHistory) {
+          return new Promise<{ count: number, messages: never[] }>((resolve) => {
+            resolveHistory = resolve
+          })
+        }
+        throw new Error('unexpected query')
+      }),
+    }
+    const { ctx } = createMockCtx(client)
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+
+    const fetchStats = service.fetchChatSyncStats('123')
+    await vi.waitFor(() => expect(client.invoke).toHaveBeenCalledOnce())
+    expect(mockChatMessageStatsModels.getChatMessageStatsByChatId).not.toHaveBeenCalled()
+
+    resolveHistory?.({ count: 3, messages: [] })
+    await fetchStats
+
+    expect(mockChatMessageStatsModels.getChatMessageStatsByChatId).toHaveBeenCalledOnce()
+  })
+
   it('takeoutMessages should fail closed when takeout initialization fails', async () => {
     const calls: any[] = []
 
@@ -549,7 +639,7 @@ describe('takeout service', () => {
     }
   })
 
-  it('takeoutMessages should report init failure without fallback progress', async () => {
+  it('takeoutMessages should not report 100% success when initialization fails', async () => {
     const client = {
       invoke: vi.fn(async (query: any) => {
         if (query instanceof Api.account.InitTakeoutSession) {
@@ -580,26 +670,58 @@ describe('takeout service', () => {
       skipMedia: true,
       task,
       expectedCount: 0,
-      disableAutoProgress: true,
+      disableAutoProgress: false,
       syncOptions: undefined,
       takeoutConsent: true,
     })) {
       void message
     }
 
-    expect(task.updateProgress).not.toHaveBeenCalledWith(0, 'Takeout unavailable, using regular sync')
+    expect(task.updateProgress).not.toHaveBeenCalledWith(100)
     expect(task.state.lastError).toBe('init failed')
   })
 
-  it('takeoutMessages should stop when aborted during rate-limit wait', async () => {
-    const waiter = vi.fn(async (signal?: AbortSignal) => {
-      if (signal?.aborted) {
-        throw new Error('aborted')
-      }
+  it('runTakeout should not report incremental sync success after a Takeout error', async () => {
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockReset()
+    mockChatMessageStatsModels.getChatMessageStatsByChatId.mockResolvedValue({
+      unwrap: () => ({
+        message_count: 1,
+        first_message_id: 1,
+        latest_message_id: 1,
+      }),
     })
 
-    mockWaiter.mockImplementation(waiter)
+    const client = {
+      invoke: vi.fn(async (query: Api.AnyRequest) => {
+        if (query instanceof Api.messages.GetHistory) {
+          return { count: 2, messages: [] }
+        }
+        if (query instanceof Api.account.InitTakeoutSession) {
+          throw new TypeError('init failed')
+        }
+        throw new Error('unexpected query')
+      }),
+    }
+    const { ctx } = createMockCtx(client)
+    const progress: number[] = []
 
+    ctx.emitter.on(CoreEventType.TakeoutConfirmNeeded, () => {
+      queueMicrotask(() => {
+        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { authorized: true })
+      })
+    })
+    ctx.emitter.on(CoreEventType.TakeoutTaskProgress, (task) => {
+      progress.push(task.progress)
+    })
+
+    const service = createTakeoutService(ctx, logger, mockChatModels, mockChatMessageStatsModels, mockEntityService)
+    await service.runTakeout({ chatIds: ['123'], increase: true })
+
+    expect(progress).toContain(-1)
+    expect(progress).not.toContain(100)
+  })
+
+  it('takeoutMessages should finish unsuccessfully when aborted before pagination', async () => {
     const calls: any[] = []
 
     const client = {
@@ -726,7 +848,7 @@ describe('takeout service', () => {
     // waitForEvent registers its once() listener before we emit the response.
     ctx.emitter.on(CoreEventType.TakeoutConfirmNeeded, () => {
       queueMicrotask(() => {
-        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { useTakeout: true })
+        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { authorized: true })
       })
     })
 
@@ -891,7 +1013,7 @@ describe('takeout service', () => {
 
     ctx.emitter.on(CoreEventType.TakeoutConfirmNeeded, () => {
       queueMicrotask(() => {
-        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { useTakeout: true })
+        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { authorized: true })
       })
     })
 
@@ -962,7 +1084,7 @@ describe('takeout service', () => {
 
     ctx.emitter.on(CoreEventType.TakeoutConfirmNeeded, () => {
       queueMicrotask(() => {
-        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { useTakeout: true })
+        ctx.emitter.emit(CoreEventType.TakeoutConfirmResponse, { authorized: true })
       })
     })
 
