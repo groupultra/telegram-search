@@ -6,10 +6,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 
 describe('telegram CLI retry policy', () => {
-  it('disables hidden GramJS request and flood-wait loops', () => {
+  it('allows one post-migration request retry without enabling unbounded waits', () => {
     expect(CLI_TELEGRAM_CLIENT_OPTIONS).toMatchObject({
       floodSleepThreshold: 0,
-      requestRetries: 1,
+      requestRetries: 2,
     })
   })
 
