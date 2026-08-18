@@ -28,7 +28,7 @@
     "defu": "^6.1.7",
     "lottie-web": "^5.13.0",
     "markstream-vue": "1.0.1-beta.1",
-    "nanoid": "^5.1.16",
+    "nanoid": "^6.0.1",
     "nprogress": "^0.2.0",
     "pako": "^2.2.0",
     "pinia": "^3.0.4",
