@@ -5,6 +5,7 @@ import type { OutputMeta } from './output'
 import process from 'node:process'
 
 import { createRequire } from 'node:module'
+import { resolve } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 
 import { retryTelegramResult, toAppError } from '@tg-search/core'
@@ -57,6 +58,10 @@ function parseTimestamp(value: string | undefined): number | undefined {
 function parseChatIds(value: string | undefined): string[] | undefined {
   const ids = value?.split(',').map(item => item.trim()).filter(Boolean)
   return ids?.length ? ids : undefined
+}
+
+export function resolveExportOutputPath(output: string | undefined, defaultPath: string): string {
+  return output ? resolve(output) : defaultPath
 }
 
 type CommandRuntime = Awaited<ReturnType<typeof createCliRuntime>> | NonNullable<Awaited<ReturnType<typeof connectDaemon>>>
@@ -230,7 +235,9 @@ const authCommand = defineCommand({
           const daemon = await connectDaemon(paths)
           if (daemon) {
             try {
-              await daemon.invokes.daemon.reload({})
+              const daemonStatus = await daemon.invokes.daemon.reload({})
+              if (daemonStatus.state !== 'ready')
+                throw new Error(daemonStatus.error ?? `Daemon reload ended in state ${daemonStatus.state}`)
             }
             finally {
               daemon.close()
@@ -482,7 +489,7 @@ const exportCommand = defineCommand({
     const paths = await ensureProfile(profile)
     await withRuntime(profile, false, async (runtime) => {
       await emitStreamResult(runtime.streams.export({
-        outputDir: context.args.output || paths.exports,
+        outputDir: resolveExportOutputPath(context.args.output, paths.exports),
         format: context.args.format as 'jsonl',
         timeZone: context.args.timezone,
         chatIds: parseChatIds(context.args.chat),

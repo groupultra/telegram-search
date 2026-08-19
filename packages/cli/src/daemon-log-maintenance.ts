@@ -4,7 +4,7 @@ import type { ProfilePaths } from './profile'
 
 import process from 'node:process'
 
-import { appendFile, chmod, readdir, readFile, stat, truncate, unlink } from 'node:fs/promises'
+import { appendFile, chmod, readdir, readFile, stat, truncate, unlink, writeFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -25,6 +25,28 @@ function daemonLogPaths(paths: ProfilePaths): string[] {
   return [paths.daemonStdoutLog, paths.daemonStderrLog]
 }
 
+function rotationStatePath(path: string): string {
+  return `${path}.rotation-state.json`
+}
+
+async function readActiveDate(path: string, fallback: string): Promise<string> {
+  try {
+    const parsed = JSON.parse(await readFile(rotationStatePath(path), 'utf8')) as { activeDate?: unknown }
+    return typeof parsed.activeDate === 'string' ? parsed.activeDate : fallback
+  }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT' || error instanceof SyntaxError)
+      return fallback
+    throw error
+  }
+}
+
+async function writeActiveDate(path: string, activeDate: string): Promise<void> {
+  const statePath = rotationStatePath(path)
+  await writeFile(statePath, `${JSON.stringify({ activeDate })}\n`, { mode: 0o600 })
+  await chmod(statePath, 0o600)
+}
+
 async function rotateLog(path: string, now: Date): Promise<void> {
   let details: Awaited<ReturnType<typeof stat>>
   try {
@@ -36,9 +58,17 @@ async function rotateLog(path: string, now: Date): Promise<void> {
     throw error
   }
 
-  const sourceDate = localDateKey(details.mtime)
-  if (sourceDate === localDateKey(now) || details.size === 0)
+  const today = localDateKey(now)
+  const sourceDate = await readActiveDate(path, localDateKey(details.mtime))
+  if (sourceDate === today) {
+    await writeActiveDate(path, today)
     return
+  }
+
+  if (details.size === 0) {
+    await writeActiveDate(path, today)
+    return
+  }
 
   // launchd keeps the stdout/stderr file descriptor open, so rename-based
   // rotation would keep future output in the archived file. Copy then truncate
@@ -51,6 +81,7 @@ async function rotateLog(path: string, now: Date): Promise<void> {
   await appendFile(archive, contents, { mode: 0o600 })
   await chmod(archive, 0o600)
   await truncate(path, 0)
+  await writeActiveDate(path, today)
 }
 
 async function pruneArchives(path: string, now: Date, days: number): Promise<void> {
@@ -60,7 +91,7 @@ async function pruneArchives(path: string, now: Date, days: number): Promise<voi
   const entries = await readdir(directory, { withFileTypes: true })
 
   await Promise.all(entries
-    .filter(entry => entry.isFile() && entry.name.startsWith(prefix))
+    .filter(entry => entry.isFile() && entry.name.startsWith(prefix) && /^\d{4}-\d{2}-\d{2}$/.test(entry.name.slice(prefix.length)))
     .map(async (entry) => {
       const archive = join(directory, entry.name)
       const details = await stat(archive)

@@ -49,4 +49,18 @@ describe('daemon log maintenance', () => {
     await expect(readFile(paths.daemonStdoutLog, 'utf8')).resolves.toBe('')
     await expect(readFile(expiredArchive, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
   })
+
+  it('rotates at the tracked date boundary even after a post-midnight write', async () => {
+    // mtime reflects only the latest write, not the oldest records in the active file.
+    const paths = await createPaths()
+    const now = new Date('2026-08-20T06:00:00+08:00')
+    await writeFile(paths.daemonStdoutLog, 'previous day\ncurrent day\n')
+    await writeFile(`${paths.daemonStdoutLog}.rotation-state.json`, '{"activeDate":"2026-08-19"}\n')
+
+    await maintainDaemonLogs(paths, now, 14)
+
+    await expect(readFile(`${paths.daemonStdoutLog}.2026-08-19`, 'utf8')).resolves.toBe('previous day\ncurrent day\n')
+    await expect(readFile(paths.daemonStdoutLog, 'utf8')).resolves.toBe('')
+    await expect(readFile(`${paths.daemonStdoutLog}.rotation-state.json`, 'utf8')).resolves.toContain('2026-08-20')
+  })
 })

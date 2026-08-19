@@ -39,6 +39,7 @@ export enum CoreEventType {
   MessageProcess = 'message:process',
   MessageReprocess = 'message:reprocess',
   MessageProcessed = 'message:processed',
+  MessageProcessFailed = 'message:process:failed',
   MessageUpdated = 'message:updated',
   MessageDeleted = 'message:deleted',
 
@@ -540,6 +541,7 @@ export interface MessageResolverEventFromCore {
       count: number
     }>
   }) => void
+  [CoreEventType.MessageProcessFailed]: (data: { batchId: string, error: string }) => void
 }
 
 // ============================================================================

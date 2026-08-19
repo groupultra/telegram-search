@@ -21,6 +21,12 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext, logger: L
       if (!isTakeout) {
         messageResolverService.processMessages(messages, { takeout: false, syncOptions, forceRefetch, batchId }).catch((error) => {
           logger.withError(error).warn('Failed to process realtime messages')
+          if (batchId) {
+            ctx.emitter.emit(CoreEventType.MessageProcessFailed, {
+              batchId,
+              error: error instanceof Error ? error.message : String(error),
+            })
+          }
         })
 
         return
@@ -30,6 +36,12 @@ export function registerMessageResolverEventHandlers(ctx: CoreContext, logger: L
       void queue.add(async () => {
         messageResolverService.processMessages(messages, { takeout: true, syncOptions, forceRefetch, batchId }).catch((error) => {
           logger.withError(error).warn('Failed to process takeout messages')
+          if (batchId) {
+            ctx.emitter.emit(CoreEventType.MessageProcessFailed, {
+              batchId,
+              error: error instanceof Error ? error.message : String(error),
+            })
+          }
         })
       })
     })

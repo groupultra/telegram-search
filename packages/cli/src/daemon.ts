@@ -1,4 +1,5 @@
 import type { Logger } from '@guiiai/logg'
+import type { TelegramApplication, TelegramApplicationRuntime } from '@tg-search/core'
 import type { DaemonStatus } from '@tg-search/protocol'
 
 import type { ProfilePaths } from './profile'
@@ -6,10 +7,12 @@ import type { createCliRuntime } from './runtime'
 
 import process from 'node:process'
 
+import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { chmod, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { promisify } from 'node:util'
 
 import { LogLevel, setGlobalLogLevel } from '@guiiai/logg'
 import { defineInvokeHandlers, defineInvokes, defineStreamInvoke } from '@moeru/eventa'
@@ -41,9 +44,20 @@ import { createDaemonLogger, profileScopeId } from './runtime'
 interface DaemonDescriptor {
   pid: number
   profile: string
+  processIdentity?: string
   socket: string
   startedAt: number
 }
+
+interface DaemonLock {
+  pid: number
+  processIdentity?: string
+  startedAt: number
+}
+
+const execFileAsync = promisify(execFile)
+const DAEMON_STARTUP_TIMEOUT_MS = 30_000
+const DAEMON_STARTUP_POLL_MS = 50
 
 type CliRuntime = Awaited<ReturnType<typeof createCliRuntime>>
 
@@ -96,20 +110,109 @@ async function removeIfExists(path: string): Promise<void> {
   }
 }
 
-async function acquireProfileLock(paths: ProfilePaths): Promise<() => Promise<void>> {
+async function processIdentity(pid: number): Promise<string | undefined> {
   try {
-    await writeFile(paths.daemonLock, `${process.pid}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 })
+    if (process.platform === 'linux') {
+      const contents = await readFile(`/proc/${pid}/stat`, 'utf8')
+      const fields = contents.slice(contents.lastIndexOf(')') + 2).trim().split(/\s+/)
+      return fields[19] ? `linux:${fields[19]}` : undefined
+    }
+    if (process.platform === 'darwin') {
+      const { stdout } = await execFileAsync('ps', ['-o', 'lstart=', '-p', String(pid)])
+      const started = stdout.trim()
+      return started ? `darwin:${started}` : undefined
+    }
+  }
+  catch {
+    return undefined
+  }
+  return undefined
+}
+
+async function readLock(paths: ProfilePaths): Promise<(DaemonLock & { modifiedAt: number }) | undefined> {
+  try {
+    const [contents, details] = await Promise.all([
+      readFile(paths.daemonLock, 'utf8'),
+      stat(paths.daemonLock),
+    ])
+    try {
+      const parsed = JSON.parse(contents) as Partial<DaemonLock> | number
+      if (typeof parsed === 'object' && parsed !== null && Number.isSafeInteger(parsed.pid)) {
+        return {
+          pid: parsed.pid!,
+          processIdentity: parsed.processIdentity,
+          startedAt: parsed.startedAt ?? details.mtimeMs,
+          modifiedAt: details.mtimeMs,
+        }
+      }
+      const pid = typeof parsed === 'number' ? parsed : Number.NaN
+      return Number.isSafeInteger(pid) ? { pid, startedAt: details.mtimeMs, modifiedAt: details.mtimeMs } : undefined
+    }
+    catch {
+      const pid = Number.parseInt(contents, 10)
+      return Number.isSafeInteger(pid) ? { pid, startedAt: details.mtimeMs, modifiedAt: details.mtimeMs } : undefined
+    }
+  }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+      return undefined
+    throw error
+  }
+}
+
+async function isLockOwnerActive(paths: ProfilePaths, lock: DaemonLock & { modifiedAt: number }): Promise<boolean> {
+  if (!isProcessRunning(lock.pid))
+    return false
+
+  const actualIdentity = await processIdentity(lock.pid)
+  if (lock.processIdentity && actualIdentity)
+    return lock.processIdentity === actualIdentity
+
+  const descriptor = await readDescriptor(paths)
+  if (descriptor?.pid === lock.pid) {
+    try {
+      const connection = await connectIpcSocket(descriptor.socket)
+      connection.dispose()
+      return true
+    }
+    catch {
+      // A descriptor without a reachable socket is not sufficient proof of ownership.
+    }
+  }
+
+  return Date.now() - lock.modifiedAt < DAEMON_STARTUP_TIMEOUT_MS
+}
+
+async function isDescriptorOwnerActive(descriptor: DaemonDescriptor): Promise<boolean> {
+  if (!isProcessRunning(descriptor.pid))
+    return false
+
+  if (!descriptor.processIdentity)
+    return true
+
+  const actualIdentity = await processIdentity(descriptor.pid)
+  return !actualIdentity || descriptor.processIdentity === actualIdentity
+}
+
+async function acquireProfileLock(paths: ProfilePaths, startedAt: number): Promise<() => Promise<void>> {
+  const lock: DaemonLock = {
+    pid: process.pid,
+    processIdentity: await processIdentity(process.pid),
+    startedAt,
+  }
+  try {
+    await writeFile(paths.daemonLock, `${JSON.stringify(lock)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 })
   }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST')
       throw error
 
-    const lockPid = Number.parseInt(await readFile(paths.daemonLock, 'utf8'), 10)
-    if (Number.isSafeInteger(lockPid) && isProcessRunning(lockPid))
-      throw new Error(`Daemon already running for profile at PID ${lockPid}`)
+    const existing = await readLock(paths)
+    if (existing && await isLockOwnerActive(paths, existing))
+      throw new Error(`Daemon already running for profile at PID ${existing.pid}`)
 
     await removeIfExists(paths.daemonLock)
-    return acquireProfileLock(paths)
+    return acquireProfileLock(paths, startedAt)
   }
   await chmod(paths.daemonLock, 0o600)
   return async () => removeIfExists(paths.daemonLock)
@@ -128,11 +231,23 @@ function daemonStatus(profile: string, startedAt: number, state: DaemonStatus['s
   return { profile, pid: process.pid, startedAt, state, accountId, error }
 }
 
+export function createDaemonApplicationProxy(getApplication: () => TelegramApplicationRuntime): TelegramApplication {
+  return {
+    listChats: input => getApplication().listChats(input),
+    listRemoteMessages: input => getApplication().listRemoteMessages(input),
+    queryLocalMessages: input => getApplication().queryLocalMessages(input),
+    searchLocalMessages: input => getApplication().searchLocalMessages(input),
+    getLocalMessageContext: input => getApplication().getLocalMessageContext(input),
+    getLocalStats: input => getApplication().getLocalStats(input),
+    exportLocal: (input, signal) => getApplication().exportLocal!(input, signal),
+    sync: (input, signal) => getApplication().sync(input, signal),
+  }
+}
+
 export async function createDaemonHost(paths: ProfilePaths, profile: string): Promise<DaemonHost> {
   setGlobalLogLevel(LogLevel.Log)
-  const releaseLock = await acquireProfileLock(paths)
-  const socket = await socketPathFor(paths)
   const startedAt = Date.now()
+  const socket = await socketPathFor(paths)
   const logger: Logger = createDaemonLogger(profile)
   let state: DaemonStatus['state'] = 'starting'
   let accountId: string | undefined
@@ -140,41 +255,105 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   let stopping = false
   let resolveStopped: (() => void) | undefined
   let stopLogMaintenance: (() => void) | undefined
+  let closeServer: (() => Promise<void>) | undefined
+  let database: Awaited<ReturnType<typeof initDrizzle>> | undefined
+  let activeRuntime: { context: ReturnType<typeof createCoreInstance>, application: TelegramApplicationRuntime } | undefined
+  let reloadInFlight: Promise<DaemonStatus> | undefined
+  let releaseLock: (() => Promise<void>) | undefined
   const stopped = new Promise<void>((resolve) => {
     resolveStopped = resolve
   })
 
-  try {
-    stopLogMaintenance = await startDaemonLogMaintenance(paths, logger)
-    await removeIfExists(socket)
-    let profileConfig = await readProfileConfig(paths)
-    const config = generateDefaultConfig()
-    config.api.telegram.apiId = profileConfig.apiId ?? process.env.TELEGRAM_API_ID
-    config.api.telegram.apiHash = profileConfig.apiHash ?? process.env.TELEGRAM_API_HASH
-    const { db, pglite } = await initDrizzle(logger, config, { dbPath: paths.database })
-    const context = createCoreInstance(() => db, config, undefined, logger)
-    context.setCurrentAccountId(profileConfig.accountId ?? profileScopeId(paths.root))
-    const application = createTelegramApplicationRuntime({
-      context,
-      logger,
-      models,
-      retryTelegramRead: operation => retryTelegramOperation(operation),
-    })
+  const status = () => daemonStatus(profile, startedAt, state, accountId, lastError)
+  const currentApplication = () => {
+    if (!activeRuntime)
+      throw new Error(`Daemon is ${state}; application runtime is unavailable`)
+    return activeRuntime.application
+  }
+  const applicationProxy = createDaemonApplicationProxy(currentApplication)
 
-    context.emitter.on(CoreEventType.SessionUpdate, ({ session }) => {
-      void writeSession(paths, session).catch(() => {})
+  const disposeActiveRuntime = async () => {
+    const runtime = activeRuntime
+    activeRuntime = undefined
+    if (!runtime)
+      return
+    await runtime.application.dispose()
+    await destroyCoreInstance(runtime.context)
+  }
+
+  const waitForAccountReady = (context: ReturnType<typeof createCoreInstance>): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      let timeout: ReturnType<typeof setTimeout>
+      let onReady: (data: { accountId: string }) => void
+      let onDisconnected: () => void
+      let onAuthError: () => void
+      let onCoreError: (data: { error: string }) => void
+      const cleanup = () => {
+        clearTimeout(timeout)
+        context.emitter.off(CoreEventType.AccountReady, onReady)
+        context.emitter.off(CoreEventType.AuthDisconnected, onDisconnected)
+        context.emitter.off(CoreEventType.AuthError, onAuthError)
+        context.emitter.off(CoreEventType.CoreError, onCoreError)
+      }
+      const finish = (error: Error | undefined, readyAccountId?: string) => {
+        cleanup()
+        if (error)
+          reject(error)
+        else
+          resolve(readyAccountId!)
+      }
+      onReady = ({ accountId: readyAccountId }) => finish(undefined, readyAccountId)
+      onDisconnected = () => finish(new Error('Daemon session is not authorized'))
+      onAuthError = () => finish(new Error('Daemon failed to authenticate the saved session'))
+      onCoreError = ({ error }) => finish(new Error(error))
+      timeout = setTimeout(() => finish(new Error('Timed out waiting for daemon account initialization')), 60_000)
+
+      context.emitter.on(CoreEventType.AccountReady, onReady)
+      context.emitter.on(CoreEventType.AuthDisconnected, onDisconnected)
+      context.emitter.on(CoreEventType.AuthError, onAuthError)
+      context.emitter.on(CoreEventType.CoreError, onCoreError)
     })
-    context.emitter.on(CoreEventType.AccountReady, ({ accountId: readyAccountId }) => {
-      accountId = readyAccountId
-      state = 'ready'
-      lastError = undefined
-      void (async () => {
-        profileConfig = { ...profileConfig, accountId: readyAccountId }
-        await writeProfileConfig(paths, profileConfig)
-      })().catch((error) => {
-        lastError = error instanceof Error ? error.message : String(error)
-        state = 'error'
-      })
+  }
+
+  let profileConfig = await readProfileConfig(paths)
+  const config = generateDefaultConfig()
+  config.api.telegram.apiId = profileConfig.apiId ?? process.env.TELEGRAM_API_ID
+  config.api.telegram.apiHash = profileConfig.apiHash ?? process.env.TELEGRAM_API_HASH
+
+  const cleanupResources = async () => {
+    stopLogMaintenance?.()
+    stopLogMaintenance = undefined
+
+    const cleanup = async (label: string, action: (() => Promise<void>) | undefined) => {
+      if (!action)
+        return
+      try {
+        await action()
+      }
+      catch (error) {
+        logger.withError(error).warn(`Failed to ${label} while cleaning up daemon resources`)
+      }
+    }
+
+    const serverCloser = closeServer
+    closeServer = undefined
+    await cleanup('close IPC server', serverCloser)
+    await cleanup('dispose application runtime', disposeActiveRuntime)
+
+    const pglite = database?.pglite
+    database = undefined
+    await cleanup('close daemon database', pglite ? () => pglite.close() : undefined)
+    await cleanup('remove daemon descriptor', () => removeIfExists(paths.daemon))
+    await cleanup('remove daemon socket', () => removeIfExists(socket))
+
+    const unlock = releaseLock
+    releaseLock = undefined
+    await cleanup('release daemon profile lock', unlock)
+  }
+
+  const bindRuntimeEvents = (context: ReturnType<typeof createCoreInstance>) => {
+    context.emitter.on(CoreEventType.SessionUpdate, ({ session }) => {
+      void writeSession(paths, session).catch(error => logger.withError(error).warn('Failed to persist daemon session'))
     })
     context.emitter.on(CoreEventType.AuthDisconnected, () => {
       state = 'unauthorized'
@@ -206,49 +385,96 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
         lastError = 'Telegram connection restored, but pts catch-up failed'
       }
     })
-    context.emitter.on(CoreEventType.CoreError, ({ error }) => {
+    context.emitter.on(CoreEventType.CoreError, ({ error, description }) => {
       lastError = error
-      if (state === 'starting')
+      if (state === 'starting' || state === 'reconnecting' || description === 'Catch-up sync failed')
         state = 'error'
     })
+  }
 
-    const status = () => daemonStatus(profile, startedAt, state, accountId, lastError)
-    const reload = async () => {
-      if (state === 'ready' || state === 'starting')
-        return status()
+  const replaceRuntime = async (session: string | undefined): Promise<DaemonStatus> => {
+    state = session ? 'starting' : 'unauthorized'
+    accountId = undefined
+    lastError = undefined
+    await disposeActiveRuntime()
 
+    if (!database)
+      throw new Error('Daemon database is unavailable')
+
+    const context = createCoreInstance(() => database!.db, config, undefined, logger)
+    context.setCurrentAccountId(profileConfig.accountId ?? profileScopeId(paths.root))
+    bindRuntimeEvents(context)
+    const application = createTelegramApplicationRuntime({
+      context,
+      logger,
+      models,
+      retryTelegramRead: operation => retryTelegramOperation(operation),
+    })
+    activeRuntime = { context, application }
+
+    if (!session)
+      return status()
+
+    try {
+      const ready = waitForAccountReady(context)
+      context.emitter.emit(CoreEventType.AuthLogin, { session })
+      accountId = await ready
+      profileConfig = { ...profileConfig, accountId }
+      await writeProfileConfig(paths, profileConfig)
+      state = 'ready'
+      lastError = undefined
+    }
+    catch (error) {
+      lastError = error instanceof Error ? error.message : String(error)
+      state = 'error'
+    }
+    return status()
+  }
+
+  const reload = (): Promise<DaemonStatus> => {
+    if (reloadInFlight)
+      return reloadInFlight
+
+    reloadInFlight = (async () => {
       const session = await readSession(paths)
-      if (!session) {
-        state = 'unauthorized'
-        lastError = undefined
-        return status()
+      if (!session)
+        return replaceRuntime(undefined)
+
+      if (state === 'ready' && activeRuntime) {
+        try {
+          if (String(activeRuntime.context.getClient().session.save()) === session)
+            return status()
+        }
+        catch {
+          // A ready daemon without a usable client must rebuild from the persisted session.
+        }
       }
 
-      state = 'starting'
-      lastError = undefined
-      context.emitter.emit(CoreEventType.AuthLogin, { session })
-      return status()
-    }
+      return replaceRuntime(session)
+    })().finally(() => {
+      reloadInFlight = undefined
+    })
+    return reloadInFlight
+  }
 
-    let closeServer: (() => Promise<void>) | undefined
+  releaseLock = await acquireProfileLock(paths, startedAt)
+  try {
+    stopLogMaintenance = await startDaemonLogMaintenance(paths, logger)
+    await removeIfExists(socket)
+    database = await initDrizzle(logger, config, { dbPath: paths.database })
+    await replaceRuntime(await readSession(paths))
+
     const stop = async () => {
       if (stopping)
         return
       stopping = true
       state = 'stopping'
-      stopLogMaintenance?.()
-      await closeServer?.()
-      await application.dispose()
-      await destroyCoreInstance(context)
-      await pglite?.close()
-      await removeIfExists(paths.daemon)
-      await removeIfExists(socket)
-      await releaseLock()
+      await cleanupResources()
       resolveStopped?.()
     }
 
     const server = await createIpcServer(socket, (connection) => {
-      const unregisterApplication = registerApplicationHandlers(connection.context, application)
+      const unregisterApplication = registerApplicationHandlers(connection.context, applicationProxy)
       const unregisterDaemon = defineInvokeHandlers(connection.context, daemonContracts, {
         reload,
         status,
@@ -267,20 +493,20 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
 
     closeServer = server.close
 
-    const descriptor: DaemonDescriptor = { pid: process.pid, profile, socket, startedAt }
+    const descriptor: DaemonDescriptor = {
+      pid: process.pid,
+      processIdentity: await processIdentity(process.pid),
+      profile,
+      socket,
+      startedAt,
+    }
     await writeFile(paths.daemon, `${JSON.stringify(descriptor)}\n`, { mode: 0o600 })
     await chmod(paths.daemon, 0o600)
-
-    state = 'unauthorized'
-    await reload()
 
     return { status, reload, stop, wait: () => stopped }
   }
   catch (error) {
-    stopLogMaintenance?.()
-    await removeIfExists(paths.daemon)
-    await removeIfExists(socket)
-    await releaseLock()
+    await cleanupResources()
     throw error
   }
 }
@@ -300,23 +526,36 @@ export async function runDaemon(paths: ProfilePaths, profile: string): Promise<v
 }
 
 export async function connectDaemon(paths: ProfilePaths): Promise<DaemonClientRuntime | undefined> {
-  const descriptor = await readDescriptor(paths)
-  if (!descriptor || !isProcessRunning(descriptor.pid))
-    return undefined
+  const deadline = Date.now() + DAEMON_STARTUP_TIMEOUT_MS
+  while (true) {
+    const descriptor = await readDescriptor(paths)
+    if (descriptor && await isDescriptorOwnerActive(descriptor)) {
+      try {
+        const connection = await connectIpcSocket(descriptor.socket)
+        return {
+          invokes: {
+            chats: defineInvokes(connection.context, chatContracts),
+            messages: defineInvokes(connection.context, messageContracts),
+            stats: defineInvokes(connection.context, statsContracts),
+            daemon: defineInvokes(connection.context, daemonContracts),
+          },
+          streams: {
+            export: defineStreamInvoke(connection.context, exportContracts.run),
+            sync: defineStreamInvoke(connection.context, syncContracts.run),
+          },
+          close: () => connection.dispose(),
+        }
+      }
+      catch {
+        // The descriptor can become visible just before the socket accepts connections.
+      }
+    }
 
-  const connection = await connectIpcSocket(descriptor.socket)
-  const client: DaemonClientRuntime = {
-    invokes: {
-      chats: defineInvokes(connection.context, chatContracts),
-      messages: defineInvokes(connection.context, messageContracts),
-      stats: defineInvokes(connection.context, statsContracts),
-      daemon: defineInvokes(connection.context, daemonContracts),
-    },
-    streams: {
-      export: defineStreamInvoke(connection.context, exportContracts.run),
-      sync: defineStreamInvoke(connection.context, syncContracts.run),
-    },
-    close: () => connection.dispose(),
+    const lock = await readLock(paths)
+    if (!lock || !await isLockOwnerActive(paths, lock))
+      return undefined
+    if (Date.now() >= deadline)
+      throw new Error(`Daemon startup timed out for profile root ${paths.root}`)
+    await new Promise(resolve => setTimeout(resolve, DAEMON_STARTUP_POLL_MS))
   }
-  return client
 }

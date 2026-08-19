@@ -46,7 +46,7 @@ As with the server, realtime persistence receives all new, edited, and deleted m
 
 The daemon writes structured operational records at `info` level to its supervisor's stdout/stderr. For a `launchd` or `systemd` setup, direct these streams to `<profile-root>/daemon.stdout.log` and `<profile-root>/daemon.stderr.log`. The daemon checks them every six hours, rotates the prior day's file, and deletes archives older than 14 days; set `TG_SEARCH_DAEMON_LOG_RETENTION_DAYS` to override the retention period.
 
-After a Telegram transport disconnect, `daemon status` reports `reconnecting`. Once the transport is restored, the daemon runs the same account-state `pts` catch-up (`updates.GetState` followed by `updates.GetDifference`) before returning to `ready`.
+After a Telegram transport disconnect, `daemon status` reports `reconnecting`. Once the transport is restored, the daemon recovers both account updates (`updates.GetDifference`) and per-channel gaps (`updates.GetChannelDifference`) before returning to `ready`. Recovered messages, edits, and deletions are persisted before their `pts` checkpoints advance. If Telegram reports a gap that is too large for either difference API, the daemon preserves the old checkpoint and reports `error`; run an explicit full sync before restarting catch-up.
 
 You may use `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` instead of storing API credentials in profile config. Login prompts and progress are written to stderr.
 

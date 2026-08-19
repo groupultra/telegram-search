@@ -33,6 +33,7 @@ export type DBSelectChatWithAccount = DBSelectChat & {
   is_contact: boolean | null
   access_hash: string | null
   folder_ids: number[] | null
+  pts: number
 }
 
 export type DBInsertPhoto = typeof photosTable.$inferInsert

@@ -2,11 +2,11 @@ import process from 'node:process'
 
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { emitResult, emitStreamResult, normalizeRawArgs, runCli } from './index'
+import { emitResult, emitStreamResult, normalizeRawArgs, resolveExportOutputPath, runCli } from './index'
 import { readProfileConfig, resolveProfilePaths } from './profile'
 
 const temporaryDirectories: string[] = []
@@ -30,6 +30,13 @@ function captureOutput() {
 }
 
 describe('cLI command boundary', () => {
+  it('resolves explicit export paths in the invoking process', () => {
+    expect(resolveExportOutputPath('./telegram-2026', '/profile/exports')).toBe(
+      resolve(process.cwd(), 'telegram-2026'),
+    )
+    expect(resolveExportOutputPath(undefined, '/profile/exports')).toBe('/profile/exports')
+  })
+
   it('moves a global profile argument to the leaf command', () => {
     expect(normalizeRawArgs(['--profile', 'work', 'messages', 'query', '--json'])).toEqual([
       'messages',

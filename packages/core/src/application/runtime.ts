@@ -87,8 +87,8 @@ export function createTelegramApplicationRuntime(options: {
   )
   const jiebaResolver = createJiebaResolver(logger)
   const localMessages = createLocalMessagesService({
-    accountId: context.getCurrentAccountId(),
     db: context.getDB(),
+    getAccountId: context.getCurrentAccountId,
     logger,
     models: runtimeModels,
   })
