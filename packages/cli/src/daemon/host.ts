@@ -2,21 +2,16 @@ import type { Logger } from '@guiiai/logg'
 import type { CoreContext, TelegramApplication, TelegramApplicationRuntime } from '@tg-search/core'
 import type { DaemonStatus } from '@tg-search/protocol'
 
-import type { ProfilePaths } from './profile'
-import type { createCliRuntime } from './runtime'
+import type { ProfilePaths } from '../profile'
+import type { DaemonDescriptor } from './profile-state'
 
 import process from 'node:process'
 
-import { execFile } from 'node:child_process'
-import { createHash } from 'node:crypto'
-import { chmod, mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { promisify } from 'node:util'
+import { chmod, writeFile } from 'node:fs/promises'
 
 import { LogLevel, setGlobalLogLevel } from '@guiiai/logg'
-import { defineInvokeHandlers, defineInvokes, defineStreamInvoke } from '@moeru/eventa'
-import { connect as connectIpcSocket, createServer as createIpcServer } from '@moeru/eventa/adapters/unix-socket'
+import { defineInvokeHandlers } from '@moeru/eventa'
+import { createServer as createIpcServer } from '@moeru/eventa/adapters/unix-socket'
 import { generateDefaultConfig } from '@tg-search/common'
 import {
   CoreEventType,
@@ -28,49 +23,12 @@ import {
   registerApplicationHandlers,
   retryTelegramOperation,
 } from '@tg-search/core'
-import {
-  chatContracts,
-  daemonContracts,
-  exportContracts,
-  messageContracts,
-  statsContracts,
-  syncContracts,
-} from '@tg-search/protocol'
+import { daemonContracts } from '@tg-search/protocol'
 
-import { startDaemonLogMaintenance } from './daemon-log-maintenance'
-import { readProfileConfig, readSession, writeProfileConfig, writeSession } from './profile'
-import { createDaemonLogger, profileScopeId } from './runtime'
-
-interface DaemonDescriptor {
-  pid: number
-  profile: string
-  processIdentity?: string
-  socket: string
-  startedAt: number
-}
-
-interface DaemonLock {
-  pid: number
-  processIdentity?: string
-  startedAt: number
-}
-
-const execFileAsync = promisify(execFile)
-const DAEMON_STARTUP_TIMEOUT_MS = 30_000
-const DAEMON_STARTUP_POLL_MS = 50
-
-type CliRuntime = Awaited<ReturnType<typeof createCliRuntime>>
-
-export type DaemonClientRuntime = Pick<CliRuntime, 'streams'> & {
-  invokes: CliRuntime['invokes'] & {
-    daemon: {
-      reload: (input: Record<string, never>) => Promise<DaemonStatus>
-      status: (input: Record<string, never>) => Promise<DaemonStatus>
-      stop: (input: Record<string, never>) => Promise<DaemonStatus>
-    }
-  }
-  close: () => void
-}
+import { readProfileConfig, readSession, writeProfileConfig, writeSession } from '../profile'
+import { createDaemonLogger, profileScopeId } from '../runtime'
+import { startDaemonLogMaintenance } from './log-maintenance'
+import { acquireProfileLock, processIdentity, removeIfExists, socketPathFor } from './profile-state'
 
 export interface DaemonHost {
   status: () => DaemonStatus
@@ -130,154 +88,6 @@ export async function persistProfileAccountId(paths: ProfilePaths, accountId: st
   const next = { ...latest, accountId }
   await writeProfileConfig(paths, next)
   return next
-}
-
-function isProcessRunning(pid: number): boolean {
-  try {
-    process.kill(pid, 0)
-    return true
-  }
-  catch (error) {
-    return (error as NodeJS.ErrnoException).code === 'EPERM'
-  }
-}
-
-async function readDescriptor(paths: ProfilePaths): Promise<DaemonDescriptor | undefined> {
-  try {
-    return JSON.parse(await readFile(paths.daemon, 'utf8')) as DaemonDescriptor
-  }
-  catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT')
-      return undefined
-    throw error
-  }
-}
-
-async function removeIfExists(path: string): Promise<void> {
-  try {
-    await unlink(path)
-  }
-  catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
-      throw error
-  }
-}
-
-async function processIdentity(pid: number): Promise<string | undefined> {
-  try {
-    if (process.platform === 'linux') {
-      const contents = await readFile(`/proc/${pid}/stat`, 'utf8')
-      const fields = contents.slice(contents.lastIndexOf(')') + 2).trim().split(/\s+/)
-      return fields[19] ? `linux:${fields[19]}` : undefined
-    }
-    if (process.platform === 'darwin') {
-      const { stdout } = await execFileAsync('ps', ['-o', 'lstart=', '-p', String(pid)])
-      const started = stdout.trim()
-      return started ? `darwin:${started}` : undefined
-    }
-  }
-  catch {
-    return undefined
-  }
-  return undefined
-}
-
-async function readLock(paths: ProfilePaths): Promise<(DaemonLock & { modifiedAt: number }) | undefined> {
-  try {
-    const [contents, details] = await Promise.all([
-      readFile(paths.daemonLock, 'utf8'),
-      stat(paths.daemonLock),
-    ])
-    try {
-      const parsed = JSON.parse(contents) as Partial<DaemonLock> | number
-      if (typeof parsed === 'object' && parsed !== null && Number.isSafeInteger(parsed.pid)) {
-        return {
-          pid: parsed.pid!,
-          processIdentity: parsed.processIdentity,
-          startedAt: parsed.startedAt ?? details.mtimeMs,
-          modifiedAt: details.mtimeMs,
-        }
-      }
-      const pid = typeof parsed === 'number' ? parsed : Number.NaN
-      return Number.isSafeInteger(pid) ? { pid, startedAt: details.mtimeMs, modifiedAt: details.mtimeMs } : undefined
-    }
-    catch {
-      const pid = Number.parseInt(contents, 10)
-      return Number.isSafeInteger(pid) ? { pid, startedAt: details.mtimeMs, modifiedAt: details.mtimeMs } : undefined
-    }
-  }
-  catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT')
-      return undefined
-    throw error
-  }
-}
-
-async function isLockOwnerActive(paths: ProfilePaths, lock: DaemonLock & { modifiedAt: number }): Promise<boolean> {
-  if (!isProcessRunning(lock.pid))
-    return false
-
-  const actualIdentity = await processIdentity(lock.pid)
-  if (lock.processIdentity && actualIdentity)
-    return lock.processIdentity === actualIdentity
-
-  const descriptor = await readDescriptor(paths)
-  if (descriptor?.pid === lock.pid) {
-    try {
-      const connection = await connectIpcSocket(descriptor.socket)
-      connection.dispose()
-      return true
-    }
-    catch {
-      // A descriptor without a reachable socket is not sufficient proof of ownership.
-    }
-  }
-
-  return Date.now() - lock.modifiedAt < DAEMON_STARTUP_TIMEOUT_MS
-}
-
-async function isDescriptorOwnerActive(descriptor: DaemonDescriptor): Promise<boolean> {
-  if (!isProcessRunning(descriptor.pid))
-    return false
-
-  if (!descriptor.processIdentity)
-    return true
-
-  const actualIdentity = await processIdentity(descriptor.pid)
-  return !actualIdentity || descriptor.processIdentity === actualIdentity
-}
-
-async function acquireProfileLock(paths: ProfilePaths, startedAt: number): Promise<() => Promise<void>> {
-  const lock: DaemonLock = {
-    pid: process.pid,
-    processIdentity: await processIdentity(process.pid),
-    startedAt,
-  }
-  try {
-    await writeFile(paths.daemonLock, `${JSON.stringify(lock)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 })
-  }
-  catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'EEXIST')
-      throw error
-
-    const existing = await readLock(paths)
-    if (existing && await isLockOwnerActive(paths, existing))
-      throw new Error(`Daemon already running for profile at PID ${existing.pid}`)
-
-    await removeIfExists(paths.daemonLock)
-    return acquireProfileLock(paths, startedAt)
-  }
-  await chmod(paths.daemonLock, 0o600)
-  return async () => removeIfExists(paths.daemonLock)
-}
-
-async function socketPathFor(paths: ProfilePaths): Promise<string> {
-  const uid = typeof process.getuid === 'function' ? process.getuid() : process.pid
-  const directory = join(tmpdir(), `tg-search-${uid}`)
-  await mkdir(directory, { recursive: true, mode: 0o700 })
-  await chmod(directory, 0o700)
-  const digest = createHash('sha256').update(paths.root).digest('hex').slice(0, 24)
-  return join(directory, `${digest}.sock`)
 }
 
 function daemonStatus(profile: string, startedAt: number, state: DaemonStatus['state'], accountId?: string, error?: string): DaemonStatus {
@@ -564,40 +374,5 @@ export async function runDaemon(paths: ProfilePaths, profile: string): Promise<v
   finally {
     process.off('SIGINT', stop)
     process.off('SIGTERM', stop)
-  }
-}
-
-export async function connectDaemon(paths: ProfilePaths): Promise<DaemonClientRuntime | undefined> {
-  const deadline = Date.now() + DAEMON_STARTUP_TIMEOUT_MS
-  while (true) {
-    const descriptor = await readDescriptor(paths)
-    if (descriptor && await isDescriptorOwnerActive(descriptor)) {
-      try {
-        const connection = await connectIpcSocket(descriptor.socket)
-        return {
-          invokes: {
-            chats: defineInvokes(connection.context, chatContracts),
-            messages: defineInvokes(connection.context, messageContracts),
-            stats: defineInvokes(connection.context, statsContracts),
-            daemon: defineInvokes(connection.context, daemonContracts),
-          },
-          streams: {
-            export: defineStreamInvoke(connection.context, exportContracts.run),
-            sync: defineStreamInvoke(connection.context, syncContracts.run),
-          },
-          close: () => connection.dispose(),
-        }
-      }
-      catch {
-        // The descriptor can become visible just before the socket accepts connections.
-      }
-    }
-
-    const lock = await readLock(paths)
-    if (!lock || !await isLockOwnerActive(paths, lock))
-      return undefined
-    if (Date.now() >= deadline)
-      throw new Error(`Daemon startup timed out for profile root ${paths.root}`)
-    await new Promise(resolve => setTimeout(resolve, DAEMON_STARTUP_POLL_MS))
   }
 }

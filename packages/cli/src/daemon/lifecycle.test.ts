@@ -1,6 +1,6 @@
 import type { TelegramApplicationRuntime } from '@tg-search/core'
 
-import type { ProfilePaths } from './profile'
+import type { ProfilePaths } from '../profile'
 
 import process from 'node:process'
 
@@ -13,8 +13,9 @@ import { createServer as createIpcServer } from '@moeru/eventa/adapters/unix-soc
 import { CoreEventType } from '@tg-search/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { connectDaemon, createAccountReadyWait, createDaemonApplicationProxy, persistProfileAccountId } from './daemon'
-import { readProfileConfig, writeProfileConfig } from './profile'
+import { readProfileConfig, writeProfileConfig } from '../profile'
+import { connectDaemon } from './client'
+import { createAccountReadyWait, createDaemonApplicationProxy, persistProfileAccountId } from './host'
 
 const directories: string[] = []
 

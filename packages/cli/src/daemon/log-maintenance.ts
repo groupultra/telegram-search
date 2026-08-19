@@ -1,6 +1,6 @@
 import type { Logger } from '@guiiai/logg'
 
-import type { ProfilePaths } from './profile'
+import type { ProfilePaths } from '../profile'
 
 import process from 'node:process'
 
