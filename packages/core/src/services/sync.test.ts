@@ -60,8 +60,14 @@ function message(id: number, text = 'message'): Api.Message {
   })
 }
 
-function harness(invoke: (request: unknown) => Promise<unknown>) {
+function harness(invoke: (request: unknown) => Promise<unknown>, options: { wrapOn?: boolean } = {}) {
   const emitter = new EventEmitter()
+  if (options.wrapOn) {
+    const on = emitter.on.bind(emitter)
+    emitter.on = ((event: string | symbol, listener: (...args: unknown[]) => void) => {
+      return on(event, (...args: unknown[]) => listener(...args))
+    }) as typeof emitter.on
+  }
   const context = {
     emitter,
     getClient: () => ({ invoke }),
@@ -129,6 +135,33 @@ describe('sync catch-up checkpoints', () => {
     expect(recoveredBatches[0].map(item => item.id)).toEqual([1, 2])
     expect(softDelete).toHaveBeenCalledWith(expect.anything(), 'account-1', ['3'])
     expect(updateState).toHaveBeenCalledWith(expect.anything(), 'account-1', expect.objectContaining({ pts: 20 }))
+  })
+
+  it('removes batch completion listeners when CoreContext wraps on()', async () => {
+    vi.spyOn(accountModels, 'findAccountByUUID').mockResolvedValue(Ok(account()) as never)
+    vi.spyOn(accountModels, 'updateAccountState').mockResolvedValue(Ok(account({ pts: 20 })) as never)
+    vi.spyOn(chatModels, 'fetchChatsByAccountId').mockResolvedValue(Ok([]) as never)
+    const difference = new Api.updates.Difference({
+      newMessages: [message(1)],
+      newEncryptedMessages: [],
+      otherUpdates: [],
+      chats: [],
+      users: [],
+      state: state(20),
+    })
+    const { emitter, service } = harness(async request => request instanceof Api.updates.GetState ? state(20) : difference, { wrapOn: true })
+    emitter.on(CoreEventType.MessageProcess, (batch) => {
+      emitter.emit(CoreEventType.MessageProcessed, {
+        batchId: batch.batchId!,
+        count: batch.messages.length,
+        resolverSpans: [],
+      })
+    })
+
+    await service.catchUp()
+
+    expect(emitter.listenerCount(CoreEventType.MessageProcessed)).toBe(0)
+    expect(emitter.listenerCount(CoreEventType.MessageProcessFailed)).toBe(0)
   })
 
   it('preserves the checkpoint when the account difference is too long', async () => {

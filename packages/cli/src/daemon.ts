@@ -1,5 +1,5 @@
 import type { Logger } from '@guiiai/logg'
-import type { TelegramApplication, TelegramApplicationRuntime } from '@tg-search/core'
+import type { CoreContext, TelegramApplication, TelegramApplicationRuntime } from '@tg-search/core'
 import type { DaemonStatus } from '@tg-search/protocol'
 
 import type { ProfilePaths } from './profile'
@@ -77,6 +77,59 @@ export interface DaemonHost {
   reload: () => Promise<DaemonStatus>
   stop: () => Promise<void>
   wait: () => Promise<void>
+}
+
+export function createAccountReadyWait(
+  context: Pick<CoreContext, 'emitter'>,
+  timeoutMs = 60_000,
+): { promise: Promise<string>, cancel: (error: Error) => void } {
+  let cancel!: (error: Error) => void
+  const promise = new Promise<string>((resolve, reject) => {
+    let settled = false
+    let timeout: ReturnType<typeof setTimeout>
+    let onReady: (data: { accountId: string }) => void
+    let onDisconnected: () => void
+    let onAuthError: () => void
+    let onCoreError: (data: { error: string }) => void
+    const cleanup = () => {
+      clearTimeout(timeout)
+      context.emitter.removeListener(CoreEventType.AccountReady, onReady)
+      context.emitter.removeListener(CoreEventType.AuthDisconnected, onDisconnected)
+      context.emitter.removeListener(CoreEventType.AuthError, onAuthError)
+      context.emitter.removeListener(CoreEventType.CoreError, onCoreError)
+    }
+    const finish = (error: Error | undefined, readyAccountId?: string) => {
+      if (settled)
+        return
+      settled = true
+      cleanup()
+      if (error)
+        reject(error)
+      else
+        resolve(readyAccountId!)
+    }
+    onReady = ({ accountId }) => finish(undefined, accountId)
+    onDisconnected = () => finish(new Error('Daemon session is not authorized'))
+    onAuthError = () => finish(new Error('Daemon failed to authenticate the saved session'))
+    onCoreError = ({ error }) => finish(new Error(error))
+    cancel = error => finish(error)
+    timeout = setTimeout(() => finish(new Error('Timed out waiting for daemon account initialization')), timeoutMs)
+
+    // CoreContext wraps `on()` for diagnostics, so use the listener API that
+    // preserves callback identity for cancellation and cleanup.
+    context.emitter.addListener(CoreEventType.AccountReady, onReady)
+    context.emitter.addListener(CoreEventType.AuthDisconnected, onDisconnected)
+    context.emitter.addListener(CoreEventType.AuthError, onAuthError)
+    context.emitter.addListener(CoreEventType.CoreError, onCoreError)
+  })
+  return { promise, cancel }
+}
+
+export async function persistProfileAccountId(paths: ProfilePaths, accountId: string) {
+  const latest = await readProfileConfig(paths)
+  const next = { ...latest, accountId }
+  await writeProfileConfig(paths, next)
+  return next
 }
 
 function isProcessRunning(pid: number): boolean {
@@ -259,6 +312,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   let database: Awaited<ReturnType<typeof initDrizzle>> | undefined
   let activeRuntime: { context: ReturnType<typeof createCoreInstance>, application: TelegramApplicationRuntime } | undefined
   let reloadInFlight: Promise<DaemonStatus> | undefined
+  let accountReadyWait: ReturnType<typeof createAccountReadyWait> | undefined
   let releaseLock: (() => Promise<void>) | undefined
   const stopped = new Promise<void>((resolve) => {
     resolveStopped = resolve
@@ -279,40 +333,6 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       return
     await runtime.application.dispose()
     await destroyCoreInstance(runtime.context)
-  }
-
-  const waitForAccountReady = (context: ReturnType<typeof createCoreInstance>): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      let timeout: ReturnType<typeof setTimeout>
-      let onReady: (data: { accountId: string }) => void
-      let onDisconnected: () => void
-      let onAuthError: () => void
-      let onCoreError: (data: { error: string }) => void
-      const cleanup = () => {
-        clearTimeout(timeout)
-        context.emitter.off(CoreEventType.AccountReady, onReady)
-        context.emitter.off(CoreEventType.AuthDisconnected, onDisconnected)
-        context.emitter.off(CoreEventType.AuthError, onAuthError)
-        context.emitter.off(CoreEventType.CoreError, onCoreError)
-      }
-      const finish = (error: Error | undefined, readyAccountId?: string) => {
-        cleanup()
-        if (error)
-          reject(error)
-        else
-          resolve(readyAccountId!)
-      }
-      onReady = ({ accountId: readyAccountId }) => finish(undefined, readyAccountId)
-      onDisconnected = () => finish(new Error('Daemon session is not authorized'))
-      onAuthError = () => finish(new Error('Daemon failed to authenticate the saved session'))
-      onCoreError = ({ error }) => finish(new Error(error))
-      timeout = setTimeout(() => finish(new Error('Timed out waiting for daemon account initialization')), 60_000)
-
-      context.emitter.on(CoreEventType.AccountReady, onReady)
-      context.emitter.on(CoreEventType.AuthDisconnected, onDisconnected)
-      context.emitter.on(CoreEventType.AuthError, onAuthError)
-      context.emitter.on(CoreEventType.CoreError, onCoreError)
-    })
   }
 
   let profileConfig = await readProfileConfig(paths)
@@ -398,8 +418,18 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     lastError = undefined
     await disposeActiveRuntime()
 
+    if (stopping)
+      return status()
+
     if (!database)
       throw new Error('Daemon database is unavailable')
+
+    profileConfig = await readProfileConfig(paths)
+    if (stopping)
+      return status()
+
+    config.api.telegram.apiId = profileConfig.apiId ?? process.env.TELEGRAM_API_ID
+    config.api.telegram.apiHash = profileConfig.apiHash ?? process.env.TELEGRAM_API_HASH
 
     const context = createCoreInstance(() => database!.db, config, undefined, logger)
     context.setCurrentAccountId(profileConfig.accountId ?? profileScopeId(paths.root))
@@ -416,17 +446,27 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       return status()
 
     try {
-      const ready = waitForAccountReady(context)
+      const ready = createAccountReadyWait(context)
+      accountReadyWait = ready
       context.emitter.emit(CoreEventType.AuthLogin, { session })
-      accountId = await ready
-      profileConfig = { ...profileConfig, accountId }
-      await writeProfileConfig(paths, profileConfig)
+      accountId = await ready.promise
+      if (stopping)
+        return status()
+      profileConfig = await persistProfileAccountId(paths, accountId)
+      if (stopping)
+        return status()
+
       state = 'ready'
       lastError = undefined
     }
     catch (error) {
-      lastError = error instanceof Error ? error.message : String(error)
-      state = 'error'
+      if (!stopping) {
+        lastError = error instanceof Error ? error.message : String(error)
+        state = 'error'
+      }
+    }
+    finally {
+      accountReadyWait = undefined
     }
     return status()
   }
@@ -469,6 +509,8 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
         return
       stopping = true
       state = 'stopping'
+      accountReadyWait?.cancel(new Error('Daemon is stopping'))
+      await reloadInFlight?.catch(() => undefined)
       await cleanupResources()
       resolveStopped?.()
     }

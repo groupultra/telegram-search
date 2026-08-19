@@ -53,8 +53,8 @@ export function createSyncService(ctx: CoreContext, logger: Logger) {
       let onFailed: (data: { batchId: string, error: string }) => void
       const cleanup = () => {
         clearTimeout(timeout)
-        ctx.emitter.off(CoreEventType.MessageProcessed, onProcessed)
-        ctx.emitter.off(CoreEventType.MessageProcessFailed, onFailed)
+        ctx.emitter.removeListener(CoreEventType.MessageProcessed, onProcessed)
+        ctx.emitter.removeListener(CoreEventType.MessageProcessFailed, onFailed)
       }
       onProcessed = (data) => {
         if (data.batchId !== batchId)
@@ -73,8 +73,10 @@ export function createSyncService(ctx: CoreContext, logger: Logger) {
         reject(new Error(`Timed out persisting catch-up batch ${batchId}`))
       }, MESSAGE_PROCESS_TIMEOUT_MS)
 
-      ctx.emitter.on(CoreEventType.MessageProcessed, onProcessed)
-      ctx.emitter.on(CoreEventType.MessageProcessFailed, onFailed)
+      // CoreContext wraps `on()` for diagnostics, so `addListener()` keeps the
+      // original callback identity removable when this batch settles.
+      ctx.emitter.addListener(CoreEventType.MessageProcessed, onProcessed)
+      ctx.emitter.addListener(CoreEventType.MessageProcessFailed, onFailed)
       ctx.emitter.emit(CoreEventType.MessageProcess, {
         messages,
         isTakeout: false,

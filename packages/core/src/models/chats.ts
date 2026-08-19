@@ -74,7 +74,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
             is_contact: sql`excluded.is_contact`,
             ...(hasFolderData ? { folder_ids: sql`excluded.folder_ids` } : {}),
             access_hash: sql`excluded.access_hash`,
-            pts: sql`GREATEST(${accountJoinedChatsTable.pts}, excluded.pts)`,
+            pts: sql`CASE WHEN ${accountJoinedChatsTable.pts} = 0 THEN excluded.pts ELSE ${accountJoinedChatsTable.pts} END`,
           },
         })
     }

@@ -4,14 +4,17 @@ import type { ProfilePaths } from './profile'
 
 import process from 'node:process'
 
+import { EventEmitter } from 'node:events'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { createServer as createIpcServer } from '@moeru/eventa/adapters/unix-socket'
+import { CoreEventType } from '@tg-search/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { connectDaemon, createDaemonApplicationProxy } from './daemon'
+import { connectDaemon, createAccountReadyWait, createDaemonApplicationProxy, persistProfileAccountId } from './daemon'
+import { readProfileConfig, writeProfileConfig } from './profile'
 
 const directories: string[] = []
 
@@ -53,6 +56,32 @@ describe('daemon lifecycle boundaries', () => {
     await expect(proxy.getLocalStats({ groupBy: 'month', timeZone: 'UTC' })).resolves.toMatchObject({
       data: { account: 'second-account' },
     })
+  })
+
+  it('merges a resolved account into the latest profile config', async () => {
+    const paths = await createPaths()
+    await writeProfileConfig(paths, { apiId: 'new-id', apiHash: 'new-hash' })
+
+    await persistProfileAccountId(paths, 'account-1')
+
+    await expect(readProfileConfig(paths)).resolves.toEqual({
+      apiId: 'new-id',
+      apiHash: 'new-hash',
+      accountId: 'account-1',
+    })
+  })
+
+  it('cancels an account-ready wait and removes all listeners', async () => {
+    const emitter = new EventEmitter()
+    const ready = createAccountReadyWait({ emitter } as never, 10_000)
+
+    ready.cancel(new Error('Daemon is stopping'))
+
+    await expect(ready.promise).rejects.toThrow('Daemon is stopping')
+    expect(emitter.listenerCount(CoreEventType.AccountReady)).toBe(0)
+    expect(emitter.listenerCount(CoreEventType.AuthDisconnected)).toBe(0)
+    expect(emitter.listenerCount(CoreEventType.AuthError)).toBe(0)
+    expect(emitter.listenerCount(CoreEventType.CoreError)).toBe(0)
   })
 
   it('waits for the daemon descriptor instead of opening a fallback runtime', async () => {
