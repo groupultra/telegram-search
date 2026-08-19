@@ -5,6 +5,7 @@ import type { OutputMeta } from './output'
 import process from 'node:process'
 
 import { createRequire } from 'node:module'
+import { resolve } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 
 import { retryTelegramResult, toAppError } from '@tg-search/core'
@@ -13,6 +14,7 @@ import { TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient, createAuthPrompts, shouldStopAuthFlow } from './auth-support'
+import { connectDaemon, runDaemon } from './daemon'
 import { createGramJsStderrLogger } from './gramjs-logger'
 import { hasWrittenEnvelope, resetEnvelopeState, writeFailure, writeOutput, writeProgress } from './output'
 import {
@@ -58,11 +60,17 @@ function parseChatIds(value: string | undefined): string[] | undefined {
   return ids?.length ? ids : undefined
 }
 
-async function withRuntime<T>(profile: string, remote: boolean, operation: (runtime: Awaited<ReturnType<typeof createCliRuntime>>) => Promise<T>): Promise<T | undefined> {
+export function resolveExportOutputPath(output: string | undefined, defaultPath: string): string {
+  return output ? resolve(output) : defaultPath
+}
+
+type CommandRuntime = Awaited<ReturnType<typeof createCliRuntime>> | NonNullable<Awaited<ReturnType<typeof connectDaemon>>>
+
+async function withRuntime<T>(profile: string, remote: boolean, operation: (runtime: CommandRuntime) => Promise<T>): Promise<T | undefined> {
   const paths = await ensureProfile(profile)
-  let runtime: Awaited<ReturnType<typeof createCliRuntime>>
+  let runtime: CommandRuntime
   try {
-    runtime = await createCliRuntime(paths, { remote })
+    runtime = await connectDaemon(paths) ?? await createCliRuntime(paths, { remote })
   }
   catch (error) {
     if (!remote)
@@ -224,6 +232,17 @@ const authCommand = defineCommand({
           }
           const me = await client.getMe()
           await writeSession(paths, String(client.session.save()))
+          const daemon = await connectDaemon(paths)
+          if (daemon) {
+            try {
+              const daemonStatus = await daemon.invokes.daemon.reload({})
+              if (daemonStatus.state !== 'ready')
+                throw new Error(daemonStatus.error ?? `Daemon reload ended in state ${daemonStatus.state}`)
+            }
+            finally {
+              daemon.close()
+            }
+          }
           writeOutput({ profile, userId: String(me.id), username: me.username }, outputMeta(profile, 'telegram'))
         }
         finally {
@@ -404,6 +423,56 @@ const syncCommand = defineCommand({
   },
 })
 
+const daemonCommand = defineCommand({
+  meta: { name: 'daemon', description: 'Run and control the local Telegram daemon' },
+  subCommands: {
+    run: defineCommand({
+      meta: { name: 'run', description: 'Run the daemon in the foreground' },
+      args: profileArg,
+      async run(context) {
+        const profile = profileFrom(context)
+        await runDaemon(await ensureProfile(profile), profile)
+      },
+    }),
+    status: defineCommand({
+      meta: { name: 'status', description: 'Show the daemon status for this profile' },
+      args: profileArg,
+      async run(context) {
+        const profile = profileFrom(context)
+        const daemon = await connectDaemon(await ensureProfile(profile))
+        if (!daemon) {
+          writeOutput({ profile, state: 'stopped' }, outputMeta(profile, 'local'))
+          return
+        }
+        try {
+          writeOutput(await daemon.invokes.daemon.status({}), outputMeta(profile, 'local'))
+        }
+        finally {
+          daemon.close()
+        }
+      },
+    }),
+    stop: defineCommand({
+      meta: { name: 'stop', description: 'Stop the daemon for this profile' },
+      args: profileArg,
+      async run(context) {
+        const profile = profileFrom(context)
+        const daemon = await connectDaemon(await ensureProfile(profile))
+        if (!daemon) {
+          writeOutput({ profile, state: 'stopped' }, outputMeta(profile, 'local'))
+          return
+        }
+        try {
+          writeOutput(await daemon.invokes.daemon.stop({}), outputMeta(profile, 'local'))
+        }
+        finally {
+          daemon.close()
+        }
+      },
+    }),
+  },
+})
+
 const exportCommand = defineCommand({
   meta: { name: 'export', description: 'Export persisted messages as deterministic monthly JSONL' },
   args: {
@@ -420,7 +489,7 @@ const exportCommand = defineCommand({
     const paths = await ensureProfile(profile)
     await withRuntime(profile, false, async (runtime) => {
       await emitStreamResult(runtime.streams.export({
-        outputDir: context.args.output || paths.exports,
+        outputDir: resolveExportOutputPath(context.args.output, paths.exports),
         format: context.args.format as 'jsonl',
         timeZone: context.args.timezone,
         chatIds: parseChatIds(context.args.chat),
@@ -436,6 +505,7 @@ export const main = defineCommand({
   args: profileArg,
   subCommands: {
     profile: profileCommand,
+    daemon: daemonCommand,
     auth: authCommand,
     chats: chatsCommand,
     messages: messagesCommand,

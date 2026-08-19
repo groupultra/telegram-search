@@ -64,6 +64,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
             is_contact: originalChat?.isContact || false,
             folder_ids: originalChat?.folderIds || [],
             access_hash: originalChat?.accessHash,
+            pts: originalChat?.pts ?? 0,
           }
         }))
         .onConflictDoUpdate({
@@ -73,6 +74,7 @@ async function recordChats(db: CoreDB, chats: CoreDialog[], accountId: string): 
             is_contact: sql`excluded.is_contact`,
             ...(hasFolderData ? { folder_ids: sql`excluded.folder_ids` } : {}),
             access_hash: sql`excluded.access_hash`,
+            pts: sql`CASE WHEN ${accountJoinedChatsTable.pts} = 0 THEN excluded.pts ELSE ${accountJoinedChatsTable.pts} END`,
           },
         })
     }
@@ -112,6 +114,7 @@ async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResu
       is_pinned: accountJoinedChatsTable.is_pinned,
       is_contact: accountJoinedChatsTable.is_contact,
       folder_ids: accountJoinedChatsTable.folder_ids,
+      pts: accountJoinedChatsTable.pts,
       created_at: joinedChatsTable.created_at,
       updated_at: joinedChatsTable.updated_at,
     })

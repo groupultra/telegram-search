@@ -24,17 +24,17 @@ function cursorOffset(cursor?: string): number {
 
 export function createLocalMessagesService(options: {
   db: CoreDB
-  accountId: string
+  getAccountId: () => string
   logger: Logger
   models: Models
 }) {
-  const { accountId, db, logger, models } = options
+  const { db, getAccountId, logger, models } = options
 
   async function query(input: QueryLocalMessagesInput): Promise<CursorPage<MessageRecord>> {
     const offset = cursorOffset(input.cursor)
     const rows = (await models.chatMessageModels.fetchMessagesByTimeRange(
       db,
-      accountId,
+      getAccountId(),
       { start: input.from ?? 0, end: input.to ?? Number.MAX_SAFE_INTEGER },
       input.chatIds,
       { offset, limit: input.limit + 1 },
@@ -58,7 +58,7 @@ export function createLocalMessagesService(options: {
 
     const replyRows = (await models.chatMessageModels.fetchMessagesByChatAndPlatformIds(
       db,
-      accountId,
+      getAccountId(),
       references,
     )).expect('Failed to resolve exported reply context')
     const replyByReference = new Map(
@@ -86,7 +86,7 @@ export function createLocalMessagesService(options: {
     const rows = (await models.chatMessageModels.retrieveMessages(
       db,
       logger,
-      accountId,
+      getAccountId(),
       EmbeddingDimension.DIMENSION_1536,
       { text: input.query },
       { offset, limit: input.limit + 1 },
@@ -111,7 +111,7 @@ export function createLocalMessagesService(options: {
     const messages = (await models.chatMessageModels.fetchMessageContextWithPhotos(
       db,
       models.photoModels,
-      accountId,
+      getAccountId(),
       { ...input, before: input.before, after: input.after },
     )).expect('Failed to query local message context')
     const items = messages.map(coreMessageToRecord)

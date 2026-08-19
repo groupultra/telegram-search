@@ -6,6 +6,8 @@ import { Api } from 'telegram'
 import { DeletedMessage, DeletedMessageEvent } from 'telegram/events/DeletedMessage'
 import { EditedMessage, EditedMessageEvent } from 'telegram/events/EditedMessage'
 import { NewMessage, NewMessageEvent } from 'telegram/events/NewMessage'
+import { Raw } from 'telegram/events/Raw'
+import { UpdateConnectionState } from 'telegram/network'
 
 import { CoreEventType } from '../types/events'
 
@@ -24,6 +26,9 @@ export function createGramEventsService(ctx: CoreContext, logger: Logger) {
   // Store event handler reference and event type for cleanup
   let eventHandler: ((event: NewMessageEvent | EditedMessageEvent | DeletedMessageEvent) => Promise<void>) | undefined
   let eventTypes: Array<NewMessage | EditedMessage | DeletedMessage> = []
+  let connectionStateHandler: ((event: UpdateConnectionState) => void) | undefined
+  let connectionStateEvent: Raw | undefined
+  let sawDisconnect = false
 
   function getPeerChannelId(eventPeer: unknown): string | undefined {
     if (eventPeer instanceof Api.PeerChannel)
@@ -109,7 +114,33 @@ export function createGramEventsService(ctx: CoreContext, logger: Logger) {
     for (const eventType of eventTypes)
       ctx.getClient().addEventHandler(eventHandler, eventType)
 
-    logger.debug('Registered Telegram event handler')
+    connectionStateHandler = (event) => {
+      if (event.state === UpdateConnectionState.connected) {
+        ctx.emitter.emit(CoreEventType.GramConnectionState, { state: 'connected' })
+        if (sawDisconnect) {
+          sawDisconnect = false
+          logger.log('Telegram connection restored; starting pts catch-up')
+          ctx.emitter.emit(CoreEventType.SyncCatchUp)
+        }
+        return
+      }
+
+      if (event.state === UpdateConnectionState.disconnected) {
+        sawDisconnect = true
+        logger.warn('Telegram connection interrupted')
+        ctx.emitter.emit(CoreEventType.GramConnectionState, { state: 'disconnected' })
+        return
+      }
+
+      if (event.state === UpdateConnectionState.broken) {
+        logger.error('Telegram connection authorization is broken')
+        ctx.emitter.emit(CoreEventType.GramConnectionState, { state: 'broken' })
+      }
+    }
+    connectionStateEvent = new Raw({ types: [UpdateConnectionState] })
+    ctx.getClient().addEventHandler(connectionStateHandler, connectionStateEvent)
+
+    logger.log('Registered Telegram real-time event handlers')
   }
 
   function cleanup() {
@@ -119,6 +150,8 @@ export function createGramEventsService(ctx: CoreContext, logger: Logger) {
         if (client) {
           for (const eventType of eventTypes)
             client.removeEventHandler(eventHandler, eventType)
+          if (connectionStateHandler && connectionStateEvent)
+            client.removeEventHandler(connectionStateHandler, connectionStateEvent)
           logger.debug('Removed Telegram event handler')
         }
       }
@@ -127,6 +160,9 @@ export function createGramEventsService(ctx: CoreContext, logger: Logger) {
       }
       eventHandler = undefined
       eventTypes = []
+      connectionStateHandler = undefined
+      connectionStateEvent = undefined
+      sawDisconnect = false
     }
   }
 

@@ -99,6 +99,28 @@ describe('models/chats', () => {
     expect(chat.chat_name).toBe('New Name')
   })
 
+  it('recordChats initializes but does not advance an existing channel checkpoint', async () => {
+    const db = await setupDb()
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'user-1',
+    }).returning()
+    const dialog = (pts: number): CoreDialog => ({
+      id: 1,
+      name: 'Channel',
+      type: 'channel',
+      accessHash: 'hash',
+      pts,
+    })
+
+    await chatModels.recordChats(db, [{ ...dialog(0), pts: undefined }], account.id)
+    await chatModels.recordChats(db, [dialog(100)], account.id)
+    await chatModels.recordChats(db, [dialog(200)], account.id)
+
+    const [link] = await db.select().from(accountJoinedChatsTable)
+    expect(link.pts).toBe(100)
+  })
+
   it('fetchChats returns all telegram chats ordered by dialog_date desc', async () => {
     const db = await setupDb()
 

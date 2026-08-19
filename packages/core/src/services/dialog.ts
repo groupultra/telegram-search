@@ -412,6 +412,7 @@ export function createDialogService(ctx: CoreContext, logger: Logger, userModels
           pinned,
           folderIds: [],
           accessHash: result.accessHash,
+          pts: dialog.dialog.pts,
         })
       }
 

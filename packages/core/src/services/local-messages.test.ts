@@ -42,10 +42,10 @@ function message(overrides: Partial<DBSelectMessage> = {}): DBSelectMessage {
 describe('local message query filters', () => {
   it('passes the requested sender to the database query', async () => {
     // The CLI exposed --sender, but the service previously discarded it.
-    const fetchMessagesByTimeRange = vi.fn(async () => Ok([]))
+    const fetchMessagesByTimeRange = vi.fn(async (_db: CoreDB, _accountId: string) => Ok([]))
     const service = createLocalMessagesService({
       db: {} as CoreDB,
-      accountId: 'account-1',
+      getAccountId: () => 'account-1',
       logger: {} as Logger,
       models: { chatMessageModels: { fetchMessagesByTimeRange } } as unknown as Models,
     })
@@ -99,7 +99,7 @@ describe('local message query filters', () => {
     const fetchMessagesByChatAndPlatformIds = vi.fn(async () => Ok([target]))
     const service = createLocalMessagesService({
       db: {} as CoreDB,
-      accountId: 'account-1',
+      getAccountId: () => 'account-1',
       logger: {} as Logger,
       models: {
         chatMessageModels: {
@@ -131,5 +131,26 @@ describe('local message query filters', () => {
       },
     })
     expect(page.items[1]).toMatchObject({ id: '3', replyToId: '99', replyTo: null })
+  })
+
+  it('resolves the active account for every query', async () => {
+    // Daemons learn the real account after their application runtime is created.
+    const fetchMessagesByTimeRange = vi.fn(async (_db: CoreDB, _accountId: string) => Ok([]))
+    let accountId = 'profile-placeholder'
+    const service = createLocalMessagesService({
+      db: {} as CoreDB,
+      getAccountId: () => accountId,
+      logger: {} as Logger,
+      models: { chatMessageModels: { fetchMessagesByTimeRange } } as unknown as Models,
+    })
+
+    await service.query({ limit: 1 })
+    accountId = 'resolved-account'
+    await service.query({ limit: 1 })
+
+    expect(fetchMessagesByTimeRange.mock.calls.map(call => call[1])).toEqual([
+      'profile-placeholder',
+      'resolved-account',
+    ])
   })
 })
