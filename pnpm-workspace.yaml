@@ -14,6 +14,13 @@ catalog:
   vue-sonner: ^2.0.9
   xsai: ^0.4.4
 
+# unocss-preset-animations imports preset-mini at runtime but does not declare
+# it, which breaks strict pnpm installs after lockfile deduplication.
+packageExtensions:
+  unocss-preset-animations@1.3.0:
+    dependencies:
+      '@unocss/preset-mini': 66.7.5
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - better-sqlite3
