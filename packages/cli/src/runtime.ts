@@ -7,7 +7,7 @@ import process from 'node:process'
 
 import { createHash } from 'node:crypto'
 
-import { LogLevel, setGlobalLogLevel } from '@guiiai/logg'
+import { LogLevel, setGlobalLogLevel, useLogger } from '@guiiai/logg'
 import { createContext, defineInvokes, defineStreamInvoke } from '@moeru/eventa'
 import { generateDefaultConfig } from '@tg-search/common'
 import {
@@ -34,7 +34,7 @@ import { writeProgress } from './output'
 import { readProfileConfig, readSession, writeProfileConfig } from './profile'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 
-function createSilentLogger(): Logger {
+export function createSilentLogger(): Logger {
   const logger: Record<string, unknown> = {}
   const chain = () => logger
   for (const method of ['withContext', 'withFields', 'withError', 'withLogLevel', 'withLogLevelString', 'useGlobalConfig'])
@@ -42,6 +42,15 @@ function createSilentLogger(): Logger {
   for (const method of ['debug', 'verbose', 'log', 'warn', 'error'])
     logger[method] = () => {}
   return logger as unknown as Logger
+}
+
+/**
+ * Daemons write structured operational logs to their supervisor's stdout/stderr.
+ * Keep this distinct from one-shot CLI commands, whose stdout is reserved for a
+ * single machine-readable result envelope.
+ */
+export function createDaemonLogger(profile: string): Logger {
+  return useLogger('tg-search:daemon').useGlobalConfig().withFields({ profile })
 }
 
 async function withStdoutRedirectedToStderr<T>(operation: () => Promise<T>): Promise<T> {

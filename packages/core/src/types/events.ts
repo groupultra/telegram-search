@@ -82,6 +82,7 @@ export enum CoreEventType {
   GramMessageReceived = 'gram:message:received',
   GramMessageEdited = 'gram:message:edited',
   GramMessageDeleted = 'gram:message:deleted',
+  GramConnectionState = 'gram:connection:state',
 
   BotSendMessage = 'bot:send:message',
   BotStatus = 'bot:status',
@@ -485,6 +486,7 @@ export interface TakeoutOpts {
 export interface GramEventsEventToCore {}
 
 export interface GramEventsEventFromCore {
+  [CoreEventType.GramConnectionState]: (data: { state: 'connected' | 'disconnected' | 'broken' }) => void
   [CoreEventType.GramMessageReceived]: (data: { message: Api.Message, pts?: number, date?: number, isChannel: boolean }) => void
   [CoreEventType.GramMessageEdited]: (data: { message: Api.Message, pts?: number, date?: number, isChannel: boolean }) => void
   [CoreEventType.GramMessageDeleted]: (data: {

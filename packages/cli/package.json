@@ -23,7 +23,7 @@
     "@electric-sql/pglite": "0.3.16",
     "@guiiai/logg": "catalog:",
     "@inquirer/password": "^5.1.1",
-    "@moeru/eventa": "1.0.0-beta.11",
+    "@moeru/eventa": "1.0.0",
     "@node-rs/jieba": "2.0.1",
     "@tg-search/common": "workspace:*",
     "@tg-search/core": "workspace:*",

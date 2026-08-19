@@ -11,6 +11,10 @@ export interface ProfilePaths {
   session: string
   database: string
   exports: string
+  daemon: string
+  daemonLock: string
+  daemonStdoutLog: string
+  daemonStderrLog: string
 }
 
 export interface ProfileConfig {
@@ -37,6 +41,10 @@ export function resolveProfilePaths(name = 'default'): ProfilePaths {
     session: join(root, 'session'),
     database: join(root, 'pglite'),
     exports: join(root, 'exports'),
+    daemon: join(root, 'daemon.json'),
+    daemonLock: join(root, 'daemon.lock'),
+    daemonStdoutLog: join(root, 'daemon.stdout.log'),
+    daemonStderrLog: join(root, 'daemon.stderr.log'),
   }
 }
 

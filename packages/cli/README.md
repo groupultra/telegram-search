@@ -29,6 +29,25 @@ tg-search --profile work profile configure --apiId 123456 --apiHash abcdef
 tg-search --profile work auth login --phone +6512345678
 ```
 
+## Local daemon (Linux and macOS)
+
+The daemon keeps one Telegram connection and one local database writer for a profile. Start it before logging in when you want new messages to arrive without repeatedly running remote reads:
+
+```bash
+tg-search --profile work daemon run
+# In a second terminal:
+tg-search --profile work auth login
+tg-search --profile work daemon status
+```
+
+`daemon run` is intentionally foreground-only in this first version. Run it under Docker, a `systemd --user` unit on Linux, or a `launchd` LaunchAgent on macOS when it should survive terminal closure. The daemon listens on a profile-scoped Unix socket under a user-only temporary directory; it holds an exclusive profile lock, so other CLI commands automatically use the daemon instead of opening a second Telegram/PGlite runtime.
+
+As with the server, realtime persistence receives all new, edited, and deleted messages after login. Bulk history remains a separate `sync --takeout` action and still requires explicit Takeout approval.
+
+The daemon writes structured operational records at `info` level to its supervisor's stdout/stderr. For a `launchd` or `systemd` setup, direct these streams to `<profile-root>/daemon.stdout.log` and `<profile-root>/daemon.stderr.log`. The daemon checks them every six hours, rotates the prior day's file, and deletes archives older than 14 days; set `TG_SEARCH_DAEMON_LOG_RETENTION_DAYS` to override the retention period.
+
+After a Telegram transport disconnect, `daemon status` reports `reconnecting`. Once the transport is restored, the daemon runs the same account-state `pts` catch-up (`updates.GetState` followed by `updates.GetDifference`) before returning to `ready`.
+
 You may use `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` instead of storing API credentials in profile config. Login prompts and progress are written to stderr.
 
 ## Agent commands

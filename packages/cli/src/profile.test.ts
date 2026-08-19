@@ -26,6 +26,8 @@ describe('named profiles', () => {
 
     expect(defaultProfile.root).toContain('/default')
     expect(workProfile.database).not.toBe(defaultProfile.database)
+    expect(workProfile.daemon).not.toBe(defaultProfile.daemon)
+    expect(workProfile.daemonLock).toContain('/work/')
   })
 
   it('rejects path traversal names', () => {
