@@ -1,4 +1,4 @@
-import type { ProfilePaths } from './profile'
+import type { ProfilePaths } from '../profile'
 
 import { mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -6,7 +6,7 @@ import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { maintainDaemonLogs } from './daemon-log-maintenance'
+import { maintainDaemonLogs } from './log-maintenance'
 
 const directories: string[] = []
 
