@@ -36,6 +36,16 @@ interface PeerRpcState {
   unregister?: () => void
 }
 
+/**
+ * Eventa uses an id/body envelope, while the remaining UI events still use
+ * the legacy type/data envelope. Only Eventa frames may enter its decoder:
+ * it throws on legacy frames and would otherwise prevent the UI event from
+ * reaching the core event emitter.
+ */
+export function isEventaFrame(message: unknown): message is { id: unknown } {
+  return typeof message === 'object' && message !== null && 'id' in message
+}
+
 const peerRpcStates = new Map<string, PeerRpcState>()
 type EventaPeer = Parameters<typeof createPeerContext>[0]
 
@@ -159,15 +169,14 @@ export function setupWsRoutes(app: H3, config: Config) {
       const event = message.json<WsMessageToServer>()
 
       try {
-        const rpcState = peerRpcStates.get(peer.id)
-        ensurePeerApplication(account, peer.id, logger)
-        if (rpcState) {
-          await rpcState.eventa.hooks.message(asEventaPeer(peer), message as never)
-        }
-
         // Eventa frames use an event id/body envelope. Legacy UI events keep
         // their type/data envelope until the remaining UI notifications move.
-        if ('id' in (event as unknown as Record<string, unknown>)) {
+        if (isEventaFrame(event)) {
+          const rpcState = peerRpcStates.get(peer.id)
+          ensurePeerApplication(account, peer.id, logger)
+          if (rpcState) {
+            await rpcState.eventa.hooks.message(asEventaPeer(peer), message as never)
+          }
           return
         }
 
