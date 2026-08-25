@@ -417,6 +417,7 @@ watch(isOpen, (open) => {
                     :has-more="messagesHasMore"
                     :is-loading-more="isLoadingMoreMessages"
                     @load-more="loadMoreMessages"
+                    @navigate="isOpen = false"
                   />
                 </div>
 

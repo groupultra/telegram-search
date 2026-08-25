@@ -13,9 +13,9 @@ import SearchDialog from '../components/SearchDialog.vue'
 import AIChatPage from '../pages/ai-chat.vue'
 
 import { Dialog, DialogContent } from '../components/ui/Dialog'
+import { useGlobalSearchDialog } from '../composables/use-global-search-dialog'
 
 const route = useRoute()
-const isGlobalSearchOpen = ref(false)
 const isAIChatDrawerOpen = ref(false)
 const aiChatDrawerChatIds = ref<number[]>([])
 
@@ -61,9 +61,11 @@ const currentRouteChatId = computed(() => {
   return typeof route.params.id === 'string' ? route.params.id : undefined
 })
 
-function openGlobalSearch() {
-  isGlobalSearchOpen.value = true
-}
+const {
+  isOpen: isGlobalSearchOpen,
+  open: openGlobalSearch,
+  searchChatId,
+} = useGlobalSearchDialog(currentRouteChatId)
 
 function onOpenGlobalSearch() {
   openGlobalSearch()
@@ -162,7 +164,7 @@ watch(isAIChatDrawerOpen, (open) => {
     </div>
   </div>
 
-  <SearchDialog v-model:open="isGlobalSearchOpen" :chat-id="currentRouteChatId" />
+  <SearchDialog v-model:open="isGlobalSearchOpen" :chat-id="searchChatId" />
 
   <Dialog v-model:open="isAIChatDrawerOpen">
     <DialogContent
