@@ -417,6 +417,7 @@ watch(isOpen, (open) => {
                     :has-more="messagesHasMore"
                     :is-loading-more="isLoadingMoreMessages"
                     @load-more="loadMoreMessages"
+                    @navigate="isOpen = false"
                   />
                 </div>
 
@@ -433,6 +434,7 @@ watch(isOpen, (open) => {
                     :has-more="photosHasMore"
                     :is-loading-more="isLoadingMorePhotos"
                     @load-more="loadMorePhotos"
+                    @navigate="isOpen = false"
                   />
                 </div>
               </template>

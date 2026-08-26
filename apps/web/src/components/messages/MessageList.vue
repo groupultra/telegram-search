@@ -20,6 +20,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   loadMore: []
+  navigate: []
 }>()
 
 const router = useRouter()
@@ -46,6 +47,7 @@ function copyMessageLink(message: CoreMessage) {
 }
 
 function navigateToMessage(message: CoreMessage) {
+  emit('navigate')
   router.push({
     path: `/chat/${message.chatId}`,
     query: {

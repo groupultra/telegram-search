@@ -10,7 +10,6 @@ import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import EntityAvatar from '../../components/avatar/EntityAvatar.vue'
-import SearchDialog from '../../components/SearchDialog.vue'
 import SummaryDialog from '../../components/SummaryDialog.vue'
 import VirtualMessageList from '../../components/VirtualMessageList.vue'
 
@@ -55,10 +54,6 @@ const isLoadingOlder = ref(false)
 const isLoadingNewer = ref(false)
 
 const virtualListRef = ref<InstanceType<typeof VirtualMessageList>>()
-
-// @ts-expect-error: TODO: already used, fix it?
-const searchDialogRef = ref<InstanceType<typeof SearchDialog> | null>(null)
-const isGlobalSearchOpen = ref(false)
 
 const messageInput = ref('')
 const isContextMode = ref(false)
@@ -178,6 +173,10 @@ function openTelegram() {
   if (chatTelegramLink.value) {
     window.open(chatTelegramLink.value, '_self')
   }
+}
+
+function openGlobalSearch() {
+  window.dispatchEvent(new Event('tg-search:open-global-search'))
 }
 
 function resetPagination() {
@@ -329,7 +328,7 @@ watch(
           :aria-label="t('chat.search')"
           :title="t('chat.search')"
           data-search-button
-          @click="isGlobalSearchOpen = !isGlobalSearchOpen"
+          @click="openGlobalSearch"
         />
       </div>
     </div>
@@ -390,11 +389,5 @@ watch(
         </Button>
       </div>
     </div>
-
-    <SearchDialog
-      ref="searchDialogRef"
-      v-model:open="isGlobalSearchOpen"
-      :chat-id="id.toString()"
-    />
   </div>
 </template>
