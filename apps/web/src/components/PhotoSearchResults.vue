@@ -20,6 +20,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   loadMore: []
+  navigate: []
 }>()
 
 const { t } = useI18n()
@@ -73,6 +74,8 @@ function navigateToPhoto(photo: CoreRetrievalPhoto) {
     return
   }
 
+  // Keep photo results consistent with MessageList so the layout-owned dialog closes.
+  emit('navigate')
   router.push({
     path: `/chat/${photo.chatId}`,
     query: {

@@ -434,6 +434,7 @@ watch(isOpen, (open) => {
                     :has-more="photosHasMore"
                     :is-loading-more="isLoadingMorePhotos"
                     @load-more="loadMorePhotos"
+                    @navigate="isOpen = false"
                   />
                 </div>
               </template>
