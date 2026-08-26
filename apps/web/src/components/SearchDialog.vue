@@ -227,12 +227,12 @@ watch(isOpen, (open) => {
       class="fixed z-50"
       :class="isMobile
         ? 'bottom-0 left-0 right-0 h-[86vh] max-h-[86vh]'
-        : 'left-1/2 top-1/2 h-full max-w-3xl w-full -translate-x-1/2 -translate-y-1/2 md:h-auto md:max-h-[85vh]'"
+        : 'left-1/2 top-1/2 h-[85vh] max-w-3xl w-full -translate-x-1/2 -translate-y-1/2'"
       role="dialog"
       aria-modal="true"
     >
       <div
-        class="h-full flex flex-col overflow-hidden bg-background/95 outline-none"
+        class="h-full min-h-0 flex flex-col overflow-hidden bg-background/95 outline-none"
         :class="isMobile
           ? 'rounded-t-2xl'
           : 'border-0 rounded-none backdrop-blur-xl md:border md:rounded-2xl'"
@@ -355,7 +355,7 @@ watch(isOpen, (open) => {
         </div>
 
         <!-- Results area -->
-        <div class="min-h-[300px] flex-1 overflow-y-auto">
+        <div class="min-h-0 flex-1 overflow-y-auto">
           <Transition
             enter-active-class="transition-all duration-300 ease-out"
             enter-from-class="opacity-0 translate-y-2"
