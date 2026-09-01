@@ -126,6 +126,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000
   const hostname = process.env.HOST || '0.0.0.0'
+  const reusePort = process.env.REUSE_PORT === 'true'
 
   const server = serve(app, {
     port,
@@ -134,12 +135,15 @@ async function bootstrap() {
       // @ts-expect-error - the .crossws property wasn't extended in types
       wsPlugin({ resolve: async req => (await app.fetch(req)).crossws }),
     ],
-    reusePort: true,
+    reusePort,
     gracefulShutdown: {
       forceTimeout: 500,
       gracefulTimeout: 500,
     },
   })
+
+  // Wait for the server to complete initialization and successfully bind to the port
+  await server.ready()
 
   logger.withFields({ port, hostname }).log('Server started')
 
