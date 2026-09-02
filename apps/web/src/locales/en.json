@@ -232,6 +232,7 @@
     "llm": "Large Language Model",
     "llmModel": "LLM Model",
     "llmProvider": "LLM Provider",
+    "customProvider": "Custom",
     "visionLLM": "Vision LLM (Multimodal)",
     "visionLLMDescription": "Multimodal large language model for image understanding. Used to generate image descriptions for semantic search.",
     "login": "Login",

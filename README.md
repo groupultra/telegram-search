@@ -147,6 +147,8 @@ docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-se
 > [!IMPORTANT]
 > AI Embedding & LLM 设置现在在应用内**按账户**配置（设置 → API）。
 >
+> 支持多种 LLM 提供商，包括 [OpenAI](https://platform.openai.com/)、[MiniMax](https://www.minimaxi.com/) 等 OpenAI 兼容的 API 服务。在设置页面选择提供商后，API 地址和默认模型将自动填充。
+>
 > 请在修改完成 `.env` 文件后，再次执行 `docker compose -f docker-compose.yml up -d` 启动服务。
 
 以下环境变量全部为可选，如果不填写，则会使用默认值。
