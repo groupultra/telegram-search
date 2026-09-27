@@ -2,9 +2,9 @@ import type { TelegramApplication } from '@tg-search/core'
 
 import { createHash, timingSafeEqual } from 'node:crypto'
 
-import { listChatsInputSchema, listRemoteMessagesInputSchema, messageContextInputSchema, queryLocalMessagesInputSchema, searchMessagesInputSchema, statsInputSchema } from '@tg-search/protocol'
-import { assertBodySize, H3 } from 'h3'
-import { parse, ValiError } from 'valibot'
+import { accountIdSchema, listChatsInputSchema, listRemoteMessagesInputSchema, messageContextInputSchema, queryLocalMessagesInputSchema, searchMessagesInputSchema, statsInputSchema } from '@tg-search/protocol'
+import { assertBodySize, H3, HTTPError, readValidatedBody } from 'h3'
+import { minLength, object, parse, pipe, regex, string } from 'valibot'
 
 export interface RemoteAccess {
   token: string
@@ -16,11 +16,10 @@ export function remoteAccessFromEnv(env: Record<string, string | undefined>): Re
   const accountId = env.TG_SEARCH_REMOTE_ACCOUNT_ID
   if (token === undefined && accountId === undefined)
     return undefined
-  if (!token || token.length < 32 || /\s/.test(token))
-    throw new Error('TG_SEARCH_REMOTE_TOKEN must contain at least 32 characters without whitespace')
-  if (!accountId || !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(accountId))
-    throw new Error('TG_SEARCH_REMOTE_ACCOUNT_ID must be a database account UUID')
-  return { token, accountId }
+  return parse(object({
+    token: pipe(string(), minLength(32, 'TG_SEARCH_REMOTE_TOKEN must contain at least 32 characters'), regex(/^\S+$/, 'TG_SEARCH_REMOTE_TOKEN must not contain whitespace')),
+    accountId: accountIdSchema,
+  }), { token, accountId })
 }
 
 export function createRemoteApi(access: RemoteAccess, getApplication: (accountId: string) => TelegramApplication): H3 {
@@ -33,36 +32,34 @@ export function createRemoteApi(access: RemoteAccess, getApplication: (accountId
     if (!event.req.headers.get('content-type')?.startsWith('application/json'))
       return new Response(null, { status: 415 })
     assertBodySize(event, 65_536)
-    const body = await event.req.text()
     try {
-      const input: unknown = JSON.parse(body)
       const application = getApplication(access.accountId)
       let result
       switch (event.context.params?.method) {
         case 'chats.list':
-          result = await application.listChats(parse(listChatsInputSchema, input))
+          result = await application.listChats(await readValidatedBody(event, listChatsInputSchema))
           break
         case 'messages.list':
-          result = await application.listRemoteMessages(parse(listRemoteMessagesInputSchema, input))
+          result = await application.listRemoteMessages(await readValidatedBody(event, listRemoteMessagesInputSchema))
           break
         case 'messages.query':
-          result = await application.queryLocalMessages(parse(queryLocalMessagesInputSchema, input))
+          result = await application.queryLocalMessages(await readValidatedBody(event, queryLocalMessagesInputSchema))
           break
         case 'messages.search':
-          result = await application.searchLocalMessages(parse(searchMessagesInputSchema, input))
+          result = await application.searchLocalMessages(await readValidatedBody(event, searchMessagesInputSchema))
           break
         case 'messages.context':
-          result = await application.getLocalMessageContext(parse(messageContextInputSchema, input))
+          result = await application.getLocalMessageContext(await readValidatedBody(event, messageContextInputSchema))
           break
         case 'stats.get':
-          result = await application.getLocalStats(parse(statsInputSchema, input))
+          result = await application.getLocalStats(await readValidatedBody(event, statsInputSchema))
           break
         default: return new Response(null, { status: 404 })
       }
       return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
     }
     catch (error) {
-      if (error instanceof SyntaxError || error instanceof ValiError)
+      if (error instanceof HTTPError && error.status === 400)
         return Response.json({ ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Invalid request parameters', retryable: false } }, { status: 400 })
       throw error
     }

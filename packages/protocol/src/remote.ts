@@ -1,4 +1,6 @@
-import { array, boolean, literal, nullable, number, object, optional, parse, string, union } from 'valibot'
+import type { GenericSchema } from 'valibot'
+
+import { array, boolean, literal, nullable, number, object, optional, pipe, string, toLowerCase, union, uuid } from 'valibot'
 
 import { chatRecordSchema, listChatsInputSchema } from './chats'
 import { appErrorSchema } from './errors'
@@ -22,10 +24,12 @@ const messageSchema = object({
   combinedScore: optional(number()),
 })
 
-const messagePageSchema = object({ items: array(messageSchema), nextCursor: nullable(string()) })
+const messagePageSchema = object({ items: array(messageSchema), nextCursor: nullable(string()), total: optional(number()) })
+
+export const accountIdSchema = pipe(string('Expected a database account UUID'), uuid('Expected a database account UUID'), toLowerCase())
 
 export const remoteMethods = {
-  'chats.list': { input: listChatsInputSchema, output: object({ items: array(chatRecordSchema), nextCursor: nullable(string()) }) },
+  'chats.list': { input: listChatsInputSchema, output: object({ items: array(chatRecordSchema), nextCursor: nullable(string()), total: optional(number()) }) },
   'messages.list': { input: listRemoteMessagesInputSchema, output: messagePageSchema },
   'messages.query': { input: queryLocalMessagesInputSchema, output: messagePageSchema },
   'messages.search': { input: searchMessagesInputSchema, output: messagePageSchema },
@@ -35,11 +39,11 @@ export const remoteMethods = {
 
 export type RemoteMethod = keyof typeof remoteMethods
 
-export function parseRemoteResult(method: RemoteMethod, value: unknown) {
-  return parse(union([
-    object({ ok: literal(true), data: remoteMethods[method].output }),
+export function remoteResultSchema<Schema extends GenericSchema>(output: Schema) {
+  return union([
+    object({ ok: literal(true), data: output }),
     object({ ok: literal(false), error: appErrorSchema }),
-  ]), value)
+  ])
 }
 
 export function normalizeRemoteUrl(value: string): string {

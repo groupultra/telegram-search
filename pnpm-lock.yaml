@@ -415,6 +415,9 @@ importers:
       telegram:
         specifier: 2.26.22
         version: 2.26.22
+      valibot:
+        specifier: ^1.4.2
+        version: 1.4.2(typescript@5.9.3)
     devDependencies:
       h3:
         specifier: 2.0.1-rc.26

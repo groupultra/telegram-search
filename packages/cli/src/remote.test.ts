@@ -16,7 +16,7 @@ import { createRemoteRuntime } from './remote'
 
 const access = { token: 'test-only-token-'.repeat(4), accountId: '11111111-1111-4111-8111-111111111111' }
 const message = { id: '42', chatId: '7', senderId: '3', senderName: 'Test', timestamp: 1700000000, text: 'project progress', forward: { isForward: false }, media: [], links: [] }
-const page = { ok: true as const, data: { items: [message], nextCursor: 'next-page' } }
+const page = { ok: true as const, data: { items: [message], nextCursor: 'next-page', total: 37 } }
 
 function fixture() {
   const application = {
@@ -42,6 +42,20 @@ afterEach(() => {
 })
 
 describe('remote CLI', () => {
+  it('preserves INVALID_ARGUMENT from HTTP 400', async () => {
+    const { app } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const runtime = createRemoteRuntime(server.url!, access.token)
+    try {
+      await expect(runtime.invokes.messages.queryLocal({ limit: 0 })).resolves.toEqual({ ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Invalid request parameters', retryable: false } })
+    }
+    finally {
+      await runtime.close()
+      await server.close()
+    }
+  })
+
   it('routes CLI search over HTTP without creating a local profile or database', async () => {
     const { app, application, resolve } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
@@ -93,6 +107,7 @@ describe('remote CLI', () => {
       expect(await runtime.invokes.messages.contextLocal({ chatId: '7', messageId: '42', before: 1, after: 1 })).toEqual({ ok: true, data: { messages: [message], targetIndex: 0 } })
       expect(await runtime.invokes.chats.list({ limit: 1 })).toMatchObject({ ok: true, data: { items: [{ id: '7' }] } })
       expect(await runtime.invokes.messages.listRemote({ chatId: '7', limit: 2 })).toEqual(page)
+      expect(await runtime.invokes.messages.queryLocal({ limit: 0 })).toEqual({ ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Invalid request parameters', retryable: false } })
       expect(await runtime.invokes.stats.get({ groupBy: 'month', timeZone: 'UTC' })).toEqual({ ok: true, data: { total: 1, buckets: [] } })
       const failure = { ok: false as const, error: { code: 'NOT_FOUND', message: 'Not found', retryable: false } }
       application.queryLocalMessages.mockResolvedValueOnce(failure)
@@ -120,6 +135,7 @@ describe('remote CLI', () => {
     expect(remoteAccessFromEnv({})).toBeUndefined()
     expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token })).toThrow('UUID')
     expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: 'short', TG_SEARCH_REMOTE_ACCOUNT_ID: access.accountId })).toThrow('32')
+    expect(remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token, TG_SEARCH_REMOTE_ACCOUNT_ID: 'ABCDEFAB-1234-4ABC-9ABC-ABCDEFABCDEF' })?.accountId).toBe('abcdefab-1234-4abc-9abc-abcdefabcdef')
     expect(normalizeRawArgs(['--remote', 'https://example.com', 'messages', 'query'])).toEqual(['messages', 'query', '--remote=https://example.com'])
   })
 })
