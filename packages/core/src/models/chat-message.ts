@@ -28,6 +28,14 @@ function notDeletedCondition() {
   return eq(chatMessagesTable.deleted_at, 0)
 }
 
+function accountChatCondition(accountId: string) {
+  return sql`EXISTS (
+    SELECT 1 FROM ${accountJoinedChatsTable}
+    WHERE ${accountJoinedChatsTable.joined_chat_id} = ${joinedChatsTable.id}
+      AND ${accountJoinedChatsTable.account_id} = ${accountId}
+  )`
+}
+
 function ownerScopedCondition(accountId: string) {
   return sql`(
     ${chatMessagesTable.owner_account_id} = ${accountId}
@@ -261,6 +269,7 @@ async function fetchMessageContextWithPhotos(
         eq(chatMessagesTable.in_chat_id, chatId),
         eq(chatMessagesTable.platform_message_id, messageId),
         notDeletedCondition(),
+        accountChatCondition(accountId),
         sql`(
         ${joinedChatsTable.chat_type} != 'user'
         OR ${chatMessagesTable.owner_account_id} = ${accountId}
@@ -285,6 +294,7 @@ async function fetchMessageContextWithPhotos(
         eq(chatMessagesTable.in_chat_id, chatId),
         lt(chatMessagesTable.platform_timestamp, targetMessage.platform_timestamp),
         notDeletedCondition(),
+        accountChatCondition(accountId),
         sql`(
         ${joinedChatsTable.chat_type} != 'user'
         OR ${chatMessagesTable.owner_account_id} = ${accountId}
@@ -305,6 +315,7 @@ async function fetchMessageContextWithPhotos(
         eq(chatMessagesTable.in_chat_id, chatId),
         gt(chatMessagesTable.platform_timestamp, targetMessage.platform_timestamp),
         notDeletedCondition(),
+        accountChatCondition(accountId),
         sql`(
         ${joinedChatsTable.chat_type} != 'user'
         OR ${chatMessagesTable.owner_account_id} = ${accountId}
@@ -359,6 +370,7 @@ async function fetchMessagesByTimeRange(
       gte(chatMessagesTable.platform_timestamp, timeRange.start),
       lte(chatMessagesTable.platform_timestamp, timeRange.end),
       notDeletedCondition(),
+      accountChatCondition(accountId),
       // ACL: same pattern as fetchMessages
       sql`(
         ${joinedChatsTable.chat_type} != 'user'

@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { describe, expect, it } from 'vitest'
 
 import { mockDB } from '../../db/mock'
+import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { accountsTable } from '../../schemas/accounts'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
@@ -20,6 +21,7 @@ import { photoModels } from '../photos'
 async function setupDb() {
   return mockDB({
     accountsTable,
+    accountJoinedChatsTable,
     joinedChatsTable,
     chatMessagesTable,
     photosTable,
@@ -48,6 +50,39 @@ function buildCoreMessage(overrides: Partial<CoreMessage> = {}): CoreMessage {
 }
 
 describe('models/chat-message', () => {
+  async function accountIsolationFixture() {
+    const db = await setupDb()
+    const [owner, other] = await db.insert(accountsTable).values([
+      { platform: 'telegram', platform_user_id: 'owner' },
+      { platform: 'telegram', platform_user_id: 'other' },
+    ]).returning()
+    const [visible, hidden] = await db.insert(joinedChatsTable).values([
+      { platform: 'telegram', chat_id: 'visible-group', chat_type: 'group' },
+      { platform: 'telegram', chat_id: 'hidden-group', chat_type: 'group' },
+    ]).returning()
+    await db.insert(accountJoinedChatsTable).values([
+      { account_id: owner.id, joined_chat_id: visible.id },
+      { account_id: other.id, joined_chat_id: hidden.id },
+    ])
+    await chatMessageModels.recordMessages(db, owner.id, [buildCoreMessage({ chatId: visible.chat_id, platformTimestamp: 10 })])
+    await chatMessageModels.recordMessages(db, other.id, [buildCoreMessage({ chatId: hidden.chat_id, platformTimestamp: 20 })])
+    return { db, owner, visible, hidden }
+  }
+
+  it('excludes another account group from time-range queries, including explicit chat filters', async () => {
+    const { db, owner, visible, hidden } = await accountIsolationFixture()
+    const result = (await chatMessageModels.fetchMessagesByTimeRange(db, owner.id, { start: 0, end: 100 })).unwrap()
+    expect(result.map(message => message.in_chat_id)).toEqual([visible.chat_id])
+    expect((await chatMessageModels.fetchMessagesByTimeRange(db, owner.id, { start: 0, end: 100 }, [hidden.chat_id])).unwrap()).toEqual([])
+  })
+
+  it('denies guessed message context in another account group', async () => {
+    const { db, owner, visible, hidden } = await accountIsolationFixture()
+    const read = (chatId: string) => chatMessageModels.fetchMessageContextWithPhotos(db, photoModels, owner.id, { chatId, messageId: '1', before: 1, after: 1 })
+    expect((await read(hidden.chat_id)).unwrap()).toEqual([])
+    expect((await read(visible.chat_id)).unwrap().map(message => message.chatId)).toEqual([visible.chat_id])
+  })
+
   it('recordMessages scopes owner_account_id only for private (user) chats', async () => {
     const db = await setupDb()
 
@@ -255,6 +290,8 @@ describe('models/chat-message', () => {
       chat_name: 'Context Chat',
       chat_type: 'user',
     }).returning()
+
+    await db.insert(accountJoinedChatsTable).values({ account_id: account.id, joined_chat_id: chat.id })
 
     const coreMessages: CoreMessage[] = [
       buildCoreMessage({
