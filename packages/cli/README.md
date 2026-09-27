@@ -17,6 +17,24 @@ The package exposes the `tg-search` executable when installed from a registry.
 
 ## Profiles and login
 
+### Remote read mode
+
+Connect to a hosted TGS server without downloading its database or Telegram session:
+
+```bash
+tg-search --profile cloud profile remote https://tgs.example.com
+tg-search --profile cloud search "project progress"
+tg-search --remote https://tgs.example.com messages query --limit 50
+```
+
+Provide the server's access token through `TG_SEARCH_REMOTE_TOKEN` using your secret manager or shell environment. Tokens are not accepted in URLs or command arguments and are not saved in profile configuration. `--remote` overrides `TG_SEARCH_REMOTE_URL`, which overrides the selected profile's saved URL. HTTPS is required except on loopback for development. The server base URL may include a path prefix.
+
+Supported commands: `chats list`, `messages list`, `messages query`, `search`, `context`, and `stats`. Results use `meta.source: "remote"` and preserve pagination and application errors. No local database or Telegram client is opened, including when the request fails. Direct `--remote`/environment use does not create a local profile.
+
+`sync` and `export` are not exposed remotely in this version; run them on the host owning the data. `auth` and `daemon` are local management commands and reject remote profiles. Use a separate local profile for local operation. There is no automatic fallback when the server is unreachable.
+
+See [server setup](../../../apps/server/README.md) for access-token and account configuration. Saved-index queries work without an active Telegram connection; live chat/message reads require the account to be signed in on the server.
+
 Profiles isolate Telegram credentials, the StringSession, PGlite data, and exports under the operating system's application data directory. Config and session files use mode `0600`, and `TG_SEARCH_HOME` can override the data root.
 
 - macOS: `~/Library/Application Support/telegram-search/profiles/<name>/`
