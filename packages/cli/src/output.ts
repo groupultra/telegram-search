@@ -4,7 +4,7 @@ import process from 'node:process'
 
 export interface OutputMeta {
   profile: string
-  source: 'local' | 'telegram' | 'cli'
+  source: 'local' | 'telegram' | 'cli' | 'remote'
 }
 
 export interface SuccessEnvelope<T> {

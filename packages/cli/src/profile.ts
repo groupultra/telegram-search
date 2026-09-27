@@ -18,6 +18,7 @@ export interface ProfilePaths {
 }
 
 export interface ProfileConfig {
+  remoteUrl?: string
   apiId?: string
   apiHash?: string
   accountId?: string

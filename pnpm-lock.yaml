@@ -161,6 +161,9 @@ importers:
       uuid:
         specifier: ^13.0.2
         version: 13.0.2
+      valibot:
+        specifier: ^1.4.2
+        version: 1.4.2(typescript@5.9.3)
     devDependencies:
       pathe:
         specifier: ^2.0.3
@@ -403,6 +406,10 @@ importers:
       telegram:
         specifier: 2.26.22
         version: 2.26.22
+    devDependencies:
+      h3:
+        specifier: 2.0.1-rc.26
+        version: 2.0.1-rc.26(crossws@0.4.10(srvx@0.12.4))
 
   packages/client:
     dependencies:

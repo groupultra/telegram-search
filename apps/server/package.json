@@ -67,7 +67,8 @@
     "file-type": "^21.3.4",
     "h3": "^2.0.1-rc.26",
     "minio": "^8.0.7",
-    "uuid": "^13.0.2"
+    "uuid": "^13.0.2",
+    "valibot": "^1.4.2"
   },
   "devDependencies": {
     "pathe": "^2.0.3",

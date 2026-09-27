@@ -9,6 +9,7 @@ import { resolve } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 
 import { retryTelegramResult, toAppError } from '@tg-search/core'
+import { normalizeRemoteUrl } from '@tg-search/protocol'
 import { defineCommand, runMain } from 'citty'
 import { TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
@@ -21,14 +22,16 @@ import {
   ensureProfile,
   listProfiles,
   readProfileConfig,
+  resolveProfilePaths,
   writeProfileConfig,
   writeSession,
 } from './profile'
+import { createRemoteRuntime } from './remote'
 import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 
 const CLI_VERSION = (createRequire(import.meta.url)('../package.json') as { version: string }).version
-const profileArg = { profile: { type: 'string' as const, default: 'default' } }
+const profileArg = { profile: { type: 'string' as const, default: 'default' }, remote: { type: 'string' as const, description: 'Remote TGS URL (HTTPS)' } }
 
 function profileFrom(context: { args: object }): string {
   const profile = (context.args as { profile?: unknown }).profile
@@ -66,8 +69,22 @@ export function resolveExportOutputPath(output: string | undefined, defaultPath:
 
 type CommandRuntime = Awaited<ReturnType<typeof createCliRuntime>> | NonNullable<Awaited<ReturnType<typeof connectDaemon>>>
 
-async function withRuntime<T>(profile: string, remote: boolean, operation: (runtime: CommandRuntime) => Promise<T>): Promise<T | undefined> {
-  const paths = await ensureProfile(profile)
+async function withRuntime<T>(command: { args: object }, remote: boolean, operation: (runtime: CommandRuntime) => Promise<T>): Promise<T | undefined> {
+  const profile = profileFrom(command)
+  const args = command.args as { remote?: string }
+  const paths = resolveProfilePaths(profile)
+  const config = await readProfileConfig(paths)
+  const endpoint = args.remote ?? process.env.TG_SEARCH_REMOTE_URL ?? config.remoteUrl
+  if (endpoint !== undefined) {
+    const runtime = createRemoteRuntime(endpoint, process.env.TG_SEARCH_REMOTE_TOKEN ?? '')
+    try {
+      return await operation(runtime)
+    }
+    finally {
+      await runtime.close()
+    }
+  }
+  await ensureProfile(profile)
   let runtime: CommandRuntime
   try {
     runtime = await connectDaemon(paths) ?? await createCliRuntime(paths, { remote })
@@ -86,8 +103,8 @@ async function withRuntime<T>(profile: string, remote: boolean, operation: (runt
   }
 }
 
-function outputMeta(profile: string, source: OutputMeta['source']): OutputMeta {
-  return { profile, source }
+function outputMeta(profile: string, source: OutputMeta['source'], runtime?: CommandRuntime): OutputMeta {
+  return { profile, source: runtime && 'remote' in runtime ? 'remote' : source }
 }
 
 function nextCursorOf(value: unknown): string | null | undefined {
@@ -144,6 +161,17 @@ export async function emitStreamResult<T extends StreamUpdate>(stream: AsyncIter
 const profileCommand = defineCommand({
   meta: { name: 'profile', description: 'Manage isolated local profiles' },
   subCommands: {
+    remote: defineCommand({
+      meta: { name: 'remote', description: 'Configure a remote TGS URL for this profile' },
+      args: { url: { type: 'positional', required: true }, ...profileArg },
+      async run(context) {
+        const remoteUrl = normalizeRemoteUrl(stringArg(context.args.url))
+        const profile = profileFrom(context)
+        const paths = await ensureProfile(profile)
+        await writeProfileConfig(paths, { ...await readProfileConfig(paths), remoteUrl })
+        writeOutput({ profile, remoteUrl }, outputMeta(profile, 'local'))
+      },
+    }),
     list: defineCommand({
       meta: { name: 'list', description: 'List profiles' },
       args: profileArg,
@@ -261,12 +289,12 @@ const chatsCommand = defineCommand({
       args: { limit: { type: 'string', default: '100' }, cursor: { type: 'string' }, ...profileArg },
       async run(context) {
         const profile = profileFrom(context)
-        await withRuntime(profile, true, async runtime => emitRetryingTelegramResult(
+        await withRuntime(context, true, async runtime => emitRetryingTelegramResult(
           () => runtime.invokes.chats.list({
             limit: Number(context.args.limit),
             cursor: stringArg(context.args.cursor) || undefined,
           }),
-          outputMeta(profile, 'telegram'),
+          outputMeta(profile, 'telegram', runtime),
         ))
       },
     }),
@@ -289,7 +317,7 @@ const messagesCommand = defineCommand({
       },
       async run(context) {
         const profile = profileFrom(context)
-        await withRuntime(profile, true, async runtime => emitRetryingTelegramResult(
+        await withRuntime(context, true, async runtime => emitRetryingTelegramResult(
           () => runtime.invokes.messages.listRemote({
             chatId: stringArg(context.args.chat),
             limit: Number(context.args.limit),
@@ -298,7 +326,7 @@ const messagesCommand = defineCommand({
             from: parseTimestamp(stringArg(context.args.from)),
             to: parseTimestamp(stringArg(context.args.to)),
           }),
-          outputMeta(profile, 'telegram'),
+          outputMeta(profile, 'telegram', runtime),
         ))
       },
     }),
@@ -315,14 +343,14 @@ const messagesCommand = defineCommand({
       },
       async run(context) {
         const profile = profileFrom(context)
-        await withRuntime(profile, false, async runtime => emitResult(await runtime.invokes.messages.queryLocal({
+        await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.messages.queryLocal({
           chatIds: parseChatIds(stringArg(context.args.chat)),
           fromUserId: stringArg(context.args.sender) || undefined,
           limit: Number(context.args.limit),
           cursor: stringArg(context.args.cursor) || undefined,
           from: parseTimestamp(stringArg(context.args.from)),
           to: parseTimestamp(stringArg(context.args.to)),
-        }), outputMeta(profile, 'local')))
+        }), outputMeta(profile, 'local', runtime)))
       },
     }),
   },
@@ -340,14 +368,14 @@ const searchCommand = defineCommand({
   },
   async run(context) {
     const profile = profileFrom(context)
-    await withRuntime(profile, false, async runtime => emitResult(await runtime.invokes.messages.searchLocal({
+    await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.messages.searchLocal({
       query: context.args.query,
       chatIds: parseChatIds(context.args.chat),
       limit: Number(context.args.limit),
       useVector: false,
       from: parseTimestamp(context.args.from),
       to: parseTimestamp(context.args.to),
-    }), outputMeta(profile, 'local')))
+    }), outputMeta(profile, 'local', runtime)))
   },
 })
 
@@ -362,12 +390,12 @@ const contextCommand = defineCommand({
   },
   async run(context) {
     const profile = profileFrom(context)
-    await withRuntime(profile, false, async runtime => emitResult(await runtime.invokes.messages.contextLocal({
+    await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.messages.contextLocal({
       chatId: context.args.chat,
       messageId: context.args.message,
       before: Number(context.args.before),
       after: Number(context.args.after),
-    }), outputMeta(profile, 'local')))
+    }), outputMeta(profile, 'local', runtime)))
   },
 })
 
@@ -384,13 +412,13 @@ const statsCommand = defineCommand({
   async run(context) {
     const groupBy = context.args.groupBy as 'month' | 'chat' | 'sender'
     const profile = profileFrom(context)
-    await withRuntime(profile, false, async runtime => emitResult(await runtime.invokes.stats.get({
+    await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.stats.get({
       groupBy,
       timeZone: context.args.timezone,
       chatIds: parseChatIds(context.args.chat),
       from: parseTimestamp(context.args.from),
       to: parseTimestamp(context.args.to),
-    }), outputMeta(profile, 'local')))
+    }), outputMeta(profile, 'local', runtime)))
   },
 })
 
@@ -410,7 +438,7 @@ const syncCommand = defineCommand({
     if (!context.args.all && chatIds.length === 0)
       throw new Error('sync requires --chat <id[,id]> or --all')
     const profile = profileFrom(context)
-    await withRuntime(profile, true, async (runtime) => {
+    await withRuntime(context, true, async (runtime) => {
       await emitStreamResult(runtime.streams.sync({
         chatIds,
         all: context.args.all,
@@ -418,7 +446,7 @@ const syncCommand = defineCommand({
         limit: Number(context.args.limit),
         from: parseTimestamp(context.args.from),
         to: parseTimestamp(context.args.to),
-      }), outputMeta(profile, 'telegram'))
+      }), outputMeta(profile, 'telegram', runtime))
     })
   },
 })
@@ -486,8 +514,8 @@ const exportCommand = defineCommand({
   },
   async run(context) {
     const profile = profileFrom(context)
-    const paths = await ensureProfile(profile)
-    await withRuntime(profile, false, async (runtime) => {
+    const paths = resolveProfilePaths(profile)
+    await withRuntime(context, false, async (runtime) => {
       await emitStreamResult(runtime.streams.export({
         outputDir: resolveExportOutputPath(context.args.output, paths.exports),
         format: context.args.format as 'jsonl',
@@ -495,7 +523,7 @@ const exportCommand = defineCommand({
         chatIds: parseChatIds(context.args.chat),
         from: parseTimestamp(context.args.from),
         to: parseTimestamp(context.args.to),
-      }), outputMeta(profile, 'local'))
+      }), outputMeta(profile, 'local', runtime))
     })
   },
 })
@@ -520,13 +548,22 @@ export const main = defineCommand({
 export function normalizeRawArgs(args: string[]): string[] {
   const normalized: string[] = []
   let profile: string | undefined
+  let remote: string | undefined
   let index = 0
   while (index < args.length) {
     if (args[index] === '--json') {
       index += 1
       continue
     }
-    if (args[index] === '--profile' && args[index + 1] && !args[index + 1].startsWith('-')) {
+    if (args[index] === '--remote' && args[index + 1] && !args[index + 1].startsWith('-')) {
+      remote = args[index + 1]
+      index += 2
+    }
+    else if (args[index].startsWith('--remote=')) {
+      remote = args[index].slice('--remote='.length)
+      index += 1
+    }
+    else if (args[index] === '--profile' && args[index + 1] && !args[index + 1].startsWith('-')) {
       profile = args[index + 1]
       index += 2
     }
@@ -541,6 +578,8 @@ export function normalizeRawArgs(args: string[]): string[] {
   }
   if (profile !== undefined)
     normalized.push(`--profile=${profile}`)
+  if (remote !== undefined)
+    normalized.push(`--remote=${remote}`)
   return normalized
 }
 
@@ -553,6 +592,11 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
   const normalizedArgs = normalizeRawArgs(args)
   const profile = profileFromRawArgs(normalizedArgs)
   try {
+    if (['auth', 'daemon'].includes(normalizedArgs[0])) {
+      const config = await readProfileConfig(resolveProfilePaths(profile))
+      if (normalizedArgs.some(arg => arg.startsWith('--remote=')) || process.env.TG_SEARCH_REMOTE_URL !== undefined || config.remoteUrl !== undefined)
+        throw new Error('auth and daemon manage local profiles only; use a separate local profile')
+    }
     await runMain(main, { rawArgs: normalizedArgs })
   }
   catch (error) {

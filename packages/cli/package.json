@@ -31,5 +31,8 @@
     "citty": "0.1.6",
     "env-paths": "^4.0.0",
     "telegram": "2.26.22"
+  },
+  "devDependencies": {
+    "h3": "2.0.1-rc.26"
   }
 }
