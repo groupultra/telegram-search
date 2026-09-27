@@ -2,6 +2,10 @@
 
 Node/H3 server for Telegram Search.
 
+## ChatGPT Work / MCP
+
+An optional OAuth-protected `/mcp` endpoint exposes read-only search and fetch tools over the existing account index. See [ChatGPT Work setup](../../docs/chatgpt-work.md) for the external identity-provider requirements, environment variables, installation steps, and live-acceptance checklist. This is independent of the CLI access token and is disabled by default.
+
 ## Remote CLI access
 
 The authenticated read API is disabled by default. To enable it, configure both server secrets:

@@ -19,6 +19,8 @@ import pkg from '../package.json' with { type: 'json' }
 import { getAccountContext } from './account'
 import { v1api } from './apis/v1'
 import { setupWsRoutes } from './app'
+import { mcpConfigFromEnv } from './mcp/auth'
+import { setupMcpRoutes } from './mcp/routes'
 import { createRemoteApi, remoteAccessFromEnv } from './remote'
 import { createRemoteApplication } from './remote-application'
 import { getDB, initDrizzle } from './storage/drizzle'
@@ -76,6 +78,12 @@ function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
   }
 
   setupWsRoutes(app, config)
+
+  const mcpConfig = mcpConfigFromEnv(process.env)
+  if (mcpConfig) {
+    const application = createRemoteApplication(getDB(), mcpConfig.accountId)
+    setupMcpRoutes(app, mcpConfig, () => application)
+  }
 
   return app
 }
