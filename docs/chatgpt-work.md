@@ -20,6 +20,10 @@ ChatGPT authenticates with an external OAuth authorization server. The MCP servi
 
 The initial version is a personal deployment: one allowed OAuth subject is explicitly mapped to one existing TGS database account UUID. A valid token for another user or another resource is rejected. This is not a multi-tenant account-linking service. Telegram credentials never pass through ChatGPT.
 
+The scope allows reads across the configured account's index; there is no per-chat consent or row-level database role for the MCP client. Core queries enforce indexed chat membership and the existing private-message owner policy. Membership is not refreshed from Telegram on each request. Legacy private-message rows with NULL ownership keep the Core compatibility behavior and do not provide strict tenant isolation. The database, server operator, and configured identity provider are trusted.
+
+OAuth protects `/mcp` only. It does not protect the pre-existing `/ws` or media routes. Configure the integration ingress to expose only `/mcp` and its discovery endpoints; keep the web/media surface behind separate access control. Source URLs use that separately protected web surface. Tool annotations such as `readOnlyHint` describe behavior; authorization is enforced by token verification, fixed account mapping, and database predicates, not by the annotation. Search text can appear in existing Core debug logs, so disable production debug logging and apply your log-retention policy.
+
 Configure an OAuth provider that supports the authorization-code flow with S256 PKCE and resource indicators. Its discovery metadata must advertise the appropriate authorization/token endpoints and `code_challenge_methods_supported: ["S256"]`. Use a predefined OAuth client or supported client registration. The provider must issue RS256 or ES256 JWT access tokens with:
 
 - `iss`: exactly the configured issuer, including its trailing slash if present.

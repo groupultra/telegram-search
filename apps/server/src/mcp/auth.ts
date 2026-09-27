@@ -1,7 +1,8 @@
 import type { JWTVerifyGetKey } from 'jose'
 
-import { normalizeRemoteUrl } from '@tg-search/protocol'
+import { accountIdSchema, normalizeRemoteUrl } from '@tg-search/protocol'
 import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { parse } from 'valibot'
 
 export const MCP_SCOPE = 'telegram:read'
 
@@ -29,9 +30,7 @@ export function mcpConfigFromEnv(env: Record<string, string | undefined>): McpCo
     throw new Error('TG_SEARCH_MCP_RESOURCE_URL must have path /mcp')
   const issuer = required('ISSUER')
   normalizeRemoteUrl(issuer)
-  const accountId = required('ACCOUNT_ID')
-  if (!/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(accountId))
-    throw new Error('TG_SEARCH_MCP_ACCOUNT_ID must be a database account UUID')
+  const accountId = parse(accountIdSchema, required('ACCOUNT_ID'))
   return {
     resource,
     issuer,
