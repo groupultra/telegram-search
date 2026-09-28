@@ -23,7 +23,11 @@ export function createWebSocketApplicationBridge(getSocket: () => WebSocket | un
       onmessage: null,
       onopen: null,
     }
-    const forwardMessage = (event: MessageEvent) => facade.onmessage?.call(socket, event)
+    const forwardMessage = (event: MessageEvent) => {
+      if (event.data === '{"type":"server:pong"}')
+        return
+      facade.onmessage?.call(socket, event)
+    }
     const forwardClose = (event: CloseEvent) => facade.onclose?.call(socket, event)
     const forwardError = (event: Event) => facade.onerror?.call(socket, event)
     socket.addEventListener('message', forwardMessage)

@@ -154,6 +154,11 @@ export function setupWsRoutes(app: H3, config: Config) {
     },
 
     async message(peer, message) {
+      if (message.text() === '{"type":"server:ping"}') {
+        peer.send('{"type":"server:pong"}')
+        return
+      }
+
       const accountId = peerToAccountId.get(peer.id)
       if (!accountId) {
         logger.withFields({ peerId: peer.id }).warn('Peer not associated with account')
