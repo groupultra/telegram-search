@@ -4,6 +4,7 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
+import { createQrLogin } from '../composables/qr-login'
 import { useBridge } from '../composables/useBridge'
 import { IS_CORE_MODE, TELEGRAM_APP_HASH, TELEGRAM_APP_ID } from '../constants'
 import { useChatStore } from './useChat'
@@ -13,6 +14,7 @@ import { useSessionStore } from './useSession'
 export const useAccountStore = defineStore('account', () => {
   const logger = useLogger('AccountStore')
   const bridge = useBridge()
+  const qrLogin = createQrLogin(bridge.sendEvent)
   const sessionStore = useSessionStore()
 
   // --- Auth State ---
@@ -98,6 +100,7 @@ export const useAccountStore = defineStore('account', () => {
     }
 
     function switchAccount(sessionId: string) {
+      qrLogin.cancel()
       // When switching accounts, clear message window/state so that chats
       // from the previous account do not bleed into the new one.
       useMessageStore().reset()
@@ -106,6 +109,7 @@ export const useAccountStore = defineStore('account', () => {
     }
 
     function addNewAccount() {
+      qrLogin.cancel()
       sessionStore.addNewAccount()
       resetReady()
     }
@@ -120,6 +124,7 @@ export const useAccountStore = defineStore('account', () => {
   // --- Actions: Account Lifecycle ---
 
   function markReady() {
+    qrLogin.clear()
     if (isReady.value)
       return
 
@@ -195,6 +200,7 @@ export const useAccountStore = defineStore('account', () => {
 
   return {
     // State
+    qrLogin,
     auth: authStatus,
     accountSettings,
     hasFetchedSettings,

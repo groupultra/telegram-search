@@ -13,7 +13,12 @@ export function registerAuthEventHandlers(ctx: CoreContext, logger: Logger) {
   return (
     configuredConnectionService: ConnectionService,
   ) => {
-    ctx.emitter.on(CoreEventType.AuthLogin, async ({ phoneNumber, session }) => {
+    ctx.emitter.on(CoreEventType.AuthQrCancel, ({ attemptId }) => configuredConnectionService.cancelQrLogin(attemptId))
+
+    ctx.emitter.on(CoreEventType.AuthLogin, async ({ phoneNumber, session, qrAttemptId }) => {
+      if (qrAttemptId)
+        return configuredConnectionService.loginWithQrCode(qrAttemptId)
+
       if (phoneNumber) {
         return configuredConnectionService.loginWithPhone(phoneNumber)
       }

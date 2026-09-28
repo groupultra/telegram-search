@@ -119,6 +119,18 @@
     "home": "主页"
   },
   "login": {
+    "qrTitle": "二维码登录",
+    "qrDescription": "使用手机上的 Telegram 扫码登录。",
+    "useQr": "使用二维码登录",
+    "usePhone": "使用手机号登录",
+    "qrOpenTelegram": "打开手机上的 Telegram。",
+    "qrOpenDevices": "进入设置 → 设备 → 连接桌面设备。",
+    "qrScan": "扫描二维码并确认登录。",
+    "qrAutoRefresh": "二维码会自动刷新。",
+    "qrError": "无法开始扫码登录，请检查连接后重试。",
+    "qrExpired": "本次登录已过期。",
+    "qrRetry": "获取新二维码",
+    "qrPasswordInvalid": "密码不正确，请重试。",
     "code": "验证码",
     "changePhone": "更换手机号",
     "codeDescription": "请输入 Telegram 内的验证码",

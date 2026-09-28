@@ -2,6 +2,10 @@
 
 Node/H3 server for Telegram Search.
 
+## Web QR login
+
+QR login uses the existing `/ws` connection and Core authentication service. QR tokens and password prompts are delivered only to the peer that started the matching attempt. Closing that peer cancels its pending login without destroying an established account runtime. The existing web surface still requires its own access control; QR login does not change that security boundary.
+
 ## Remote CLI access
 
 The authenticated read API is disabled by default. To enable it, configure both server secrets:

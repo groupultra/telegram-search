@@ -11,6 +11,9 @@ export function registerBasicEventHandlers(
 ) {
   const logger = useLogger('Auth')
 
+  registerEventHandler(CoreEventType.AuthQrCode, data => useAccountStore().qrLogin.receiveCode(data))
+  registerEventHandler(CoreEventType.AuthQrState, data => useAccountStore().qrLogin.receiveState(data))
+
   registerEventHandler(CoreEventType.AuthCodeNeeded, () => {
     useAccountStore().auth.needCode = true
     useAccountStore().auth.isLoading = false
@@ -22,10 +25,12 @@ export function registerBasicEventHandlers(
   })
 
   registerEventHandler(CoreEventType.AuthConnected, () => {
+    useAccountStore().qrLogin.clear()
     logger.log('Auth connected')
   })
 
   registerEventHandler(CoreEventType.AuthDisconnected, () => {
+    useAccountStore().qrLogin.cancel()
     logger.log('Auth disconnected, cleaning up session metadata')
     useAccountStore().resetReady()
   })

@@ -12,6 +12,10 @@ export enum CoreEventType {
   CoreError = 'core:error',
 
   AuthLogin = 'auth:login',
+  AuthQrCancel = 'auth:qr:cancel',
+  AuthQrPassword = 'auth:qr:password',
+  AuthQrCode = 'auth:qr:code',
+  AuthQrState = 'auth:qr:state',
   AuthLogout = 'auth:logout',
   AuthCode = 'auth:code',
   AuthPassword = 'auth:password',
@@ -110,13 +114,17 @@ export interface ClientInstanceEventFromCore {
 // ============================================================================
 
 export interface ConnectionEventToCore {
-  [CoreEventType.AuthLogin]: (data: { phoneNumber?: string, session?: string }) => void
+  [CoreEventType.AuthLogin]: (data: { phoneNumber?: string, session?: string, qrAttemptId?: string }) => void
+  [CoreEventType.AuthQrCancel]: (data: { attemptId: string }) => void
+  [CoreEventType.AuthQrPassword]: (data: { attemptId: string, password: string }) => void
   [CoreEventType.AuthLogout]: () => void
   [CoreEventType.AuthCode]: (data: { code: string }) => void
   [CoreEventType.AuthPassword]: (data: { password: string }) => void
 }
 
 export interface ConnectionEventFromCore {
+  [CoreEventType.AuthQrCode]: (data: { attemptId: string, url: string, expires: number }) => void
+  [CoreEventType.AuthQrState]: (data: { attemptId: string, status: 'password' | 'password-invalid' | 'error' | 'cancelled' | 'expired' }) => void
   [CoreEventType.AuthCodeNeeded]: () => void
   [CoreEventType.AuthPasswordNeeded]: () => void
   [CoreEventType.AuthConnected]: () => void

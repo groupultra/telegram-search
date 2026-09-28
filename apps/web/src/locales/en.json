@@ -119,6 +119,18 @@
     "home": "Home"
   },
   "login": {
+    "qrTitle": "QR code login",
+    "qrDescription": "Scan with Telegram on your phone to sign in.",
+    "useQr": "Log in with QR code",
+    "usePhone": "Log in with phone number",
+    "qrOpenTelegram": "Open Telegram on your phone.",
+    "qrOpenDevices": "Go to Settings → Devices → Link Desktop Device.",
+    "qrScan": "Scan this code and confirm the login.",
+    "qrAutoRefresh": "The QR code refreshes automatically.",
+    "qrError": "Could not start QR login. Check your connection and try again.",
+    "qrExpired": "This login attempt has expired.",
+    "qrRetry": "Get a new QR code",
+    "qrPasswordInvalid": "Incorrect password. Please try again.",
     "code": "Code",
     "changePhone": "Change phone number",
     "codeDescription": "Please enter the verification code from Telegram",

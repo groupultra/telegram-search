@@ -10,6 +10,7 @@ import type {
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 
 import { useLogger } from '@guiiai/logg'
+import { CoreEventType } from '@tg-search/core'
 import { useWebSocket } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { computed, watch } from 'vue'
@@ -18,6 +19,7 @@ import { toast } from 'vue-sonner'
 import { WS_API_BASE } from '../constants'
 import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
+import { useAccountStore } from '../stores/useAccount'
 import { useSessionStore } from '../stores/useSession'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { createWebSocketApplicationBridge } from './eventa-websocket'
@@ -46,6 +48,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
 
   // Explicit type to allow undefined URL to pause connection
   let wsSocket: ReturnType<typeof useWebSocket<keyof WsMessageToClient>>
+  let pendingQrLogin: { attemptId: string, message: WsMessageToServer } | undefined
 
   const createWsMessage: ClientCreateWsMessageFn = (type, data) => {
     return { type, data } as WsMessageToServer
@@ -53,9 +56,20 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
 
   function sendEvent<T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) {
     if (event !== 'server:event:register')
-      logger.debug('Sending event', event, data)
+      logger.debug('Sending event', event)
 
-    wsSocket.send(JSON.stringify(createWsMessage(event, data)))
+    const message = createWsMessage(event, data)
+    if (message.type === CoreEventType.AuthQrCancel && message.data.attemptId === pendingQrLogin?.attemptId) {
+      pendingQrLogin = undefined
+      return
+    }
+    if (message.type === CoreEventType.AuthLogin && message.data.qrAttemptId && wsSocket.status.value !== 'OPEN') {
+      pendingQrLogin = { attemptId: message.data.qrAttemptId, message }
+      if (wsSocket.status.value !== 'CONNECTING')
+        wsSocket.open()
+      return
+    }
+    wsSocket.send(JSON.stringify(message))
   }
 
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
@@ -63,6 +77,11 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
   function handleWsConnected() {
     logger.log('Connected')
     registerAllEventHandlers(registerEventHandler)
+    if (pendingQrLogin) {
+      const { message } = pendingQrLogin
+      pendingQrLogin = undefined
+      wsSocket.send(JSON.stringify(message))
+    }
   }
 
   // useWebSocket automatically handles reconnection when url changes
@@ -70,6 +89,9 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     onConnected: handleWsConnected,
     onDisconnected: () => {
       logger.log('Disconnected')
+      const qrLogin = useAccountStore().qrLogin
+      if (qrLogin.state.attemptId)
+        qrLogin.receiveState({ attemptId: qrLogin.state.attemptId, status: 'error' })
       toast.error('WebSocket disconnected')
     },
     // Only connect when URL is defined
@@ -102,7 +124,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     logger.withFields({ event }).debug('Waiting for event')
     return new Promise<WsEventToClientData<T>>((resolve) => {
       enqueueEventHandler(eventHandlersQueue, event, (data: WsEventToClientData<T>) => {
-        logger.withFields({ event, data }).debug('Resolving event')
+        logger.withFields({ event }).debug('Resolving event')
         resolve(data)
       }, predicate)
     })
@@ -114,7 +136,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     try {
       const message = JSON.parse(rawMessage) as WsMessageToClient
       if (eventHandlers.has(message.type)) {
-        logger.debug('Message received', message)
+        logger.debug('Message received', message.type)
       }
       if (eventHandlers.has(message.type)) {
         const fn = eventHandlers.get(message.type)
@@ -123,17 +145,17 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
             fn(message.data)
         }
         catch (error) {
-          logger.withError(error).withFields({ message }).error('Error handling event')
+          logger.withError(error).withFields({ type: message.type }).error('Error handling event')
         }
       }
       if (eventHandlersQueue.has(message.type)) {
         drainEventQueue(eventHandlersQueue, message.type, message.data, (error) => {
-          logger.withError(error).withFields({ message }).error('Error handling queued event')
+          logger.withError(error).withFields({ type: message.type }).error('Error handling queued event')
         })
       }
     }
     catch (error) {
-      logger.error('Invalid message', rawMessage, error)
+      logger.withError(error).error('Invalid message')
     }
   })
 

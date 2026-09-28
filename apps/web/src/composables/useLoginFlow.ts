@@ -1,11 +1,11 @@
 import { useAccountStore, useAvatarStore, useSessionStore } from '@tg-search/client'
 import { storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onDeactivated, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
-export type LoginStep = 'phone' | 'code' | 'password' | 'complete'
+export type LoginStep = 'phone' | 'qr' | 'code' | 'password' | 'complete'
 
 export function useLoginFlow() {
   const { t } = useI18n()
@@ -16,12 +16,21 @@ export function useLoginFlow() {
   const { activeSession } = storeToRefs(useSessionStore())
   const avatarStore = useAvatarStore()
   const { isReady } = storeToRefs(accountStore)
+  const qrMode = ref(false)
 
   const state = ref({
     currentStep: 'phone' as LoginStep,
     phoneNumber: '',
     verificationCode: '',
     twoFactorPassword: '',
+  })
+
+  onBeforeUnmount(() => accountStore.qrLogin.cancel())
+  onDeactivated(() => {
+    accountStore.qrLogin.cancel()
+    qrMode.value = false
+    state.value.currentStep = 'phone'
+    state.value.twoFactorPassword = ''
   })
 
   accountStore.auth.needCode = false
@@ -33,6 +42,31 @@ export function useLoginFlow() {
     submitCode,
     submitPassword,
   } = accountStore.handleAuth()
+
+  function startQrLogin() {
+    qrMode.value = true
+    state.value.currentStep = 'qr'
+    state.value.twoFactorPassword = ''
+    accountStore.qrLogin.start()
+  }
+
+  function usePhoneLogin() {
+    accountStore.qrLogin.cancel()
+    qrMode.value = false
+    accountStore.auth.isLoading = false
+    state.value.currentStep = 'phone'
+    state.value.twoFactorPassword = ''
+  }
+
+  watch(() => accountStore.qrLogin.state.status, (status) => {
+    if (!qrMode.value)
+      return
+    accountStore.auth.isLoading = status === 'submitting'
+    if (status === 'password')
+      state.value.currentStep = 'password'
+    else if (status === 'error' || status === 'expired')
+      state.value.currentStep = 'qr'
+  })
 
   watch(() => accountStore.auth.needCode, (value) => {
     if (value) {
@@ -59,12 +93,18 @@ export function useLoginFlow() {
     }
   }, { immediate: true })
 
-  const steps = computed(() => [
-    { step: 1, value: 'phone', title: t('login.phone'), description: t('login.phoneDescription') },
-    { step: 2, value: 'code', title: t('login.code'), description: t('login.codeDescription') },
-    { step: 3, value: 'password', title: t('login.password'), description: t('login.passwordDescription') },
-    { step: 4, value: 'complete', title: t('login.complete'), description: t('login.completeDescription') },
-  ])
+  const steps = computed(() => qrMode.value
+    ? [
+        { step: 1, value: 'qr', title: t('login.qrTitle'), description: t('login.qrDescription') },
+        { step: 2, value: 'password', title: t('login.password'), description: t('login.passwordDescription') },
+        { step: 3, value: 'complete', title: t('login.complete'), description: t('login.completeDescription') },
+      ]
+    : [
+        { step: 1, value: 'phone', title: t('login.phone'), description: t('login.phoneDescription') },
+        { step: 2, value: 'code', title: t('login.code'), description: t('login.codeDescription') },
+        { step: 3, value: 'password', title: t('login.password'), description: t('login.passwordDescription') },
+        { step: 4, value: 'complete', title: t('login.complete'), description: t('login.completeDescription') },
+      ])
 
   function redirectRoot() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : undefined
@@ -83,11 +123,15 @@ export function useLoginFlow() {
           submitCode(state.value.verificationCode)
           break
         case 'password':
-          submitPassword(state.value.twoFactorPassword)
+          if (qrMode.value)
+            accountStore.qrLogin.submitPassword(state.value.twoFactorPassword)
+          else
+            submitPassword(state.value.twoFactorPassword)
           break
       }
     }
     catch (error) {
+      accountStore.auth.isLoading = false
       toast.error(error instanceof Error ? error.message : String(error))
     }
   }
@@ -98,5 +142,8 @@ export function useLoginFlow() {
     steps,
     handleLogin,
     redirectRoot,
+    startQrLogin,
+    usePhoneLogin,
+    qrMode,
   }
 }
