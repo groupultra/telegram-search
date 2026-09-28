@@ -180,16 +180,13 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
         return Ok(client)
       }
       catch (error) {
+        if (!retained)
+          await destroyCandidate(client)
         ctx.emitter.emit(CoreEventType.AuthError)
         if (error instanceof RPCError && (error.code === 401 || error.errorMessage === 'AUTH_KEY_DUPLICATED')) {
           ctx.emitter.emit(CoreEventType.AuthDisconnected)
         }
         return Err(ctx.withError(error, 'Failed to login with session'))
-      }
-      finally {
-        if (!retained) {
-          await destroyCandidate(client)
-        }
       }
     })
   }
@@ -228,13 +225,10 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
         return Ok(client)
       }
       catch (error) {
+        if (!retained)
+          await destroyCandidate(client)
         ctx.emitter.emit(CoreEventType.AuthError)
         return Err(ctx.withError(error, 'Failed to login with phone'))
-      }
-      finally {
-        if (!retained) {
-          await destroyCandidate(client)
-        }
       }
     })
   }
@@ -261,7 +255,6 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
           return password
         },
         onError: (error) => {
-          ctx.emitter.emit(CoreEventType.AuthError)
           reject(ctx.withError(error, 'Failed to sign in to Telegram'))
         },
       })

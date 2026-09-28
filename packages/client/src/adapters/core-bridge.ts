@@ -41,8 +41,11 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
 
     logger.withFields({ oldId, newId }).debug('Active session changed, destroying CoreContext')
     application.reset().then(() => coreRuntime.destroy()).then(() => {
+      if (newId !== activeSessionId.value)
+        return
       // Re-register handlers for the new context
       registerAllEventHandlers(registerEventHandler)
+      sendWsEvent({ type: 'server:connected', data: { sessionId: newId || '', accountReady: false } })
     }).catch((error) => {
       logger.withError(error).error('Failed to destroy CoreContext on account switch')
     })

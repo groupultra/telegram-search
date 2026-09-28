@@ -11,6 +11,7 @@ const telegramMock = vi.hoisted(() => {
   const nextConnect: Array<() => Promise<boolean>> = []
   const nextAuthorization: boolean[] = []
   const nextStateErrors: Error[] = []
+  const nextDestroy: Array<() => Promise<void>> = []
 
   class TelegramClient {
     connected = false
@@ -30,13 +31,13 @@ const telegramMock = vi.hoisted(() => {
           throw error
       })
       this.signInUser = vi.fn()
-      this.destroy = vi.fn(async () => undefined)
+      this.destroy = vi.fn(nextDestroy.shift() ?? (async () => undefined))
       this.session = { save: vi.fn(async () => 'saved-session') }
       clients.push(this)
     }
   }
 
-  return { clients, nextAuthorization, nextConnect, nextStateErrors, TelegramClient }
+  return { clients, nextAuthorization, nextConnect, nextStateErrors, nextDestroy, TelegramClient }
 })
 
 vi.mock('telegram', () => ({
@@ -84,11 +85,33 @@ afterEach(() => {
   telegramMock.nextAuthorization.length = 0
   telegramMock.nextConnect.length = 0
   telegramMock.nextStateErrors.length = 0
+  telegramMock.nextDestroy.length = 0
   vi.useRealTimers()
   vi.clearAllMocks()
 })
 
 describe('connection service login lifecycle', () => {
+  it('notifies recovery only after slow failed-login cleanup has finished', async () => {
+    vi.useFakeTimers()
+    const { ctx, service } = createService()
+    const authError = vi.fn(() => {
+      setTimeout(() => {
+        void service.loginWithSession('session')
+      }, 2000)
+    })
+    ctx.emitter.on(CoreEventType.AuthError, authError)
+    telegramMock.nextConnect.push(async () => {
+      throw new Error('network failed')
+    })
+    telegramMock.nextDestroy.push(() => new Promise(resolve => setTimeout(resolve, 5000)))
+    const first = service.loginWithSession('session')
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(authError).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(3000)
+    await first
+    expect(telegramMock.clients).toHaveLength(2)
+    expect(ctx.setClient).toHaveBeenCalledWith(telegramMock.clients[1])
+  })
   it('allows Telegram client retries to complete after the former five-second deadline', async () => {
     vi.useFakeTimers()
     const { ctx, service } = createService()
