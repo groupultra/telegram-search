@@ -133,6 +133,8 @@ docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-se
 > [!IMPORTANT]
 > AI Embedding & LLM settings are now **per-account** in-app (Settings → API).
 >
+> Multiple LLM providers are supported, including [OpenAI](https://platform.openai.com/), [MiniMax](https://www.minimaxi.com/), and other OpenAI-compatible API services. Select a provider on the settings page to auto-fill the API endpoint and default model.
+>
 > Please restart the service after modifying the `.env` file by running `docker compose -f docker-compose.yml up -d`.
 
 All environment variables are optional. If not provided, the default values will be used.
