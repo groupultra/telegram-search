@@ -171,4 +171,14 @@ describe('webSocket session recovery', () => {
     const recovered = await connect()
     expect(recovered.sent.some(data => JSON.parse(data).type === CoreEventType.AuthLogout)).toBe(false)
   })
+
+  it('removes the local session even when logout cannot reach the server', async () => {
+    const socket = await connect()
+    socket.close()
+    await nextTick()
+    expect(() => useAccountStore().handleAuth().logout()).toThrow('WebSocket is not connected')
+    expect(useSessionStore().activeSession).toBeUndefined()
+    await vi.advanceTimersByTimeAsync(10000)
+    expect(TestSocket.sockets).toHaveLength(1)
+  })
 })

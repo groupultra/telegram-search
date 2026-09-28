@@ -103,10 +103,12 @@ export const useAccountStore = defineStore('account', () => {
 
     function logout() {
       stopRecovery()
-      // 1. Notify backend (while connection still alive)
-      bridge.sendEvent(CoreEventType.AuthLogout, undefined)
-      // 2. Remove local session
-      sessionStore.removeCurrentAccount()
+      try {
+        bridge.sendEvent(CoreEventType.AuthLogout, undefined)
+      }
+      finally {
+        sessionStore.removeCurrentAccount()
+      }
     }
 
     function switchAccount(sessionId: string) {
