@@ -364,7 +364,7 @@ watch(
             type="text"
             :placeholder="t('chat.typeAMessage')"
             class="h-10 w-full border-transparent bg-transparent pl-14 pr-14 text-base text-foreground shadow-none transition-all md:h-14 placeholder:text-foreground/45 focus-visible:ring-0"
-            @keyup.enter="sendMessage"
+            @keyup.shift.enter="sendMessage"
           />
           <div class="absolute right-2 flex items-center gap-1">
             <Button
