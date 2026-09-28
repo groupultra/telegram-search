@@ -27,7 +27,7 @@ export function registerBasicEventHandlers(
 
   registerEventHandler(CoreEventType.AuthDisconnected, () => {
     logger.log('Auth disconnected, cleaning up session metadata')
-    useAccountStore().resetReady()
+    useAccountStore().stopRecovery()
   })
 
   // Core forwards updated StringSession to the client; let bridge store decide
@@ -39,6 +39,6 @@ export function registerBasicEventHandlers(
   })
 
   registerEventHandler(CoreEventType.AuthError, () => {
-    useAccountStore().auth.isLoading = false
+    useAccountStore().retryLogin()
   })
 }

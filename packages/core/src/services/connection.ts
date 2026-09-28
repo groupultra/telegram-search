@@ -8,6 +8,7 @@ import type { CoreContext } from '../context'
 import { isBrowser, parseProxyUrl } from '@tg-search/common'
 import { Err, Ok } from '@unbird/result'
 import { Api, TelegramClient } from 'telegram'
+import { RPCError } from 'telegram/errors'
 import { ConnectionTCPObfuscated } from 'telegram/network'
 import { StringSession } from 'telegram/sessions'
 
@@ -156,14 +157,7 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
         client = (await init(session)).expect('Failed to initialize Telegram client')
         await connectOrThrow(client)
 
-        const isAuthorized = await client.isUserAuthorized()
-        if (!isAuthorized) {
-          // Surface this as an auth-specific error so the frontend can fall
-          // back to manual login and optionally clear the stored session.
-          ctx.emitter.emit(CoreEventType.AuthError)
-          ctx.emitter.emit(CoreEventType.AuthDisconnected)
-          return Err(ctx.withError('User is not authorized'))
-        }
+        await client.invoke(new Api.updates.GetState())
 
         // NOTE: The client will return string session, so forward it to frontend
         const sessionString = String(await client.session.save())
@@ -186,13 +180,13 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
         return Ok(client)
       }
       catch (error) {
-        ctx.emitter.emit(CoreEventType.AuthError)
-        return Err(ctx.withError(error, 'Failed to login with session'))
-      }
-      finally {
-        if (!retained) {
+        if (!retained)
           await destroyCandidate(client)
+        ctx.emitter.emit(CoreEventType.AuthError)
+        if (error instanceof RPCError && (error.code === 401 || error.errorMessage === 'AUTH_KEY_DUPLICATED')) {
+          ctx.emitter.emit(CoreEventType.AuthDisconnected)
         }
+        return Err(ctx.withError(error, 'Failed to login with session'))
       }
     })
   }
@@ -231,13 +225,10 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
         return Ok(client)
       }
       catch (error) {
+        if (!retained)
+          await destroyCandidate(client)
         ctx.emitter.emit(CoreEventType.AuthError)
         return Err(ctx.withError(error, 'Failed to login with phone'))
-      }
-      finally {
-        if (!retained) {
-          await destroyCandidate(client)
-        }
       }
     })
   }

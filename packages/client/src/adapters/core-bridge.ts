@@ -8,7 +8,7 @@ import { useLogger } from '@guiiai/logg'
 import { deepClone, generateDefaultConfig } from '@tg-search/common'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
-import { ref, watch } from 'vue'
+import { onScopeDispose, ref, watch } from 'vue'
 
 import { DEV_MODE, IS_CORE_MODE, TELEGRAM_APP_HASH, TELEGRAM_APP_ID } from '../constants'
 import { useSetupPGliteDevtools } from '../devtools/pglite-devtools'
@@ -20,7 +20,7 @@ import { initDB } from './core-db'
 import { createCoreRuntime } from './core-runtime'
 import { createLocalApplicationBridge } from './eventa-local'
 
-export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
+export function createCoreBridgeAdapter(createRuntime = createCoreRuntime) {
   const sessionStore = useSessionStore()
   const { activeSessionId } = storeToRefs(sessionStore)
   const logger = useLogger('CoreBridge')
@@ -29,8 +29,16 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
   const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
   const isInitialized = ref(false)
   const config = useLocalStorage<Config>('core-bridge/config', generateDefaultConfig())
-  const coreRuntime = createCoreRuntime(config, logger)
-  const application = createLocalApplicationBridge(() => coreRuntime.getCtx())
+  const coreRuntime = createRuntime(config, logger)
+  let generation = 0
+  let switching = false
+  let disposed = false
+  let transition = Promise.resolve()
+  const application = createLocalApplicationBridge(() => {
+    if (switching || disposed)
+      throw new Error('Core account is switching or disposed')
+    return coreRuntime.getCtx()
+  })
 
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
 
@@ -40,12 +48,29 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
       return
 
     logger.withFields({ oldId, newId }).debug('Active session changed, destroying CoreContext')
-    application.reset().then(() => coreRuntime.destroy()).then(() => {
+    const nextGeneration = ++generation
+    switching = true
+    transition = transition.then(async () => {
+      await application.reset()
+      await coreRuntime.destroy()
+      if (disposed || nextGeneration !== generation)
+        return
       // Re-register handlers for the new context
       registerAllEventHandlers(registerEventHandler)
+      switching = false
+      sendWsEvent({ type: 'server:connected', data: { sessionId: newId || '', accountReady: false } })
     }).catch((error) => {
       logger.withError(error).error('Failed to destroy CoreContext on account switch')
     })
+  }, { flush: 'sync' })
+
+  onScopeDispose(() => {
+    disposed = true
+    generation++
+    transition = transition.then(async () => {
+      await application.dispose()
+      await coreRuntime.destroy()
+    }).catch(error => logger.withError(error).error('Failed to dispose CoreContext'))
   })
 
   function ensureCtx() {
@@ -53,6 +78,8 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
   }
 
   function sendEvent<T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) {
+    if (disposed || (switching && event !== 'server:event:register'))
+      throw new Error('Core account is switching or disposed')
     const ctx = ensureCtx()!
     logger.withFields({ event, data }).debug('Receive event from client')
 
@@ -60,9 +87,12 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
       if (event === 'server:event:register') {
         data = data as WsEventToServerData<'server:event:register'>
         const eventName = data.event as keyof FromCoreEvent
+        const eventGeneration = generation
 
         if (!eventName.startsWith('server:')) {
           const fn = (payload: WsEventToClientData<keyof FromCoreEvent>) => {
+            if (disposed || eventGeneration !== generation)
+              return
             logger.withFields({ eventName }).debug('Sending event to client')
             const message = {
               type: eventName as unknown as WsMessageToClient['type'],
@@ -153,7 +183,9 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
     sendEvent,
     waitForEvent,
   }
-})
+}
+
+export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => createCoreBridgeAdapter())
 
 if (import.meta.hot) {
   import.meta.hot.accept(acceptHMRUpdate(useCoreBridgeAdapter, import.meta.hot))

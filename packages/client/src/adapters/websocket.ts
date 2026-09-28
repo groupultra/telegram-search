@@ -10,14 +10,15 @@ import type {
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 
 import { useLogger } from '@guiiai/logg'
-import { useWebSocket } from '@vueuse/core'
+import { useEventListener, useWebSocket } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
-import { computed, watch } from 'vue'
+import { computed, onScopeDispose } from 'vue'
 import { toast } from 'vue-sonner'
 
 import { WS_API_BASE } from '../constants'
 import { getRegisterEventHandler } from '../event-handlers'
 import { registerAllEventHandlers } from '../event-handlers/register'
+import { useAccountStore } from '../stores/useAccount'
 import { useSessionStore } from '../stores/useSession'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { createWebSocketApplicationBridge } from './eventa-websocket'
@@ -30,6 +31,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
   const sessionStore = useSessionStore()
   const { activeSessionId } = storeToRefs(sessionStore)
   const logger = useLogger('WebSocket')
+  let disposed = false
 
   const wsUrlComputed = computed(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -55,7 +57,8 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     if (event !== 'server:event:register')
       logger.debug('Sending event', event, data)
 
-    wsSocket.send(JSON.stringify(createWsMessage(event, data)))
+    if (!wsSocket.send(JSON.stringify(createWsMessage(event, data)), false))
+      throw new Error('WebSocket is not connected')
   }
 
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
@@ -68,24 +71,36 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
   // useWebSocket automatically handles reconnection when url changes
   wsSocket = useWebSocket<keyof WsMessageToClient>(wsUrlComputed, {
     onConnected: handleWsConnected,
-    onDisconnected: () => {
+    onDisconnected: (socket) => {
+      if (disposed || socket !== wsSocket.ws.value)
+        return
       logger.log('Disconnected')
+      useAccountStore().resetReady()
       toast.error('WebSocket disconnected')
+    },
+    autoReconnect: { retries: -1, delay: 2000 },
+    heartbeat: {
+      message: '{"type":"server:ping"}',
+      responseMessage: '{"type":"server:pong"}',
+      interval: 30000,
+      pongTimeout: 10000,
+    },
+    onMessage: (socket, event) => {
+      if (!disposed && socket === wsSocket.ws.value && wsSocket.status.value === 'OPEN')
+        handleMessage(event.data)
     },
     // Only connect when URL is defined
     immediate: !!wsUrlComputed.value,
   })
   const application = createWebSocketApplicationBridge(() => wsSocket.ws.value)
+  onScopeDispose(() => {
+    disposed = true
+    void application.dispose?.()
+  })
 
-  // Explicitly watch URL to open/close if it transitions between undefined/defined
-  watch(wsUrlComputed, (url) => {
-    if (url) {
-      // useWebSocket might not auto-open if it started as undefined
+  useEventListener(window, 'online', () => {
+    if (wsUrlComputed.value && wsSocket.status.value === 'CLOSED')
       wsSocket.open()
-    }
-    else {
-      wsSocket.close()
-    }
   })
 
   async function init() {
@@ -108,7 +123,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     })
   }
 
-  watch(wsSocket.data, (rawMessage) => {
+  function handleMessage(rawMessage: string) {
     if (!rawMessage)
       return
     try {
@@ -135,7 +150,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     catch (error) {
       logger.error('Invalid message', rawMessage, error)
     }
-  })
+  }
 
   return {
     application,
