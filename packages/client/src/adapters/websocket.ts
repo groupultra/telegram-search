@@ -10,6 +10,7 @@ import type {
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 
 import { useLogger } from '@guiiai/logg'
+import { CoreEventType } from '@tg-search/core'
 import { useWebSocket } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { computed, watch } from 'vue'
@@ -47,6 +48,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
 
   // Explicit type to allow undefined URL to pause connection
   let wsSocket: ReturnType<typeof useWebSocket<keyof WsMessageToClient>>
+  let pendingQrLogin: { attemptId: string, message: WsMessageToServer } | undefined
 
   const createWsMessage: ClientCreateWsMessageFn = (type, data) => {
     return { type, data } as WsMessageToServer
@@ -56,7 +58,18 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     if (event !== 'server:event:register')
       logger.debug('Sending event', event)
 
-    wsSocket.send(JSON.stringify(createWsMessage(event, data)))
+    const message = createWsMessage(event, data)
+    if (message.type === CoreEventType.AuthQrCancel && message.data.attemptId === pendingQrLogin?.attemptId) {
+      pendingQrLogin = undefined
+      return
+    }
+    if (message.type === CoreEventType.AuthLogin && message.data.qrAttemptId && wsSocket.status.value !== 'OPEN') {
+      pendingQrLogin = { attemptId: message.data.qrAttemptId, message }
+      if (wsSocket.status.value !== 'CONNECTING')
+        wsSocket.open()
+      return
+    }
+    wsSocket.send(JSON.stringify(message))
   }
 
   const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
@@ -64,6 +77,11 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
   function handleWsConnected() {
     logger.log('Connected')
     registerAllEventHandlers(registerEventHandler)
+    if (pendingQrLogin) {
+      const { message } = pendingQrLogin
+      pendingQrLogin = undefined
+      wsSocket.send(JSON.stringify(message))
+    }
   }
 
   // useWebSocket automatically handles reconnection when url changes
