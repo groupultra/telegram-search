@@ -26,6 +26,7 @@ export const useAccountStore = defineStore('account', () => {
   let reconnectTimer: number | undefined
   let configTimer: number | undefined
   let recoveryAllowed = true
+  let restoringSession = false
 
   function cancelRetry() {
     window.clearTimeout(reconnectTimer)
@@ -70,6 +71,7 @@ export const useAccountStore = defineStore('account', () => {
 
     resetReady()
     authStatus.value.isLoading = true
+    restoringSession = true
     logger.log('Attempting login')
     bridge.sendEvent(CoreEventType.AuthLogin, { session: sessionStore.activeSession?.session })
   }
@@ -78,6 +80,7 @@ export const useAccountStore = defineStore('account', () => {
     function login(phoneNumber: string) {
       cancelRetry()
       recoveryAllowed = true
+      restoringSession = false
       // NOTICE: session cloud be undefined, we determine it login with phone number as new login
       const session = sessionStore.activeSession?.session
       if (IS_CORE_MODE && (!TELEGRAM_APP_ID || !TELEGRAM_APP_HASH)) {
@@ -136,6 +139,7 @@ export const useAccountStore = defineStore('account', () => {
   function markReady() {
     cancelRetry()
     attemptCounter = 0
+    restoringSession = false
     if (isReady.value)
       return
 
@@ -156,6 +160,7 @@ export const useAccountStore = defineStore('account', () => {
 
   function resetReady() {
     cancelRetry()
+    restoringSession = false
     window.clearTimeout(configTimer)
     configTimer = undefined
     isReady.value = false
@@ -166,7 +171,7 @@ export const useAccountStore = defineStore('account', () => {
 
   function retryLogin() {
     authStatus.value.isLoading = false
-    if (!recoveryAllowed || isReady.value || !sessionStore.activeSession?.session || reconnectTimer !== undefined)
+    if (!restoringSession || !recoveryAllowed || isReady.value || !sessionStore.activeSession?.session || reconnectTimer !== undefined)
       return
 
     const delayMs = Math.min(2000 * (2 ** Math.min(attemptCounter++, 4)), 30000)

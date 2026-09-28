@@ -255,6 +255,7 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
           return password
         },
         onError: (error) => {
+          ctx.emitter.emit(CoreEventType.AuthError)
           reject(ctx.withError(error, 'Failed to sign in to Telegram'))
         },
       })

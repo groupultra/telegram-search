@@ -181,4 +181,13 @@ describe('webSocket session recovery', () => {
     await vi.advanceTimersByTimeAsync(10000)
     expect(TestSocket.sockets).toHaveLength(1)
   })
+
+  it('does not turn an interactive phone login error into saved-session recovery', async () => {
+    const socket = await connect()
+    useAccountStore().handleAuth().login('+15555550123')
+    await socket.receive(CoreEventType.AuthError)
+    await vi.advanceTimersByTimeAsync(30000)
+    expect(socket.logins()).toHaveLength(2)
+    expect(useAccountStore().auth.isLoading).toBe(false)
+  })
 })
