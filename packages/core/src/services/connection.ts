@@ -166,7 +166,10 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
       try {
         client = (await init()).expect('Failed to initialize Telegram client')
         signal.throwIfAborted()
-        await withLoginAbort(connectOrThrow(client), signal)
+        await withLoginAbort(connectOrThrow(client).finally(async () => {
+          if (signal.aborted)
+            await destroyCandidate(client)
+        }), signal)
         signal.throwIfAborted()
         await signInWithQrCode(client, options, {
           signal,

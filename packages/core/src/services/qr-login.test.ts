@@ -16,6 +16,7 @@ function setup() {
     addEventHandler: vi.fn<TelegramClient['addEventHandler']>(),
     removeEventHandler: vi.fn<TelegramClient['removeEventHandler']>(),
     signInWithPassword: vi.fn<TelegramClient['signInWithPassword']>(),
+    destroy: vi.fn<TelegramClient['destroy']>().mockResolvedValue(undefined),
   }
   const controller = new AbortController()
   const options = {
@@ -35,6 +36,22 @@ function loginToken(seconds = 30) {
 afterEach(() => vi.useRealTimers())
 
 describe('qR login protocol', () => {
+  it('destroys a connection that finishes DC migration after cancellation', async () => {
+    const { client, controller, start } = setup()
+    let finish!: (value: boolean) => void
+    client.invoke.mockResolvedValue(new Api.auth.LoginTokenMigrateTo({ dcId: 4, token: Buffer.from('migration') }))
+    client._switchDC.mockImplementation(() => new Promise((resolve) => {
+      finish = resolve
+    }))
+    const login = start()
+    const cancelled = expect(login).rejects.toThrow('cancelled')
+    await vi.waitFor(() => expect(client._switchDC).toHaveBeenCalledOnce())
+    controller.abort(new Error('cancelled'))
+    await cancelled
+    finish(true)
+    await vi.waitFor(() => expect(client.destroy).toHaveBeenCalledOnce())
+    expect(client.invoke).toHaveBeenCalledOnce()
+  })
   it('encodes base64url tokens, refreshes on expiry and removes timers and update handlers on cancellation', async () => {
     vi.useFakeTimers()
     const { client, controller, options, start } = setup()

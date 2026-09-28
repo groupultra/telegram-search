@@ -14,7 +14,7 @@ export function withLoginAbort<Result>(operation: Promise<Result>, signal: Abort
 }
 
 export async function signInWithQrCode(
-  client: Pick<TelegramClient, 'invoke' | '_switchDC' | 'addEventHandler' | 'removeEventHandler' | 'signInWithPassword'>,
+  client: Pick<TelegramClient, 'invoke' | '_switchDC' | 'addEventHandler' | 'removeEventHandler' | 'signInWithPassword' | 'destroy'>,
   credentials: { apiId: number, apiHash: string },
   options: {
     signal: AbortSignal
@@ -44,7 +44,10 @@ export async function signInWithQrCode(
       signal.throwIfAborted()
 
       if (result instanceof Api.auth.LoginTokenMigrateTo) {
-        await withLoginAbort(client._switchDC(result.dcId), signal)
+        await withLoginAbort(client._switchDC(result.dcId).finally(async () => {
+          if (signal.aborted)
+            await client.destroy()
+        }), signal)
         signal.throwIfAborted()
         result = await withLoginAbort(client.invoke(new Api.auth.ImportLoginToken({ token: result.token })), signal)
       }

@@ -54,9 +54,10 @@ describe('qR connection lifecycle', () => {
   })
 
   it('rejects a competing attempt without cancelling the active scan', async () => {
-    vi.spyOn(TelegramClient.prototype, 'invoke').mockImplementation(() => new Promise(() => {}))
+    const invoke = vi.spyOn(TelegramClient.prototype, 'invoke').mockImplementation(() => new Promise(() => {}))
     const { ctx, service, states, sessions } = setup()
     const first = service.loginWithQrCode('first')
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledOnce())
     const second = await service.loginWithQrCode('second')
     expect(second.orUndefined()).toBeUndefined()
     expect(states).toHaveBeenCalledWith({ attemptId: 'second', status: 'error' })
@@ -97,7 +98,7 @@ describe('qR connection lifecycle', () => {
     expect(invoke).not.toHaveBeenCalled()
     expect(sessions).not.toHaveBeenCalled()
     expect(connected).not.toHaveBeenCalled()
-    expect(TelegramClient.prototype.destroy).toHaveBeenCalledOnce()
+    await vi.waitFor(() => expect(TelegramClient.prototype.destroy).toHaveBeenCalledTimes(2))
     ctx.cleanup()
   })
 
