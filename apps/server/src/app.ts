@@ -98,25 +98,17 @@ export function registerCoreEventListeners(logger: Logger, account: AccountState
 }
 
 export async function updateAccountState(logger: Logger, account: AccountState, accountId: string, eventName: keyof ToCoreEvent) {
-  // Update account state based on events
-  switch (eventName) {
-    case CoreEventType.AuthLogin:
-      account.ctx.emitter.once(CoreEventType.AccountReady, () => {
-        account.accountReady = true
-      })
-      break
-    case CoreEventType.AuthLogout:
-      account.accountReady = false
-      logger.withFields({ accountId }).log('User logged out, destroying account')
-      await destroyCoreInstance(account.ctx)
-      accountStates.delete(accountId)
+  if (eventName !== CoreEventType.AuthLogout)
+    return
 
-      // Disconnect all peers for this account
-      account.activePeers.forEach((peerId) => {
-        peerObjects.get(peerId)?.close()
-      })
-      break
-  }
+  account.accountReady = false
+  logger.withFields({ accountId }).log('User logged out, destroying account')
+  await destroyCoreInstance(account.ctx)
+  accountStates.delete(accountId)
+
+  account.activePeers.forEach((peerId) => {
+    peerObjects.get(peerId)?.close()
+  })
 }
 
 export function setupWsRoutes(app: H3, config: Config) {

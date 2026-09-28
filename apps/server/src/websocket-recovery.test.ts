@@ -1,13 +1,14 @@
 // @vitest-environment node
 
+import { useLogger } from '@guiiai/logg'
 import { generateDefaultConfig } from '@tg-search/common'
-import { destroyCoreInstance } from '@tg-search/core'
+import { CoreEventType, destroyCoreInstance } from '@tg-search/core'
 import { plugin as wsPlugin } from 'crossws/server'
 import { H3, serve } from 'h3'
 import { expect, it } from 'vitest'
 
 import { accountStates } from './account'
-import { setupWsRoutes } from './app'
+import { setupWsRoutes, updateAccountState } from './app'
 
 it('answers heartbeats over a real WebSocket and retains the account across reconnects', async () => {
   const app = new H3()
@@ -54,6 +55,10 @@ it('answers heartbeats over a real WebSocket and retains the account across reco
     const nextPong = nextMessage(second)
     second.send('{"type":"server:ping"}')
     expect(await nextPong).toBe('{"type":"server:pong"}')
+    const readyListeners = account.ctx.emitter.listenerCount(CoreEventType.AccountReady)
+    for (let attempt = 0; attempt < 20; attempt++)
+      await updateAccountState(useLogger(), account, 'recovery-test', CoreEventType.AuthLogin)
+    expect(account.ctx.emitter.listenerCount(CoreEventType.AccountReady)).toBe(readyListeners)
   }
   finally {
     for (const socket of sockets)
