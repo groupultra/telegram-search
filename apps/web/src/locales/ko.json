@@ -119,6 +119,18 @@
     "home": "홈"
   },
   "login": {
+    "qrTitle": "QR 코드 로그인",
+    "qrDescription": "휴대전화의 Telegram으로 스캔하여 로그인하세요.",
+    "useQr": "QR 코드로 로그인",
+    "usePhone": "전화번호로 로그인",
+    "qrOpenTelegram": "휴대전화에서 Telegram을 여세요.",
+    "qrOpenDevices": "설정 → 기기 → 데스크톱 기기 연결로 이동하세요.",
+    "qrScan": "코드를 스캔하고 로그인을 확인하세요.",
+    "qrAutoRefresh": "QR 코드가 자동으로 갱신됩니다.",
+    "qrError": "QR 로그인을 시작할 수 없습니다. 연결을 확인하고 다시 시도하세요.",
+    "qrExpired": "로그인 시도가 만료되었습니다.",
+    "qrRetry": "새 QR 코드 받기",
+    "qrPasswordInvalid": "비밀번호가 올바르지 않습니다. 다시 시도하세요.",
     "code": "인증 코드",
     "changePhone": "전화번호 변경",
     "codeDescription": "Telegram에서 받은 인증 코드를 입력해 주세요",

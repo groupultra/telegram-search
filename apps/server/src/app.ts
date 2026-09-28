@@ -31,6 +31,7 @@ import { sendWsEvent } from './events'
 const WS_MODE_LABEL = 'server' as const
 
 interface PeerRpcState {
+  qrAttemptId?: string
   eventa: ReturnType<typeof createPeerContext>
   runtime?: TelegramApplicationRuntime
   unregister?: () => void
@@ -84,6 +85,10 @@ export function registerCoreEventListeners(logger: Logger, account: AccountState
       const data = args[0] as WsEventToClientData<typeof eventName>
       account.activePeers.forEach((peerId) => {
         const targetPeer = peerObjects.get(peerId)
+        if ((eventName === CoreEventType.AuthQrCode || eventName === CoreEventType.AuthQrState)
+          && peerRpcStates.get(peerId)?.qrAttemptId !== (data as { attemptId: string }).attemptId) {
+          return
+        }
         if (targetPeer) {
           sendWsEvent(targetPeer, eventName, data)
         }
@@ -191,6 +196,15 @@ export function setupWsRoutes(app: H3, config: Config) {
           return
         }
 
+        const peerState = peerRpcStates.get(peer.id)
+        if (event.type === CoreEventType.AuthLogin && event.data.qrAttemptId && peerState) {
+          peerState.qrAttemptId = event.data.qrAttemptId
+        }
+        if ((event.type === CoreEventType.AuthQrCancel || event.type === CoreEventType.AuthQrPassword)
+          && peerState?.qrAttemptId !== event.data.attemptId) {
+          return
+        }
+
         const tracingId = event.meta?.tracingId || uuidv4()
 
         logger.withFields({ type: event.type, accountId, tracingId }).verbose('Message received')
@@ -230,6 +244,8 @@ export function setupWsRoutes(app: H3, config: Config) {
 
       const rpcState = peerRpcStates.get(peer.id)
       if (rpcState) {
+        if (rpcState.qrAttemptId)
+          account.ctx.emitter.emit(CoreEventType.AuthQrCancel, { attemptId: rpcState.qrAttemptId })
         rpcState.unregister?.()
         await rpcState.runtime?.dispose()
         await rpcState.eventa.hooks.close(asEventaPeer(peer), {})

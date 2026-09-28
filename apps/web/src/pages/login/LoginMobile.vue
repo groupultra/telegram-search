@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
+import LoginQrCode from './LoginQrCode.vue'
+
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useLoginFlow } from '../../composables/useLoginFlow'
@@ -19,13 +21,13 @@ import {
 } from './styles'
 
 const { t } = useI18n()
-const { accountStore, state, steps, handleLogin, redirectRoot } = useLoginFlow()
+const { accountStore, state, steps, handleLogin, redirectRoot, startQrLogin, usePhoneLogin, qrMode } = useLoginFlow()
 </script>
 
 <template>
-  <div class="relative h-[100dvh] w-full flex flex-col overflow-hidden text-foreground font-sans">
+  <div class="relative h-[100dvh] w-full overflow-y-auto text-foreground font-sans">
     <!-- Main Container -->
-    <div class="relative z-10 w-full flex flex-1 flex-col items-center justify-end p-0">
+    <div class="relative z-10 min-h-full w-full flex flex-col items-center justify-end p-0">
       <!-- Card / Bottom Sheet -->
       <div
         class="min-h-[58dvh] w-full animate-in rounded-t-[32px] bg-background/88 px-5 pb-6 pt-5 shadow-2xl backdrop-blur-2xl transition-all duration-500 fade-in slide-in-from-bottom-10"
@@ -70,7 +72,12 @@ const { accountStore, state, steps, handleLogin, redirectRoot } = useLoginFlow()
             :leave-to-class="LOGIN_TRANSITION_LEAVE_TO_CLASS"
           >
             <!-- Phone Form -->
-            <form v-if="state.currentStep === 'phone'" key="phone" class="space-y-8" @submit.prevent="handleLogin">
+            <LoginQrCode v-if="state.currentStep === 'qr'" key="qr" @retry="startQrLogin" @phone="usePhoneLogin" />
+            <form v-else-if="state.currentStep === 'phone'" key="phone" class="space-y-8" @submit.prevent="handleLogin">
+              <Button type="button" variant="outline" class="w-full" :disabled="accountStore.auth.isLoading" @click="startQrLogin">
+                <span class="i-lucide-qr-code mr-2 h-5 w-5" />
+                {{ t('login.useQr') }}
+              </Button>
               <div class="space-y-3">
                 <label for="phoneNumber" class="text-sm font-medium leading-none">
                   {{ t('login.phoneNumber') }}
@@ -155,6 +162,12 @@ const { accountStore, state, steps, handleLogin, redirectRoot } = useLoginFlow()
 
             <!-- Password Form -->
             <form v-else-if="state.currentStep === 'password'" key="password" class="space-y-8" @submit.prevent="handleLogin">
+              <p v-if="qrMode && accountStore.qrLogin.state.passwordInvalid" role="alert" class="text-sm text-destructive">
+                {{ t('login.qrPasswordInvalid') }}
+              </p>
+              <Button v-if="qrMode" type="button" variant="ghost" @click="usePhoneLogin">
+                {{ t('login.usePhone') }}
+              </Button>
               <div class="space-y-3">
                 <label for="twoFactorPassword" class="text-sm font-medium leading-none">
                   {{ t('login.twoFactorPassword') }}

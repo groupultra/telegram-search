@@ -13,6 +13,7 @@ import { StringSession } from 'telegram/sessions'
 
 import { CoreEventType } from '../types/events'
 import { waitForEvent } from '../utils/promise'
+import { signInWithQrCode, withLoginAbort } from './qr-login'
 
 export type ConnectionService = ReturnType<typeof createConnectionService>
 
@@ -121,6 +122,93 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
   }
 
   let loginInFlight: Promise<Result<TelegramClient>> | undefined
+  let qrLogin: { attemptId: string, controller: AbortController } | undefined
+  let resolveQrPassword: ((password: string) => void) | undefined
+
+  ctx.emitter.on(CoreEventType.AuthQrPassword, ({ attemptId, password }) => {
+    if (qrLogin?.attemptId === attemptId && !qrLogin.controller.signal.aborted) {
+      resolveQrPassword?.(password)
+      resolveQrPassword = undefined
+    }
+  })
+
+  ctx.emitter.on(CoreEventType.CoreCleanup, () => qrLogin?.controller.abort())
+
+  async function cancelQrLogin(attemptId: string) {
+    if (qrLogin?.attemptId !== attemptId)
+      return
+    qrLogin.controller.abort()
+    await loginInFlight
+  }
+
+  async function loginWithQrCode(attemptId: string): Promise<Result<TelegramClient>> {
+    if (qrLogin?.controller.signal.aborted)
+      await loginInFlight
+    if (loginInFlight) {
+      if (qrLogin?.attemptId === attemptId)
+        return loginInFlight
+      ctx.emitter.emit(CoreEventType.AuthQrState, { attemptId, status: 'error' })
+      return Err(new Error('Another login is already in progress'))
+    }
+
+    const controller = new AbortController()
+    qrLogin = { attemptId, controller }
+    return runLogin(async () => {
+      let client: TelegramClient | undefined
+      let retained = false
+      let expired = false
+      const { signal } = controller
+      const timeout = setTimeout(() => {
+        expired = true
+        controller.abort()
+      }, 5 * 60 * 1000)
+
+      try {
+        client = (await init()).expect('Failed to initialize Telegram client')
+        signal.throwIfAborted()
+        await withLoginAbort(connectOrThrow(client), signal)
+        signal.throwIfAborted()
+        await signInWithQrCode(client, options, {
+          signal,
+          qrCode: code => ctx.emitter.emit(CoreEventType.AuthQrCode, { attemptId, ...code }),
+          passwordInvalid: () => ctx.emitter.emit(CoreEventType.AuthQrState, { attemptId, status: 'password-invalid' }),
+          password: async () => {
+            const password = new Promise<string>((resolve) => {
+              resolveQrPassword = resolve
+            })
+            try {
+              ctx.emitter.emit(CoreEventType.AuthQrState, { attemptId, status: 'password' })
+              return await withLoginAbort(password, signal)
+            }
+            finally {
+              resolveQrPassword = undefined
+            }
+          },
+        })
+        signal.throwIfAborted()
+        const session = String(await client.session.save())
+        signal.throwIfAborted()
+        ctx.emitter.emit(CoreEventType.SessionUpdate, { session })
+        ctx.setClient(client)
+        retained = true
+        ctx.emitter.emit(CoreEventType.AuthConnected)
+        return Ok(client)
+      }
+      catch (error) {
+        ctx.emitter.emit(CoreEventType.AuthQrState, {
+          attemptId,
+          status: expired ? 'expired' : signal.aborted ? 'cancelled' : 'error',
+        })
+        return Err(error instanceof Error ? error : new Error('QR login failed'))
+      }
+      finally {
+        clearTimeout(timeout)
+        if (!retained)
+          await destroyCandidate(client)
+        qrLogin = undefined
+      }
+    })
+  }
 
   async function destroyCandidate(client: TelegramClient | undefined) {
     if (!client) {
@@ -198,6 +286,8 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
   }
 
   async function loginWithPhone(phoneNumber: string): Promise<Result<TelegramClient>> {
+    if (qrLogin?.controller.signal.aborted)
+      await loginInFlight
     return runLogin(async () => {
       let client: TelegramClient | undefined
       let retained = false
@@ -286,6 +376,8 @@ export function createConnectionService(ctx: CoreContext, logger: Logger, option
   }
 
   return {
+    loginWithQrCode,
+    cancelQrLogin,
     loginWithPhone,
     loginWithSession,
     logout,

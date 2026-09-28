@@ -54,7 +54,7 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
 
   function sendEvent<T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) {
     const ctx = ensureCtx()!
-    logger.withFields({ event, data }).debug('Receive event from client')
+    logger.withFields({ event }).debug('Receive event from client')
 
     try {
       if (event === 'server:event:register') {
@@ -74,7 +74,7 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
         }
       }
       else {
-        logger.withFields({ event, data }).debug('Emit event to core')
+        logger.withFields({ event }).debug('Emit event to core')
         ctx.emitter.emit(event, deepClone(data) as ExtractData<keyof ToCoreEvent>)
       }
     }
@@ -131,7 +131,7 @@ export const useCoreBridgeAdapter = defineStore('core-bridge-adapter', () => {
   }
 
   function sendWsEvent(event: WsMessageToClient) {
-    logger.withFields({ event }).debug('Event send to bridge')
+    logger.withFields({ event: event.type }).debug('Event send to bridge')
     if (eventHandlers.has(event.type)) {
       try {
         const fn = eventHandlers.get(event.type)
