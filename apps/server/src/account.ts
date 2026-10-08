@@ -90,6 +90,10 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
       lastActive: Date.now(),
     }
 
+    ctx.emitter.once(CoreEventType.AccountReady, () => {
+      account.accountReady = true
+    })
+
     // Instrument core message processing for this account
     ctx.emitter.on(CoreEventType.MessageProcess, ({ messages, isTakeout }) => {
       const source = isTakeout ? 'takeout' : 'realtime'

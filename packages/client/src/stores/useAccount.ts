@@ -1,7 +1,7 @@
 import { useLogger } from '@guiiai/logg'
 import { CoreEventType, generateDefaultAccountSettings } from '@tg-search/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { onScopeDispose, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
 import { useBridge } from '../composables/useBridge'
@@ -22,9 +22,16 @@ export const useAccountStore = defineStore('account', () => {
     isLoading: false,
   })
 
-  const attemptCounter = ref(0)
-  const MAX_ATTEMPTS = 3
+  let attemptCounter = 0
   let reconnectTimer: number | undefined
+  let configTimer: number | undefined
+  let recoveryAllowed = true
+  let restoringSession = false
+
+  function cancelRetry() {
+    window.clearTimeout(reconnectTimer)
+    reconnectTimer = undefined
+  }
 
   // --- Account State ---
   const accountSettings = ref(generateDefaultAccountSettings())
@@ -40,6 +47,9 @@ export const useAccountStore = defineStore('account', () => {
    * Best-effort auto-login using stored Telegram session string.
    */
   const attemptLogin = async () => {
+    if (!recoveryAllowed || authStatus.value.isLoading)
+      return
+
     if (!sessionStore.activeSession?.session) {
       logger.verbose('No session, skipping login')
       return
@@ -61,12 +71,16 @@ export const useAccountStore = defineStore('account', () => {
 
     resetReady()
     authStatus.value.isLoading = true
+    restoringSession = true
     logger.log('Attempting login')
     bridge.sendEvent(CoreEventType.AuthLogin, { session: sessionStore.activeSession?.session })
   }
 
   function handleAuth() {
     function login(phoneNumber: string) {
+      cancelRetry()
+      recoveryAllowed = true
+      restoringSession = false
       // NOTICE: session cloud be undefined, we determine it login with phone number as new login
       const session = sessionStore.activeSession?.session
       if (IS_CORE_MODE && (!TELEGRAM_APP_ID || !TELEGRAM_APP_HASH)) {
@@ -91,10 +105,13 @@ export const useAccountStore = defineStore('account', () => {
     }
 
     function logout() {
-      // 1. Notify backend (while connection still alive)
-      bridge.sendEvent(CoreEventType.AuthLogout, undefined)
-      // 2. Remove local session
-      sessionStore.removeCurrentAccount()
+      stopRecovery()
+      try {
+        bridge.sendEvent(CoreEventType.AuthLogout, undefined)
+      }
+      finally {
+        sessionStore.removeCurrentAccount()
+      }
     }
 
     function switchAccount(sessionId: string) {
@@ -120,6 +137,9 @@ export const useAccountStore = defineStore('account', () => {
   // --- Actions: Account Lifecycle ---
 
   function markReady() {
+    cancelRetry()
+    attemptCounter = 0
+    restoringSession = false
     if (isReady.value)
       return
 
@@ -127,7 +147,8 @@ export const useAccountStore = defineStore('account', () => {
     // NOTICE: config:data forwarding depends on websocket event registration.
     // Requesting immediately here can race with server:event:register on fresh
     // reconnects, so view layers also issue an explicit fetch when needed.
-    window.setTimeout(() => {
+    configTimer = window.setTimeout(() => {
+      configTimer = undefined
       logger.verbose('Fetching config for new session')
       bridge.sendEvent(CoreEventType.ConfigFetch)
     }, 150)
@@ -138,54 +159,43 @@ export const useAccountStore = defineStore('account', () => {
   }
 
   function resetReady() {
+    cancelRetry()
+    restoringSession = false
+    window.clearTimeout(configTimer)
+    configTimer = undefined
     isReady.value = false
     authStatus.value.isLoading = false
     syncStatus.value = 'idle'
     hasFetchedSettings.value = false
   }
 
-  // --- Watchers ---
-  /**
-   * Watch the active session's readiness status and handle reconnection logic.
-   */
-  watch(
-    () => isReady.value,
-    (isReadyState, prevReady) => {
-      const hasSession = !!sessionStore.activeSession?.session
+  function retryLogin() {
+    authStatus.value.isLoading = false
+    if (!restoringSession || !recoveryAllowed || isReady.value || !sessionStore.activeSession?.session || reconnectTimer !== undefined)
+      return
 
-      if (isReadyState) {
-        // Successful (re)connection: clear any pending reconnects and reset attempts.
-        if (reconnectTimer) {
-          window.clearTimeout(reconnectTimer)
-          reconnectTimer = undefined
-        }
-        attemptCounter.value = 0
-        return
-      }
+    const delayMs = Math.min(2000 * (2 ** Math.min(attemptCounter++, 4)), 30000)
+    reconnectTimer = window.setTimeout(() => {
+      reconnectTimer = undefined
+      void attemptLogin()
+    }, delayMs)
+  }
 
-      // Below: disconnected path.
-      // Only treat as "unexpected disconnect" when:
-      // - we previously had a live connection, and
-      // - we still have a stored session (i.e. not a deliberate logout / new empty slot).
-      if (!prevReady || !hasSession) {
-        attemptCounter.value = 0
-        return
-      }
+  function stopRecovery() {
+    recoveryAllowed = false
+    resetReady()
+  }
 
-      if (attemptCounter.value >= MAX_ATTEMPTS) {
-        toast.error('Failed to reconnect to Telegram')
-        return
-      }
+  watch(() => sessionStore.activeSessionId, () => {
+    resetReady()
+    attemptCounter = 0
+    recoveryAllowed = true
+  }, { flush: 'sync' })
 
-      attemptCounter.value++
-
-      // Exponential backoff up to 10s between attempts to avoid hammering.
-      const delayMs = Math.min(1000 * (2 ** (attemptCounter.value - 1)), 10000)
-      reconnectTimer = window.setTimeout(() => {
-        void attemptLogin()
-      }, delayMs)
-    },
-  )
+  onScopeDispose(() => {
+    cancelRetry()
+    window.clearTimeout(configTimer)
+  })
 
   function init() {
     logger.verbose('Initializing account')
@@ -206,6 +216,8 @@ export const useAccountStore = defineStore('account', () => {
     handleAuth,
     markReady,
     resetReady,
+    retryLogin,
+    stopRecovery,
   }
 })
 
