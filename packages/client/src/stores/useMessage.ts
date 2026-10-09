@@ -1,4 +1,3 @@
-import type { CorePagination } from '@tg-search/common'
 import type { CoreMessage } from '@tg-search/core'
 import type { MessageRecord } from '@tg-search/protocol'
 
@@ -473,22 +472,20 @@ export const useMessageStore = defineStore('message', () => {
 
     const isLoading = ref(false)
 
-    async function fetchMessages(
-      pagination: CorePagination & {
-        minId?: number
-      },
-      direction: 'older' | 'newer' = 'older',
-    ) {
+    // Both directions anchor on the loaded window's message IDs, which stay
+    // valid when new messages arrive or the window evicts a page.
+    async function fetchMessages(limit: number, direction: 'older' | 'newer' = 'older') {
       isLoading.value = true
 
-      logger.log(`Fetching messages for chat ${chatId}`, pagination.offset)
+      const { minId, maxId } = messageWindow.value!
+      logger.log(`Fetching ${direction} messages for chat ${chatId}`)
 
       try {
         const result = await bridge.application.listRemoteMessages({
           chatId,
-          limit: pagination.limit,
-          cursor: direction === 'older' ? String(pagination.offset) : undefined,
-          minMessageId: direction === 'newer' ? pagination.minId : undefined,
+          limit,
+          cursor: direction === 'older' && Number.isFinite(minId) ? String(minId) : undefined,
+          minMessageId: direction === 'newer' ? maxId : undefined,
         })
         if (!result.ok) {
           throw new Error(`${result.error.code}: ${result.error.message}`)

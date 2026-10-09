@@ -79,6 +79,9 @@ tg-search --profile work chats list --limit 200 --json
 # Read one chat remotely. No messages are persisted.
 tg-search --profile work messages list --chat 123456 --from 2026-01-01 --to 2026-12-31 --json
 
+# Search one chat on Telegram, without syncing it first.
+tg-search --profile work messages list --chat 123456 --query "项目进展" --from 2026-01-01 --json
+
 # After the user explicitly approves Telegram Takeout, persist selected chats.
 # At least --chat or --all is required. Never add --takeout without that approval.
 tg-search --profile work sync --takeout --chat 123456,789012 --from 2026-01-01 --to 2026-12-31
@@ -93,6 +96,8 @@ tg-search --profile work stats --group-by month --timezone Asia/Singapore --from
 If Telegram returns `TAKEOUT_INIT_DELAY_*`, the CLI emits `TAKEOUT_AUTHORIZATION_REQUIRED` with `details.action: "authorize_takeout_in_telegram"`. An Agent must stop, ask the user to review and authorize the pending data export request on one of their Telegram devices, and rerun `sync --takeout` only after the user confirms and Telegram allows it. This is distinct from the user's initial approval for the CLI to add `--takeout`; it is a Telegram-side security confirmation and is never retried automatically.
 
 The current CLI `search` command uses local jieba text retrieval. It does not generate query embeddings, so vector retrieval is not enabled by this command.
+
+`messages list` reads newest first. Its `next_cursor` is the ID of the last message scanned, so paging stays correct while the chat receives new messages; pass it back as `--cursor`, or pass any known message ID to read strictly older messages. A page may contain fewer than `--limit` items, even none, because service messages are skipped and one call scans a bounded amount of history. Only `next_cursor: null` means the requested range has been read completely.
 
 Remote pages may include Telegram's raw `total`, but Telegram does not guarantee that it reflects the CLI's sender and date filters. Treat it as informational rather than as an exact filtered count. Use Takeout plus local queries when exact filtered counts are required.
 
