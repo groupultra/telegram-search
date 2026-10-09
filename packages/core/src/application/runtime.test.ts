@@ -108,7 +108,7 @@ describe('telegram application runtime remote boundaries', () => {
     expect(harness.getInputPeer).toHaveBeenCalledWith('42')
     expect(harness.getMessages).toHaveBeenCalledWith(
       harness.inputPeer,
-      expect.objectContaining({ limit: 2 }),
+      expect.objectContaining({ limit: 1 }),
     )
   })
 
@@ -126,7 +126,7 @@ describe('telegram application runtime remote boundaries', () => {
 
     expect(harness.getMessages).toHaveBeenCalledWith(
       harness.inputPeer,
-      expect.objectContaining({ fromUser: 'me', limit: 101, offsetDate: 21 }),
+      expect.objectContaining({ fromUser: 'me', limit: 100, offsetDate: 21 }),
     )
     expect(result).toMatchObject({ ok: true, data: { total: 321 } })
   })

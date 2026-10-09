@@ -1,4 +1,3 @@
-import type { CorePagination } from '@tg-search/common'
 import type { CoreMessage } from '@tg-search/core'
 
 import { createPinia, setActivePinia } from 'pinia'
@@ -129,7 +128,7 @@ describe('useMessageStore', () => {
     expect(store.sortedMessageIds).toContain('3')
   })
 
-  it('fetches messages with pagination', async () => {
+  it('fetches the latest messages while the window is empty', async () => {
     const store = useMessageStore()
     const { fetchMessages, isLoading } = store.useFetchMessages('chat-1', 50)
 
@@ -139,14 +138,14 @@ describe('useMessageStore', () => {
     const promise = new Promise((resolve) => { resolvePromise = resolve })
     listRemoteMessagesMock.mockReturnValue(promise)
 
-    const pagination: CorePagination & { minId?: number } = { offset: 0, limit: 20 }
-    const fetchPromise = fetchMessages(pagination, 'older')
+    const fetchPromise = fetchMessages(20, 'older')
 
     expect(isLoading.value).toBe(true)
     expect(listRemoteMessagesMock).toHaveBeenCalledWith({
       chatId: 'chat-1',
-      limit: pagination.limit,
-      cursor: '0',
+      limit: 20,
+      cursor: undefined,
+      minMessageId: undefined,
     })
 
     // @ts-expect-error intentionally resolve for test
@@ -156,18 +155,49 @@ describe('useMessageStore', () => {
     expect(isLoading.value).toBe(false)
   })
 
-  it('preserves the message anchor when fetching newer messages', async () => {
+  it('anchors older and newer fetches on the loaded message IDs', async () => {
+    // Regression: older pages used a running offset, which drifted whenever
+    // new messages arrived and skipped or repeated history.
     const store = useMessageStore()
     const { fetchMessages } = store.useFetchMessages('chat-1', 50)
+    store.replaceMessages([
+      createTestMessage({ platformMessageId: '40', chatId: 'chat-1', content: 'msg 40', platformTimestamp: 1000 }),
+      createTestMessage({ platformMessageId: '42', chatId: 'chat-1', content: 'msg 42', platformTimestamp: 2000 }),
+    ], { chatId: 'chat-1' })
     listRemoteMessagesMock.mockResolvedValue({ ok: true, data: { items: [], nextCursor: null } })
 
-    await fetchMessages({ offset: 0, limit: 20, minId: 42 }, 'newer')
+    await fetchMessages(20, 'older')
+    await fetchMessages(20, 'newer')
 
-    expect(listRemoteMessagesMock).toHaveBeenCalledWith({
+    expect(listRemoteMessagesMock).toHaveBeenNthCalledWith(1, {
+      chatId: 'chat-1',
+      limit: 20,
+      cursor: '40',
+      minMessageId: undefined,
+    })
+    expect(listRemoteMessagesMock).toHaveBeenNthCalledWith(2, {
       chatId: 'chat-1',
       limit: 20,
       cursor: undefined,
       minMessageId: 42,
     })
+  })
+
+  it('follows the cursor past empty pages to reach older messages', async () => {
+    // Regression: a page of only service messages is empty with a cursor. The window
+    // anchor never moved, so every retry re-read the same stretch and history stalled.
+    const store = useMessageStore()
+    const { fetchMessages } = store.useFetchMessages('chat-1', 50)
+    store.replaceMessages([
+      createTestMessage({ platformMessageId: '500', chatId: 'chat-1', content: 'msg 500', platformTimestamp: 2000 }),
+    ], { chatId: 'chat-1' })
+    listRemoteMessagesMock
+      .mockResolvedValueOnce({ ok: true, data: { items: [], nextCursor: '350' } })
+      .mockResolvedValueOnce({ ok: true, data: { items: [toMessageRecord(createTestMessage({ platformMessageId: '349', chatId: 'chat-1', content: 'msg 349', platformTimestamp: 1000 }))], nextCursor: '349' } })
+
+    await fetchMessages(20, 'older')
+
+    expect(listRemoteMessagesMock.mock.calls.map(([input]) => input.cursor)).toEqual(['500', '350'])
+    expect(store.sortedMessageIds).toEqual(['349', '500'])
   })
 })

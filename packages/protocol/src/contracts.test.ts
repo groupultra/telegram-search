@@ -15,6 +15,13 @@ describe('application contracts', () => {
     })).toThrow()
   })
 
+  it('accepts only message IDs as remote message cursors', () => {
+    // Regression: offset cursors such as "0" were silently coerced, hiding stale callers.
+    expect(parse(listRemoteMessagesInputSchema, { chatId: '42', cursor: '1001' }).cursor).toBe('1001')
+    expect(() => parse(listRemoteMessagesInputSchema, { chatId: '42', cursor: '0' })).toThrow()
+    expect(() => parse(listRemoteMessagesInputSchema, { chatId: '42', cursor: 'next' })).toThrow()
+  })
+
   it('normalizes default chat pagination', () => {
     expect(parse(listChatsInputSchema, {})).toEqual({ limit: 100 })
   })

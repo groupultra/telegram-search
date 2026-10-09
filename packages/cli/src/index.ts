@@ -313,6 +313,7 @@ const messagesCommand = defineCommand({
         from: { type: 'string' },
         to: { type: 'string' },
         sender: { type: 'string' },
+        query: { type: 'string', description: 'Search message text on Telegram' },
         ...profileArg,
       },
       async run(context) {
@@ -322,6 +323,7 @@ const messagesCommand = defineCommand({
             chatId: stringArg(context.args.chat),
             limit: Number(context.args.limit),
             cursor: stringArg(context.args.cursor) || undefined,
+            query: stringArg(context.args.query) || undefined,
             fromUserId: stringArg(context.args.sender) || undefined,
             from: parseTimestamp(stringArg(context.args.from)),
             to: parseTimestamp(stringArg(context.args.to)),

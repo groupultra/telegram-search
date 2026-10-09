@@ -4,7 +4,7 @@ import type { AppResult } from './errors'
 import type { CursorPage } from './pagination'
 
 import { defineInvokeEventa } from '@moeru/eventa'
-import { array, boolean, maxLength, maxValue, minLength, minValue, number, object, optional, pipe, string } from 'valibot'
+import { array, boolean, maxLength, maxValue, minLength, minValue, number, object, optional, pipe, regex, string } from 'valibot'
 
 const timeRangeFields = {
   from: optional(number()),
@@ -13,8 +13,11 @@ const timeRangeFields = {
 
 export const listRemoteMessagesInputSchema = object({
   chatId: pipe(string(), minLength(1), maxLength(128)),
-  cursor: optional(string()),
+  /** Message ID to read strictly below: a previous page's `nextCursor`, or any known message ID. */
+  cursor: optional(pipe(string(), regex(/^[1-9]\d{0,15}$/))),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
+  /** Server-side text search within the chat. */
+  query: optional(pipe(string(), minLength(1), maxLength(4000))),
   fromUserId: optional(string()),
   minMessageId: optional(pipe(number(), minValue(0))),
   ...timeRangeFields,

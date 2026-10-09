@@ -47,7 +47,6 @@ const chatTelegramLink = computed(() => {
 // viewing, which was the root cause of scroll drift when loading older messages.
 const messageFetchLimit = 50
 const messageWindowSize = 500
-const messageOffset = ref(0)
 const { isLoading: isLoadingMessages, fetchMessages } = messageStore.useFetchMessages(id.toString(), messageWindowSize)
 
 const isLoadingOlder = ref(false)
@@ -93,7 +92,6 @@ watch(
       return
 
     isContextMode.value = false
-    resetPagination()
     messageStore.replaceMessages([], { chatId: id.toString(), limit: messageWindowSize })
     await loadOlderMessages()
   },
@@ -111,12 +109,7 @@ async function loadOlderMessages(): Promise<'fetched' | 'skipped'> {
   isLoadingOlder.value = true
 
   try {
-    const currentOffset = messageOffset.value
-    messageOffset.value += messageFetchLimit
-    await fetchMessages({
-      offset: currentOffset,
-      limit: messageFetchLimit,
-    }, 'older')
+    await fetchMessages(messageFetchLimit, 'older')
     return 'fetched'
   }
   finally {
@@ -141,14 +134,7 @@ async function loadNewerMessages(): Promise<'fetched' | 'skipped'> {
   isLoadingNewer.value = true
 
   try {
-    await fetchMessages(
-      {
-        offset: 0,
-        limit: messageFetchLimit,
-        minId: currentMaxId,
-      },
-      'newer',
-    )
+    await fetchMessages(messageFetchLimit, 'newer')
     return 'fetched'
   }
   finally {
@@ -179,17 +165,12 @@ function openGlobalSearch() {
   window.dispatchEvent(new Event('tg-search:open-global-search'))
 }
 
-function resetPagination() {
-  messageOffset.value = 0
-}
-
 async function openMessageContext(messageId: string, messageUuid?: string) {
   if (!messageId || isContextLoading.value)
     return
 
   isContextLoading.value = true
   isContextMode.value = true
-  resetPagination()
 
   try {
     const messages = await messageStore.loadMessageContext(id.toString(), messageId, {
@@ -231,7 +212,6 @@ watch(
     }
     else if (oldMessageId) {
       isContextMode.value = false
-      resetPagination()
       messageStore.replaceMessages([], { chatId: id.toString(), limit: messageWindowSize })
       await loadOlderMessages()
     }
@@ -254,9 +234,6 @@ watch(
       </span>
       <span>
         Loading: {{ isLoadingMessages }} / Older: {{ isLoadingOlder }} / Newer: {{ isLoadingNewer }}
-      </span>
-      <span>
-        Offset: {{ messageOffset }}
       </span>
       <Button
         size="sm"
