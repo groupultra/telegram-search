@@ -481,16 +481,23 @@ export const useMessageStore = defineStore('message', () => {
       logger.log(`Fetching ${direction} messages for chat ${chatId}`)
 
       try {
-        const result = await bridge.application.listRemoteMessages({
-          chatId,
-          limit,
-          cursor: direction === 'older' && Number.isFinite(minId) ? String(minId) : undefined,
-          minMessageId: direction === 'newer' ? maxId : undefined,
-        })
-        if (!result.ok) {
-          throw new Error(`${result.error.code}: ${result.error.message}`)
-        }
-        const messages = result.data.items.map(fromMessageRecord)
+        let cursor = direction === 'older' && Number.isFinite(minId) ? String(minId) : undefined
+        let messages: CoreMessage[] = []
+        // A page can be empty while history remains, for example across a run of
+        // service messages. The window cannot anchor past it, so follow the cursor.
+        do {
+          const result = await bridge.application.listRemoteMessages({
+            chatId,
+            limit,
+            cursor,
+            minMessageId: direction === 'newer' ? maxId : undefined,
+          })
+          if (!result.ok) {
+            throw new Error(`${result.error.code}: ${result.error.message}`)
+          }
+          messages = result.data.items.map(fromMessageRecord)
+          cursor = result.data.nextCursor ?? undefined
+        } while (messages.length === 0 && cursor !== undefined)
         await pushMessages(messages)
         await nextTick()
         return { messages }

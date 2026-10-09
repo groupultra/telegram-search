@@ -182,4 +182,22 @@ describe('useMessageStore', () => {
       minMessageId: 42,
     })
   })
+
+  it('follows the cursor past empty pages to reach older messages', async () => {
+    // Regression: a page of only service messages is empty with a cursor. The window
+    // anchor never moved, so every retry re-read the same stretch and history stalled.
+    const store = useMessageStore()
+    const { fetchMessages } = store.useFetchMessages('chat-1', 50)
+    store.replaceMessages([
+      createTestMessage({ platformMessageId: '500', chatId: 'chat-1', content: 'msg 500', platformTimestamp: 2000 }),
+    ], { chatId: 'chat-1' })
+    listRemoteMessagesMock
+      .mockResolvedValueOnce({ ok: true, data: { items: [], nextCursor: '350' } })
+      .mockResolvedValueOnce({ ok: true, data: { items: [toMessageRecord(createTestMessage({ platformMessageId: '349', chatId: 'chat-1', content: 'msg 349', platformTimestamp: 1000 }))], nextCursor: '349' } })
+
+    await fetchMessages(20, 'older')
+
+    expect(listRemoteMessagesMock.mock.calls.map(([input]) => input.cursor)).toEqual(['500', '350'])
+    expect(store.sortedMessageIds).toEqual(['349', '500'])
+  })
 })
