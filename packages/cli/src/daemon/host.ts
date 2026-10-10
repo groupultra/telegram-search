@@ -29,6 +29,7 @@ import { readProfileConfig, readSession, writeProfileConfig, writeSession } from
 import { createDaemonLogger, profileScopeId } from '../runtime'
 import { startDaemonLogMaintenance } from './log-maintenance'
 import { acquireProfileLock, processIdentity, removeIfExists, socketPathFor } from './profile-state'
+import { createDaemonReconnectRecovery } from './reconnect-recovery'
 
 export interface DaemonHost {
   status: () => DaemonStatus
@@ -124,6 +125,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   let reloadInFlight: Promise<DaemonStatus> | undefined
   let accountReadyWait: ReturnType<typeof createAccountReadyWait> | undefined
   let releaseLock: (() => Promise<void>) | undefined
+  let transportConnected = false
   const stopped = new Promise<void>((resolve) => {
     resolveStopped = resolve
   })
@@ -135,6 +137,24 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     return activeRuntime.application
   }
   const applicationProxy = createDaemonApplicationProxy(currentApplication)
+
+  const reconnectRecovery = createDaemonReconnectRecovery({
+    async recover() {
+      const runtime = activeRuntime
+      if (stopping || state !== 'reconnecting' || transportConnected || !runtime)
+        return true
+
+      try {
+        logger.warn('Telegram transport remained disconnected; retrying after the client retry budget was exhausted')
+        const connected = await runtime.context.getClient().connect()
+        return connected && transportConnected
+      }
+      catch (error) {
+        logger.withError(error).warn('Telegram transport recovery attempt failed')
+        return false
+      }
+    },
+  })
 
   const disposeActiveRuntime = async () => {
     const runtime = activeRuntime
@@ -151,6 +171,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   config.api.telegram.apiHash = profileConfig.apiHash ?? process.env.TELEGRAM_API_HASH
 
   const cleanupResources = async () => {
+    reconnectRecovery.stop()
     stopLogMaintenance?.()
     stopLogMaintenance = undefined
 
@@ -182,28 +203,49 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   }
 
   const bindRuntimeEvents = (context: ReturnType<typeof createCoreInstance>) => {
+    const isActiveContext = () => activeRuntime?.context === context
     context.emitter.on(CoreEventType.SessionUpdate, ({ session }) => {
+      if (!isActiveContext())
+        return
       void writeSession(paths, session).catch(error => logger.withError(error).warn('Failed to persist daemon session'))
     })
     context.emitter.on(CoreEventType.AuthDisconnected, () => {
+      if (!isActiveContext())
+        return
+      reconnectRecovery.reset()
+      transportConnected = false
       state = 'unauthorized'
       accountId = undefined
     })
     context.emitter.on(CoreEventType.GramConnectionState, ({ state: connectionState }) => {
+      if (!isActiveContext())
+        return
       if (connectionState === 'connected' && accountId && state !== 'reconnecting') {
+        transportConnected = true
+        reconnectRecovery.reset()
         state = 'ready'
         lastError = undefined
       }
+      else if (connectionState === 'connected') {
+        transportConnected = true
+        reconnectRecovery.reset()
+      }
       else if (connectionState === 'disconnected') {
+        transportConnected = false
         state = 'reconnecting'
         lastError = 'Telegram connection interrupted; reconnecting'
+        reconnectRecovery.schedule()
       }
       else if (connectionState === 'broken') {
+        reconnectRecovery.reset()
+        transportConnected = false
         state = 'error'
         lastError = 'Telegram connection authorization is broken'
       }
     })
     context.emitter.on(CoreEventType.SyncStatus, ({ status: syncStatus }) => {
+      if (!isActiveContext())
+        return
       if (state !== 'reconnecting')
         return
       if (syncStatus === 'idle') {
@@ -216,6 +258,8 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       }
     })
     context.emitter.on(CoreEventType.CoreError, ({ error, description }) => {
+      if (!isActiveContext())
+        return
       lastError = error
       if (state === 'starting' || state === 'reconnecting' || description === 'Catch-up sync failed')
         state = 'error'
@@ -223,6 +267,8 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   }
 
   const replaceRuntime = async (session: string | undefined): Promise<DaemonStatus> => {
+    reconnectRecovery.reset()
+    transportConnected = false
     state = session ? 'starting' : 'unauthorized'
     accountId = undefined
     lastError = undefined
