@@ -101,6 +101,32 @@
 
 仓库现在提供本地优先的 TypeScript CLI。用户只需为命名 profile 完成本地登录，Agent 即可自行组合命令决定是否拉取、拉取哪些会话，以及何时显式同步。
 
+#### 通过 Homebrew 安装（macOS / Linux）
+
+Homebrew 会安装 CLI 及其 Node.js 运行时依赖，无需手动安装 Node.js 或构建仓库。此安装方式提供本地 CLI 和 daemon；网页界面的部署方式见下方 Docker 说明。
+
+```bash
+brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
+brew install groupultra/telegram-search/tg-search
+
+tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
+tg-search auth login
+brew services start groupultra/telegram-search/tg-search
+tg-search daemon status
+```
+
+API ID 和 API Hash 可在 [my.telegram.org](https://my.telegram.org) 获取。以上命令使用 `default` profile，先完成登录再启动服务。请以当前用户运行 `brew services`，不要使用 `sudo`。服务在后台保持 Telegram 连接，并在用户登录系统后启动；登录 Telegram 后会持续保存新消息及其编辑、删除更新。批量历史同步仍需显式运行 `sync --takeout`。
+
+```bash
+brew services stop groupultra/telegram-search/tg-search
+brew upgrade groupultra/telegram-search/tg-search
+brew services restart groupultra/telegram-search/tg-search
+```
+
+升级保留 profile 数据。日志位于 `default` profile 目录中的 `daemon.stdout.log` 和 `daemon.stderr.log`，由 daemon 轮转。其他命名 profile 可通过 `tg-search --profile NAME daemon run` 启动，详细路径和命令见 [CLI 文档](./packages/cli/README.md)。
+
+#### 从源码构建
+
 ```bash
 pnpm run build:packages
 pnpm -F @tg-search/cli build

@@ -95,6 +95,32 @@
 
 ## 🚀 クイックスタート
 
+### Homebrew で CLI をインストール（macOS / Linux）
+
+Homebrew がローカル CLI と必要な Node.js ランタイムをインストールします。Node.js の手動インストールやリポジトリのビルドは不要です。Web UI を利用する場合は、下記の Docker によるデプロイ手順を参照してください。
+
+```bash
+brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
+brew install groupultra/telegram-search/tg-search
+
+tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
+tg-search auth login
+brew services start groupultra/telegram-search/tg-search
+tg-search daemon status
+```
+
+API ID と API Hash は [my.telegram.org](https://my.telegram.org) で取得できます。上記のコマンドは `default` profile を使用します。ログインを完了してからサービスを起動してください。`brew services` は現在のユーザーで実行し、`sudo` は使用しないでください。daemon はバックグラウンドで動作し、システムへのログイン時にも起動します。Telegram にログインした後は、新しいメッセージと編集・削除の更新を保存します。過去の履歴の一括同期には、明示的な `sync --takeout` が必要です。
+
+```bash
+brew services stop groupultra/telegram-search/tg-search
+brew upgrade groupultra/telegram-search/tg-search
+brew services restart groupultra/telegram-search/tg-search
+```
+
+アップグレード後も profile のデータは保持されます。ログは default profile ディレクトリ内の `daemon.stdout.log` と `daemon.stderr.log` に保存され、daemon がローテーションします。別の profile を使う場合は `tg-search --profile NAME daemon run` を実行してください。保存先や各コマンドの詳細は [CLI ドキュメント](../packages/cli/README.md) を参照してください。
+
+### Docker Compose でデプロイ
+
 1. Telegram Search 用のディレクトリを作成：
 ```bash
 mkdir telegram-search
