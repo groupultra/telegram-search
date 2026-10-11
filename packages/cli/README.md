@@ -6,6 +6,10 @@
 
 Install the released CLI with Homebrew on macOS or Linux:
 
+Homebrew installs Node.js as a runtime dependency. You do not need to install
+Node.js manually or build this repository. This package provides the local CLI
+and daemon; see the [root README](../../README.md) for web application deployment.
+
 ```bash
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
@@ -76,7 +80,7 @@ Supported commands: `chats list`, `messages list`, `messages query`, `search`, `
 
 `sync` and `export` are not exposed remotely in this version; run them on the host owning the data. `auth` and `daemon` are local management commands and reject remote profiles. Use a separate local profile for local operation. There is no automatic fallback when the server is unreachable.
 
-See [server setup](../../../apps/server/README.md) for access-token and account configuration. Saved-index queries work without an active Telegram connection; live chat/message reads require the account to be signed in on the server.
+See [server setup](../../apps/server/README.md) for access-token and account configuration. Saved-index queries work without an active Telegram connection; live chat/message reads require the account to be signed in on the server.
 
 Profiles isolate Telegram credentials, the StringSession, PGlite data, and exports under the operating system's application data directory. Config and session files use mode `0600`, and `TG_SEARCH_HOME` can override the data root.
 
@@ -168,7 +172,7 @@ The CLI performs no AI analysis. An Agent can read the JSONL files and produce a
 ## Privacy boundary
 
 - Remote `chats list` and `messages list` read Telegram without persisting message domain data.
-- Only `sync --takeout` persists messages, and the Agent may add `--takeout` only after explicit user approval.
+- Bulk history is persisted through `sync --takeout`, and the Agent may add `--takeout` only after explicit user approval. A running, authenticated daemon also persists new messages, edits, and deletions in realtime.
 - Declined consent or Takeout initialization failure stops the sync; it never falls back to ordinary `GetHistory` bulk reads.
 - Takeout requests only the selected chat category and does not request contacts or files for text sync.
 - Local query, search, context, stats, and export do not create a Telegram connection.
