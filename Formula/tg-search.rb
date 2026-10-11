@@ -2,7 +2,7 @@ class TgSearch < Formula
   desc "Local-first Telegram search CLI and persistent daemon"
   homepage "https://github.com/groupultra/telegram-search"
   url "https://github.com/groupultra/telegram-search/releases/download/v1.3.3/tg-search-cli-1.3.3.tgz"
-  sha256 "53119bc3f3e78fc90de4724e3f38db34b5264e163af8eecc1d8d482ceeb69f12"
+  sha256 "dea802ddfcc05b9ff6c5287a38d1c70ce7824389bd1da2ce45f7ae64d9f27a95"
   license "AGPL-3.0-only"
 
   depends_on "node"
