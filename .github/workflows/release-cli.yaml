@@ -1,0 +1,46 @@
+name: Release CLI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag containing the CLI packaging script
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+      - uses: pnpm/action-setup@v3
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build:packages
+      - run: node packages/cli/scripts/package-release.mjs out/homebrew
+      - name: Verify clean install
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tg-search" --ignore-scripts --no-audit --no-fund ./out/homebrew/*.tgz
+          TG_SEARCH_HOME="$RUNNER_TEMP/tg-search-data" "$RUNNER_TEMP/tg-search/node_modules/.bin/tg-search" profile create release-test
+          TG_SEARCH_HOME="$RUNNER_TEMP/tg-search-data" "$RUNNER_TEMP/tg-search/node_modules/.bin/tg-search" --profile release-test search homebrew
+      - name: Publish CLI asset and Formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          version=$(node -p 'JSON.parse(require("fs").readFileSync("packages/cli/package.json")).version')
+          test "$RELEASE_TAG" = "v$version"
+          archive="out/homebrew/tg-search-cli-$version.tgz"
+          checksum=$(sha256sum "$archive" | cut -d ' ' -f 1)
+          sed -E "s@  url .*@  url \"https://github.com/groupultra/telegram-search/releases/download/$RELEASE_TAG/tg-search-cli-$version.tgz\"@; s@  sha256 .*@  sha256 \"$checksum\"@" Formula/tg-search.rb > out/homebrew/tg-search.rb
+          gh release upload "$RELEASE_TAG" "$archive" out/homebrew/tg-search.rb
