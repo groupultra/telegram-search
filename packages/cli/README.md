@@ -4,6 +4,33 @@
 
 ## Install and build
 
+Install the released CLI with Homebrew on macOS or Linux:
+
+```bash
+brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
+brew install groupultra/telegram-search/tg-search
+tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
+tg-search auth login
+brew services start groupultra/telegram-search/tg-search
+tg-search daemon status
+```
+
+`brew services` manages the `default` profile as your user and starts it again
+at login. Its data stays in the normal CLI data directory, including across
+Homebrew upgrades. Logs are `daemon.stdout.log` and `daemon.stderr.log` beside
+the default profile's data, with the daemon's existing rotation and retention.
+Configure credentials in the profile; a login service does not inherit your
+terminal's Telegram environment variables. Run the commands without `sudo`.
+
+```bash
+brew services stop groupultra/telegram-search/tg-search
+brew upgrade groupultra/telegram-search/tg-search
+brew services restart groupultra/telegram-search/tg-search
+```
+
+For other profiles, use `tg-search --profile NAME daemon run` with your own
+supervisor configuration.
+
 From this monorepo:
 
 ```bash
@@ -14,6 +41,22 @@ pnpm cli --help
 ```
 
 The package exposes the `tg-search` executable when installed from a registry.
+
+### Release packaging
+
+After building packages, run
+`node packages/cli/scripts/package-release.mjs out/homebrew` to produce a
+standalone npm tarball. Bundled workspace code and exact runtime dependency
+versions replace workspace/catalog protocols; `npm-shrinkwrap.json` pins the
+dependency tree, including optional native binaries for the installation host.
+No workspace packages need to be published to npm.
+
+The Release CLI workflow builds the tagged source, verifies installation and a
+local database query, and attaches the tarball and updated Formula to the GitHub
+Release. Copy the released `tg-search.rb` into `Formula/tg-search.rb` in a PR and
+merge it to make the new version available through the tap. Release uploads
+intentionally reject existing assets instead of replacing a checksummed
+installation source.
 
 ## Profiles and login
 

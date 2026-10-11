@@ -1,6 +1,7 @@
 .idea
 node_modules
 dist
+dist-release/
 .env
 .session
 .DS_Store
