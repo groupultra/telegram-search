@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { LLMProviderKey } from '@tg-search/core'
+
 import { useAccountStore, useBridge } from '@tg-search/client'
-import { CoreEventType } from '@tg-search/core'
+import { CoreEventType, LLM_PROVIDERS } from '@tg-search/core'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -37,6 +39,28 @@ const messageResolvers = [
 ]
 
 const embeddingDimensions = Object.values([1536, 1024, 768])
+
+const providerKeys = Object.keys(LLM_PROVIDERS) as LLMProviderKey[]
+
+const selectedProvider = computed({
+  get() {
+    const apiBase = accountSettings.value?.llm?.apiBase ?? ''
+    for (const key of providerKeys) {
+      if (apiBase === LLM_PROVIDERS[key].apiBase)
+        return key
+    }
+    return '' // custom
+  },
+  set(key: string) {
+    if (!key || !accountSettings.value)
+      return
+    const preset = LLM_PROVIDERS[key as LLMProviderKey]
+    if (!preset)
+      return
+    accountSettings.value.llm.apiBase = preset.apiBase
+    accountSettings.value.llm.model = preset.defaultModel
+  },
+})
 
 function waitForFetchedSettings(timeout = CONFIG_FETCH_TIMEOUT_MS) {
   if (hasFetchedSettings.value && accountSettings.value) {
@@ -377,13 +401,28 @@ async function updateConfig() {
               </div>
 
               <div class="grid gap-6">
+                <div class="space-y-2">
+                  <label class="text-sm font-medium">{{ t('settings.llmProvider') }}</label>
+                  <select
+                    v-model="selectedProvider"
+                    class="h-10 w-full flex border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
+                  >
+                    <option v-for="key in providerKeys" :key="key" :value="key">
+                      {{ LLM_PROVIDERS[key].label }}
+                    </option>
+                    <option value="">
+                      {{ t('settings.customProvider') }}
+                    </option>
+                  </select>
+                </div>
+
                 <div class="grid gap-4 sm:grid-cols-2">
                   <div class="space-y-2">
                     <label class="text-sm font-medium">{{ t('settings.llmModel') }}</label>
                     <input
                       v-model="accountSettings.llm.model"
                       type="text"
-                      placeholder="gpt-4o-mini"
+                      :placeholder="LLM_PROVIDERS[selectedProvider as LLMProviderKey]?.defaultModel ?? 'gpt-4o-mini'"
                       class="h-10 w-full flex border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed file:border-0 file:bg-transparent file:text-sm placeholder:text-muted-foreground file:font-medium disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
                     >
                   </div>
@@ -392,7 +431,7 @@ async function updateConfig() {
                     <input
                       v-model="accountSettings.llm.apiBase"
                       type="text"
-                      placeholder="https://api.openai.com/v1"
+                      :placeholder="LLM_PROVIDERS[selectedProvider as LLMProviderKey]?.apiBase ?? 'https://api.openai.com/v1'"
                       class="h-10 w-full flex border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed file:border-0 file:bg-transparent file:text-sm placeholder:text-muted-foreground file:font-medium disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
                     >
                   </div>
