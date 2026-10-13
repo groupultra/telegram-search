@@ -60,6 +60,16 @@ describe('cLI command boundary', () => {
       'list',
       '--json=false',
     ])
+    expect(normalizeRawArgs(['--no-json', 'daemon', 'status'])).toEqual([
+      'daemon',
+      'status',
+      '--json=false',
+    ])
+    expect(normalizeRawArgs(['profile', 'list', '--json', 'false'])).toEqual([
+      'profile',
+      'list',
+      '--json=false',
+    ])
   })
 
   it('renders profile lists for people unless JSON is requested', async () => {

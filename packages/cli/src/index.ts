@@ -560,8 +560,19 @@ export function normalizeRawArgs(args: string[]): string[] {
   let json: boolean | undefined
   let index = 0
   while (index < args.length) {
-    if (args[index] === '--json' || args[index] === '--json=true' || args[index] === '--json=false') {
-      json = args[index] !== '--json=false'
+    if (args[index] === '--no-json') {
+      json = false
+      index += 1
+      continue
+    }
+    if (args[index] === '--json') {
+      const value = args[index + 1]
+      json = value !== 'false'
+      index += value === 'true' || value === 'false' ? 2 : 1
+      continue
+    }
+    if (args[index] === '--json=true' || args[index] === '--json=false') {
+      json = args[index] === '--json=true'
       index += 1
       continue
     }
