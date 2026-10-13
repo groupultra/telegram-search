@@ -60,6 +60,21 @@ describe('cLI command boundary', () => {
       'list',
       '--json=false',
     ])
+    expect(normalizeRawArgs(['profile', 'list', '--json=1'])).toEqual([
+      'profile',
+      'list',
+      '--json',
+    ])
+    expect(normalizeRawArgs(['profile', 'list', '--json=yes'])).toEqual([
+      'profile',
+      'list',
+      '--json',
+    ])
+    expect(normalizeRawArgs(['profile', 'list', '--json='])).toEqual([
+      'profile',
+      'list',
+      '--json',
+    ])
     expect(normalizeRawArgs(['--no-json', 'daemon', 'status'])).toEqual([
       'daemon',
       'status',
@@ -93,7 +108,7 @@ describe('cLI command boundary', () => {
     await ensureProfile('work')
     const output = captureOutput()
 
-    await runCli(['--profile=work', 'profile', 'list', '--json=true'])
+    await runCli(['--profile=work', 'profile', 'list', '--json=1'])
 
     expect(output.stdoutJson()).toEqual({
       ok: true,

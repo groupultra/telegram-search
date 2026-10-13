@@ -571,8 +571,8 @@ export function normalizeRawArgs(args: string[]): string[] {
       index += value === 'true' || value === 'false' ? 2 : 1
       continue
     }
-    if (args[index] === '--json=true' || args[index] === '--json=false') {
-      json = args[index] === '--json=true'
+    if (args[index].startsWith('--json=')) {
+      json = args[index].slice('--json='.length) !== 'false'
       index += 1
       continue
     }
