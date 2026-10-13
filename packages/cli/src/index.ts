@@ -557,11 +557,11 @@ export function normalizeRawArgs(args: string[]): string[] {
   const normalized: string[] = []
   let profile: string | undefined
   let remote: string | undefined
-  let json = false
+  let json: boolean | undefined
   let index = 0
   while (index < args.length) {
-    if (args[index] === '--json') {
-      json = true
+    if (args[index] === '--json' || args[index] === '--json=true' || args[index] === '--json=false') {
+      json = args[index] !== '--json=false'
       index += 1
       continue
     }
@@ -590,8 +590,8 @@ export function normalizeRawArgs(args: string[]): string[] {
     normalized.push(`--profile=${profile}`)
   if (remote !== undefined)
     normalized.push(`--remote=${remote}`)
-  if (json)
-    normalized.push('--json')
+  if (json !== undefined)
+    normalized.push(json ? '--json' : '--json=false')
   return normalized
 }
 
@@ -603,14 +603,15 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
   const normalizedArgs = normalizeRawArgs(args)
   resetOutputState(normalizedArgs.includes('--json') ? 'json' : 'text')
   const profile = profileFromRawArgs(normalizedArgs)
+  const frameworkArgs = normalizedArgs.filter(arg => arg !== '--json' && arg !== '--json=false')
   try {
     if (['auth', 'daemon'].includes(normalizedArgs[0])) {
       const config = await readProfileConfig(resolveProfilePaths(profile))
       if (normalizedArgs.some(arg => arg.startsWith('--remote=')) || process.env.TG_SEARCH_REMOTE_URL !== undefined || config.remoteUrl !== undefined)
         throw new Error('auth and daemon manage local profiles only; use a separate local profile')
     }
-    if (normalizedArgs.includes('--help') || normalizedArgs.includes('-h') || (normalizedArgs.length === 1 && normalizedArgs[0] === '--version'))
-      await runMain(main, { rawArgs: normalizedArgs })
+    if (frameworkArgs.includes('--help') || frameworkArgs.includes('-h') || (frameworkArgs.length === 1 && frameworkArgs[0] === '--version'))
+      await runMain(main, { rawArgs: frameworkArgs })
     else
       await runCommand(main, { rawArgs: normalizedArgs })
   }

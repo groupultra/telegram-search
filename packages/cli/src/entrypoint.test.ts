@@ -32,6 +32,13 @@ it('runs the installed CLI through a symlink with spaces in its path', async () 
       ok: false,
       error: { code: 'CLI_ERROR', message: 'Missing required positional argument: NAME' },
     })
+
+    const version = spawnSync(process.execPath, [executable, '--version', '--json'], {
+      env: { ...process.env, TG_SEARCH_HOME: join(root, 'data') },
+      encoding: 'utf8',
+    })
+    expect(version.status).toBe(0)
+    expect(version.stderr).not.toContain('No command specified')
   }
   finally {
     await rm(root, { recursive: true, force: true })

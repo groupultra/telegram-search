@@ -49,6 +49,19 @@ describe('cLI command boundary', () => {
     ])
   })
 
+  it('normalizes explicit JSON boolean values at the leaf command', () => {
+    expect(normalizeRawArgs(['--json=true', 'profile', 'list'])).toEqual([
+      'profile',
+      'list',
+      '--json',
+    ])
+    expect(normalizeRawArgs(['profile', 'list', '--json=false'])).toEqual([
+      'profile',
+      'list',
+      '--json=false',
+    ])
+  })
+
   it('renders profile lists for people unless JSON is requested', async () => {
     const home = await mkdtemp(join(tmpdir(), 'telegram-search-cli-'))
     temporaryDirectories.push(home)
@@ -70,7 +83,7 @@ describe('cLI command boundary', () => {
     await ensureProfile('work')
     const output = captureOutput()
 
-    await runCli(['--profile=work', 'profile', 'list', '--json'])
+    await runCli(['--profile=work', 'profile', 'list', '--json=true'])
 
     expect(output.stdoutJson()).toEqual({
       ok: true,
