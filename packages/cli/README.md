@@ -117,7 +117,7 @@ You may use `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` instead of storing API cre
 
 ## Agent commands
 
-Every command writes one JSON envelope to stdout. Successful envelopes contain `ok`, `data`, top-level `next_cursor` when pagination applies, and `meta.profile` / `meta.source`. Failed envelopes contain `ok: false` and a structured `error`; the process also exits non-zero. Diagnostics, prompts, GramJS logs, migration logs, and streaming progress go to stderr. `--json` is accepted for compatibility but JSON is always enabled.
+Commands use a human-readable text format by default. Pass `--json` for automation and Agent calls; successful JSON envelopes contain `ok`, `data`, top-level `next_cursor` when pagination applies, and `meta.profile` / `meta.source`. Failed JSON envelopes contain `ok: false` and a structured `error`; the process also exits non-zero. Diagnostics, prompts, GramJS logs, migration logs, and streaming progress go to stderr.
 
 ```bash
 # Discover chats remotely. No messages are persisted.
@@ -131,7 +131,7 @@ tg-search --profile work messages list --chat 123456 --query "项目进展" --fr
 
 # After the user explicitly approves Telegram Takeout, persist selected chats.
 # At least --chat or --all is required. Never add --takeout without that approval.
-tg-search --profile work sync --takeout --chat 123456,789012 --from 2026-01-01 --to 2026-12-31
+tg-search --profile work sync --takeout --chat 123456,789012 --from 2026-01-01 --to 2026-12-31 --json
 
 # Query and search only the local PGlite database. These commands do not connect to Telegram.
 tg-search --profile work messages query --from 2026-01-01 --to 2026-12-31 --json

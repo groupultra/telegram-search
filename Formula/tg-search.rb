@@ -52,7 +52,7 @@ class TgSearch < Formula
     ENV["TG_SEARCH_HOME"] = testpath/"data"
     system bin/"tg-search", "profile", "create", "brew-test"
     assert_path_exists testpath/"data/profiles/brew-test/exports"
-    assert_match '"brew-test"', shell_output("#{bin}/tg-search profile list")
-    assert_match '"state":"stopped"', shell_output("#{bin}/tg-search --profile brew-test daemon status").delete(" \n")
+    assert_match '"brew-test"', shell_output("#{bin}/tg-search profile list --json")
+    assert_match '"state":"stopped"', shell_output("#{bin}/tg-search --profile brew-test daemon status --json").delete(" \n")
   end
 end

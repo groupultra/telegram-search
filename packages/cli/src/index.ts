@@ -12,14 +12,14 @@ import { pathToFileURL } from 'node:url'
 
 import { retryTelegramResult, toAppError } from '@tg-search/core'
 import { normalizeRemoteUrl } from '@tg-search/protocol'
-import { defineCommand, runMain } from 'citty'
+import { defineCommand, runCommand, runMain } from 'citty'
 import { TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient, createAuthPrompts, shouldStopAuthFlow } from './auth-support'
 import { connectDaemon, runDaemon } from './daemon'
 import { createGramJsStderrLogger } from './gramjs-logger'
-import { hasWrittenEnvelope, resetEnvelopeState, writeFailure, writeOutput, writeProgress } from './output'
+import { hasWrittenOutput, isJsonOutput, resetOutputState, writeFailure, writeOutput, writeProgress } from './output'
 import {
   ensureProfile,
   listProfiles,
@@ -33,7 +33,11 @@ import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 
 const CLI_VERSION = (createRequire(import.meta.url)('../package.json') as { version: string }).version
-const profileArg = { profile: { type: 'string' as const, default: 'default' }, remote: { type: 'string' as const, description: 'Remote TGS URL (HTTPS)' } }
+const profileArg = {
+  profile: { type: 'string' as const, default: 'default' },
+  remote: { type: 'string' as const, description: 'Remote TGS URL (HTTPS)' },
+  json: { type: 'boolean' as const, default: false, description: 'Write a machine-readable JSON envelope' },
+}
 
 function profileFrom(context: { args: object }): string {
   const profile = (context.args as { profile?: unknown }).profile
@@ -553,9 +557,22 @@ export function normalizeRawArgs(args: string[]): string[] {
   const normalized: string[] = []
   let profile: string | undefined
   let remote: string | undefined
+  let json: boolean | undefined
   let index = 0
   while (index < args.length) {
+    if (args[index] === '--no-json') {
+      json = false
+      index += 1
+      continue
+    }
     if (args[index] === '--json') {
+      const value = args[index + 1]
+      json = value !== 'false'
+      index += value === 'true' || value === 'false' ? 2 : 1
+      continue
+    }
+    if (args[index].startsWith('--json=')) {
+      json = args[index].slice('--json='.length) !== 'false'
       index += 1
       continue
     }
@@ -584,6 +601,8 @@ export function normalizeRawArgs(args: string[]): string[] {
     normalized.push(`--profile=${profile}`)
   if (remote !== undefined)
     normalized.push(`--remote=${remote}`)
+  if (json !== undefined)
+    normalized.push(json ? '--json' : '--json=false')
   return normalized
 }
 
@@ -592,22 +611,28 @@ function profileFromRawArgs(args: string[]): string {
 }
 
 export async function runCli(args = process.argv.slice(2)): Promise<void> {
-  resetEnvelopeState()
   const normalizedArgs = normalizeRawArgs(args)
+  resetOutputState(normalizedArgs.includes('--json') ? 'json' : 'text')
   const profile = profileFromRawArgs(normalizedArgs)
+  const frameworkArgs = normalizedArgs.filter(arg => arg !== '--json' && arg !== '--json=false')
   try {
     if (['auth', 'daemon'].includes(normalizedArgs[0])) {
       const config = await readProfileConfig(resolveProfilePaths(profile))
       if (normalizedArgs.some(arg => arg.startsWith('--remote=')) || process.env.TG_SEARCH_REMOTE_URL !== undefined || config.remoteUrl !== undefined)
         throw new Error('auth and daemon manage local profiles only; use a separate local profile')
     }
-    await runMain(main, { rawArgs: normalizedArgs })
+    if (frameworkArgs.includes('--help') || frameworkArgs.includes('-h') || (frameworkArgs.length === 1 && frameworkArgs[0] === '--version'))
+      await runMain(main, { rawArgs: frameworkArgs })
+    else
+      await runCommand(main, { rawArgs: normalizedArgs })
   }
   catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    if (!hasWrittenEnvelope())
+    const hadOutput = hasWrittenOutput()
+    if (!hadOutput)
       writeFailure({ code: 'CLI_ERROR', message, retryable: false }, outputMeta(profile, 'cli'))
-    process.stderr.write(`${message}\n`)
+    if (hadOutput || isJsonOutput())
+      process.stderr.write(`${message}\n`)
     process.exitCode = 1
   }
 }
