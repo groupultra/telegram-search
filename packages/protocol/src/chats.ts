@@ -4,12 +4,12 @@ import type { AppResult } from './errors'
 import type { CursorPage } from './pagination'
 
 import { defineInvokeEventa } from '@moeru/eventa'
-import { array, maxValue, minValue, number, object, optional, picklist, pipe, string } from 'valibot'
+import { array, maxValue, minValue, number, object, optional, picklist, pipe, regex, string } from 'valibot'
 
 export const chatTypeSchema = picklist(['user', 'bot', 'channel', 'group', 'supergroup'])
 
 export const listChatsInputSchema = object({
-  cursor: optional(string()),
+  cursor: optional(pipe(string(), regex(/^[1-9]\d{0,15}$/))),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
   types: optional(array(chatTypeSchema)),
 })

@@ -260,6 +260,13 @@
       "when": 1783865832421,
       "tag": "0036_add-message-structured-metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791886288847,
+      "tag": "0037_remote-access-audit-log",
+      "breakpoints": true
     }
   ]
 }
