@@ -28,9 +28,27 @@ function humanLabel(key: string): string {
   return `${words.charAt(0).toUpperCase()}${words.slice(1)}`
 }
 
-function humanScalar(value: null | boolean | number | string): string {
+function escapeTerminalControls(value: string): string {
+  return Array.from(value, (character) => {
+    const codePoint = character.charCodeAt(0)
+    const isTerminalControl = codePoint <= 0x09
+      || (codePoint >= 0x0B && codePoint <= 0x1F)
+      || (codePoint >= 0x7F && codePoint <= 0x9F)
+    if (!isTerminalControl)
+      return character
+    if (character === '\r')
+      return '\\r'
+    if (character === '\t')
+      return '\\t'
+    return `\\x${codePoint.toString(16).padStart(2, '0')}`
+  }).join('')
+}
+
+function humanScalar(value: null | boolean | number | string, continuationIndent: string): string {
   if (value === null)
     return 'none'
+  if (typeof value === 'string')
+    return escapeTerminalControls(value).replaceAll('\n', `\n${continuationIndent}`)
   return String(value)
 }
 
@@ -41,14 +59,14 @@ function isHumanScalar(value: unknown): value is null | boolean | number | strin
 function formatHumanValue(value: unknown, indentation = 0): string {
   const indent = ' '.repeat(indentation)
   if (isHumanScalar(value))
-    return `${indent}${humanScalar(value)}`
+    return `${indent}${humanScalar(value, indent)}`
 
   if (Array.isArray(value)) {
     if (value.length === 0)
       return `${indent}(none)`
     return value.map((item) => {
       if (isHumanScalar(item))
-        return `${indent}- ${humanScalar(item)}`
+        return `${indent}- ${humanScalar(item, `${indent}  `)}`
       return `${indent}-\n${formatHumanValue(item, indentation + 2)}`
     }).join('\n')
   }
@@ -60,7 +78,7 @@ function formatHumanValue(value: unknown, indentation = 0): string {
     return entries.map(([key, item]) => {
       const label = humanLabel(key)
       if (isHumanScalar(item))
-        return `${indent}${label}: ${humanScalar(item)}`
+        return `${indent}${label}: ${humanScalar(item, `${indent}  `)}`
       return `${indent}${label}:\n${formatHumanValue(item, indentation + 2)}`
     }).join('\n')
   }

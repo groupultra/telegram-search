@@ -121,6 +121,28 @@ describe('cLI command boundary', () => {
     expect(output.stderr.mock.calls.map(call => String(call[0])).join('')).toBe('Type: progress\nImported: 2\n')
   })
 
+  it('escapes terminal controls and indents multiline human-readable values', () => {
+    const output = captureOutput()
+
+    emitResult({
+      ok: true,
+      data: {
+        message: {
+          sender: 'Ada\u001B[31m',
+          text: 'first\u001B]8;;https://example.com\u0007link\u001B]8;;\u0007\rrewrite\nsecond',
+        },
+      },
+    }, { profile: 'work', source: 'local' })
+
+    expect(output.stdoutText()).toBe([
+      'Message:',
+      '  Sender: Ada\\x1b[31m',
+      '  Text: first\\x1b]8;;https://example.com\\x07link\\x1b]8;;\\x07\\rrewrite',
+      '    second',
+      '',
+    ].join('\n'))
+  })
+
   it('writes human-readable failures once to stderr and exits non-zero', () => {
     const output = captureOutput()
 
