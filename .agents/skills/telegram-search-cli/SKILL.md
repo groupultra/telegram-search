@@ -9,7 +9,7 @@ Use the CLI as a local-first data tool. Let the agent compose atomic commands; d
 
 ## Contracts
 
-- Treat stdout as exactly one JSON envelope. Read diagnostics, prompts, migration output, and progress from stderr.
+- Pass `--json` to every `tg-search` command and treat stdout as exactly one JSON envelope. Read diagnostics, prompts, migration output, and progress from stderr.
 - Use `chats list` and `messages list` for bounded remote reads without persistence.
 - Use local `messages query`, `search`, `context`, `stats`, and `export` without connecting to Telegram.
 - Use `sync --takeout` for message persistence and bulk history. Add `--takeout` only after the user explicitly approves the selected chats, time range, and data scope.
@@ -29,32 +29,32 @@ pnpm -F @tg-search/cli build
 List profiles and discover chats:
 
 ```bash
-pnpm cli profile list
-pnpm cli --profile=<profile> chats list --limit 200
+pnpm cli profile list --json
+pnpm cli --profile=<profile> chats list --limit 200 --json
 ```
 
 Read a bounded remote range without persistence:
 
 ```bash
 pnpm cli --profile=<profile> messages list \
-  --chat <chat-id> --from <ISO-time> --to <ISO-time> --limit 100
+  --chat <chat-id> --from <ISO-time> --to <ISO-time> --limit 100 --json
 ```
 
 After explicit user approval, persist the approved range through Takeout:
 
 ```bash
 pnpm cli --profile=<profile> sync --takeout \
-  --chat <chat-id> --from <ISO-time> --to <ISO-time> --limit 100000
+  --chat <chat-id> --from <ISO-time> --to <ISO-time> --limit 100000 --json
 ```
 
 Analyze the local database:
 
 ```bash
-pnpm cli --profile=<profile> messages query --chat <chat-id> --sender <user-id> --from <ISO-time> --to <ISO-time>
-pnpm cli --profile=<profile> search '<query>' --chat <chat-id>
-pnpm cli --profile=<profile> context --chat <chat-id> --message <message-id> --before 20 --after 20
-pnpm cli --profile=<profile> stats --group-by month --timezone Asia/Singapore --chat <chat-id>
-pnpm cli --profile=<profile> export --timezone Asia/Singapore --chat <chat-id> --output <directory>
+pnpm cli --profile=<profile> messages query --chat <chat-id> --sender <user-id> --from <ISO-time> --to <ISO-time> --json
+pnpm cli --profile=<profile> search '<query>' --chat <chat-id> --json
+pnpm cli --profile=<profile> context --chat <chat-id> --message <message-id> --before 20 --after 20 --json
+pnpm cli --profile=<profile> stats --group-by month --timezone Asia/Singapore --chat <chat-id> --json
+pnpm cli --profile=<profile> export --timezone Asia/Singapore --chat <chat-id> --output <directory> --json
 ```
 
 Treat a remote `total` field as informational. Telegram does not guarantee it reflects sender and date filters; calculate exact filtered counts from the authorized local dataset.
@@ -64,8 +64,8 @@ Treat a remote `total` field as informational. Telegram does not guarantee it re
 If credentials or authorization are missing, ask the user to complete login locally:
 
 ```bash
-pnpm cli --profile=<profile> profile configure --apiId <id> --apiHash <hash>
-pnpm cli --profile=<profile> auth login --phone <phone>
+pnpm cli --profile=<profile> profile configure --apiId <id> --apiHash <hash> --json
+pnpm cli --profile=<profile> auth login --phone <phone> --json
 ```
 
 Do not ask the user to paste authentication secrets into chat. Resume only after the user confirms login.

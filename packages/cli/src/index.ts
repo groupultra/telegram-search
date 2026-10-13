@@ -12,14 +12,14 @@ import { pathToFileURL } from 'node:url'
 
 import { retryTelegramResult, toAppError } from '@tg-search/core'
 import { normalizeRemoteUrl } from '@tg-search/protocol'
-import { defineCommand, runMain } from 'citty'
+import { defineCommand, runCommand, runMain } from 'citty'
 import { TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient, createAuthPrompts, shouldStopAuthFlow } from './auth-support'
 import { connectDaemon, runDaemon } from './daemon'
 import { createGramJsStderrLogger } from './gramjs-logger'
-import { hasWrittenEnvelope, resetEnvelopeState, writeFailure, writeOutput, writeProgress } from './output'
+import { hasWrittenOutput, isJsonOutput, resetOutputState, writeFailure, writeOutput, writeProgress } from './output'
 import {
   ensureProfile,
   listProfiles,
@@ -33,7 +33,11 @@ import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 
 const CLI_VERSION = (createRequire(import.meta.url)('../package.json') as { version: string }).version
-const profileArg = { profile: { type: 'string' as const, default: 'default' }, remote: { type: 'string' as const, description: 'Remote TGS URL (HTTPS)' } }
+const profileArg = {
+  profile: { type: 'string' as const, default: 'default' },
+  remote: { type: 'string' as const, description: 'Remote TGS URL (HTTPS)' },
+  json: { type: 'boolean' as const, default: false, description: 'Write a machine-readable JSON envelope' },
+}
 
 function profileFrom(context: { args: object }): string {
   const profile = (context.args as { profile?: unknown }).profile
@@ -553,9 +557,11 @@ export function normalizeRawArgs(args: string[]): string[] {
   const normalized: string[] = []
   let profile: string | undefined
   let remote: string | undefined
+  let json = false
   let index = 0
   while (index < args.length) {
     if (args[index] === '--json') {
+      json = true
       index += 1
       continue
     }
@@ -584,6 +590,8 @@ export function normalizeRawArgs(args: string[]): string[] {
     normalized.push(`--profile=${profile}`)
   if (remote !== undefined)
     normalized.push(`--remote=${remote}`)
+  if (json)
+    normalized.push('--json')
   return normalized
 }
 
@@ -592,8 +600,8 @@ function profileFromRawArgs(args: string[]): string {
 }
 
 export async function runCli(args = process.argv.slice(2)): Promise<void> {
-  resetEnvelopeState()
   const normalizedArgs = normalizeRawArgs(args)
+  resetOutputState(normalizedArgs.includes('--json') ? 'json' : 'text')
   const profile = profileFromRawArgs(normalizedArgs)
   try {
     if (['auth', 'daemon'].includes(normalizedArgs[0])) {
@@ -601,13 +609,18 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
       if (normalizedArgs.some(arg => arg.startsWith('--remote=')) || process.env.TG_SEARCH_REMOTE_URL !== undefined || config.remoteUrl !== undefined)
         throw new Error('auth and daemon manage local profiles only; use a separate local profile')
     }
-    await runMain(main, { rawArgs: normalizedArgs })
+    if (normalizedArgs.includes('--help') || normalizedArgs.includes('-h') || (normalizedArgs.length === 1 && normalizedArgs[0] === '--version'))
+      await runMain(main, { rawArgs: normalizedArgs })
+    else
+      await runCommand(main, { rawArgs: normalizedArgs })
   }
   catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    if (!hasWrittenEnvelope())
+    const hadOutput = hasWrittenOutput()
+    if (!hadOutput)
       writeFailure({ code: 'CLI_ERROR', message, retryable: false }, outputMeta(profile, 'cli'))
-    process.stderr.write(`${message}\n`)
+    if (hadOutput || isJsonOutput())
+      process.stderr.write(`${message}\n`)
     process.exitCode = 1
   }
 }

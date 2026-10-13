@@ -31,8 +31,8 @@ jobs:
       - name: Verify clean install
         run: |
           npm install --prefix "$RUNNER_TEMP/tg-search" --ignore-scripts --no-audit --no-fund ./out/homebrew/*.tgz
-          TG_SEARCH_HOME="$RUNNER_TEMP/tg-search-data" "$RUNNER_TEMP/tg-search/node_modules/.bin/tg-search" profile create release-test
-          TG_SEARCH_HOME="$RUNNER_TEMP/tg-search-data" "$RUNNER_TEMP/tg-search/node_modules/.bin/tg-search" --profile release-test search homebrew
+          TG_SEARCH_HOME="$RUNNER_TEMP/tg-search-data" "$RUNNER_TEMP/tg-search/node_modules/.bin/tg-search" profile create release-test --json
+          TG_SEARCH_HOME="$RUNNER_TEMP/tg-search-data" "$RUNNER_TEMP/tg-search/node_modules/.bin/tg-search" --profile release-test search homebrew --json
       - name: Publish CLI asset and Formula
         env:
           GH_TOKEN: ${{ github.token }}

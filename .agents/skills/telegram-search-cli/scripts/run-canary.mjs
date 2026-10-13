@@ -72,7 +72,7 @@ async function main() {
   const persistSummary = () => writePrivate(join(evidenceDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`)
 
   async function run(stage, commandArgs) {
-    const result = spawnSync(process.execPath, [cliPath, `--profile=${args.profile}`, ...commandArgs], {
+    const result = spawnSync(process.execPath, [cliPath, `--profile=${args.profile}`, ...commandArgs, '--json'], {
       cwd: repoRoot,
       encoding: 'utf8',
       env: process.env,

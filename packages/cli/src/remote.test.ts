@@ -65,7 +65,7 @@ describe('remote CLI', () => {
     vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
-      await runCli(['--remote', server.url!, 'search', 'project', '--limit', '2'])
+      await runCli(['--remote', server.url!, 'search', 'project', '--limit', '2', '--json'])
       const result = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
       expect(result).toMatchObject({ ok: true, data: page.data, next_cursor: 'next-page', meta: { source: 'remote' } })
       expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 2, useVector: false })
