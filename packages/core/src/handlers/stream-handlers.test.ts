@@ -13,6 +13,7 @@ function fakeApplication(sync: TelegramApplication['sync']): TelegramApplication
     readMessages: vi.fn(),
     getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
     listRemoteMessages: vi.fn(),
+    readMessageMedia: vi.fn(),
     queryLocalMessages: vi.fn(),
     searchLocalMessages: vi.fn(),
     getLocalMessageContext: vi.fn(),

@@ -56,6 +56,7 @@ export function createRemoteRuntime(endpoint: string, token: string): Omit<Await
     remote: true,
     execution: { mode: 'remote', cli: runtimeBuildInfo(import.meta.url) },
     invokes: {
+      media: { read: invoke('media.read', remoteMethods['media.read'].output) },
       chats: { list: invoke('chats.list', remoteMethods['chats.list'].output) },
       messages: {
         replies: invoke('messages.replies', remoteMethods['messages.replies'].output),

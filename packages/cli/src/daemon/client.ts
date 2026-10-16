@@ -11,6 +11,7 @@ import {
   daemonContracts,
   daemonStatusSchema,
   exportContracts,
+  mediaContracts,
   messageContracts,
   statsContracts,
   syncContracts,
@@ -88,6 +89,7 @@ export async function connectDaemon(paths: ProfilePaths): Promise<DaemonClientRu
     return {
       execution: { mode: 'daemon', cli: runtimeBuildInfo(), daemon: result.output.build },
       invokes: {
+        media: defineInvokes(connection.context, mediaContracts),
         chats: defineInvokes(connection.context, chatContracts),
         messages: defineInvokes(connection.context, messageContracts),
         stats: defineInvokes(connection.context, statsContracts),

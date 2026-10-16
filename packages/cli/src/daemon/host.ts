@@ -107,6 +107,7 @@ export function createDaemonApplicationProxy(getApplication: () => TelegramAppli
     return result
   }
   return {
+    readMessageMedia: (input, options) => observe(input.source, () => getApplication().readMessageMedia(input, options)),
     getReplyContext: (input, options) => observe(input.source, () => getApplication().getReplyContext(input, options)),
     readMessages: (input, options) => observe(input.source, () => getApplication().readMessages(input, options)),
     getMessages: (input, options) => observe(input.source, () => getApplication().getMessages(input, options)),

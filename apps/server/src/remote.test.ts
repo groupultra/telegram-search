@@ -39,6 +39,20 @@ function fixture(options: { access?: ReturnType<typeof access>, messageChatId?: 
     readMessages: vi.fn(),
     getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
     listRemoteMessages: vi.fn(async () => page),
+    readMessageMedia: vi.fn<TelegramApplication['readMessageMedia']>(async input => ({ ok: true, data: {
+      source: input.source,
+      chatId: resultMessage.chatId,
+      messageId: input.messageId,
+      mediaIndex: input.mediaIndex,
+      type: 'photo',
+      mimeType: 'image/jpeg',
+      size: 4,
+      encoding: 'base64',
+      data: 'dGVzdA==',
+      offset: 0,
+      nextOffset: null,
+      contentStatus: 'complete',
+    } })),
     queryLocalMessages: vi.fn<TelegramApplication['queryLocalMessages']>(async () => page),
     searchLocalMessages: vi.fn(async () => page),
     getLocalMessageContext: vi.fn(async () => ({ ok: true as const, data: { messages: [resultMessage], targetIndex: 0 } })),
@@ -75,6 +89,21 @@ describe('remote access control', () => {
     expect(application.getMessages).not.toHaveBeenCalled()
     expect((await request('7')).status).toBe(200)
     expect(application.getMessages).toHaveBeenCalledExactlyOnceWith({ source: 'local', chatId: '7', messageIds: ['42'] }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+  })
+
+  it('requires media capability and chat scope before returning attachment bytes', async () => {
+    const { app, application } = fixture({ access: access({ capabilities: ['media.read'] }) })
+    const request = (chatId: string) => app.request('/v1/remote/media.read', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ source: 'telegram', chatId, messageId: '42', length: 4, maxBytes: 100 }),
+    })
+    expect((await request('8')).status).toBe(403)
+    expect(application.readMessageMedia).not.toHaveBeenCalled()
+    const response = await request('7')
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ ok: true, data: { chatId: '7', data: 'dGVzdA==', nextOffset: null, contentStatus: 'complete' } })
+    expect(application.readMessageMedia).toHaveBeenCalledOnce()
   })
 
   it('requires both a feature capability and chat read permission', async () => {

@@ -18,6 +18,12 @@ export interface MediaBinaryLocation {
 }
 
 export interface MediaBinaryProvider {
+  /** Determine the stored byte length before a bounded read. */
+  size: (location: MediaBinaryLocation) => Promise<number | null>
+
+  /** Read only the requested range; no network or storage key is accepted from CLI input. */
+  loadRange: (location: MediaBinaryLocation, offset: number, length: number, signal?: AbortSignal) => Promise<Uint8Array | null>
+
   /**
    * Persist media bytes and return a stable location descriptor.
    *

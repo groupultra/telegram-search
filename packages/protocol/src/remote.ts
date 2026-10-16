@@ -4,6 +4,7 @@ import { array, literal, nullable, number, object, optional, pipe, string, toLow
 
 import { chatRecordSchema, listChatsInputSchema } from './chats'
 import { appErrorSchema } from './errors'
+import { messageMediaChunkSchema, readMessageMediaInputSchema } from './media'
 import { getMessagesInputSchema, getMessagesResultSchema, listRemoteMessagesInputSchema, messageContextInputSchema, messageRecordSchema, queryLocalMessagesInputSchema, readMessagesInputSchema, readMessagesResultSchema, replyContextInputSchema, replyContextResultSchema, searchMessagesInputSchema } from './messages'
 import { statsInputSchema } from './stats'
 
@@ -12,6 +13,7 @@ const messagePageSchema = object({ items: array(object({ ...messageRecordSchema.
 export const accountIdSchema = pipe(string('Expected a database account UUID'), uuid('Expected a database account UUID'), toLowerCase())
 
 export const remoteMethods = {
+  'media.read': { input: readMessageMediaInputSchema, output: messageMediaChunkSchema },
   'chats.list': { input: listChatsInputSchema, output: object({ items: array(chatRecordSchema), nextCursor: nullable(string()), total: optional(number()) }) },
   'messages.replies': { input: replyContextInputSchema, output: replyContextResultSchema },
   'messages.read': { input: readMessagesInputSchema, output: readMessagesResultSchema },

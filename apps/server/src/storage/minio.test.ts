@@ -3,6 +3,7 @@ import type { MediaBinaryDescriptor, MediaBinaryLocation } from '@tg-search/core
 
 // eslint-disable-next-line unicorn/prefer-node-protocol
 import { Buffer } from 'buffer'
+import { PassThrough, Readable } from 'node:stream'
 
 import { v4 as uuidv4 } from 'uuid'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,6 +14,8 @@ const bucketExists = vi.fn()
 const makeBucket = vi.fn()
 const putObject = vi.fn()
 const getObject = vi.fn()
+const statObject = vi.fn()
+const getPartialObject = vi.fn()
 
 vi.mock('minio', () => {
   class MockMinioClient {
@@ -20,6 +23,8 @@ vi.mock('minio', () => {
     makeBucket = makeBucket
     putObject = putObject
     getObject = getObject
+    statObject = statObject
+    getPartialObject = getPartialObject
 
     constructor(public readonly options: any) {}
   }
@@ -55,6 +60,53 @@ describe('storage/minio - initMinioMediaStorage', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
+  })
+
+  it('checks object size and requests only the selected byte range', async () => {
+    bucketExists.mockResolvedValue(true)
+    statObject.mockResolvedValue({ size: 10 })
+    getPartialObject.mockResolvedValue(Readable.from([Buffer.from('defg')]))
+    await initMinioMediaStorage(logger, config)
+    const provider = getMinioMediaStorage()!
+    const location: MediaBinaryLocation = { kind: 'photo', path: 'photo/fixture' }
+    expect(await provider.size(location)).toBe(10)
+    expect(Buffer.from((await provider.loadRange(location, 3, 4))!).toString()).toBe('defg')
+    expect(getPartialObject).toHaveBeenCalledWith(config.bucket, location.path, 3, 4)
+    expect(getObject).not.toHaveBeenCalled()
+  })
+
+  it('distinguishes an object removed after stat from a permission failure', async () => {
+    bucketExists.mockResolvedValue(true)
+    await initMinioMediaStorage(logger, config)
+    const provider = getMinioMediaStorage()!
+    const location: MediaBinaryLocation = { kind: 'photo', path: 'photo/fixture' }
+    getPartialObject.mockRejectedValueOnce(Object.assign(new Error('missing'), { code: 'NoSuchKey' }))
+    expect(await provider.loadRange(location, 0, 4)).toBeNull()
+    getPartialObject.mockRejectedValueOnce(Object.assign(new Error('denied'), { code: 'AccessDenied' }))
+    await expect(provider.loadRange(location, 0, 4)).rejects.toThrow('denied')
+  })
+
+  it('destroys an active partial stream when the request is cancelled', async () => {
+    bucketExists.mockResolvedValue(true)
+    const stream = new PassThrough()
+    getPartialObject.mockResolvedValue(stream)
+    await initMinioMediaStorage(logger, config)
+    const controller = new AbortController()
+    const reading = getMinioMediaStorage()!.loadRange({ kind: 'photo', path: 'photo/fixture' }, 0, 4, controller.signal)
+    const rejected = expect(reading).rejects.toThrow('cancelled')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    controller.abort(new Error('cancelled'))
+    await rejected
+    expect(stream.destroyed).toBe(true)
+  })
+
+  it('rejects and closes a stream that exceeds the requested range', async () => {
+    bucketExists.mockResolvedValue(true)
+    const stream = Readable.from([Buffer.from('oversized')])
+    getPartialObject.mockResolvedValue(stream)
+    await initMinioMediaStorage(logger, config)
+    await expect(getMinioMediaStorage()!.loadRange({ kind: 'photo', path: 'photo/fixture' }, 0, 4)).rejects.toThrow('more bytes than requested')
+    expect(stream.destroyed).toBe(true)
   })
 
   it('registers a MediaBinaryProvider that writes and reads objects via MinIO', async () => {

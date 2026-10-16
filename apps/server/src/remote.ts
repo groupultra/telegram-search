@@ -188,6 +188,12 @@ function itemChatIds(data: Record<string, unknown>): Array<string | undefined> |
 }
 
 const remoteHandlers = {
+  'media.read': defineRemoteHandler({
+    input: remoteMethods['media.read'].input,
+    scope: scopeSingleChat,
+    invoke: (application, _credential, input, options) => application.readMessageMedia(input, options),
+    resultChatIds: (_input, data) => [data.chatId as string | undefined],
+  }),
   'chats.list': defineRemoteHandler({
     input: remoteMethods['chats.list'].input,
     scope: (credential, input) => {
