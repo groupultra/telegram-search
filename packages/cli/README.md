@@ -119,6 +119,39 @@ You may use `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` instead of storing API cre
 
 Commands use a human-readable text format by default. Pass `--json` for automation and Agent calls; successful JSON envelopes contain `ok`, `data`, top-level `next_cursor` when pagination applies, and `meta.profile` / `meta.source`. Failed JSON envelopes contain `ok: false` and a structured `error`; the process also exits non-zero. Diagnostics, prompts, GramJS logs, migration logs, and streaming progress go to stderr.
 
+Read commands accept `--format text|json|compact|jsonl`; `--json` is equivalent to
+`--format json`. Compact output keeps every field, including reply IDs, media,
+context and coverage, but places each top-level array item on one line. JSONL
+uses a `result` header, one `item` record per array item (`key`, `index`, `data`),
+and a terminal `completed` record. The header retains all non-array data fields,
+metadata and cursor, and lists each array's key and count so the original result
+can be reconstructed. A missing terminal record means output was interrupted.
+Serialization completion applies to one result; inspect its cursor and coverage
+to determine which history or references remain unread.
+
+Use `--output-file ./private/page.jsonl` on a read command to avoid large terminal
+output. This writes JSONL by default (or your explicitly selected format) and
+prints only a receipt with its path, byte count, format and `status: completed`.
+It writes this single command result; it does not follow pagination or download
+attachments. New directories use `0700` and result files use `0600`; existing
+directory permissions are preserved. Output and `.partial` paths are exclusive:
+existing files are never overwritten. A failed write reports its `.partial`
+path and `status: partial`; choose a fresh path to rerun. The final filename is
+published only after every chunk has been written and flushed.
+
+```bash
+tg-search messages list --chat 123456 --format compact
+tg-search messages query --limit 100 --output-file ./private/page.jsonl
+tg-search context --chat 123456 --message 42 --format jsonl
+```
+
+Unknown commands fail even with `--help` and report available subcommands.
+Failures from command parsing use `INVALID_ARGUMENT`; remote setup and transport
+failures distinguish `REMOTE_CREDENTIALS_MISSING`, `REMOTE_AUTHENTICATION_FAILED`,
+`REMOTE_PERMISSION_DENIED`, `REQUEST_DEADLINE_EXCEEDED` and `REMOTE_UNREACHABLE`. Structured
+application errors returned by the server retain their original code. JSON
+failures are emitted once on stdout without an additional plain-text error.
+
 ```bash
 # Discover chats remotely. No messages are persisted.
 tg-search --profile work chats list --limit 200 --json

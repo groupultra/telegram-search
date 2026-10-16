@@ -4,7 +4,8 @@ import type { RemoteApplication } from '../../../apps/server/src/remote-applicat
 
 import process from 'node:process'
 
-import { mkdtemp, readdir, rm } from 'node:fs/promises'
+import { Buffer } from 'node:buffer'
+import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -157,6 +158,64 @@ describe('remote CLI', () => {
       expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 2, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(resolve).toHaveBeenCalledWith(access.accountId)
       expect(await readdir(home)).toEqual([])
+    }
+    finally {
+      await server.close()
+      await rm(home, { recursive: true, force: true })
+    }
+  })
+
+  it('writes a remote result to a private JSONL file and prints only its receipt', async () => {
+    const { app } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const home = await mkdtemp(join(tmpdir(), 'tg-output-remote-'))
+    const outputFile = join(home, 'private', 'result.jsonl')
+    vi.stubEnv('TG_SEARCH_HOME', home)
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    try {
+      await runCli(['--remote', server.url!, 'messages', 'query', '--output-file', outputFile])
+      const receipt = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
+      expect(receipt).toMatchObject({ ok: true, data: { path: outputFile, status: 'completed', format: 'jsonl' }, next_cursor: 'next-page', meta: { source: 'remote' } })
+      expect(receipt.data).not.toHaveProperty('items')
+      const content = await readFile(outputFile, 'utf8')
+      const records = content.trimEnd().split('\n').map(line => JSON.parse(line))
+      expect(records).toEqual([
+        { type: 'result', status: 'partial', ok: true, data: { nextCursor: 'next-page', total: 37 }, next_cursor: 'next-page', meta: { profile: 'default', source: 'remote' }, arrays: [{ key: 'items', count: 1 }] },
+        { type: 'item', key: 'items', index: 0, data: message },
+        { type: 'completed', status: 'completed', ok: true },
+      ])
+      expect(receipt.data.bytes).toBe(Buffer.byteLength(content))
+      expect((await stat(outputFile)).mode & 0o777).toBe(0o600)
+      expect(await readdir(home)).toEqual(['private'])
+    }
+    finally {
+      await server.close()
+      await rm(home, { recursive: true, force: true })
+    }
+  })
+
+  it('classifies remote authentication and unreachable failures without duplicate error text', async () => {
+    const { app } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const endpoint = server.url!
+    const home = await mkdtemp(join(tmpdir(), 'tg-output-errors-'))
+    vi.stubEnv('TG_SEARCH_HOME', home)
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', 'wrong-token')
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    try {
+      await runCli(['--remote', endpoint, 'messages', 'query', '--json'])
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: false, error: { code: 'REMOTE_AUTHENTICATION_FAILED', retryable: false } })
+      expect(process.exitCode).toBe(1)
+      expect(stderr).not.toHaveBeenCalled()
+      stdout.mockClear()
+      await server.close()
+      await runCli(['--remote', endpoint, 'messages', 'query', '--json'])
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: false, error: { code: 'REMOTE_UNREACHABLE', retryable: true } })
+      expect(stderr).not.toHaveBeenCalled()
     }
     finally {
       await server.close()

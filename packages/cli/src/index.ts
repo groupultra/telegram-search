@@ -1,4 +1,5 @@
 import type { AppError, AppResult } from '@tg-search/protocol'
+import type { CommandDef } from 'citty'
 
 import type { OutputMeta } from './output'
 
@@ -17,6 +18,7 @@ import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient, createAuthPrompts, shouldStopAuthFlow } from './auth-support'
 import { CLI_VERSION, runtimeBuildInfo } from './build-info'
+import { cliError, toCliError } from './cli-errors'
 import { connectDaemon, runDaemon, stopDaemon } from './daemon'
 import { createGramJsStderrLogger } from './gramjs-logger'
 import { hasWrittenOutput, isJsonOutput, resetOutputState, writeFailure, writeOutput, writeProgress } from './output'
@@ -30,6 +32,7 @@ import {
 } from './profile'
 import { inspectProfile } from './profile-inspection'
 import { bindReadOperations } from './read-runtime'
+import { readOutputArgs, readOutputOptions } from './read-output'
 import { createRemoteRuntime } from './remote'
 import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
@@ -62,7 +65,7 @@ function parseTimestamp(value: string | undefined): number | undefined {
     return numeric
   const milliseconds = Date.parse(value)
   if (!Number.isFinite(milliseconds))
-    throw new Error(`Invalid date: ${value}`)
+    throw cliError({ code: 'INVALID_ARGUMENT', message: `Invalid date: ${value}`, retryable: false })
   return Math.floor(milliseconds / 1000)
 }
 
@@ -272,7 +275,7 @@ const authCommand = defineCommand({
         const apiId = config.apiId ?? process.env.TELEGRAM_API_ID
         const apiHash = config.apiHash ?? process.env.TELEGRAM_API_HASH
         if (!apiId || !apiHash)
-          throw new Error('Configure Telegram API credentials first')
+          throw cliError({ code: 'TELEGRAM_CREDENTIALS_REQUIRED', message: 'Configure Telegram API credentials first', retryable: false })
 
         const client = new TelegramClient(new StringSession(''), Number(apiId), apiHash, {
           ...CLI_TELEGRAM_CLIENT_OPTIONS,
@@ -338,7 +341,7 @@ const chatsCommand = defineCommand({
   subCommands: {
     list: defineCommand({
       meta: { name: 'list', description: 'List remote chats' },
-      args: { limit: { type: 'string', default: '100' }, cursor: { type: 'string' }, ...profileArg },
+      args: { limit: { type: 'string', default: '100' }, cursor: { type: 'string' }, ...profileArg, ...readOutputArgs },
       async run(context) {
         const profile = profileFrom(context)
         await withRuntime(context, true, async runtime => emitRetryingTelegramResult(
@@ -367,6 +370,7 @@ const mediaCommand = defineCommand({
         'length': { type: 'string', default: '65536' },
         'max-bytes': { type: 'string', default: '10485760' },
         ...profileArg,
+        ...readOutputArgs,
       },
       async run(context) {
         const profile = profileFrom(context)
@@ -395,7 +399,7 @@ const messagesCommand = defineCommand({
   subCommands: {
     replies: defineCommand({
       meta: { name: 'replies', description: 'Expand reply relationships with depth and node budgets' },
-      args: { chat: { type: 'string', required: true }, ids: { type: 'string', required: true }, source: { type: 'string', required: true }, depth: { type: 'string', default: '1' }, nodes: { type: 'string', default: '100' }, ...profileArg },
+      args: { chat: { type: 'string', required: true }, ids: { type: 'string', required: true }, source: { type: 'string', required: true }, depth: { type: 'string', default: '1' }, nodes: { type: 'string', default: '100' }, ...profileArg, ...readOutputArgs },
       async run(context) {
         const profile = profileFrom(context)
         await withRuntime(context, context.args.source === 'telegram', async runtime => emitResult(await runtime.invokes.messages.replies({
@@ -409,7 +413,7 @@ const messagesCommand = defineCommand({
     }),
     read: defineCommand({
       meta: { name: 'read', description: 'Read a time window through bounded pages and report coverage' },
-      args: { 'chat': { type: 'string', required: true }, 'source': { type: 'string', required: true }, 'cursor': { type: 'string' }, 'from': { type: 'string' }, 'to': { type: 'string' }, 'page-size': { type: 'string', default: '100' }, 'max-pages': { type: 'string', default: '10' }, 'max-messages': { type: 'string', default: '1000' }, ...profileArg },
+      args: { 'chat': { type: 'string', required: true }, 'source': { type: 'string', required: true }, 'cursor': { type: 'string' }, 'from': { type: 'string' }, 'to': { type: 'string' }, 'page-size': { type: 'string', default: '100' }, 'max-pages': { type: 'string', default: '10' }, 'max-messages': { type: 'string', default: '1000' }, ...profileArg, ...readOutputArgs },
       async run(context) {
         const profile = profileFrom(context)
         await withRuntime(context, context.args.source === 'telegram', async runtime => emitResult(await runtime.invokes.messages.read({
@@ -426,7 +430,7 @@ const messagesCommand = defineCommand({
     }),
     get: defineCommand({
       meta: { name: 'get', description: 'Get up to 100 messages by ID from an explicit source' },
-      args: { chat: { type: 'string', required: true }, ids: { type: 'string', required: true }, source: { type: 'string', required: true }, ...profileArg },
+      args: { chat: { type: 'string', required: true }, ids: { type: 'string', required: true }, source: { type: 'string', required: true }, ...profileArg, ...readOutputArgs },
       async run(context) {
         const profile = profileFrom(context)
         await withRuntime(context, context.args.source === 'telegram', async runtime => emitResult(await runtime.invokes.messages.get({
@@ -447,6 +451,7 @@ const messagesCommand = defineCommand({
         sender: { type: 'string' },
         query: { type: 'string', description: 'Search message text on Telegram' },
         ...profileArg,
+        ...readOutputArgs,
       },
       async run(context) {
         const profile = profileFrom(context)
@@ -474,6 +479,7 @@ const messagesCommand = defineCommand({
         to: { type: 'string' },
         sender: { type: 'string' },
         ...profileArg,
+        ...readOutputArgs,
       },
       async run(context) {
         const profile = profileFrom(context)
@@ -499,6 +505,7 @@ const searchCommand = defineCommand({
     from: { type: 'string' },
     to: { type: 'string' },
     ...profileArg,
+    ...readOutputArgs,
   },
   async run(context) {
     const profile = profileFrom(context)
@@ -521,6 +528,7 @@ const contextCommand = defineCommand({
     before: { type: 'string', default: '20' },
     after: { type: 'string', default: '20' },
     ...profileArg,
+    ...readOutputArgs,
   },
   async run(context) {
     const profile = profileFrom(context)
@@ -542,6 +550,7 @@ const statsCommand = defineCommand({
     from: { type: 'string' },
     to: { type: 'string' },
     ...profileArg,
+    ...readOutputArgs,
   },
   async run(context) {
     const groupBy = context.args.groupBy as 'month' | 'chat' | 'sender'
@@ -570,7 +579,7 @@ const syncCommand = defineCommand({
   async run(context) {
     const chatIds = parseChatIds(context.args.chat) ?? []
     if (!context.args.all && chatIds.length === 0)
-      throw new Error('sync requires --chat <id[,id]> or --all')
+      throw cliError({ code: 'INVALID_ARGUMENT', message: 'sync requires --chat <id[,id]> or --all', retryable: false })
     const profile = profileFrom(context)
     await withRuntime(context, true, async (runtime) => {
       await emitStreamResult(runtime.streams.sync({
@@ -772,16 +781,39 @@ function profileFromRawArgs(args: string[]): string {
   return args.find(arg => arg.startsWith('--profile='))?.slice('--profile='.length) || 'default'
 }
 
+async function validateCommandPath(command: Pick<CommandDef, 'subCommands'>, args: string[]): Promise<void> {
+  const children = await (typeof command.subCommands === 'function' ? command.subCommands() : command.subCommands)
+  if (!children)
+    return
+  const index = args.findIndex(arg => !arg.startsWith('-'))
+  if (index < 0)
+    return
+  const name = args[index]
+  const child = children[name]
+  if (!child) {
+    throw cliError({
+      code: 'UNKNOWN_COMMAND',
+      message: `Unknown command: ${name}`,
+      retryable: false,
+      details: { availableCommands: Object.keys(children).sort() },
+    })
+  }
+  await validateCommandPath(await (typeof child === 'function' ? child() : child), args.slice(index + 1))
+}
+
 export async function runCli(args = process.argv.slice(2)): Promise<void> {
   const normalizedArgs = normalizeRawArgs(args)
   resetOutputState(normalizedArgs.includes('--json') ? 'json' : 'text')
   const profile = profileFromRawArgs(normalizedArgs)
   const frameworkArgs = normalizedArgs.filter(arg => arg !== '--json' && arg !== '--json=false')
   try {
+    const output = readOutputOptions(normalizedArgs)
+    resetOutputState(output.format, output.file)
+    await validateCommandPath(main, frameworkArgs)
     if (['auth', 'daemon'].includes(normalizedArgs[0])) {
       const config = await readProfileConfig(resolveProfilePaths(profile))
       if (normalizedArgs.some(arg => arg.startsWith('--remote=')) || process.env.TG_SEARCH_REMOTE_URL !== undefined || config.remoteUrl !== undefined)
-        throw new Error('auth and daemon manage local profiles only; use a separate local profile')
+        throw cliError({ code: 'LOCAL_PROFILE_REQUIRED', message: 'auth and daemon manage local profiles only; use a separate local profile', retryable: false })
     }
     if (frameworkArgs.includes('--help') || frameworkArgs.includes('-h') || (frameworkArgs.length === 1 && frameworkArgs[0] === '--version'))
       await runMain(main, { rawArgs: frameworkArgs })
@@ -789,12 +821,12 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
       await runCommand(main, { rawArgs: normalizedArgs })
   }
   catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const failure = toCliError(error)
     const hadOutput = hasWrittenOutput()
     if (!hadOutput)
-      writeFailure({ code: 'CLI_ERROR', message, retryable: false }, outputMeta(profile, 'cli'))
-    if (hadOutput || isJsonOutput())
-      process.stderr.write(`${message}\n`)
+      writeFailure(failure, outputMeta(profile, 'cli'))
+    else
+      process.stderr.write(isJsonOutput() ? `${JSON.stringify({ ok: false, error: failure, meta: outputMeta(profile, 'cli') })}\n` : `${failure.code}: ${failure.message}\n`)
     process.exitCode = 1
   }
 }

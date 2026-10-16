@@ -1,0 +1,52 @@
+import process from 'node:process'
+
+import { spawnSync } from 'node:child_process'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { afterEach, describe, expect, it } from 'vitest'
+
+const directories: string[] = []
+afterEach(async () => {
+  await Promise.all(directories.splice(0).map(path => rm(path, { recursive: true, force: true })))
+})
+
+async function invoke(args: string[]) {
+  const home = await mkdtemp(join(tmpdir(), 'tg-output-contract-'))
+  directories.push(home)
+  const environment: NodeJS.ProcessEnv = { ...process.env, TG_SEARCH_HOME: home }
+  delete environment.TG_SEARCH_REMOTE_URL
+  delete environment.TG_SEARCH_REMOTE_TOKEN
+  return spawnSync(process.execPath, [fileURLToPath(new URL('../dist/index.mjs', import.meta.url)), ...args], {
+    encoding: 'utf8',
+    env: environment,
+    timeout: 10_000,
+  })
+}
+
+describe('installed CLI output contract', () => {
+  it('rejects an unknown subcommand even when help is requested (issue #682)', async () => {
+    // Citty previously handled --help first and returned the parent help with exit 0.
+    const result = await invoke(['auth', 'status', '--help', '--json'])
+    expect(result.status).toBe(1)
+    expect(JSON.parse(result.stdout)).toMatchObject({ ok: false, error: { code: 'UNKNOWN_COMMAND', details: { availableCommands: ['login'] } } })
+    expect(result.stderr).not.toContain(' at ')
+  })
+
+  it('reports missing remote credentials as a structured actionable failure', async () => {
+    // Creating the remote runtime used to throw an unclassified CLI_ERROR.
+    const result = await invoke(['--remote', 'https://example.invalid', 'messages', 'query', '--json'])
+    expect(result.status).toBe(1)
+    expect(JSON.parse(result.stdout)).toMatchObject({ ok: false, error: { code: 'REMOTE_CREDENTIALS_MISSING', retryable: false } })
+    expect(result.stderr).toBe('')
+  })
+
+  it('uses INVALID_ARGUMENT for parser failures', async () => {
+    const result = await invoke(['profile', 'create', '--json'])
+    expect(result.status).toBe(1)
+    expect(JSON.parse(result.stdout)).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(result.stderr).toBe('')
+  })
+})
