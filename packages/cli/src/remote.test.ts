@@ -78,9 +78,9 @@ describe('remote CLI', () => {
         if (command === 'read')
           expect(result.data.coverage).toEqual({ windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' })
       }
-      expect(application.getMessages).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', messageIds: ['42'] })
-      expect(application.getReplyContext).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', messageIds: ['42'], maxDepth: 1, maxNodes: 100 })
-      expect(application.readMessages).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', pageSize: 100, maxPages: 10, maxMessages: 1000 })
+      expect(application.getMessages).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', messageIds: ['42'], operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.getReplyContext).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', messageIds: ['42'], maxDepth: 1, maxNodes: 100, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.readMessages).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', pageSize: 100, maxPages: 10, maxMessages: 1000, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
     }
     finally {
       await server.close()

@@ -202,13 +202,13 @@ const remoteHandlers = {
   'messages.replies': defineRemoteHandler({
     input: remoteMethods['messages.replies'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input) => application.getReplyContext(input),
+    invoke: (application, _credential, input, options) => application.getReplyContext(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.read': defineRemoteHandler({
     input: remoteMethods['messages.read'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input) => application.readMessages(input),
+    invoke: (application, _credential, input, options) => application.readMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.get': defineRemoteHandler({

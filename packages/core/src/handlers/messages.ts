@@ -1,5 +1,4 @@
 import type { EventContext } from '@moeru/eventa'
-import type { GetMessagesInput, ReadMessagesInput, ReplyContextInput } from '@tg-search/protocol'
 
 import type { TelegramApplication } from '../application/runtime'
 
