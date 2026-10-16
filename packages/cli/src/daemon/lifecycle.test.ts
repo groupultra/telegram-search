@@ -89,6 +89,22 @@ describe('daemon lifecycle boundaries', () => {
     expect(emitter.listenerCount(CoreEventType.CoreError)).toBe(0)
   })
 
+  it('keeps initialization pending for a classified catch-up error until AccountReady', async () => {
+    const emitter = new EventEmitter()
+    const ready = createAccountReadyWait({ emitter } as never, 10_000)
+    emitter.emit(CoreEventType.CoreError, { error: 'historical gap', code: 'SYNC_CATCH_UP_FAILED', description: 'Background history could not be restored' })
+    emitter.emit(CoreEventType.AccountReady, { accountId: 'connected-account' })
+    await expect(ready.promise).resolves.toBe('connected-account')
+    expect(emitter.listenerCount(CoreEventType.CoreError)).toBe(0)
+  })
+
+  it('still rejects unclassified initialization errors even when their wording mentions catch-up', async () => {
+    const emitter = new EventEmitter()
+    const ready = createAccountReadyWait({ emitter } as never, 10_000)
+    emitter.emit(CoreEventType.CoreError, { error: 'initialization failed', description: 'Catch-up sync failed' })
+    await expect(ready.promise).rejects.toThrow('initialization failed')
+  })
+
   it('waits for the daemon descriptor instead of opening a fallback runtime', async () => {
     const paths = await createPaths()
     const socket = join(paths.root, 'daemon.sock')

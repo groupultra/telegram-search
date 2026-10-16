@@ -17,7 +17,7 @@ import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient, createAuthPrompts, shouldStopAuthFlow } from './auth-support'
 import { CLI_VERSION, runtimeBuildInfo } from './build-info'
-import { connectDaemon, runDaemon } from './daemon'
+import { connectDaemon, runDaemon, stopDaemon } from './daemon'
 import { createGramJsStderrLogger } from './gramjs-logger'
 import { hasWrittenOutput, isJsonOutput, resetOutputState, writeFailure, writeOutput, writeProgress } from './output'
 import {
@@ -626,17 +626,8 @@ const daemonCommand = defineCommand({
       args: profileArg,
       async run(context) {
         const profile = profileFrom(context)
-        const daemon = await connectDaemon(await ensureProfile(profile))
-        if (!daemon) {
-          writeOutput({ profile, state: 'stopped' }, outputMeta(profile, 'local'))
-          return
-        }
-        try {
-          writeOutput(await daemon.invokes.daemon.stop({}, { signal: AbortSignal.timeout(5_000) }), outputMeta(profile, 'local', daemon))
-        }
-        finally {
-          daemon.close()
-        }
+        const result = await stopDaemon(resolveProfilePaths(profile))
+        writeOutput(result ?? { profile, state: 'stopped' }, outputMeta(profile, 'local'))
       },
     }),
   },

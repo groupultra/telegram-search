@@ -55,7 +55,7 @@ export function createAccountReadyWait(
     let onReady: (data: { accountId: string }) => void
     let onDisconnected: () => void
     let onAuthError: () => void
-    let onCoreError: (data: { error: string }) => void
+    let onCoreError: (data: { error: string, code?: string }) => void
     const cleanup = () => {
       clearTimeout(timeout)
       context.emitter.removeListener(CoreEventType.AccountReady, onReady)
@@ -76,7 +76,10 @@ export function createAccountReadyWait(
     onReady = ({ accountId }) => finish(undefined, accountId)
     onDisconnected = () => finish(new Error('Daemon session is not authorized'))
     onAuthError = () => finish(new Error('Daemon failed to authenticate the saved session'))
-    onCoreError = ({ error }) => finish(new Error(error))
+    onCoreError = ({ error, code }) => {
+      if (code !== 'SYNC_CATCH_UP_FAILED')
+        finish(new Error(error))
+    }
     cancel = error => finish(error)
     timeout = setTimeout(() => finish(new Error('Timed out waiting for daemon account initialization')), timeoutMs)
 
@@ -280,11 +283,11 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       if (transportConnected && accountId)
         state = 'ready'
     })
-    context.emitter.on(CoreEventType.CoreError, ({ error, description }) => {
+    context.emitter.on(CoreEventType.CoreError, ({ error, code }) => {
       if (!isActiveContext())
         return
       lastError = error
-      if (description === 'Catch-up sync failed') {
+      if (code === 'SYNC_CATCH_UP_FAILED') {
         diagnostics.catchUp('failed', error)
       }
       else if (state === 'starting' || state === 'reconnecting') {
