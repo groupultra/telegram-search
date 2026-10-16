@@ -18,11 +18,14 @@ export function createRemoteRuntime(endpoint: string, token: string): Awaited<Re
     const resultSchema = remoteResultSchema(schema)
     return async (input: unknown, options?: ReadOperationOptions) => {
       try {
-        return await withReadOperation({ signal: options?.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal, deadlineAt: (input as { operation?: { deadlineAt: number } }).operation?.deadlineAt ?? Date.now() + 60_000 }, async (scope) => {
+        const request = input as { operation?: { deadlineAt: number } }
+        const deadlineAt = options?.deadlineAt ?? request.operation?.deadlineAt ?? Date.now() + 60_000
+        const payload = options?.deadlineAt === undefined ? input : { ...request, operation: { ...request.operation, deadlineAt } }
+        return await withReadOperation({ signal: options?.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal, deadlineAt }, async (scope) => {
           const response = await fetch(`${url}/v1/remote/${method}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(input),
+            body: JSON.stringify(payload),
             redirect: 'error',
             signal: scope.signal,
           })
