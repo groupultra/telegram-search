@@ -299,7 +299,7 @@ export function createSyncService(ctx: CoreContext, logger: Logger) {
       logger.log('Sync process finished')
     }
     catch (error) {
-      ctx.withError(error, 'Catch-up sync failed')
+      ctx.withError(error, 'Catch-up sync failed', { code: 'SYNC_CATCH_UP_FAILED' })
       ctx.emitter.emit(CoreEventType.SyncStatus, { status: 'error' })
     }
     finally {

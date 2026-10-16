@@ -113,7 +113,7 @@ describe('cLI command boundary', () => {
     expect(output.stdoutJson()).toEqual({
       ok: true,
       data: { profiles: ['default', 'work'] },
-      meta: { profile: 'work', source: 'local' },
+      meta: { profile: 'work', source: 'local', execution: expect.objectContaining({ mode: 'cli', cli: expect.objectContaining({ artifactDigest: expect.stringMatching(/^[a-f0-9]{64}$/) }) }) },
     })
   })
 
@@ -191,7 +191,7 @@ describe('cLI command boundary', () => {
 
     await expect(readProfileConfig(resolveProfilePaths('work'))).resolves.toMatchObject({ apiId: '123', apiHash: 'secret' })
     await expect(readProfileConfig(resolveProfilePaths('default'))).resolves.toEqual({})
-    expect(output.stdoutJson()).toMatchObject({ ok: true, data: { profile: 'work' }, meta: { profile: 'work', source: 'local' } })
+    expect(output.stdoutJson()).toMatchObject({ ok: true, data: { profile: 'work' }, meta: { profile: 'work', source: 'local', execution: expect.objectContaining({ mode: 'cli', cli: expect.objectContaining({ artifactDigest: expect.stringMatching(/^[a-f0-9]{64}$/) }) }) } })
   })
 
   it('serializes a failed stream as ok=false and exits non-zero', async () => {

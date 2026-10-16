@@ -5,7 +5,6 @@ import type { OutputMeta } from './output'
 import process from 'node:process'
 
 import { realpathSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { pathToFileURL } from 'node:url'
@@ -17,7 +16,8 @@ import { TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient, createAuthPrompts, shouldStopAuthFlow } from './auth-support'
-import { connectDaemon, runDaemon } from './daemon'
+import { CLI_VERSION, runtimeBuildInfo } from './build-info'
+import { connectDaemon, runDaemon, stopDaemon } from './daemon'
 import { createGramJsStderrLogger } from './gramjs-logger'
 import { hasWrittenOutput, isJsonOutput, resetOutputState, writeFailure, writeOutput, writeProgress } from './output'
 import {
@@ -28,12 +28,12 @@ import {
   writeProfileConfig,
   writeSession,
 } from './profile'
+import { inspectProfile } from './profile-inspection'
 import { bindReadOperations } from './read-runtime'
 import { createRemoteRuntime } from './remote'
 import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 
-const CLI_VERSION = (createRequire(import.meta.url)('../package.json') as { version: string }).version
 const profileArg = {
   'timeout-ms': { type: 'string' as const, default: '60000', description: 'Read deadline in milliseconds' },
   'profile': { type: 'string' as const, default: 'default' },
@@ -75,7 +75,7 @@ export function resolveExportOutputPath(output: string | undefined, defaultPath:
   return output ? resolve(output) : defaultPath
 }
 
-type CommandRuntime = Awaited<ReturnType<typeof createCliRuntime>> | NonNullable<Awaited<ReturnType<typeof connectDaemon>>>
+type CommandRuntime = ReturnType<typeof createRemoteRuntime> | Awaited<ReturnType<typeof createCliRuntime>> | NonNullable<Awaited<ReturnType<typeof connectDaemon>>>
 
 async function withRuntime<T>(command: { args: object }, remote: boolean, operation: (runtime: CommandRuntime) => Promise<T>): Promise<T | undefined> {
   const profile = profileFrom(command)
@@ -130,7 +130,7 @@ async function withRuntime<T>(command: { args: object }, remote: boolean, operat
 }
 
 function outputMeta(profile: string, source: OutputMeta['source'], runtime?: CommandRuntime): OutputMeta {
-  return { profile, source: runtime && 'remote' in runtime ? 'remote' : source }
+  return { profile, source: runtime && 'remote' in runtime ? 'remote' : source, execution: runtime?.execution ?? { mode: 'cli', cli: runtimeBuildInfo(import.meta.url) } }
 }
 
 function nextCursorOf(value: unknown): string | null | undefined {
@@ -202,6 +202,34 @@ const profileCommand = defineCommand({
       async run(context) {
         const profile = profileFrom(context)
         writeOutput({ profiles: await listProfiles() }, outputMeta(profile, 'local'))
+      },
+    }),
+    inspect: defineCommand({
+      meta: { name: 'inspect', description: 'Show configuration presence and sources without secret values' },
+      args: profileArg,
+      async run(context) {
+        const profile = profileFrom(context)
+        writeOutput(await inspectProfile(resolveProfilePaths(profile), process.env, context.args.remote), outputMeta(profile, 'local'))
+      },
+    }),
+    doctor: defineCommand({
+      meta: { name: 'doctor', description: 'Inspect configuration and the current local daemon without a Telegram network probe' },
+      args: profileArg,
+      async run(context) {
+        const profile = profileFrom(context)
+        const paths = resolveProfilePaths(profile)
+        const inspection = await inspectProfile(paths, process.env, context.args.remote)
+        if (inspection.mode === 'remote') {
+          writeOutput({ ...inspection, daemon: { state: 'not-applicable' } }, outputMeta(profile, 'local'))
+          return
+        }
+        const daemon = await connectDaemon(paths)
+        try {
+          writeOutput({ ...inspection, daemon: daemon ? await daemon.invokes.daemon.status({}, { signal: AbortSignal.timeout(5_000) }) : { state: 'stopped' } }, outputMeta(profile, 'local'))
+        }
+        finally {
+          daemon?.close()
+        }
       },
     }),
     create: defineCommand({
@@ -542,7 +570,51 @@ const daemonCommand = defineCommand({
           return
         }
         try {
-          writeOutput(await daemon.invokes.daemon.status({}), outputMeta(profile, 'local'))
+          writeOutput(await daemon.invokes.daemon.status({}, { signal: AbortSignal.timeout(5_000) }), outputMeta(profile, 'local', daemon))
+        }
+        finally {
+          daemon.close()
+        }
+      },
+    }),
+    reload: defineCommand({
+      meta: { name: 'reload', description: 'Reload the saved session when daemon configuration has changed' },
+      args: profileArg,
+      async run(context) {
+        const profile = profileFrom(context)
+        const daemon = await connectDaemon(resolveProfilePaths(profile))
+        if (!daemon)
+          throw new Error('Daemon is stopped; run daemon run first')
+        try {
+          const result = await daemon.invokes.daemon.reload({}, { signal: AbortSignal.timeout(65_000) })
+          writeOutput(result, outputMeta(profile, 'local', daemon))
+          if (result.state !== 'ready')
+            process.exitCode = 1
+        }
+        finally {
+          daemon.close()
+        }
+      },
+    }),
+    recover: defineCommand({
+      meta: { name: 'recover', description: 'Rebuild the daemon-owned Telegram runtime from saved credentials and session' },
+      args: profileArg,
+      async run(context) {
+        const profile = profileFrom(context)
+        const daemon = await connectDaemon(resolveProfilePaths(profile))
+        if (!daemon)
+          throw new Error('Daemon is stopped; run daemon run first')
+        try {
+          const before = await daemon.invokes.daemon.status({}, { signal: AbortSignal.timeout(5_000) })
+          const recovery = await daemon.invokes.daemon.recover({}, { signal: AbortSignal.timeout(65_000) })
+          if (!recovery.ok) {
+            emitResult(recovery, outputMeta(profile, 'local', daemon))
+            return
+          }
+          const after = recovery.data
+          writeOutput({ before, after }, outputMeta(profile, 'local', daemon))
+          if (after.state !== 'ready')
+            process.exitCode = 1
         }
         finally {
           daemon.close()
@@ -554,17 +626,8 @@ const daemonCommand = defineCommand({
       args: profileArg,
       async run(context) {
         const profile = profileFrom(context)
-        const daemon = await connectDaemon(await ensureProfile(profile))
-        if (!daemon) {
-          writeOutput({ profile, state: 'stopped' }, outputMeta(profile, 'local'))
-          return
-        }
-        try {
-          writeOutput(await daemon.invokes.daemon.stop({}), outputMeta(profile, 'local'))
-        }
-        finally {
-          daemon.close()
-        }
+        const result = await stopDaemon(resolveProfilePaths(profile))
+        writeOutput(result ?? { profile, state: 'stopped' }, outputMeta(profile, 'local'))
       },
     }),
   },

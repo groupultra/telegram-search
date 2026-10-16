@@ -1,8 +1,9 @@
-import type { AppError } from '@tg-search/protocol'
+import type { AppError, RuntimeBuild } from '@tg-search/protocol'
 
 import process from 'node:process'
 
 export interface OutputMeta {
+  execution?: { mode: 'cli' | 'direct' | 'daemon' | 'remote', cli: RuntimeBuild, daemon?: RuntimeBuild }
   profile: string
   source: 'local' | 'telegram' | 'cli' | 'remote'
 }
