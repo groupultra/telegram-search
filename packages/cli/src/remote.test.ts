@@ -1,7 +1,5 @@
 import type { TelegramApplication } from '@tg-search/core'
 
-import type { RemoteApplication } from '../../../apps/server/src/remote-application'
-
 import process from 'node:process'
 
 import { Buffer } from 'node:buffer'
@@ -18,25 +16,12 @@ import { normalizeRawArgs, runCli } from './index'
 import { createRemoteRuntime } from './remote'
 
 const access = { token: 'test-only-token-'.repeat(4), accountId: '11111111-1111-4111-8111-111111111111' }
-const serverAccess = remoteAccessFromEnv({
-  TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-    credentials: [{
-      id: '22222222-2222-4222-8222-222222222222',
-      name: 'test-reader',
-      token: access.token,
-      accountId: access.accountId,
-      capabilities: ['media.read', 'messages.get', 'messages.replies', 'messages.read', 'chats.list', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
-      chatPermissions: [{ chatId: '*', permissions: ['read'] }],
-    }],
-  }),
-})!
 const message = { id: '42', chatId: '7', senderId: '3', senderName: 'Test', timestamp: 1700000000, text: 'project progress', forward: { isForward: false }, media: [], links: [] }
 const page = { ok: true as const, data: { items: [message], nextCursor: 'next-page', total: 37 } }
 
 function fixture() {
   const application = {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
-    listStoredChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
     getReplyContext: vi.fn<TelegramApplication['getReplyContext']>(async input => ({ ok: true, data: { source: input.source, items: [message], roots: [{ chatId: input.chatId, messageId: '42', status: 'resolved' }], links: [], budget: { maxDepth: input.maxDepth, maxNodes: input.maxNodes }, coverage: { complete: true, resolvedReplies: 0, missingReplies: 0, notRequestedReplies: 0, depthStopped: 0, nodeStopped: 0, cycles: 0 } } })),
     readMessages: vi.fn<TelegramApplication['readMessages']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, items: [message], window: { from: input.from, to: input.to }, nextCursor: null, pagesRead: 1, stopReason: 'exhausted', coverage: { windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' } } })),
     getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [message], missingIds: [] } })),
@@ -47,11 +32,11 @@ function fixture() {
     getLocalMessageContext: vi.fn(async () => ({ ok: true as const, data: { messages: [message], targetIndex: 0 } })),
     getLocalStats: vi.fn(async () => ({ ok: true as const, data: { total: 1, buckets: [] } })),
     async* sync() {},
-  } satisfies RemoteApplication
+  } satisfies TelegramApplication
   const resolve = vi.fn(() => application)
   const app = new H3()
   app.mount('/v1', new H3())
-  app.mount('/v1/remote', createRemoteApi(serverAccess, resolve, async () => {}))
+  app.mount('/v1/remote', createRemoteApi(access, resolve))
   return { app, application, resolve }
 }
 
@@ -328,12 +313,9 @@ describe('remote CLI', () => {
     expect(() => normalizeRemoteUrl('https://user:password@example.com')).toThrow('credentials')
     expect(() => normalizeRemoteUrl('https://example.com?token=secret')).toThrow('query')
     expect(remoteAccessFromEnv({})).toBeUndefined()
-    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_ACCESS: '{}' })).toThrow()
-    expect(() => remoteAccessFromEnv({
-      TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-        credentials: [{ id: '22222222-2222-4222-8222-222222222222', name: 'short', token: 'short', accountId: access.accountId, capabilities: [], chatPermissions: [] }],
-      }),
-    })).toThrow('32')
+    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token })).toThrow('UUID')
+    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: 'short', TG_SEARCH_REMOTE_ACCOUNT_ID: access.accountId })).toThrow('32')
+    expect(remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token, TG_SEARCH_REMOTE_ACCOUNT_ID: 'ABCDEFAB-1234-4ABC-9ABC-ABCDEFABCDEF' })?.accountId).toBe('abcdefab-1234-4abc-9abc-abcdefabcdef')
     expect(normalizeRawArgs(['--remote', 'https://example.com', 'messages', 'query'])).toEqual(['messages', 'query', '--remote=https://example.com'])
   })
 })

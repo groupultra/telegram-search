@@ -7,7 +7,7 @@ import type { CoreEntity } from '../types/events'
 import type { PromiseResult } from '../utils/result'
 import type { DBSelectChat, DBSelectChatWithAccount } from './utils/types'
 
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, sql } from 'drizzle-orm'
 
 import { accountJoinedChatsTable } from '../schemas/account-joined-chats'
 import { joinedChatsTable } from '../schemas/joined-chats'
@@ -128,42 +128,6 @@ async function fetchChatsByAccountId(db: CoreDB, accountId: string): PromiseResu
   )
 }
 
-async function fetchAccountChatsPage(
-  db: CoreDB,
-  accountId: string,
-  chatIds: string[],
-  types: JoinedChatType[] | undefined,
-  offset: number,
-  limit: number,
-) {
-  if (chatIds.length === 0)
-    return withResult(async () => [])
-
-  return withResult(() => db
-    .select({
-      id: joinedChatsTable.chat_id,
-      name: joinedChatsTable.chat_name,
-      type: joinedChatsTable.chat_type,
-      username: joinedChatsTable.chat_username,
-      lastMessage: joinedChatsTable.last_message,
-      lastMessageAt: joinedChatsTable.dialog_date,
-    })
-    .from(joinedChatsTable)
-    .innerJoin(
-      accountJoinedChatsTable,
-      eq(joinedChatsTable.id, accountJoinedChatsTable.joined_chat_id),
-    )
-    .where(and(
-      eq(accountJoinedChatsTable.account_id, accountId),
-      inArray(joinedChatsTable.chat_id, chatIds),
-      types?.length ? inArray(joinedChatsTable.chat_type, types) : undefined,
-    ))
-    .orderBy(desc(accountJoinedChatsTable.is_pinned), desc(joinedChatsTable.dialog_date))
-    .offset(offset)
-    .limit(limit),
-  )
-}
-
 /**
  * Check whether a given chat (by Telegram chat_id) is accessible for an account.
  *
@@ -221,7 +185,6 @@ export const chatModels = {
   recordChats,
   fetchChats,
   fetchChatsByAccountId,
-  fetchAccountChatsPage,
   isChatAccessibleByAccount,
   updateChatPts,
   findChatAccessHash,
