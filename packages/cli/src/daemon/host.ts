@@ -31,10 +31,10 @@ import { daemonContracts } from '@tg-search/protocol'
 import { runtimeBuildInfo } from '../build-info'
 import { readProfileConfig, readSession, writeProfileConfig, writeSession } from '../profile'
 import { createDaemonLogger, profileScopeId } from '../runtime'
+import { registerDaemonAuthorizationHandlers } from './authorization-events'
 import { createDaemonDiagnostics } from './diagnostics'
 import { startDaemonLogMaintenance } from './log-maintenance'
 import { acquireProfileLock, processIdentity, removeIfExists, socketPathFor } from './profile-state'
-import { createDaemonReconnectRecovery } from './reconnect-recovery'
 
 export interface DaemonHost {
   status: () => DaemonStatus
@@ -154,30 +154,6 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   }
   const applicationProxy = createDaemonApplicationProxy(currentApplication, diagnostics.read)
 
-  const reconnectRecovery = createDaemonReconnectRecovery({
-    async recover() {
-      const runtime = activeRuntime
-      if (stopping || state !== 'reconnecting' || transportConnected || !runtime)
-        return true
-
-      diagnostics.recoveryStarted()
-      let recovered = false
-      try {
-        logger.warn('Telegram transport remained disconnected; retrying after the client retry budget was exhausted')
-        const connected = await runtime.context.getClient().connect()
-        recovered = connected && transportConnected
-        return recovered
-      }
-      catch (error) {
-        logger.withError(error).warn('Telegram transport recovery attempt failed')
-        return false
-      }
-      finally {
-        diagnostics.recoveryFinished(recovered)
-      }
-    },
-  })
-
   const disposeActiveRuntime = async () => {
     const runtime = activeRuntime
     activeRuntime = undefined
@@ -193,7 +169,6 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   config.api.telegram.apiHash = profileConfig.apiHash ?? process.env.TELEGRAM_API_HASH
 
   const cleanupResources = async () => {
-    reconnectRecovery.stop()
     stopLogMaintenance?.()
     stopLogMaintenance = undefined
 
@@ -231,23 +206,16 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
         return
       void writeSession(paths, session).catch(error => logger.withError(error).warn('Failed to persist daemon session'))
     })
-    context.emitter.on(CoreEventType.AuthDisconnected, () => {
-      if (!isActiveContext())
-        return
-      reconnectRecovery.reset()
-      transportConnected = false
-      state = 'unauthorized'
-      diagnostics.authorization('unauthorized')
-      diagnostics.transport('disconnected')
-      accountId = undefined
-    })
-    context.emitter.on(CoreEventType.AuthError, () => {
-      if (!isActiveContext())
-        return
-      diagnostics.authorization('unauthorized')
-      state = 'unauthorized'
-      accountId = undefined
-      lastError = 'Telegram session authentication failed'
+    registerDaemonAuthorizationHandlers(context, {
+      isActiveContext,
+      diagnostics,
+      onState(nextState, error) {
+        state = nextState
+        accountId = undefined
+        lastError = error
+        if (nextState === 'unauthorized')
+          transportConnected = false
+      },
     })
     context.emitter.on(CoreEventType.GramConnectionState, ({ state: connectionState }) => {
       if (!isActiveContext())
@@ -255,22 +223,18 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       diagnostics.transport(connectionState)
       if (connectionState === 'connected' && accountId) {
         transportConnected = true
-        reconnectRecovery.reset()
         state = 'ready'
         lastError = undefined
       }
       else if (connectionState === 'connected') {
         transportConnected = true
-        reconnectRecovery.reset()
       }
       else if (connectionState === 'disconnected') {
         transportConnected = false
         state = 'reconnecting'
         lastError = 'Telegram connection interrupted; reconnecting'
-        reconnectRecovery.schedule()
       }
       else if (connectionState === 'broken') {
-        reconnectRecovery.reset()
         transportConnected = false
         state = 'error'
         diagnostics.authorization('unauthorized')
@@ -298,7 +262,6 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   }
 
   const replaceRuntime = async (session: string | undefined): Promise<DaemonStatus> => {
-    reconnectRecovery.reset()
     transportConnected = false
     state = session ? 'starting' : 'unauthorized'
     diagnostics.transport(session ? 'starting' : 'disconnected')
