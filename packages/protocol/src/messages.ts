@@ -8,7 +8,6 @@ import { array, boolean, check, integer, literal, maxLength, maxValue, minLength
 
 import { readOperationFields } from './operation'
 
-
 const timeRangeFields = {
   from: optional(number()),
   to: optional(number()),
