@@ -165,7 +165,7 @@ tg-search --profile work export \
 
 The export contains deterministic monthly JSONL files plus `manifest.json` with the selected IANA time zone and per-file SHA-256 checksums. `--timezone` defaults to `UTC`; set it explicitly when local calendar months matter. The export includes text and structured forward/media/link metadata, but not media binaries, Telegram sessions, embeddings, or credentials.
 
-Reply records keep `replyToId` and also embed a one-level `replyTo` message snapshot so an Agent can read the referenced sender, timestamp, text, forward, media, and link metadata without joining the archive. The snapshot is resolved from the local database even when the target falls outside the selected `--from`/`--to` range. It is `null` when the target is not available locally, and reply chains are not recursively expanded. This reply-aware output is manifest schema version `2`.
+Reply records keep `replyToId` and also embed a one-level `replyTo` message snapshot so an Agent can read the referenced sender, timestamp, text, forward, media, and link metadata without joining the archive. The snapshot is resolved from the local database even when the target falls outside the selected `--from`/`--to` range. Reply hydration stays within the selected `--chat` values; without a chat selection it uses the active account scope. It is `null` when the target is unavailable locally or outside the selected chat scope, and reply chains are not recursively expanded. This reply-aware output is manifest schema version `2`.
 
 The CLI performs no AI analysis. An Agent can read the JSONL files and produce a monthly or annual summary separately.
 

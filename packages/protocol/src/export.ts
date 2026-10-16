@@ -20,7 +20,8 @@ export type ExportInput = InferOutput<typeof exportInputSchema>
 export interface ExportMessageRecord extends MessageRecord {
   /**
    * One-level snapshot of the replied-to message. A null value means the
-   * reference exists but the target is unavailable in the local database.
+   * reference exists but the target is unavailable within the export chat/account
+   * scope, including missing local data.
    */
   replyTo?: MessageRecord | null
 }

@@ -118,6 +118,14 @@ describe('telegram application runtime remote boundaries', () => {
     expect(harness.getMessages).toHaveBeenCalledTimes(1)
   })
 
+  it('classifies a local window cursor error without querying or claiming exhaustion', async () => {
+    const harness = createHarness()
+    const runtime = createTelegramApplicationRuntime(harness)
+    const result = await runtime.readMessages({ source: 'local', chatId: '42', cursor: '9'.repeat(40), pageSize: 100, maxPages: 1, maxMessages: 100 })
+    expect(result).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(harness.getMessages).not.toHaveBeenCalled()
+  })
+
   it('lists dialogs without the epoch offset and persists their access hashes', async () => {
     const harness = createHarness()
     const runtime = createTelegramApplicationRuntime(harness)

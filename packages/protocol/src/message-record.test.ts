@@ -18,6 +18,19 @@ describe('message facts across remote transport', () => {
     expect(() => parse(remoteMethods['messages.replies'].input, { source: 'local', chatId: '42', messageIds: ['1'], maxDepth: 0.5 })).toThrow()
   })
 
+  it.each(['9'.repeat(40), '9007199254740992', '1trailing', '-1', '1.5', ''])('rejects unsafe or malformed local offset cursor %s', (cursor) => {
+    // Invalid local offsets must not restart a paged read and falsely report exhaustion.
+    expect(() => parse(remoteMethods['messages.read'].input, { source: 'local', chatId: '42', cursor })).toThrow()
+    expect(() => parse(remoteMethods['messages.query'].input, { cursor })).toThrow()
+    expect(() => parse(remoteMethods['messages.search'].input, { query: 'synthetic', cursor })).toThrow()
+  })
+
+  it('accepts the largest safe local offset but rejects precision-losing Telegram cursors', () => {
+    expect(parse(remoteMethods['messages.query'].input, { cursor: '9007199254740991' }).cursor).toBe('9007199254740991')
+    expect(() => parse(remoteMethods['messages.read'].input, { source: 'telegram', chatId: '42', cursor: '9007199254740992' })).toThrow()
+    expect(() => parse(remoteMethods['messages.list'].input, { chatId: '42', cursor: '9007199254740992' })).toThrow()
+  })
+
   it('preserves reply, topic, quote, album and forward facts instead of stripping them', () => {
     // Issue #682: a duplicate remote schema silently stripped new relationship metadata.
     const record = {

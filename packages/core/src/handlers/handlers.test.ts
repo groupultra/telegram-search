@@ -35,6 +35,19 @@ describe('application invoke handlers', () => {
     expect(application.getMessages).toHaveBeenCalledTimes(1)
   })
 
+  it('classifies unsafe source-specific cursors as INVALID_ARGUMENT before dispatch', async () => {
+    const context = createContext()
+    const application = fakeApplication()
+    registerApplicationHandlers(context, application)
+    const invokes = defineInvokes(context, messageContracts)
+    const cursor = '9'.repeat(40)
+    expect(await invokes.queryLocal({ cursor, limit: 100 })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(await invokes.read({ source: 'local', chatId: '42', cursor, pageSize: 100, maxPages: 1, maxMessages: 100 })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(await invokes.read({ source: 'telegram', chatId: '42', cursor, pageSize: 100, maxPages: 1, maxMessages: 100 })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(application.queryLocalMessages).not.toHaveBeenCalled()
+    expect(application.readMessages).not.toHaveBeenCalled()
+  })
+
   it('exposes unary application methods through Eventa', async () => {
     const context = createContext()
     registerApplicationHandlers(context, fakeApplication())

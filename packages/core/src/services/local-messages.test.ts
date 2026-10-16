@@ -134,6 +134,56 @@ describe('local message query filters', () => {
     expect(page.items[1]).toMatchObject({ id: '3', replyToId: '99', replyTo: null })
   })
 
+  it('does not expand exported replies outside the explicitly selected chats', async () => {
+    // Issue #682: native reply peer metadata must not widen --chat A into chat B's body.
+    const reply = message({ in_chat_id: 'chat-a', reply_to_id: '1', telegram_metadata: { replyToChatId: 'chat-b' } })
+    const target = message({ in_chat_id: 'chat-b', content: 'Unselected chat body' })
+    const fetchMessagesByTimeRange = vi.fn(async () => Ok([reply]))
+    const fetchMessagesByChatAndPlatformIds = vi.fn(async () => Ok([target]))
+    const service = createLocalMessagesService({
+      db: {} as CoreDB,
+      getAccountId: () => 'account-1',
+      logger: {} as Logger,
+      models: { chatMessageModels: { fetchMessagesByTimeRange, fetchMessagesByChatAndPlatformIds } } as unknown as Models,
+    })
+
+    const page = await service.queryForExport({ chatIds: ['chat-a'], limit: 100 })
+
+    expect(page.items[0]).toMatchObject({ chatId: 'chat-a', replyToChatId: 'chat-b', replyTo: null })
+    expect(JSON.stringify(page)).not.toContain('Unselected chat body')
+    expect(fetchMessagesByChatAndPlatformIds).not.toHaveBeenCalled()
+  })
+
+  it.each([{ chatIds: ['chat-a', 'chat-b'] }, { chatIds: undefined }])('resolves cross-chat reply snapshots only within the selected account/chat scope ($chatIds)', async ({ chatIds }) => {
+    const reply = message({ in_chat_id: 'chat-a', reply_to_id: '1', telegram_metadata: { replyToChatId: 'chat-b' } })
+    const target = message({ in_chat_id: 'chat-b', content: 'Selected chat body' })
+    const fetchMessagesByTimeRange = vi.fn(async () => Ok([reply]))
+    const fetchMessagesByChatAndPlatformIds = vi.fn(async () => Ok([target]))
+    const service = createLocalMessagesService({
+      db: {} as CoreDB,
+      getAccountId: () => 'account-1',
+      logger: {} as Logger,
+      models: { chatMessageModels: { fetchMessagesByTimeRange, fetchMessagesByChatAndPlatformIds } } as unknown as Models,
+    })
+
+    const page = await service.queryForExport({ chatIds, limit: 100 })
+
+    expect(page.items[0]).toMatchObject({ chatId: 'chat-a', replyTo: { chatId: 'chat-b', text: 'Selected chat body' } })
+    expect(fetchMessagesByChatAndPlatformIds).toHaveBeenCalledWith(expect.anything(), 'account-1', [{ chatId: 'chat-b', messageId: '1' }])
+  })
+
+  it.each(['9'.repeat(40), '9007199254740992', '1trailing', '-1', '1.5', ''])('fails before querying when a local cursor is invalid (%s)', async (cursor) => {
+    const fetchMessagesByTimeRange = vi.fn(async () => Ok([]))
+    const service = createLocalMessagesService({
+      db: {} as CoreDB,
+      getAccountId: () => 'account-1',
+      logger: {} as Logger,
+      models: { chatMessageModels: { fetchMessagesByTimeRange } } as unknown as Models,
+    })
+    await expect(service.query({ cursor, limit: 100 })).rejects.toMatchObject({ appError: { code: 'INVALID_ARGUMENT' } })
+    expect(fetchMessagesByTimeRange).not.toHaveBeenCalled()
+  })
+
   it('resolves the active account for every query', async () => {
     // Daemons learn the real account after their application runtime is created.
     const fetchMessagesByTimeRange = vi.fn(async (_db: CoreDB, _accountId: string) => Ok([]))

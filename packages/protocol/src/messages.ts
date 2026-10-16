@@ -4,7 +4,7 @@ import type { AppResult } from './errors'
 import type { CursorPage } from './pagination'
 
 import { defineInvokeEventa } from '@moeru/eventa'
-import { array, boolean, check, integer, literal, maxLength, maxValue, minLength, minValue, nullable, number, object, optional, picklist, pipe, regex, string } from 'valibot'
+import { array, boolean, check, integer, literal, maxLength, maxValue, minLength, minValue, nullable, number, object, optional, picklist, pipe, regex, safeParse, string } from 'valibot'
 
 import { readOperationFields } from './operation'
 
@@ -15,11 +15,14 @@ const timeRangeFields = {
   to: optional(number()),
 }
 
+export const localMessageCursorSchema = pipe(string(), regex(/^(?:0|[1-9]\d{0,15})$/), check(value => Number.isSafeInteger(Number(value)), 'Local cursor must be a non-negative safe integer offset'))
+const telegramMessageIdSchema = pipe(string(), regex(/^[1-9]\d{0,15}$/), check(value => Number.isSafeInteger(Number(value)), 'Telegram message ID must be a positive safe integer'))
+
 export const listRemoteMessagesInputSchema = object({
   ...readOperationFields,
   chatId: pipe(string(), minLength(1), maxLength(128)),
   /** Message ID to read strictly below: a previous page's `nextCursor`, or any known message ID. */
-  cursor: optional(pipe(string(), regex(/^[1-9]\d{0,15}$/))),
+  cursor: optional(telegramMessageIdSchema),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
   /** Server-side text search within the chat. */
   query: optional(pipe(string(), minLength(1), maxLength(4000))),
@@ -31,7 +34,7 @@ export const listRemoteMessagesInputSchema = object({
 export const queryLocalMessagesInputSchema = object({
   ...readOperationFields,
   chatIds: optional(array(pipe(string(), minLength(1), maxLength(128)))),
-  cursor: optional(string()),
+  cursor: optional(localMessageCursorSchema),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
   fromUserId: optional(string()),
   ...timeRangeFields,
@@ -41,7 +44,7 @@ export const searchMessagesInputSchema = object({
   ...readOperationFields,
   query: pipe(string(), minLength(1), maxLength(4000)),
   chatIds: optional(array(pipe(string(), minLength(1), maxLength(128)))),
-  cursor: optional(string()),
+  cursor: optional(localMessageCursorSchema),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
   useVector: optional(boolean(), false),
   ...timeRangeFields,
@@ -106,7 +109,7 @@ export const getMessagesInputSchema = object({
   ...readOperationFields,
   source: picklist(['local', 'telegram']),
   chatId: pipe(string(), minLength(1), maxLength(128)),
-  messageIds: pipe(array(pipe(string(), regex(/^[1-9]\d{0,15}$/))), minLength(1), maxLength(100)),
+  messageIds: pipe(array(telegramMessageIdSchema), minLength(1), maxLength(100)),
 })
 export const getMessagesResultSchema = object({
   source: picklist(['local', 'telegram']),
@@ -140,7 +143,7 @@ export const readMessagesInputSchema = pipe(object({
   maxPages: optional(pipe(number(), integer(), minValue(1), maxValue(100)), 10),
   maxMessages: optional(pipe(number(), integer(), minValue(1), maxValue(10000)), 1000),
   ...timeRangeFields,
-}), check(input => input.from === undefined || input.to === undefined || input.from <= input.to, 'from must be before or equal to to'), check(input => input.cursor === undefined || (input.source === 'telegram' ? /^[1-9]\d{0,15}$/.test(input.cursor) : /^\d+$/.test(input.cursor)), 'Cursor must match the selected source'))
+}), check(input => input.from === undefined || input.to === undefined || input.from <= input.to, 'from must be before or equal to to'), check(input => input.cursor === undefined || safeParse(input.source === 'telegram' ? telegramMessageIdSchema : localMessageCursorSchema, input.cursor).success, 'Cursor must match the selected source'))
 
 export const readMessagesResultSchema = object({
   source: picklist(['local', 'telegram']),
