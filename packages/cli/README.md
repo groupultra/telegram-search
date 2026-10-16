@@ -230,3 +230,13 @@ SHA256 digest and Node version. Daemon reads also identify the daemon artifact,
 so a newly installed CLI can be distinguished from a long-lived daemon. An older
 incompatible daemon status contract returns `DAEMON_PROTOCOL_MISMATCH`; restart
 that process using the current CLI build.
+
+### Explicit attachment reads
+
+`media read` retrieves one bounded byte range from a selected message attachment. Choose `--source local` for stored content or `--source telegram` for a live read; the command never changes sources automatically.
+
+```bash
+tg-search media read --chat <chat-id> --message <message-id> --source telegram --length 65536 --max-bytes 10485760 --json
+```
+
+The result contains base64 `data`, attachment metadata, and `nextOffset`. Continue with `--offset` until `nextOffset` is null. The default attachment limit is 10 MiB, and one response contains at most 256 KiB of content so it fits the IPC frame budget. A null continuation means the returned range reached EOF; it does not prove earlier ranges were read. `contentStatus: complete` is returned only when this range covers the entire file, and does not mean the caller interpreted its content. Unsupported or unavailable local content produces an explicit error. Remote reads use the server's existing account credential.

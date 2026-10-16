@@ -12,8 +12,10 @@ import type {
   ListRemoteMessagesInput,
   MessageContext,
   MessageContextInput,
+  MessageMediaChunk,
   MessageRecord,
   QueryLocalMessagesInput,
+  ReadMessageMediaInput,
   ReadMessagesInput,
   ReadMessagesResult,
   ReplyContextInput,
@@ -32,6 +34,7 @@ import type { Models } from '../models'
 import type { EntityService } from '../services/entity'
 import type { TakeoutService } from '../services/takeout'
 import type { CoreDialog } from '../types/dialog'
+import type { MediaBinaryProvider } from '../types/storage'
 import type { ReadOperationOptions, ReadOperationScope } from './read-operation'
 
 import { useLogger } from '@guiiai/logg'
@@ -44,6 +47,8 @@ import { models as defaultModels } from '../models'
 import { createEntityService } from '../services/entity'
 import { createLocalMessagesService } from '../services/local-messages'
 import { createReplyContextService, createWindowReadService } from '../services/message-context'
+import { createMessageMediaReader } from '../services/message-media'
+import { createLocalMessageMediaSource, createTelegramMessageMediaSource } from '../services/message-media-sources'
 import { createGetRemoteMessagesService, createRemoteMessagesService } from '../services/remote-messages'
 import { createStatsAccumulator } from '../services/stats'
 import { createTakeoutService } from '../services/takeout'
@@ -60,6 +65,7 @@ function takeoutFailure(error: unknown, message: string): AppError {
 }
 
 export interface TelegramApplication {
+  readMessageMedia: (input: ReadMessageMediaInput, options?: ReadOperationOptions) => Promise<AppResult<MessageMediaChunk>>
   getReplyContext: (input: ReplyContextInput, readOptions?: ReadOperationOptions) => Promise<AppResult<ReplyContextResult>>
   readMessages: (input: ReadMessagesInput, readOptions?: ReadOperationOptions) => Promise<AppResult<ReadMessagesResult>>
   getMessages: (input: GetMessagesInput, options?: ReadOperationOptions) => Promise<AppResult<GetMessagesResult>>
@@ -84,6 +90,7 @@ export function createTelegramApplicationRuntime(options: {
   entityService?: Pick<EntityService, 'getInputPeer'>
   takeoutService?: Pick<TakeoutService, 'takeoutMessages'>
   retryTelegramRead?: <T>(operation: () => Promise<T>) => Promise<T>
+  mediaBinaryProvider?: MediaBinaryProvider
 }): TelegramApplicationRuntime {
   const { context } = options
   const logger = options.logger ?? useLogger('application')
@@ -104,6 +111,21 @@ export function createTelegramApplicationRuntime(options: {
     logger,
     models: runtimeModels,
   })
+  const localMedia = createLocalMessageMediaSource({
+    db: context.getDB(),
+    models: runtimeModels,
+    getAccountId: context.getCurrentAccountId,
+    mediaBinaryProvider: options.mediaBinaryProvider,
+  })
+
+  function readMessageMedia(input: ReadMessageMediaInput, readOptions?: ReadOperationOptions): Promise<AppResult<MessageMediaChunk>> {
+    return appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, (scope) => {
+      const source = input.source === 'telegram'
+        ? createTelegramMessageMediaSource(context.getClient(), entityService.getInputPeer, scope)
+        : localMedia
+      return createMessageMediaReader(source)(input, scope.signal)
+    }))
+  }
 
   async function calculateLocalStats(input: StatsInput, scope: ReadOperationScope): Promise<StatsResult> {
     const accumulator = createStatsAccumulator(input)
@@ -341,6 +363,7 @@ export function createTelegramApplicationRuntime(options: {
   }
 
   return {
+    readMessageMedia,
     listChats: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, async (scope) => {
       const offset = Number.parseInt(input.cursor ?? '0', 10) || 0
       const items = (await fetchAndPersistDialogs(offset + input.limit + 1, scope))

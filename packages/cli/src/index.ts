@@ -353,6 +353,43 @@ const chatsCommand = defineCommand({
   },
 })
 
+const mediaCommand = defineCommand({
+  meta: { name: 'media', description: 'Explicit bounded reads of message attachments' },
+  subCommands: {
+    read: defineCommand({
+      meta: { name: 'read', description: 'Read one attachment byte range; local never falls back to Telegram' },
+      args: {
+        'chat': { type: 'string', required: true },
+        'message': { type: 'string', required: true },
+        'source': { type: 'string', required: true, description: 'local or telegram' },
+        'index': { type: 'string', default: '0' },
+        'offset': { type: 'string', default: '0' },
+        'length': { type: 'string', default: '65536' },
+        'max-bytes': { type: 'string', default: '10485760' },
+        ...profileArg,
+      },
+      async run(context) {
+        const profile = profileFrom(context)
+        const source = stringArg(context.args.source)
+        if (source !== 'local' && source !== 'telegram')
+          throw new Error('Media source must be local or telegram')
+        await withRuntime(context, source === 'telegram', async runtime => emitResult(
+          await runtime.invokes.media.read({
+            source,
+            chatId: stringArg(context.args.chat),
+            messageId: stringArg(context.args.message),
+            mediaIndex: Number(context.args.index),
+            offset: Number(context.args.offset),
+            length: Number(context.args.length),
+            maxBytes: Number(context.args['max-bytes']),
+          }),
+          outputMeta(profile, source === 'telegram' ? 'telegram' : 'local', runtime),
+        ))
+      },
+    }),
+  },
+})
+
 const messagesCommand = defineCommand({
   meta: { name: 'messages', description: 'Read remote or persisted local messages' },
   subCommands: {
@@ -669,6 +706,7 @@ export const main = defineCommand({
     auth: authCommand,
     chats: chatsCommand,
     messages: messagesCommand,
+    media: mediaCommand,
     search: searchCommand,
     context: contextCommand,
     stats: statsCommand,

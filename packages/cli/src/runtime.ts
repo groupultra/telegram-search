@@ -21,6 +21,7 @@ import {
 import {
   chatContracts,
   exportContracts,
+  mediaContracts,
   messageContracts,
   statsContracts,
   syncContracts,
@@ -141,6 +142,7 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
   return {
     execution: { mode: 'direct' as const, cli: runtimeBuildInfo(import.meta.url) },
     invokes: {
+      media: defineInvokes(eventContext, mediaContracts),
       chats: defineInvokes(eventContext, chatContracts),
       messages: defineInvokes(eventContext, messageContracts),
       stats: defineInvokes(eventContext, statsContracts),

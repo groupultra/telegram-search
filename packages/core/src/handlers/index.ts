@@ -4,6 +4,7 @@ import type { TelegramApplication } from '../application/runtime'
 
 import { registerChatHandlers } from './chats'
 import { registerExportHandler } from './export'
+import { registerMediaHandlers } from './media'
 import { registerMessageHandlers } from './messages'
 import { registerStatsHandler } from './stats'
 import { registerSyncHandler } from './sync'
@@ -11,6 +12,7 @@ import { registerSyncHandler } from './sync'
 export function registerApplicationHandlers(context: EventContext<any, any>, application: TelegramApplication): () => void {
   const chatDisposers = registerChatHandlers(context, application)
   const messageDisposers = registerMessageHandlers(context, application)
+  const mediaDisposers = registerMediaHandlers(context, application)
   const disposeStats = registerStatsHandler(context, application)
   registerSyncHandler(context, application)
   // NOTICE: exportLocal is absent in browser runtimes (see application/runtime.ts), so its
@@ -23,7 +25,7 @@ export function registerApplicationHandlers(context: EventContext<any, any>, app
   }
   return () => {
     disposeStats()
-    for (const dispose of [...Object.values(chatDisposers), ...Object.values(messageDisposers)]) {
+    for (const dispose of [...Object.values(chatDisposers), ...Object.values(messageDisposers), ...Object.values(mediaDisposers)]) {
       dispose()
     }
   }

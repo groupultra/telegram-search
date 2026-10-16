@@ -34,6 +34,8 @@ describe('v1api media endpoints', () => {
   it('GET /photos/:queryId should prefer MediaBinaryProvider when image_path is present', async () => {
     const bytes = new Uint8Array([1, 2, 3])
     const provider: MediaBinaryProvider = {
+      async size() { throw new Error('not used in this test') },
+      async loadRange() { throw new Error('not used in this test') },
       async save() {
         throw new Error('not used in this test')
       },
@@ -72,6 +74,8 @@ describe('v1api media endpoints', () => {
   it('GET /photos/:queryId should fallback to image_bytes when provider is unavailable or load returns null', async () => {
     const bytes = new Uint8Array([9, 9, 9, 9])
     const provider: MediaBinaryProvider = {
+      async size() { throw new Error('not used in this test') },
+      async loadRange() { throw new Error('not used in this test') },
       async save() {
         throw new Error('not used in this test')
       },
@@ -104,6 +108,8 @@ describe('v1api media endpoints', () => {
   it('GET /stickers/:queryId should mirror provider and fallback behavior for stickers', async () => {
     const bytes = new Uint8Array([5, 6, 7])
     const provider: MediaBinaryProvider = {
+      async size() { throw new Error('not used in this test') },
+      async loadRange() { throw new Error('not used in this test') },
       async save() {
         throw new Error('not used in this test')
       },

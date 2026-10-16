@@ -2,7 +2,7 @@ import type { ReadOperationOptions, TelegramApplication } from '@tg-search/core'
 
 import { createHash, timingSafeEqual } from 'node:crypto'
 
-import { accountIdSchema, getMessagesInputSchema, listChatsInputSchema, listRemoteMessagesInputSchema, messageContextInputSchema, queryLocalMessagesInputSchema, readMessagesInputSchema, replyContextInputSchema, searchMessagesInputSchema, statsInputSchema } from '@tg-search/protocol'
+import { accountIdSchema, getMessagesInputSchema, listChatsInputSchema, listRemoteMessagesInputSchema, messageContextInputSchema, queryLocalMessagesInputSchema, readMessageMediaInputSchema, readMessagesInputSchema, replyContextInputSchema, searchMessagesInputSchema, statsInputSchema } from '@tg-search/protocol'
 import { assertBodySize, H3, HTTPError, readValidatedBody } from 'h3'
 import { minLength, object, parse, pipe, regex, string } from 'valibot'
 
@@ -45,6 +45,16 @@ export function createRemoteApi(access: RemoteAccess, getApplication: (accountId
           result = await application.listChats(input, optionsFor(input))
           break
         }
+        case 'messages.list': {
+          const input = await readValidatedBody(event, listRemoteMessagesInputSchema)
+          result = await application.listRemoteMessages(input, optionsFor(input))
+          break
+        }
+        case 'messages.get': {
+          const input = await readValidatedBody(event, getMessagesInputSchema)
+          result = await application.getMessages(input, optionsFor(input))
+          break
+        }
         case 'messages.replies': {
           const input = await readValidatedBody(event, replyContextInputSchema)
           result = await application.getReplyContext(input, optionsFor(input))
@@ -55,14 +65,9 @@ export function createRemoteApi(access: RemoteAccess, getApplication: (accountId
           result = await application.readMessages(input, optionsFor(input))
           break
         }
-        case 'messages.get': {
-          const input = await readValidatedBody(event, getMessagesInputSchema)
-          result = await application.getMessages(input, optionsFor(input))
-          break
-        }
-        case 'messages.list': {
-          const input = await readValidatedBody(event, listRemoteMessagesInputSchema)
-          result = await application.listRemoteMessages(input, optionsFor(input))
+        case 'media.read': {
+          const input = await readValidatedBody(event, readMessageMediaInputSchema)
+          result = await application.readMessageMedia(input, optionsFor(input))
           break
         }
         case 'messages.query': {
