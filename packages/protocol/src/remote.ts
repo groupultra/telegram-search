@@ -4,7 +4,7 @@ import { array, literal, nullable, number, object, optional, pipe, string, toLow
 
 import { chatRecordSchema, listChatsInputSchema } from './chats'
 import { appErrorSchema } from './errors'
-import { getMessagesInputSchema, getMessagesResultSchema, listRemoteMessagesInputSchema, messageContextInputSchema, messageRecordSchema, queryLocalMessagesInputSchema, searchMessagesInputSchema } from './messages'
+import { getMessagesInputSchema, getMessagesResultSchema, listRemoteMessagesInputSchema, messageContextInputSchema, messageRecordSchema, queryLocalMessagesInputSchema, readMessagesInputSchema, readMessagesResultSchema, replyContextInputSchema, replyContextResultSchema, searchMessagesInputSchema } from './messages'
 import { statsInputSchema } from './stats'
 
 const messagePageSchema = object({ items: array(object({ ...messageRecordSchema.entries, similarity: optional(number()), combinedScore: optional(number()) })), nextCursor: nullable(string()), total: optional(number()) })
@@ -13,6 +13,8 @@ export const accountIdSchema = pipe(string('Expected a database account UUID'), 
 
 export const remoteMethods = {
   'chats.list': { input: listChatsInputSchema, output: object({ items: array(chatRecordSchema), nextCursor: nullable(string()), total: optional(number()) }) },
+  'messages.replies': { input: replyContextInputSchema, output: replyContextResultSchema },
+  'messages.read': { input: readMessagesInputSchema, output: readMessagesResultSchema },
   'messages.get': { input: getMessagesInputSchema, output: getMessagesResultSchema },
   'messages.list': { input: listRemoteMessagesInputSchema, output: messagePageSchema },
   'messages.query': { input: queryLocalMessagesInputSchema, output: messagePageSchema },

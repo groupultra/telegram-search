@@ -4,7 +4,9 @@ import type { AppResult } from './errors'
 import type { CursorPage } from './pagination'
 
 import { defineInvokeEventa } from '@moeru/eventa'
-import { array, boolean, maxLength, maxValue, minLength, minValue, number, object, optional, picklist, pipe, regex, string } from 'valibot'
+import { array, boolean, check, integer, literal, maxLength, maxValue, minLength, minValue, nullable, number, object, optional, picklist, pipe, regex, string } from 'valibot'
+
+import { readOperationFields } from './operation'
 
 import { readOperationFields } from './operation'
 
@@ -114,6 +116,47 @@ export const getMessagesResultSchema = object({
 export type GetMessagesInput = InferOutput<typeof getMessagesInputSchema>
 export type GetMessagesResult = InferOutput<typeof getMessagesResultSchema>
 
+const referenceSchema = object({ chatId: string(), messageId: string() })
+const replyStatusSchema = picklist(['resolved', 'missing', 'not_requested', 'depth_budget', 'node_budget', 'cycle'])
+export const replyContextInputSchema = object({
+  ...getMessagesInputSchema.entries,
+  maxDepth: optional(pipe(number(), integer(), minValue(0), maxValue(10)), 1),
+  maxNodes: optional(pipe(number(), integer(), minValue(1), maxValue(1000)), 100),
+})
+export const replyContextResultSchema = object({
+  source: picklist(['local', 'telegram']),
+  items: array(messageRecordSchema),
+  roots: array(object({ ...referenceSchema.entries, status: picklist(['resolved', 'missing', 'node_budget']) })),
+  links: array(object({ from: referenceSchema, to: referenceSchema, status: replyStatusSchema, reason: optional(picklist(['cross_chat', 'depth_zero'])) })),
+  budget: object({ maxDepth: number(), maxNodes: number() }),
+  coverage: object({ complete: boolean(), resolvedReplies: number(), missingReplies: number(), notRequestedReplies: number(), depthStopped: number(), nodeStopped: number(), cycles: number() }),
+})
+export const readMessagesInputSchema = pipe(object({
+  ...readOperationFields,
+  source: picklist(['local', 'telegram']),
+  chatId: pipe(string(), minLength(1), maxLength(128)),
+  cursor: optional(string()),
+  pageSize: optional(pipe(number(), integer(), minValue(1), maxValue(1000)), 100),
+  maxPages: optional(pipe(number(), integer(), minValue(1), maxValue(100)), 10),
+  maxMessages: optional(pipe(number(), integer(), minValue(1), maxValue(10000)), 1000),
+  ...timeRangeFields,
+}), check(input => input.from === undefined || input.to === undefined || input.from <= input.to, 'from must be before or equal to to'), check(input => input.cursor === undefined || (input.source === 'telegram' ? /^[1-9]\d{0,15}$/.test(input.cursor) : /^\d+$/.test(input.cursor)), 'Cursor must match the selected source'))
+
+export const readMessagesResultSchema = object({
+  source: picklist(['local', 'telegram']),
+  chatId: string(),
+  items: array(messageRecordSchema),
+  window: object(timeRangeFields),
+  nextCursor: nullable(string()),
+  pagesRead: number(),
+  stopReason: picklist(['exhausted', 'page_budget', 'message_budget', 'cursor_stalled']),
+  coverage: object({ windowExhausted: boolean(), replyContext: literal('not_requested'), mediaContent: literal('not_requested') }),
+})
+export type ReplyContextInput = InferOutput<typeof replyContextInputSchema>
+export type ReplyContextResult = InferOutput<typeof replyContextResultSchema>
+export type ReadMessagesInput = InferOutput<typeof readMessagesInputSchema>
+export type ReadMessagesResult = InferOutput<typeof readMessagesResultSchema>
+
 export interface SearchMessageRecord extends MessageRecord {
   similarity?: number
   combinedScore?: number
@@ -130,6 +173,8 @@ export type SearchMessagesInput = InferOutput<typeof searchMessagesInputSchema>
 export type MessageContextInput = InferOutput<typeof messageContextInputSchema>
 
 export const messageContracts = {
+  replies: defineInvokeEventa<AppResult<ReplyContextResult>, ReplyContextInput>('tg.v1.messages.replies'),
+  read: defineInvokeEventa<AppResult<ReadMessagesResult>, ReadMessagesInput>('tg.v1.messages.read'),
   get: defineInvokeEventa<AppResult<GetMessagesResult>, GetMessagesInput>('tg.v1.messages.get'),
   listRemote: defineInvokeEventa<AppResult<CursorPage<MessageRecord>>, ListRemoteMessagesInput>('tg.v1.messages.list.remote'),
   queryLocal: defineInvokeEventa<AppResult<CursorPage<MessageRecord>>, QueryLocalMessagesInput>('tg.v1.messages.query.local'),

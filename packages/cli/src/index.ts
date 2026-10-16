@@ -328,6 +328,37 @@ const chatsCommand = defineCommand({
 const messagesCommand = defineCommand({
   meta: { name: 'messages', description: 'Read remote or persisted local messages' },
   subCommands: {
+    replies: defineCommand({
+      meta: { name: 'replies', description: 'Expand reply relationships with depth and node budgets' },
+      args: { chat: { type: 'string', required: true }, ids: { type: 'string', required: true }, source: { type: 'string', required: true }, depth: { type: 'string', default: '1' }, nodes: { type: 'string', default: '100' }, ...profileArg },
+      async run(context) {
+        const profile = profileFrom(context)
+        await withRuntime(context, context.args.source === 'telegram', async runtime => emitResult(await runtime.invokes.messages.replies({
+          source: context.args.source as 'local' | 'telegram',
+          chatId: stringArg(context.args.chat),
+          messageIds: stringArg(context.args.ids).split(',').map(id => id.trim()),
+          maxDepth: Number(context.args.depth),
+          maxNodes: Number(context.args.nodes),
+        }), outputMeta(profile, context.args.source as 'local' | 'telegram', runtime)))
+      },
+    }),
+    read: defineCommand({
+      meta: { name: 'read', description: 'Read a time window through bounded pages and report coverage' },
+      args: { 'chat': { type: 'string', required: true }, 'source': { type: 'string', required: true }, 'cursor': { type: 'string' }, 'from': { type: 'string' }, 'to': { type: 'string' }, 'page-size': { type: 'string', default: '100' }, 'max-pages': { type: 'string', default: '10' }, 'max-messages': { type: 'string', default: '1000' }, ...profileArg },
+      async run(context) {
+        const profile = profileFrom(context)
+        await withRuntime(context, context.args.source === 'telegram', async runtime => emitResult(await runtime.invokes.messages.read({
+          source: context.args.source as 'local' | 'telegram',
+          chatId: stringArg(context.args.chat),
+          cursor: stringArg(context.args.cursor) || undefined,
+          from: parseTimestamp(stringArg(context.args.from)),
+          to: parseTimestamp(stringArg(context.args.to)),
+          pageSize: Number(context.args['page-size']),
+          maxPages: Number(context.args['max-pages']),
+          maxMessages: Number(context.args['max-messages']),
+        }), outputMeta(profile, context.args.source as 'local' | 'telegram', runtime)))
+      },
+    }),
     get: defineCommand({
       meta: { name: 'get', description: 'Get up to 100 messages by ID from an explicit source' },
       args: { chat: { type: 'string', required: true }, ids: { type: 'string', required: true }, source: { type: 'string', required: true }, ...profileArg },
@@ -418,7 +449,7 @@ const searchCommand = defineCommand({
 })
 
 const contextCommand = defineCommand({
-  meta: { name: 'context', description: 'Read local messages surrounding a target' },
+  meta: { name: 'context', description: 'Read local time neighbors of a target; does not expand reply relationships' },
   args: {
     chat: { type: 'string', required: true },
     message: { type: 'string', required: true },

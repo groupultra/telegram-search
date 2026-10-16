@@ -1,4 +1,5 @@
 import type { EventContext } from '@moeru/eventa'
+import type { GetMessagesInput, ReadMessagesInput, ReplyContextInput } from '@tg-search/protocol'
 
 import type { TelegramApplication } from '../application/runtime'
 
@@ -9,6 +10,8 @@ import {
   messageContextInputSchema,
   messageContracts,
   queryLocalMessagesInputSchema,
+  readMessagesInputSchema,
+  replyContextInputSchema,
   searchMessagesInputSchema,
 } from '@tg-search/protocol'
 import { safeParse } from 'valibot'
@@ -25,6 +28,8 @@ function validated<TInput, TOutput>(schema: Parameters<typeof safeParse>[0], inp
 
 export function registerMessageHandlers(context: EventContext<any, any>, application: TelegramApplication) {
   return defineInvokeHandlers(context, messageContracts, {
+    replies: (input, options) => validated(replyContextInputSchema, input, parsed => application.getReplyContext(parsed as typeof input, readOperationOptions(context.signal, input, options))),
+    read: (input, options) => validated(readMessagesInputSchema, input, parsed => application.readMessages(parsed as typeof input, readOperationOptions(context.signal, input, options))),
     get: (input, options) => validated(getMessagesInputSchema, input, parsed => application.getMessages(parsed as typeof input, readOperationOptions(context.signal, input, options))),
     listRemote: (input, options) => validated(listRemoteMessagesInputSchema, input, parsed => application.listRemoteMessages(parsed as typeof input, readOperationOptions(context.signal, input, options))),
     queryLocal: (input, options) => validated(queryLocalMessagesInputSchema, input, parsed => application.queryLocalMessages(parsed as typeof input, readOperationOptions(context.signal, input, options))),

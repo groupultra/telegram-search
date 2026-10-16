@@ -55,6 +55,8 @@ export function createRemoteRuntime(endpoint: string, token: string): Awaited<Re
     invokes: {
       chats: { list: invoke('chats.list', remoteMethods['chats.list'].output) },
       messages: {
+        replies: invoke('messages.replies', remoteMethods['messages.replies'].output),
+        read: invoke('messages.read', remoteMethods['messages.read'].output),
         get: invoke('messages.get', remoteMethods['messages.get'].output),
         listRemote: invoke('messages.list', remoteMethods['messages.list'].output),
         queryLocal: invoke('messages.query', remoteMethods['messages.query'].output),

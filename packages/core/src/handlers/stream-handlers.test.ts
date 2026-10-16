@@ -9,6 +9,8 @@ import { registerApplicationHandlers } from './index'
 function fakeApplication(sync: TelegramApplication['sync']): TelegramApplication {
   return {
     listChats: vi.fn(),
+    getReplyContext: vi.fn(),
+    readMessages: vi.fn(),
     getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
     listRemoteMessages: vi.fn(),
     queryLocalMessages: vi.fn(),

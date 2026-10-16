@@ -199,6 +199,18 @@ const remoteHandlers = {
       : application.listStoredChats(input, [...credential.readableChatIds], options),
     resultChatIds: (_input, data) => (data.items as Array<{ id?: string }> | undefined)?.map(item => item.id),
   }),
+  'messages.replies': defineRemoteHandler({
+    input: remoteMethods['messages.replies'].input,
+    scope: scopeSingleChat,
+    invoke: (application, _credential, input) => application.getReplyContext(input),
+    resultChatIds: (_input, data) => itemChatIds(data),
+  }),
+  'messages.read': defineRemoteHandler({
+    input: remoteMethods['messages.read'].input,
+    scope: scopeSingleChat,
+    invoke: (application, _credential, input) => application.readMessages(input),
+    resultChatIds: (_input, data) => itemChatIds(data),
+  }),
   'messages.get': defineRemoteHandler({
     input: remoteMethods['messages.get'].input,
     scope: scopeSingleChat,

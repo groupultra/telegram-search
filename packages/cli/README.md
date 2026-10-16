@@ -200,3 +200,14 @@ tg-search messages get --chat 42 --ids 10,11 --source telegram --json
 ```
 
 The source is required. Up to 100 chat-scoped IDs are returned with `missingIds`; this operation does not persist Telegram messages or request Takeout. Relationship facts are preserved in JSON output.
+
+### Reply context and window coverage
+
+```sh
+tg-search messages replies --chat 42 --ids 10,11 --source telegram --depth 1 --nodes 100 --json
+tg-search messages read --chat 42 --source telegram --from 1700000000 --to 1700007200 --max-pages 10 --max-messages 1000 --json
+```
+
+`replies` follows reply relationships, while `context --chat ... --message ...` returns indexed time neighbors. Reply coverage reports unresolved, unrequested and budget-stopped links separately. The node budget counts roots and missing lookups. Cross-chat references require their own explicit point read.
+
+`read` follows the source cursor until exhaustion or a page/message budget. Resume with the returned `nextCursor` and the same source, chat and window. `exhausted` only means that window's pagination ended; it never implies that reply chains or attachment contents were inspected. `cursor_stalled` reports a nonadvancing backend rather than retrying forever.

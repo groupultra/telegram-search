@@ -11,6 +11,13 @@ describe('message facts across remote transport', () => {
     expect(() => parse(schema, { source: 'telegram', chatId: '42', messageIds: ['0'] })).toThrow()
   })
 
+  it('validates source-specific cursors, windows and integral budgets', () => {
+    expect(() => parse(remoteMethods['messages.read'].input, { source: 'telegram', chatId: '42', cursor: '0' })).toThrow()
+    expect(() => parse(remoteMethods['messages.read'].input, { source: 'local', chatId: '42', cursor: '0' })).not.toThrow()
+    expect(() => parse(remoteMethods['messages.read'].input, { source: 'local', chatId: '42', from: 20, to: 10 })).toThrow()
+    expect(() => parse(remoteMethods['messages.replies'].input, { source: 'local', chatId: '42', messageIds: ['1'], maxDepth: 0.5 })).toThrow()
+  })
+
   it('preserves reply, topic, quote, album and forward facts instead of stripping them', () => {
     // Issue #682: a duplicate remote schema silently stripped new relationship metadata.
     const record = {

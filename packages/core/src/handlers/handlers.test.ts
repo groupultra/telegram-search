@@ -9,6 +9,8 @@ import { registerApplicationHandlers } from './index'
 function fakeApplication(overrides: Partial<TelegramApplication> = {}): TelegramApplication {
   return {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [], nextCursor: null } })),
+    getReplyContext: vi.fn(),
+    readMessages: vi.fn(),
     getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
     listRemoteMessages: vi.fn(),
     queryLocalMessages: vi.fn(),

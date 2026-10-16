@@ -24,7 +24,7 @@ const serverAccess = remoteAccessFromEnv({
       name: 'test-reader',
       token: access.token,
       accountId: access.accountId,
-      capabilities: ['chats.list', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
+      capabilities: ['messages.get', 'messages.replies', 'messages.read', 'chats.list', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
       chatPermissions: [{ chatId: '*', permissions: ['read'] }],
     }],
   }),
@@ -36,7 +36,9 @@ function fixture() {
   const application = {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
     listStoredChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
-    getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
+    getReplyContext: vi.fn<TelegramApplication['getReplyContext']>(async input => ({ ok: true, data: { source: input.source, items: [message], roots: [{ chatId: input.chatId, messageId: '42', status: 'resolved' }], links: [], budget: { maxDepth: input.maxDepth, maxNodes: input.maxNodes }, coverage: { complete: true, resolvedReplies: 0, missingReplies: 0, notRequestedReplies: 0, depthStopped: 0, nodeStopped: 0, cycles: 0 } } })),
+    readMessages: vi.fn<TelegramApplication['readMessages']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, items: [message], window: { from: input.from, to: input.to }, nextCursor: null, pagesRead: 1, stopReason: 'exhausted', coverage: { windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' } } })),
+    getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [message], missingIds: [] } })),
     listRemoteMessages: vi.fn(async () => page),
     queryLocalMessages: vi.fn<TelegramApplication['queryLocalMessages']>(async () => page),
     searchLocalMessages: vi.fn(async () => page),
@@ -58,6 +60,33 @@ afterEach(() => {
 })
 
 describe('remote CLI', () => {
+  it('runs explicit get, replies and window reads through the CLI and real HTTP', async () => {
+    const { app, application } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    try {
+      for (const command of ['get', 'replies', 'read']) {
+        stdout.mockClear()
+        const args = ['messages', command, '--chat', '7', '--source', 'telegram', '--remote', server.url!, '--json']
+        if (command !== 'read')
+          args.push('--ids', '42')
+        await runCli(args)
+        const result = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
+        expect(result).toMatchObject({ ok: true, data: { source: 'telegram', items: [message] } })
+        if (command === 'read')
+          expect(result.data.coverage).toEqual({ windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' })
+      }
+      expect(application.getMessages).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', messageIds: ['42'] })
+      expect(application.getReplyContext).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', messageIds: ['42'], maxDepth: 1, maxNodes: 100 })
+      expect(application.readMessages).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', pageSize: 100, maxPages: 10, maxMessages: 1000 })
+    }
+    finally {
+      await server.close()
+    }
+  })
+
   it('preserves INVALID_ARGUMENT from HTTP 400', async () => {
     const { app } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })

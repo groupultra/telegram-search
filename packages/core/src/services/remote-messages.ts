@@ -54,8 +54,9 @@ export function coreMessageToRecord(message: CoreMessage): MessageRecord {
 export function createRemoteMessagesService(
   client: TelegramClient,
   resolveInputPeer: (chatId: string) => Promise<Api.TypeInputPeer> = chatId => client.getInputEntity(chatId),
+  scope?: ReadOperationScope,
 ) {
-  return async function listRemoteMessages(input: ListRemoteMessagesInput, scope?: ReadOperationScope): Promise<CursorPage<MessageRecord>> {
+  return async function listRemoteMessages(input: ListRemoteMessagesInput): Promise<CursorPage<MessageRecord>> {
     scope?.throwIfAborted()
     const peer = await (scope ? scope.telegram(client, () => resolveInputPeer(input.chatId)) : resolveInputPeer(input.chatId))
     const items: MessageRecord[] = []
@@ -67,7 +68,7 @@ export function createRemoteMessagesService(
       // One request per call: GramJS reapplies addOffset to every chunk it loads itself,
       // so multi-chunk reads are driven here with the message ID as the only offset.
       scope?.throwIfAborted()
-      const request = () => client.getMessages(peer, {
+      const fetchChunk = () => client.getMessages(peer, {
         limit: Math.min(CHUNK_SIZE, input.limit - items.length),
         offsetId,
         // GramJS treats offsetDate as exclusive; +1 preserves the CLI's inclusive --to contract.
@@ -76,7 +77,7 @@ export function createRemoteMessagesService(
         fromUser: input.fromUserId,
         minId: input.minMessageId,
       })
-      const chunk = await (scope ? scope.telegram(client, request) : request())
+      const chunk = await (scope ? scope.telegram(client, fetchChunk) : fetchChunk())
       total ??= chunk.total
 
       // Telegram may return short chunks before the end, so only an empty one proves exhaustion.
