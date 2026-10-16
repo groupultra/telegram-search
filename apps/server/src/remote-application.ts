@@ -22,5 +22,7 @@ export function createRemoteApplication(db: CoreDB, accountId: string): Telegram
     listChats: (input, options) => connected()?.listChats(input, options) ?? Promise.resolve(unavailable),
     getMessages: (input, options) => input.source === 'local' ? stored.getMessages(input, options) : connected()?.getMessages(input, options) ?? Promise.resolve(unavailable),
     listRemoteMessages: (input, options) => connected()?.listRemoteMessages(input, options) ?? Promise.resolve(unavailable),
+    getReplyContext: (input, readOptions) => input.source === 'local' ? stored.getReplyContext(input, readOptions) : connected()?.getReplyContext(input, readOptions) ?? Promise.resolve(unavailable),
+    readMessages: (input, readOptions) => input.source === 'local' ? stored.readMessages(input, readOptions) : connected()?.readMessages(input, readOptions) ?? Promise.resolve(unavailable),
   }
 }

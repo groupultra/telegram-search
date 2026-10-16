@@ -165,7 +165,7 @@ tg-search --profile work export \
 
 The export contains deterministic monthly JSONL files plus `manifest.json` with the selected IANA time zone and per-file SHA-256 checksums. `--timezone` defaults to `UTC`; set it explicitly when local calendar months matter. The export includes text and structured forward/media/link metadata, but not media binaries, Telegram sessions, embeddings, or credentials.
 
-Reply records keep `replyToId` and also embed a one-level `replyTo` message snapshot so an Agent can read the referenced sender, timestamp, text, forward, media, and link metadata without joining the archive. The snapshot is resolved from the local database even when the target falls outside the selected `--from`/`--to` range. It is `null` when the target is not available locally, and reply chains are not recursively expanded. This reply-aware output is manifest schema version `2`.
+Reply records keep `replyToId` and also embed a one-level `replyTo` message snapshot so an Agent can read the referenced sender, timestamp, text, forward, media, and link metadata without joining the archive. The snapshot is resolved from the local database even when the target falls outside the selected `--from`/`--to` range. Reply hydration stays within the selected `--chat` values; without a chat selection it uses the active account scope. It is `null` when the target is unavailable locally or outside the selected chat scope, and reply chains are not recursively expanded. This reply-aware output is manifest schema version `2`.
 
 The CLI performs no AI analysis. An Agent can read the JSONL files and produce a monthly or annual summary separately.
 
@@ -200,3 +200,14 @@ tg-search messages get --chat 42 --ids 10,11 --source telegram --json
 ```
 
 The source is required. Up to 100 chat-scoped IDs are returned with `missingIds`; this operation does not persist Telegram messages or request Takeout. Relationship facts are preserved in JSON output.
+
+### Reply context and window coverage
+
+```sh
+tg-search messages replies --chat 42 --ids 10,11 --source telegram --depth 1 --nodes 100 --json
+tg-search messages read --chat 42 --source telegram --from 1700000000 --to 1700007200 --max-pages 10 --max-messages 1000 --json
+```
+
+`replies` follows reply relationships, while `context --chat ... --message ...` returns indexed time neighbors. Reply coverage reports unresolved, unrequested and budget-stopped links separately. The node budget counts roots and missing lookups. Cross-chat references require their own explicit point read.
+
+`read` follows the source cursor until exhaustion or a page/message budget. Resume with the returned `nextCursor` and the same source, chat and window. `exhausted` only means that window's pagination ended; it never implies that reply chains or attachment contents were inspected. `cursor_stalled` reports a nonadvancing backend rather than retrying forever.

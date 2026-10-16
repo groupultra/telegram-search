@@ -96,6 +96,8 @@ function daemonStatus(profile: string, startedAt: number, state: DaemonStatus['s
 
 export function createDaemonApplicationProxy(getApplication: () => TelegramApplicationRuntime): TelegramApplication {
   return {
+    getReplyContext: (input, options) => getApplication().getReplyContext(input, options),
+    readMessages: (input, options) => getApplication().readMessages(input, options),
     getMessages: (input, options) => getApplication().getMessages(input, options),
     listChats: (input, options) => getApplication().listChats(input, options),
     listRemoteMessages: (input, options) => getApplication().listRemoteMessages(input, options),

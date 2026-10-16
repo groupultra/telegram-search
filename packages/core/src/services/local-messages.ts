@@ -15,13 +15,20 @@ import type {
 import type { CoreDB } from '../db'
 import type { Models } from '../models'
 
+import { localMessageCursorSchema } from '@tg-search/protocol'
+import { safeParse } from 'valibot'
+
+import { ApplicationError } from '../application/errors'
 import { convertToCoreMessageFromDB, convertToCoreRetrievalMessages } from '../models/utils/message'
 import { EmbeddingDimension } from '../types/account-settings'
 import { coreMessageToRecord } from './remote-messages'
 
 function cursorOffset(cursor?: string): number {
-  const offset = Number.parseInt(cursor ?? '0', 10)
-  return Number.isSafeInteger(offset) && offset >= 0 ? offset : 0
+  if (cursor === undefined)
+    return 0
+  if (!safeParse(localMessageCursorSchema, cursor).success)
+    throw new ApplicationError({ code: 'INVALID_ARGUMENT', message: 'Local cursor must be a non-negative safe integer offset', retryable: false })
+  return Number(cursor)
 }
 
 export function createLocalMessagesService(options: {
@@ -70,9 +77,17 @@ export function createLocalMessagesService(options: {
 
   async function queryForExport(input: QueryLocalMessagesInput): Promise<CursorPage<ExportMessageRecord>> {
     const page = await query(input)
-    const replyByReference = await getByReferences(page.items.flatMap(message => message.replyToId
-      ? [{ chatId: message.replyToChatId ?? message.chatId, messageId: message.replyToId }]
-      : []))
+    const selectedChats = input.chatIds?.length ? new Set(input.chatIds) : undefined
+    const references = page.items.flatMap((message) => {
+      if (!message.replyToId)
+        return []
+      const chatId = message.replyToChatId ?? message.chatId
+      // Reply hydration may leave the time window, but must retain the export's explicit chat scope.
+      if (selectedChats && !selectedChats.has(chatId))
+        return []
+      return [{ chatId, messageId: message.replyToId }]
+    })
+    const replyByReference = await getByReferences(references)
 
     return {
       ...page,

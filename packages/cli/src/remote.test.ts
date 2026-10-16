@@ -22,6 +22,8 @@ function fixture() {
   const application = {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
     getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [{ ...message, replyToTopId: '1', quote: { text: 'synthetic excerpt' }, groupedId: '99' }], missingIds: [] } })),
+    getReplyContext: vi.fn<TelegramApplication['getReplyContext']>(async input => ({ ok: true, data: { source: input.source, items: [message], roots: [{ chatId: input.chatId, messageId: '42', status: 'resolved' }], links: [], budget: { maxDepth: input.maxDepth, maxNodes: input.maxNodes }, coverage: { complete: true, resolvedReplies: 0, missingReplies: 0, notRequestedReplies: 0, depthStopped: 0, nodeStopped: 0, cycles: 0 } } })),
+    readMessages: vi.fn<TelegramApplication['readMessages']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, items: [message], window: { from: input.from, to: input.to }, nextCursor: null, pagesRead: 1, stopReason: 'exhausted', coverage: { windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' } } })),
     listRemoteMessages: vi.fn(async () => page),
     queryLocalMessages: vi.fn<TelegramApplication['queryLocalMessages']>(async () => page),
     searchLocalMessages: vi.fn(async () => page),
@@ -43,6 +45,32 @@ afterEach(() => {
 })
 
 describe('remote CLI', () => {
+  it('runs reply context and window reads through the CLI and existing authenticated HTTP route', async () => {
+    const { app, application } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    try {
+      for (const command of ['replies', 'read']) {
+        stdout.mockClear()
+        const args = ['messages', command, '--chat', '7', '--source', 'telegram', '--remote', server.url!, '--json']
+        if (command === 'replies')
+          args.push('--ids', '42')
+        await runCli(args)
+        const result = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
+        expect(result).toMatchObject({ ok: true, data: { source: 'telegram', items: [message] } })
+        if (command === 'read')
+          expect(result.data.coverage).toEqual({ windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' })
+      }
+      expect(application.getReplyContext).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', messageIds: ['42'], maxDepth: 1, maxNodes: 100, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.readMessages).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', pageSize: 100, maxPages: 10, maxMessages: 1000, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+    }
+    finally {
+      await server.close()
+    }
+  })
+
   it('reads canonical point messages through the CLI and existing authenticated HTTP route', async () => {
     const { app, application } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })

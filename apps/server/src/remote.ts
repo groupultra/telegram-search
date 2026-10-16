@@ -2,7 +2,7 @@ import type { ReadOperationOptions, TelegramApplication } from '@tg-search/core'
 
 import { createHash, timingSafeEqual } from 'node:crypto'
 
-import { accountIdSchema, getMessagesInputSchema, listChatsInputSchema, listRemoteMessagesInputSchema, messageContextInputSchema, queryLocalMessagesInputSchema, searchMessagesInputSchema, statsInputSchema } from '@tg-search/protocol'
+import { accountIdSchema, getMessagesInputSchema, listChatsInputSchema, listRemoteMessagesInputSchema, messageContextInputSchema, queryLocalMessagesInputSchema, readMessagesInputSchema, replyContextInputSchema, searchMessagesInputSchema, statsInputSchema } from '@tg-search/protocol'
 import { assertBodySize, H3, HTTPError, readValidatedBody } from 'h3'
 import { minLength, object, parse, pipe, regex, string } from 'valibot'
 
@@ -43,6 +43,16 @@ export function createRemoteApi(access: RemoteAccess, getApplication: (accountId
         case 'chats.list': {
           const input = await readValidatedBody(event, listChatsInputSchema)
           result = await application.listChats(input, optionsFor(input))
+          break
+        }
+        case 'messages.replies': {
+          const input = await readValidatedBody(event, replyContextInputSchema)
+          result = await application.getReplyContext(input, optionsFor(input))
+          break
+        }
+        case 'messages.read': {
+          const input = await readValidatedBody(event, readMessagesInputSchema)
+          result = await application.readMessages(input, optionsFor(input))
           break
         }
         case 'messages.get': {

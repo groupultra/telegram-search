@@ -9,6 +9,8 @@ import { registerApplicationHandlers } from './index'
 function fakeApplication(overrides: Partial<TelegramApplication> = {}): TelegramApplication {
   return {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [], nextCursor: null } })),
+    getReplyContext: vi.fn(),
+    readMessages: vi.fn(),
     getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
     listRemoteMessages: vi.fn(),
     queryLocalMessages: vi.fn(),
@@ -31,6 +33,19 @@ describe('application invoke handlers', () => {
     expect(application.getMessages).toHaveBeenCalledExactlyOnceWith({ source: 'local', chatId: '42', messageIds: ['1'] }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
     expect(await invokes.get({ source: 'local', chatId: '42', messageIds: [] })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
     expect(application.getMessages).toHaveBeenCalledTimes(1)
+  })
+
+  it('classifies unsafe source-specific cursors as INVALID_ARGUMENT before dispatch', async () => {
+    const context = createContext()
+    const application = fakeApplication()
+    registerApplicationHandlers(context, application)
+    const invokes = defineInvokes(context, messageContracts)
+    const cursor = '9'.repeat(40)
+    expect(await invokes.queryLocal({ cursor, limit: 100 })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(await invokes.read({ source: 'local', chatId: '42', cursor, pageSize: 100, maxPages: 1, maxMessages: 100 })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(await invokes.read({ source: 'telegram', chatId: '42', cursor, pageSize: 100, maxPages: 1, maxMessages: 100 })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(application.queryLocalMessages).not.toHaveBeenCalled()
+    expect(application.readMessages).not.toHaveBeenCalled()
   })
 
   it('exposes unary application methods through Eventa', async () => {

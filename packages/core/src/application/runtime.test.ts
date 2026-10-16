@@ -108,6 +108,24 @@ describe('telegram application runtime remote boundaries', () => {
     expect(harness.getMessages).not.toHaveBeenCalled()
   })
 
+  it('bounds an explicit point read by its deadline while retaining the shared client', async () => {
+    const harness = createHarness()
+    const pending = new Promise<Api.Message[]>(() => {})
+    harness.getMessages.mockReturnValueOnce(pending)
+    const runtime = createTelegramApplicationRuntime(harness)
+    const result = await runtime.getMessages({ source: 'telegram', chatId: '42', messageIds: ['1'], operation: { deadlineAt: Date.now() + 100 } })
+    expect(result).toMatchObject({ ok: false, error: { code: 'REQUEST_DEADLINE_EXCEEDED', details: { sdkCancellation: 'unsupported', inFlightMayContinue: true } } })
+    expect(harness.getMessages).toHaveBeenCalledTimes(1)
+  })
+
+  it('classifies a local window cursor error without querying or claiming exhaustion', async () => {
+    const harness = createHarness()
+    const runtime = createTelegramApplicationRuntime(harness)
+    const result = await runtime.readMessages({ source: 'local', chatId: '42', cursor: '9'.repeat(40), pageSize: 100, maxPages: 1, maxMessages: 100 })
+    expect(result).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(harness.getMessages).not.toHaveBeenCalled()
+  })
+
   it('lists dialogs without the epoch offset and persists their access hashes', async () => {
     const harness = createHarness()
     const runtime = createTelegramApplicationRuntime(harness)
