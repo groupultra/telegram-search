@@ -25,24 +25,24 @@ export async function withReadOperation<T>(options: ReadOperationOptions = {}, o
   const controller = new AbortController()
   let timer: ReturnType<typeof setTimeout> | undefined
   let sdkRequests = 0
-  const cancellationError = () => {
-    const expired = deadlineAt <= Date.now()
+  const cancellationError = (expired: boolean) => {
     return new ReadOperationError(
       expired ? 'REQUEST_DEADLINE_EXCEEDED' : 'REQUEST_CANCELLED',
       expired ? 'Read deadline exceeded' : 'Read cancelled',
       sdkRequests > 0 ? { sdkCancellation: 'unsupported', inFlightMayContinue: true } : undefined,
     )
   }
-  const onAbort = () => controller.abort(cancellationError())
+  const onAbort = () => controller.abort(cancellationError(false))
+  const onDeadline = () => controller.abort(cancellationError(true))
   options.signal?.addEventListener('abort', onAbort, { once: true })
   if (options.signal?.aborted)
     onAbort()
   {
     const remaining = deadlineAt - Date.now()
     if (remaining <= 0)
-      onAbort()
+      onDeadline()
     else
-      timer = setTimeout(onAbort, remaining)
+      timer = setTimeout(onDeadline, remaining)
   }
   const throwIfAborted = () => {
     if (controller.signal.aborted)

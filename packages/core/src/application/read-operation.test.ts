@@ -6,7 +6,10 @@ import { withReadOperation } from './read-operation'
 
 const flush = () => new Promise<void>(resolve => queueMicrotask(resolve))
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.useRealTimers()
+})
 
 describe('read operation lifetime (issue #682)', () => {
   it('documents the real GramJS request cancellation boundary without a network connection', async () => {
@@ -48,6 +51,19 @@ describe('read operation lifetime (issue #682)', () => {
     settle('late result')
     await flush()
     await expect(withReadOperation({}, scope => scope.telegram(client, subsequent))).resolves.toBe('new request')
+  })
+
+  it('preserves the deadline cause when a timer fires before the wall clock reaches it', async () => {
+    vi.useFakeTimers()
+    const deadlineAt = Date.now() + 100
+    const operation = withReadOperation({ deadlineAt }, scope => scope.wait(new Promise<void>(() => {})))
+    const rejected = expect(operation).rejects.toMatchObject({ code: 'REQUEST_DEADLINE_EXCEEDED' })
+    // Timer scheduling and Date.now can disagree by a millisecond; the timer's
+    // explicit cause must win over a fresh wall-clock comparison (issue #682).
+    vi.spyOn(Date, 'now').mockReturnValue(deadlineAt - 1)
+    await vi.advanceTimersByTimeAsync(100)
+    await rejected
+    expect(Date.now()).toBe(deadlineAt - 1)
   })
 
   it('cancels only one request, prevents its next page, and leaves another request running', async () => {
