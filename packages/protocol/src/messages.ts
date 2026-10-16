@@ -4,7 +4,7 @@ import type { AppResult } from './errors'
 import type { CursorPage } from './pagination'
 
 import { defineInvokeEventa } from '@moeru/eventa'
-import { array, boolean, maxLength, maxValue, minLength, minValue, number, object, optional, pipe, regex, string } from 'valibot'
+import { array, boolean, maxLength, maxValue, minLength, minValue, number, object, optional, picklist, pipe, regex, string } from 'valibot'
 
 import { readOperationFields } from './operation'
 
@@ -53,39 +53,66 @@ export const messageContextInputSchema = object({
   after: optional(pipe(number(), minValue(0), maxValue(1000)), 20),
 })
 
-export interface MessageForwardRecord {
-  isForward: boolean
-  fromChatId?: string
-  fromChatName?: string
-  fromMessageId?: string
-}
+export const messageForwardRecordSchema = object({
+  isForward: boolean(),
+  fromChatId: optional(string()),
+  fromChatName: optional(string()),
+  fromMessageId: optional(string()),
+  fromSenderId: optional(string()),
+  fromName: optional(string()),
+  date: optional(number()),
+  postAuthor: optional(string()),
+})
 
-export interface MessageMediaRecord {
-  type: string
-  fileName?: string
-  mimeType?: string
-  telegramReference?: string
-}
+export const messageMediaRecordSchema = object({
+  type: string(),
+  fileName: optional(string()),
+  mimeType: optional(string()),
+  telegramReference: optional(string()),
+})
+export const messageLinkRecordSchema = object({ url: string(), title: optional(string()) })
+export const messageQuoteSchema = object({ text: string(), offset: optional(number()), manual: optional(boolean()) })
 
-export interface MessageLinkRecord {
-  url: string
-  title?: string
-}
+/** Canonical wire schema: all transports preserve the same message facts. */
+export const messageRecordSchema = object({
+  id: string(),
+  chatId: string(),
+  senderId: string(),
+  senderName: string(),
+  timestamp: number(),
+  text: string(),
+  replyToId: optional(string()),
+  replyToChatId: optional(string()),
+  replyToTopId: optional(string()),
+  forumTopic: optional(boolean()),
+  quote: optional(messageQuoteSchema),
+  groupedId: optional(string()),
+  forward: messageForwardRecordSchema,
+  media: array(messageMediaRecordSchema),
+  links: array(messageLinkRecordSchema),
+  editedAt: optional(number()),
+  deletedAt: optional(number()),
+})
 
-export interface MessageRecord {
-  id: string
-  chatId: string
-  senderId: string
-  senderName: string
-  timestamp: number
-  text: string
-  replyToId?: string
-  forward: MessageForwardRecord
-  media: MessageMediaRecord[]
-  links: MessageLinkRecord[]
-  editedAt?: number
-  deletedAt?: number
-}
+export type MessageForwardRecord = InferOutput<typeof messageForwardRecordSchema>
+export type MessageMediaRecord = InferOutput<typeof messageMediaRecordSchema>
+export type MessageLinkRecord = InferOutput<typeof messageLinkRecordSchema>
+export type MessageRecord = InferOutput<typeof messageRecordSchema>
+export type MessageSource = 'local' | 'telegram'
+
+export const getMessagesInputSchema = object({
+  ...readOperationFields,
+  source: picklist(['local', 'telegram']),
+  chatId: pipe(string(), minLength(1), maxLength(128)),
+  messageIds: pipe(array(pipe(string(), regex(/^[1-9]\d{0,15}$/))), minLength(1), maxLength(100)),
+})
+export const getMessagesResultSchema = object({
+  source: picklist(['local', 'telegram']),
+  items: array(messageRecordSchema),
+  missingIds: array(string()),
+})
+export type GetMessagesInput = InferOutput<typeof getMessagesInputSchema>
+export type GetMessagesResult = InferOutput<typeof getMessagesResultSchema>
 
 export interface SearchMessageRecord extends MessageRecord {
   similarity?: number
@@ -103,6 +130,7 @@ export type SearchMessagesInput = InferOutput<typeof searchMessagesInputSchema>
 export type MessageContextInput = InferOutput<typeof messageContextInputSchema>
 
 export const messageContracts = {
+  get: defineInvokeEventa<AppResult<GetMessagesResult>, GetMessagesInput>('tg.v1.messages.get'),
   listRemote: defineInvokeEventa<AppResult<CursorPage<MessageRecord>>, ListRemoteMessagesInput>('tg.v1.messages.list.remote'),
   queryLocal: defineInvokeEventa<AppResult<CursorPage<MessageRecord>>, QueryLocalMessagesInput>('tg.v1.messages.query.local'),
   searchLocal: defineInvokeEventa<AppResult<CursorPage<SearchMessageRecord>>, SearchMessagesInput>('tg.v1.messages.search.local'),

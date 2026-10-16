@@ -191,3 +191,12 @@ cancelled Telegram read reports `sdkCancellation: unsupported` and
 `inFlightMayContinue: true` when that RPC is still active. Its late result is
 observed and discarded; cancellation does not claim to have removed it from the
 SDK queue. Runtime recovery belongs to the daemon owner.
+
+### Message point reads
+
+```sh
+tg-search messages get --chat 42 --ids 10,11 --source local --json
+tg-search messages get --chat 42 --ids 10,11 --source telegram --json
+```
+
+The source is required. Up to 100 chat-scoped IDs are returned with `missingIds`; this operation does not persist Telegram messages or request Takeout. Relationship facts are preserved in JSON output.

@@ -76,6 +76,16 @@ describe('models/chat-message', () => {
     expect((await chatMessageModels.fetchMessagesByTimeRange(db, owner.id, { start: 0, end: 100 }, [hidden.chat_id])).unwrap()).toEqual([])
   })
 
+  it('denies guessed batch references in another account group', async () => {
+    // Issue #682: reply point reads must use the same membership ACL as range reads.
+    const { db, owner, visible, hidden } = await accountIsolationFixture()
+    const result = (await chatMessageModels.fetchMessagesByChatAndPlatformIds(db, owner.id, [
+      { chatId: visible.chat_id, messageId: '1' },
+      { chatId: hidden.chat_id, messageId: '1' },
+    ])).unwrap()
+    expect(result.map(message => message.in_chat_id)).toEqual([visible.chat_id])
+  })
+
   it('denies guessed message context in another account group', async () => {
     const { db, owner, visible, hidden } = await accountIsolationFixture()
     const read = (chatId: string) => chatMessageModels.fetchMessageContextWithPhotos(db, photoModels, owner.id, { chatId, messageId: '1', before: 1, after: 1 })
@@ -362,6 +372,7 @@ describe('models/chat-message', () => {
       { platform: 'telegram', chat_id: 'chat-a', chat_name: 'Chat A', chat_type: 'group' },
       { platform: 'telegram', chat_id: 'chat-b', chat_name: 'Chat B', chat_type: 'group' },
     ]).returning()
+    await db.insert(accountJoinedChatsTable).values(chats.map(chat => ({ account_id: account.id, joined_chat_id: chat.id })))
     await db.insert(chatMessagesTable).values(chats.map((chat, index) => ({
       platform: 'telegram',
       platform_message_id: '7',

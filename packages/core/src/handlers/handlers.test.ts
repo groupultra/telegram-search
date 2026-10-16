@@ -1,7 +1,7 @@
 import type { TelegramApplication } from '../application/runtime'
 
 import { createContext, defineInvokes, defineStreamInvoke } from '@moeru/eventa'
-import { chatContracts, exportContracts } from '@tg-search/protocol'
+import { chatContracts, exportContracts, messageContracts } from '@tg-search/protocol'
 import { describe, expect, it, vi } from 'vitest'
 
 import { registerApplicationHandlers } from './index'
@@ -9,6 +9,7 @@ import { registerApplicationHandlers } from './index'
 function fakeApplication(overrides: Partial<TelegramApplication> = {}): TelegramApplication {
   return {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [], nextCursor: null } })),
+    getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
     listRemoteMessages: vi.fn(),
     queryLocalMessages: vi.fn(),
     searchLocalMessages: vi.fn(),
@@ -21,6 +22,17 @@ function fakeApplication(overrides: Partial<TelegramApplication> = {}): Telegram
 }
 
 describe('application invoke handlers', () => {
+  it('validates and exposes explicit point reads through Eventa', async () => {
+    const context = createContext()
+    const application = fakeApplication()
+    registerApplicationHandlers(context, application)
+    const invokes = defineInvokes(context, messageContracts)
+    await invokes.get({ source: 'local', chatId: '42', messageIds: ['1'] })
+    expect(application.getMessages).toHaveBeenCalledExactlyOnceWith({ source: 'local', chatId: '42', messageIds: ['1'] })
+    expect(await invokes.get({ source: 'local', chatId: '42', messageIds: [] })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(application.getMessages).toHaveBeenCalledTimes(1)
+  })
+
   it('exposes unary application methods through Eventa', async () => {
     const context = createContext()
     registerApplicationHandlers(context, fakeApplication())

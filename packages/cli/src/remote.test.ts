@@ -36,6 +36,7 @@ function fixture() {
   const application = {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
     listStoredChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
+    getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
     listRemoteMessages: vi.fn(async () => page),
     queryLocalMessages: vi.fn<TelegramApplication['queryLocalMessages']>(async () => page),
     searchLocalMessages: vi.fn(async () => page),

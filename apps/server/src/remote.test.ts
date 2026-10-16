@@ -35,6 +35,7 @@ function fixture(options: { access?: ReturnType<typeof access>, messageChatId?: 
   const application = {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: resultMessage.chatId, name: 'Project', type: 'group' as const }], nextCursor: null } })),
     listStoredChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: resultMessage.chatId, name: 'Project', type: 'group' as const }], nextCursor: null } })),
+    getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
     listRemoteMessages: vi.fn(async () => page),
     queryLocalMessages: vi.fn<TelegramApplication['queryLocalMessages']>(async () => page),
     searchLocalMessages: vi.fn(async () => page),
@@ -57,6 +58,15 @@ function headers() {
 }
 
 describe('remote access control', () => {
+  it('authorizes explicit point reads before calling the application', async () => {
+    const { app, application } = fixture({ access: access({ capabilities: ['messages.get'] }) })
+    const request = (chatId: string) => app.request('/v1/remote/messages.get', { method: 'POST', headers: headers(), body: JSON.stringify({ source: 'local', chatId, messageIds: ['42'] }) })
+    expect((await request('8')).status).toBe(403)
+    expect(application.getMessages).not.toHaveBeenCalled()
+    expect((await request('7')).status).toBe(200)
+    expect(application.getMessages).toHaveBeenCalledExactlyOnceWith({ source: 'local', chatId: '7', messageIds: ['42'] })
+  })
+
   it('requires both a feature capability and chat read permission', async () => {
     const limited = access({ capabilities: ['messages.query'] })
     const { app, application, resolve, audit } = fixture({ access: limited })
