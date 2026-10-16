@@ -9,6 +9,7 @@ const access = { token: 'synthetic-token-'.repeat(4), accountId: '11111111-1111-
 
 function fixture() {
   const application = {
+    readMessageMedia: vi.fn(),
     listChats: vi.fn(),
     getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [], missingIds: input.messageIds } })),
     getReplyContext: vi.fn<TelegramApplication['getReplyContext']>(async input => ({ ok: true, data: { source: input.source, items: [], roots: [], links: [], budget: { maxDepth: input.maxDepth, maxNodes: input.maxNodes }, coverage: { complete: true, resolvedReplies: 0, missingReplies: 0, notRequestedReplies: 0, depthStopped: 0, nodeStopped: 0, cycles: 0 } } })),
