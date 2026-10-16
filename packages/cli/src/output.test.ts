@@ -53,6 +53,12 @@ describe('bounded result output', () => {
     expect(chunks[1].split('\n')).toHaveLength(2)
   })
 
+  it('does not interpret literal query text after -- as output options', () => {
+    expect(readOutputOptions(['search', '--', '--output-file=literal.jsonl'])).toEqual({ format: 'text', file: undefined })
+    expect(readOutputOptions(['search', '--', '--format=jsonl', '--json'])).toEqual({ format: 'text', file: undefined })
+    expect(readOutputOptions(['search', '--json', '--', '--format=compact'])).toEqual({ format: 'json', file: undefined })
+  })
+
   it('requires an explicit compatible format and defaults file output to JSONL', () => {
     expect(readOutputOptions(['messages', 'list', '--output-file', 'page.jsonl'])).toEqual({ format: 'jsonl', file: 'page.jsonl' })
     expect(readOutputOptions(['messages', 'list', '--format=compact'])).toEqual({ format: 'compact', file: undefined })

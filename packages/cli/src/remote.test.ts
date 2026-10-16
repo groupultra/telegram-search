@@ -165,6 +165,35 @@ describe('remote CLI', () => {
     }
   })
 
+  it('treats output flags after -- as literal search text and preserves remote routing', async () => {
+    const { app, application } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const home = await mkdtemp(join(tmpdir(), 'tg-output-literal-'))
+    const literal = `--output-file=${join(home, 'unexpected.jsonl')}`
+    vi.stubEnv('TG_SEARCH_HOME', home)
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    try {
+      await runCli(['--remote', server.url!, '--json', 'search', '--', literal])
+      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: literal, limit: 100, useVector: false })
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data, meta: { source: 'remote' } })
+      expect(await readdir(home)).toEqual([])
+      stdout.mockClear()
+      await runCli(['--remote', server.url!, '--json', 'search', '--', '--help'])
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--help', limit: 100, useVector: false })
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
+      stdout.mockClear()
+      await runCli(['--remote', server.url!, '--json', 'search', '--', '--json=false'])
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--json=false', limit: 100, useVector: false })
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
+    }
+    finally {
+      await server.close()
+      await rm(home, { recursive: true, force: true })
+    }
+  })
+
   it('writes a remote result to a private JSONL file and prints only its receipt', async () => {
     const { app } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })

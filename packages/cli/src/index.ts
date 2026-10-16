@@ -731,6 +731,8 @@ export function normalizeRawArgs(args: string[]): string[] {
   let json: boolean | undefined
   let index = 0
   while (index < args.length) {
+    if (args[index] === '--')
+      break
     if (args[index] === '--no-json') {
       json = false
       index += 1
@@ -774,6 +776,7 @@ export function normalizeRawArgs(args: string[]): string[] {
     normalized.push(`--remote=${remote}`)
   if (json !== undefined)
     normalized.push(json ? '--json' : '--json=false')
+  normalized.push(...args.slice(index))
   return normalized
 }
 
@@ -803,19 +806,22 @@ async function validateCommandPath(command: Pick<CommandDef, 'subCommands'>, arg
 
 export async function runCli(args = process.argv.slice(2)): Promise<void> {
   const normalizedArgs = normalizeRawArgs(args)
-  resetOutputState(normalizedArgs.includes('--json') ? 'json' : 'text')
-  const profile = profileFromRawArgs(normalizedArgs)
-  const frameworkArgs = normalizedArgs.filter(arg => arg !== '--json' && arg !== '--json=false')
+  const terminator = normalizedArgs.indexOf('--')
+  const optionArgs = terminator < 0 ? normalizedArgs : normalizedArgs.slice(0, terminator)
+  resetOutputState(optionArgs.includes('--json') ? 'json' : 'text')
+  const profile = profileFromRawArgs(optionArgs)
+  const frameworkOptionArgs = optionArgs.filter(arg => arg !== '--json' && arg !== '--json=false')
+  const frameworkArgs = [...frameworkOptionArgs, ...(terminator < 0 ? [] : normalizedArgs.slice(terminator))]
   try {
     const output = readOutputOptions(normalizedArgs)
     resetOutputState(output.format, output.file)
     await validateCommandPath(main, frameworkArgs)
     if (['auth', 'daemon'].includes(normalizedArgs[0])) {
       const config = await readProfileConfig(resolveProfilePaths(profile))
-      if (normalizedArgs.some(arg => arg.startsWith('--remote=')) || process.env.TG_SEARCH_REMOTE_URL !== undefined || config.remoteUrl !== undefined)
+      if (optionArgs.some(arg => arg.startsWith('--remote=')) || process.env.TG_SEARCH_REMOTE_URL !== undefined || config.remoteUrl !== undefined)
         throw cliError({ code: 'LOCAL_PROFILE_REQUIRED', message: 'auth and daemon manage local profiles only; use a separate local profile', retryable: false })
     }
-    if (frameworkArgs.includes('--help') || frameworkArgs.includes('-h') || (frameworkArgs.length === 1 && frameworkArgs[0] === '--version'))
+    if (frameworkOptionArgs.includes('--help') || frameworkOptionArgs.includes('-h') || (frameworkOptionArgs.length === 1 && frameworkOptionArgs[0] === '--version'))
       await runMain(main, { rawArgs: frameworkArgs })
     else
       await runCommand(main, { rawArgs: normalizedArgs })

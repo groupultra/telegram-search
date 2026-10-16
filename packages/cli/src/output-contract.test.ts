@@ -13,12 +13,13 @@ afterEach(async () => {
   await Promise.all(directories.splice(0).map(path => rm(path, { recursive: true, force: true })))
 })
 
-async function invoke(args: string[]) {
+async function invoke(args: string[], overrides: NodeJS.ProcessEnv = {}) {
   const home = await mkdtemp(join(tmpdir(), 'tg-output-contract-'))
   directories.push(home)
   const environment: NodeJS.ProcessEnv = { ...process.env, TG_SEARCH_HOME: home }
   delete environment.TG_SEARCH_REMOTE_URL
   delete environment.TG_SEARCH_REMOTE_TOKEN
+  Object.assign(environment, overrides)
   return spawnSync(process.execPath, [fileURLToPath(new URL('../dist/index.mjs', import.meta.url)), ...args], {
     encoding: 'utf8',
     env: environment,
@@ -41,6 +42,15 @@ describe('installed CLI output contract', () => {
     expect(result.status).toBe(1)
     expect(JSON.parse(result.stdout)).toMatchObject({ ok: false, error: { code: 'REMOTE_CREDENTIALS_MISSING', retryable: false } })
     expect(result.stderr).toBe('')
+  })
+
+  it('does not treat literal help or JSON flags as CLI controls after --', async () => {
+    for (const query of ['--help', '--json=false', '--profile=literal']) {
+      const result = await invoke(['--json', 'search', '--', query], { TG_SEARCH_REMOTE_URL: 'https://example.invalid' })
+      expect(result.status).toBe(1)
+      expect(JSON.parse(result.stdout)).toMatchObject({ ok: false, error: { code: 'REMOTE_CREDENTIALS_MISSING' }, meta: { profile: 'default' } })
+      expect(result.stderr).toBe('')
+    }
   })
 
   it('uses INVALID_ARGUMENT for parser failures', async () => {

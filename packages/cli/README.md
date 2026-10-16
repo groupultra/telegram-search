@@ -145,6 +145,11 @@ tg-search messages query --limit 100 --output-file ./private/page.jsonl
 tg-search context --chat 123456 --message 42 --format jsonl
 ```
 
+Use `--` before a search query that starts with a dash, for example
+`tg-search --json search -- "--output-file=literal-query"`. Arguments after the
+terminator remain literal query text; they cannot change the profile, endpoint,
+output format, output file, or help behavior.
+
 Unknown commands fail even with `--help` and report available subcommands.
 Failures from command parsing use `INVALID_ARGUMENT`; remote setup and transport
 failures distinguish `REMOTE_CREDENTIALS_MISSING`, `REMOTE_AUTHENTICATION_FAILED`,

@@ -24,12 +24,14 @@ function optionValue(args: string[], names: string[]): string | undefined {
 }
 
 export function readOutputOptions(args: string[]): { format: OutputFormat, file?: string } {
-  const json = args.includes('--json')
-  const file = optionValue(args, ['output-file', 'outputFile'])
-  const readCommand = ['chats', 'messages', 'search', 'context', 'stats'].includes(args[0])
+  const terminator = args.indexOf('--')
+  const optionArgs = terminator < 0 ? args : args.slice(0, terminator)
+  const json = optionArgs.includes('--json')
+  const file = optionValue(optionArgs, ['output-file', 'outputFile'])
+  const readCommand = ['chats', 'messages', 'media', 'search', 'context', 'stats'].includes(args[0])
   if (file !== undefined && (!readCommand || !file))
     throw cliError({ code: 'INVALID_ARGUMENT', message: '--output-file requires a path and a read command', retryable: false })
-  const format = readCommand ? optionValue(args, ['format']) : undefined
+  const format = readCommand ? optionValue(optionArgs, ['format']) : undefined
   if (format !== undefined && !['text', 'json', 'compact', 'jsonl'].includes(format))
     throw cliError({ code: 'INVALID_ARGUMENT', message: '--format must be text, json, compact, or jsonl', retryable: false })
   if (json && format !== undefined && format !== 'json')
