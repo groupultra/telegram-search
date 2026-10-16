@@ -1,4 +1,5 @@
 import type { Logger } from '@guiiai/logg'
+import type { Dialog } from 'telegram/tl/custom/dialog'
 
 import type { CoreContext } from '../context'
 import type { Models } from '../models'
@@ -39,7 +40,12 @@ function createHarness(messages: Api.Message[] = []) {
   })
   const getMessages = vi.fn(async () => messages)
   const getEntity = vi.fn(async () => channel)
-  const client = { getDialogs, getMessages, getEntity }
+  const iterDialogs = vi.fn((options: { limit?: number, offsetDate?: number }): AsyncIterable<Dialog> => ({
+    async* [Symbol.asyncIterator]() {
+      yield* await getDialogs(options) as unknown as Dialog[]
+    },
+  }))
+  const client = { getDialogs, iterDialogs, getMessages, getEntity }
   const recordChats = vi.fn(async () => [])
   const recordMessages = vi.fn(async () => [])
   const getInputPeer = vi.fn(async () => inputPeer)
@@ -69,6 +75,7 @@ function createHarness(messages: Api.Message[] = []) {
     context,
     entityService,
     getDialogs,
+    iterDialogs,
     getEntity,
     getInputPeer,
     getMessages,
@@ -96,6 +103,36 @@ describe('telegram application runtime remote boundaries', () => {
       [expect.objectContaining({ id: 42, accessHash: '99', type: 'channel' })],
       'account-1',
     )
+  })
+
+  it('stops dialog iteration after cancellation before requesting another page (issue #682)', async () => {
+    // getDialogs() collects SDK pages internally and cannot observe our signal.
+    // Owning public iterator.next() lets the application stop that pagination.
+    const harness = createHarness()
+    const controller = new AbortController()
+    let settlePage!: (result: IteratorResult<Dialog>) => void
+    const next = vi.fn<() => Promise<IteratorResult<Dialog>>>()
+      .mockResolvedValueOnce({ done: false, value: { entity: harness.channel } as Dialog })
+      .mockImplementationOnce(() => new Promise<IteratorResult<Dialog>>((resolve) => {
+        settlePage = resolve
+      }))
+      .mockResolvedValue({ done: true, value: undefined })
+    harness.iterDialogs.mockReturnValue({ [Symbol.asyncIterator]: () => ({ next }) })
+    const runtime = createTelegramApplicationRuntime(harness)
+    const pending = runtime.listChats({ limit: 300 }, { signal: controller.signal })
+    try {
+      await vi.waitFor(() => expect(next).toHaveBeenCalledTimes(2))
+      controller.abort()
+      await expect(pending).resolves.toMatchObject({ ok: false, error: { code: 'REQUEST_CANCELLED', details: { sdkCancellation: 'unsupported', inFlightMayContinue: true } } })
+      settlePage({ done: false, value: { entity: harness.channel } as Dialog })
+      await new Promise<void>(resolve => queueMicrotask(resolve))
+      expect(next).toHaveBeenCalledTimes(2)
+      expect(harness.recordChats).not.toHaveBeenCalled()
+    }
+    finally {
+      controller.abort()
+      await pending
+    }
   })
 
   it('resolves numeric chat IDs through the shared DB-backed entity service', async () => {

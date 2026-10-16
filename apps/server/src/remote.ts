@@ -1,4 +1,4 @@
-import type { TelegramApplication } from '@tg-search/core'
+import type { ReadOperationOptions, TelegramApplication } from '@tg-search/core'
 
 import { createHash, timingSafeEqual } from 'node:crypto'
 
@@ -34,26 +34,42 @@ export function createRemoteApi(access: RemoteAccess, getApplication: (accountId
     assertBodySize(event, 65_536)
     try {
       const application = getApplication(access.accountId)
+      const optionsFor = (input: { operation?: { deadlineAt: number } }): ReadOperationOptions => ({
+        signal: event.req.signal,
+        deadlineAt: input.operation?.deadlineAt,
+      })
       let result
       switch (event.context.params?.method) {
-        case 'chats.list':
-          result = await application.listChats(await readValidatedBody(event, listChatsInputSchema))
+        case 'chats.list': {
+          const input = await readValidatedBody(event, listChatsInputSchema)
+          result = await application.listChats(input, optionsFor(input))
           break
-        case 'messages.list':
-          result = await application.listRemoteMessages(await readValidatedBody(event, listRemoteMessagesInputSchema))
+        }
+        case 'messages.list': {
+          const input = await readValidatedBody(event, listRemoteMessagesInputSchema)
+          result = await application.listRemoteMessages(input, optionsFor(input))
           break
-        case 'messages.query':
-          result = await application.queryLocalMessages(await readValidatedBody(event, queryLocalMessagesInputSchema))
+        }
+        case 'messages.query': {
+          const input = await readValidatedBody(event, queryLocalMessagesInputSchema)
+          result = await application.queryLocalMessages(input, optionsFor(input))
           break
-        case 'messages.search':
-          result = await application.searchLocalMessages(await readValidatedBody(event, searchMessagesInputSchema))
+        }
+        case 'messages.search': {
+          const input = await readValidatedBody(event, searchMessagesInputSchema)
+          result = await application.searchLocalMessages(input, optionsFor(input))
           break
-        case 'messages.context':
-          result = await application.getLocalMessageContext(await readValidatedBody(event, messageContextInputSchema))
+        }
+        case 'messages.context': {
+          const input = await readValidatedBody(event, messageContextInputSchema)
+          result = await application.getLocalMessageContext(input, optionsFor(input))
           break
-        case 'stats.get':
-          result = await application.getLocalStats(await readValidatedBody(event, statsInputSchema))
+        }
+        case 'stats.get': {
+          const input = await readValidatedBody(event, statsInputSchema)
+          result = await application.getLocalStats(input, optionsFor(input))
           break
+        }
         default: return new Response(null, { status: 404 })
       }
       return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })

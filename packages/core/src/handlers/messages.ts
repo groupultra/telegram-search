@@ -13,6 +13,7 @@ import {
 import { safeParse } from 'valibot'
 
 import { invalidArgument } from '../application/errors'
+import { readOperationOptions } from './read-options'
 
 function validated<TInput, TOutput>(schema: Parameters<typeof safeParse>[0], input: unknown, operation: (input: TInput) => Promise<TOutput>) {
   const parsed = safeParse(schema, input)
@@ -23,9 +24,9 @@ function validated<TInput, TOutput>(schema: Parameters<typeof safeParse>[0], inp
 
 export function registerMessageHandlers(context: EventContext<any, any>, application: TelegramApplication) {
   return defineInvokeHandlers(context, messageContracts, {
-    listRemote: input => validated(listRemoteMessagesInputSchema, input, application.listRemoteMessages),
-    queryLocal: input => validated(queryLocalMessagesInputSchema, input, application.queryLocalMessages),
-    searchLocal: input => validated(searchMessagesInputSchema, input, application.searchLocalMessages),
-    contextLocal: input => validated(messageContextInputSchema, input, application.getLocalMessageContext),
+    listRemote: (input, options) => validated(listRemoteMessagesInputSchema, input, parsed => application.listRemoteMessages(parsed as typeof input, readOperationOptions(context.signal, input, options))),
+    queryLocal: (input, options) => validated(queryLocalMessagesInputSchema, input, parsed => application.queryLocalMessages(parsed as typeof input, readOperationOptions(context.signal, input, options))),
+    searchLocal: (input, options) => validated(searchMessagesInputSchema, input, parsed => application.searchLocalMessages(parsed as typeof input, readOperationOptions(context.signal, input, options))),
+    contextLocal: (input, options) => validated(messageContextInputSchema, input, parsed => application.getLocalMessageContext(parsed as typeof input, readOperationOptions(context.signal, input, options))),
   })
 }

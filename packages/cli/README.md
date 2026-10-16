@@ -177,3 +177,17 @@ The CLI performs no AI analysis. An Agent can read the JSONL files and produce a
 - Takeout requests only the selected chat category and does not request contacts or files for text sync.
 - Local query, search, context, stats, and export do not create a Telegram connection.
 - Media references and metadata may be stored; media binaries are not downloaded by these CLI commands.
+
+### Read deadlines and cancellation
+
+Read commands accept `--timeout-ms` (default `60000`). One absolute deadline is
+carried through IPC and remote HTTP to the application; transport adapters do
+not retry a cancelled read. SIGINT/SIGTERM cancels the active request without
+rebuilding a daemon's shared Telegram connection. Application pagination stops
+before another page is sent and listeners/timers are removed.
+
+GramJS 2.26 does not expose cancellation for an individual in-flight RPC. A
+cancelled Telegram read reports `sdkCancellation: unsupported` and
+`inFlightMayContinue: true` when that RPC is still active. Its late result is
+observed and discarded; cancellation does not claim to have removed it from the
+SDK queue. Runtime recovery belongs to the daemon owner.

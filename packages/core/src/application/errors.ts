@@ -1,5 +1,12 @@
 import type { AppError, AppResult } from '@tg-search/protocol'
 
+export class ApplicationError extends Error {
+  constructor(public readonly appError: AppError) {
+    super(appError.message)
+    this.name = 'ApplicationError'
+  }
+}
+
 const NETWORK_ERROR_CODES = new Set([
   'ECONNREFUSED',
   'ECONNRESET',
@@ -112,6 +119,9 @@ export function invalidArgument(message: string, details?: Record<string, unknow
 }
 
 export function toAppError(error: unknown): AppError {
+  if (error instanceof ApplicationError)
+    return error.appError
+
   const classifiedTelegramError = telegramError(error)
   if (classifiedTelegramError)
     return classifiedTelegramError

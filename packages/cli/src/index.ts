@@ -10,7 +10,7 @@ import { resolve } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { pathToFileURL } from 'node:url'
 
-import { retryTelegramResult, toAppError } from '@tg-search/core'
+import { toAppError } from '@tg-search/core'
 import { normalizeRemoteUrl } from '@tg-search/protocol'
 import { defineCommand, runCommand, runMain } from 'citty'
 import { TelegramClient } from 'telegram'
@@ -28,15 +28,17 @@ import {
   writeProfileConfig,
   writeSession,
 } from './profile'
+import { bindReadOperations } from './read-runtime'
 import { createRemoteRuntime } from './remote'
 import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 
 const CLI_VERSION = (createRequire(import.meta.url)('../package.json') as { version: string }).version
 const profileArg = {
-  profile: { type: 'string' as const, default: 'default' },
-  remote: { type: 'string' as const, description: 'Remote TGS URL (HTTPS)' },
-  json: { type: 'boolean' as const, default: false, description: 'Write a machine-readable JSON envelope' },
+  'timeout-ms': { type: 'string' as const, default: '60000', description: 'Read deadline in milliseconds' },
+  'profile': { type: 'string' as const, default: 'default' },
+  'remote': { type: 'string' as const, description: 'Remote TGS URL (HTTPS)' },
+  'json': { type: 'boolean' as const, default: false, description: 'Write a machine-readable JSON envelope' },
 }
 
 function profileFrom(context: { args: object }): string {
@@ -77,35 +79,53 @@ type CommandRuntime = Awaited<ReturnType<typeof createCliRuntime>> | NonNullable
 
 async function withRuntime<T>(command: { args: object }, remote: boolean, operation: (runtime: CommandRuntime) => Promise<T>): Promise<T | undefined> {
   const profile = profileFrom(command)
-  const args = command.args as { remote?: string }
-  const paths = resolveProfilePaths(profile)
-  const config = await readProfileConfig(paths)
-  const endpoint = args.remote ?? process.env.TG_SEARCH_REMOTE_URL ?? config.remoteUrl
-  if (endpoint !== undefined) {
-    const runtime = createRemoteRuntime(endpoint, process.env.TG_SEARCH_REMOTE_TOKEN ?? '')
+  const args = command.args as { 'remote'?: string, 'timeout-ms'?: string }
+  const timeoutMs = Number(args['timeout-ms'] ?? 60_000)
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 2_147_483_647)
+    throw new Error('--timeout-ms must be an integer between 1 and 2147483647')
+  const controller = new AbortController()
+  const cancel = () => controller.abort()
+  process.once('SIGINT', cancel)
+  process.once('SIGTERM', cancel)
+  const options = { signal: controller.signal, deadlineAt: Date.now() + timeoutMs }
+  const run = (runtime: CommandRuntime) => operation(bindReadOperations(runtime, options))
+  const cleanup = () => {
+    process.off('SIGINT', cancel)
+    process.off('SIGTERM', cancel)
+  }
+  try {
+    const paths = resolveProfilePaths(profile)
+    const config = await readProfileConfig(paths)
+    const endpoint = args.remote ?? process.env.TG_SEARCH_REMOTE_URL ?? config.remoteUrl
+    if (endpoint !== undefined) {
+      const runtime = createRemoteRuntime(endpoint, process.env.TG_SEARCH_REMOTE_TOKEN ?? '')
+      try {
+        return await run(runtime)
+      }
+      finally {
+        await runtime.close()
+      }
+    }
+    await ensureProfile(profile)
+    let runtime: CommandRuntime
     try {
-      return await operation(runtime)
+      runtime = await connectDaemon(paths) ?? await createCliRuntime(paths, { remote })
+    }
+    catch (error) {
+      if (!remote)
+        throw error
+      emitResult({ ok: false, error: toAppError(error) }, outputMeta(profile, 'telegram'))
+      return undefined
+    }
+    try {
+      return await run(runtime)
     }
     finally {
       await runtime.close()
     }
   }
-  await ensureProfile(profile)
-  let runtime: CommandRuntime
-  try {
-    runtime = await connectDaemon(paths) ?? await createCliRuntime(paths, { remote })
-  }
-  catch (error) {
-    if (!remote)
-      throw error
-    emitResult({ ok: false, error: toAppError(error) }, outputMeta(profile, 'telegram'))
-    return undefined
-  }
-  try {
-    return await operation(runtime)
-  }
   finally {
-    await runtime.close()
+    cleanup()
   }
 }
 
@@ -131,9 +151,7 @@ export function emitResult<T>(result: AppResult<T>, meta: OutputMeta): void {
 }
 
 async function emitRetryingTelegramResult<T>(operation: () => Promise<AppResult<T>>, meta: OutputMeta): Promise<void> {
-  const result = await retryTelegramResult(operation, {
-    onRetry: notice => writeProgress({ type: 'telegram-retry', ...notice }),
-  })
+  const result = await operation()
   emitResult(result, meta)
 }
 

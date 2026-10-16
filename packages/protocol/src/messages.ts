@@ -6,12 +6,15 @@ import type { CursorPage } from './pagination'
 import { defineInvokeEventa } from '@moeru/eventa'
 import { array, boolean, maxLength, maxValue, minLength, minValue, number, object, optional, pipe, regex, string } from 'valibot'
 
+import { readOperationFields } from './operation'
+
 const timeRangeFields = {
   from: optional(number()),
   to: optional(number()),
 }
 
 export const listRemoteMessagesInputSchema = object({
+  ...readOperationFields,
   chatId: pipe(string(), minLength(1), maxLength(128)),
   /** Message ID to read strictly below: a previous page's `nextCursor`, or any known message ID. */
   cursor: optional(pipe(string(), regex(/^[1-9]\d{0,15}$/))),
@@ -24,6 +27,7 @@ export const listRemoteMessagesInputSchema = object({
 })
 
 export const queryLocalMessagesInputSchema = object({
+  ...readOperationFields,
   chatIds: optional(array(pipe(string(), minLength(1), maxLength(128)))),
   cursor: optional(string()),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
@@ -32,6 +36,7 @@ export const queryLocalMessagesInputSchema = object({
 })
 
 export const searchMessagesInputSchema = object({
+  ...readOperationFields,
   query: pipe(string(), minLength(1), maxLength(4000)),
   chatIds: optional(array(pipe(string(), minLength(1), maxLength(128)))),
   cursor: optional(string()),
@@ -41,6 +46,7 @@ export const searchMessagesInputSchema = object({
 })
 
 export const messageContextInputSchema = object({
+  ...readOperationFields,
   chatId: pipe(string(), minLength(1), maxLength(128)),
   messageId: pipe(string(), minLength(1), maxLength(128)),
   before: optional(pipe(number(), minValue(0), maxValue(1000)), 20),

@@ -56,6 +56,46 @@ describe('remote CLI', () => {
     }
   })
 
+  it('propagates cancellation over real HTTP and keeps another read available', async () => {
+    const { app, application } = fixture()
+    let observedSignal!: AbortSignal
+    let markStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve
+    })
+    let markCancelled!: () => void
+    const cancelled = new Promise<void>((resolve) => {
+      markCancelled = resolve
+    })
+    application.queryLocalMessages.mockImplementationOnce(async (_input, options) => {
+      observedSignal = options!.signal!
+      markStarted()
+      return new Promise((resolve) => {
+        observedSignal.addEventListener('abort', () => {
+          markCancelled()
+          resolve({ ok: false, error: { code: 'REQUEST_CANCELLED', message: 'Cancelled', retryable: false } })
+        }, { once: true })
+      })
+    })
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const runtime = createRemoteRuntime(server.url!, access.token)
+    try {
+      const controller = new AbortController()
+      const pending = runtime.invokes.messages.queryLocal({ limit: 1 }, { signal: controller.signal })
+      await started
+      controller.abort()
+      await expect(pending).resolves.toMatchObject({ ok: false, error: { code: 'REQUEST_CANCELLED' } })
+      await cancelled
+      expect(observedSignal.aborted).toBe(true)
+      await expect(runtime.invokes.messages.queryLocal({ limit: 1 })).resolves.toEqual(page)
+    }
+    finally {
+      await runtime.close()
+      await server.close()
+    }
+  })
+
   it('routes CLI search over HTTP without creating a local profile or database', async () => {
     const { app, application, resolve } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
@@ -68,7 +108,7 @@ describe('remote CLI', () => {
       await runCli(['--remote', server.url!, 'search', 'project', '--limit', '2', '--json'])
       const result = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
       expect(result).toMatchObject({ ok: true, data: page.data, next_cursor: 'next-page', meta: { source: 'remote' } })
-      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 2, useVector: false })
+      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 2, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(resolve).toHaveBeenCalledWith(access.accountId)
       expect(await readdir(home)).toEqual([])
     }
@@ -94,7 +134,7 @@ describe('remote CLI', () => {
     const valid = await app.request('/v1/remote/messages.search', { method: 'POST', headers, body: JSON.stringify({ query: 'project', accountId: 'other-account' }) })
     expect(valid.status).toBe(200)
     expect(resolve).toHaveBeenLastCalledWith(access.accountId)
-    expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 100, useVector: false })
+    expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 100, useVector: false }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
   })
 
   it('preserves application errors and supports pagination and context over real HTTP', async () => {
@@ -115,9 +155,9 @@ describe('remote CLI', () => {
       application.queryLocalMessages.mockImplementationOnce(async () => {
         throw new Error('failure')
       })
-      await expect(runtime.invokes.messages.queryLocal({ limit: 2 })).rejects.toThrow('HTTP 500')
+      await expect(runtime.invokes.messages.queryLocal({ limit: 2 })).resolves.toMatchObject({ ok: false, error: { code: 'REMOTE_UNAVAILABLE' } })
       const unauthorized = createRemoteRuntime(server.url!, 'wrong-token')
-      await expect(unauthorized.invokes.messages.queryLocal({ limit: 2 })).rejects.toThrow('HTTP 401')
+      await expect(unauthorized.invokes.messages.queryLocal({ limit: 2 })).resolves.toMatchObject({ ok: false, error: { code: 'REMOTE_AUTHENTICATION_FAILED' } })
       await unauthorized.close()
       expect(() => runtime.streams.sync({ chatIds: [], all: true, takeout: false, limit: 1 })).toThrow('read commands only')
     }

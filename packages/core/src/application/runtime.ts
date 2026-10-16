@@ -26,6 +26,7 @@ import type { Models } from '../models'
 import type { EntityService } from '../services/entity'
 import type { TakeoutService } from '../services/takeout'
 import type { CoreDialog } from '../types/dialog'
+import type { ReadOperationOptions, ReadOperationScope } from './read-operation'
 
 import { useLogger } from '@guiiai/logg'
 import { isBrowser } from '@tg-search/common'
@@ -42,6 +43,7 @@ import { createTakeoutService } from '../services/takeout'
 import { convertToCoreMessage } from '../utils/message'
 import { createTask } from '../utils/task'
 import { appResult, toAppError } from './errors'
+import { withReadOperation } from './read-operation'
 
 function takeoutFailure(error: unknown, message: string): AppError {
   const classified = toAppError(error)
@@ -51,12 +53,12 @@ function takeoutFailure(error: unknown, message: string): AppError {
 }
 
 export interface TelegramApplication {
-  listChats: (input: ListChatsInput) => Promise<AppResult<CursorPage<ChatRecord>>>
-  listRemoteMessages: (input: ListRemoteMessagesInput) => Promise<AppResult<CursorPage<MessageRecord>>>
-  queryLocalMessages: (input: QueryLocalMessagesInput) => Promise<AppResult<CursorPage<MessageRecord>>>
-  searchLocalMessages: (input: SearchMessagesInput) => Promise<AppResult<CursorPage<SearchMessageRecord>>>
-  getLocalMessageContext: (input: MessageContextInput) => Promise<AppResult<MessageContext>>
-  getLocalStats: (input: StatsInput) => Promise<AppResult<StatsResult>>
+  listChats: (input: ListChatsInput, options?: ReadOperationOptions) => Promise<AppResult<CursorPage<ChatRecord>>>
+  listRemoteMessages: (input: ListRemoteMessagesInput, options?: ReadOperationOptions) => Promise<AppResult<CursorPage<MessageRecord>>>
+  queryLocalMessages: (input: QueryLocalMessagesInput, options?: ReadOperationOptions) => Promise<AppResult<CursorPage<MessageRecord>>>
+  searchLocalMessages: (input: SearchMessagesInput, options?: ReadOperationOptions) => Promise<AppResult<CursorPage<SearchMessageRecord>>>
+  getLocalMessageContext: (input: MessageContextInput, options?: ReadOperationOptions) => Promise<AppResult<MessageContext>>
+  getLocalStats: (input: StatsInput, options?: ReadOperationOptions) => Promise<AppResult<StatsResult>>
   exportLocal?: (input: ExportInput, signal?: AbortSignal) => AsyncGenerator<ExportUpdate>
   sync: (input: SyncInput, signal?: AbortSignal) => AsyncGenerator<SyncUpdate>
 }
@@ -93,11 +95,12 @@ export function createTelegramApplicationRuntime(options: {
     models: runtimeModels,
   })
 
-  async function calculateLocalStats(input: StatsInput): Promise<StatsResult> {
+  async function calculateLocalStats(input: StatsInput, scope: ReadOperationScope): Promise<StatsResult> {
     const accumulator = createStatsAccumulator(input)
     let cursor: string | undefined
     do {
-      const page = await localMessages.query({ ...input, cursor, limit: 1000 })
+      scope.throwIfAborted()
+      const page = await scope.wait(localMessages.query({ ...input, cursor, limit: 1000 }))
       accumulator.add(page.items)
       cursor = page.nextCursor ?? undefined
     } while (cursor)
@@ -160,12 +163,31 @@ export function createTelegramApplicationRuntime(options: {
     return mapDialog({ entity } as Dialog)?.core
   }
 
-  async function fetchAndPersistDialogs(limit?: number): Promise<ChatRecord[]> {
-    const dialogs = await context.getClient().getDialogs(limit === undefined ? {} : { limit })
+  async function fetchAndPersistDialogs(limit?: number, scope?: ReadOperationScope): Promise<ChatRecord[]> {
+    const client = context.getClient()
+    const parameters = limit === undefined ? {} : { limit }
+    let dialogs: Dialog[]
+    if (scope) {
+      dialogs = []
+      // Own the public iterator so a cancelled read cannot collect more SDK pages.
+      // The current next() RPC still has the documented GramJS cancellation limit.
+      const iterator = client.iterDialogs(parameters)[Symbol.asyncIterator]()
+      while (true) {
+        scope.throwIfAborted()
+        const item = await scope.telegram(client, () => iterator.next())
+        if (item.done)
+          break
+        dialogs.push(item.value)
+      }
+    }
+    else {
+      dialogs = await client.getDialogs(parameters)
+    }
     const mapped = dialogs.flatMap((dialog) => {
       const value = mapDialog(dialog)
       return value ? [value] : []
     })
+    scope?.throwIfAborted()
     if (mapped.length > 0) {
       await runtimeModels.chatModels.recordChats(
         context.getDB(),
@@ -309,20 +331,20 @@ export function createTelegramApplicationRuntime(options: {
   }
 
   return {
-    listChats: input => appResult(async () => {
+    listChats: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, async (scope) => {
       const offset = Number.parseInt(input.cursor ?? '0', 10) || 0
-      const items = (await fetchAndPersistDialogs(offset + input.limit + 1))
+      const items = (await fetchAndPersistDialogs(offset + input.limit + 1, scope))
         .filter(chat => !input.types?.length || input.types.includes(chat.type))
       return {
         items: items.slice(offset, offset + input.limit),
         nextCursor: items.length > offset + input.limit ? String(offset + input.limit) : null,
       }
-    }),
-    listRemoteMessages: input => appResult(() => createRemoteMessagesService(context.getClient(), entityService.getInputPeer)(input)),
-    queryLocalMessages: input => appResult(() => localMessages.query(input)),
-    searchLocalMessages: input => appResult(() => localMessages.search(input)),
-    getLocalMessageContext: input => appResult(() => localMessages.context(input)),
-    getLocalStats: input => appResult(() => calculateLocalStats(input)),
+    })),
+    listRemoteMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => createRemoteMessagesService(context.getClient(), entityService.getInputPeer)(input, scope))),
+    queryLocalMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => scope.wait(localMessages.query(input)))),
+    searchLocalMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => scope.wait(localMessages.search(input)))),
+    getLocalMessageContext: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => scope.wait(localMessages.context(input)))),
+    getLocalStats: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => calculateLocalStats(input, scope))),
     exportLocal: isBrowser() ? undefined : exportLocal,
     sync,
     dispose: async () => {},
