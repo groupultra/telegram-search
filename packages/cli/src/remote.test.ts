@@ -1,7 +1,5 @@
 import type { TelegramApplication } from '@tg-search/core'
 
-import type { RemoteApplication } from '../../../apps/server/src/remote-application'
-
 import process from 'node:process'
 
 import { mkdtemp, readdir, rm } from 'node:fs/promises'
@@ -17,37 +15,24 @@ import { normalizeRawArgs, runCli } from './index'
 import { createRemoteRuntime } from './remote'
 
 const access = { token: 'test-only-token-'.repeat(4), accountId: '11111111-1111-4111-8111-111111111111' }
-const serverAccess = remoteAccessFromEnv({
-  TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-    credentials: [{
-      id: '22222222-2222-4222-8222-222222222222',
-      name: 'test-reader',
-      token: access.token,
-      accountId: access.accountId,
-      capabilities: ['chats.list', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
-      chatPermissions: [{ chatId: '*', permissions: ['read'] }],
-    }],
-  }),
-})!
 const message = { id: '42', chatId: '7', senderId: '3', senderName: 'Test', timestamp: 1700000000, text: 'project progress', forward: { isForward: false }, media: [], links: [] }
 const page = { ok: true as const, data: { items: [message], nextCursor: 'next-page', total: 37 } }
 
 function fixture() {
   const application = {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
-    listStoredChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
-    getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
+    getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [{ ...message, replyToTopId: '1', quote: { text: 'synthetic excerpt' }, groupedId: '99' }], missingIds: [] } })),
     listRemoteMessages: vi.fn(async () => page),
     queryLocalMessages: vi.fn<TelegramApplication['queryLocalMessages']>(async () => page),
     searchLocalMessages: vi.fn(async () => page),
     getLocalMessageContext: vi.fn(async () => ({ ok: true as const, data: { messages: [message], targetIndex: 0 } })),
     getLocalStats: vi.fn(async () => ({ ok: true as const, data: { total: 1, buckets: [] } })),
     async* sync() {},
-  } satisfies RemoteApplication
+  } satisfies TelegramApplication
   const resolve = vi.fn(() => application)
   const app = new H3()
   app.mount('/v1', new H3())
-  app.mount('/v1/remote', createRemoteApi(serverAccess, resolve, async () => {}))
+  app.mount('/v1/remote', createRemoteApi(access, resolve))
   return { app, application, resolve }
 }
 
@@ -58,6 +43,23 @@ afterEach(() => {
 })
 
 describe('remote CLI', () => {
+  it('reads canonical point messages through the CLI and existing authenticated HTTP route', async () => {
+    const { app, application } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    try {
+      await runCli(['messages', 'get', '--chat', '7', '--ids', '42', '--source', 'local', '--remote', server.url!, '--json'])
+      const result = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
+      expect(result).toMatchObject({ ok: true, data: { source: 'local', items: [{ id: '42', replyToTopId: '1', quote: { text: 'synthetic excerpt' }, groupedId: '99' }], missingIds: [] } })
+      expect(application.getMessages).toHaveBeenCalledWith(expect.objectContaining({ source: 'local', chatId: '7', messageIds: ['42'] }), expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    }
+    finally {
+      await server.close()
+    }
+  })
+
   it('preserves INVALID_ARGUMENT from HTTP 400', async () => {
     const { app } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
@@ -189,12 +191,9 @@ describe('remote CLI', () => {
     expect(() => normalizeRemoteUrl('https://user:password@example.com')).toThrow('credentials')
     expect(() => normalizeRemoteUrl('https://example.com?token=secret')).toThrow('query')
     expect(remoteAccessFromEnv({})).toBeUndefined()
-    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_ACCESS: '{}' })).toThrow()
-    expect(() => remoteAccessFromEnv({
-      TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-        credentials: [{ id: '22222222-2222-4222-8222-222222222222', name: 'short', token: 'short', accountId: access.accountId, capabilities: [], chatPermissions: [] }],
-      }),
-    })).toThrow('32')
+    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token })).toThrow('UUID')
+    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: 'short', TG_SEARCH_REMOTE_ACCOUNT_ID: access.accountId })).toThrow('32')
+    expect(remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token, TG_SEARCH_REMOTE_ACCOUNT_ID: 'ABCDEFAB-1234-4ABC-9ABC-ABCDEFABCDEF' })?.accountId).toBe('abcdefab-1234-4abc-9abc-abcdefabcdef')
     expect(normalizeRawArgs(['--remote', 'https://example.com', 'messages', 'query'])).toEqual(['messages', 'query', '--remote=https://example.com'])
   })
 })

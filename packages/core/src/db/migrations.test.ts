@@ -11,7 +11,8 @@ import { chatMessagesTable } from '../schemas/chat-messages'
 describe('bundled database migrations', () => {
   it('includes native message metadata and round trips it through a fresh migrated database', async () => {
     // Issue #682: schema build cache omitted root migration files, restoring stale bundles.
-    expect(JSON.stringify(migrations)).toContain('telegram_metadata')
+    const metadataMigration = migrations.find((migration: { tag: string, sql: string[] }) => migration.tag === '0037_message-relationship-facts')
+    expect(metadataMigration?.sql.join('\n')).toContain('telegram_metadata')
     const client = new PGlite({ extensions: { vector } })
     try {
       const db = drizzle(client)
