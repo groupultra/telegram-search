@@ -9,12 +9,16 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { defineInvokeHandler } from '@moeru/eventa'
 import { createServer as createIpcServer } from '@moeru/eventa/adapters/unix-socket'
 import { CoreEventType } from '@tg-search/core'
+import { daemonContracts } from '@tg-search/protocol'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { runtimeBuildInfo } from '../build-info'
 import { readProfileConfig, writeProfileConfig } from '../profile'
 import { connectDaemon } from './client'
+import { createDaemonDiagnostics } from './diagnostics'
 import { createAccountReadyWait, createDaemonApplicationProxy, persistProfileAccountId } from './host'
 
 const directories: string[] = []
@@ -95,7 +99,9 @@ describe('daemon lifecycle boundaries', () => {
       setTimeout(() => {
         void (async () => {
           try {
-            const server = await createIpcServer(socket, () => {})
+            const server = await createIpcServer(socket, (connection) => {
+              defineInvokeHandler(connection.context, daemonContracts.status, () => ({ profile: 'test', pid: process.pid, state: 'ready', startedAt: 1, build: runtimeBuildInfo(), health: createDaemonDiagnostics().snapshot() }))
+            })
             closeServer = server.close
             await writeFile(paths.daemon, `${JSON.stringify({
               pid: process.pid,

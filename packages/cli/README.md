@@ -211,3 +211,22 @@ tg-search messages read --chat 42 --source telegram --from 1700000000 --to 17000
 `replies` follows reply relationships, while `context --chat ... --message ...` returns indexed time neighbors. Reply coverage reports unresolved, unrequested and budget-stopped links separately. The node budget counts roots and missing lookups. Cross-chat references require their own explicit point read.
 
 `read` follows the source cursor until exhaustion or a page/message budget. Resume with the returned `nextCursor` and the same source, chat and window. `exhausted` only means that window's pagination ended; it never implies that reply chains or attachment contents were inspected. `cursor_stalled` reports a nonadvancing backend rather than retrying forever.
+
+### Runtime diagnostics and recovery
+
+- `profile inspect --json` reports credential presence and configuration source.
+- `profile doctor --json` adds observed local daemon health. These commands do not
+  authenticate or probe Telegram, and never print credential or endpoint values.
+- `daemon status --json` separates transport, authorization, historical catch-up,
+  and the last observed local/live read result, including transition/success times.
+  A connected socket alone does not establish read availability.
+- `daemon reload --json` reloads changed saved authentication state.
+- `daemon recover --json` checks saved credentials/session, rebuilds the runtime
+  through its owner, and returns before/after status. Recovery can interrupt active
+  requests, so it is an explicit command rather than a per-request fallback.
+
+Output metadata identifies CLI execution mode and artifact version, source path,
+SHA256 digest and Node version. Daemon reads also identify the daemon artifact,
+so a newly installed CLI can be distinguished from a long-lived daemon. An older
+incompatible daemon status contract returns `DAEMON_PROTOCOL_MISMATCH`; restart
+that process using the current CLI build.

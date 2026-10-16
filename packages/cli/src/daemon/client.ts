@@ -1,19 +1,23 @@
-import type { DaemonStatus } from '@tg-search/protocol'
+import type { AppResult, DaemonStatus } from '@tg-search/protocol'
 
 import type { ProfilePaths } from '../profile'
 import type { createCliRuntime } from '../runtime'
 
 import { defineInvokes, defineStreamInvoke } from '@moeru/eventa'
 import { connect as connectIpcSocket } from '@moeru/eventa/adapters/unix-socket'
+import { ApplicationError } from '@tg-search/core'
 import {
   chatContracts,
   daemonContracts,
+  daemonStatusSchema,
   exportContracts,
   messageContracts,
   statsContracts,
   syncContracts,
 } from '@tg-search/protocol'
+import { safeParse } from 'valibot'
 
+import { runtimeBuildInfo } from '../build-info'
 import {
   DAEMON_STARTUP_POLL_MS,
   DAEMON_STARTUP_TIMEOUT_MS,
@@ -28,11 +32,13 @@ type CliRuntime = Awaited<ReturnType<typeof createCliRuntime>>
 export type DaemonClientRuntime = Pick<CliRuntime, 'streams'> & {
   invokes: CliRuntime['invokes'] & {
     daemon: {
-      reload: (input: Record<string, never>) => Promise<DaemonStatus>
-      status: (input: Record<string, never>) => Promise<DaemonStatus>
-      stop: (input: Record<string, never>) => Promise<DaemonStatus>
+      recover: (input: Record<string, never>, options?: { signal?: AbortSignal }) => Promise<AppResult<DaemonStatus>>
+      reload: (input: Record<string, never>, options?: { signal?: AbortSignal }) => Promise<DaemonStatus>
+      status: (input: Record<string, never>, options?: { signal?: AbortSignal }) => Promise<DaemonStatus>
+      stop: (input: Record<string, never>, options?: { signal?: AbortSignal }) => Promise<DaemonStatus>
     }
   }
+  execution: { mode: 'daemon', cli: import('@tg-search/protocol').RuntimeBuild, daemon: import('@tg-search/protocol').RuntimeBuild }
   close: () => void
 }
 
@@ -41,24 +47,38 @@ export async function connectDaemon(paths: ProfilePaths): Promise<DaemonClientRu
   while (true) {
     const descriptor = await readDescriptor(paths)
     if (descriptor && await isDescriptorOwnerActive(descriptor)) {
+      let connection: Awaited<ReturnType<typeof connectIpcSocket>> | undefined
       try {
-        const connection = await connectIpcSocket(descriptor.socket)
-        return {
-          invokes: {
-            chats: defineInvokes(connection.context, chatContracts),
-            messages: defineInvokes(connection.context, messageContracts),
-            stats: defineInvokes(connection.context, statsContracts),
-            daemon: defineInvokes(connection.context, daemonContracts),
-          },
-          streams: {
-            export: defineStreamInvoke(connection.context, exportContracts.run),
-            sync: defineStreamInvoke(connection.context, syncContracts.run),
-          },
-          close: () => connection.dispose(),
-        }
+        connection = await connectIpcSocket(descriptor.socket)
       }
       catch {
         // The descriptor can become visible just before the socket accepts connections.
+      }
+      if (connection) {
+        try {
+          const daemon = defineInvokes(connection.context, daemonContracts)
+          const result = safeParse(daemonStatusSchema, await daemon.status({}, { signal: AbortSignal.timeout(5_000) }))
+          if (!result.success)
+            throw new ApplicationError({ code: 'DAEMON_PROTOCOL_MISMATCH', message: 'The running daemon uses an incompatible status contract; restart it with this CLI build', retryable: false })
+          return {
+            execution: { mode: 'daemon', cli: runtimeBuildInfo(), daemon: result.output.build },
+            invokes: {
+              chats: defineInvokes(connection.context, chatContracts),
+              messages: defineInvokes(connection.context, messageContracts),
+              stats: defineInvokes(connection.context, statsContracts),
+              daemon,
+            },
+            streams: {
+              export: defineStreamInvoke(connection.context, exportContracts.run),
+              sync: defineStreamInvoke(connection.context, syncContracts.run),
+            },
+            close: () => connection.dispose(),
+          }
+        }
+        catch (error) {
+          connection.dispose()
+          throw error
+        }
       }
     }
 

@@ -29,6 +29,7 @@ import { TelegramClient as GramJsClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
 
 import { closeOwnedTelegramClient } from './auth-support'
+import { runtimeBuildInfo } from './build-info'
 import { createGramJsStderrLogger } from './gramjs-logger'
 import { writeProgress } from './output'
 import { readProfileConfig, readSession, writeProfileConfig } from './profile'
@@ -138,6 +139,7 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
   const unregister = registerApplicationHandlers(eventContext, application)
 
   return {
+    execution: { mode: 'direct' as const, cli: runtimeBuildInfo(import.meta.url) },
     invokes: {
       chats: defineInvokes(eventContext, chatContracts),
       messages: defineInvokes(eventContext, messageContracts),

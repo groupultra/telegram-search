@@ -1,5 +1,5 @@
 import type { ReadOperationOptions } from '@tg-search/core'
-import type { RemoteMethod } from '@tg-search/protocol'
+import type { RemoteMethod, RuntimeBuild } from '@tg-search/protocol'
 import type { GenericSchema } from 'valibot'
 
 import type { createCliRuntime } from './runtime'
@@ -8,7 +8,9 @@ import { ApplicationError, toAppError, withReadOperation } from '@tg-search/core
 import { normalizeRemoteUrl, remoteMethods, remoteResultSchema } from '@tg-search/protocol'
 import { parse, safeParse } from 'valibot'
 
-export function createRemoteRuntime(endpoint: string, token: string): Awaited<ReturnType<typeof createCliRuntime>> & { remote: true } {
+import { runtimeBuildInfo } from './build-info'
+
+export function createRemoteRuntime(endpoint: string, token: string): Omit<Awaited<ReturnType<typeof createCliRuntime>>, 'execution'> & { remote: true, execution: { mode: 'remote', cli: RuntimeBuild } } {
   const url = normalizeRemoteUrl(endpoint)
   if (!token || /\s/.test(token))
     throw new ApplicationError({ code: 'REMOTE_CREDENTIALS_MISSING', message: 'Set TG_SEARCH_REMOTE_TOKEN to the server access token', retryable: false })
@@ -52,6 +54,7 @@ export function createRemoteRuntime(endpoint: string, token: string): Awaited<Re
 
   return {
     remote: true,
+    execution: { mode: 'remote', cli: runtimeBuildInfo(import.meta.url) },
     invokes: {
       chats: { list: invoke('chats.list', remoteMethods['chats.list'].output) },
       messages: {
