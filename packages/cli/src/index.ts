@@ -328,6 +328,18 @@ const chatsCommand = defineCommand({
 const messagesCommand = defineCommand({
   meta: { name: 'messages', description: 'Read remote or persisted local messages' },
   subCommands: {
+    get: defineCommand({
+      meta: { name: 'get', description: 'Get up to 100 messages by ID from an explicit source' },
+      args: { chat: { type: 'string', required: true }, ids: { type: 'string', required: true }, source: { type: 'string', required: true }, ...profileArg },
+      async run(context) {
+        const profile = profileFrom(context)
+        await withRuntime(context, context.args.source === 'telegram', async runtime => emitResult(await runtime.invokes.messages.get({
+          source: context.args.source as 'local' | 'telegram',
+          chatId: stringArg(context.args.chat),
+          messageIds: stringArg(context.args.ids).split(',').map(id => id.trim()),
+        }), outputMeta(profile, context.args.source as 'local' | 'telegram', runtime)))
+      },
+    }),
     list: defineCommand({
       meta: { name: 'list', description: 'Read remote messages without persistence' },
       args: {

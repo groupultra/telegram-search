@@ -31,6 +31,7 @@ export function convertToCoreMessageFromDB(message: DBSelectMessage): CoreMessag
       replyToId: message.reply_to_id,
       replyToName: message.reply_to_name,
     },
+    telegramMetadata: message.telegram_metadata ?? undefined,
     forward: message.forward,
 
     createdAt: message.created_at,
@@ -58,6 +59,7 @@ export function convertToDBInsertMessage(
     is_reply: message.reply.isReply,
     reply_to_name: message.reply.replyToName,
     reply_to_id: message.reply.replyToId,
+    telegram_metadata: message.telegramMetadata,
     forward: message.forward,
     media: message.media ?? [],
     links: message.links ?? [],

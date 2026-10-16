@@ -65,6 +65,7 @@ export async function retrieveVector(
       is_reply: chatMessagesTable.is_reply,
       reply_to_name: chatMessagesTable.reply_to_name,
       reply_to_id: chatMessagesTable.reply_to_id,
+      telegram_metadata: chatMessagesTable.telegram_metadata,
       forward: chatMessagesTable.forward,
       media: chatMessagesTable.media,
       links: chatMessagesTable.links,

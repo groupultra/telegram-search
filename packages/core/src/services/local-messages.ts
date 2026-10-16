@@ -2,6 +2,8 @@ import type { Logger } from '@guiiai/logg'
 import type {
   CursorPage,
   ExportMessageRecord,
+  GetMessagesInput,
+  GetMessagesResult,
   MessageContext,
   MessageContextInput,
   MessageRecord,
@@ -48,25 +50,29 @@ export function createLocalMessagesService(options: {
     }
   }
 
+  async function getByReferences(references: Array<{ chatId: string, messageId: string }>): Promise<Map<string, MessageRecord>> {
+    if (references.length === 0)
+      return new Map()
+    const rows = (await models.chatMessageModels.fetchMessagesByChatAndPlatformIds(db, getAccountId(), references))
+      .expect('Failed to get local messages')
+    return new Map(rows.map(convertToCoreMessageFromDB).map(coreMessageToRecord).map(message => [`${message.chatId}:${message.id}`, message]))
+  }
+
+  async function get(input: GetMessagesInput): Promise<GetMessagesResult> {
+    const ids = [...new Set(input.messageIds)]
+    const records = await getByReferences(ids.map(messageId => ({ chatId: input.chatId, messageId })))
+    return {
+      source: 'local',
+      items: ids.flatMap(id => records.has(`${input.chatId}:${id}`) ? [records.get(`${input.chatId}:${id}`)!] : []),
+      missingIds: ids.filter(id => !records.has(`${input.chatId}:${id}`)),
+    }
+  }
+
   async function queryForExport(input: QueryLocalMessagesInput): Promise<CursorPage<ExportMessageRecord>> {
     const page = await query(input)
-    const references = page.items.flatMap(message => message.replyToId
-      ? [{ chatId: message.chatId, messageId: message.replyToId }]
-      : [])
-    if (references.length === 0)
-      return page
-
-    const replyRows = (await models.chatMessageModels.fetchMessagesByChatAndPlatformIds(
-      db,
-      getAccountId(),
-      references,
-    )).expect('Failed to resolve exported reply context')
-    const replyByReference = new Map(
-      replyRows
-        .map(convertToCoreMessageFromDB)
-        .map(coreMessageToRecord)
-        .map(message => [`${message.chatId}:${message.id}`, message] as const),
-    )
+    const replyByReference = await getByReferences(page.items.flatMap(message => message.replyToId
+      ? [{ chatId: message.replyToChatId ?? message.chatId, messageId: message.replyToId }]
+      : []))
 
     return {
       ...page,
@@ -75,7 +81,7 @@ export function createLocalMessagesService(options: {
           return message
         return {
           ...message,
-          replyTo: replyByReference.get(`${message.chatId}:${message.replyToId}`) ?? null,
+          replyTo: replyByReference.get(`${message.replyToChatId ?? message.chatId}:${message.replyToId}`) ?? null,
         }
       }),
     }
@@ -121,5 +127,5 @@ export function createLocalMessagesService(options: {
     }
   }
 
-  return { context, query, queryForExport, search }
+  return { context, get, query, queryForExport, search }
 }

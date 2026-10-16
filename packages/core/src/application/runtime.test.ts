@@ -90,6 +90,24 @@ function createHarness(messages: Api.Message[] = []) {
 }
 
 describe('telegram application runtime remote boundaries', () => {
+  it('does not start a point-read RPC after cancellation while resolving its peer', async () => {
+    // Point reads must check cancellation between peer resolution and fetching message IDs.
+    const harness = createHarness()
+    let releasePeer!: (peer: Api.InputPeerChannel) => void
+    harness.getInputPeer.mockImplementationOnce(() => new Promise((resolve) => {
+      releasePeer = resolve
+    }))
+    const runtime = createTelegramApplicationRuntime(harness)
+    const controller = new AbortController()
+    const pending = runtime.getMessages({ source: 'telegram', chatId: '42', messageIds: ['1'] }, { signal: controller.signal })
+    await vi.waitFor(() => expect(harness.getInputPeer).toHaveBeenCalledOnce())
+    controller.abort()
+    expect(await pending).toMatchObject({ ok: false, error: { code: 'REQUEST_CANCELLED' } })
+    releasePeer(harness.inputPeer)
+    await new Promise<void>(resolve => setImmediate(resolve))
+    expect(harness.getMessages).not.toHaveBeenCalled()
+  })
+
   it('lists dialogs without the epoch offset and persists their access hashes', async () => {
     const harness = createHarness()
     const runtime = createTelegramApplicationRuntime(harness)

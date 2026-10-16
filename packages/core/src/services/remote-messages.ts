@@ -1,4 +1,4 @@
-import type { CursorPage, ListRemoteMessagesInput, MessageRecord } from '@tg-search/protocol'
+import type { CursorPage, GetMessagesInput, GetMessagesResult, ListRemoteMessagesInput, MessageRecord } from '@tg-search/protocol'
 import type { TelegramClient } from 'telegram'
 
 import type { ReadOperationScope } from '../application/read-operation'
@@ -21,12 +21,17 @@ export function coreMessageToRecord(message: CoreMessage): MessageRecord {
     senderName: message.fromName,
     timestamp: message.platformTimestamp,
     text: message.content,
-    replyToId: message.reply.replyToId,
+    replyToId: message.reply.replyToId || undefined,
+    ...message.telegramMetadata,
     forward: {
       isForward: message.forward.isForward,
       fromChatId: message.forward.forwardFromChatId,
       fromChatName: message.forward.forwardFromChatName,
       fromMessageId: message.forward.forwardFromMessageId,
+      fromSenderId: message.forward.fromSenderId,
+      fromName: message.forward.fromName,
+      date: message.forward.date,
+      postAuthor: message.forward.postAuthor,
     },
     media: (message.media ?? []).map(media => ({
       type: media.type,
@@ -34,7 +39,7 @@ export function coreMessageToRecord(message: CoreMessage): MessageRecord {
       telegramReference: media.platformId,
     })),
     links: message.links ?? [],
-    editedAt: message.updatedAt,
+    editedAt: message.telegramMetadata?.editedAt,
     deletedAt: message.deletedAt,
   }
 }
@@ -97,5 +102,28 @@ export function createRemoteMessagesService(
     }
 
     return { items, nextCursor: String(offsetId), total }
+  }
+}
+
+/** Explicit bounded point reads; does not persist messages or use Takeout. */
+export function createGetRemoteMessagesService(
+  client: TelegramClient,
+  resolveInputPeer: (chatId: string) => Promise<Api.TypeInputPeer> = chatId => client.getInputEntity(chatId),
+  scope?: ReadOperationScope,
+) {
+  return async (input: GetMessagesInput): Promise<GetMessagesResult> => {
+    const ids = [...new Set(input.messageIds)]
+    scope?.throwIfAborted()
+    const peer = await (scope ? scope.telegram(client, () => resolveInputPeer(input.chatId)) : resolveInputPeer(input.chatId))
+    const fetchIds = () => client.getMessages(peer, { ids: ids.map(Number) })
+    const messages = await (scope ? scope.telegram(client, fetchIds) : fetchIds())
+    const byId = new Map(messages.flatMap((message) => {
+      if (!(message instanceof Api.Message))
+        return []
+      const converted = convertToCoreMessage(message).orUndefined()
+      // Do not return a peer different from the explicit request.
+      return converted?.chatId === input.chatId ? [[String(message.id), coreMessageToRecord(converted)] as const] : []
+    }))
+    return { source: 'telegram', items: ids.flatMap(id => byId.has(id) ? [byId.get(id)!] : []), missingIds: ids.filter(id => !byId.has(id)) }
   }
 }

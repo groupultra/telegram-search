@@ -104,6 +104,10 @@ async function recordMessages(
         // Content: always update with new content
         content: sql`excluded.content`,
         forward: sql`excluded.forward`,
+        telegram_metadata: sql`excluded.telegram_metadata`,
+        is_reply: sql`excluded.is_reply`,
+        reply_to_id: sql`excluded.reply_to_id`,
+        reply_to_name: sql`excluded.reply_to_name`,
         media: sql`excluded.media`,
         links: sql`excluded.links`,
 
@@ -438,6 +442,7 @@ async function fetchMessagesByChatAndPlatformIds(
       .where(and(
         eq(chatMessagesTable.platform, 'telegram'),
         referenceCondition,
+        accountChatCondition(accountId),
         notDeletedCondition(),
         sql`(
           ${joinedChatsTable.chat_type} != 'user'

@@ -24,6 +24,7 @@ function message(overrides: Partial<DBSelectMessage> = {}): DBSelectMessage {
     is_reply: overrides.is_reply ?? false,
     reply_to_name: overrides.reply_to_name ?? '',
     reply_to_id: overrides.reply_to_id ?? '',
+    telegram_metadata: overrides.telegram_metadata ?? null,
     forward: overrides.forward ?? { isForward: false },
     media: overrides.media ?? [],
     links: overrides.links ?? [],

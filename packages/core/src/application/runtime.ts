@@ -6,6 +6,8 @@ import type {
   CursorPage,
   ExportInput,
   ExportUpdate,
+  GetMessagesInput,
+  GetMessagesResult,
   ListChatsInput,
   ListRemoteMessagesInput,
   MessageContext,
@@ -37,7 +39,7 @@ import { createJiebaResolver } from '../message-resolvers/jieba-resolver'
 import { models as defaultModels } from '../models'
 import { createEntityService } from '../services/entity'
 import { createLocalMessagesService } from '../services/local-messages'
-import { createRemoteMessagesService } from '../services/remote-messages'
+import { createGetRemoteMessagesService, createRemoteMessagesService } from '../services/remote-messages'
 import { createStatsAccumulator } from '../services/stats'
 import { createTakeoutService } from '../services/takeout'
 import { convertToCoreMessage } from '../utils/message'
@@ -53,6 +55,7 @@ function takeoutFailure(error: unknown, message: string): AppError {
 }
 
 export interface TelegramApplication {
+  getMessages: (input: GetMessagesInput, options?: ReadOperationOptions) => Promise<AppResult<GetMessagesResult>>
   listChats: (input: ListChatsInput, options?: ReadOperationOptions) => Promise<AppResult<CursorPage<ChatRecord>>>
   listRemoteMessages: (input: ListRemoteMessagesInput, options?: ReadOperationOptions) => Promise<AppResult<CursorPage<MessageRecord>>>
   queryLocalMessages: (input: QueryLocalMessagesInput, options?: ReadOperationOptions) => Promise<AppResult<CursorPage<MessageRecord>>>
@@ -340,6 +343,9 @@ export function createTelegramApplicationRuntime(options: {
         nextCursor: items.length > offset + input.limit ? String(offset + input.limit) : null,
       }
     })),
+    getMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => input.source === 'local'
+      ? scope.wait(localMessages.get(input))
+      : createGetRemoteMessagesService(context.getClient(), entityService.getInputPeer, scope)(input))),
     listRemoteMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => createRemoteMessagesService(context.getClient(), entityService.getInputPeer)(input, scope))),
     queryLocalMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => scope.wait(localMessages.query(input)))),
     searchLocalMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => scope.wait(localMessages.search(input)))),
