@@ -97,12 +97,12 @@ function daemonStatus(profile: string, startedAt: number, state: DaemonStatus['s
 
 export function createDaemonApplicationProxy(getApplication: () => TelegramApplicationRuntime): TelegramApplication {
   return {
-    listChats: input => getApplication().listChats(input),
-    listRemoteMessages: input => getApplication().listRemoteMessages(input),
-    queryLocalMessages: input => getApplication().queryLocalMessages(input),
-    searchLocalMessages: input => getApplication().searchLocalMessages(input),
-    getLocalMessageContext: input => getApplication().getLocalMessageContext(input),
-    getLocalStats: input => getApplication().getLocalStats(input),
+    listChats: (input, options) => getApplication().listChats(input, options),
+    listRemoteMessages: (input, options) => getApplication().listRemoteMessages(input, options),
+    queryLocalMessages: (input, options) => getApplication().queryLocalMessages(input, options),
+    searchLocalMessages: (input, options) => getApplication().searchLocalMessages(input, options),
+    getLocalMessageContext: (input, options) => getApplication().getLocalMessageContext(input, options),
+    getLocalStats: (input, options) => getApplication().getLocalStats(input, options),
     exportLocal: (input, signal) => getApplication().exportLocal!(input, signal),
     sync: (input, signal) => getApplication().sync(input, signal),
   }

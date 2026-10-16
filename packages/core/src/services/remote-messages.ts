@@ -1,6 +1,7 @@
 import type { CursorPage, ListRemoteMessagesInput, MessageRecord } from '@tg-search/protocol'
 import type { TelegramClient } from 'telegram'
 
+import type { ReadOperationScope } from '../application/read-operation'
 import type { CoreMessage } from '../types/message'
 
 import { Api } from 'telegram'
@@ -49,8 +50,9 @@ export function createRemoteMessagesService(
   client: TelegramClient,
   resolveInputPeer: (chatId: string) => Promise<Api.TypeInputPeer> = chatId => client.getInputEntity(chatId),
 ) {
-  return async function listRemoteMessages(input: ListRemoteMessagesInput): Promise<CursorPage<MessageRecord>> {
-    const peer = await resolveInputPeer(input.chatId)
+  return async function listRemoteMessages(input: ListRemoteMessagesInput, scope?: ReadOperationScope): Promise<CursorPage<MessageRecord>> {
+    scope?.throwIfAborted()
+    const peer = await (scope ? scope.telegram(client, () => resolveInputPeer(input.chatId)) : resolveInputPeer(input.chatId))
     const items: MessageRecord[] = []
     const maxChunks = Math.ceil(input.limit / CHUNK_SIZE) + EXTRA_CHUNKS
     let offsetId = input.cursor === undefined ? 0 : Number(input.cursor)
@@ -59,7 +61,8 @@ export function createRemoteMessagesService(
     for (let chunkCount = 0; chunkCount < maxChunks; chunkCount++) {
       // One request per call: GramJS reapplies addOffset to every chunk it loads itself,
       // so multi-chunk reads are driven here with the message ID as the only offset.
-      const chunk = await client.getMessages(peer, {
+      scope?.throwIfAborted()
+      const request = () => client.getMessages(peer, {
         limit: Math.min(CHUNK_SIZE, input.limit - items.length),
         offsetId,
         // GramJS treats offsetDate as exclusive; +1 preserves the CLI's inclusive --to contract.
@@ -68,6 +71,7 @@ export function createRemoteMessagesService(
         fromUser: input.fromUserId,
         minId: input.minMessageId,
       })
+      const chunk = await (scope ? scope.telegram(client, request) : request())
       total ??= chunk.total
 
       // Telegram may return short chunks before the end, so only an empty one proves exhaustion.

@@ -5,7 +5,10 @@ import type { AppResult } from './errors'
 import { defineInvokeEventa } from '@moeru/eventa'
 import { array, number, object, optional, picklist, string } from 'valibot'
 
+import { readOperationFields } from './operation'
+
 export const statsInputSchema = object({
+  ...readOperationFields,
   groupBy: optional(picklist(['month', 'chat', 'sender']), 'month'),
   timeZone: optional(string(), 'UTC'),
   chatIds: optional(array(string())),

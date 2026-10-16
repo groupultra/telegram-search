@@ -6,9 +6,12 @@ import type { CursorPage } from './pagination'
 import { defineInvokeEventa } from '@moeru/eventa'
 import { array, maxValue, minValue, number, object, optional, picklist, pipe, regex, string } from 'valibot'
 
+import { readOperationFields } from './operation'
+
 export const chatTypeSchema = picklist(['user', 'bot', 'channel', 'group', 'supergroup'])
 
 export const listChatsInputSchema = object({
+  ...readOperationFields,
   cursor: optional(pipe(string(), regex(/^[1-9]\d{0,15}$/))),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
   types: optional(array(chatTypeSchema)),

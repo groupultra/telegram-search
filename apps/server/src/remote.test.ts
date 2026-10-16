@@ -97,8 +97,8 @@ describe('remote access control', () => {
 
     expect(query.status).toBe(200)
     expect(stats.status).toBe(200)
-    expect(application.queryLocalMessages).toHaveBeenCalledWith({ chatIds: ['7'], limit: 20 })
-    expect(application.getLocalStats).toHaveBeenCalledWith({ chatIds: ['7'], groupBy: 'month', timeZone: 'UTC' })
+    expect(application.queryLocalMessages).toHaveBeenCalledWith({ chatIds: ['7'], limit: 20 }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(application.getLocalStats).toHaveBeenCalledWith({ chatIds: ['7'], groupBy: 'month', timeZone: 'UTC' }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
   })
 
   it('passes selected chat scope into chat listing and blocks leaked output', async () => {
@@ -109,7 +109,7 @@ describe('remote access control', () => {
       body: '{}',
     })
     expect(response.status).toBe(200)
-    expect(allowed.application.listStoredChats).toHaveBeenCalledWith({ limit: 100 }, ['7'])
+    expect(allowed.application.listStoredChats).toHaveBeenCalledWith({ limit: 100 }, ['7'], expect.objectContaining({ signal: expect.any(AbortSignal) }))
 
     const leaked = fixture({ messageChatId: '8' })
     const leakedResponse = await leaked.app.request('/v1/remote/messages.query', {

@@ -32,6 +32,27 @@ describe('application invoke handlers', () => {
     })
   })
 
+  it('forwards per-invoke cancellation and the original deadline to the application', async () => {
+    const context = createContext()
+    let appSignal!: AbortSignal
+    const application = fakeApplication({ listChats: async (_input, options) => {
+      appSignal = options!.signal!
+      expect(options!.deadlineAt).toBe(123456789)
+      return new Promise((resolve) => {
+        appSignal.addEventListener('abort', () => resolve({ ok: false, error: { code: 'REQUEST_CANCELLED', message: 'Cancelled', retryable: false } }), { once: true })
+      })
+    } })
+    registerApplicationHandlers(context, application)
+    const controller = new AbortController()
+    const pending = defineInvokes(context, chatContracts).list({ limit: 1, operation: { deadlineAt: 123456789 } }, { signal: controller.signal })
+    await new Promise<void>(resolve => queueMicrotask(resolve))
+    const rejected = expect(pending).rejects.toThrow()
+    controller.abort()
+    await rejected
+    expect(appSignal.aborted).toBe(true)
+    expect(context.signal.aborted).toBe(false)
+  })
+
   it('returns INVALID_ARGUMENT for an invalid runtime payload', async () => {
     const context = createContext()
     const application = fakeApplication()
