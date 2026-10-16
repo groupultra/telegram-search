@@ -202,7 +202,7 @@ const remoteHandlers = {
   'messages.get': defineRemoteHandler({
     input: remoteMethods['messages.get'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input) => application.getMessages(input),
+    invoke: (application, _credential, input, options) => application.getMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.list': defineRemoteHandler({

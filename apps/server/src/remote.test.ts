@@ -64,7 +64,7 @@ describe('remote access control', () => {
     expect((await request('8')).status).toBe(403)
     expect(application.getMessages).not.toHaveBeenCalled()
     expect((await request('7')).status).toBe(200)
-    expect(application.getMessages).toHaveBeenCalledExactlyOnceWith({ source: 'local', chatId: '7', messageIds: ['42'] })
+    expect(application.getMessages).toHaveBeenCalledExactlyOnceWith({ source: 'local', chatId: '7', messageIds: ['42'] }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
   })
 
   it('requires both a feature capability and chat read permission', async () => {
