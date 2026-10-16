@@ -164,8 +164,25 @@ export function createTelegramApplicationRuntime(options: {
   }
 
   async function fetchAndPersistDialogs(limit?: number, scope?: ReadOperationScope): Promise<ChatRecord[]> {
-    const request = () => context.getClient().getDialogs(limit === undefined ? {} : { limit })
-    const dialogs = await (scope ? scope.telegram(context.getClient(), request) : request())
+    const client = context.getClient()
+    const parameters = limit === undefined ? {} : { limit }
+    let dialogs: Dialog[]
+    if (scope) {
+      dialogs = []
+      // Own the public iterator so a cancelled read cannot collect more SDK pages.
+      // The current next() RPC still has the documented GramJS cancellation limit.
+      const iterator = client.iterDialogs(parameters)[Symbol.asyncIterator]()
+      while (true) {
+        scope.throwIfAborted()
+        const item = await scope.telegram(client, () => iterator.next())
+        if (item.done)
+          break
+        dialogs.push(item.value)
+      }
+    }
+    else {
+      dialogs = await client.getDialogs(parameters)
+    }
     const mapped = dialogs.flatMap((dialog) => {
       const value = mapDialog(dialog)
       return value ? [value] : []
