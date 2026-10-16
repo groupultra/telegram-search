@@ -31,8 +31,8 @@ import {
   writeSession,
 } from './profile'
 import { inspectProfile } from './profile-inspection'
-import { bindReadOperations } from './read-runtime'
 import { initialOutputFormat, readOutputArgs, readOutputOptions } from './read-output'
+import { bindReadOperations } from './read-runtime'
 import { createRemoteRuntime } from './remote'
 import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'

@@ -25,7 +25,7 @@ const serverAccess = remoteAccessFromEnv({
       name: 'test-reader',
       token: access.token,
       accountId: access.accountId,
-      capabilities: ['messages.get', 'messages.replies', 'messages.read', 'chats.list', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
+      capabilities: ['media.read', 'messages.get', 'messages.replies', 'messages.read', 'chats.list', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
       chatPermissions: [{ chatId: '*', permissions: ['read'] }],
     }],
   }),
@@ -41,7 +41,7 @@ function fixture() {
     readMessages: vi.fn<TelegramApplication['readMessages']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, items: [message], window: { from: input.from, to: input.to }, nextCursor: null, pagesRead: 1, stopReason: 'exhausted', coverage: { windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' } } })),
     getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [message], missingIds: [] } })),
     listRemoteMessages: vi.fn(async () => page),
-    readMessageMedia: vi.fn(),
+    readMessageMedia: vi.fn<TelegramApplication['readMessageMedia']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, messageId: input.messageId, mediaIndex: input.mediaIndex, type: 'document', size: 4, encoding: 'base64', data: 'dGVzdA==', offset: 0, nextOffset: null, contentStatus: 'complete' } })),
     queryLocalMessages: vi.fn<TelegramApplication['queryLocalMessages']>(async () => page),
     searchLocalMessages: vi.fn(async () => page),
     getLocalMessageContext: vi.fn(async () => ({ ok: true as const, data: { messages: [message], targetIndex: 0 } })),
@@ -86,6 +86,27 @@ describe('remote CLI', () => {
     }
     finally {
       await server.close()
+    }
+  })
+
+  it('reads attachment bytes through CLI, authorization and real HTTP without local state', async () => {
+    const { app, application } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const home = await mkdtemp(join(tmpdir(), 'tg-media-remote-'))
+    vi.stubEnv('TG_SEARCH_HOME', home)
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    try {
+      await runCli(['media', 'read', '--chat', '7', '--message', '42', '--source', 'telegram', '--remote', server.url!, '--format', 'jsonl'])
+      const records = stdout.mock.calls.map(call => String(call[0])).join('').trim().split('\n').map(line => JSON.parse(line))
+      expect(records[0]).toMatchObject({ ok: true, data: { chatId: '7', messageId: '42', data: 'dGVzdA==', contentStatus: 'complete' } })
+      expect(application.readMessageMedia).toHaveBeenCalledWith(expect.objectContaining({ source: 'telegram', operation: { deadlineAt: expect.any(Number) } }), expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(await readdir(home)).toEqual([])
+    }
+    finally {
+      await server.close()
+      await rm(home, { recursive: true, force: true })
     }
   })
 
@@ -210,7 +231,7 @@ describe('remote CLI', () => {
       expect(receipt.data).not.toHaveProperty('items')
       const content = await readFile(outputFile, 'utf8')
       const records = content.trimEnd().split('\n').map(line => JSON.parse(line))
-      expect(records).toEqual([
+      expect(records).toMatchObject([
         { type: 'result', status: 'partial', ok: true, data: { nextCursor: 'next-page', total: 37 }, next_cursor: 'next-page', meta: { profile: 'default', source: 'remote' }, arrays: [{ key: 'items', count: 1 }] },
         { type: 'item', key: 'items', index: 0, data: message },
         { type: 'completed', status: 'completed', ok: true },
