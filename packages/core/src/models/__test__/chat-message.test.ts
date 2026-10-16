@@ -66,7 +66,7 @@ describe('models/chat-message', () => {
     ])
     await chatMessageModels.recordMessages(db, owner.id, [buildCoreMessage({ chatId: visible.chat_id, platformTimestamp: 10 })])
     await chatMessageModels.recordMessages(db, other.id, [buildCoreMessage({ chatId: hidden.chat_id, platformTimestamp: 20 })])
-    return { db, owner, visible, hidden }
+    return { db, owner, other, visible, hidden }
   }
 
   it('excludes another account group from time-range queries, including explicit chat filters', async () => {
@@ -84,6 +84,20 @@ describe('models/chat-message', () => {
       { chatId: hidden.chat_id, messageId: '1' },
     ])).unwrap()
     expect(result.map(message => message.in_chat_id)).toEqual([visible.chat_id])
+  })
+
+  it('denies another account group point read even though the stored message has no owner', async () => {
+    // Shared group rows have NULL owner_account_id: the account/chat membership must gate this read.
+    const { db, owner, other, hidden } = await accountIsolationFixture()
+    const references = [{ chatId: hidden.chat_id, messageId: '1' }]
+
+    const memberRows = (await chatMessageModels.fetchMessagesByChatAndPlatformIds(db, other.id, references)).unwrap()
+    expect(memberRows.map(row => ({ chatId: row.in_chat_id, id: row.platform_message_id, owner: row.owner_account_id }))).toEqual([
+      { chatId: hidden.chat_id, id: '1', owner: null },
+    ])
+
+    const nonMemberRows = (await chatMessageModels.fetchMessagesByChatAndPlatformIds(db, owner.id, references)).unwrap()
+    expect(nonMemberRows).toEqual([])
   })
 
   it('denies guessed message context in another account group', async () => {
