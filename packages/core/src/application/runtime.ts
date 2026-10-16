@@ -345,7 +345,7 @@ export function createTelegramApplicationRuntime(options: {
     })),
     getMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => input.source === 'local'
       ? scope.wait(localMessages.get(input))
-      : scope.telegram(context.getClient(), () => createGetRemoteMessagesService(context.getClient(), entityService.getInputPeer)(input)))),
+      : createGetRemoteMessagesService(context.getClient(), entityService.getInputPeer, scope)(input))),
     listRemoteMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => createRemoteMessagesService(context.getClient(), entityService.getInputPeer)(input, scope))),
     queryLocalMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => scope.wait(localMessages.query(input)))),
     searchLocalMessages: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, scope => scope.wait(localMessages.search(input)))),

@@ -28,7 +28,7 @@ describe('application invoke handlers', () => {
     registerApplicationHandlers(context, application)
     const invokes = defineInvokes(context, messageContracts)
     await invokes.get({ source: 'local', chatId: '42', messageIds: ['1'] })
-    expect(application.getMessages).toHaveBeenCalledExactlyOnceWith({ source: 'local', chatId: '42', messageIds: ['1'] })
+    expect(application.getMessages).toHaveBeenCalledExactlyOnceWith({ source: 'local', chatId: '42', messageIds: ['1'] }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
     expect(await invokes.get({ source: 'local', chatId: '42', messageIds: [] })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
     expect(application.getMessages).toHaveBeenCalledTimes(1)
   })

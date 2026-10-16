@@ -109,11 +109,14 @@ export function createRemoteMessagesService(
 export function createGetRemoteMessagesService(
   client: TelegramClient,
   resolveInputPeer: (chatId: string) => Promise<Api.TypeInputPeer> = chatId => client.getInputEntity(chatId),
+  scope?: ReadOperationScope,
 ) {
   return async (input: GetMessagesInput): Promise<GetMessagesResult> => {
     const ids = [...new Set(input.messageIds)]
-    const peer = await resolveInputPeer(input.chatId)
-    const messages = await client.getMessages(peer, { ids: ids.map(Number) })
+    scope?.throwIfAborted()
+    const peer = await (scope ? scope.telegram(client, () => resolveInputPeer(input.chatId)) : resolveInputPeer(input.chatId))
+    const fetchIds = () => client.getMessages(peer, { ids: ids.map(Number) })
+    const messages = await (scope ? scope.telegram(client, fetchIds) : fetchIds())
     const byId = new Map(messages.flatMap((message) => {
       if (!(message instanceof Api.Message))
         return []
