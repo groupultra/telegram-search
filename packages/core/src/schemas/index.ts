@@ -1,6 +1,5 @@
 export * from './chat-messages'
 export * from './joined-chats'
-export * from './remote-audit-events'
 export * from './sticker-packs'
 export * from './stickers'
 export * from './users'
