@@ -11,7 +11,7 @@ const READ_COMMANDS = new Set(['chats', 'messages', 'media', 'search', 'context'
 const OUTPUT_FORMATS: readonly OutputFormat[] = ['text', 'json', 'compact', 'jsonl']
 
 function isOutputFormat(value: string | undefined): value is OutputFormat {
-  return OUTPUT_FORMATS.includes(value)
+  return value !== undefined && OUTPUT_FORMATS.includes(value as OutputFormat)
 }
 
 /** Choose the error channel before strict option validation can fail. */

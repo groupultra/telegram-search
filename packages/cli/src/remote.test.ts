@@ -197,16 +197,16 @@ describe('remote CLI', () => {
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
       await runCli(['--remote', server.url!, '--json', 'search', '--', literal])
-      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: literal, limit: 100, useVector: false })
+      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: literal, limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data, meta: { source: 'remote' } })
       expect(await readdir(home)).toEqual([])
       stdout.mockClear()
       await runCli(['--remote', server.url!, '--json', 'search', '--', '--help'])
-      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--help', limit: 100, useVector: false })
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--help', limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
       stdout.mockClear()
       await runCli(['--remote', server.url!, '--json', 'search', '--', '--json=false'])
-      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--json=false', limit: 100, useVector: false })
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--json=false', limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
     }
     finally {
