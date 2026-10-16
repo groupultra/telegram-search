@@ -49,6 +49,20 @@ describe('cLI command boundary', () => {
     ])
   })
 
+  it('preserves literal operands after -- and keeps global options before the terminator', () => {
+    // Issue #682: raw option normalization used to reinterpret search text as execution controls.
+    expect(normalizeRawArgs(['--profile', 'work', '--remote', 'https://example.invalid', '--json', 'search', '--', '--json=false', '--profile=literal', '--output-file=result.jsonl'])).toEqual([
+      'search',
+      '--profile=work',
+      '--remote=https://example.invalid',
+      '--json',
+      '--',
+      '--json=false',
+      '--profile=literal',
+      '--output-file=result.jsonl',
+    ])
+  })
+
   it('normalizes explicit JSON boolean values at the leaf command', () => {
     expect(normalizeRawArgs(['--json=true', 'profile', 'list'])).toEqual([
       'profile',

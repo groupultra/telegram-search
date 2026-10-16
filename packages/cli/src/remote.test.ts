@@ -2,7 +2,8 @@ import type { TelegramApplication } from '@tg-search/core'
 
 import process from 'node:process'
 
-import { mkdtemp, readdir, rm } from 'node:fs/promises'
+import { Buffer } from 'node:buffer'
+import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -21,11 +22,11 @@ const page = { ok: true as const, data: { items: [message], nextCursor: 'next-pa
 function fixture() {
   const application = {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
-    getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [{ ...message, replyToTopId: '1', quote: { text: 'synthetic excerpt' }, groupedId: '99' }], missingIds: [] } })),
     getReplyContext: vi.fn<TelegramApplication['getReplyContext']>(async input => ({ ok: true, data: { source: input.source, items: [message], roots: [{ chatId: input.chatId, messageId: '42', status: 'resolved' }], links: [], budget: { maxDepth: input.maxDepth, maxNodes: input.maxNodes }, coverage: { complete: true, resolvedReplies: 0, missingReplies: 0, notRequestedReplies: 0, depthStopped: 0, nodeStopped: 0, cycles: 0 } } })),
     readMessages: vi.fn<TelegramApplication['readMessages']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, items: [message], window: { from: input.from, to: input.to }, nextCursor: null, pagesRead: 1, stopReason: 'exhausted', coverage: { windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' } } })),
+    getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [message], missingIds: [] } })),
     listRemoteMessages: vi.fn(async () => page),
-    readMessageMedia: vi.fn(),
+    readMessageMedia: vi.fn<TelegramApplication['readMessageMedia']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, messageId: input.messageId, mediaIndex: input.mediaIndex, type: 'document', size: 4, encoding: 'base64', data: 'dGVzdA==', offset: 0, nextOffset: null, contentStatus: 'complete' } })),
     queryLocalMessages: vi.fn<TelegramApplication['queryLocalMessages']>(async () => page),
     searchLocalMessages: vi.fn(async () => page),
     getLocalMessageContext: vi.fn(async () => ({ ok: true as const, data: { messages: [message], targetIndex: 0 } })),
@@ -46,17 +47,17 @@ afterEach(() => {
 })
 
 describe('remote CLI', () => {
-  it('runs reply context and window reads through the CLI and existing authenticated HTTP route', async () => {
+  it('runs explicit get, replies and window reads through the CLI and real HTTP', async () => {
     const { app, application } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
     await server.ready()
     vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
-      for (const command of ['replies', 'read']) {
+      for (const command of ['get', 'replies', 'read']) {
         stdout.mockClear()
         const args = ['messages', command, '--chat', '7', '--source', 'telegram', '--remote', server.url!, '--json']
-        if (command === 'replies')
+        if (command !== 'read')
           args.push('--ids', '42')
         await runCli(args)
         const result = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
@@ -64,6 +65,7 @@ describe('remote CLI', () => {
         if (command === 'read')
           expect(result.data.coverage).toEqual({ windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' })
       }
+      expect(application.getMessages).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', messageIds: ['42'], operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(application.getReplyContext).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', messageIds: ['42'], maxDepth: 1, maxNodes: 100, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(application.readMessages).toHaveBeenCalledWith({ source: 'telegram', chatId: '7', pageSize: 100, maxPages: 10, maxMessages: 1000, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
     }
@@ -72,20 +74,24 @@ describe('remote CLI', () => {
     }
   })
 
-  it('reads canonical point messages through the CLI and existing authenticated HTTP route', async () => {
+  it('reads attachment bytes through CLI, authorization and real HTTP without local state', async () => {
     const { app, application } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
     await server.ready()
+    const home = await mkdtemp(join(tmpdir(), 'tg-media-remote-'))
+    vi.stubEnv('TG_SEARCH_HOME', home)
     vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
-      await runCli(['messages', 'get', '--chat', '7', '--ids', '42', '--source', 'local', '--remote', server.url!, '--json'])
-      const result = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
-      expect(result).toMatchObject({ ok: true, data: { source: 'local', items: [{ id: '42', replyToTopId: '1', quote: { text: 'synthetic excerpt' }, groupedId: '99' }], missingIds: [] } })
-      expect(application.getMessages).toHaveBeenCalledWith(expect.objectContaining({ source: 'local', chatId: '7', messageIds: ['42'] }), expect.objectContaining({ signal: expect.any(AbortSignal) }))
+      await runCli(['media', 'read', '--chat', '7', '--message', '42', '--source', 'telegram', '--remote', server.url!, '--format', 'jsonl'])
+      const records = stdout.mock.calls.map(call => String(call[0])).join('').trim().split('\n').map(line => JSON.parse(line))
+      expect(records[0]).toMatchObject({ ok: true, data: { chatId: '7', messageId: '42', data: 'dGVzdA==', contentStatus: 'complete' } })
+      expect(application.readMessageMedia).toHaveBeenCalledWith(expect.objectContaining({ source: 'telegram', operation: { deadlineAt: expect.any(Number) } }), expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(await readdir(home)).toEqual([])
     }
     finally {
       await server.close()
+      await rm(home, { recursive: true, force: true })
     }
   })
 
@@ -158,6 +164,93 @@ describe('remote CLI', () => {
       expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 2, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(resolve).toHaveBeenCalledWith(access.accountId)
       expect(await readdir(home)).toEqual([])
+    }
+    finally {
+      await server.close()
+      await rm(home, { recursive: true, force: true })
+    }
+  })
+
+  it('treats output flags after -- as literal search text and preserves remote routing', async () => {
+    const { app, application } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const home = await mkdtemp(join(tmpdir(), 'tg-output-literal-'))
+    const literal = `--output-file=${join(home, 'unexpected.jsonl')}`
+    vi.stubEnv('TG_SEARCH_HOME', home)
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    try {
+      await runCli(['--remote', server.url!, '--json', 'search', '--', literal])
+      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: literal, limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data, meta: { source: 'remote' } })
+      expect(await readdir(home)).toEqual([])
+      stdout.mockClear()
+      await runCli(['--remote', server.url!, '--json', 'search', '--', '--help'])
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--help', limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
+      stdout.mockClear()
+      await runCli(['--remote', server.url!, '--json', 'search', '--', '--json=false'])
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--json=false', limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
+    }
+    finally {
+      await server.close()
+      await rm(home, { recursive: true, force: true })
+    }
+  })
+
+  it('writes a remote result to a private JSONL file and prints only its receipt', async () => {
+    const { app } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const home = await mkdtemp(join(tmpdir(), 'tg-output-remote-'))
+    const outputFile = join(home, 'private', 'result.jsonl')
+    vi.stubEnv('TG_SEARCH_HOME', home)
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    try {
+      await runCli(['--remote', server.url!, 'messages', 'query', '--output-file', outputFile])
+      const receipt = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
+      expect(receipt).toMatchObject({ ok: true, data: { path: outputFile, status: 'completed', format: 'jsonl' }, next_cursor: 'next-page', meta: { source: 'remote' } })
+      expect(receipt.data).not.toHaveProperty('items')
+      const content = await readFile(outputFile, 'utf8')
+      const records = content.trimEnd().split('\n').map(line => JSON.parse(line))
+      expect(records).toMatchObject([
+        { type: 'result', status: 'partial', ok: true, data: { nextCursor: 'next-page', total: 37 }, next_cursor: 'next-page', meta: { profile: 'default', source: 'remote' }, arrays: [{ key: 'items', count: 1 }] },
+        { type: 'item', key: 'items', index: 0, data: message },
+        { type: 'completed', status: 'completed', ok: true },
+      ])
+      expect(receipt.data.bytes).toBe(Buffer.byteLength(content))
+      expect((await stat(outputFile)).mode & 0o777).toBe(0o600)
+      expect(await readdir(home)).toEqual(['private'])
+    }
+    finally {
+      await server.close()
+      await rm(home, { recursive: true, force: true })
+    }
+  })
+
+  it('classifies remote authentication and unreachable failures without duplicate error text', async () => {
+    const { app } = fixture()
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const endpoint = server.url!
+    const home = await mkdtemp(join(tmpdir(), 'tg-output-errors-'))
+    vi.stubEnv('TG_SEARCH_HOME', home)
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', 'wrong-token')
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    try {
+      await runCli(['--remote', endpoint, 'messages', 'query', '--json'])
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: false, error: { code: 'REMOTE_AUTHENTICATION_FAILED', retryable: false } })
+      expect(process.exitCode).toBe(1)
+      expect(stderr).not.toHaveBeenCalled()
+      stdout.mockClear()
+      await server.close()
+      await runCli(['--remote', endpoint, 'messages', 'query', '--json'])
+      expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: false, error: { code: 'REMOTE_UNREACHABLE', retryable: true } })
+      expect(stderr).not.toHaveBeenCalled()
     }
     finally {
       await server.close()

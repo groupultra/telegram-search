@@ -30,7 +30,7 @@ it('runs the installed CLI through a symlink with spaces in its path', async () 
     expect(invalid.status).toBe(1)
     expect(JSON.parse(invalid.stdout)).toMatchObject({
       ok: false,
-      error: { code: 'CLI_ERROR', message: 'Missing required positional argument: NAME' },
+      error: { code: 'INVALID_ARGUMENT', message: 'Missing required positional argument: NAME' },
     })
 
     const version = spawnSync(process.execPath, [executable, '--version', '--json'], {
