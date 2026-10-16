@@ -87,6 +87,16 @@ describe('read operation lifetime (issue #682)', () => {
     expect(nextPage).not.toHaveBeenCalled()
   })
 
+  it('does not start an SDK request cancelled before its invocation microtask', async () => {
+    const controller = new AbortController()
+    const invoke = vi.fn(async () => 'result')
+    const read = withReadOperation({ signal: controller.signal }, scope => scope.telegram({}, invoke))
+    const rejected = expect(read).rejects.toMatchObject({ code: 'REQUEST_CANCELLED' })
+    controller.abort()
+    await rejected
+    expect(invoke).not.toHaveBeenCalled()
+  })
+
   it('rejects an expired request before starting work and removes its abort listener', async () => {
     const controller = new AbortController()
     const remove = vi.spyOn(controller.signal, 'removeEventListener')

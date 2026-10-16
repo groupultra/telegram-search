@@ -70,12 +70,18 @@ export async function withReadOperation<T>(options: ReadOperationOptions = {}, o
   }
   const telegram: ReadOperationScope['telegram'] = async (_client, invoke) => {
     throwIfAborted()
-    sdkRequests++
+    let started = false
     // NOTICE: GramJS 2.26 has no public cancellation for an individual RPC.
     // Observe late settlement and stop this operation before it creates a next
     // page; shared client lifetime remains the runtime owner's responsibility.
-    const pending = Promise.resolve().then(invoke).finally(() => {
-      sdkRequests--
+    const pending = Promise.resolve().then(() => {
+      throwIfAborted()
+      sdkRequests++
+      started = true
+      return invoke()
+    }).finally(() => {
+      if (started)
+        sdkRequests--
     })
     return wait(pending)
   }
