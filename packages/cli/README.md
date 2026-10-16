@@ -156,6 +156,8 @@ failures distinguish `REMOTE_CREDENTIALS_MISSING`, `REMOTE_AUTHENTICATION_FAILED
 `REMOTE_PERMISSION_DENIED`, `REQUEST_DEADLINE_EXCEEDED` and `REMOTE_UNREACHABLE`. Structured
 application errors returned by the server retain their original code. JSON
 failures are emitted once on stdout without an additional plain-text error.
+A valid machine format also applies to argument errors; an invalid format still
+honors `--json` for failure output.
 
 ```bash
 # Discover chats remotely. No messages are persisted.

@@ -7,6 +7,28 @@ export const readOutputArgs = {
   outputFile: { type: 'string' as const, description: 'Write this result to a new private file (defaults to JSONL)' },
 }
 
+const READ_COMMANDS = new Set(['chats', 'messages', 'media', 'search', 'context', 'stats'])
+const OUTPUT_FORMATS: readonly OutputFormat[] = ['text', 'json', 'compact', 'jsonl']
+
+function isOutputFormat(value: string | undefined): value is OutputFormat {
+  return OUTPUT_FORMATS.includes(value)
+}
+
+/** Choose the error channel before strict option validation can fail. */
+export function initialOutputFormat(args: string[]): OutputFormat {
+  const terminator = args.indexOf('--')
+  const optionArgs = terminator < 0 ? args : args.slice(0, terminator)
+  if (optionArgs.includes('--json'))
+    return 'json'
+  if (!READ_COMMANDS.has(optionArgs[0]))
+    return 'text'
+  const index = optionArgs.findLastIndex(arg => arg === '--format' || arg.startsWith('--format='))
+  if (index < 0)
+    return 'text'
+  const value = optionArgs[index].startsWith('--format=') ? optionArgs[index].slice('--format='.length) : optionArgs[index + 1]
+  return isOutputFormat(value) ? value : 'text'
+}
+
 function optionValue(args: string[], names: string[]): string | undefined {
   for (let index = args.length - 1; index >= 0; index--) {
     for (const name of names) {
@@ -28,13 +50,13 @@ export function readOutputOptions(args: string[]): { format: OutputFormat, file?
   const optionArgs = terminator < 0 ? args : args.slice(0, terminator)
   const json = optionArgs.includes('--json')
   const file = optionValue(optionArgs, ['output-file', 'outputFile'])
-  const readCommand = ['chats', 'messages', 'media', 'search', 'context', 'stats'].includes(args[0])
+  const readCommand = READ_COMMANDS.has(args[0])
   if (file !== undefined && (!readCommand || !file))
     throw cliError({ code: 'INVALID_ARGUMENT', message: '--output-file requires a path and a read command', retryable: false })
   const format = readCommand ? optionValue(optionArgs, ['format']) : undefined
-  if (format !== undefined && !['text', 'json', 'compact', 'jsonl'].includes(format))
+  if (format !== undefined && !isOutputFormat(format))
     throw cliError({ code: 'INVALID_ARGUMENT', message: '--format must be text, json, compact, or jsonl', retryable: false })
   if (json && format !== undefined && format !== 'json')
     throw cliError({ code: 'INVALID_ARGUMENT', message: '--json cannot be combined with a different --format', retryable: false })
-  return { format: (format as OutputFormat | undefined) ?? (json ? 'json' : file ? 'jsonl' : 'text'), file }
+  return { format: format ?? (json ? 'json' : file ? 'jsonl' : 'text'), file }
 }

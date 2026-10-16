@@ -53,6 +53,27 @@ describe('installed CLI output contract', () => {
     }
   })
 
+  it('uses a valid explicit machine format for failures before file arguments are validated', async () => {
+    // Output option validation previously failed before --format could select the error envelope.
+    for (const format of ['json', 'jsonl', 'compact']) {
+      const result = await invoke(['messages', 'query', '--format', format, '--output-file'])
+      expect(result.status).toBe(1)
+      expect(JSON.parse(result.stdout)).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+      expect(result.stderr).toBe('')
+    }
+  })
+
+  it('uses --json as the fallback for an invalid format and ignores format literals after --', async () => {
+    const invalid = await invoke(['--json', 'messages', 'query', '--format=invalid', '--output-file'])
+    expect(invalid.status).toBe(1)
+    expect(JSON.parse(invalid.stdout)).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(invalid.stderr).toBe('')
+    const literal = await invoke(['search', '--', '--format=jsonl'], { TG_SEARCH_REMOTE_URL: 'https://example.invalid' })
+    expect(literal.status).toBe(1)
+    expect(literal.stdout).toBe('')
+    expect(literal.stderr).toBe('REMOTE_CREDENTIALS_MISSING: Set TG_SEARCH_REMOTE_TOKEN to the server access token\n')
+  })
+
   it('uses INVALID_ARGUMENT for parser failures', async () => {
     const result = await invoke(['profile', 'create', '--json'])
     expect(result.status).toBe(1)

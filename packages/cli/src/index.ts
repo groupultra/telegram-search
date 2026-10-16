@@ -32,7 +32,7 @@ import {
 } from './profile'
 import { inspectProfile } from './profile-inspection'
 import { bindReadOperations } from './read-runtime'
-import { readOutputArgs, readOutputOptions } from './read-output'
+import { initialOutputFormat, readOutputArgs, readOutputOptions } from './read-output'
 import { createRemoteRuntime } from './remote'
 import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
@@ -808,7 +808,7 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
   const normalizedArgs = normalizeRawArgs(args)
   const terminator = normalizedArgs.indexOf('--')
   const optionArgs = terminator < 0 ? normalizedArgs : normalizedArgs.slice(0, terminator)
-  resetOutputState(optionArgs.includes('--json') ? 'json' : 'text')
+  resetOutputState(initialOutputFormat(optionArgs))
   const profile = profileFromRawArgs(optionArgs)
   const frameworkOptionArgs = optionArgs.filter(arg => arg !== '--json' && arg !== '--json=false')
   const frameworkArgs = [...frameworkOptionArgs, ...(terminator < 0 ? [] : normalizedArgs.slice(terminator))]
