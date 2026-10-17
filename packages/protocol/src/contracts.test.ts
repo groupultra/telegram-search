@@ -26,6 +26,11 @@ describe('application contracts', () => {
     expect(parse(listChatsInputSchema, {})).toEqual({ limit: 100 })
   })
 
+  it('accepts zero as the first stored-chat offset cursor', () => {
+    // Regression: tightening cursor validation accidentally rejected the explicit first page.
+    expect(parse(listChatsInputSchema, { cursor: '0' })).toEqual({ cursor: '0', limit: 100 })
+  })
+
   it('uses stable versioned tags', () => {
     expect(chatContracts.list.sendEvent.id).toContain('tg.v1.chats.list')
     expect(messageContracts.listRemote.sendEvent.id).toContain('tg.v1.messages.list.remote')
