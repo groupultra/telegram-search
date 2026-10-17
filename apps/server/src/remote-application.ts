@@ -20,6 +20,12 @@ export function createRemoteApplication(db: CoreDB, accountId: string): Telegram
   const unavailable = { ok: false as const, error: { code: 'TELEGRAM_NOT_CONNECTED', message: 'Sign in to Telegram on the server to read live messages; indexed queries remain available', retryable: false } }
   return {
     ...stored,
+    inspectMessageMedia: (input, options) => input.source === 'local'
+      ? stored.inspectMessageMedia(input, options)
+      : connected()?.inspectMessageMedia(input, options) ?? Promise.resolve(unavailable),
+    downloadMessageMedia: (input, options) => input.source === 'local'
+      ? stored.downloadMessageMedia(input, options)
+      : connected()?.downloadMessageMedia(input, options) ?? Promise.resolve(unavailable),
     readMessageMedia: (input, options) => input.source === 'local'
       ? stored.readMessageMedia(input, options)
       : connected()?.readMessageMedia(input, options) ?? Promise.resolve(unavailable),

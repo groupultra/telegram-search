@@ -6,6 +6,7 @@ export default defineConfig({
       'packages/client',
       'packages/common',
       'packages/core',
+      'packages/observability',
       'apps/server',
       'apps/web',
     ],

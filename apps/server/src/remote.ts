@@ -1,10 +1,14 @@
 import type { ReadOperationOptions, TelegramApplication } from '@tg-search/core'
 
+import type { RemoteMediaOptions } from './remote-media-links'
+
 import { createHash, timingSafeEqual } from 'node:crypto'
 
-import { accountIdSchema, getMessagesInputSchema, listChatsInputSchema, listRemoteMessagesInputSchema, messageContextInputSchema, queryLocalMessagesInputSchema, readMessageMediaInputSchema, readMessagesInputSchema, replyContextInputSchema, searchMessagesInputSchema, statsInputSchema } from '@tg-search/protocol'
+import { accountIdSchema, createMediaLinkInputSchema, getMessagesInputSchema, listChatsInputSchema, listRemoteMessagesInputSchema, messageContextInputSchema, queryLocalMessagesInputSchema, readMessageMediaInputSchema, readMessagesInputSchema, replyContextInputSchema, searchMessagesInputSchema, statsInputSchema } from '@tg-search/protocol'
 import { assertBodySize, H3, HTTPError, readValidatedBody } from 'h3'
 import { minLength, object, parse, pipe, regex, string } from 'valibot'
+
+import { createRemoteMediaLinks } from './remote-media-links'
 
 export interface RemoteAccess {
   token: string
@@ -22,9 +26,12 @@ export function remoteAccessFromEnv(env: Record<string, string | undefined>): Re
   }), { token, accountId })
 }
 
-export function createRemoteApi(access: RemoteAccess, getApplication: (accountId: string) => TelegramApplication): H3 {
+export function createRemoteApi(access: RemoteAccess, getApplication: (accountId: string) => TelegramApplication, mediaOptions?: RemoteMediaOptions): H3 {
   const expected = createHash('sha256').update(`Bearer ${access.token}`).digest()
+  const media = createRemoteMediaLinks(access, getApplication, mediaOptions)
   const app = new H3()
+  app.get('/media.download', event => media.download(event))
+  app.head('/media.download', event => media.download(event))
   app.post('/:method', async (event) => {
     const supplied = createHash('sha256').update(event.req.headers.get('authorization') ?? '').digest()
     if (!timingSafeEqual(expected, supplied))
@@ -68,6 +75,11 @@ export function createRemoteApi(access: RemoteAccess, getApplication: (accountId
         case 'media.read': {
           const input = await readValidatedBody(event, readMessageMediaInputSchema)
           result = await application.readMessageMedia(input, optionsFor(input))
+          break
+        }
+        case 'media.createLink': {
+          const input = await readValidatedBody(event, createMediaLinkInputSchema)
+          result = await media.createLink(input, optionsFor(input), application)
           break
         }
         case 'messages.query': {

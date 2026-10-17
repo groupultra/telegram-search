@@ -1,4 +1,6 @@
 import type { Logger } from '@guiiai/logg'
+import type { ReadMessageMediaInput } from '@tg-search/protocol'
+import type { TelegramClient } from 'telegram'
 import type { Dialog } from 'telegram/tl/custom/dialog'
 
 import type { CoreContext } from '../context'
@@ -6,8 +8,12 @@ import type { Models } from '../models'
 import type { EntityService } from '../services/entity'
 import type { TakeoutService } from '../services/takeout'
 
+import { Buffer } from 'node:buffer'
+
 import bigInt from 'big-integer'
 
+import { MEDIA_CHUNK_BYTES } from '@tg-search/protocol'
+import { Ok } from '@unbird/result'
 import { Api } from 'telegram'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -88,6 +94,84 @@ function createHarness(messages: Api.Message[] = []) {
     takeoutService,
   }
 }
+
+function createMediaHarness(size = 8) {
+  const bytes = Buffer.alloc(size, 37)
+  const document = new Api.Document({ id: bigInt(10), accessHash: bigInt(11), fileReference: Buffer.alloc(0), date: 1, mimeType: 'application/octet-stream', size: bigInt(size), dcId: 1, attributes: [new Api.DocumentAttributeFilename({ fileName: 'fixture.bin' })] })
+  const message = new Api.Message({ id: 7, peerId: new Api.PeerChannel({ channelId: bigInt(42) }), date: 1, message: '', media: new Api.MessageMediaDocument({ document }) })
+  const harness = createHarness([message])
+  const close = vi.fn(async () => {})
+  const iterDownload = vi.fn((parameters: Parameters<TelegramClient['iterDownload']>[0]) => ({
+    close,
+    async* [Symbol.asyncIterator]() {
+      const offset = parameters.offset!.toJSNumber()
+      yield bytes.subarray(offset, offset + parameters.chunkSize!)
+    },
+  }))
+  Object.assign(harness.client, { iterDownload })
+  return { ...harness, bytes, iterDownload, close }
+}
+
+describe('application raw media boundaries', () => {
+  const input: ReadMessageMediaInput = { source: 'telegram', chatId: '42', messageId: '7', mediaIndex: 0, offset: 0, length: 4, maxBytes: 100 }
+
+  it('inspects Telegram file identity without creating a download iterator', async () => {
+    const harness = createMediaHarness()
+    const runtime = createTelegramApplicationRuntime(harness)
+    expect(await runtime.inspectMessageMedia(input)).toEqual({ ok: true, data: { fileId: '10', type: 'document', size: 8, mimeType: 'application/octet-stream', fileName: 'fixture.bin' } })
+    expect(harness.getMessages).toHaveBeenCalledOnce()
+    expect(harness.iterDownload).not.toHaveBeenCalled()
+  })
+
+  it('downloads all bytes with one message resolution and bounded SDK ranges', async () => {
+    const harness = createMediaHarness(MEDIA_CHUNK_BYTES + 13)
+    const runtime = createTelegramApplicationRuntime(harness)
+    expect(await runtime.downloadMessageMedia({ ...input, maxBytes: harness.bytes.length })).toEqual({ ok: true, data: { fileId: '10', type: 'document', size: harness.bytes.length, mimeType: 'application/octet-stream', fileName: 'fixture.bin', bytes: new Uint8Array(harness.bytes) } })
+    expect(harness.getMessages).toHaveBeenCalledOnce()
+    expect(harness.iterDownload.mock.calls.map(([range]) => [range.offset!.toJSNumber(), range.chunkSize])).toEqual([[0, MEDIA_CHUNK_BYTES], [MEDIA_CHUNK_BYTES, 13]])
+    expect(harness.close).toHaveBeenCalledTimes(2)
+  })
+
+  it.each(['inspectMessageMedia', 'downloadMessageMedia'] as const)('%s checks the active local account and never falls back to Telegram', async (method) => {
+    const harness = createMediaHarness()
+    const lookup = vi.fn(async () => Ok([]))
+    harness.models.chatMessageModels.fetchMessagesByChatAndPlatformIds = lookup
+    const runtime = createTelegramApplicationRuntime(harness)
+    expect(await runtime[method]({ ...input, source: 'local' })).toMatchObject({ ok: false, error: { code: 'MEDIA_NOT_AVAILABLE' } })
+    expect(lookup).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'account-1', [{ chatId: '42', messageId: '7' }])
+    expect(harness.getMessages).not.toHaveBeenCalled()
+    expect(harness.iterDownload).not.toHaveBeenCalled()
+  })
+
+  it.each(['inspectMessageMedia', 'downloadMessageMedia'] as const)('%s honors an expired options deadline before resolving media', async (method) => {
+    const harness = createMediaHarness()
+    const runtime = createTelegramApplicationRuntime(harness)
+    expect(await runtime[method]({ ...input, operation: { deadlineAt: Date.now() + 60_000 } }, { deadlineAt: Date.now() - 1 }))
+      .toMatchObject({ ok: false, error: { code: 'REQUEST_DEADLINE_EXCEEDED' } })
+    expect(harness.getInputPeer).not.toHaveBeenCalled()
+    expect(harness.getMessages).not.toHaveBeenCalled()
+    expect(harness.iterDownload).not.toHaveBeenCalled()
+  })
+
+  it('cancels an in-flight full download without starting another chunk', async () => {
+    const harness = createMediaHarness(MEDIA_CHUNK_BYTES + 13)
+    const pendingBytes = new Promise<typeof harness.bytes>(() => {})
+    harness.iterDownload.mockReturnValueOnce({
+      close: harness.close,
+      async* [Symbol.asyncIterator]() {
+        yield await pendingBytes
+      },
+    })
+    const controller = new AbortController()
+    const runtime = createTelegramApplicationRuntime(harness)
+    const result = runtime.downloadMessageMedia({ ...input, maxBytes: harness.bytes.length }, { signal: controller.signal })
+    await vi.waitFor(() => expect(harness.iterDownload).toHaveBeenCalledOnce())
+    controller.abort()
+    await expect(result).resolves.toMatchObject({ ok: false, error: { code: 'REQUEST_CANCELLED', details: { sdkCancellation: 'unsupported', inFlightMayContinue: true } } })
+    expect(harness.iterDownload).toHaveBeenCalledOnce()
+    expect(harness.close).toHaveBeenCalledOnce()
+  })
+})
 
 describe('telegram application runtime remote boundaries', () => {
   it('does not start a point-read RPC after cancellation while resolving its peer', async () => {
