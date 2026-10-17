@@ -1,14 +1,14 @@
-import type { CoreDB, TelegramApplication } from '@tg-search/core'
+import type { CoreDB, ReadOperationOptions, TelegramApplication } from '@tg-search/core'
 import type { ListChatsInput, ListChatsResult } from '@tg-search/protocol'
 
 import { useLogger } from '@guiiai/logg'
-import { createCoreContext, createTelegramApplicationRuntime, models } from '@tg-search/core'
+import { appResult, createCoreContext, createTelegramApplicationRuntime, models, withReadOperation } from '@tg-search/core'
 
 import { accountStates } from './account'
 import { getMediaStorage } from './storage/media'
 
 export interface RemoteApplication extends TelegramApplication {
-  listStoredChats: (input: ListChatsInput, chatIds: string[]) => Promise<ListChatsResult>
+  listStoredChats: (input: ListChatsInput, chatIds: string[], options?: ReadOperationOptions) => Promise<ListChatsResult>
 }
 
 export function createRemoteApplication(db: CoreDB, accountId: string): RemoteApplication {
@@ -29,9 +29,9 @@ export function createRemoteApplication(db: CoreDB, accountId: string): RemoteAp
       ? stored.readMessageMedia(input, options)
       : connected()?.readMessageMedia(input, options) ?? Promise.resolve(unavailable),
     listChats: (input, options) => connected()?.listChats(input, options) ?? Promise.resolve(unavailable),
-    listStoredChats: async (input, chatIds) => {
+    listStoredChats: (input, chatIds, options) => appResult(() => withReadOperation(options, async (scope) => {
       const offset = Number.parseInt(input.cursor ?? '0', 10) || 0
-      const rows = (await models.chatModels.fetchAccountChatsPage(db, accountId, chatIds, input.types, offset, input.limit + 1))
+      const rows = (await scope.wait(models.chatModels.fetchAccountChatsPage(db, accountId, chatIds, input.types, offset, input.limit + 1)))
         .expect('Failed to list stored account chats')
       const items = rows.slice(0, input.limit).map(row => ({
         id: row.id,
@@ -41,8 +41,8 @@ export function createRemoteApplication(db: CoreDB, accountId: string): RemoteAp
         lastMessage: row.lastMessage ?? undefined,
         lastMessageAt: row.lastMessageAt || undefined,
       }))
-      return { ok: true, data: { items, nextCursor: rows.length > input.limit ? String(offset + input.limit) : null } }
-    },
+      return { items, nextCursor: rows.length > input.limit ? String(offset + input.limit) : null }
+    })),
     getMessages: (input, options) => input.source === 'local'
       ? stored.getMessages(input, options)
       : connected()?.getMessages(input, options) ?? Promise.resolve(unavailable),

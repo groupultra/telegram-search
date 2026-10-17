@@ -202,7 +202,7 @@ const remoteHandlers = {
     },
     invoke: (application, credential, input, options) => credential.readableChatIds === undefined
       ? application.listChats(input, options)
-      : application.listStoredChats(input, [...credential.readableChatIds]),
+      : application.listStoredChats(input, [...credential.readableChatIds], options),
     resultChatIds: (_input, data) => (data.items as Array<{ id?: string }> | undefined)?.map(item => item.id),
   }),
   'messages.get': defineRemoteHandler({

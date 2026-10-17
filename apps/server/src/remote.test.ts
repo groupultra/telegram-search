@@ -151,13 +151,18 @@ describe('remote access control', () => {
 
   it('passes selected chat scope into chat listing and blocks leaked output', async () => {
     const allowed = fixture()
+    const deadlineAt = Date.now() + 60_000
     const response = await allowed.app.request('/v1/remote/chats.list', {
       method: 'POST',
       headers: headers(),
-      body: '{}',
+      body: JSON.stringify({ operation: { deadlineAt } }),
     })
     expect(response.status).toBe(200)
-    expect(allowed.application.listStoredChats).toHaveBeenCalledWith({ limit: 100 }, ['7'])
+    expect(allowed.application.listStoredChats).toHaveBeenCalledWith(
+      { limit: 100, operation: { deadlineAt } },
+      ['7'],
+      expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt }),
+    )
 
     const leaked = fixture({ messageChatId: '8' })
     const leakedResponse = await leaked.app.request('/v1/remote/messages.query', {
