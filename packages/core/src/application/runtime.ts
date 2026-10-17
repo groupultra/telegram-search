@@ -32,6 +32,7 @@ import type { Dialog } from 'telegram/tl/custom/dialog'
 import type { CoreContext } from '../context'
 import type { Models } from '../models'
 import type { EntityService } from '../services/entity'
+import type { MessageMediaContent, MessageMediaDescriptor } from '../services/message-media'
 import type { TakeoutService } from '../services/takeout'
 import type { CoreDialog } from '../types/dialog'
 import type { MediaBinaryProvider } from '../types/storage'
@@ -47,7 +48,7 @@ import { models as defaultModels } from '../models'
 import { createEntityService } from '../services/entity'
 import { createLocalMessagesService } from '../services/local-messages'
 import { createReplyContextService, createWindowReadService } from '../services/message-context'
-import { createMessageMediaReader } from '../services/message-media'
+import { createMessageMediaService } from '../services/message-media'
 import { createLocalMessageMediaSource, createTelegramMessageMediaSource } from '../services/message-media-sources'
 import { createGetRemoteMessagesService, createRemoteMessagesService } from '../services/remote-messages'
 import { createStatsAccumulator } from '../services/stats'
@@ -65,6 +66,8 @@ function takeoutFailure(error: unknown, message: string): AppError {
 }
 
 export interface TelegramApplication {
+  inspectMessageMedia: (input: ReadMessageMediaInput, options?: ReadOperationOptions) => Promise<AppResult<MessageMediaDescriptor>>
+  downloadMessageMedia: (input: ReadMessageMediaInput, options?: ReadOperationOptions) => Promise<AppResult<MessageMediaContent>>
   readMessageMedia: (input: ReadMessageMediaInput, options?: ReadOperationOptions) => Promise<AppResult<MessageMediaChunk>>
   getReplyContext: (input: ReplyContextInput, readOptions?: ReadOperationOptions) => Promise<AppResult<ReplyContextResult>>
   readMessages: (input: ReadMessagesInput, readOptions?: ReadOperationOptions) => Promise<AppResult<ReadMessagesResult>>
@@ -118,12 +121,12 @@ export function createTelegramApplicationRuntime(options: {
     mediaBinaryProvider: options.mediaBinaryProvider,
   })
 
-  function readMessageMedia(input: ReadMessageMediaInput, readOptions?: ReadOperationOptions): Promise<AppResult<MessageMediaChunk>> {
+  function withMessageMedia<Result>(input: ReadMessageMediaInput, readOptions: ReadOperationOptions | undefined, operation: (service: ReturnType<typeof createMessageMediaService>, signal: AbortSignal) => Promise<Result>): Promise<AppResult<Result>> {
     return appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, (scope) => {
       const source = input.source === 'telegram'
         ? createTelegramMessageMediaSource(context.getClient(), entityService.getInputPeer, scope)
         : localMedia
-      return createMessageMediaReader(source)(input, scope.signal)
+      return operation(createMessageMediaService(source), scope.signal)
     }))
   }
 
@@ -363,7 +366,9 @@ export function createTelegramApplicationRuntime(options: {
   }
 
   return {
-    readMessageMedia,
+    readMessageMedia: (input, readOptions) => withMessageMedia(input, readOptions, (service, signal) => service.read(input, signal)),
+    inspectMessageMedia: (input, readOptions) => withMessageMedia(input, readOptions, (service, signal) => service.inspect(input, signal)),
+    downloadMessageMedia: (input, readOptions) => withMessageMedia(input, readOptions, (service, signal) => service.download(input, signal)),
     listChats: (input, readOptions) => appResult(() => withReadOperation({ ...readOptions, deadlineAt: readOptions?.deadlineAt ?? input.operation?.deadlineAt }, async (scope) => {
       const offset = Number.parseInt(input.cursor ?? '0', 10) || 0
       const items = (await fetchAndPersistDialogs(offset + input.limit + 1, scope))

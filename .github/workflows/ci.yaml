@@ -87,6 +87,11 @@ jobs:
       - name: Run tests
         run: pnpm run test:coverage
 
+      - name: Run CLI and protocol tests
+        run: |
+          pnpm -F @tg-search/cli test:run
+          pnpm -F @tg-search/protocol test:run
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:

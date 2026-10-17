@@ -1,16 +1,31 @@
 import type { ReadOperationOptions } from '@tg-search/core'
-import type { RemoteMethod, RuntimeBuild } from '@tg-search/protocol'
+import type { AppResult, CreateMediaLinkInput, MediaDownloadLink, RemoteMethod, RuntimeBuild } from '@tg-search/protocol'
 import type { GenericSchema } from 'valibot'
 
 import type { createCliRuntime } from './runtime'
 
 import { ApplicationError, toAppError, withReadOperation } from '@tg-search/core'
 import { normalizeRemoteUrl, remoteMethods, remoteResultSchema } from '@tg-search/protocol'
-import { parse, safeParse } from 'valibot'
+import { safeParse } from 'valibot'
 
 import { runtimeBuildInfo } from './build-info'
 
-export function createRemoteRuntime(endpoint: string, token: string): Omit<Awaited<ReturnType<typeof createCliRuntime>>, 'execution'> & { remote: true, execution: { mode: 'remote', cli: RuntimeBuild } } {
+type LocalRuntime = Awaited<ReturnType<typeof createCliRuntime>>
+type RemoteRuntime = Omit<LocalRuntime, 'execution' | 'invokes'> & {
+  remote: true
+  execution: { mode: 'remote', cli: RuntimeBuild }
+  invokes: LocalRuntime['invokes'] & {
+    media: LocalRuntime['invokes']['media'] & {
+      createLink: (input: CreateMediaLinkInput, options?: ReadOperationOptions) => Promise<AppResult<MediaDownloadLink & { url: string }>>
+    }
+  }
+}
+
+function protocolMismatch(): ApplicationError {
+  return new ApplicationError({ code: 'REMOTE_PROTOCOL_MISMATCH', message: 'Remote server returned an invalid response', retryable: false })
+}
+
+export function createRemoteRuntime(endpoint: string, token: string): RemoteRuntime {
   const url = normalizeRemoteUrl(endpoint)
   if (!token || /\s/.test(token))
     throw new ApplicationError({ code: 'REMOTE_CREDENTIALS_MISSING', message: 'Set TG_SEARCH_REMOTE_TOKEN to the server access token', retryable: false })
@@ -39,24 +54,37 @@ export function createRemoteRuntime(endpoint: string, token: string): Omit<Await
             }
             throw new ApplicationError({ code: response.status === 401 ? 'REMOTE_AUTHENTICATION_FAILED' : response.status === 403 ? 'REMOTE_PERMISSION_DENIED' : response.status >= 500 ? 'REMOTE_UNAVAILABLE' : 'REMOTE_HTTP_ERROR', message: `Remote request failed (HTTP ${response.status})`, retryable: response.status >= 500 })
           }
-          return parse(resultSchema, await response.json())
+          const result = safeParse(resultSchema, await response.json())
+          if (!result.success)
+            throw protocolMismatch()
+          return result.output
         })
       }
       catch (error) {
+        if (error instanceof SyntaxError)
+          return { ok: false as const, error: protocolMismatch().appError }
         return { ok: false as const, error: error instanceof TypeError ? { code: 'REMOTE_UNREACHABLE', message: 'Unable to reach the remote server', retryable: true } : toAppError(error) }
       }
     }
   }
 
-  function unsupported(): never {
+  function unsupported(_input: unknown): never {
     throw new ApplicationError({ code: 'REMOTE_OPERATION_UNSUPPORTED', message: 'Remote mode supports read commands only; run sync or export on the server', retryable: false })
   }
 
+  const createLink = invoke('media.createLink', remoteMethods['media.createLink'].output)
+
   return {
-    remote: true,
-    execution: { mode: 'remote', cli: runtimeBuildInfo(import.meta.url) },
+    remote: true as const,
+    execution: { mode: 'remote' as const, cli: runtimeBuildInfo(import.meta.url) },
     invokes: {
-      media: { read: invoke('media.read', remoteMethods['media.read'].output) },
+      media: {
+        read: invoke('media.read', remoteMethods['media.read'].output),
+        async createLink(input: CreateMediaLinkInput, options?: ReadOperationOptions): Promise<AppResult<MediaDownloadLink & { url: string }>> {
+          const result = await createLink(input, options)
+          return result.ok ? { ...result, data: { ...result.data, url: `${url}${result.data.path}` } } : result
+        },
+      },
       chats: { list: invoke('chats.list', remoteMethods['chats.list'].output) },
       messages: {
         replies: invoke('messages.replies', remoteMethods['messages.replies'].output),

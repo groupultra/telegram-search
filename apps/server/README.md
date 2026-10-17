@@ -11,9 +11,21 @@ The authenticated read API is disabled by default. To enable it, configure both 
 
 Clients set `TG_SEARCH_REMOTE_TOKEN` and pass the HTTPS server base URL through `--remote`, `TG_SEARCH_REMOTE_URL`, or `profile remote <url>`. Rotate the server token and update clients to revoke old access. This initial access model exposes one explicitly configured account per deployment; it is not multi-user OAuth.
 
-`POST /v1/remote/:method` accepts JSON and `Authorization: Bearer <token>`. Methods are `chats.list`, `messages.get`, `messages.replies`, `messages.read`, `messages.list`, `messages.query`, `messages.search`, `messages.context`, and `stats.get`. Requests reuse protocol validation and the Core application. The server selects the account from configuration, never from request input. No sync, arbitrary RPC, filesystem export, or account-management endpoint is exposed.
+`POST /v1/remote/:method` accepts JSON and `Authorization: Bearer <token>`. Methods are `chats.list`, `messages.get`, `messages.replies`, `messages.read`, `messages.list`, `messages.query`, `messages.search`, `messages.context`, `media.read`, `media.createLink`, and `stats.get`. Requests reuse protocol validation and the Core application. The server selects the account from configuration, never from request input. No sync, arbitrary RPC, filesystem export, or account-management endpoint is exposed.
 
 Indexed queries use the existing server database even after restart. Live Telegram reads require an active, authorized account runtime on this server and return `TELEGRAM_NOT_CONNECTED` otherwise. This API does not restore Telegram sessions after restart or migrate/merge local data. Use HTTPS termination and an ingress request-rate limit; responses must not be cached.
+
+### Temporary media links
+
+`media.createLink` accepts `{ source, chatId, messageId, mediaIndex?, maxBytes? }` and checks attachment ownership, identity, availability, and size before issuing a link. It returns `{ path, expiresAt, media }`; `path` is relative and `expiresAt` is Unix milliseconds. Clients combine the path with their configured, trusted remote endpoint. The server never derives a public hostname from request or forwarded headers.
+
+The returned `GET /v1/remote/media.download?ticket=…` URL returns complete binary content without an Authorization header. `HEAD` checks its metadata without downloading bytes. The encrypted, authenticated capability identifies one attachment and expires after five minutes; requests may reuse it until expiry, including after a server restart or on another replica with the same configured token and account. Rotating the bearer invalidates issued links. An edited or unavailable attachment requires a new link. Other remote methods retain their existing bearer authentication.
+
+Treat the complete download URL as a secret: anyone holding it can read that attachment until expiry. Keep tickets out of application and ingress logs, issues, and unrelated output. The response uses `no-store` and `nosniff`; only PNG, JPEG, and WebP render inline, while other formats use a safely encoded attachment filename.
+
+Downloads use a bounded in-memory buffer, with a 10 MiB default limit and 50 MiB maximum. At most two GET/HEAD transfers or buffered response bodies are active per server process; additional requests return `503 MEDIA_DOWNLOAD_BUSY` with `Retry-After`. A sixty-second absolute deadline includes metadata checks, downloading, and body consumption, so an idle client cannot retain a buffer indefinitely. Links expire for new requests; a transfer admitted before expiry remains subject to its own sixty-second deadline. Responses contain the whole file and do not advertise range support or transcode content.
+
+The source is explicit. `local` currently serves stored photos and stickers and returns `MEDIA_NOT_STORED` for other indexed attachment types; it never starts a Telegram download automatically. `telegram` fetches the current authorized message and supports photos and document-backed files, including audio, video, and stickers. Downloading a format does not imply a model can interpret it. A temporary link does not change media synchronization or the existing web photo/sticker routes.
 
 ### Security boundary
 

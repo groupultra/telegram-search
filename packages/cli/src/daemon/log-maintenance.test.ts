@@ -33,9 +33,10 @@ async function createPaths(): Promise<ProfilePaths> {
 describe('daemon log maintenance', () => {
   it('rotates yesterday\'s active log and removes expired archives', async () => {
     const paths = await createPaths()
-    const now = new Date('2026-08-20T02:00:00+08:00')
-    const yesterday = new Date('2026-08-19T02:00:00+08:00')
-    const expired = new Date('2026-08-01T02:00:00+08:00')
+    // Rotation uses local calendar dates; fixed offsets cross dates on UTC CI.
+    const now = new Date(2026, 7, 20, 2)
+    const yesterday = new Date(2026, 7, 19, 2)
+    const expired = new Date(2026, 7, 1, 2)
     const expiredArchive = `${paths.daemonStdoutLog}.2026-08-01`
 
     await writeFile(paths.daemonStdoutLog, 'yesterday\n')
@@ -53,7 +54,7 @@ describe('daemon log maintenance', () => {
   it('rotates at the tracked date boundary even after a post-midnight write', async () => {
     // mtime reflects only the latest write, not the oldest records in the active file.
     const paths = await createPaths()
-    const now = new Date('2026-08-20T06:00:00+08:00')
+    const now = new Date(2026, 7, 20, 6)
     await writeFile(paths.daemonStdoutLog, 'previous day\ncurrent day\n')
     await writeFile(`${paths.daemonStdoutLog}.rotation-state.json`, '{"activeDate":"2026-08-19"}\n')
 

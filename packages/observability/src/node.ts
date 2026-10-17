@@ -9,6 +9,8 @@ import { NodeSDK } from '@opentelemetry/sdk-node'
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
 
+import { createHttpInstrumentationConfig, createUndiciInstrumentationConfig } from './http-redaction'
+
 /**
  * Register OpenTelemetry SDK with OTLP exporters.
  *
@@ -33,7 +35,10 @@ export function registerOtel(options?: { debug?: true | DiagLogLevel, version?: 
   // not by NodeSDK, because metrics.ts is imported before registerOtel() runs.
   const sdk = new NodeSDK({
     instrumentations: [
-      getNodeAutoInstrumentations(),
+      getNodeAutoInstrumentations({
+        '@opentelemetry/instrumentation-http': createHttpInstrumentationConfig(),
+        '@opentelemetry/instrumentation-undici': createUndiciInstrumentationConfig(),
+      }),
       new PgInstrumentation({
         enhancedDatabaseReporting: true,
       }),

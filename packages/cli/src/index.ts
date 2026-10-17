@@ -80,7 +80,7 @@ export function resolveExportOutputPath(output: string | undefined, defaultPath:
 
 type CommandRuntime = ReturnType<typeof createRemoteRuntime> | Awaited<ReturnType<typeof createCliRuntime>> | NonNullable<Awaited<ReturnType<typeof connectDaemon>>>
 
-async function withRuntime<T>(command: { args: object }, remote: boolean, operation: (runtime: CommandRuntime) => Promise<T>): Promise<T | undefined> {
+async function withRuntime<T>(command: { args: object }, remote: boolean, operation: (runtime: CommandRuntime) => Promise<T>, remoteOnly = false): Promise<T | undefined> {
   const profile = profileFrom(command)
   const args = command.args as { 'remote'?: string, 'timeout-ms'?: string }
   const timeoutMs = Number(args['timeout-ms'] ?? 60_000)
@@ -109,6 +109,8 @@ async function withRuntime<T>(command: { args: object }, remote: boolean, operat
         await runtime.close()
       }
     }
+    if (remoteOnly)
+      throw cliError({ code: 'REMOTE_OPERATION_UNSUPPORTED', message: 'Temporary media URLs require a remote server; configure a remote endpoint', retryable: false })
     await ensureProfile(profile)
     let runtime: CommandRuntime
     try {
@@ -359,6 +361,35 @@ const chatsCommand = defineCommand({
 const mediaCommand = defineCommand({
   meta: { name: 'media', description: 'Explicit bounded reads of message attachments' },
   subCommands: {
+    url: defineCommand({
+      meta: { name: 'url', description: 'Create a temporary attachment URL on a remote server (expires after 5 minutes)' },
+      args: {
+        'chat': { type: 'string', required: true },
+        'message': { type: 'string', required: true },
+        'source': { type: 'string', required: true, description: 'local for server-stored bytes; telegram for an explicit server Telegram read' },
+        'index': { type: 'string', default: '0' },
+        'max-bytes': { type: 'string', default: '10485760' },
+        ...profileArg,
+        ...readOutputArgs,
+      },
+      async run(context) {
+        const profile = profileFrom(context)
+        const source = stringArg(context.args.source)
+        if (source !== 'local' && source !== 'telegram')
+          throw cliError({ code: 'INVALID_ARGUMENT', message: 'Media source must be local or telegram', retryable: false })
+        await withRuntime(context, false, async (runtime) => {
+          if (!('remote' in runtime))
+            throw cliError({ code: 'REMOTE_OPERATION_UNSUPPORTED', message: 'Temporary media URLs require a remote server', retryable: false })
+          emitResult(await runtime.invokes.media.createLink({
+            source,
+            chatId: stringArg(context.args.chat),
+            messageId: stringArg(context.args.message),
+            mediaIndex: Number(context.args.index),
+            maxBytes: Number(context.args['max-bytes']),
+          }), outputMeta(profile, 'remote', runtime))
+        }, true)
+      },
+    }),
     read: defineCommand({
       meta: { name: 'read', description: 'Read one attachment byte range; local never falls back to Telegram' },
       args: {

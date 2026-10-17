@@ -41,25 +41,31 @@ export function createTelegramMessageMediaSource(
     const media = message.media
     if (!(media instanceof Api.MessageMediaDocument) && !(media instanceof Api.MessageMediaPhoto))
       throw new MessageMediaError('MEDIA_UNSUPPORTED', 'Only photo and document attachments can be downloaded')
+    let fileId: string
     if (media instanceof Api.MessageMediaPhoto) {
       if (!(media.photo instanceof Api.Photo))
         return undefined
+      fileId = media.photo.id.toString()
       const selected = media.photo.sizes.at(-1)
       const photoBytes = selected ? utils._photoSizeByteCount(selected) : undefined
       if (photoBytes === undefined || photoBytes <= 0)
         throw new MessageMediaError('MEDIA_SIZE_UNKNOWN', 'Attachment size cannot be verified before reading')
     }
-    if (media instanceof Api.MessageMediaDocument && !(media.document instanceof Api.Document))
-      return undefined
+    else {
+      if (!(media.document instanceof Api.Document))
+        return undefined
+      fileId = media.document.id.toString()
+    }
     const file = utils.getFileInfo(media)
     if (file.size === undefined || file.size.greater(Number.MAX_SAFE_INTEGER))
       throw new MessageMediaError('MEDIA_SIZE_UNKNOWN', 'Attachment size cannot be verified before reading')
     const document = media instanceof Api.MessageMediaDocument && media.document instanceof Api.Document ? media.document : undefined
     const fileName = document?.attributes.find(attribute => attribute instanceof Api.DocumentAttributeFilename)
     return {
+      fileId,
       type: document ? 'document' : 'photo',
       fileName: fileName instanceof Api.DocumentAttributeFilename ? fileName.fileName : undefined,
-      mimeType: document?.mimeType || undefined,
+      mimeType: document ? document.mimeType || undefined : 'image/jpeg',
       size: file.size.toJSNumber(),
       async read(offset, length, readSignal) {
         readSignal?.throwIfAborted()
@@ -70,7 +76,9 @@ export function createTelegramMessageMediaSource(
           offset: bigInt(offset),
           limit: 1,
           chunkSize: length,
-          requestSize: Math.max(4096, Math.ceil(length / 4096) * 4096),
+          // Telegram limits must divide 1 MiB. GramJS aligns offsets to this size,
+          // so a power of two also keeps each upstream request within one 1 MiB block.
+          requestSize: Math.max(4096, 2 ** Math.ceil(Math.log2(length))),
           msgData: [peer, message.id],
         })
         try {
@@ -129,7 +137,7 @@ export function createLocalMessageMediaSource(options: {
     signal?.throwIfAborted()
     if (bytes) {
       const stored = bytes
-      return { type: media.type, mimeType, size: stored.byteLength, read: async (offset, length) => stored.subarray(offset, offset + length) }
+      return { fileId: media.platformId, type: media.type, mimeType, size: stored.byteLength, read: async (offset, length) => stored.subarray(offset, offset + length) }
     }
     const provider = options.mediaBinaryProvider
     if (!path || !provider)
@@ -139,6 +147,7 @@ export function createLocalMessageMediaSource(options: {
     if (size === null)
       return undefined
     return {
+      fileId: media.platformId,
       type: media.type,
       mimeType,
       size,

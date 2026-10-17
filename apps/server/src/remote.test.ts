@@ -9,6 +9,8 @@ const access = { token: 'synthetic-token-'.repeat(4), accountId: '11111111-1111-
 
 function fixture() {
   const application = {
+    inspectMessageMedia: vi.fn(),
+    downloadMessageMedia: vi.fn(),
     readMessageMedia: vi.fn(),
     listChats: vi.fn(),
     getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [], missingIds: input.messageIds } })),
