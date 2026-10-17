@@ -102,7 +102,7 @@ export interface ClientInstanceEventToCore {
 }
 
 export interface ClientInstanceEventFromCore {
-  [CoreEventType.CoreError]: (data: { error: string, description?: string }) => void
+  [CoreEventType.CoreError]: (data: { error: string, description?: string, code?: string }) => void
 }
 
 // ============================================================================

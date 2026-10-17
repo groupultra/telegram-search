@@ -205,6 +205,25 @@ describe('models/chats', () => {
     expect(result.unwrap()).toEqual([expect.objectContaining({ id: '1', name: 'Older group', type: 'group' })])
   })
 
+  it('fetchAccountChatsPage uses chat ID as a stable pagination tie-breaker', async () => {
+    const db = await setupDb()
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'stable-pagination-user',
+    }).returning()
+    const sameDate = new Date('2024-01-01T00:00:00Z')
+    await chatModels.recordChats(db, [
+      { id: 3, name: 'Third', type: 'group', lastMessageDate: sameDate },
+      { id: 1, name: 'First', type: 'group', lastMessageDate: sameDate },
+      { id: 2, name: 'Second', type: 'group', lastMessageDate: sameDate },
+    ], account.id)
+
+    const firstPage = await chatModels.fetchAccountChatsPage(db, account.id, ['1', '2', '3'], undefined, 0, 2)
+    const secondPage = await chatModels.fetchAccountChatsPage(db, account.id, ['1', '2', '3'], undefined, 2, 2)
+
+    expect([...firstPage.unwrap(), ...secondPage.unwrap()].map(chat => chat.id)).toEqual(['1', '2', '3'])
+  })
+
   it('isChatAccessibleByAccount returns true only when account is linked to chat', async () => {
     const db = await setupDb()
 

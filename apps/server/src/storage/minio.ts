@@ -65,6 +65,47 @@ export async function registerMinioMediaStorage(logger: Logger, dsn: string, acc
   }
 
   const provider: MediaBinaryProvider = {
+    async size(location) {
+      try {
+        return (await client.statObject(bucket, location.path)).size
+      }
+      catch (error) {
+        if ((error as { code?: string }).code === 'NoSuchKey' || (error as { code?: string }).code === 'NotFound')
+          return null
+        throw error
+      }
+    },
+
+    async loadRange(location, offset, length, signal) {
+      signal?.throwIfAborted()
+      const stream = await client.getPartialObject(bucket, location.path, offset, length).catch((error: unknown) => {
+        if ((error as { code?: string }).code === 'NoSuchKey' || (error as { code?: string }).code === 'NotFound')
+          return null
+        throw error
+      })
+      if (!stream)
+        return null
+      const abort = () => stream.destroy(signal?.reason instanceof Error ? signal.reason : new Error('Media read cancelled'))
+      signal?.addEventListener('abort', abort, { once: true })
+      const chunks: Buffer[] = []
+      let received = 0
+      try {
+        signal?.throwIfAborted()
+        for await (const chunk of stream as AsyncIterable<Buffer>) {
+          signal?.throwIfAborted()
+          received += chunk.length
+          if (received > length)
+            throw new Error('Media storage returned more bytes than requested')
+          chunks.push(chunk)
+        }
+        return new Uint8Array(Buffer.concat(chunks))
+      }
+      finally {
+        signal?.removeEventListener('abort', abort)
+        stream.destroy()
+      }
+    },
+
     async save(descriptor: MediaBinaryDescriptor, bytes: Uint8Array, mimeType?: string): Promise<MediaBinaryLocation> {
       const objectName = buildObjectKey(descriptor)
 

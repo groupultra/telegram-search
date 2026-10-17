@@ -1,3 +1,4 @@
+import type { ReadOperationOptions } from '@tg-search/core'
 import type { RemoteMethod } from '@tg-search/protocol'
 import type { GenericSchema, InferOutput } from 'valibot'
 
@@ -152,7 +153,7 @@ function requireReadableChat(credential: RemoteCredential, chatId: string): void
 interface RemoteMethodHandler {
   input: GenericSchema
   scope: (credential: RemoteCredential, input: unknown) => Record<string, unknown>
-  invoke: (application: RemoteApplication, credential: RemoteCredential, input: Record<string, unknown>) => Promise<unknown>
+  invoke: (application: RemoteApplication, credential: RemoteCredential, input: Record<string, unknown>, options: ReadOperationOptions) => Promise<unknown>
   resultChatIds: (input: Record<string, unknown>, data: Record<string, unknown>) => Array<string | undefined> | undefined
 }
 
@@ -161,13 +162,13 @@ type HandlerInput<Schema extends GenericSchema> = InferOutput<Schema> & Record<s
 function defineRemoteHandler<Schema extends GenericSchema>(definition: {
   input: Schema
   scope: (credential: RemoteCredential, input: HandlerInput<Schema>) => HandlerInput<Schema>
-  invoke: (application: RemoteApplication, credential: RemoteCredential, input: HandlerInput<Schema>) => Promise<unknown>
+  invoke: (application: RemoteApplication, credential: RemoteCredential, input: HandlerInput<Schema>, options: ReadOperationOptions) => Promise<unknown>
   resultChatIds: (input: HandlerInput<Schema>, data: Record<string, unknown>) => Array<string | undefined> | undefined
 }): RemoteMethodHandler {
   return {
     input: definition.input,
     scope: (credential, input) => definition.scope(credential, input as HandlerInput<Schema>),
-    invoke: (application, credential, input) => definition.invoke(application, credential, input as HandlerInput<Schema>),
+    invoke: (application, credential, input, options) => definition.invoke(application, credential, input as HandlerInput<Schema>, options),
     resultChatIds: (input, data) => definition.resultChatIds(input as HandlerInput<Schema>, data),
   }
 }
@@ -187,45 +188,69 @@ function itemChatIds(data: Record<string, unknown>): Array<string | undefined> |
 }
 
 const remoteHandlers = {
+  'media.read': defineRemoteHandler({
+    input: remoteMethods['media.read'].input,
+    scope: scopeSingleChat,
+    invoke: (application, _credential, input, options) => application.readMessageMedia(input, options),
+    resultChatIds: (_input, data) => [data.chatId as string | undefined],
+  }),
   'chats.list': defineRemoteHandler({
     input: remoteMethods['chats.list'].input,
     scope: (credential, input) => {
       scopeChatIds(credential)
       return input
     },
-    invoke: (application, credential, input) => credential.readableChatIds === undefined
-      ? application.listChats(input)
+    invoke: (application, credential, input, options) => credential.readableChatIds === undefined
+      ? application.listChats(input, options)
       : application.listStoredChats(input, [...credential.readableChatIds]),
     resultChatIds: (_input, data) => (data.items as Array<{ id?: string }> | undefined)?.map(item => item.id),
+  }),
+  'messages.get': defineRemoteHandler({
+    input: remoteMethods['messages.get'].input,
+    scope: scopeSingleChat,
+    invoke: (application, _credential, input, options) => application.getMessages(input, options),
+    resultChatIds: (_input, data) => itemChatIds(data),
+  }),
+  'messages.replies': defineRemoteHandler({
+    input: remoteMethods['messages.replies'].input,
+    scope: scopeSingleChat,
+    invoke: (application, _credential, input, options) => application.getReplyContext(input, options),
+    resultChatIds: (_input, data) => itemChatIds(data),
+  }),
+  'messages.read': defineRemoteHandler({
+    input: remoteMethods['messages.read'].input,
+    scope: scopeSingleChat,
+    invoke: (application, _credential, input, options) => application.readMessages(input, options),
+    resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.list': defineRemoteHandler({
     input: remoteMethods['messages.list'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input) => application.listRemoteMessages(input),
+    invoke: (application, _credential, input, options) => application.listRemoteMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.query': defineRemoteHandler({
     input: remoteMethods['messages.query'].input,
     scope: scopeMultipleChats,
-    invoke: (application, _credential, input) => application.queryLocalMessages(input),
+    invoke: (application, _credential, input, options) => application.queryLocalMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.search': defineRemoteHandler({
     input: remoteMethods['messages.search'].input,
     scope: scopeMultipleChats,
-    invoke: (application, _credential, input) => application.searchLocalMessages(input),
+    invoke: (application, _credential, input, options) => application.searchLocalMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.context': defineRemoteHandler({
     input: remoteMethods['messages.context'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input) => application.getLocalMessageContext(input),
+    invoke: (application, _credential, input, options) => application.getLocalMessageContext(input, options),
     resultChatIds: (_input, data) => (data.messages as Array<{ chatId?: string }> | undefined)?.map(item => item.chatId),
   }),
   'stats.get': defineRemoteHandler({
     input: remoteMethods['stats.get'].input,
     scope: scopeMultipleChats,
-    invoke: (application, _credential, input) => application.getLocalStats(input),
+    invoke: (application, _credential, input, options) => application.getLocalStats(input, options),
     resultChatIds: (input, data) => input.groupBy === 'chat'
       ? (data.buckets as Array<{ key?: string }> | undefined)?.map(bucket => bucket.key)
       : undefined,
@@ -339,7 +364,12 @@ export function createRemoteApi(
 
       parsedInput = await readValidatedBody(event, handler.input) as Record<string, unknown>
       scopedInput = handler.scope(credential, parsedInput)
-      const result = await handler.invoke(getApplication(credential.accountId), credential, scopedInput)
+      const operation = scopedInput.operation as { deadlineAt?: number } | undefined
+      const options: ReadOperationOptions = {
+        signal: event.req.signal,
+        deadlineAt: operation?.deadlineAt,
+      }
+      const result = await handler.invoke(getApplication(credential.accountId), credential, scopedInput, options)
       assertResultScope(credential, handler, scopedInput, result)
       const resultSummary = summarizeResult(result)
       await audit({

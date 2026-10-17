@@ -96,6 +96,30 @@ Visit: https://search.lingogram.app
 
 ## 🚀 Quick Start
 
+### Install the CLI with Homebrew (macOS / Linux)
+
+Homebrew installs the local CLI and its Node.js runtime dependency. No manual Node.js installation or repository build is needed. For the web interface, use the Docker deployment below.
+
+```bash
+brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
+brew install groupultra/telegram-search/tg-search
+
+tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
+tg-search auth login
+brew services start groupultra/telegram-search/tg-search
+tg-search daemon status
+```
+
+Get your API ID and API Hash from [my.telegram.org](https://my.telegram.org). These commands use the `default` profile; authenticate before starting the service. Run `brew services` as your user, without `sudo`. The daemon runs in the background and starts at system login. After Telegram login, it persists new messages, edits, and deletions. Bulk history still requires an explicit `sync --takeout` command.
+
+```bash
+brew services stop groupultra/telegram-search/tg-search
+brew upgrade groupultra/telegram-search/tg-search
+brew services restart groupultra/telegram-search/tg-search
+```
+
+Upgrades preserve profile data. Rotating logs are `daemon.stdout.log` and `daemon.stderr.log` in the default profile directory. For another profile, run `tg-search --profile NAME daemon run`. See the [CLI documentation](../packages/cli/README.md) for data paths, commands, and privacy boundaries.
+
 ### Deploy with Docker Compose
 
 The recommended way to self-host is with Docker Compose. This launches the UI, backend, database, and media storage in one step.

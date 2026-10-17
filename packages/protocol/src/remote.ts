@@ -1,39 +1,27 @@
 import type { GenericSchema } from 'valibot'
 
-import { array, boolean, literal, nullable, number, object, optional, pipe, string, toLowerCase, union, uuid } from 'valibot'
+import { array, literal, nullable, number, object, optional, pipe, string, toLowerCase, union, uuid } from 'valibot'
 
 import { chatRecordSchema, listChatsInputSchema } from './chats'
 import { appErrorSchema } from './errors'
-import { listRemoteMessagesInputSchema, messageContextInputSchema, queryLocalMessagesInputSchema, searchMessagesInputSchema } from './messages'
+import { messageMediaChunkSchema, readMessageMediaInputSchema } from './media'
+import { getMessagesInputSchema, getMessagesResultSchema, listRemoteMessagesInputSchema, messageContextInputSchema, messageRecordSchema, queryLocalMessagesInputSchema, readMessagesInputSchema, readMessagesResultSchema, replyContextInputSchema, replyContextResultSchema, searchMessagesInputSchema } from './messages'
 import { statsInputSchema } from './stats'
 
-const messageSchema = object({
-  id: string(),
-  chatId: string(),
-  senderId: string(),
-  senderName: string(),
-  timestamp: number(),
-  text: string(),
-  replyToId: optional(string()),
-  forward: object({ isForward: boolean(), fromChatId: optional(string()), fromChatName: optional(string()), fromMessageId: optional(string()) }),
-  media: array(object({ type: string(), fileName: optional(string()), mimeType: optional(string()), telegramReference: optional(string()) })),
-  links: array(object({ url: string(), title: optional(string()) })),
-  editedAt: optional(number()),
-  deletedAt: optional(number()),
-  similarity: optional(number()),
-  combinedScore: optional(number()),
-})
-
-const messagePageSchema = object({ items: array(messageSchema), nextCursor: nullable(string()), total: optional(number()) })
+const messagePageSchema = object({ items: array(object({ ...messageRecordSchema.entries, similarity: optional(number()), combinedScore: optional(number()) })), nextCursor: nullable(string()), total: optional(number()) })
 
 export const accountIdSchema = pipe(string('Expected a database account UUID'), uuid('Expected a database account UUID'), toLowerCase())
 
 export const remoteMethods = {
+  'media.read': { input: readMessageMediaInputSchema, output: messageMediaChunkSchema },
   'chats.list': { input: listChatsInputSchema, output: object({ items: array(chatRecordSchema), nextCursor: nullable(string()), total: optional(number()) }) },
+  'messages.replies': { input: replyContextInputSchema, output: replyContextResultSchema },
+  'messages.read': { input: readMessagesInputSchema, output: readMessagesResultSchema },
+  'messages.get': { input: getMessagesInputSchema, output: getMessagesResultSchema },
   'messages.list': { input: listRemoteMessagesInputSchema, output: messagePageSchema },
   'messages.query': { input: queryLocalMessagesInputSchema, output: messagePageSchema },
   'messages.search': { input: searchMessagesInputSchema, output: messagePageSchema },
-  'messages.context': { input: messageContextInputSchema, output: object({ messages: array(messageSchema), targetIndex: number() }) },
+  'messages.context': { input: messageContextInputSchema, output: object({ messages: array(object({ ...messageRecordSchema.entries, similarity: optional(number()), combinedScore: optional(number()) })), targetIndex: number() }) },
   'stats.get': { input: statsInputSchema, output: object({ total: number(), buckets: array(object({ key: string(), count: number(), firstTimestamp: number(), lastTimestamp: number() })) }) },
 } as const
 

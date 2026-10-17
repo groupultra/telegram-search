@@ -68,6 +68,32 @@ function buildOpfsPath(descriptor: MediaBinaryDescriptor): string {
 
 export async function registerOpfsMediaStorage(): Promise<MediaBinaryProvider> {
   const provider: MediaBinaryProvider = {
+    async size(location) {
+      try {
+        return (await (await getFileHandle(location.path)).getFile()).size
+      }
+      catch (error) {
+        if (error instanceof DOMException && error.name === 'NotFoundError')
+          return null
+        throw error
+      }
+    },
+
+    async loadRange(location, offset, length, signal) {
+      signal?.throwIfAborted()
+      try {
+        const file = await (await getFileHandle(location.path)).getFile()
+        const buffer = await file.slice(offset, offset + length).arrayBuffer()
+        signal?.throwIfAborted()
+        return new Uint8Array(buffer)
+      }
+      catch (error) {
+        if (error instanceof DOMException && error.name === 'NotFoundError')
+          return null
+        throw error
+      }
+    },
+
     async save(descriptor: MediaBinaryDescriptor, bytes: Uint8Array, _mimeType?: string): Promise<MediaBinaryLocation> {
       const path = buildOpfsPath(descriptor)
       const fileHandle = await ensureFileHandle(path)

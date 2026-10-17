@@ -2,6 +2,8 @@ import type { Logger } from '@guiiai/logg'
 import type {
   CursorPage,
   ExportMessageRecord,
+  GetMessagesInput,
+  GetMessagesResult,
   MessageContext,
   MessageContextInput,
   MessageRecord,
@@ -13,13 +15,20 @@ import type {
 import type { CoreDB } from '../db'
 import type { Models } from '../models'
 
+import { localMessageCursorSchema } from '@tg-search/protocol'
+import { safeParse } from 'valibot'
+
+import { ApplicationError } from '../application/errors'
 import { convertToCoreMessageFromDB, convertToCoreRetrievalMessages } from '../models/utils/message'
 import { EmbeddingDimension } from '../types/account-settings'
 import { coreMessageToRecord } from './remote-messages'
 
 function cursorOffset(cursor?: string): number {
-  const offset = Number.parseInt(cursor ?? '0', 10)
-  return Number.isSafeInteger(offset) && offset >= 0 ? offset : 0
+  if (cursor === undefined)
+    return 0
+  if (!safeParse(localMessageCursorSchema, cursor).success)
+    throw new ApplicationError({ code: 'INVALID_ARGUMENT', message: 'Local cursor must be a non-negative safe integer offset', retryable: false })
+  return Number(cursor)
 }
 
 export function createLocalMessagesService(options: {
@@ -48,25 +57,37 @@ export function createLocalMessagesService(options: {
     }
   }
 
+  async function getByReferences(references: Array<{ chatId: string, messageId: string }>): Promise<Map<string, MessageRecord>> {
+    if (references.length === 0)
+      return new Map()
+    const rows = (await models.chatMessageModels.fetchMessagesByChatAndPlatformIds(db, getAccountId(), references))
+      .expect('Failed to get local messages')
+    return new Map(rows.map(convertToCoreMessageFromDB).map(coreMessageToRecord).map(message => [`${message.chatId}:${message.id}`, message]))
+  }
+
+  async function get(input: GetMessagesInput): Promise<GetMessagesResult> {
+    const ids = [...new Set(input.messageIds)]
+    const records = await getByReferences(ids.map(messageId => ({ chatId: input.chatId, messageId })))
+    return {
+      source: 'local',
+      items: ids.flatMap(id => records.has(`${input.chatId}:${id}`) ? [records.get(`${input.chatId}:${id}`)!] : []),
+      missingIds: ids.filter(id => !records.has(`${input.chatId}:${id}`)),
+    }
+  }
+
   async function queryForExport(input: QueryLocalMessagesInput): Promise<CursorPage<ExportMessageRecord>> {
     const page = await query(input)
-    const references = page.items.flatMap(message => message.replyToId
-      ? [{ chatId: message.chatId, messageId: message.replyToId }]
-      : [])
-    if (references.length === 0)
-      return page
-
-    const replyRows = (await models.chatMessageModels.fetchMessagesByChatAndPlatformIds(
-      db,
-      getAccountId(),
-      references,
-    )).expect('Failed to resolve exported reply context')
-    const replyByReference = new Map(
-      replyRows
-        .map(convertToCoreMessageFromDB)
-        .map(coreMessageToRecord)
-        .map(message => [`${message.chatId}:${message.id}`, message] as const),
-    )
+    const selectedChats = input.chatIds?.length ? new Set(input.chatIds) : undefined
+    const references = page.items.flatMap((message) => {
+      if (!message.replyToId)
+        return []
+      const chatId = message.replyToChatId ?? message.chatId
+      // Reply hydration may leave the time window, but must retain the export's explicit chat scope.
+      if (selectedChats && !selectedChats.has(chatId))
+        return []
+      return [{ chatId, messageId: message.replyToId }]
+    })
+    const replyByReference = await getByReferences(references)
 
     return {
       ...page,
@@ -75,7 +96,7 @@ export function createLocalMessagesService(options: {
           return message
         return {
           ...message,
-          replyTo: replyByReference.get(`${message.chatId}:${message.replyToId}`) ?? null,
+          replyTo: replyByReference.get(`${message.replyToChatId ?? message.chatId}:${message.replyToId}`) ?? null,
         }
       }),
     }
@@ -121,5 +142,5 @@ export function createLocalMessagesService(options: {
     }
   }
 
-  return { context, query, queryForExport, search }
+  return { context, get, query, queryForExport, search }
 }

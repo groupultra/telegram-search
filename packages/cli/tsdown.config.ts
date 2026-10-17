@@ -17,5 +17,12 @@ export default defineConfig({
     /^@tg-search\//,
     /^telegram(?:\/|$)/,
   ],
+  // NOTICE: GramJS bundles store2, which probes browser storage globals at import
+  // time. Mark them unavailable in this Node-only bundle so Node 25+ does not
+  // emit an experimental web storage warning for every CLI command.
+  define: {
+    localStorage: 'undefined',
+    sessionStorage: 'undefined',
+  },
   banner: { js: '#!/usr/bin/env node' },
 })

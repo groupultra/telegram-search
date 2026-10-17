@@ -1,2 +1,2 @@
-export { connectDaemon } from './client'
+export { connectDaemon, stopDaemon } from './client'
 export { runDaemon } from './host'

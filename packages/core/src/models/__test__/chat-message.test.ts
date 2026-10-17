@@ -66,7 +66,7 @@ describe('models/chat-message', () => {
     ])
     await chatMessageModels.recordMessages(db, owner.id, [buildCoreMessage({ chatId: visible.chat_id, platformTimestamp: 10 })])
     await chatMessageModels.recordMessages(db, other.id, [buildCoreMessage({ chatId: hidden.chat_id, platformTimestamp: 20 })])
-    return { db, owner, visible, hidden }
+    return { db, owner, other, visible, hidden }
   }
 
   it('excludes another account group from time-range queries, including explicit chat filters', async () => {
@@ -74,6 +74,30 @@ describe('models/chat-message', () => {
     const result = (await chatMessageModels.fetchMessagesByTimeRange(db, owner.id, { start: 0, end: 100 })).unwrap()
     expect(result.map(message => message.in_chat_id)).toEqual([visible.chat_id])
     expect((await chatMessageModels.fetchMessagesByTimeRange(db, owner.id, { start: 0, end: 100 }, [hidden.chat_id])).unwrap()).toEqual([])
+  })
+
+  it('denies guessed batch references in another account group', async () => {
+    // Issue #682: reply point reads must use the same membership ACL as range reads.
+    const { db, owner, visible, hidden } = await accountIsolationFixture()
+    const result = (await chatMessageModels.fetchMessagesByChatAndPlatformIds(db, owner.id, [
+      { chatId: visible.chat_id, messageId: '1' },
+      { chatId: hidden.chat_id, messageId: '1' },
+    ])).unwrap()
+    expect(result.map(message => message.in_chat_id)).toEqual([visible.chat_id])
+  })
+
+  it('denies another account group point read even though the stored message has no owner', async () => {
+    // Shared group rows have NULL owner_account_id: the account/chat membership must gate this read.
+    const { db, owner, other, hidden } = await accountIsolationFixture()
+    const references = [{ chatId: hidden.chat_id, messageId: '1' }]
+
+    const memberRows = (await chatMessageModels.fetchMessagesByChatAndPlatformIds(db, other.id, references)).unwrap()
+    expect(memberRows.map(row => ({ chatId: row.in_chat_id, id: row.platform_message_id, owner: row.owner_account_id }))).toEqual([
+      { chatId: hidden.chat_id, id: '1', owner: null },
+    ])
+
+    const nonMemberRows = (await chatMessageModels.fetchMessagesByChatAndPlatformIds(db, owner.id, references)).unwrap()
+    expect(nonMemberRows).toEqual([])
   })
 
   it('denies guessed message context in another account group', async () => {
@@ -362,6 +386,7 @@ describe('models/chat-message', () => {
       { platform: 'telegram', chat_id: 'chat-a', chat_name: 'Chat A', chat_type: 'group' },
       { platform: 'telegram', chat_id: 'chat-b', chat_name: 'Chat B', chat_type: 'group' },
     ]).returning()
+    await db.insert(accountJoinedChatsTable).values(chats.map(chat => ({ account_id: account.id, joined_chat_id: chat.id })))
     await db.insert(chatMessagesTable).values(chats.map((chat, index) => ({
       platform: 'telegram',
       platform_message_id: '7',

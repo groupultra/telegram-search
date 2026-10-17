@@ -1,3 +1,5 @@
+import type { MessageRecord } from '@tg-search/protocol'
+
 import type { CoreMessageMedia } from './media'
 
 export interface CoreMessage {
@@ -14,6 +16,8 @@ export interface CoreMessage {
   content: string
   media?: CoreMessageMedia[]
   links?: CoreMessageLink[]
+
+  telegramMetadata?: Pick<MessageRecord, 'replyToChatId' | 'replyToTopId' | 'forumTopic' | 'quote' | 'groupedId' | 'editedAt'>
 
   reply: CoreMessageReply
   forward: CoreMessageForward
@@ -40,6 +44,10 @@ export interface CoreMessageForward {
   forwardFromChatId?: string
   forwardFromChatName?: string
   forwardFromMessageId?: string
+  fromSenderId?: string
+  fromName?: string
+  date?: number
+  postAuthor?: string
 }
 
 export interface CoreMessageLink {

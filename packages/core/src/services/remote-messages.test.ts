@@ -124,3 +124,27 @@ describe('remote messages', () => {
     expect(page.total).toBe(10)
   })
 })
+
+describe('explicit message point reads', () => {
+  it('requests bounded IDs without falling back to history, and reports unavailable IDs', async () => {
+    const getMessages = vi.fn(async () => [textMessage(2), new Api.MessageEmpty({ id: 3 })])
+    const { createGetRemoteMessagesService } = await import('./remote-messages')
+    const get = createGetRemoteMessagesService({ getMessages } as unknown as TelegramClient, async () => inputPeer)
+    const result = await get({ source: 'telegram', chatId: '42', messageIds: ['2', '3', '2'] })
+    expect(getMessages).toHaveBeenCalledExactlyOnceWith(inputPeer, { ids: [2, 3] })
+    expect(result.items.map(message => message.id)).toEqual(['2'])
+    expect(result.missingIds).toEqual(['3'])
+    expect(result.source).toBe('telegram')
+  })
+
+  it('preserves native reply and forward facts from Telegram', async () => {
+    const native = textMessage(4)
+    native.replyTo = new Api.MessageReplyHeader({ replyToMsgId: 2, replyToTopId: 1, forumTopic: true, replyToPeerId: new Api.PeerChannel({ channelId: bigInt(43) }), quoteText: 'excerpt', quoteOffset: 5, quote: true })
+    native.groupedId = bigInt(99)
+    native.fwdFrom = new Api.MessageFwdHeader({ fromId: new Api.PeerUser({ userId: bigInt(9) }), fromName: 'Origin', date: 3 })
+    const getMessages = vi.fn(async () => [native])
+    const { createGetRemoteMessagesService } = await import('./remote-messages')
+    const result = await createGetRemoteMessagesService({ getMessages } as unknown as TelegramClient, async () => inputPeer)({ source: 'telegram', chatId: '42', messageIds: ['4'] })
+    expect(result.items[0]).toMatchObject({ replyToId: '2', replyToChatId: '43', replyToTopId: '1', forumTopic: true, groupedId: '99', quote: { text: 'excerpt', offset: 5, manual: true }, forward: { fromSenderId: '9', fromName: 'Origin', date: 3 } })
+  })
+})

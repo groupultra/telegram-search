@@ -57,6 +57,10 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
       : undefined,
     forwardFromChatName: undefined, // Needs async channel lookup
     forwardFromMessageId: message.fwdFrom?.channelPost?.toString(),
+    fromSenderId: message.fwdFrom?.fromId instanceof Api.PeerUser ? message.fwdFrom.fromId.userId.toString() : undefined,
+    fromName: message.fwdFrom?.fromName,
+    date: message.fwdFrom?.date,
+    postAuthor: message.fwdFrom?.postAuthor,
   }
 
   // Get reply info
@@ -87,6 +91,26 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
       content,
       media,
       reply,
+      telegramMetadata: {
+        replyToChatId: message.replyTo?.replyToPeerId instanceof Api.PeerChannel
+          ? message.replyTo.replyToPeerId.channelId.toString()
+          : message.replyTo?.replyToPeerId instanceof Api.PeerChat
+            ? message.replyTo.replyToPeerId.chatId.toString()
+            : message.replyTo?.replyToPeerId instanceof Api.PeerUser
+              ? message.replyTo.replyToPeerId.userId.toString()
+              : undefined,
+        replyToTopId: message.replyTo?.replyToTopId?.toString(),
+        forumTopic: message.replyTo?.forumTopic,
+        quote: message.replyTo?.quoteText === undefined
+          ? undefined
+          : {
+              text: message.replyTo.quoteText,
+              offset: message.replyTo.quoteOffset,
+              manual: message.replyTo.quote,
+            },
+        groupedId: message.groupedId?.toString(),
+        editedAt: message.editDate,
+      },
       forward,
       platformTimestamp: message.date,
     } satisfies CoreMessage,

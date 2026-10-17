@@ -101,6 +101,32 @@
 
 仓库现在提供本地优先的 TypeScript CLI。用户只需为命名 profile 完成本地登录，Agent 即可自行组合命令决定是否拉取、拉取哪些会话，以及何时显式同步。
 
+#### 通过 Homebrew 安装（macOS / Linux）
+
+Homebrew 会安装 CLI 及其 Node.js 运行时依赖，无需手动安装 Node.js 或构建仓库。此安装方式提供本地 CLI 和 daemon；网页界面的部署方式见下方 Docker 说明。
+
+```bash
+brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
+brew install groupultra/telegram-search/tg-search
+
+tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
+tg-search auth login
+brew services start groupultra/telegram-search/tg-search
+tg-search daemon status
+```
+
+API ID 和 API Hash 可在 [my.telegram.org](https://my.telegram.org) 获取。以上命令使用 `default` profile，先完成登录再启动服务。请以当前用户运行 `brew services`，不要使用 `sudo`。服务在后台保持 Telegram 连接，并在用户登录系统后启动；登录 Telegram 后会持续保存新消息及其编辑、删除更新。批量历史同步仍需显式运行 `sync --takeout`。
+
+```bash
+brew services stop groupultra/telegram-search/tg-search
+brew upgrade groupultra/telegram-search/tg-search
+brew services restart groupultra/telegram-search/tg-search
+```
+
+升级保留 profile 数据。日志位于 `default` profile 目录中的 `daemon.stdout.log` 和 `daemon.stderr.log`，由 daemon 轮转。其他命名 profile 可通过 `tg-search --profile NAME daemon run` 启动，详细路径和命令见 [CLI 文档](./packages/cli/README.md)。
+
+#### 从源码构建
+
 ```bash
 pnpm run build:packages
 pnpm -F @tg-search/cli build
@@ -108,11 +134,11 @@ pnpm -F @tg-search/cli build
 pnpm cli --profile work profile configure --apiId 123456 --apiHash abcdef
 pnpm cli --profile work auth login
 pnpm cli --profile work chats list --json
-pnpm cli --profile work sync --takeout --chat 123456 --from 2026-01-01 --to 2026-12-31
-pnpm cli --profile work export --from 2026-01-01 --to 2026-12-31 --output ./telegram-2026
+pnpm cli --profile work sync --takeout --chat 123456 --from 2026-01-01 --to 2026-12-31 --json
+pnpm cli --profile work export --from 2026-01-01 --to 2026-12-31 --output ./telegram-2026 --json
 ```
 
-`chats list` 和 `messages list` 只做有界的远端读取，不持久化消息。批量同步必须先征得用户同意，并由 Agent 在 `sync` 命令中显式加入 `--takeout`；未授权、用户拒绝或 Takeout 初始化失败都会停止，不会退回普通 `GetHistory`。文本同步只申请所选会话类别，不申请联系人或文件导出权限。同步结果写入 profile 独立的 PGlite。CLI 的 stdout 只输出 JSON 结果，Telegram 日志、提示与进度写入 stderr。导出包含按月 JSONL 和校验清单，不包含媒体二进制、登录 session、向量或密钥，也不会替用户执行 AI 总结。
+`chats list` 和 `messages list` 只做有界的远端读取，不持久化消息。批量同步必须先征得用户同意，并由 Agent 在 `sync` 命令中显式加入 `--takeout`；未授权、用户拒绝或 Takeout 初始化失败都会停止，不会退回普通 `GetHistory`。文本同步只申请所选会话类别，不申请联系人或文件导出权限。同步结果写入 profile 独立的 PGlite。CLI 默认输出便于阅读的文本；Agent 调用显式加入 `--json`，让 stdout 只包含稳定的 JSON envelope。Telegram 日志、提示与进度写入 stderr。导出包含按月 JSONL 和校验清单，不包含媒体二进制、登录 session、向量或密钥，也不会替用户执行 AI 总结。
 
 完整命令与隐私边界见 [`packages/cli/README.md`](./packages/cli/README.md)。
 

@@ -26,6 +26,7 @@ function buildDBSelectMessage(overrides: Partial<DBSelectMessage> = {}): DBSelec
     is_reply: overrides.is_reply ?? false,
     reply_to_name: overrides.reply_to_name ?? '',
     reply_to_id: overrides.reply_to_id ?? '',
+    telegram_metadata: overrides.telegram_metadata ?? null,
     forward: overrides.forward ?? { isForward: false },
     media: overrides.media ?? [],
     links: overrides.links ?? [],
@@ -51,6 +52,7 @@ function buildCoreMessage(overrides: Partial<CoreMessage> = {}): CoreMessage {
     fromName: overrides.fromName ?? 'From 1',
     content: overrides.content ?? 'content',
     reply: overrides.reply ?? { isReply: false, replyToId: undefined, replyToName: undefined },
+    telegramMetadata: overrides.telegramMetadata,
     forward: overrides.forward ?? { isForward: false },
     platformTimestamp: overrides.platformTimestamp ?? 1,
     createdAt: overrides.createdAt,
@@ -63,6 +65,14 @@ function buildCoreMessage(overrides: Partial<CoreMessage> = {}): CoreMessage {
 }
 
 describe('models/utils/message', () => {
+  it('round trips native relationship facts through storage without inventing edit dates', () => {
+    const metadata = { replyToChatId: '42', replyToTopId: '1', forumTopic: true, quote: { text: 'excerpt', offset: 2 }, groupedId: '99', editedAt: 12 }
+    const core = buildCoreMessage({ telegramMetadata: metadata })
+    const insert = convertToDBInsertMessage(null, 'group', core)
+    expect(insert.telegram_metadata).toEqual(metadata)
+    expect(convertToCoreMessageFromDB(buildDBSelectMessage({ telegram_metadata: metadata })).telegramMetadata).toEqual(metadata)
+  })
+
   describe('convertToCoreMessageFromDB', () => {
     it('maps DBSelectMessage to CoreMessage and preserves all key fields', () => {
       const dbMessage = buildDBSelectMessage({

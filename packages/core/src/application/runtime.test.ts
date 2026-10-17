@@ -1,4 +1,5 @@
 import type { Logger } from '@guiiai/logg'
+import type { Dialog } from 'telegram/tl/custom/dialog'
 
 import type { CoreContext } from '../context'
 import type { Models } from '../models'
@@ -39,7 +40,12 @@ function createHarness(messages: Api.Message[] = []) {
   })
   const getMessages = vi.fn(async () => messages)
   const getEntity = vi.fn(async () => channel)
-  const client = { getDialogs, getMessages, getEntity }
+  const iterDialogs = vi.fn((options: { limit?: number, offsetDate?: number }): AsyncIterable<Dialog> => ({
+    async* [Symbol.asyncIterator]() {
+      yield* await getDialogs(options) as unknown as Dialog[]
+    },
+  }))
+  const client = { getDialogs, iterDialogs, getMessages, getEntity }
   const recordChats = vi.fn(async () => [])
   const recordMessages = vi.fn(async () => [])
   const getInputPeer = vi.fn(async () => inputPeer)
@@ -69,6 +75,7 @@ function createHarness(messages: Api.Message[] = []) {
     context,
     entityService,
     getDialogs,
+    iterDialogs,
     getEntity,
     getInputPeer,
     getMessages,
@@ -83,6 +90,42 @@ function createHarness(messages: Api.Message[] = []) {
 }
 
 describe('telegram application runtime remote boundaries', () => {
+  it('does not start a point-read RPC after cancellation while resolving its peer', async () => {
+    // Point reads must check cancellation between peer resolution and fetching message IDs.
+    const harness = createHarness()
+    let releasePeer!: (peer: Api.InputPeerChannel) => void
+    harness.getInputPeer.mockImplementationOnce(() => new Promise((resolve) => {
+      releasePeer = resolve
+    }))
+    const runtime = createTelegramApplicationRuntime(harness)
+    const controller = new AbortController()
+    const pending = runtime.getMessages({ source: 'telegram', chatId: '42', messageIds: ['1'] }, { signal: controller.signal })
+    await vi.waitFor(() => expect(harness.getInputPeer).toHaveBeenCalledOnce())
+    controller.abort()
+    expect(await pending).toMatchObject({ ok: false, error: { code: 'REQUEST_CANCELLED' } })
+    releasePeer(harness.inputPeer)
+    await new Promise<void>(resolve => setImmediate(resolve))
+    expect(harness.getMessages).not.toHaveBeenCalled()
+  })
+
+  it('bounds an explicit point read by its deadline while retaining the shared client', async () => {
+    const harness = createHarness()
+    const pending = new Promise<Api.Message[]>(() => {})
+    harness.getMessages.mockReturnValueOnce(pending)
+    const runtime = createTelegramApplicationRuntime(harness)
+    const result = await runtime.getMessages({ source: 'telegram', chatId: '42', messageIds: ['1'], operation: { deadlineAt: Date.now() + 100 } })
+    expect(result).toMatchObject({ ok: false, error: { code: 'REQUEST_DEADLINE_EXCEEDED', details: { sdkCancellation: 'unsupported', inFlightMayContinue: true } } })
+    expect(harness.getMessages).toHaveBeenCalledTimes(1)
+  })
+
+  it('classifies a local window cursor error without querying or claiming exhaustion', async () => {
+    const harness = createHarness()
+    const runtime = createTelegramApplicationRuntime(harness)
+    const result = await runtime.readMessages({ source: 'local', chatId: '42', cursor: '9'.repeat(40), pageSize: 100, maxPages: 1, maxMessages: 100 })
+    expect(result).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(harness.getMessages).not.toHaveBeenCalled()
+  })
+
   it('lists dialogs without the epoch offset and persists their access hashes', async () => {
     const harness = createHarness()
     const runtime = createTelegramApplicationRuntime(harness)
@@ -96,6 +139,36 @@ describe('telegram application runtime remote boundaries', () => {
       [expect.objectContaining({ id: 42, accessHash: '99', type: 'channel' })],
       'account-1',
     )
+  })
+
+  it('stops dialog iteration after cancellation before requesting another page (issue #682)', async () => {
+    // getDialogs() collects SDK pages internally and cannot observe our signal.
+    // Owning public iterator.next() lets the application stop that pagination.
+    const harness = createHarness()
+    const controller = new AbortController()
+    let settlePage!: (result: IteratorResult<Dialog>) => void
+    const next = vi.fn<() => Promise<IteratorResult<Dialog>>>()
+      .mockResolvedValueOnce({ done: false, value: { entity: harness.channel } as Dialog })
+      .mockImplementationOnce(() => new Promise<IteratorResult<Dialog>>((resolve) => {
+        settlePage = resolve
+      }))
+      .mockResolvedValue({ done: true, value: undefined })
+    harness.iterDialogs.mockReturnValue({ [Symbol.asyncIterator]: () => ({ next }) })
+    const runtime = createTelegramApplicationRuntime(harness)
+    const pending = runtime.listChats({ limit: 300 }, { signal: controller.signal })
+    try {
+      await vi.waitFor(() => expect(next).toHaveBeenCalledTimes(2))
+      controller.abort()
+      await expect(pending).resolves.toMatchObject({ ok: false, error: { code: 'REQUEST_CANCELLED', details: { sdkCancellation: 'unsupported', inFlightMayContinue: true } } })
+      settlePage({ done: false, value: { entity: harness.channel } as Dialog })
+      await new Promise<void>(resolve => queueMicrotask(resolve))
+      expect(next).toHaveBeenCalledTimes(2)
+      expect(harness.recordChats).not.toHaveBeenCalled()
+    }
+    finally {
+      controller.abort()
+      await pending
+    }
   })
 
   it('resolves numeric chat IDs through the shared DB-backed entity service', async () => {

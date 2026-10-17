@@ -1,7 +1,7 @@
 import type { TelegramApplication } from '../application/runtime'
 
 import { createContext, defineInvokes, defineStreamInvoke } from '@moeru/eventa'
-import { chatContracts, exportContracts } from '@tg-search/protocol'
+import { chatContracts, exportContracts, messageContracts } from '@tg-search/protocol'
 import { describe, expect, it, vi } from 'vitest'
 
 import { registerApplicationHandlers } from './index'
@@ -9,7 +9,11 @@ import { registerApplicationHandlers } from './index'
 function fakeApplication(overrides: Partial<TelegramApplication> = {}): TelegramApplication {
   return {
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [], nextCursor: null } })),
+    getReplyContext: vi.fn(),
+    readMessages: vi.fn(),
+    getMessages: vi.fn(async () => ({ ok: true as const, data: { source: 'local' as const, items: [], missingIds: [] } })),
     listRemoteMessages: vi.fn(),
+    readMessageMedia: vi.fn(),
     queryLocalMessages: vi.fn(),
     searchLocalMessages: vi.fn(),
     getLocalMessageContext: vi.fn(),
@@ -21,6 +25,30 @@ function fakeApplication(overrides: Partial<TelegramApplication> = {}): Telegram
 }
 
 describe('application invoke handlers', () => {
+  it('validates and exposes explicit point reads through Eventa', async () => {
+    const context = createContext()
+    const application = fakeApplication()
+    registerApplicationHandlers(context, application)
+    const invokes = defineInvokes(context, messageContracts)
+    await invokes.get({ source: 'local', chatId: '42', messageIds: ['1'] })
+    expect(application.getMessages).toHaveBeenCalledExactlyOnceWith({ source: 'local', chatId: '42', messageIds: ['1'] }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(await invokes.get({ source: 'local', chatId: '42', messageIds: [] })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(application.getMessages).toHaveBeenCalledTimes(1)
+  })
+
+  it('classifies unsafe source-specific cursors as INVALID_ARGUMENT before dispatch', async () => {
+    const context = createContext()
+    const application = fakeApplication()
+    registerApplicationHandlers(context, application)
+    const invokes = defineInvokes(context, messageContracts)
+    const cursor = '9'.repeat(40)
+    expect(await invokes.queryLocal({ cursor, limit: 100 })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(await invokes.read({ source: 'local', chatId: '42', cursor, pageSize: 100, maxPages: 1, maxMessages: 100 })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(await invokes.read({ source: 'telegram', chatId: '42', cursor, pageSize: 100, maxPages: 1, maxMessages: 100 })).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    expect(application.queryLocalMessages).not.toHaveBeenCalled()
+    expect(application.readMessages).not.toHaveBeenCalled()
+  })
+
   it('exposes unary application methods through Eventa', async () => {
     const context = createContext()
     registerApplicationHandlers(context, fakeApplication())
@@ -30,6 +58,27 @@ describe('application invoke handlers', () => {
       ok: true,
       data: { items: [], nextCursor: null },
     })
+  })
+
+  it('forwards per-invoke cancellation and the original deadline to the application', async () => {
+    const context = createContext()
+    let appSignal!: AbortSignal
+    const application = fakeApplication({ listChats: async (_input, options) => {
+      appSignal = options!.signal!
+      expect(options!.deadlineAt).toBe(123456789)
+      return new Promise((resolve) => {
+        appSignal.addEventListener('abort', () => resolve({ ok: false, error: { code: 'REQUEST_CANCELLED', message: 'Cancelled', retryable: false } }), { once: true })
+      })
+    } })
+    registerApplicationHandlers(context, application)
+    const controller = new AbortController()
+    const pending = defineInvokes(context, chatContracts).list({ limit: 1, operation: { deadlineAt: 123456789 } }, { signal: controller.signal })
+    await new Promise<void>(resolve => queueMicrotask(resolve))
+    const rejected = expect(pending).rejects.toThrow()
+    controller.abort()
+    await rejected
+    expect(appSignal.aborted).toBe(true)
+    expect(context.signal.aborted).toBe(false)
   })
 
   it('returns INVALID_ARGUMENT for an invalid runtime payload', async () => {

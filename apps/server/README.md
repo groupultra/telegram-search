@@ -15,7 +15,7 @@ The authenticated API is disabled by default. Set `TG_SEARCH_REMOTE_ACCESS` to a
       "token": "replace-with-at-least-32-random-characters",
       "accountId": "20eff9ca-a2f9-4556-a5f8-39bca8f61951",
       "expiresAt": 1798761600000,
-      "capabilities": ["chats.list", "messages.list", "messages.query", "messages.search", "messages.context", "stats.get"],
+      "capabilities": ["chats.list", "messages.get", "messages.replies", "messages.read", "messages.list", "media.read", "messages.query", "messages.search", "messages.context", "stats.get"],
       "chatPermissions": [
         { "chatId": "123456", "permissions": ["read"] },
         { "chatId": "789012", "permissions": ["read"] }
@@ -29,7 +29,7 @@ Generate each token with `openssl rand -hex 32`. `id` and `accountId` are databa
 
 Each client supplies its own token through `TG_SEARCH_REMOTE_TOKEN` and passes the HTTPS server base URL through `--remote`, `TG_SEARCH_REMOTE_URL`, or `profile remote <url>`. Remove or expire a credential to revoke it; use a new credential ID and token when rotating access.
 
-`POST /v1/remote/:method` accepts JSON and `Authorization: Bearer <token>`. Methods are `chats.list`, `messages.list`, `messages.query`, `messages.search`, `messages.context`, and `stats.get`. Requests reuse protocol validation and the Core application. The server selects the account from configuration, never from request input. No sync, arbitrary RPC, filesystem export, or account-management endpoint is exposed.
+`POST /v1/remote/:method` accepts JSON and `Authorization: Bearer <token>`. Methods are `chats.list`, `messages.get`, `messages.replies`, `messages.read`, `messages.list`, `media.read`, `messages.query`, `messages.search`, `messages.context`, and `stats.get`. Requests reuse protocol validation and the Core application. The server selects the account from configuration, never from request input. No sync, arbitrary RPC, filesystem export, or account-management endpoint is exposed.
 
 Indexed queries and selected-chat discovery use the existing server database even after restart. Listing every chat and reading live Telegram messages require an active, authorized account runtime on this server and return `TELEGRAM_NOT_CONNECTED` otherwise. This API does not restore Telegram sessions after restart or migrate/merge local data. Use HTTPS termination and an ingress request-rate limit; responses must not be cached.
 

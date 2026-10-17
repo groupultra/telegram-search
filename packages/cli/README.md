@@ -6,6 +6,10 @@
 
 Install the released CLI with Homebrew on macOS or Linux:
 
+Homebrew installs Node.js as a runtime dependency. You do not need to install
+Node.js manually or build this repository. This package provides the local CLI
+and daemon; see the [root README](../../README.md) for web application deployment.
+
 ```bash
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
@@ -76,7 +80,7 @@ Supported commands: `chats list`, `messages list`, `messages query`, `search`, `
 
 `sync` and `export` are not exposed remotely in this version; run them on the host owning the data. `auth` and `daemon` are local management commands and reject remote profiles. Use a separate local profile for local operation. There is no automatic fallback when the server is unreachable.
 
-See [server setup](../../../apps/server/README.md) for access-token and account configuration. Saved-index queries work without an active Telegram connection; live chat/message reads require the account to be signed in on the server.
+See [server setup](../../apps/server/README.md) for access-token and account configuration. Saved-index queries work without an active Telegram connection; live chat/message reads require the account to be signed in on the server.
 
 Profiles isolate Telegram credentials, the StringSession, PGlite data, and exports under the operating system's application data directory. Config and session files use mode `0600`, and `TG_SEARCH_HOME` can override the data root.
 
@@ -107,13 +111,53 @@ As with the server, realtime persistence receives all new, edited, and deleted m
 
 The daemon writes structured operational records at `info` level to its supervisor's stdout/stderr. For a `launchd` or `systemd` setup, direct these streams to `<profile-root>/daemon.stdout.log` and `<profile-root>/daemon.stderr.log`. The daemon checks them every six hours, rotates the prior day's file, and deletes archives older than 14 days; set `TG_SEARCH_DAEMON_LOG_RETENTION_DAYS` to override the retention period.
 
-After a Telegram transport disconnect, `daemon status` reports `reconnecting`. Once the transport is restored, the daemon recovers both account updates (`updates.GetDifference`) and per-channel gaps (`updates.GetChannelDifference`) before returning to `ready`. Recovered messages, edits, and deletions are persisted before their `pts` checkpoints advance. If Telegram reports a gap that is too large for either difference API, the daemon preserves the old checkpoint and reports `error`; run an explicit full sync before restarting catch-up.
+After a Telegram transport disconnect, `daemon status` reports `reconnecting` and records transport, authorization, and historical catch-up independently. Once the transport is restored and the account is ready, the daemon may report `ready` while `health.catchUp` is still running or has failed. Recovered messages, edits, and deletions are persisted before their `pts` checkpoints advance. If Telegram reports a gap that is too large for either difference API, the daemon preserves the old checkpoint and records a catch-up failure; run an explicit full sync before restarting catch-up. The daemon adds no reconnect scheduler beyond GramJS retries; use explicit `daemon recover` when those retries are exhausted.
 
 You may use `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` instead of storing API credentials in profile config. Login prompts and progress are written to stderr.
 
 ## Agent commands
 
-Every command writes one JSON envelope to stdout. Successful envelopes contain `ok`, `data`, top-level `next_cursor` when pagination applies, and `meta.profile` / `meta.source`. Failed envelopes contain `ok: false` and a structured `error`; the process also exits non-zero. Diagnostics, prompts, GramJS logs, migration logs, and streaming progress go to stderr. `--json` is accepted for compatibility but JSON is always enabled.
+Commands use a human-readable text format by default. Pass `--json` for automation and Agent calls; successful JSON envelopes contain `ok`, `data`, top-level `next_cursor` when pagination applies, and `meta.profile` / `meta.source`. Failed JSON envelopes contain `ok: false` and a structured `error`; the process also exits non-zero. Diagnostics, prompts, GramJS logs, migration logs, and streaming progress go to stderr.
+
+Read commands accept `--format text|json|compact|jsonl`; `--json` is equivalent to
+`--format json`. Compact output keeps every field, including reply IDs, media,
+context and coverage, but places each top-level array item on one line. JSONL
+uses a `result` header, one `item` record per array item (`key`, `index`, `data`),
+and a terminal `completed` record. The header retains all non-array data fields,
+metadata and cursor, and lists each array's key and count so the original result
+can be reconstructed. A missing terminal record means output was interrupted.
+Serialization completion applies to one result; inspect its cursor and coverage
+to determine which history or references remain unread.
+
+Use `--output-file ./private/page.jsonl` on a read command to avoid large terminal
+output. This writes JSONL by default (or your explicitly selected format) and
+prints only a receipt with its path, byte count, format and `status: completed`.
+It writes this single command result; it does not follow pagination or download
+attachments. New directories use `0700` and result files use `0600`; existing
+directory permissions are preserved. Output and `.partial` paths are exclusive:
+existing files are never overwritten. A failed write reports its `.partial`
+path and `status: partial`; choose a fresh path to rerun. The final filename is
+published only after every chunk has been written and flushed.
+
+```bash
+tg-search messages list --chat 123456 --format compact
+tg-search messages query --limit 100 --output-file ./private/page.jsonl
+tg-search context --chat 123456 --message 42 --format jsonl
+```
+
+Use `--` before a search query that starts with a dash, for example
+`tg-search --json search -- "--output-file=literal-query"`. Arguments after the
+terminator remain literal query text; they cannot change the profile, endpoint,
+output format, output file, or help behavior.
+
+Unknown commands fail even with `--help` and report available subcommands.
+Failures from command parsing use `INVALID_ARGUMENT`; remote setup and transport
+failures distinguish `REMOTE_CREDENTIALS_MISSING`, `REMOTE_AUTHENTICATION_FAILED`,
+`REMOTE_PERMISSION_DENIED`, `REQUEST_DEADLINE_EXCEEDED` and `REMOTE_UNREACHABLE`. Structured
+application errors returned by the server retain their original code. JSON
+failures are emitted once on stdout without an additional plain-text error.
+A valid machine format also applies to argument errors; an invalid format still
+honors `--json` for failure output.
 
 ```bash
 # Discover chats remotely. No messages are persisted.
@@ -127,7 +171,7 @@ tg-search --profile work messages list --chat 123456 --query "项目进展" --fr
 
 # After the user explicitly approves Telegram Takeout, persist selected chats.
 # At least --chat or --all is required. Never add --takeout without that approval.
-tg-search --profile work sync --takeout --chat 123456,789012 --from 2026-01-01 --to 2026-12-31
+tg-search --profile work sync --takeout --chat 123456,789012 --from 2026-01-01 --to 2026-12-31 --json
 
 # Query and search only the local PGlite database. These commands do not connect to Telegram.
 tg-search --profile work messages query --from 2026-01-01 --to 2026-12-31 --json
@@ -161,15 +205,78 @@ tg-search --profile work export \
 
 The export contains deterministic monthly JSONL files plus `manifest.json` with the selected IANA time zone and per-file SHA-256 checksums. `--timezone` defaults to `UTC`; set it explicitly when local calendar months matter. The export includes text and structured forward/media/link metadata, but not media binaries, Telegram sessions, embeddings, or credentials.
 
-Reply records keep `replyToId` and also embed a one-level `replyTo` message snapshot so an Agent can read the referenced sender, timestamp, text, forward, media, and link metadata without joining the archive. The snapshot is resolved from the local database even when the target falls outside the selected `--from`/`--to` range. It is `null` when the target is not available locally, and reply chains are not recursively expanded. This reply-aware output is manifest schema version `2`.
+Reply records keep `replyToId` and also embed a one-level `replyTo` message snapshot so an Agent can read the referenced sender, timestamp, text, forward, media, and link metadata without joining the archive. The snapshot is resolved from the local database even when the target falls outside the selected `--from`/`--to` range. Reply hydration stays within the selected `--chat` values; without a chat selection it uses the active account scope. It is `null` when the target is unavailable locally or outside the selected chat scope, and reply chains are not recursively expanded. This reply-aware output is manifest schema version `2`.
 
 The CLI performs no AI analysis. An Agent can read the JSONL files and produce a monthly or annual summary separately.
 
 ## Privacy boundary
 
 - Remote `chats list` and `messages list` read Telegram without persisting message domain data.
-- Only `sync --takeout` persists messages, and the Agent may add `--takeout` only after explicit user approval.
+- Bulk history is persisted through `sync --takeout`, and the Agent may add `--takeout` only after explicit user approval. A running, authenticated daemon also persists new messages, edits, and deletions in realtime.
 - Declined consent or Takeout initialization failure stops the sync; it never falls back to ordinary `GetHistory` bulk reads.
 - Takeout requests only the selected chat category and does not request contacts or files for text sync.
 - Local query, search, context, stats, and export do not create a Telegram connection.
 - Media references and metadata may be stored; media binaries are not downloaded by these CLI commands.
+
+### Read deadlines and cancellation
+
+Read commands accept `--timeout-ms` (default `60000`). One absolute deadline is
+carried through IPC and remote HTTP to the application; transport adapters do
+not retry a cancelled read. SIGINT/SIGTERM cancels the active request without
+rebuilding a daemon's shared Telegram connection. Application pagination stops
+before another page is sent and listeners/timers are removed.
+
+GramJS 2.26 does not expose cancellation for an individual in-flight RPC. A
+cancelled Telegram read reports `sdkCancellation: unsupported` and
+`inFlightMayContinue: true` when that RPC is still active. Its late result is
+observed and discarded; cancellation does not claim to have removed it from the
+SDK queue. Runtime recovery belongs to the daemon owner.
+
+### Message point reads
+
+```sh
+tg-search messages get --chat 42 --ids 10,11 --source local --json
+tg-search messages get --chat 42 --ids 10,11 --source telegram --json
+```
+
+The source is required. Up to 100 chat-scoped IDs are returned with `missingIds`; this operation does not persist Telegram messages or request Takeout. Relationship facts are preserved in JSON output.
+
+### Reply context and window coverage
+
+```sh
+tg-search messages replies --chat 42 --ids 10,11 --source telegram --depth 1 --nodes 100 --json
+tg-search messages read --chat 42 --source telegram --from 1700000000 --to 1700007200 --max-pages 10 --max-messages 1000 --json
+```
+
+`replies` follows reply relationships, while `context --chat ... --message ...` returns indexed time neighbors. Reply coverage reports unresolved, unrequested and budget-stopped links separately. The node budget counts roots and missing lookups. Cross-chat references require their own explicit point read.
+
+`read` follows the source cursor until exhaustion or a page/message budget. Resume with the returned `nextCursor` and the same source, chat and window. `exhausted` only means that window's pagination ended; it never implies that reply chains or attachment contents were inspected. `cursor_stalled` reports a nonadvancing backend rather than retrying forever.
+
+### Runtime diagnostics and recovery
+
+- `profile inspect --json` reports credential presence and configuration source.
+- `profile doctor --json` adds observed local daemon health. These commands do not
+  authenticate or probe Telegram, and never print credential or endpoint values.
+- `daemon status --json` separates transport, authorization, historical catch-up,
+  and the last observed local/live read result, including transition/success times.
+  A connected socket alone does not establish read availability.
+- `daemon reload --json` reloads changed saved authentication state.
+- `daemon recover --json` checks saved credentials/session, rebuilds the runtime
+  through its owner, and returns before/after status. Recovery can interrupt active
+  requests, so it is an explicit command rather than a per-request fallback.
+
+Output metadata identifies CLI execution mode and artifact version, source path,
+SHA256 digest and Node version. Daemon reads also identify the daemon artifact,
+so a newly installed CLI can be distinguished from a long-lived daemon. An older
+incompatible daemon status contract returns `DAEMON_PROTOCOL_MISMATCH`; restart
+that process using the current CLI build.
+
+### Explicit attachment reads
+
+`media read` retrieves one bounded byte range from a selected message attachment. Choose `--source local` for stored content or `--source telegram` for a live read; the command never changes sources automatically.
+
+```bash
+tg-search media read --chat <chat-id> --message <message-id> --source telegram --length 65536 --max-bytes 10485760 --json
+```
+
+The result contains base64 `data`, attachment metadata, and `nextOffset`. Continue with `--offset` until `nextOffset` is null. The default attachment limit is 10 MiB, and one response contains at most 256 KiB of content so it fits the IPC frame budget. A null continuation means the returned range reached EOF; it does not prove earlier ranges were read. `contentStatus: complete` is returned only when this range covers the entire file, and does not mean the caller interpreted its content. Unsupported or unavailable local content produces an explicit error. Remote reads use the server's existing account credential.

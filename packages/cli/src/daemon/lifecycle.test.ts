@@ -9,12 +9,16 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { defineInvokeHandler } from '@moeru/eventa'
 import { createServer as createIpcServer } from '@moeru/eventa/adapters/unix-socket'
 import { CoreEventType } from '@tg-search/core'
+import { daemonContracts } from '@tg-search/protocol'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { runtimeBuildInfo } from '../build-info'
 import { readProfileConfig, writeProfileConfig } from '../profile'
 import { connectDaemon } from './client'
+import { createDaemonDiagnostics } from './diagnostics'
 import { createAccountReadyWait, createDaemonApplicationProxy, persistProfileAccountId } from './host'
 
 const directories: string[] = []
@@ -85,6 +89,22 @@ describe('daemon lifecycle boundaries', () => {
     expect(emitter.listenerCount(CoreEventType.CoreError)).toBe(0)
   })
 
+  it('keeps initialization pending for a classified catch-up error until AccountReady', async () => {
+    const emitter = new EventEmitter()
+    const ready = createAccountReadyWait({ emitter } as never, 10_000)
+    emitter.emit(CoreEventType.CoreError, { error: 'historical gap', code: 'SYNC_CATCH_UP_FAILED', description: 'Background history could not be restored' })
+    emitter.emit(CoreEventType.AccountReady, { accountId: 'connected-account' })
+    await expect(ready.promise).resolves.toBe('connected-account')
+    expect(emitter.listenerCount(CoreEventType.CoreError)).toBe(0)
+  })
+
+  it('still rejects unclassified initialization errors even when their wording mentions catch-up', async () => {
+    const emitter = new EventEmitter()
+    const ready = createAccountReadyWait({ emitter } as never, 10_000)
+    emitter.emit(CoreEventType.CoreError, { error: 'initialization failed', description: 'Catch-up sync failed' })
+    await expect(ready.promise).rejects.toThrow('initialization failed')
+  })
+
   it('waits for the daemon descriptor instead of opening a fallback runtime', async () => {
     const paths = await createPaths()
     const socket = join(paths.root, 'daemon.sock')
@@ -95,7 +115,9 @@ describe('daemon lifecycle boundaries', () => {
       setTimeout(() => {
         void (async () => {
           try {
-            const server = await createIpcServer(socket, () => {})
+            const server = await createIpcServer(socket, (connection) => {
+              defineInvokeHandler(connection.context, daemonContracts.status, () => ({ profile: 'test', pid: process.pid, state: 'ready', startedAt: 1, build: runtimeBuildInfo(), health: createDaemonDiagnostics().snapshot() }))
+            })
             closeServer = server.close
             await writeFile(paths.daemon, `${JSON.stringify({
               pid: process.pid,

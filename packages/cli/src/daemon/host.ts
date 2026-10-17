@@ -1,6 +1,6 @@
 import type { Logger } from '@guiiai/logg'
 import type { CoreContext, TelegramApplication, TelegramApplicationRuntime } from '@tg-search/core'
-import type { DaemonStatus } from '@tg-search/protocol'
+import type { AppResult, DaemonStatus } from '@tg-search/protocol'
 
 import type { ProfilePaths } from '../profile'
 import type { DaemonDescriptor } from './profile-state'
@@ -14,6 +14,8 @@ import { defineInvokeHandlers } from '@moeru/eventa'
 import { createServer as createIpcServer } from '@moeru/eventa/adapters/unix-socket'
 import { generateDefaultConfig } from '@tg-search/common'
 import {
+  ApplicationError,
+  appResult,
   CoreEventType,
   createCoreInstance,
   createTelegramApplicationRuntime,
@@ -22,17 +24,22 @@ import {
   models,
   registerApplicationHandlers,
   retryTelegramOperation,
+  toAppError,
 } from '@tg-search/core'
 import { daemonContracts } from '@tg-search/protocol'
 
+import { runtimeBuildInfo } from '../build-info'
 import { readProfileConfig, readSession, writeProfileConfig, writeSession } from '../profile'
 import { createDaemonLogger, profileScopeId } from '../runtime'
+import { registerDaemonAuthorizationHandlers } from './authorization-events'
+import { createDaemonDiagnostics } from './diagnostics'
 import { startDaemonLogMaintenance } from './log-maintenance'
 import { acquireProfileLock, processIdentity, removeIfExists, socketPathFor } from './profile-state'
 
 export interface DaemonHost {
   status: () => DaemonStatus
   reload: () => Promise<DaemonStatus>
+  recover: () => Promise<DaemonStatus>
   stop: () => Promise<void>
   wait: () => Promise<void>
 }
@@ -48,7 +55,7 @@ export function createAccountReadyWait(
     let onReady: (data: { accountId: string }) => void
     let onDisconnected: () => void
     let onAuthError: () => void
-    let onCoreError: (data: { error: string }) => void
+    let onCoreError: (data: { error: string, code?: string }) => void
     const cleanup = () => {
       clearTimeout(timeout)
       context.emitter.removeListener(CoreEventType.AccountReady, onReady)
@@ -69,7 +76,10 @@ export function createAccountReadyWait(
     onReady = ({ accountId }) => finish(undefined, accountId)
     onDisconnected = () => finish(new Error('Daemon session is not authorized'))
     onAuthError = () => finish(new Error('Daemon failed to authenticate the saved session'))
-    onCoreError = ({ error }) => finish(new Error(error))
+    onCoreError = ({ error, code }) => {
+      if (code !== 'SYNC_CATCH_UP_FAILED')
+        finish(new Error(error))
+    }
     cancel = error => finish(error)
     timeout = setTimeout(() => finish(new Error('Timed out waiting for daemon account initialization')), timeoutMs)
 
@@ -90,18 +100,23 @@ export async function persistProfileAccountId(paths: ProfilePaths, accountId: st
   return next
 }
 
-function daemonStatus(profile: string, startedAt: number, state: DaemonStatus['state'], accountId?: string, error?: string): DaemonStatus {
-  return { profile, pid: process.pid, startedAt, state, accountId, error }
-}
-
-export function createDaemonApplicationProxy(getApplication: () => TelegramApplicationRuntime): TelegramApplication {
+export function createDaemonApplicationProxy(getApplication: () => TelegramApplicationRuntime, onRead?: (source: 'local' | 'telegram', result: AppResult<unknown>) => void): TelegramApplication {
+  const observe = async <T>(source: 'local' | 'telegram', request: () => Promise<AppResult<T>>) => {
+    const result = await Promise.resolve().then(request).catch(error => ({ ok: false as const, error: toAppError(error) }))
+    onRead?.(source, result)
+    return result
+  }
   return {
-    listChats: input => getApplication().listChats(input),
-    listRemoteMessages: input => getApplication().listRemoteMessages(input),
-    queryLocalMessages: input => getApplication().queryLocalMessages(input),
-    searchLocalMessages: input => getApplication().searchLocalMessages(input),
-    getLocalMessageContext: input => getApplication().getLocalMessageContext(input),
-    getLocalStats: input => getApplication().getLocalStats(input),
+    readMessageMedia: (input, options) => observe(input.source, () => getApplication().readMessageMedia(input, options)),
+    getReplyContext: (input, options) => observe(input.source, () => getApplication().getReplyContext(input, options)),
+    readMessages: (input, options) => observe(input.source, () => getApplication().readMessages(input, options)),
+    getMessages: (input, options) => observe(input.source, () => getApplication().getMessages(input, options)),
+    listChats: (input, options) => observe('telegram', () => getApplication().listChats(input, options)),
+    listRemoteMessages: (input, options) => observe('telegram', () => getApplication().listRemoteMessages(input, options)),
+    queryLocalMessages: (input, options) => observe('local', () => getApplication().queryLocalMessages(input, options)),
+    searchLocalMessages: (input, options) => observe('local', () => getApplication().searchLocalMessages(input, options)),
+    getLocalMessageContext: (input, options) => observe('local', () => getApplication().getLocalMessageContext(input, options)),
+    getLocalStats: (input, options) => observe('local', () => getApplication().getLocalStats(input, options)),
     exportLocal: (input, signal) => getApplication().exportLocal!(input, signal),
     sync: (input, signal) => getApplication().sync(input, signal),
   }
@@ -110,6 +125,8 @@ export function createDaemonApplicationProxy(getApplication: () => TelegramAppli
 export async function createDaemonHost(paths: ProfilePaths, profile: string): Promise<DaemonHost> {
   setGlobalLogLevel(LogLevel.Log)
   const startedAt = Date.now()
+  const diagnostics = createDaemonDiagnostics()
+  const build = runtimeBuildInfo(import.meta.url)
   const socket = await socketPathFor(paths)
   const logger: Logger = createDaemonLogger(profile)
   let state: DaemonStatus['state'] = 'starting'
@@ -124,17 +141,18 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   let reloadInFlight: Promise<DaemonStatus> | undefined
   let accountReadyWait: ReturnType<typeof createAccountReadyWait> | undefined
   let releaseLock: (() => Promise<void>) | undefined
+  let transportConnected = false
   const stopped = new Promise<void>((resolve) => {
     resolveStopped = resolve
   })
 
-  const status = () => daemonStatus(profile, startedAt, state, accountId, lastError)
+  const status = (): DaemonStatus => ({ profile, pid: process.pid, startedAt, state, accountId, error: lastError, health: diagnostics.snapshot(), build })
   const currentApplication = () => {
     if (!activeRuntime)
-      throw new Error(`Daemon is ${state}; application runtime is unavailable`)
+      throw new ApplicationError({ code: 'DAEMON_RUNTIME_UNAVAILABLE', message: `Daemon is ${state}; application runtime is unavailable`, retryable: true })
     return activeRuntime.application
   }
-  const applicationProxy = createDaemonApplicationProxy(currentApplication)
+  const applicationProxy = createDaemonApplicationProxy(currentApplication, diagnostics.read)
 
   const disposeActiveRuntime = async () => {
     const runtime = activeRuntime
@@ -182,48 +200,73 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   }
 
   const bindRuntimeEvents = (context: ReturnType<typeof createCoreInstance>) => {
+    const isActiveContext = () => activeRuntime?.context === context
     context.emitter.on(CoreEventType.SessionUpdate, ({ session }) => {
+      if (!isActiveContext())
+        return
       void writeSession(paths, session).catch(error => logger.withError(error).warn('Failed to persist daemon session'))
     })
-    context.emitter.on(CoreEventType.AuthDisconnected, () => {
-      state = 'unauthorized'
-      accountId = undefined
+    registerDaemonAuthorizationHandlers(context, {
+      isActiveContext,
+      diagnostics,
+      onState(nextState, error) {
+        state = nextState
+        accountId = undefined
+        lastError = error
+        if (nextState === 'unauthorized')
+          transportConnected = false
+      },
     })
     context.emitter.on(CoreEventType.GramConnectionState, ({ state: connectionState }) => {
-      if (connectionState === 'connected' && accountId && state !== 'reconnecting') {
+      if (!isActiveContext())
+        return
+      diagnostics.transport(connectionState)
+      if (connectionState === 'connected' && accountId) {
+        transportConnected = true
         state = 'ready'
         lastError = undefined
       }
+      else if (connectionState === 'connected') {
+        transportConnected = true
+      }
       else if (connectionState === 'disconnected') {
+        transportConnected = false
         state = 'reconnecting'
         lastError = 'Telegram connection interrupted; reconnecting'
       }
       else if (connectionState === 'broken') {
+        transportConnected = false
         state = 'error'
+        diagnostics.authorization('unauthorized')
         lastError = 'Telegram connection authorization is broken'
       }
     })
     context.emitter.on(CoreEventType.SyncStatus, ({ status: syncStatus }) => {
-      if (state !== 'reconnecting')
+      if (!isActiveContext())
         return
-      if (syncStatus === 'idle') {
+      diagnostics.catchUp(syncStatus === 'syncing' ? 'running' : syncStatus === 'error' ? 'failed' : 'idle', syncStatus === 'error' ? 'Telegram historical catch-up failed' : undefined)
+      if (transportConnected && accountId)
         state = 'ready'
-        lastError = undefined
-      }
-      else if (syncStatus === 'error') {
-        state = 'error'
-        lastError = 'Telegram connection restored, but pts catch-up failed'
-      }
     })
-    context.emitter.on(CoreEventType.CoreError, ({ error, description }) => {
+    context.emitter.on(CoreEventType.CoreError, ({ error, code }) => {
+      if (!isActiveContext())
+        return
       lastError = error
-      if (state === 'starting' || state === 'reconnecting' || description === 'Catch-up sync failed')
+      if (code === 'SYNC_CATCH_UP_FAILED') {
+        diagnostics.catchUp('failed', error)
+      }
+      else if (state === 'starting' || state === 'reconnecting') {
         state = 'error'
+      }
     })
   }
 
   const replaceRuntime = async (session: string | undefined): Promise<DaemonStatus> => {
+    transportConnected = false
     state = session ? 'starting' : 'unauthorized'
+    diagnostics.transport(session ? 'starting' : 'disconnected')
+    diagnostics.authorization(session ? 'unknown' : 'unauthorized')
+    diagnostics.catchUp('unknown')
     accountId = undefined
     lastError = undefined
     await disposeActiveRuntime()
@@ -267,6 +310,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
         return status()
 
       state = 'ready'
+      diagnostics.authorization('authorized')
       lastError = undefined
     }
     catch (error) {
@@ -307,6 +351,32 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     return reloadInFlight
   }
 
+  const recover = (): Promise<DaemonStatus> => {
+    if (reloadInFlight)
+      return reloadInFlight
+    reloadInFlight = (async () => {
+      const latest = await readProfileConfig(paths)
+      if (!(latest.apiId ?? process.env.TELEGRAM_API_ID) || !(latest.apiHash ?? process.env.TELEGRAM_API_HASH))
+        throw new ApplicationError({ code: 'DAEMON_RECOVERY_UNAVAILABLE', message: 'Telegram API credentials are missing; configure this profile before recovery', retryable: false })
+      const session = await readSession(paths)
+      if (!session)
+        throw new ApplicationError({ code: 'AUTH_REQUIRED', message: 'Saved Telegram session is missing; run auth login before recovery', retryable: false })
+      diagnostics.recoveryStarted()
+      try {
+        const result = await replaceRuntime(session)
+        diagnostics.recoveryFinished(result.state === 'ready')
+        return status()
+      }
+      catch (error) {
+        diagnostics.recoveryFinished(false)
+        throw error
+      }
+    })().finally(() => {
+      reloadInFlight = undefined
+    })
+    return reloadInFlight
+  }
+
   releaseLock = await acquireProfileLock(paths, startedAt)
   try {
     stopLogMaintenance = await startDaemonLogMaintenance(paths, logger)
@@ -329,9 +399,10 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       const unregisterApplication = registerApplicationHandlers(connection.context, applicationProxy)
       const unregisterDaemon = defineInvokeHandlers(connection.context, daemonContracts, {
         reload,
+        recover: () => appResult(recover),
         status,
         stop: () => {
-          const response = daemonStatus(profile, startedAt, 'stopping', accountId, lastError)
+          const response = { ...status(), state: 'stopping' as const }
           setTimeout(() => void stop(), 0)
           return response
         },
@@ -355,7 +426,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     await writeFile(paths.daemon, `${JSON.stringify(descriptor)}\n`, { mode: 0o600 })
     await chmod(paths.daemon, 0o600)
 
-    return { status, reload, stop, wait: () => stopped }
+    return { status, reload, recover, stop, wait: () => stopped }
   }
   catch (error) {
     await cleanupResources()

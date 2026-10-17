@@ -29,7 +29,7 @@ export interface CoreContext {
   setMyUser: (newMyUser: CoreUserEntity) => void
   getMyUser: () => CoreUserEntity
   getDB: () => CoreDB
-  withError: (error: unknown, description?: string) => Error
+  withError: (error: unknown, description?: string, metadata?: { code?: string }) => Error
   cleanup: () => void
   getAccountSettings: () => Promise<AccountSettings>
   setAccountSettings: (newSettings: AccountSettings) => Promise<void>
@@ -45,14 +45,14 @@ export interface CoreContext {
 export type Service<T> = (ctx: CoreContext, logger: Logger) => T
 
 function createErrorHandler(emitter: CoreEmitter, logger: Logger) {
-  return (error: unknown, description?: string): Error => {
+  return (error: unknown, description?: string, metadata?: { code?: string }): Error => {
     // Unwrap nested errors
     if (error instanceof Error && 'cause' in error) {
-      return createErrorHandler(emitter, logger)(error.cause, description)
+      return createErrorHandler(emitter, logger)(error.cause, description, metadata)
     }
 
     // Emit raw error for frontend to handle (i18n, UI, etc.)
-    emitter.emit(CoreEventType.CoreError, { error: error instanceof Error ? error.message : String(error), description })
+    emitter.emit(CoreEventType.CoreError, { error: error instanceof Error ? error.message : String(error), description, ...metadata })
 
     // Log error details
     if (error instanceof Error) {

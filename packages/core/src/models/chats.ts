@@ -7,7 +7,7 @@ import type { CoreEntity } from '../types/events'
 import type { PromiseResult } from '../utils/result'
 import type { DBSelectChat, DBSelectChatWithAccount } from './utils/types'
 
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 
 import { accountJoinedChatsTable } from '../schemas/account-joined-chats'
 import { joinedChatsTable } from '../schemas/joined-chats'
@@ -158,7 +158,7 @@ async function fetchAccountChatsPage(
       inArray(joinedChatsTable.chat_id, chatIds),
       types?.length ? inArray(joinedChatsTable.chat_type, types) : undefined,
     ))
-    .orderBy(desc(accountJoinedChatsTable.is_pinned), desc(joinedChatsTable.dialog_date))
+    .orderBy(desc(accountJoinedChatsTable.is_pinned), desc(joinedChatsTable.dialog_date), asc(joinedChatsTable.chat_id))
     .offset(offset)
     .limit(limit),
   )

@@ -21,7 +21,7 @@ function access(overrides: Record<string, unknown> = {}) {
         name: 'project-reader',
         token,
         accountId,
-        capabilities: ['chats.list', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
+        capabilities: ['media.read', 'chats.list', 'messages.get', 'messages.replies', 'messages.read', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
         chatPermissions: [{ chatId: '7', permissions: ['read'] }],
         ...overrides,
       }],
@@ -33,8 +33,12 @@ function fixture(options: { access?: ReturnType<typeof access>, messageChatId?: 
   const resultMessage = { ...message, chatId: options.messageChatId ?? message.chatId }
   const page = { ok: true as const, data: { items: [resultMessage], nextCursor: null } }
   const application = {
+    readMessageMedia: vi.fn<TelegramApplication['readMessageMedia']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, messageId: input.messageId, mediaIndex: input.mediaIndex, type: 'document', size: 4, encoding: 'base64', data: 'dGVzdA==', offset: 0, nextOffset: null, contentStatus: 'complete' } })),
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: resultMessage.chatId, name: 'Project', type: 'group' as const }], nextCursor: null } })),
     listStoredChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: resultMessage.chatId, name: 'Project', type: 'group' as const }], nextCursor: null } })),
+    getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [resultMessage], missingIds: [] } })),
+    getReplyContext: vi.fn<TelegramApplication['getReplyContext']>(async input => ({ ok: true, data: { source: input.source, items: [resultMessage], roots: [{ chatId: input.chatId, messageId: '42', status: 'resolved' }], links: [], budget: { maxDepth: input.maxDepth, maxNodes: input.maxNodes }, coverage: { complete: true, resolvedReplies: 0, missingReplies: 0, notRequestedReplies: 0, depthStopped: 0, nodeStopped: 0, cycles: 0 } } })),
+    readMessages: vi.fn<TelegramApplication['readMessages']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, items: [resultMessage], window: { from: input.from, to: input.to }, nextCursor: null, pagesRead: 1, stopReason: 'exhausted', coverage: { windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' } } })),
     listRemoteMessages: vi.fn(async () => page),
     queryLocalMessages: vi.fn<TelegramApplication['queryLocalMessages']>(async () => page),
     searchLocalMessages: vi.fn(async () => page),
@@ -57,6 +61,50 @@ function headers() {
 }
 
 describe('remote access control', () => {
+  it.each([
+    { method: 'media.read', invoke: 'readMessageMedia' as const, input: { source: 'local', chatId: '7', messageId: '42', mediaIndex: 0 }, defaults: { offset: 0, length: 65536, maxBytes: 10485760 } },
+    { method: 'messages.get', invoke: 'getMessages' as const, input: { source: 'local', chatId: '7', messageIds: ['42'] }, defaults: {} },
+    { method: 'messages.replies', invoke: 'getReplyContext' as const, input: { source: 'local', chatId: '7', messageIds: ['42'] }, defaults: { maxDepth: 1, maxNodes: 100 } },
+    { method: 'messages.read', invoke: 'readMessages' as const, input: { source: 'local', chatId: '7' }, defaults: { pageSize: 100, maxPages: 10, maxMessages: 1000 } },
+  ])('keeps $method inside capability, chat, account, and operation boundaries', async ({ method, invoke, input, defaults }) => {
+    const { app, application, resolve } = fixture()
+    const deadlineAt = Date.now() + 60_000
+    const response = await app.request(`/v1/remote/${method}`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ ...input, operation: { deadlineAt } }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(resolve).toHaveBeenCalledExactlyOnceWith(accountId)
+    expect(application[invoke]).toHaveBeenCalledExactlyOnceWith(
+      { ...input, ...defaults, operation: { deadlineAt } },
+      expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt }),
+    )
+  })
+
+  it.each([
+    ['media.read', 'readMessageMedia'],
+    ['messages.get', 'getMessages'],
+    ['messages.replies', 'getReplyContext'],
+    ['messages.read', 'readMessages'],
+  ] as const)('denies %s outside the granted chat before invoking the application', async (method, invoke) => {
+    const { app, application, resolve } = fixture()
+    const response = await app.request(`/v1/remote/${method}`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(method === 'media.read'
+        ? { source: 'local', chatId: '8', messageId: '42', mediaIndex: 0 }
+        : method === 'messages.read'
+          ? { source: 'local', chatId: '8' }
+          : { source: 'local', chatId: '8', messageIds: ['42'] }),
+    })
+
+    expect(response.status).toBe(403)
+    expect(resolve).not.toHaveBeenCalled()
+    expect(application[invoke]).not.toHaveBeenCalled()
+  })
+
   it('requires both a feature capability and chat read permission', async () => {
     const limited = access({ capabilities: ['messages.query'] })
     const { app, application, resolve, audit } = fixture({ access: limited })
@@ -97,8 +145,8 @@ describe('remote access control', () => {
 
     expect(query.status).toBe(200)
     expect(stats.status).toBe(200)
-    expect(application.queryLocalMessages).toHaveBeenCalledWith({ chatIds: ['7'], limit: 20 })
-    expect(application.getLocalStats).toHaveBeenCalledWith({ chatIds: ['7'], groupBy: 'month', timeZone: 'UTC' })
+    expect(application.queryLocalMessages).toHaveBeenCalledWith({ chatIds: ['7'], limit: 20 }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(application.getLocalStats).toHaveBeenCalledWith({ chatIds: ['7'], groupBy: 'month', timeZone: 'UTC' }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
   })
 
   it('passes selected chat scope into chat listing and blocks leaked output', async () => {

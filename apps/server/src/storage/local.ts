@@ -2,7 +2,8 @@ import type { Logger } from '@guiiai/logg'
 import type { MediaConfig } from '@tg-search/common'
 import type { MediaBinaryDescriptor, MediaBinaryLocation, MediaBinaryProvider } from '@tg-search/core'
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { Buffer } from 'node:buffer'
+import { mkdir, open, readFile, stat, writeFile } from 'node:fs/promises'
 
 import { useDataPath } from '@tg-search/common/node'
 import { dirname, join, posix, resolve, sep } from 'pathe'
@@ -38,6 +39,43 @@ export async function initLocalMediaStorage(logger: Logger, config?: MediaConfig
   }
 
   const provider: MediaBinaryProvider = {
+    async size(location) {
+      const path = resolveLocationPath(baseDir, location.path)
+      if (!path)
+        return null
+      try {
+        return (await stat(path)).size
+      }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+          return null
+        throw error
+      }
+    },
+
+    async loadRange(location, offset, length, signal) {
+      signal?.throwIfAborted()
+      const path = resolveLocationPath(baseDir, location.path)
+      if (!path)
+        return null
+      let file
+      try {
+        file = await open(path, 'r')
+        const buffer = Buffer.alloc(length)
+        const { bytesRead } = await file.read(buffer, 0, length, offset)
+        signal?.throwIfAborted()
+        return new Uint8Array(buffer.subarray(0, bytesRead))
+      }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+          return null
+        throw error
+      }
+      finally {
+        await file?.close()
+      }
+    },
+
     async save(descriptor: MediaBinaryDescriptor, bytes: Uint8Array, _mimeType?: string): Promise<MediaBinaryLocation> {
       const relativePath = buildRelativePath(descriptor)
       const absolutePath = join(baseDir, relativePath)
