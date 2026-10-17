@@ -181,7 +181,7 @@ describe('remote CLI', () => {
       await runCli(['--remote', server.url!, 'search', 'project', '--limit', '2', '--json'])
       const result = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
       expect(result).toMatchObject({ ok: true, data: page.data, next_cursor: 'next-page', meta: { source: 'remote' } })
-      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 2, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', chatIds: ['7'], limit: 2, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(resolve).toHaveBeenCalledWith(access.accountId)
       expect(await readdir(home)).toEqual([])
     }
@@ -202,16 +202,16 @@ describe('remote CLI', () => {
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
       await runCli(['--remote', server.url!, '--json', 'search', '--', literal])
-      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: literal, limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: literal, chatIds: ['7'], limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data, meta: { source: 'remote' } })
       expect(await readdir(home)).toEqual([])
       stdout.mockClear()
       await runCli(['--remote', server.url!, '--json', 'search', '--', '--help'])
-      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--help', limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--help', chatIds: ['7'], limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
       stdout.mockClear()
       await runCli(['--remote', server.url!, '--json', 'search', '--', '--json=false'])
-      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--json=false', limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--json=false', chatIds: ['7'], limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
     }
     finally {
@@ -294,7 +294,7 @@ describe('remote CLI', () => {
     const valid = await app.request('/v1/remote/messages.search', { method: 'POST', headers, body: JSON.stringify({ query: 'project', accountId: 'other-account' }) })
     expect(valid.status).toBe(200)
     expect(resolve).toHaveBeenLastCalledWith(access.accountId)
-    expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 100, useVector: false }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', chatIds: ['7'], limit: 100, useVector: false }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
   })
 
   it('preserves application errors and supports pagination and context over real HTTP', async () => {
