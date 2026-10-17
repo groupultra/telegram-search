@@ -1,5 +1,7 @@
 import type { TelegramApplication } from '@tg-search/core'
 
+import type { RemoteApplication } from '../../../apps/server/src/remote-application'
+
 import process from 'node:process'
 
 import { Buffer } from 'node:buffer'
@@ -16,6 +18,18 @@ import { normalizeRawArgs, runCli } from './index'
 import { createRemoteRuntime } from './remote'
 
 const access = { token: 'test-only-token-'.repeat(4), accountId: '11111111-1111-4111-8111-111111111111' }
+const serverAccess = remoteAccessFromEnv({
+  TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
+    credentials: [{
+      id: '22222222-2222-4222-8222-222222222222',
+      name: 'cli-reader',
+      token: access.token,
+      accountId: access.accountId,
+      capabilities: ['media.read', 'chats.list', 'messages.get', 'messages.replies', 'messages.read', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
+      chatPermissions: [{ chatId: '7', permissions: ['read'] }],
+    }],
+  }),
+})!
 const message = { id: '42', chatId: '7', senderId: '3', senderName: 'Test', timestamp: 1700000000, text: 'project progress', forward: { isForward: false }, media: [], links: [] }
 const page = { ok: true as const, data: { items: [message], nextCursor: 'next-page', total: 37 } }
 
@@ -27,6 +41,7 @@ function fixture() {
     inspectMessageMedia: unusedMediaDownload,
     downloadMessageMedia: unusedMediaDownload,
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
+    listStoredChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: '7', name: 'Project', type: 'group' as const }], nextCursor: null } })),
     getReplyContext: vi.fn<TelegramApplication['getReplyContext']>(async input => ({ ok: true, data: { source: input.source, items: [message], roots: [{ chatId: input.chatId, messageId: '42', status: 'resolved' }], links: [], budget: { maxDepth: input.maxDepth, maxNodes: input.maxNodes }, coverage: { complete: true, resolvedReplies: 0, missingReplies: 0, notRequestedReplies: 0, depthStopped: 0, nodeStopped: 0, cycles: 0 } } })),
     readMessages: vi.fn<TelegramApplication['readMessages']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, items: [message], window: { from: input.from, to: input.to }, nextCursor: null, pagesRead: 1, stopReason: 'exhausted', coverage: { windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' } } })),
     getMessages: vi.fn<TelegramApplication['getMessages']>(async input => ({ ok: true, data: { source: input.source, items: [message], missingIds: [] } })),
@@ -37,11 +52,11 @@ function fixture() {
     getLocalMessageContext: vi.fn(async () => ({ ok: true as const, data: { messages: [message], targetIndex: 0 } })),
     getLocalStats: vi.fn(async () => ({ ok: true as const, data: { total: 1, buckets: [] } })),
     async* sync() {},
-  } satisfies TelegramApplication
+  } satisfies RemoteApplication
   const resolve = vi.fn(() => application)
   const app = new H3()
   app.mount('/v1', new H3())
-  app.mount('/v1/remote', createRemoteApi(access, resolve))
+  app.mount('/v1/remote', createRemoteApi(serverAccess, resolve, vi.fn(async () => {})))
   return { app, application, resolve }
 }
 
@@ -166,7 +181,7 @@ describe('remote CLI', () => {
       await runCli(['--remote', server.url!, 'search', 'project', '--limit', '2', '--json'])
       const result = JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
       expect(result).toMatchObject({ ok: true, data: page.data, next_cursor: 'next-page', meta: { source: 'remote' } })
-      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 2, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', chatIds: ['7'], limit: 2, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(resolve).toHaveBeenCalledWith(access.accountId)
       expect(await readdir(home)).toEqual([])
     }
@@ -187,16 +202,16 @@ describe('remote CLI', () => {
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
       await runCli(['--remote', server.url!, '--json', 'search', '--', literal])
-      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: literal, limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: literal, chatIds: ['7'], limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data, meta: { source: 'remote' } })
       expect(await readdir(home)).toEqual([])
       stdout.mockClear()
       await runCli(['--remote', server.url!, '--json', 'search', '--', '--help'])
-      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--help', limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--help', chatIds: ['7'], limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
       stdout.mockClear()
       await runCli(['--remote', server.url!, '--json', 'search', '--', '--json=false'])
-      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--json=false', limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
+      expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--json=false', chatIds: ['7'], limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data })
     }
     finally {
@@ -279,7 +294,7 @@ describe('remote CLI', () => {
     const valid = await app.request('/v1/remote/messages.search', { method: 'POST', headers, body: JSON.stringify({ query: 'project', accountId: 'other-account' }) })
     expect(valid.status).toBe(200)
     expect(resolve).toHaveBeenLastCalledWith(access.accountId)
-    expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', limit: 100, useVector: false }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', chatIds: ['7'], limit: 100, useVector: false }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
   })
 
   it('preserves application errors and supports pagination and context over real HTTP', async () => {
@@ -318,9 +333,8 @@ describe('remote CLI', () => {
     expect(() => normalizeRemoteUrl('https://user:password@example.com')).toThrow('credentials')
     expect(() => normalizeRemoteUrl('https://example.com?token=secret')).toThrow('query')
     expect(remoteAccessFromEnv({})).toBeUndefined()
-    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token })).toThrow('UUID')
-    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: 'short', TG_SEARCH_REMOTE_ACCOUNT_ID: access.accountId })).toThrow('32')
-    expect(remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token, TG_SEARCH_REMOTE_ACCOUNT_ID: 'ABCDEFAB-1234-4ABC-9ABC-ABCDEFABCDEF' })?.accountId).toBe('abcdefab-1234-4abc-9abc-abcdefabcdef')
+    expect(remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token, TG_SEARCH_REMOTE_ACCOUNT_ID: access.accountId })).toBeUndefined()
+    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_ACCESS: '{}' })).toThrow()
     expect(normalizeRawArgs(['--remote', 'https://example.com', 'messages', 'query'])).toEqual(['messages', 'query', '--remote=https://example.com'])
   })
 })

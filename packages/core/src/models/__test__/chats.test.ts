@@ -188,6 +188,42 @@ describe('models/chats', () => {
     expect(chats[0].chat_name).toBe('Account1 Chat')
   })
 
+  it('fetchAccountChatsPage filters and paginates authorized chats in the database', async () => {
+    const db = await setupDb()
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'remote-user',
+    }).returning()
+    await chatModels.recordChats(db, [
+      { id: 1, name: 'Older group', type: 'group', lastMessageDate: new Date('2024-01-01T00:00:00Z') },
+      { id: 2, name: 'Newest group', type: 'group', lastMessageDate: new Date('2024-01-03T00:00:00Z') },
+      { id: 3, name: 'Channel', type: 'channel', lastMessageDate: new Date('2024-01-02T00:00:00Z') },
+    ], account.id)
+
+    const result = await chatModels.fetchAccountChatsPage(db, account.id, ['1', '2', '3', '999'], ['group'], 1, 1)
+
+    expect(result.unwrap()).toEqual([expect.objectContaining({ id: '1', name: 'Older group', type: 'group' })])
+  })
+
+  it('fetchAccountChatsPage uses chat ID as a stable pagination tie-breaker', async () => {
+    const db = await setupDb()
+    const [account] = await db.insert(accountsTable).values({
+      platform: 'telegram',
+      platform_user_id: 'stable-pagination-user',
+    }).returning()
+    const sameDate = new Date('2024-01-01T00:00:00Z')
+    await chatModels.recordChats(db, [
+      { id: 3, name: 'Third', type: 'group', lastMessageDate: sameDate },
+      { id: 1, name: 'First', type: 'group', lastMessageDate: sameDate },
+      { id: 2, name: 'Second', type: 'group', lastMessageDate: sameDate },
+    ], account.id)
+
+    const firstPage = await chatModels.fetchAccountChatsPage(db, account.id, ['1', '2', '3'], undefined, 0, 2)
+    const secondPage = await chatModels.fetchAccountChatsPage(db, account.id, ['1', '2', '3'], undefined, 2, 2)
+
+    expect([...firstPage.unwrap(), ...secondPage.unwrap()].map(chat => chat.id)).toEqual(['1', '2', '3'])
+  })
+
   it('isChatAccessibleByAccount returns true only when account is linked to chat', async () => {
     const db = await setupDb()
 

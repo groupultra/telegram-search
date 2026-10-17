@@ -1,5 +1,7 @@
 import type { TelegramApplication } from '@tg-search/core'
 
+import type { RemoteApplication } from '../../../apps/server/src/remote-application'
+
 import process from 'node:process'
 
 import { Buffer } from 'node:buffer'
@@ -10,7 +12,7 @@ import { join } from 'node:path'
 import { H3, serve } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createRemoteApi } from '../../../apps/server/src/remote'
+import { createRemoteApi, remoteAccessFromEnv } from '../../../apps/server/src/remote'
 import { runCli } from './index'
 import { createRemoteRuntime } from './remote'
 
@@ -71,10 +73,23 @@ async function fixture(options: { prefix?: string, type?: string, mimeType?: str
     getLocalMessageContext: unused,
     getLocalStats: unused,
     async* sync() {},
-  } satisfies TelegramApplication
+    listStoredChats: unused,
+  } satisfies RemoteApplication
   const resolve = vi.fn((_accountId: string) => application)
+  const serverAccess = remoteAccessFromEnv({
+    TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
+      credentials: [{
+        id: '22222222-2222-4222-8222-222222222222',
+        name: 'media-reader',
+        token: access.token,
+        accountId: access.accountId,
+        capabilities: ['media.createLink'],
+        chatPermissions: [{ chatId: '*', permissions: ['read'] }],
+      }],
+    }),
+  })!
   const app = new H3()
-  app.mount(`${options.prefix ?? ''}/v1/remote`, createRemoteApi(access, resolve, { now: () => now }))
+  app.mount(`${options.prefix ?? ''}/v1/remote`, createRemoteApi(serverAccess, resolve, vi.fn(async () => {}), { now: () => now }))
   const origin = await listen(app)
   return { application, resolve, bytes, descriptor, endpoint: `${origin}${options.prefix ?? ''}`, now }
 }

@@ -3,8 +3,6 @@ import type { AppError, AppResult, CreateMediaLinkInput, MediaDownloadLink, Read
 import type { H3Event } from 'h3'
 import type { InferOutput } from 'valibot'
 
-import type { RemoteAccess } from './remote'
-
 import { Buffer } from 'node:buffer'
 import { createCipheriv, createDecipheriv, createHmac, randomBytes } from 'node:crypto'
 
@@ -55,6 +53,11 @@ export interface RemoteMediaOptions {
   maxConcurrentDownloads?: number
   /** Test injection only; all transfers remain capped at sixty seconds. */
   downloadTimeoutMs?: number
+}
+
+interface RemoteMediaCredential {
+  token: string
+  accountId: string
 }
 
 class MediaDownloadError extends Error {
@@ -217,7 +220,7 @@ function bufferedBody(content: Uint8Array, transfer: ReturnType<typeof createTra
   })
 }
 
-export function createRemoteMediaLinks(access: RemoteAccess, getApplication: (accountId: string) => TelegramApplication, options: RemoteMediaOptions = {}) {
+export function createRemoteMediaLinks(access: RemoteMediaCredential, getApplication: (accountId: string) => TelegramApplication, options: RemoteMediaOptions = {}) {
   const now = options.now ?? Date.now
   const limit = options.maxConcurrentDownloads ?? 2
   const timeoutMs = Math.min(options.downloadTimeoutMs ?? MAX_DOWNLOAD_MS, MAX_DOWNLOAD_MS)
@@ -255,6 +258,16 @@ export function createRemoteMediaLinks(access: RemoteAccess, getApplication: (ac
     catch {
       // A malformed capability is one authentication failure; never reflect its contents or crypto errors.
       throw new MediaDownloadError('MEDIA_LINK_INVALID', 'Media download link is invalid', 403)
+    }
+  }
+
+  function accepts(value: string | null): boolean {
+    try {
+      decode(value)
+      return true
+    }
+    catch {
+      return false
     }
   }
 
@@ -342,5 +355,5 @@ export function createRemoteMediaLinks(access: RemoteAccess, getApplication: (ac
     }
   }
 
-  return { createLink, download }
+  return { accepts, createLink, download }
 }

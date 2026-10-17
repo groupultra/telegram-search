@@ -1,11 +1,13 @@
 import type { MessageMediaContent, MessageMediaDescriptor, ReadOperationOptions, TelegramApplication } from '@tg-search/core'
 
+import type { RemoteApplication } from './remote-application'
+
 import { Buffer } from 'node:buffer'
 
 import { H3, serve } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createRemoteApi } from './remote'
+import { createRemoteApi, remoteAccessFromEnv } from './remote'
 
 const access = { token: 'synthetic-media-link-token-'.repeat(3), accountId: '11111111-1111-4111-8111-111111111111' }
 const input = { source: 'local' as const, chatId: '4242424242', messageId: '700000001', mediaIndex: 0, maxBytes: 10 * 1024 * 1024 }
@@ -17,6 +19,18 @@ afterEach(async () => {
 
 async function fixture(options: { access?: typeof access, now?: () => number, maxConcurrentDownloads?: number, downloadTimeoutMs?: number } = {}) {
   const configured = options.access ?? access
+  const serverAccess = remoteAccessFromEnv({
+    TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
+      credentials: [{
+        id: '22222222-2222-4222-8222-222222222222',
+        name: 'media-reader',
+        token: configured.token,
+        accountId: configured.accountId,
+        capabilities: ['media.createLink'],
+        chatPermissions: [{ chatId: '*', permissions: ['read'] }],
+      }],
+    }),
+  })!
   const bytes = Buffer.from('synthetic attachment bytes')
   const descriptor: MessageMediaDescriptor = { fileId: 'synthetic-file-id', type: 'photo', size: bytes.length, mimeType: 'image/png', fileName: 'synthetic.png' }
   const inspect = vi.fn<TelegramApplication['inspectMessageMedia']>(async () => ({ ok: true, data: descriptor }))
@@ -32,16 +46,17 @@ async function fixture(options: { access?: typeof access, now?: () => number, ma
     getReplyContext: unused,
     readMessages: unused,
     listChats: unused,
+    listStoredChats: unused,
     listRemoteMessages: unused,
     queryLocalMessages: unused,
     searchLocalMessages: unused,
     getLocalMessageContext: unused,
     getLocalStats: unused,
     async* sync() {},
-  } satisfies TelegramApplication
+  } satisfies RemoteApplication
   const resolve = vi.fn((_accountId: string) => application)
   const app = new H3()
-  app.mount('/v1/remote', createRemoteApi(configured, resolve, options))
+  app.mount('/v1/remote', createRemoteApi(serverAccess, resolve, vi.fn(async () => {}), options))
   const server = serve(app, { hostname: '127.0.0.1', port: 0, silent: true })
   servers.push(server)
   await server.ready()

@@ -21,6 +21,7 @@ import { v1api } from './apis/v1'
 import { setupWsRoutes } from './app'
 import { createRemoteApi, remoteAccessFromEnv } from './remote'
 import { createRemoteApplication } from './remote-application'
+import { createRemoteAuditRecorder } from './remote-audit'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMediaStorage, initMediaStorage } from './storage/media'
 import { removeHyperLinks, toSnakeCaseFields } from './utils/fields'
@@ -71,8 +72,16 @@ function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
 
   const remoteAccess = remoteAccessFromEnv(process.env)
   if (remoteAccess) {
-    const application = createRemoteApplication(getDB(), remoteAccess.accountId)
-    app.mount('/v1/remote', createRemoteApi(remoteAccess, () => application))
+    const applications = new Map<string, ReturnType<typeof createRemoteApplication>>()
+    const getApplication = (accountId: string) => {
+      const existing = applications.get(accountId)
+      if (existing)
+        return existing
+      const application = createRemoteApplication(getDB(), accountId)
+      applications.set(accountId, application)
+      return application
+    }
+    app.mount('/v1/remote', createRemoteApi(remoteAccess, getApplication, createRemoteAuditRecorder(getDB())))
   }
 
   setupWsRoutes(app, config)

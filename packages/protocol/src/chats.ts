@@ -4,7 +4,7 @@ import type { AppResult } from './errors'
 import type { CursorPage } from './pagination'
 
 import { defineInvokeEventa } from '@moeru/eventa'
-import { array, maxValue, minValue, number, object, optional, picklist, pipe, string } from 'valibot'
+import { array, check, maxValue, minValue, number, object, optional, picklist, pipe, regex, string } from 'valibot'
 
 import { readOperationFields } from './operation'
 
@@ -12,7 +12,7 @@ export const chatTypeSchema = picklist(['user', 'bot', 'channel', 'group', 'supe
 
 export const listChatsInputSchema = object({
   ...readOperationFields,
-  cursor: optional(string()),
+  cursor: optional(pipe(string(), regex(/^(?:0|[1-9]\d{0,15})$/), check(value => Number.isSafeInteger(Number(value)), 'Chat cursor must be a non-negative safe integer offset'))),
   limit: optional(pipe(number(), minValue(1), maxValue(1000)), 100),
   types: optional(array(chatTypeSchema)),
 })

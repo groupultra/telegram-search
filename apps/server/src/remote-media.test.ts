@@ -1,5 +1,7 @@
 import type { TelegramApplication } from '@tg-search/core'
 
+import type { RemoteApplication } from './remote-application'
+
 import { Buffer } from 'node:buffer'
 
 import { H3, serve } from 'h3'
@@ -11,6 +13,18 @@ import { createMessageMediaReader } from '../../../packages/core/src/services/me
 import { createRemoteApi, remoteAccessFromEnv } from './remote'
 
 const access = { token: 'synthetic-reader-token-'.repeat(3), accountId: '11111111-1111-4111-8111-111111111111' }
+const serverAccess = remoteAccessFromEnv({
+  TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
+    credentials: [{
+      id: '22222222-2222-4222-8222-222222222222',
+      name: 'media-reader',
+      token: access.token,
+      accountId: access.accountId,
+      capabilities: ['media.read', 'messages.get', 'messages.replies', 'messages.read'],
+      chatPermissions: [{ chatId: '42', permissions: ['read'] }],
+    }],
+  }),
+})!
 const servers: Array<ReturnType<typeof serve>> = []
 const input = { source: 'local', chatId: '42', messageId: '7', length: 4, maxBytes: 8 }
 
@@ -29,6 +43,7 @@ async function fixture() {
     inspectMessageMedia: unused,
     downloadMessageMedia: unused,
     listChats: unused,
+    listStoredChats: unused,
     listRemoteMessages: unused,
     queryLocalMessages: unused,
     searchLocalMessages: unused,
@@ -39,10 +54,10 @@ async function fixture() {
     readMessages: vi.fn<TelegramApplication['readMessages']>(async request => ({ ok: true, data: { source: request.source, chatId: request.chatId, items: [], window: {}, nextCursor: null, pagesRead: 1, stopReason: 'exhausted', coverage: { windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' } } })),
     readMessageMedia: vi.fn<TelegramApplication['readMessageMedia']>(async (request, options) => appResult(() => withReadOperation(options, scope => reader(request, scope.signal)))),
     async* sync() {},
-  } satisfies TelegramApplication
+  } satisfies RemoteApplication
   const resolve = vi.fn(() => application)
   const app = new H3()
-  app.mount('/v1/remote', createRemoteApi(access, resolve))
+  app.mount('/v1/remote', createRemoteApi(serverAccess, resolve, vi.fn(async () => {})))
   const server = serve(app, { hostname: '127.0.0.1', port: 0, silent: true })
   servers.push(server)
   await server.ready()
@@ -55,13 +70,7 @@ async function fixture() {
   return { application, resolve, request, read }
 }
 
-describe('remote reads with existing account-bound bearer authentication', () => {
-  it('keeps the existing token and account configuration', () => {
-    expect(remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token, TG_SEARCH_REMOTE_ACCOUNT_ID: access.accountId })).toEqual(access)
-    expect(remoteAccessFromEnv({})).toBeUndefined()
-    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token })).toThrow('UUID')
-  })
-
+describe('remote reads with scoped account-bound bearer authentication', () => {
   it('rejects a wrong bearer before resolving an account', async () => {
     const f = await fixture()
     const response = await f.request('media.read', input, { token: 'incorrect-synthetic-token' })
