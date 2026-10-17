@@ -3,12 +3,15 @@ import type { RemoteMethod } from '@tg-search/protocol'
 import type { GenericSchema, InferOutput } from 'valibot'
 
 import type { RemoteApplication } from './remote-application'
+import type { RemoteMediaOptions } from './remote-media-links'
 
 import { createHash, randomUUID } from 'node:crypto'
 
 import { accountIdSchema, remoteMethods } from '@tg-search/protocol'
 import { assertBodySize, H3, HTTPError, readValidatedBody, setResponseHeader } from 'h3'
 import { array, integer, maxLength, minLength, number, object, optional, parse, picklist, pipe, regex, string, toLowerCase, uuid } from 'valibot'
+
+import { createRemoteMediaLinks } from './remote-media-links'
 
 const remoteMethodNames = Object.keys(remoteMethods) as [RemoteMethod, ...RemoteMethod[]]
 
@@ -36,6 +39,7 @@ export interface RemoteCredential {
   expiresAt?: number
   capabilities: ReadonlySet<RemoteMethod>
   readableChatIds?: readonly string[]
+  tokenHash: string
 }
 
 export interface RemoteAccess {
@@ -91,6 +95,7 @@ export function remoteAccessFromEnv(env: Record<string, string | undefined>): Re
       expiresAt: credential.expiresAt,
       capabilities: new Set(credential.capabilities),
       readableChatIds: readAll ? undefined : uniqueSortedChatIds(credential.chatPermissions),
+      tokenHash,
     })
   }
   return { credentialsByTokenHash }
@@ -188,6 +193,12 @@ function itemChatIds(data: Record<string, unknown>): Array<string | undefined> |
 }
 
 const remoteHandlers = {
+  'media.createLink': defineRemoteHandler({
+    input: remoteMethods['media.createLink'].input,
+    scope: scopeSingleChat,
+    invoke: () => Promise.reject(new Error('Media link handler was not initialized')),
+    resultChatIds: input => [input.chatId as string | undefined],
+  }),
   'media.read': defineRemoteHandler({
     input: remoteMethods['media.read'].input,
     scope: scopeSingleChat,
@@ -310,8 +321,20 @@ export function createRemoteApi(
   access: RemoteAccess,
   getApplication: (accountId: string) => RemoteApplication,
   recordAudit: (event: RemoteAuditEvent) => Promise<void>,
+  mediaOptions?: RemoteMediaOptions,
 ): H3 {
+  const mediaByCredentialId = new Map([...access.credentialsByTokenHash.values()].map(credential => [
+    credential.id,
+    createRemoteMediaLinks({ token: credential.tokenHash, accountId: credential.accountId }, getApplication, mediaOptions),
+  ]))
+  const mediaLinks = [...mediaByCredentialId.values()]
   const app = new H3()
+  const downloadMedia = (event: Parameters<(typeof mediaLinks)[number]['download']>[0]) => {
+    const ticket = event.url.searchParams.get('ticket')
+    return (mediaLinks.find(media => media.accepts(ticket)) ?? mediaLinks[0]!).download(event)
+  }
+  app.get('/media.download', downloadMedia)
+  app.head('/media.download', downloadMedia)
   app.post('/:method', async (event) => {
     const credential = authenticate(access, event.req.headers.get('authorization'))
     if (!credential)
@@ -369,7 +392,10 @@ export function createRemoteApi(
         signal: event.req.signal,
         deadlineAt: operation?.deadlineAt,
       }
-      const result = await handler.invoke(getApplication(credential.accountId), credential, scopedInput, options)
+      const application = getApplication(credential.accountId)
+      const result = remoteMethod === 'media.createLink'
+        ? await mediaByCredentialId.get(credential.id)!.createLink(scopedInput as InferOutput<(typeof remoteMethods)['media.createLink']['input']>, options, application)
+        : await handler.invoke(application, credential, scopedInput, options)
       assertResultScope(credential, handler, scopedInput, result)
       const resultSummary = summarizeResult(result)
       await audit({

@@ -35,11 +35,13 @@ afterEach(async () => {
 async function fixture() {
   const bytes = Buffer.from('abcdefgh')
   const read = vi.fn(async (offset: number, length: number, _signal?: AbortSignal): Promise<Uint8Array> => bytes.subarray(offset, offset + length))
-  const reader = createMessageMediaReader(async () => ({ type: 'document', size: bytes.length, read }))
+  const reader = createMessageMediaReader(async () => ({ fileId: 'synthetic-attachment', type: 'document', size: bytes.length, read }))
   const unused = vi.fn(async (): Promise<never> => {
     throw new Error('Unexpected application method')
   })
   const application = {
+    inspectMessageMedia: unused,
+    downloadMessageMedia: unused,
     listChats: unused,
     listStoredChats: unused,
     listRemoteMessages: unused,

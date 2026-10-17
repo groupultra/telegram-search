@@ -21,7 +21,7 @@ function access(overrides: Record<string, unknown> = {}) {
         name: 'project-reader',
         token,
         accountId,
-        capabilities: ['media.read', 'chats.list', 'messages.get', 'messages.replies', 'messages.read', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
+        capabilities: ['media.createLink', 'media.read', 'chats.list', 'messages.get', 'messages.replies', 'messages.read', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
         chatPermissions: [{ chatId: '7', permissions: ['read'] }],
         ...overrides,
       }],
@@ -33,6 +33,8 @@ function fixture(options: { access?: ReturnType<typeof access>, messageChatId?: 
   const resultMessage = { ...message, chatId: options.messageChatId ?? message.chatId }
   const page = { ok: true as const, data: { items: [resultMessage], nextCursor: null } }
   const application = {
+    inspectMessageMedia: vi.fn<TelegramApplication['inspectMessageMedia']>(async () => ({ ok: false, error: { code: 'MEDIA_NOT_AVAILABLE', message: 'Unavailable in this fixture', retryable: false } })),
+    downloadMessageMedia: vi.fn<TelegramApplication['downloadMessageMedia']>(async () => ({ ok: false, error: { code: 'MEDIA_NOT_AVAILABLE', message: 'Unavailable in this fixture', retryable: false } })),
     readMessageMedia: vi.fn<TelegramApplication['readMessageMedia']>(async input => ({ ok: true, data: { source: input.source, chatId: input.chatId, messageId: input.messageId, mediaIndex: input.mediaIndex, type: 'document', size: 4, encoding: 'base64', data: 'dGVzdA==', offset: 0, nextOffset: null, contentStatus: 'complete' } })),
     listChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: resultMessage.chatId, name: 'Project', type: 'group' as const }], nextCursor: null } })),
     listStoredChats: vi.fn(async () => ({ ok: true as const, data: { items: [{ id: resultMessage.chatId, name: 'Project', type: 'group' as const }], nextCursor: null } })),

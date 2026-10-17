@@ -280,3 +280,35 @@ tg-search media read --chat <chat-id> --message <message-id> --source telegram -
 ```
 
 The result contains base64 `data`, attachment metadata, and `nextOffset`. Continue with `--offset` until `nextOffset` is null. The default attachment limit is 10 MiB, and one response contains at most 256 KiB of content so it fits the IPC frame budget. A null continuation means the returned range reached EOF; it does not prove earlier ranges were read. `contentStatus: complete` is returned only when this range covers the entire file, and does not mean the caller interpreted its content. Unsupported or unavailable local content produces an explicit error. Remote reads use the server's existing account credential.
+
+### Temporary attachment URLs
+
+`media url` asks a remote server to issue a download URL for one attachment. The
+link expires after five minutes and can be fetched without an Authorization
+header. It returns `url`, a server-relative `path`, `expiresAt` in Unix
+milliseconds, and `media` metadata (`type`, `size`, optional `mimeType` and
+`fileName`). The default whole-file limit is 10 MiB.
+
+```bash
+tg-search media url --remote https://tgs.example.invalid --chat CHAT_ID --message MESSAGE_ID --source local --index 0 --max-bytes 10485760 --json
+```
+
+Use `--source local` for bytes already stored **on that server**. Use
+`--source telegram` to authorize an explicit Telegram download by that server.
+The command never switches sources. Telegram documents include files, audio,
+video and stickers; URLs return their original bytes. Animated stickers are not
+transcoded into images.
+
+The endpoint can also come from `TG_SEARCH_REMOTE_URL` or the selected profile.
+The command accepts the existing profile, timeout and output options. Without a
+remote endpoint it returns `REMOTE_OPERATION_UNSUPPORTED` before starting a
+local runtime or creating a profile.
+
+For PNG/JPEG images, pass `data.url` to the model provider's **image input field**.
+A URL pasted into prompt text does not load the image. Use a supported file input
+for documents. The endpoint must be reachable by the model provider: a localhost
+or private-network URL is not reachable by a cloud model. The CLI does not
+publish your computer or make a private endpoint public.
+
+Treat the URL as a temporary credential. Give it only to the intended authorized
+consumer; do not put it in logs, reports, screenshots or shared chat messages.
