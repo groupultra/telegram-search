@@ -33,7 +33,15 @@
 </p>
 
 > [!TIP]
-> Sync your Telegram chats to your machine and index them with word segmentation, so Chinese, Japanese, and other languages are searchable by word. Use the `tg-search` CLI yourself or let an AI agent call it; data stays on your machine.
+> Struggling to search Chinese, Japanese, or Korean (CJK) messages in Telegram?
+>
+> Important messages often get lost in the noise, especially when word boundaries aren't clear.
+>
+> Telegram Search backs up your messages and indexes them with word segmentation, so CJK and other languages without spaces can be searched by word.
+>
+> Vector search adds fuzzy, sentence-level matching, and AI features include unread-message summaries and an AI assistant.
+>
+> We recommend the `tg-search` CLI: log in once on your machine, then search from the terminal or let AI agents such as Claude Code or Codex call it.
 
 ## 💖 Sponsors
 
