@@ -33,9 +33,9 @@
 </p>
 
 > [!TIP]
-> Can't find Chinese, Japanese, or Korean messages with Telegram's built-in search? Important messages buried under endless chats?
+> Telegram's built-in search often misses words in languages written without spaces, such as Chinese and Japanese.
 >
-> Telegram Search backs up your chats locally and gives you reliable multilingual, word-segmented search. The recommended `tg-search` CLI needs one local login; after that you can search from your terminal, or let AI agents such as Claude Code or Codex retrieve, organize, and summarize your history, without handing your data to a third party.
+> Telegram Search syncs your chats to your machine and indexes them after word segmentation. We recommend the `tg-search` CLI: after one local login, you can search from your terminal, or let AI agents such as Claude Code or Codex run commands to read, search, and export your messages. The login session and messages stay on your machine.
 
 ## 💖 Sponsors
 
@@ -84,7 +84,7 @@ brew services restart groupultra/telegram-search/tg-search
 ### 4. Sync and search your history
 
 ```bash
-# List chats (reads Telegram; nothing is stored)
+# List chats (reads Telegram; writes nothing locally)
 tg-search chats list
 
 # Sync the history of selected chats to the local database through Telegram Takeout
@@ -102,8 +102,8 @@ If Telegram asks you to confirm the data export request (`TAKEOUT_AUTHORIZATION_
 | Command | Purpose | Connects to Telegram |
 | --- | --- | --- |
 | `auth login` | Log in to the current profile interactively | Yes |
-| `chats list` | List chats | Yes, nothing stored |
-| `messages list --chat <id>` | Page through one chat; add `--query` to search on Telegram | Yes, nothing stored |
+| `chats list` | List chats | Yes, writes nothing locally |
+| `messages list --chat <id>` | Page through one chat; add `--query` to search on Telegram | Yes, writes nothing locally |
 | `sync --takeout --chat <id>` / `--all` | Bulk-sync history to the local database through Takeout | Yes |
 | `search <query>` | Local word-segmented search | No |
 | `messages query` / `context` / `stats` | Local queries, surrounding context, statistics | No |
@@ -111,11 +111,11 @@ If Telegram asks you to confirm the data export request (`TAKEOUT_AUTHORIZATION_
 | `daemon run` / `status` / `stop` | Run the daemon in the foreground or manage it | Yes |
 | `profile inspect` / `doctor` | Check configuration and daemon health without printing secrets | No |
 
-Every command accepts `--profile <name>` to keep accounts separate and `--json` for a stable JSON envelope. See the [CLI documentation](../packages/cli/README.md) for all commands, pagination, media reads, and privacy boundaries.
+Every command accepts `--profile <name>` to keep accounts separate and `--json` for a fixed-shape JSON envelope. See the [CLI documentation](../packages/cli/README.md) for all commands, pagination, media reads, and privacy boundaries.
 
 ### 🤖 Use it with AI agents
 
-The CLI is built for agents: a person runs `auth login` once on their machine, and the agent then combines commands to decide which chats to read and when to sync.
+The CLI's commands and output are designed for agents to call. After the user runs `auth login` once on their machine, an agent can combine commands to decide which chats to read and when to sync.
 
 - With `--json`, stdout contains only the structured `{ ok, data, next_cursor, meta }` result. Logs, prompts, and progress go to stderr. Failures return a structured `error` and a non-zero exit code.
 - Use `--output-file ./private/page.jsonl` to write a large result to a file; the terminal shows only a receipt.
@@ -165,7 +165,7 @@ pnpm cli auth login
 pnpm cli chats list
 ```
 
-## ✅ Feature Highlights
+## ✅ Features
 
 ### 📦 Export & Backup
 - [x] The local CLI uses its own PGlite database; the server supports PGlite and PostgreSQL
@@ -174,14 +174,14 @@ pnpm cli chats list
 - [x] Server media can be backed up to MinIO object storage automatically
 
 ### 🔍 Chat Search
-- [x] Automatic word segmentation for accurate multilingual search
-- [x] The server combines fuzzy matching with vector semantic search, including text-to-image search
-- [x] RAG chat: ask an AI questions answered from your history
+- [x] Messages are segmented into words as they are stored, so languages written without spaces can be searched by word
+- [x] The server uses both fuzzy matching and vector semantic search, and can find images from a text query
+- [x] RAG Q&A: an AI answers questions from retrieved history messages
 - [x] Date range filters and deep links to the original messages
 
 ### 🤖 Agents & Bot
 - [x] JSON / JSONL output and structured errors for agents
-- [x] Remote read-only mode for agents to query a self-hosted server safely
+- [x] Remote read-only mode: agents query a self-hosted server without downloading its database or Telegram session
 - [x] Search and export messages through a Telegram bot
 - [x] AI summaries of unread messages
 
@@ -195,7 +195,7 @@ pnpm cli chats list
 
 ## 🖥️ Web Interface (optional)
 
-Prefer a graphical interface? Use the hosted demo at https://search.lingogram.app, or deploy the web app yourself.
+For a graphical interface, use the hosted demo at https://search.lingogram.app, or deploy the web app yourself.
 
 ### Docker Compose
 

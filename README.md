@@ -33,9 +33,9 @@
 </p>
 
 > [!TIP]
-> Telegram 搜不到中文聊天记录？重要消息被海量对话淹没？
+> Telegram 自带的搜索对中文等不以空格分隔词语的语言命中率较低。
 >
-> Telegram Search 把你的聊天记录备份到本地，并提供可靠的多语言分词检索。主推的 `tg-search` CLI 让你只需在本地登录一次，之后无论是自己在终端里查，还是交给 Claude Code、Codex 等 AI Agent 自动检索、整理、总结，都不必把数据交给任何第三方。
+> Telegram Search 把聊天记录同步到本机，分词后建立索引。推荐使用 `tg-search` CLI：在本地登录一次之后，可以自己在终端检索，也可以让 Claude Code、Codex 等 AI Agent 调用命令读取、检索和导出消息。登录 session 和消息都保存在本机。
 
 ## 💖 赞助者
 
@@ -84,7 +84,7 @@ brew services restart groupultra/telegram-search/tg-search
 ### 4. 同步并搜索历史消息
 
 ```bash
-# 查看会话列表（只读远端，不落库）
+# 查看会话列表（读取 Telegram，不写入本地数据库）
 tg-search chats list
 
 # 通过 Telegram Takeout 把选定会话的历史同步到本地
@@ -102,8 +102,8 @@ tg-search context --chat 123456 --message 42 --before 20 --after 20
 | 命令 | 作用 | 是否连接 Telegram |
 | --- | --- | --- |
 | `auth login` | 交互式登录当前 profile | 是 |
-| `chats list` | 列出会话 | 是，不落库 |
-| `messages list --chat <id>` | 分页读取某个会话，可加 `--query` 在 Telegram 端搜索 | 是，不落库 |
+| `chats list` | 列出会话 | 是，不写入本地 |
+| `messages list --chat <id>` | 分页读取某个会话，可加 `--query` 在 Telegram 端搜索 | 是，不写入本地 |
 | `sync --takeout --chat <id>` / `--all` | 通过 Takeout 批量同步历史到本地 | 是 |
 | `search <query>` | 本地分词检索 | 否 |
 | `messages query` / `context` / `stats` | 本地查询、上下文、统计 | 否 |
@@ -111,15 +111,15 @@ tg-search context --chat 123456 --message 42 --before 20 --after 20
 | `daemon run` / `status` / `stop` | 前台运行或管理常驻 daemon | 是 |
 | `profile inspect` / `doctor` | 检查配置和 daemon 健康状态，不输出任何密钥 | 否 |
 
-所有命令都支持 `--profile <name>` 隔离多个账号，`--json` 输出稳定的 JSON envelope。完整命令、分页、媒体读取和隐私边界见 [CLI 文档](./packages/cli/README.md)。
+所有命令都支持 `--profile <name>` 隔离多个账号，`--json` 输出结构固定的 JSON envelope。完整命令、分页、媒体读取和隐私边界见 [CLI 文档](./packages/cli/README.md)。
 
 ### 🤖 交给 AI Agent
 
-CLI 为 Agent 设计：人只需在本地完成一次 `auth login`，之后 Agent 自行组合命令，决定读哪些会话、何时同步。
+CLI 的命令和输出按 Agent 的调用方式设计。用户在本地完成一次 `auth login` 之后，Agent 可以自行组合命令，决定读取哪些会话、何时同步。
 
 - 加 `--json` 后，stdout 只包含 `{ ok, data, next_cursor, meta }` 结构化结果；日志、提示与进度写入 stderr，失败时返回结构化 `error` 并以非零码退出。
 - 大结果可用 `--output-file ./private/page.jsonl` 写入文件，终端只输出回执。
-- 仓库内置 Agent skill：[`.agents/skills/telegram-search-cli`](./.agents/skills/telegram-search-cli/SKILL.md)，可直接给 Claude Code / Codex 等使用。
+- 仓库内置 Agent skill：[`.agents/skills/telegram-search-cli`](./.agents/skills/telegram-search-cli/SKILL.md)，Claude Code、Codex 等 Agent 可以直接加载。
 - **隐私边界**：`sync --takeout` 必须先征得用户同意，Agent 才能加上 `--takeout`；未授权、用户拒绝或 Takeout 初始化失败都会停止，不会退回普通 `GetHistory`。导出不包含媒体二进制、登录 session、向量或密钥，CLI 本身也不做 AI 总结。
 
 ```bash
@@ -165,7 +165,7 @@ pnpm cli auth login
 pnpm cli chats list
 ```
 
-## ✅ 功能亮点
+## ✅ 功能
 
 ### 📦 导出与备份
 - [x] 本地 CLI 使用独立 PGlite；服务端兼容 PGlite 与 PostgreSQL
@@ -174,28 +174,28 @@ pnpm cli chats list
 - [x] 服务端媒体资源可自动备份至 MinIO 对象存储
 
 ### 🔍 聊天记录搜索
-- [x] 自动智能分词，支持多语言精准检索
-- [x] 服务端融合模糊匹配与向量语义搜索，支持以文搜图
-- [x] RAG 智能问答：直接与 AI 聊天，基于历史上下文获得实时解答
+- [x] 消息写入时自动分词，中文等不以空格分词的语言也能按词检索
+- [x] 服务端同时使用模糊匹配和向量语义检索，支持用文字搜索图片
+- [x] RAG 问答：AI 根据检索到的历史消息回答问题
 - [x] 日期范围筛选，消息 deep link 跳转原始对话
 
 ### 🤖 Agent 与 Bot
 - [x] 面向 Agent 的 JSON / JSONL 输出与结构化错误
-- [x] 远程只读模式，Agent 可安全查询自托管服务
+- [x] 远程只读模式：Agent 查询自托管服务端，不下载其数据库和 Telegram session
 - [x] 通过 Telegram Bot 搜索和导出消息
-- [x] 未读消息智能摘要
+- [x] 用 AI 汇总未读消息
 
 ## 🛣️ 路线展望
 
 - [ ] 自动生成会话总结
-- [ ] “超级大脑”：基于历史消息，自动构建人物与事件的知识图谱
-- [ ] 智能整理"已保存消息"收藏夹
-- [ ] 链接与图片深度索引：网页摘要、图片 OCR 文字识别及智能描述
-- [ ] 跨平台扩展：支持 Discord 及其他主流社交/通讯平台
+- [ ] 「超级大脑」：根据历史消息构建人物与事件的知识图谱
+- [ ] 自动整理「已保存消息」
+- [ ] 链接与图片索引：网页摘要、图片 OCR 和图片描述
+- [ ] 支持 Discord 等其他通讯平台
 
 ## 🖥️ 网页界面（可选）
 
-更喜欢图形界面？可以直接使用在线体验版 https://search.lingogram.app ，或自行部署网页版。
+需要图形界面时，可以使用在线体验版 https://search.lingogram.app ，或自行部署网页版。
 
 ### Docker Compose
 
