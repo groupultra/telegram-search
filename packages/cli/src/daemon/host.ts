@@ -31,6 +31,7 @@ import { daemonContracts } from '@tg-search/protocol'
 import { runtimeBuildInfo } from '../build-info'
 import { readProfileConfig, readSession, writeProfileConfig, writeSession } from '../profile'
 import { createDaemonLogger, profileScopeId } from '../runtime'
+import { resolveCliTelegramCredentials } from '../telegram-credentials'
 import { registerDaemonAuthorizationHandlers } from './authorization-events'
 import { createDaemonDiagnostics } from './diagnostics'
 import { startDaemonLogMaintenance } from './log-maintenance'
@@ -167,8 +168,12 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
 
   let profileConfig = await readProfileConfig(paths)
   const config = generateDefaultConfig()
-  config.api.telegram.apiId = profileConfig.apiId ?? process.env.TELEGRAM_API_ID
-  config.api.telegram.apiHash = profileConfig.apiHash ?? process.env.TELEGRAM_API_HASH
+  const applyCredentials = () => {
+    const credentials = resolveCliTelegramCredentials(profileConfig)
+    config.api.telegram.apiId = credentials.apiId
+    config.api.telegram.apiHash = credentials.apiHash
+  }
+  applyCredentials()
 
   const cleanupResources = async () => {
     stopLogMaintenance?.()
@@ -283,8 +288,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     if (stopping)
       return status()
 
-    config.api.telegram.apiId = profileConfig.apiId ?? process.env.TELEGRAM_API_ID
-    config.api.telegram.apiHash = profileConfig.apiHash ?? process.env.TELEGRAM_API_HASH
+    applyCredentials()
 
     const context = createCoreInstance(() => database!.db, config, undefined, logger)
     context.setCurrentAccountId(profileConfig.accountId ?? profileScopeId(paths.root))
@@ -357,9 +361,6 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     if (reloadInFlight)
       return reloadInFlight
     reloadInFlight = (async () => {
-      const latest = await readProfileConfig(paths)
-      if (!(latest.apiId ?? process.env.TELEGRAM_API_ID) || !(latest.apiHash ?? process.env.TELEGRAM_API_HASH))
-        throw new ApplicationError({ code: 'DAEMON_RECOVERY_UNAVAILABLE', message: 'Telegram API credentials are missing; configure this profile before recovery', retryable: false })
       const session = await readSession(paths)
       if (!session)
         throw new ApplicationError({ code: 'AUTH_REQUIRED', message: 'Saved Telegram session is missing; run auth login before recovery', retryable: false })

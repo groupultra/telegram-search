@@ -39,8 +39,7 @@ class TgSearch < Formula
 
   def caveats
     <<~EOS
-      Configure and log in to the default profile before starting the service:
-        tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
+      Log in to the default profile before starting the service:
         tg-search auth login
         brew services start groupultra/telegram-search/tg-search
       The service uses your default profile and its existing data directory.

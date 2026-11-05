@@ -2,10 +2,8 @@ import { useLogger } from '@guiiai/logg'
 import { CoreEventType, generateDefaultAccountSettings } from '@tg-search/core'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { onScopeDispose, ref, watch } from 'vue'
-import { toast } from 'vue-sonner'
 
 import { useBridge } from '../composables/useBridge'
-import { IS_CORE_MODE, TELEGRAM_APP_HASH, TELEGRAM_APP_ID } from '../constants'
 import { useChatStore } from './useChat'
 import { useMessageStore } from './useMessage'
 import { useSessionStore } from './useSession'
@@ -63,12 +61,6 @@ export const useAccountStore = defineStore('account', () => {
       return
     }
 
-    if (IS_CORE_MODE && (!TELEGRAM_APP_ID || !TELEGRAM_APP_HASH)) {
-      toast.error('Missing Telegram API credentials')
-      authStatus.value.isLoading = false
-      return
-    }
-
     resetReady()
     authStatus.value.isLoading = true
     restoringSession = true
@@ -83,12 +75,6 @@ export const useAccountStore = defineStore('account', () => {
       restoringSession = false
       // NOTICE: session cloud be undefined, we determine it login with phone number as new login
       const session = sessionStore.activeSession?.session
-      if (IS_CORE_MODE && (!TELEGRAM_APP_ID || !TELEGRAM_APP_HASH)) {
-        toast.error('Missing Telegram API credentials')
-        authStatus.value.isLoading = false
-        return
-      }
-
       authStatus.value.isLoading = true
       bridge.sendEvent(CoreEventType.AuthLogin, {
         phoneNumber,

@@ -35,193 +35,148 @@
 > [!TIP]
 > Struggling to search Chinese, Japanese, or Korean (CJK) messages in Telegram?
 >
-> Important messages often get lost in the noise — especially when word boundaries aren’t clear.
+> Important messages often get lost in the noise, especially when word boundaries aren't clear.
 >
-> Telegram Search solves this with advanced semantic search and word segmentation, fully supporting CJK and all languages. 
+> Telegram Search backs up your messages and indexes them with word segmentation, so CJK and other languages without spaces can be searched by word.
 >
-> Vector search enables fuzzy, sentence-level matching, making it easy to find the information you need—even in languages without spaces.
+> Vector search adds fuzzy, sentence-level matching, and AI features include unread-message summaries and an AI assistant.
+>
+> We recommend the `tg-search` CLI: log in once on your machine, then search from the terminal or let AI agents such as Claude Code or Codex call it.
 
 ## 💖 Sponsors
 
 ![Sponsors](https://github.com/luoling8192/luoling8192/raw/master/sponsorkit/sponsors.svg)
 
-## ✅ Feature Highlights
-
-### 📦 Export & Backup
-- [x] Export chat history to multiple database types: supports both PGlite and PostgreSQL
-- [x] Media files are automatically backed up to MinIO object storage—no manual steps required
-- [x] Automatic vector embedding and tokenization during export for precise future search
-- [x] Real-time sync keeps all conversations updated continuously
-
-### 🔍 Chat Record Search
-- [x] Intelligent word segmentation for accurate, multilingual retrieval
-- [x] Combines fuzzy matching with vector-based semantic search for highly efficient results
-- [x] Image semantic search: find images by text description via image embedding
-- [x] Infinite scroll for search results — smoother browsing experience
-- [x] RAG-powered AI Q&A: Chat with AI using your Telegram history as real-time context
-
-### 🤖 Telegram Bot
-- [x] Search and export messages via Bot
-- [x] Message deep links — jump to the original conversation in one click
-
-### 🚀 Advanced Features
-- [x] Smart unread message summaries: Instantly aggregate all unread content with a concise AI-generated summary
-- [x] Date range filtering for quickly narrowing down search results
-- [x] Context menu to jump to the original Telegram message, with mobile support
-
-## 🛣️ Roadmap
-
-### 🧠 Enhanced AI Capabilities
-- [ ] Automatic session summaries
-- [ ] "Super Brain": Build knowledge graphs of people and events directly from your chat records
-
-### 🔗 Media & Link Extensions
-- [ ] Intelligently organize your "Saved Messages" for efficient content management
-- [ ] Deep link and image indexing: web page summarization, OCR for images, AI-driven captions—powerful search & archival
-
-### 🌐 Multi-platform Integration
-- [ ] Expand to Discord and other major social/messaging platforms for unified search and backup
-
-
-## 🎉 Try It Now
-
-We offer an online experience—no deployment needed. Try all Telegram Search features instantly.
-
-Visit: https://search.lingogram.app
-
 > [!WARNING]
-> No cryptocurrency has been issued by us. Please beware of scams.
->
-> This tool exports only your own chat history. Do not use it for illegal purposes.
+> This project has issued no cryptocurrency; beware of scams. Use it only to export and search your own chats, never for anything illegal.
 
-## 🚀 Quick Start
-
-### Install the CLI with Homebrew (macOS / Linux)
-
-Homebrew installs the local CLI and its Node.js runtime dependency. No manual Node.js installation or repository build is needed. For the web interface, use the Docker deployment below.
+## 🚀 Quick Start: CLI
 
 ```bash
+# Install (macOS / Linux)
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
 
-tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
+# Log in (API ID / hash are built in; no my.telegram.org app needed)
 tg-search auth login
+
+# Run in the background and save new messages (as your user, no sudo)
 brew services start groupultra/telegram-search/tg-search
-tg-search daemon status
+
+# Sync history and search
+tg-search chats list
+tg-search sync --takeout --chat 123456 --from 2026-01-01
+tg-search search "project progress"
 ```
 
-Get your API ID and API Hash from [my.telegram.org](https://my.telegram.org). These commands use the `default` profile; authenticate before starting the service. Run `brew services` as your user, without `sudo`. The daemon runs in the background and starts at system login. After Telegram login, it persists new messages, edits, and deletions. Bulk history still requires an explicit `sync --takeout` command.
+If `sync --takeout` returns `TAKEOUT_AUTHORIZATION_REQUIRED`, approve the export request on another Telegram device and retry.
+
+### Common commands
+
+| Command | Purpose | Telegram |
+| --- | --- | --- |
+| `auth login` | Log in | Yes |
+| `chats list` / `messages list --chat <id>` | Read chats and messages; writes nothing locally | Yes |
+| `sync --takeout --chat <id>` / `--all` | Sync history locally | Yes |
+| `search` / `context` / `messages query` / `stats` | Local search, context, queries, statistics | No |
+| `export --from --to --output <dir>` | Export monthly JSONL | No |
+| `daemon run` / `status` / `stop` | Manage the daemon | Yes |
+| `profile inspect` / `doctor` | Check configuration and daemon health | No |
+
+`--profile <name>` separates accounts; `--json` prints JSON. See the [CLI documentation](../packages/cli/README.md).
+
+### 🤖 Use with AI agents
+
+After the user runs `auth login` once, an agent can call commands with `--json`: stdout carries only the structured result, and logs and progress go to stderr. Load the bundled [agent skill](../.agents/skills/telegram-search-cli/SKILL.md).
+
+An agent may use `sync --takeout` only after the user agrees.
+
+### Custom API credentials (optional)
 
 ```bash
-brew services stop groupultra/telegram-search/tg-search
-brew upgrade groupultra/telegram-search/tg-search
-brew services restart groupultra/telegram-search/tg-search
+tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH   # save in the profile
+export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH          # or use the environment
 ```
 
-Upgrades preserve profile data. Rotating logs are `daemon.stdout.log` and `daemon.stderr.log` in the default profile directory. For another profile, run `tg-search --profile NAME daemon run`. See the [CLI documentation](../packages/cli/README.md) for data paths, commands, and privacy boundaries.
+Set both together; the profile wins. Run `profile configure` with no flags to return to the built-in credentials.
 
-### Deploy with Docker Compose
+### Remote read-only mode
 
-The recommended way to self-host is with Docker Compose. This launches the UI, backend, database, and media storage in one step.
-
-1. Create an empty folder for your Telegram Search data and config:
 ```bash
-mkdir telegram-search
-cd telegram-search
+export TG_SEARCH_REMOTE_TOKEN=...
+tg-search --profile cloud profile remote https://tgs.example.com
+tg-search --profile cloud search "project progress"
 ```
 
-2. Download the Docker Compose and default environment files:
+### Build from source
+
 ```bash
+pnpm install && pnpm run build:packages && pnpm -F @tg-search/cli build
+pnpm cli auth login
+```
+
+## ✅ Features
+
+- [x] Bulk history sync via Takeout; the daemon saves new messages, edits, and deletions
+- [x] Word-segmented search; the server adds vector semantic search and text-to-image search
+- [x] Monthly JSONL export with a SHA-256 manifest
+- [x] RAG Q&A and AI summaries of unread messages
+- [x] Search and export through a Telegram bot
+- [x] Server media backup to MinIO
+
+## 🛣️ Roadmap
+
+- [ ] Automatic chat summaries
+- [ ] "Super brain": a knowledge graph of people and events from your history
+- [ ] Automatic organization of Saved Messages
+- [ ] Link and image indexing: page summaries, OCR, image descriptions
+- [ ] Discord and other platforms
+
+## 🖥️ Web Interface (optional)
+
+Demo: https://search.lingogram.app. To self-host:
+
+```bash
+mkdir telegram-search && cd telegram-search
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/.env.example -o .env
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/init.sql -o init.sql
-```
-
-3. Start all containers:
-```bash
 docker compose -f docker-compose.yml up -d
 ```
 
-4. Open **http://localhost:3333** in your browser to start using Telegram Search! 🎉
-
-### Deploy with Docker Image
-
-If MinIO is not configured, media files will be stored in the local `data/media` directory.
-
-```bash
-docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
-```
+Open **http://localhost:3333**. Or run the image alone: `docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest` (without MinIO, media goes to `data/media`).
 
 ### Environment Variables
 
-> [!IMPORTANT]
-> AI Embedding & LLM settings are now **per-account** in-app (Settings → API).
->
-> Please restart the service after modifying the `.env` file by running `docker compose -f docker-compose.yml up -d`.
+All optional. AI embedding / LLM settings are per account in the app (Settings → API).
 
-All environment variables are optional. If not provided, the default values will be used.
-
-| Variable            | Description                                                  | Example                                               |
-| ------------------- | ------------------------------------------------------------ | ----------------------------------------------------- |
-| `TELEGRAM_API_ID`   | From [my.telegram.org](https://my.telegram.org/apps)         | `611335`                                              |
-| `TELEGRAM_API_HASH` | From [my.telegram.org](https://my.telegram.org/apps)         | `d524b414d21f4d37f08684c1df41ac9c`                    |
-| `DATABASE_TYPE`     | Database type: `postgres` or `pglite`                        | `pglite`                                              |
-| `DATABASE_URL`      | PostgreSQL connection string (`DATABASE_TYPE=postgres` only) | `postgresql://postgres:123456@pgvector:5432/postgres` |
-| `TELEGRAM_BOT_TOKEN`| Bot token from [@BotFather](https://t.me/BotFather)          | `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`           |
-| `PROXY_URL`         | Proxy address (formats like `socks5://user:pass@host:port`)  | `socks5://user:pass@host:port`                        |
-| `PORT`              | Backend HTTP/WebSocket listening port                        | `3333`                                                |
-| `HOST`              | Backend listening address                                    | `0.0.0.0`                                             |
-| `BACKEND_URL`       | Upstream backend for Nginx `/api`/`/ws` proxy                | `http://127.0.0.1:3333`                               |
-| `MINIO_URL`         | MinIO service address                                        | `http://minio:9000`                                   |
-| `MINIO_ACCESS_KEY`  | MinIO access key                                             | `minioadmin`                                          |
-| `MINIO_SECRET_KEY`  | MinIO secret key                                             | `minioadmin`                                          |
-| `MINIO_BUCKET`      | MinIO bucket name                                            | `telegram-media`                                      |
-
-### Deploy with Docker Image
-
-Please modify the environment variables according to your needs.
-
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -e TELEGRAM_API_ID=1234567890 \
-  -e TELEGRAM_API_HASH=1234567890 \
-  -e DATABASE_TYPE=postgres \
-  -e DATABASE_URL=postgresql://postgres:123456@pgvector:5432/postgres \
-  -e PROXY_URL=socks5://user:pass@host:port \
-  -e PORT=3333 \
-  -e HOST=0.0.0.0 \
-  ghcr.io/groupultra/telegram-search:latest
-```
+| Variable            | Description                                                                  | Example                                               |
+| ------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `TELEGRAM_API_ID`   | Custom Telegram app ID; the built-in credentials are used when unset          | `611335`                                              |
+| `TELEGRAM_API_HASH` | Custom Telegram app hash; set it together with the ID                        | `d524b414d21f4d37f08684c1df41ac9c`                    |
+| `DATABASE_TYPE`     | Database type: `postgres` or `pglite`                                        | `pglite`                                              |
+| `DATABASE_URL`      | PostgreSQL connection string (only when `DATABASE_TYPE=postgres`)            | `postgresql://postgres:123456@pgvector:5432/postgres` |
+| `TELEGRAM_BOT_TOKEN`| Telegram bot token created with [@BotFather](https://t.me/BotFather)         | `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`           |
+| `PROXY_URL`         | Proxy URL, such as `socks5://user:pass@host:port`                            | `socks5://user:pass@host:port`                        |
+| `PORT`              | Backend HTTP/WebSocket port                                                  | `3333`                                                |
+| `HOST`              | Backend listen address                                                       | `0.0.0.0`                                             |
+| `BACKEND_URL`       | Upstream backend for `/api` and `/ws` when Nginx is the reverse proxy        | `http://127.0.0.1:3333`                               |
+| `MINIO_URL`         | MinIO endpoint                                                               | `http://minio:9000`                                   |
+| `MINIO_ACCESS_KEY`  | MinIO access key                                                             | `minioadmin`                                          |
+| `MINIO_SECRET_KEY`  | MinIO secret key                                                             | `minioadmin`                                          |
+| `MINIO_BUCKET`      | MinIO bucket name                                                            | `telegram-media`                                      |
 
 ## 💻 Development Guide
 
-### Browser-only Mode
-
 ```bash
-git clone https://github.com/groupultra/telegram-search.git
-cd telegram-search
-pnpm install
-cp .env.example .env
-pnpm run dev
-```
-
-### Server Mode
-
-```bash
-git clone https://github.com/groupultra/telegram-search.git
-cd telegram-search
-pnpm install
-
-cp .env.example .env
-
-docker compose up -d pgvector minio
-
-pnpm run server:dev
+pnpm install && cp .env.example .env
+pnpm run dev                                                    # browser-only mode
+docker compose -f docker/docker-compose.dev.yml up -d pgvector minio
+pnpm run server:dev                                             # server mode; run web:dev in another terminal
 pnpm run web:dev
 ```
 
-📖 **More details:** [CONTRIBUTING.md](../docs/CONTRIBUTING.md)
+More in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## 🚀 Activity
 

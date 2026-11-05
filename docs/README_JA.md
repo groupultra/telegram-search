@@ -34,182 +34,149 @@
 
 > [!TIP]
 > Telegram で日本語のチャット履歴を検索できずに困ったことはありませんか？
-> 
+>
 > 重要なメッセージを探しているのに大量の履歴の中から見つけ出せず、悩んだ経験はありませんか？
 >
-> Telegram Search なら、日本語メッセージも含めて簡単に検索・エクスポートできます。高度なセマンティック検索で言語を問わず、単語の区切りがなくてもスムーズに検索可能です。
-> 
-> また、ベクトル検索による文レベルのあいまい検索で、必要な情報をより素早く・正確に見つけ出せます。
+> Telegram Search なら、メッセージをバックアップして検索できます。ローカルで分かち書きしてからインデックスを作成するため、単語の区切りがない日本語でも単語単位でヒットします。
+>
+> また、ベクトル検索による文レベルのあいまい検索や、未読メッセージの AI 要約、AI アシスタントとの対話にも対応しています。
+>
+> おすすめは `tg-search` CLI です。ローカルで一度ログインすれば、ターミナルから検索することも、Claude Code や Codex などの AI エージェントから呼び出すこともできます。
 
 ## 💖 スポンサー
 
 ![Sponsors](https://github.com/luoling8192/luoling8192/raw/master/sponsorkit/sponsors.svg)
 
-## ✅ 機能ハイライト
-
-### 📦 エクスポート & バックアップ
-- [x] 複数のデータベースエクスポートに対応：PGlite および PostgreSQL をサポート
-- [x] メディアリソースを MinIO オブジェクトストレージへ自動バックアップ、手動操作不要
-- [x] メッセージのエクスポート時に、ベクトル埋め込み生成＆分かち書きを自動実行し、後の検索性を向上
-- [x] リアルタイム同期で最新のチャット内容を自動的に取得・更新
-
-### 🔍 チャット履歴検索
-- [x] 自動インテリジェント分かち書きで多言語チャットも精度高く検索
-- [x] あいまい一致とベクトルセマンティック検索の両方を統合し、高効率な探索を実現
-- [x] 画像セマンティック検索：画像 embedding によるテキストからの画像検索
-- [x] 検索結果の無限スクロールで、よりスムーズな閲覧体験
-- [x] RAG AI 質問応答：AI との直接対話で、履歴の文脈に基づきすぐに解答
-
-### 🤖 Telegram Bot
-- [x] Bot 経由でメッセージの検索・エクスポート
-- [x] メッセージ deep link でワンクリックで元の会話へジャンプ
-
-### 🚀 高度な機能
-- [x] 未読メッセージの自動要約：全未読メッセージをワンクリックでまとめ、重要ポイントを抽出
-- [x] 日付範囲フィルタリングで検索結果を素早く絞り込み
-- [x] 右クリックメニューから Telegram の元メッセージへジャンプ（モバイル対応）
-
-## 🛣️ ロードマップ展望
-
-### 🧠 AI 能力の強化
-- [ ] 会話まとめの自動生成
-- [ ] 「スーパー・ブレイン」：履歴メッセージから人物・イベントの知識グラフを自動構築
-
-### 🔗 メディア・リンク連携拡張
-- [ ] 「保存済みメッセージ」フォルダをインテリジェントに整理、コンテンツ管理性を向上
-- [ ] リンク・画像の深いインデックス化（ウェブ要約、画像 OCR 文字認識、キャプション生成など）
-
-### 🌐 マルチプラットフォーム対応
-- [ ] Discord 等他の主要チャット・ SNS への拡張で統合検索＆バックアップに対応
-
-## 🎉 今すぐお試し
-
-オンラインデモを用意しています。デプロイ不要で Telegram Search の全機能をすぐ体験できます。
-
-アクセス：https://search.lingogram.app
-
 > [!WARNING]
-> 暗号通貨等の発行はしていません。詐欺にご注意ください。
->
-> このツールはご自身のチャット履歴を検索・エクスポートする用途限定です。違法目的での利用は禁止します。
+> 本プロジェクトは暗号資産を発行していません。詐欺にご注意ください。個人のチャット履歴のエクスポートと検索にのみ使用し、違法な用途には使わないでください。
 
-## 🚀 クイックスタート
-
-### Homebrew で CLI をインストール（macOS / Linux）
-
-Homebrew がローカル CLI と必要な Node.js ランタイムをインストールします。Node.js の手動インストールやリポジトリのビルドは不要です。Web UI を利用する場合は、下記の Docker によるデプロイ手順を参照してください。
+## 🚀 クイックスタート：CLI
 
 ```bash
+# インストール（macOS / Linux）
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
 
-tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
+# ログイン（API ID / Hash は組み込み済み。my.telegram.org での登録は不要）
 tg-search auth login
+
+# バックグラウンドで常駐し新着を保存（sudo なしで現在のユーザーとして実行）
 brew services start groupultra/telegram-search/tg-search
-tg-search daemon status
+
+# 履歴を同期して検索
+tg-search chats list
+tg-search sync --takeout --chat 123456 --from 2026-01-01
+tg-search search "プロジェクトの進捗"
 ```
 
-API ID と API Hash は [my.telegram.org](https://my.telegram.org) で取得できます。上記のコマンドは `default` profile を使用します。ログインを完了してからサービスを起動してください。`brew services` は現在のユーザーで実行し、`sudo` は使用しないでください。daemon はバックグラウンドで動作し、システムへのログイン時にも起動します。Telegram にログインした後は、新しいメッセージと編集・削除の更新を保存します。過去の履歴の一括同期には、明示的な `sync --takeout` が必要です。
+`sync --takeout` が `TAKEOUT_AUTHORIZATION_REQUIRED` を返した場合は、他の Telegram 端末でエクスポート要求を承認してから再実行してください。
+
+### よく使うコマンド
+
+| コマンド | 用途 | Telegram 接続 |
+| --- | --- | --- |
+| `auth login` | ログイン | あり |
+| `chats list` / `messages list --chat <id>` | チャットとメッセージの読み取り（ローカルに書き込まない） | あり |
+| `sync --takeout --chat <id>` / `--all` | 履歴をローカルに同期 | あり |
+| `search` / `context` / `messages query` / `stats` | ローカル検索・文脈・クエリ・統計 | なし |
+| `export --from --to --output <dir>` | 月別 JSONL を出力 | なし |
+| `daemon run` / `status` / `stop` | daemon の管理 | あり |
+| `profile inspect` / `doctor` | 設定と daemon の状態を確認 | なし |
+
+`--profile <name>` でアカウントを分離し、`--json` で JSON を出力します。詳細は [CLI ドキュメント](../packages/cli/README.md) を参照してください。
+
+### 🤖 AI エージェントと使う
+
+ユーザーが一度 `auth login` すれば、エージェントは `--json` 付きでコマンドを呼び出せます。stdout には構造化された結果のみが出力され、ログと進捗は stderr に出ます。同梱の [エージェント skill](../.agents/skills/telegram-search-cli/SKILL.md) を読み込めます。
+
+エージェントが `sync --takeout` を使えるのは、ユーザーが同意した後だけです。
+
+### カスタム API 認証情報（任意）
 
 ```bash
-brew services stop groupultra/telegram-search/tg-search
-brew upgrade groupultra/telegram-search/tg-search
-brew services restart groupultra/telegram-search/tg-search
+tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH   # profile に保存
+export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH          # または環境変数
 ```
 
-アップグレード後も profile のデータは保持されます。ログは default profile ディレクトリ内の `daemon.stdout.log` と `daemon.stderr.log` に保存され、daemon がローテーションします。別の profile を使う場合は `tg-search --profile NAME daemon run` を実行してください。保存先や各コマンドの詳細は [CLI ドキュメント](../packages/cli/README.md) を参照してください。
+2 つはセットで指定し、profile が優先されます。引数なしの `profile configure` で組み込みの認証情報に戻ります。
 
-### Docker Compose でデプロイ
+### リモート読み取り専用モード
 
-1. Telegram Search 用のディレクトリを作成：
 ```bash
-mkdir telegram-search
-cd telegram-search
+export TG_SEARCH_REMOTE_TOKEN=...
+tg-search --profile cloud profile remote https://tgs.example.com
+tg-search --profile cloud search "プロジェクトの進捗"
 ```
 
-2. Docker Compose ファイルと環境ファイルをダウンロードし、全サービス（DB ・ MinIO 等）を起動：
+### ソースからビルド
+
 ```bash
+pnpm install && pnpm run build:packages && pnpm -F @tg-search/cli build
+pnpm cli auth login
+```
+
+## ✅ 機能
+
+- [x] Takeout による履歴の一括同期。daemon が新着・編集・削除を保存
+- [x] 分かち書き検索。サーバーではベクトル意味検索とテキストによる画像検索も利用可能
+- [x] SHA-256 マニフェスト付きの月別 JSONL エクスポート
+- [x] RAG Q&A、未読メッセージの AI 要約
+- [x] Telegram Bot による検索とエクスポート
+- [x] サーバーのメディアを MinIO にバックアップ
+
+## 🛣️ ロードマップ展望
+
+- [ ] 会話の自動要約
+- [ ] 「スーパーブレイン」：履歴から人物と出来事のナレッジグラフを構築
+- [ ] 「保存済みメッセージ」の自動整理
+- [ ] リンクと画像のインデックス：Web ページ要約、OCR、画像説明
+- [ ] Discord など他プラットフォームへの対応
+
+## 🖥️ Web インターフェース（任意）
+
+デモ：https://search.lingogram.app 。セルフホストする場合：
+
+```bash
+mkdir telegram-search && cd telegram-search
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/docker-compose.yml -o docker-compose.yml
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/.env.example -o .env
 curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/main/docker/init.sql -o init.sql
 docker compose -f docker-compose.yml up -d
 ```
 
-3. ブラウザで **http://localhost:3333** にアクセスしてすぐ使い始められます 🎉
+**http://localhost:3333** を開いてください。イメージ単体でも動きます：`docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest`（MinIO 未設定時、メディアは `data/media` に保存）。
 
-### Docker Image を使用してデプロイ
+### 環境変数
 
-MinIO の関連パラメータが未設定の場合、メディアファイルはデフォルトでローカルの `data/media` ディレクトリに保存されます。
+すべて任意です。AI Embedding / LLM はアプリ内でアカウントごとに設定します（設定 → API）。
 
-```bash
-docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
-```
-
-### 環境変数のカスタマイズ
-
-> [!IMPORTANT]
-> AI 埋め込み & LLM の設定は現在「アカウントごとに」アプリ内で設定します（設定 → API）。
->
-> 変更が完了した `.env` ファイルを再度 `docker compose -f docker-compose.yml up -d` で起動してください。
-
-すべての環境変数は省略可能です。指定しない場合、デフォルト値が使用されます。
-
-| 環境変数            | 説明                                                                            | サンプル値                                            |
-| ------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `TELEGRAM_API_ID`   | [my.telegram.org](https://my.telegram.org/apps) で取得した Telegram アプリ ID   | `611335`                                              |
-| `TELEGRAM_API_HASH` | [my.telegram.org](https://my.telegram.org/apps) で取得した Telegram アプリ Hash | `d524b414d21f4d37f08684c1df41ac9c`                    |
-| `DATABASE_TYPE`     | データベース種別。`postgres` または `pglite` を指定                             | `pglite`                                              |
-| `DATABASE_URL`      | PostgreSQL 用接続文字列（`DATABASE_TYPE=postgres`の場合のみ記入）               | `postgresql://postgres:123456@pgvector:5432/postgres` |
-| `TELEGRAM_BOT_TOKEN`| [@BotFather](https://t.me/BotFather) で作成した Bot トークン                    | `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`           |
-| `PROXY_URL`         | 利用可能なプロキシ URL（例：`socks5://user:pass@host:port` など）               | `socks5://user:pass@host:port`                        |
-| `PORT`              | サーバー HTTP/WebSocket のリッスンポート                                        | `3333`                                                |
-| `HOST`              | サーバーのバインドアドレス                                                      | `0.0.0.0`                                             |
-| `BACKEND_URL`       | Nginx 等でリバースプロキシを使う場合の上流サーバー URL                          | `http://127.0.0.1:3333`                               |
-| `MINIO_URL`         | MinIO サービスホスト名または IP                                                 | `minio`                                               |
-| `MINIO_ACCESS_KEY`  | MinIO アクセスキー                                                              | `minioadmin`                                          |
-| `MINIO_SECRET_KEY`  | MinIO シークレットキー                                                          | `minioadmin`                                          |
-| `MINIO_BUCKET`      | MinIO のバケット名                                                              | `telegram-media`                                      |
-
-### Docker Image を使用してデプロイ
-
-必要に応じて環境変数を編集してください。
-
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -e DATABASE_TYPE=postgres \
-  -e DATABASE_URL=postgresql://postgres:123456@localhost:5432/postgres \
-  ghcr.io/groupultra/telegram-search:latest
-```
+| 環境変数            | 説明                                                                         | 例                                                    |
+| ------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `TELEGRAM_API_ID`   | 独自の Telegram アプリ ID。未設定の場合は組み込みの認証情報を使用              | `611335`                                              |
+| `TELEGRAM_API_HASH` | 独自の Telegram アプリ Hash。ID とセットで設定                                 | `d524b414d21f4d37f08684c1df41ac9c`                    |
+| `DATABASE_TYPE`     | データベースの種類：`postgres` または `pglite`                                | `pglite`                                              |
+| `DATABASE_URL`      | PostgreSQL 接続文字列（`DATABASE_TYPE=postgres` の場合のみ）                  | `postgresql://postgres:123456@pgvector:5432/postgres` |
+| `TELEGRAM_BOT_TOKEN`| [@BotFather](https://t.me/BotFather) で作成した Telegram Bot Token            | `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`           |
+| `PROXY_URL`         | プロキシ URL（`socks5://user:pass@host:port` など）                           | `socks5://user:pass@host:port`                        |
+| `PORT`              | バックエンドの HTTP/WebSocket ポート                                          | `3333`                                                |
+| `HOST`              | バックエンドの待ち受けアドレス                                                | `0.0.0.0`                                             |
+| `BACKEND_URL`       | Nginx をリバースプロキシにする場合の `/api` と `/ws` の転送先                  | `http://127.0.0.1:3333`                               |
+| `MINIO_URL`         | MinIO のエンドポイント                                                        | `http://minio:9000`                                   |
+| `MINIO_ACCESS_KEY`  | MinIO のアクセスキー                                                          | `minioadmin`                                          |
+| `MINIO_SECRET_KEY`  | MinIO のシークレットキー                                                      | `minioadmin`                                          |
+| `MINIO_BUCKET`      | MinIO のバケット名                                                            | `telegram-media`                                      |
 
 ## 💻 開発ガイド
 
-### ブラウザ専用モード
-
 ```bash
-git clone https://github.com/groupultra/telegram-search.git
-cd telegram-search
-pnpm install
-cp .env.example .env
-pnpm run dev
-```
-
-### サーバーモード
-
-```bash
-git clone https://github.com/groupultra/telegram-search.git
-cd telegram-search
-pnpm install
-
-cp .env.example .env
-
-docker compose up -d pgvector minio
-
-pnpm run server:dev
+pnpm install && cp .env.example .env
+pnpm run dev                                                    # ブラウザ専用モード
+docker compose -f docker/docker-compose.dev.yml up -d pgvector minio
+pnpm run server:dev                                             # サーバーモード。web:dev は別ターミナルで実行
 pnpm run web:dev
 ```
 
-📖 **さらに詳しい開発やアーキテクチャ情報：** [CONTRIBUTING.md](../docs/CONTRIBUTING.md)
+詳細は [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
 
 ## 🚀 活動状況
 

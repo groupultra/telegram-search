@@ -36,6 +36,7 @@ import { bindReadOperations } from './read-runtime'
 import { createRemoteRuntime } from './remote'
 import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
+import { resolveCliTelegramCredentials } from './telegram-credentials'
 
 const profileArg = {
   'timeout-ms': { type: 'string' as const, default: '60000', description: 'Read deadline in milliseconds' },
@@ -247,18 +248,22 @@ const profileCommand = defineCommand({
       },
     }),
     configure: defineCommand({
-      meta: { name: 'configure', description: 'Set Telegram API credentials for the selected profile' },
+      meta: { name: 'configure', description: 'Set custom Telegram API credentials for the selected profile; omit both to use the built-in app' },
       args: {
-        apiId: { type: 'string', required: true },
-        apiHash: { type: 'string', required: true },
+        apiId: { type: 'string', description: 'Telegram API ID from my.telegram.org (optional)' },
+        apiHash: { type: 'string', description: 'Telegram API hash from my.telegram.org (optional)' },
         ...profileArg,
       },
       async run(context) {
         const profile = profileFrom(context)
+        const apiId = stringArg(context.args.apiId)
+        const apiHash = stringArg(context.args.apiHash)
+        if (!apiId !== !apiHash)
+          throw cliError({ code: 'INVALID_ARGUMENT', message: 'Pass --apiId and --apiHash together, or neither to use the built-in credentials', retryable: false })
         const paths = await ensureProfile(profile)
-        const existing = await readProfileConfig(paths)
-        await writeProfileConfig(paths, { ...existing, apiId: stringArg(context.args.apiId), apiHash: stringArg(context.args.apiHash) })
-        writeOutput({ profile, configured: true }, outputMeta(profile, 'local'))
+        // Undefined fields are dropped on write, so omitting both flags clears custom credentials.
+        await writeProfileConfig(paths, { ...await readProfileConfig(paths), apiId: apiId || undefined, apiHash: apiHash || undefined })
+        writeOutput({ profile, configured: true, credentials: resolveCliTelegramCredentials({ apiId, apiHash }).source }, outputMeta(profile, 'local'))
       },
     }),
   },
@@ -274,10 +279,7 @@ const authCommand = defineCommand({
         const profile = profileFrom(context)
         const paths = await ensureProfile(profile)
         const config = await readProfileConfig(paths)
-        const apiId = config.apiId ?? process.env.TELEGRAM_API_ID
-        const apiHash = config.apiHash ?? process.env.TELEGRAM_API_HASH
-        if (!apiId || !apiHash)
-          throw cliError({ code: 'TELEGRAM_CREDENTIALS_REQUIRED', message: 'Configure Telegram API credentials first', retryable: false })
+        const { apiId, apiHash } = resolveCliTelegramCredentials(config)
 
         const client = new TelegramClient(new StringSession(''), Number(apiId), apiHash, {
           ...CLI_TELEGRAM_CLIENT_OPTIONS,
