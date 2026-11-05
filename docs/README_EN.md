@@ -41,7 +41,7 @@
 >
 > Vector search adds fuzzy, sentence-level matching, and AI features include unread-message summaries and an AI assistant.
 >
-> We recommend the `tg-search` CLI: log in once on your machine, then search from the terminal or let AI agents such as Claude Code or Codex call it.
+> We recommend the `tgs` CLI: log in once on your machine, then search from the terminal or let AI agents such as Claude Code or Codex call it.
 
 ## 💖 Sponsors
 
@@ -53,20 +53,20 @@
 ## 🚀 Quick Start: CLI
 
 ```bash
-# Install (macOS / Linux)
+# Install (macOS / Linux). The command is tgs; the old tg-search still works
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
 
 # Log in (API ID / hash are built in; no my.telegram.org app needed)
-tg-search auth login
+tgs auth login
 
 # Run in the background and save new messages (as your user, no sudo)
 brew services start groupultra/telegram-search/tg-search
 
 # Sync history and search
-tg-search chats list
-tg-search sync --takeout --chat 123456 --from 2026-01-01
-tg-search search "project progress"
+tgs chats list
+tgs sync --takeout --chat 123456 --from 2026-01-01
+tgs search "project progress"
 ```
 
 If `sync --takeout` returns `TAKEOUT_AUTHORIZATION_REQUIRED`, approve the export request on another Telegram device and retry.
@@ -94,7 +94,7 @@ An agent may use `sync --takeout` only after the user agrees.
 ### Custom API credentials (optional)
 
 ```bash
-tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH   # save in the profile
+tgs profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH   # save in the profile
 export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH          # or use the environment
 ```
 
@@ -104,8 +104,8 @@ Set both together; the profile wins. Run `profile configure` with no flags to re
 
 ```bash
 export TG_SEARCH_REMOTE_TOKEN=...
-tg-search --profile cloud profile remote https://tgs.example.com
-tg-search --profile cloud search "project progress"
+tgs --profile cloud profile remote https://tgs.example.com
+tgs --profile cloud search "project progress"
 ```
 
 ### Build from source

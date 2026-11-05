@@ -9,7 +9,10 @@ class TgSearch < Formula
 
   def install
     system "npm", "install", *std_npm_args
-    (bin/"tg-search").write_env_script libexec/"bin/tg-search", PATH: "#{Formula["node"].opt_bin}:$PATH"
+    # `tgs` is the command; `tg-search` stays as an alias for existing scripts.
+    %w[tgs tg-search].each do |command|
+      (bin/command).write_env_script libexec/"bin/#{command}", PATH: "#{Formula["node"].opt_bin}:$PATH"
+    end
 
     # Keep logs beside the user's profile so the daemon's rotation applies.
     # launchd does not expand $HOME in its stdout/stderr path fields.
@@ -26,7 +29,7 @@ class TgSearch < Formula
       fi
       profile_root="$data_root/profiles/default"
       mkdir -p "$profile_root"
-      exec "#{opt_bin}/tg-search" --profile default daemon run >>"$profile_root/daemon.stdout.log" 2>>"$profile_root/daemon.stderr.log"
+      exec "#{opt_bin}/tgs" --profile default daemon run >>"$profile_root/daemon.stdout.log" 2>>"$profile_root/daemon.stderr.log"
     SH
     chmod 0755, libexec/"tg-search-service"
   end
@@ -40,7 +43,7 @@ class TgSearch < Formula
   def caveats
     <<~EOS
       Log in to the default profile before starting the service:
-        tg-search auth login
+        tgs auth login
         brew services start groupultra/telegram-search/tg-search
       The service uses your default profile and its existing data directory.
       Run brew services as your user, without sudo.
@@ -49,9 +52,10 @@ class TgSearch < Formula
 
   test do
     ENV["TG_SEARCH_HOME"] = testpath/"data"
-    system bin/"tg-search", "profile", "create", "brew-test"
+    system bin/"tgs", "profile", "create", "brew-test"
     assert_path_exists testpath/"data/profiles/brew-test/exports"
+    assert_match '"brew-test"', shell_output("#{bin}/tgs profile list --json")
     assert_match '"brew-test"', shell_output("#{bin}/tg-search profile list --json")
-    assert_match '"state":"stopped"', shell_output("#{bin}/tg-search --profile brew-test daemon status --json").delete(" \n")
+    assert_match '"state":"stopped"', shell_output("#{bin}/tgs --profile brew-test daemon status --json").delete(" \n")
   end
 end

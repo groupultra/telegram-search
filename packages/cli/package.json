@@ -6,6 +6,7 @@
     ".": "./src/index.ts"
   },
   "bin": {
+    "tgs": "./dist/index.mjs",
     "tg-search": "./dist/index.mjs"
   },
   "files": [

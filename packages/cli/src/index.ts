@@ -740,7 +740,7 @@ const exportCommand = defineCommand({
 })
 
 export const main = defineCommand({
-  meta: { name: 'tg-search', version: CLI_VERSION, description: 'Agent-friendly local Telegram search and export CLI' },
+  meta: { name: 'tgs', version: CLI_VERSION, description: 'Agent-friendly local Telegram search and export CLI' },
   args: profileArg,
   subCommands: {
     profile: profileCommand,

@@ -9,7 +9,7 @@ description: 通过已授权的 profile 使用 Telegram Search CLI。用于发�
 
 ## 契约
 
-- 每个 `tg-search` 命令传入 `--json`，stdout 只读取一个 JSON envelope。诊断、交互提示、迁移输出和进度从 stderr 读取。
+- 每个 `tgs` 命令传入 `--json`，stdout 只读取一个 JSON envelope。诊断、交互提示、迁移输出和进度从 stderr 读取。
 - 用 `chats list` 和 `messages list` 执行不落库的有界远程读取。
 - 用本地 `messages query`、`search`、`context`、`stats` 和 `export` 分析已存数据，不连接 Telegram。
 - 用 `sync --takeout` 持久化消息和批量历史。只有用户明确批准聊天、时间范围和数据范围后，才能加入 `--takeout`。
@@ -20,7 +20,7 @@ description: 通过已授权的 profile 使用 Telegram Search CLI。用于发�
 
 ## 常用流程
 
-在包含 CLI 的工作树内运行，或使用已安装的 `tg-search`。`packages/cli/dist/index.mjs` 不存在或过期时构建：
+在包含 CLI 的工作树内运行，或使用已安装的 `tgs`。`packages/cli/dist/index.mjs` 不存在或过期时构建：
 
 ```bash
 pnpm -F @tg-search/cli build

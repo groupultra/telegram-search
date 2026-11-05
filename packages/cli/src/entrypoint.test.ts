@@ -1,17 +1,22 @@
 import process from 'node:process'
 
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, rm, symlink } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { expect, it } from 'vitest'
 
+it('installs tgs with tg-search as an alias for the same entrypoint', async () => {
+  const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as { bin: Record<string, string> }
+  expect(manifest.bin).toEqual({ 'tgs': './dist/index.mjs', 'tg-search': './dist/index.mjs' })
+})
+
 it('runs the installed CLI through a symlink with spaces in its path', async () => {
   const root = await mkdtemp(join(tmpdir(), 'tg-search entrypoint '))
   try {
-    const executable = join(root, 'tg-search')
+    const executable = join(root, 'tgs')
     await symlink(fileURLToPath(new URL('../dist/index.mjs', import.meta.url)), executable)
     // npm and Homebrew expose symlinks; comparing the raw argv path skips main.
     const result = spawnSync(process.execPath, [executable, 'profile', 'create', 'brew-test', '--json'], {
