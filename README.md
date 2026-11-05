@@ -33,121 +33,69 @@
 </p>
 
 > [!TIP]
-> Telegram 自带的搜索对中文等不以空格分隔词语的语言命中率较低。
->
-> Telegram Search 把聊天记录同步到本机，分词后建立索引。推荐使用 `tg-search` CLI：在本地登录一次之后，可以自己在终端检索，也可以让 Claude Code、Codex 等 AI Agent 调用命令读取、检索和导出消息。登录 session 和消息都保存在本机。
+> 把 Telegram 聊天记录同步到本机并分词索引，中文等语言也能按词搜索。推荐使用 `tg-search` CLI，自己在终端用或交给 AI Agent 调用都可以，数据只保存在本机。
 
 ## 💖 赞助者
 
 ![Sponsors](https://github.com/luoling8192/luoling8192/raw/master/sponsorkit/sponsors.svg)
 
 > [!WARNING]
-> 本项目未发行任何虚拟货币，请警惕相关诈骗风险。
->
-> 本软件仅供您导出和检索个人聊天记录使用，切勿将其用于任何违法用途。
+> 本项目未发行任何虚拟货币，请警惕诈骗。本软件仅供导出和检索个人聊天记录，切勿用于违法用途。
 
 ## 🚀 快速开始：CLI
 
-`tg-search` 是本地优先的命令行工具：登录 session、消息和索引都保存在本机的 profile 目录（PGlite 数据库）中，不需要部署数据库、Docker 或网页服务。
-
-### 1. 安装
-
-通过 Homebrew 安装（macOS / Linux），会一并安装 Node.js 运行时：
-
 ```bash
+# 安装（macOS / Linux）
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
-```
 
-### 2. 登录
-
-```bash
+# 登录（已内置 API ID / Hash，无需到 my.telegram.org 申请）
 tg-search auth login
-```
 
-按提示输入手机号、验证码（以及两步验证密码）即可。CLI 内置了 Telegram Search 的 API ID 和 API Hash，**无需再去 my.telegram.org 申请**；如需使用自己的应用凭据，见 [自定义 API 凭据](#自定义-api-凭据可选)。
-
-### 3. 启动后台服务（推荐）
-
-```bash
+# 后台常驻，实时保存新消息（以当前用户运行，不要 sudo）
 brew services start groupultra/telegram-search/tg-search
-tg-search daemon status
-```
 
-daemon 在后台保持 Telegram 连接，登录系统后自动启动，并持续保存新消息及其编辑、删除。请以当前用户运行 `brew services`，不要使用 `sudo`。升级会保留 profile 数据：
-
-```bash
-brew upgrade groupultra/telegram-search/tg-search
-brew services restart groupultra/telegram-search/tg-search
-```
-
-### 4. 同步并搜索历史消息
-
-```bash
-# 查看会话列表（读取 Telegram，不写入本地数据库）
+# 同步历史并搜索
 tg-search chats list
-
-# 通过 Telegram Takeout 把选定会话的历史同步到本地
 tg-search sync --takeout --chat 123456 --from 2026-01-01
-
-# 在本地数据库中搜索，不连接 Telegram
 tg-search search "项目进展"
-tg-search context --chat 123456 --message 42 --before 20 --after 20
 ```
 
-若 Telegram 要求确认数据导出请求（`TAKEOUT_AUTHORIZATION_REQUIRED`），请在你的其他 Telegram 设备上批准后重新运行。
+`sync --takeout` 如返回 `TAKEOUT_AUTHORIZATION_REQUIRED`，在其他 Telegram 设备上批准导出请求后重试。
 
 ### 常用命令
 
-| 命令 | 作用 | 是否连接 Telegram |
+| 命令 | 作用 | 连接 Telegram |
 | --- | --- | --- |
-| `auth login` | 交互式登录当前 profile | 是 |
-| `chats list` | 列出会话 | 是，不写入本地 |
-| `messages list --chat <id>` | 分页读取某个会话，可加 `--query` 在 Telegram 端搜索 | 是，不写入本地 |
-| `sync --takeout --chat <id>` / `--all` | 通过 Takeout 批量同步历史到本地 | 是 |
-| `search <query>` | 本地分词检索 | 否 |
-| `messages query` / `context` / `stats` | 本地查询、上下文、统计 | 否 |
-| `export --from --to --output <dir>` | 导出按月 JSONL 与校验清单 | 否 |
-| `daemon run` / `status` / `stop` | 前台运行或管理常驻 daemon | 是 |
-| `profile inspect` / `doctor` | 检查配置和 daemon 健康状态，不输出任何密钥 | 否 |
+| `auth login` | 登录 | 是 |
+| `chats list` / `messages list --chat <id>` | 读取会话和消息，不写入本地 | 是 |
+| `sync --takeout --chat <id>` / `--all` | 同步历史到本地 | 是 |
+| `search` / `context` / `messages query` / `stats` | 本地检索、上下文、查询、统计 | 否 |
+| `export --from --to --output <dir>` | 导出按月 JSONL | 否 |
+| `daemon run` / `status` / `stop` | 管理 daemon | 是 |
+| `profile inspect` / `doctor` | 检查配置和 daemon 状态 | 否 |
 
-所有命令都支持 `--profile <name>` 隔离多个账号，`--json` 输出结构固定的 JSON envelope。完整命令、分页、媒体读取和隐私边界见 [CLI 文档](./packages/cli/README.md)。
+`--profile <name>` 隔离多个账号，`--json` 输出 JSON。完整说明见 [CLI 文档](./packages/cli/README.md)。
 
 ### 🤖 交给 AI Agent
 
-CLI 的命令和输出按 Agent 的调用方式设计。用户在本地完成一次 `auth login` 之后，Agent 可以自行组合命令，决定读取哪些会话、何时同步。
+用户本地 `auth login` 一次后，Agent 即可用 `--json` 调用命令：stdout 只有结构化结果，日志和进度写入 stderr。可直接加载仓库内的 [Agent skill](./.agents/skills/telegram-search-cli/SKILL.md)。
 
-- 加 `--json` 后，stdout 只包含 `{ ok, data, next_cursor, meta }` 结构化结果；日志、提示与进度写入 stderr，失败时返回结构化 `error` 并以非零码退出。
-- 大结果可用 `--output-file ./private/page.jsonl` 写入文件，终端只输出回执。
-- 仓库内置 Agent skill：[`.agents/skills/telegram-search-cli`](./.agents/skills/telegram-search-cli/SKILL.md)，Claude Code、Codex 等 Agent 可以直接加载。
-- **隐私边界**：`sync --takeout` 必须先征得用户同意，Agent 才能加上 `--takeout`；未授权、用户拒绝或 Takeout 初始化失败都会停止，不会退回普通 `GetHistory`。导出不包含媒体二进制、登录 session、向量或密钥，CLI 本身也不做 AI 总结。
-
-```bash
-tg-search --profile work chats list --limit 200 --json
-tg-search --profile work search "项目进展" --chat 123456 --json
-tg-search --profile work export --from 2026-01-01 --to 2026-12-31 --timezone Asia/Singapore --output ./telegram-2026 --json
-```
+Agent 只有在用户同意后才能使用 `sync --takeout`。
 
 ### 自定义 API 凭据（可选）
 
-默认使用内置的 Telegram Search 应用凭据。若想使用自己在 [my.telegram.org](https://my.telegram.org/apps) 申请的应用，可任选一种方式，优先级从高到低：
-
 ```bash
-# 1. 写入 profile 配置（brew services 启动的 daemon 也会读取）
-tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
-
-# 2. 通过环境变量（仅对当前 shell 生效）
-export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH
+tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH   # 写入 profile
+export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH          # 或用环境变量
 ```
 
-API ID 与 API Hash 必须成对提供。运行不带参数的 `tg-search profile configure` 可清除 profile 中的自定义凭据、恢复内置默认值。
+两项须成对提供，profile 优先。不带参数运行 `profile configure` 恢复内置凭据。
 
 ### 远程只读模式
 
-连接已部署的 Telegram Search 服务端，不下载其数据库和 Telegram session：
-
 ```bash
-export TG_SEARCH_REMOTE_TOKEN=...   # 服务端访问令牌，不接受写在 URL 或参数中
+export TG_SEARCH_REMOTE_TOKEN=...
 tg-search --profile cloud profile remote https://tgs.example.com
 tg-search --profile cloud search "项目进展"
 ```
@@ -155,49 +103,30 @@ tg-search --profile cloud search "项目进展"
 ### 从源码构建
 
 ```bash
-git clone https://github.com/groupultra/telegram-search.git
-cd telegram-search
-pnpm install
-pnpm run build:packages
-pnpm -F @tg-search/cli build
-
+pnpm install && pnpm run build:packages && pnpm -F @tg-search/cli build
 pnpm cli auth login
-pnpm cli chats list
 ```
 
 ## ✅ 功能
 
-### 📦 导出与备份
-- [x] 本地 CLI 使用独立 PGlite；服务端兼容 PGlite 与 PostgreSQL
-- [x] 通过 Telegram Takeout 批量同步历史，daemon 实时保存新消息、编辑和删除
-- [x] 按月 JSONL 导出，附带时区与 SHA-256 校验清单
-- [x] 服务端媒体资源可自动备份至 MinIO 对象存储
-
-### 🔍 聊天记录搜索
-- [x] 消息写入时自动分词，中文等不以空格分词的语言也能按词检索
-- [x] 服务端同时使用模糊匹配和向量语义检索，支持用文字搜索图片
-- [x] RAG 问答：AI 根据检索到的历史消息回答问题
-- [x] 日期范围筛选，消息 deep link 跳转原始对话
-
-### 🤖 Agent 与 Bot
-- [x] 面向 Agent 的 JSON / JSONL 输出与结构化错误
-- [x] 远程只读模式：Agent 查询自托管服务端，不下载其数据库和 Telegram session
-- [x] 通过 Telegram Bot 搜索和导出消息
-- [x] 用 AI 汇总未读消息
+- [x] Takeout 批量同步历史，daemon 实时保存新消息、编辑和删除
+- [x] 分词检索；服务端另支持向量语义检索和以文搜图
+- [x] 按月 JSONL 导出，附 SHA-256 校验清单
+- [x] RAG 问答、未读消息 AI 汇总
+- [x] Telegram Bot 搜索与导出
+- [x] 服务端媒体可备份至 MinIO
 
 ## 🛣️ 路线展望
 
 - [ ] 自动生成会话总结
 - [ ] 「超级大脑」：根据历史消息构建人物与事件的知识图谱
 - [ ] 自动整理「已保存消息」
-- [ ] 链接与图片索引：网页摘要、图片 OCR 和图片描述
-- [ ] 支持 Discord 等其他通讯平台
+- [ ] 链接与图片索引：网页摘要、OCR、图片描述
+- [ ] 支持 Discord 等其他平台
 
 ## 🖥️ 网页界面（可选）
 
-需要图形界面时，可以使用在线体验版 https://search.lingogram.app ，或自行部署网页版。
-
-### Docker Compose
+在线体验：https://search.lingogram.app 。自行部署：
 
 ```bash
 mkdir telegram-search && cd telegram-search
@@ -207,22 +136,11 @@ curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/
 docker compose -f docker-compose.yml up -d
 ```
 
-然后打开 **http://localhost:3333** 🎉
-
-### Docker Image
-
-```bash
-docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
-```
-
-未配置 MinIO 时，媒体文件默认保存至本地 `data/media` 目录。
+打开 **http://localhost:3333**。也可只运行镜像：`docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest`（未配置 MinIO 时媒体存于 `data/media`）。
 
 ### 环境变量
 
-> [!IMPORTANT]
-> AI Embedding & LLM 设置在应用内**按账户**配置（设置 → API）。修改 `.env` 后，请再次执行 `docker compose -f docker-compose.yml up -d`。
-
-以下环境变量全部可选。网页版同样内置了 Telegram API 凭据，不填 `TELEGRAM_API_ID`/`TELEGRAM_API_HASH` 也能登录：
+均为可选。AI Embedding / LLM 在应用内按账户配置（设置 → API）。
 
 | 环境变量            | 说明                                                                         | 示例值                                                |
 | ------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
@@ -240,32 +158,17 @@ docker run -d --name telegram-search -p 3333:3333 ghcr.io/groupultra/telegram-se
 | `MINIO_SECRET_KEY`  | MinIO 访问密钥对应的密钥                                                     | `minioadmin`                                          |
 | `MINIO_BUCKET`      | MinIO 存储桶名称                                                             | `telegram-media`                                      |
 
-```bash
-docker run -d --name telegram-search \
-  -p 3333:3333 \
-  -e DATABASE_TYPE=postgres \
-  -e DATABASE_URL=postgresql://postgres:123456@localhost:5432/postgres \
-  ghcr.io/groupultra/telegram-search:latest
-```
-
 ## 💻 开发指南
 
 ```bash
-git clone https://github.com/groupultra/telegram-search.git
-cd telegram-search
-pnpm install
-cp .env.example .env
-
-# 纯浏览器模式
-pnpm run dev
-
-# 服务器模式
+pnpm install && cp .env.example .env
+pnpm run dev                                                    # 纯浏览器模式
 docker compose -f docker/docker-compose.dev.yml up -d pgvector minio
-pnpm run server:dev
+pnpm run server:dev                                             # 服务器模式，另开终端运行 web:dev
 pnpm run web:dev
 ```
 
-📖 **更多开发细节和架构细节：** [CONTRIBUTING.md](./docs/CONTRIBUTING.md)
+更多见 [CONTRIBUTING.md](./docs/CONTRIBUTING.md)。
 
 ## 🚀 Activity
 
