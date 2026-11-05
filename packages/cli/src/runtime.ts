@@ -35,6 +35,7 @@ import { createGramJsStderrLogger } from './gramjs-logger'
 import { writeProgress } from './output'
 import { readProfileConfig, readSession, writeProfileConfig } from './profile'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
+import { resolveCliTelegramCredentials } from './telegram-credentials'
 
 export function createSilentLogger(): Logger {
   const logger: Record<string, unknown> = {}
@@ -78,8 +79,9 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
   const logger = createSilentLogger()
   const profileConfig = await readProfileConfig(paths)
   const config = generateDefaultConfig()
-  config.api.telegram.apiId = profileConfig.apiId ?? process.env.TELEGRAM_API_ID
-  config.api.telegram.apiHash = profileConfig.apiHash ?? process.env.TELEGRAM_API_HASH
+  const credentials = resolveCliTelegramCredentials(profileConfig)
+  config.api.telegram.apiId = credentials.apiId
+  config.api.telegram.apiHash = credentials.apiHash
 
   const { db, pglite } = await withStdoutRedirectedToStderr(
     () => initDrizzle(logger, config, { dbPath: paths.database }),
@@ -94,17 +96,14 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
   let client: TelegramClient | undefined
 
   if (options.remote) {
-    if (!config.api.telegram.apiId || !config.api.telegram.apiHash) {
-      throw new Error('Telegram API credentials are missing; run profile configure or set TELEGRAM_API_ID and TELEGRAM_API_HASH')
-    }
     const session = await readSession(paths)
     if (!session) {
       throw new Error('Telegram session is missing; run auth login first')
     }
     client = new GramJsClient(
       new StringSession(session),
-      Number(config.api.telegram.apiId),
-      config.api.telegram.apiHash,
+      Number(credentials.apiId),
+      credentials.apiHash,
       { ...CLI_TELEGRAM_CLIENT_OPTIONS, baseLogger: createGramJsStderrLogger() },
     )
     await client.connect()

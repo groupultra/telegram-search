@@ -23,6 +23,17 @@ it('reports credential presence and source without returning secret values', asy
 })
 
 describe('profile inspection configuration gaps', () => {
+  it('reports the built-in Telegram app when neither profile nor environment provides a full pair', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'tg-profile-inspect-'))
+    try {
+      const result = await inspectProfile({ ...resolveProfilePaths('test'), root, config: join(root, 'missing-config'), session: join(root, 'missing-session') }, { TELEGRAM_API_ID: '123' })
+      expect(result).toMatchObject({ mode: 'local', credentials: { apiId: { present: true, source: 'builtin' }, apiHash: { present: true, source: 'builtin' } }, configured: { telegramRead: false }, findings: [{ code: 'AUTH_REQUIRED', action: 'auth_login' }] })
+    }
+    finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   it('names missing remote credentials without claiming the endpoint is reachable', async () => {
     const root = await mkdtemp(join(tmpdir(), 'tg-profile-inspect-'))
     try {

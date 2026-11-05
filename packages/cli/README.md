@@ -13,7 +13,6 @@ and daemon; see the [root README](../../README.md) for web application deploymen
 ```bash
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
-tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH
 tg-search auth login
 brew services start groupultra/telegram-search/tg-search
 tg-search daemon status
@@ -23,8 +22,9 @@ tg-search daemon status
 at login. Its data stays in the normal CLI data directory, including across
 Homebrew upgrades. Logs are `daemon.stdout.log` and `daemon.stderr.log` beside
 the default profile's data, with the daemon's existing rotation and retention.
-Configure credentials in the profile; a login service does not inherit your
-terminal's Telegram environment variables. Run the commands without `sudo`.
+A login service does not inherit your terminal's Telegram environment
+variables, so store custom API credentials in the profile (see below). Run the
+commands without `sudo`.
 
 ```bash
 brew services stop groupultra/telegram-search/tg-search
@@ -90,9 +90,24 @@ Profiles isolate Telegram credentials, the StringSession, PGlite data, and expor
 
 ```bash
 tg-search --profile work profile create work
-tg-search --profile work profile configure --apiId 123456 --apiHash abcdef
 tg-search --profile work auth login --phone +6512345678
 ```
+
+### Telegram API credentials
+
+The CLI ships with Telegram Search's own API ID and API hash, so `auth login`
+works without registering an app on my.telegram.org. To use your own app,
+credentials resolve as one pair in this order:
+
+1. The profile config: `tg-search profile configure --apiId <id> --apiHash <hash>`.
+2. `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` in the environment.
+3. The built-in Telegram Search app.
+
+An ID and a hash are never combined from different sources; an incomplete pair
+is ignored. `profile configure` requires both flags together. Run it with
+neither flag to remove the profile's custom credentials. `profile inspect`
+reports the active source (`profile`, `environment` or `builtin`) without
+printing the values.
 
 ## Local daemon (Linux and macOS)
 
@@ -113,7 +128,7 @@ The daemon writes structured operational records at `info` level to its supervis
 
 After a Telegram transport disconnect, `daemon status` reports `reconnecting` and records transport, authorization, and historical catch-up independently. Once the transport is restored and the account is ready, the daemon may report `ready` while `health.catchUp` is still running or has failed. Recovered messages, edits, and deletions are persisted before their `pts` checkpoints advance. If Telegram reports a gap that is too large for either difference API, the daemon preserves the old checkpoint and records a catch-up failure; run an explicit full sync before restarting catch-up. The daemon adds no reconnect scheduler beyond GramJS retries; use explicit `daemon recover` when those retries are exhausted.
 
-You may use `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` instead of storing API credentials in profile config. Login prompts and progress are written to stderr.
+Login prompts and progress are written to stderr.
 
 ## Agent commands
 

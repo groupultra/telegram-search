@@ -81,9 +81,10 @@ pnpm cli --remote https://tgs.example.invalid media url \
 缺少凭证或授权时，请用户在本地完成登录：
 
 ```bash
-pnpm cli --profile=<profile> profile configure --apiId <id> --apiHash <hash> --json
 pnpm cli --profile=<profile> auth login --phone <phone> --json
 ```
+
+CLI 内置 Telegram API ID/Hash，无需先运行 `profile configure`。只有用户要求使用自己的应用凭据时，才让其在本地运行 `profile configure --apiId <id> --apiHash <hash>`。
 
 不要请用户把认证密钥粘贴到聊天。用户确认登录后才继续。
 

@@ -208,6 +208,31 @@ describe('cLI command boundary', () => {
     expect(output.stdoutJson()).toMatchObject({ ok: true, data: { profile: 'work' }, meta: { profile: 'work', source: 'local', execution: expect.objectContaining({ mode: 'cli', cli: expect.objectContaining({ artifactDigest: expect.stringMatching(/^[a-f0-9]{64}$/) }) }) } })
   })
 
+  it('clears custom credentials when configure omits both flags, falling back to the built-in app', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'telegram-search-cli-'))
+    temporaryDirectories.push(home)
+    process.env.TG_SEARCH_HOME = home
+    const output = captureOutput()
+
+    await runCli(['--profile=work', 'profile', 'configure', '--apiId', '123', '--apiHash', 'secret', '--json'])
+    await runCli(['--profile=work', 'profile', 'configure', '--json'])
+
+    await expect(readProfileConfig(resolveProfilePaths('work'))).resolves.toEqual({})
+    expect(JSON.parse(String(output.stdout.mock.calls.at(-1)?.[0]))).toMatchObject({ ok: true, data: { profile: 'work', configured: true } })
+  })
+
+  it('rejects configure with only one of --apiId and --apiHash', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'telegram-search-cli-'))
+    temporaryDirectories.push(home)
+    process.env.TG_SEARCH_HOME = home
+    const output = captureOutput()
+
+    await runCli(['--profile=work', 'profile', 'configure', '--apiId', '123', '--json'])
+
+    expect(output.stdoutJson()).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+    await expect(readProfileConfig(resolveProfilePaths('work'))).resolves.toEqual({})
+  })
+
   it('serializes a failed stream as ok=false and exits non-zero', async () => {
     const output = captureOutput()
     resetOutputState('json')

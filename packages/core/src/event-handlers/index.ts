@@ -5,6 +5,7 @@ import type { CoreContext } from '../context'
 import type { MediaBinaryProvider } from '../types/storage'
 
 import { useLogger } from '@guiiai/logg'
+import { resolveTelegramCredentials } from '@tg-search/common'
 
 import { useMessageResolverRegistry } from '../message-resolvers'
 import { createAvatarResolver } from '../message-resolvers/avatar-resolver'
@@ -48,9 +49,11 @@ export function basicEventHandler(ctx: CoreContext, config: Config, mediaBinaryP
 
   const registry = useMessageResolverRegistry(logger)
 
+  // Server, browser core, and CLI daemon all connect here; unset credentials use the built-in app.
+  const credentials = resolveTelegramCredentials([{ ...config.api.telegram, source: 'config' }])
   const connectionService = createConnectionService(ctx, logger, {
-    apiId: Number(config.api.telegram.apiId!),
-    apiHash: config.api.telegram.apiHash!,
+    apiId: Number(credentials.apiId),
+    apiHash: credentials.apiHash,
     proxy: config.api.telegram.proxy,
   })
   const configService = createAccountSettingsService(ctx, logger)
