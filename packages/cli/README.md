@@ -1,6 +1,6 @@
 # @tg-search/cli
 
-`tg-search` is a local-first Telegram CLI designed for humans to authenticate once and for AI Agents to compose explicit retrieval commands afterward.
+`tgs` is a local-first Telegram CLI designed for humans to authenticate once and for AI Agents to compose explicit retrieval commands afterward.
 
 ## Install and build
 
@@ -13,9 +13,9 @@ and daemon; see the [root README](../../README.md) for web application deploymen
 ```bash
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
-tg-search auth login
+tgs auth login
 brew services start groupultra/telegram-search/tg-search
-tg-search daemon status
+tgs daemon status
 ```
 
 `brew services` manages the `default` profile as your user and starts it again
@@ -32,7 +32,7 @@ brew upgrade groupultra/telegram-search/tg-search
 brew services restart groupultra/telegram-search/tg-search
 ```
 
-For other profiles, use `tg-search --profile NAME daemon run` with your own
+For other profiles, use `tgs --profile NAME daemon run` with your own
 supervisor configuration.
 
 From this monorepo:
@@ -44,7 +44,7 @@ pnpm -F @tg-search/cli build
 pnpm cli --help
 ```
 
-The package exposes the `tg-search` executable when installed from a registry.
+The package exposes the `tgs` executable when installed from a registry. `tg-search` remains as an alias for existing scripts.
 
 ### Release packaging
 
@@ -69,9 +69,9 @@ installation source.
 Connect to a hosted TGS server without downloading its database or Telegram session:
 
 ```bash
-tg-search --profile cloud profile remote https://tgs.example.com
-tg-search --profile cloud search "project progress"
-tg-search --remote https://tgs.example.com messages query --limit 50
+tgs --profile cloud profile remote https://tgs.example.com
+tgs --profile cloud search "project progress"
+tgs --remote https://tgs.example.com messages query --limit 50
 ```
 
 Provide the server's access token through `TG_SEARCH_REMOTE_TOKEN` using your secret manager or shell environment. Tokens are not accepted in URLs or command arguments and are not saved in profile configuration. `--remote` overrides `TG_SEARCH_REMOTE_URL`, which overrides the selected profile's saved URL. HTTPS is required except on loopback for development. The server base URL may include a path prefix.
@@ -89,8 +89,8 @@ Profiles isolate Telegram credentials, the StringSession, PGlite data, and expor
 - Linux: `$XDG_DATA_HOME/telegram-search/profiles/<name>/`, falling back to `~/.local/share/telegram-search/profiles/<name>/`
 
 ```bash
-tg-search --profile work profile create work
-tg-search --profile work auth login --phone +6512345678
+tgs --profile work profile create work
+tgs --profile work auth login --phone +6512345678
 ```
 
 ### Telegram API credentials
@@ -99,7 +99,7 @@ The CLI ships with Telegram Search's own API ID and API hash, so `auth login`
 works without registering an app on my.telegram.org. To use your own app,
 credentials resolve as one pair in this order:
 
-1. The profile config: `tg-search profile configure --apiId <id> --apiHash <hash>`.
+1. The profile config: `tgs profile configure --apiId <id> --apiHash <hash>`.
 2. `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` in the environment.
 3. The built-in Telegram Search app.
 
@@ -114,10 +114,10 @@ printing the values.
 The daemon keeps one Telegram connection and one local database writer for a profile. Start it before logging in when you want new messages to arrive without repeatedly running remote reads:
 
 ```bash
-tg-search --profile work daemon run
+tgs --profile work daemon run
 # In a second terminal:
-tg-search --profile work auth login
-tg-search --profile work daemon status
+tgs --profile work auth login
+tgs --profile work daemon status
 ```
 
 `daemon run` is intentionally foreground-only in this first version. Run it under Docker, a `systemd --user` unit on Linux, or a `launchd` LaunchAgent on macOS when it should survive terminal closure. The daemon listens on a profile-scoped Unix socket under a user-only temporary directory; it holds an exclusive profile lock, so other CLI commands automatically use the daemon instead of opening a second Telegram/PGlite runtime.
@@ -155,13 +155,13 @@ path and `status: partial`; choose a fresh path to rerun. The final filename is
 published only after every chunk has been written and flushed.
 
 ```bash
-tg-search messages list --chat 123456 --format compact
-tg-search messages query --limit 100 --output-file ./private/page.jsonl
-tg-search context --chat 123456 --message 42 --format jsonl
+tgs messages list --chat 123456 --format compact
+tgs messages query --limit 100 --output-file ./private/page.jsonl
+tgs context --chat 123456 --message 42 --format jsonl
 ```
 
 Use `--` before a search query that starts with a dash, for example
-`tg-search --json search -- "--output-file=literal-query"`. Arguments after the
+`tgs --json search -- "--output-file=literal-query"`. Arguments after the
 terminator remain literal query text; they cannot change the profile, endpoint,
 output format, output file, or help behavior.
 
@@ -176,23 +176,23 @@ honors `--json` for failure output.
 
 ```bash
 # Discover chats remotely. No messages are persisted.
-tg-search --profile work chats list --limit 200 --json
+tgs --profile work chats list --limit 200 --json
 
 # Read one chat remotely. No messages are persisted.
-tg-search --profile work messages list --chat 123456 --from 2026-01-01 --to 2026-12-31 --json
+tgs --profile work messages list --chat 123456 --from 2026-01-01 --to 2026-12-31 --json
 
 # Search one chat on Telegram, without syncing it first.
-tg-search --profile work messages list --chat 123456 --query "项目进展" --from 2026-01-01 --json
+tgs --profile work messages list --chat 123456 --query "项目进展" --from 2026-01-01 --json
 
 # After the user explicitly approves Telegram Takeout, persist selected chats.
 # At least --chat or --all is required. Never add --takeout without that approval.
-tg-search --profile work sync --takeout --chat 123456,789012 --from 2026-01-01 --to 2026-12-31 --json
+tgs --profile work sync --takeout --chat 123456,789012 --from 2026-01-01 --to 2026-12-31 --json
 
 # Query and search only the local PGlite database. These commands do not connect to Telegram.
-tg-search --profile work messages query --from 2026-01-01 --to 2026-12-31 --json
-tg-search --profile work search "项目进展" --chat 123456 --json
-tg-search --profile work context --chat 123456 --message 42 --before 20 --after 20 --json
-tg-search --profile work stats --group-by month --timezone Asia/Singapore --from 2026-01-01 --to 2026-12-31 --json
+tgs --profile work messages query --from 2026-01-01 --to 2026-12-31 --json
+tgs --profile work search "项目进展" --chat 123456 --json
+tgs --profile work context --chat 123456 --message 42 --before 20 --after 20 --json
+tgs --profile work stats --group-by month --timezone Asia/Singapore --from 2026-01-01 --to 2026-12-31 --json
 ```
 
 If Telegram returns `TAKEOUT_INIT_DELAY_*`, the CLI emits `TAKEOUT_AUTHORIZATION_REQUIRED` with `details.action: "authorize_takeout_in_telegram"`. An Agent must stop, ask the user to review and authorize the pending data export request on one of their Telegram devices, and rerun `sync --takeout` only after the user confirms and Telegram allows it. This is distinct from the user's initial approval for the CLI to add `--takeout`; it is a Telegram-side security confirmation and is never retried automatically.
@@ -204,13 +204,13 @@ The current CLI `search` command uses local jieba text retrieval. It does not ge
 Remote pages may include Telegram's raw `total`, but Telegram does not guarantee that it reflects the CLI's sender and date filters. Treat it as informational rather than as an exact filtered count. Use Takeout plus local queries when exact filtered counts are required.
 
 ```bash
-tg-search --profile work messages list --chat 123456 --sender me --to 2026-01-31 --limit 1
+tgs --profile work messages list --chat 123456 --sender me --to 2026-01-31 --limit 1
 ```
 
 ## Annual export
 
 ```bash
-tg-search --profile work export \
+tgs --profile work export \
   --from 2026-01-01 \
   --to 2026-12-31 \
   --timezone Asia/Singapore \
@@ -250,8 +250,8 @@ SDK queue. Runtime recovery belongs to the daemon owner.
 ### Message point reads
 
 ```sh
-tg-search messages get --chat 42 --ids 10,11 --source local --json
-tg-search messages get --chat 42 --ids 10,11 --source telegram --json
+tgs messages get --chat 42 --ids 10,11 --source local --json
+tgs messages get --chat 42 --ids 10,11 --source telegram --json
 ```
 
 The source is required. Up to 100 chat-scoped IDs are returned with `missingIds`; this operation does not persist Telegram messages or request Takeout. Relationship facts are preserved in JSON output.
@@ -259,8 +259,8 @@ The source is required. Up to 100 chat-scoped IDs are returned with `missingIds`
 ### Reply context and window coverage
 
 ```sh
-tg-search messages replies --chat 42 --ids 10,11 --source telegram --depth 1 --nodes 100 --json
-tg-search messages read --chat 42 --source telegram --from 1700000000 --to 1700007200 --max-pages 10 --max-messages 1000 --json
+tgs messages replies --chat 42 --ids 10,11 --source telegram --depth 1 --nodes 100 --json
+tgs messages read --chat 42 --source telegram --from 1700000000 --to 1700007200 --max-pages 10 --max-messages 1000 --json
 ```
 
 `replies` follows reply relationships, while `context --chat ... --message ...` returns indexed time neighbors. Reply coverage reports unresolved, unrequested and budget-stopped links separately. The node budget counts roots and missing lookups. Cross-chat references require their own explicit point read.
@@ -291,7 +291,7 @@ that process using the current CLI build.
 `media read` retrieves one bounded byte range from a selected message attachment. Choose `--source local` for stored content or `--source telegram` for a live read; the command never changes sources automatically.
 
 ```bash
-tg-search media read --chat <chat-id> --message <message-id> --source telegram --length 65536 --max-bytes 10485760 --json
+tgs media read --chat <chat-id> --message <message-id> --source telegram --length 65536 --max-bytes 10485760 --json
 ```
 
 The result contains base64 `data`, attachment metadata, and `nextOffset`. Continue with `--offset` until `nextOffset` is null. The default attachment limit is 10 MiB, and one response contains at most 256 KiB of content so it fits the IPC frame budget. A null continuation means the returned range reached EOF; it does not prove earlier ranges were read. `contentStatus: complete` is returned only when this range covers the entire file, and does not mean the caller interpreted its content. Unsupported or unavailable local content produces an explicit error. Remote reads use the server's existing account credential.
@@ -305,7 +305,7 @@ milliseconds, and `media` metadata (`type`, `size`, optional `mimeType` and
 `fileName`). The default whole-file limit is 10 MiB.
 
 ```bash
-tg-search media url --remote https://tgs.example.invalid --chat CHAT_ID --message MESSAGE_ID --source local --index 0 --max-bytes 10485760 --json
+tgs media url --remote https://tgs.example.invalid --chat CHAT_ID --message MESSAGE_ID --source local --index 0 --max-bytes 10485760 --json
 ```
 
 Use `--source local` for bytes already stored **on that server**. Use

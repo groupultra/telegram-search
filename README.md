@@ -41,7 +41,7 @@
 >
 > 支持向量搜索，按句子语义模糊匹配。还支持未读消息 AI 摘要、AI 助手对话等功能。
 >
-> 推荐使用 `tg-search` CLI：本地登录一次，就能在终端检索，也可以交给 Claude Code、Codex 等 AI Agent 调用。
+> 推荐使用 `tgs` CLI：本地登录一次，就能在终端检索，也可以交给 Claude Code、Codex 等 AI Agent 调用。
 
 ## 💖 赞助者
 
@@ -53,20 +53,20 @@
 ## 🚀 快速开始：CLI
 
 ```bash
-# 安装（macOS / Linux）
+# 安装（macOS / Linux）。命令为 tgs，旧命令 tg-search 仍可用
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
 
 # 登录（已内置 API ID / Hash，无需到 my.telegram.org 申请）
-tg-search auth login
+tgs auth login
 
 # 后台常驻，实时保存新消息（以当前用户运行，不要 sudo）
 brew services start groupultra/telegram-search/tg-search
 
 # 同步历史并搜索
-tg-search chats list
-tg-search sync --takeout --chat 123456 --from 2026-01-01
-tg-search search "项目进展"
+tgs chats list
+tgs sync --takeout --chat 123456 --from 2026-01-01
+tgs search "项目进展"
 ```
 
 `sync --takeout` 如返回 `TAKEOUT_AUTHORIZATION_REQUIRED`，在其他 Telegram 设备上批准导出请求后重试。
@@ -94,7 +94,7 @@ Agent 只有在用户同意后才能使用 `sync --takeout`。
 ### 自定义 API 凭据（可选）
 
 ```bash
-tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH   # 写入 profile
+tgs profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH   # 写入 profile
 export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH          # 或用环境变量
 ```
 
@@ -104,8 +104,8 @@ export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH          # �
 
 ```bash
 export TG_SEARCH_REMOTE_TOKEN=...
-tg-search --profile cloud profile remote https://tgs.example.com
-tg-search --profile cloud search "项目进展"
+tgs --profile cloud profile remote https://tgs.example.com
+tgs --profile cloud search "项目进展"
 ```
 
 ### 从源码构建
@@ -134,7 +134,7 @@ pnpm cli auth login
 
 ## 🖥️ 网页界面（可选）
 
-在线体验：https://search.lingogram.app 。自行部署：
+在线体验：[search.lingogram.app](https://search.lingogram.app)。自行部署：
 
 ```bash
 mkdir telegram-search && cd telegram-search
@@ -144,7 +144,11 @@ curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/
 docker compose -f docker-compose.yml up -d
 ```
 
-打开 **http://localhost:3333**。也可只运行镜像：`docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest`（未配置 MinIO 时媒体存于 `data/media`）。
+然后打开 [localhost:3333](http://localhost:3333)。也可以只运行镜像（未配置 MinIO 时媒体存于 `data/media`）：
+
+```bash
+docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
+```
 
 ### 环境变量
 

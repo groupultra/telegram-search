@@ -41,7 +41,7 @@
 >
 > また、ベクトル検索による文レベルのあいまい検索や、未読メッセージの AI 要約、AI アシスタントとの対話にも対応しています。
 >
-> おすすめは `tg-search` CLI です。ローカルで一度ログインすれば、ターミナルから検索することも、Claude Code や Codex などの AI エージェントから呼び出すこともできます。
+> おすすめは `tgs` CLI です。ローカルで一度ログインすれば、ターミナルから検索することも、Claude Code や Codex などの AI エージェントから呼び出すこともできます。
 
 ## 💖 スポンサー
 
@@ -53,20 +53,20 @@
 ## 🚀 クイックスタート：CLI
 
 ```bash
-# インストール（macOS / Linux）
+# インストール（macOS / Linux）。コマンドは tgs、旧コマンド tg-search も利用可能
 brew tap groupultra/telegram-search https://github.com/groupultra/telegram-search
 brew install groupultra/telegram-search/tg-search
 
 # ログイン（API ID / Hash は組み込み済み。my.telegram.org での登録は不要）
-tg-search auth login
+tgs auth login
 
 # バックグラウンドで常駐し新着を保存（sudo なしで現在のユーザーとして実行）
 brew services start groupultra/telegram-search/tg-search
 
 # 履歴を同期して検索
-tg-search chats list
-tg-search sync --takeout --chat 123456 --from 2026-01-01
-tg-search search "プロジェクトの進捗"
+tgs chats list
+tgs sync --takeout --chat 123456 --from 2026-01-01
+tgs search "プロジェクトの進捗"
 ```
 
 `sync --takeout` が `TAKEOUT_AUTHORIZATION_REQUIRED` を返した場合は、他の Telegram 端末でエクスポート要求を承認してから再実行してください。
@@ -94,7 +94,7 @@ tg-search search "プロジェクトの進捗"
 ### カスタム API 認証情報（任意）
 
 ```bash
-tg-search profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH   # profile に保存
+tgs profile configure --apiId YOUR_API_ID --apiHash YOUR_API_HASH   # profile に保存
 export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH          # または環境変数
 ```
 
@@ -104,8 +104,8 @@ export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH          # �
 
 ```bash
 export TG_SEARCH_REMOTE_TOKEN=...
-tg-search --profile cloud profile remote https://tgs.example.com
-tg-search --profile cloud search "プロジェクトの進捗"
+tgs --profile cloud profile remote https://tgs.example.com
+tgs --profile cloud search "プロジェクトの進捗"
 ```
 
 ### ソースからビルド
@@ -134,7 +134,7 @@ pnpm cli auth login
 
 ## 🖥️ Web インターフェース（任意）
 
-デモ：https://search.lingogram.app 。セルフホストする場合：
+デモ：[search.lingogram.app](https://search.lingogram.app)。セルフホストする場合：
 
 ```bash
 mkdir telegram-search && cd telegram-search
@@ -144,7 +144,11 @@ curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/
 docker compose -f docker-compose.yml up -d
 ```
 
-**http://localhost:3333** を開いてください。イメージ単体でも動きます：`docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest`（MinIO 未設定時、メディアは `data/media` に保存）。
+その後 [localhost:3333](http://localhost:3333) を開いてください。イメージ単体でも動きます（MinIO 未設定時、メディアは `data/media` に保存）：
+
+```bash
+docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
+```
 
 ### 環境変数
 
