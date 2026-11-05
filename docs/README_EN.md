@@ -134,7 +134,7 @@ pnpm cli auth login
 
 ## 🖥️ Web Interface (optional)
 
-Demo: https://search.lingogram.app. To self-host:
+Demo: [search.lingogram.app](https://search.lingogram.app). To self-host:
 
 ```bash
 mkdir telegram-search && cd telegram-search
@@ -144,7 +144,11 @@ curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/
 docker compose -f docker-compose.yml up -d
 ```
 
-Open **http://localhost:3333**. Or run the image alone: `docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest` (without MinIO, media goes to `data/media`).
+Then open [localhost:3333](http://localhost:3333). Or run the image alone (without MinIO, media goes to `data/media`):
+
+```bash
+docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
+```
 
 ### Environment Variables
 

@@ -134,7 +134,7 @@ pnpm cli auth login
 
 ## 🖥️ 网页界面（可选）
 
-在线体验：https://search.lingogram.app 。自行部署：
+在线体验：[search.lingogram.app](https://search.lingogram.app)。自行部署：
 
 ```bash
 mkdir telegram-search && cd telegram-search
@@ -144,7 +144,11 @@ curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/
 docker compose -f docker-compose.yml up -d
 ```
 
-打开 **http://localhost:3333**。也可只运行镜像：`docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest`（未配置 MinIO 时媒体存于 `data/media`）。
+然后打开 [localhost:3333](http://localhost:3333)。也可以只运行镜像（未配置 MinIO 时媒体存于 `data/media`）：
+
+```bash
+docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
+```
 
 ### 环境变量
 

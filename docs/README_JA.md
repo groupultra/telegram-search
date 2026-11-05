@@ -134,7 +134,7 @@ pnpm cli auth login
 
 ## 🖥️ Web インターフェース（任意）
 
-デモ：https://search.lingogram.app 。セルフホストする場合：
+デモ：[search.lingogram.app](https://search.lingogram.app)。セルフホストする場合：
 
 ```bash
 mkdir telegram-search && cd telegram-search
@@ -144,7 +144,11 @@ curl -L https://raw.githubusercontent.com/groupultra/telegram-search/refs/heads/
 docker compose -f docker-compose.yml up -d
 ```
 
-**http://localhost:3333** を開いてください。イメージ単体でも動きます：`docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest`（MinIO 未設定時、メディアは `data/media` に保存）。
+その後 [localhost:3333](http://localhost:3333) を開いてください。イメージ単体でも動きます（MinIO 未設定時、メディアは `data/media` に保存）：
+
+```bash
+docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
+```
 
 ### 環境変数
 
