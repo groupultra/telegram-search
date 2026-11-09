@@ -375,7 +375,7 @@ describe('remote CLI', () => {
       const unauthorized = createRemoteRuntime(server.url!, 'wrong-token')
       await expect(unauthorized.invokes.messages.queryLocal({ limit: 2 })).resolves.toMatchObject({ ok: false, error: { code: 'REMOTE_AUTHENTICATION_FAILED' } })
       await unauthorized.close()
-      expect(() => runtime.streams.sync({ chatIds: [], all: true, takeout: false, limit: 1 })).toThrow('read commands only')
+      expect(() => runtime.streams.sync({ chatIds: [], all: true, takeout: false, limit: 1 })).toThrow('does not run sync or export')
     }
     finally {
       await runtime.close()
