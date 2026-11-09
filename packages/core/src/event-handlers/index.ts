@@ -71,7 +71,7 @@ export function basicEventHandler(ctx: CoreContext, config: Config, mediaBinaryP
   // Link resolver: must run BEFORE embedding and jieba so crawled page text is indexed
   registry.register('link', createLinkResolver(ctx, logger, webPageModels))
   // Photo embedding resolver: must run AFTER media resolver to ensure photos are downloaded
-  registry.register('photo-embedding', createPhotoEmbeddingResolver(ctx, logger))
+  registry.register('photo-embedding', createPhotoEmbeddingResolver(ctx, logger, photoModels, mediaBinaryProvider))
   registry.register('embedding', createEmbeddingResolver(ctx, logger))
   registry.register('jieba', createJiebaResolver(logger))
 
