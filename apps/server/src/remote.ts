@@ -188,6 +188,13 @@ function scopeSingleChat<Input extends { chatId: string } & Record<string, unkno
   return input
 }
 
+// Database administration is not chat-scoped, so a credential limited to some chats must not reach it.
+function requireAllChatAccess<Input extends Record<string, unknown>>(credential: RemoteCredential, input: Input): Input {
+  if (credential.readableChatIds !== undefined)
+    throw new RemotePermissionError('Database administration requires a credential that can read all chats')
+  return input
+}
+
 function itemChatIds(data: Record<string, unknown>): Array<string | undefined> | undefined {
   return (data.items as Array<{ chatId?: string }> | undefined)?.map(item => item.chatId)
 }
@@ -266,6 +273,36 @@ const remoteHandlers = {
       ? (data.buckets as Array<{ key?: string }> | undefined)?.map(bucket => bucket.key)
       : undefined,
   }),
+  'database.indexes.list': defineRemoteHandler({
+    input: remoteMethods['database.indexes.list'].input,
+    scope: requireAllChatAccess,
+    invoke: (application, _credential, input, options) => application.database.listIndexes(input, options),
+    resultChatIds: () => undefined,
+  }),
+  'database.indexes.drop': defineRemoteHandler({
+    input: remoteMethods['database.indexes.drop'].input,
+    scope: requireAllChatAccess,
+    invoke: (application, _credential, input, options) => application.database.dropIndexes(input, options),
+    resultChatIds: () => undefined,
+  }),
+  'database.indexes.rebuild': defineRemoteHandler({
+    input: remoteMethods['database.indexes.rebuild'].input,
+    scope: requireAllChatAccess,
+    invoke: (application, _credential, input, options) => application.database.rebuildIndexes(input, options),
+    resultChatIds: () => undefined,
+  }),
+  'database.vector.get': defineRemoteHandler({
+    input: remoteMethods['database.vector.get'].input,
+    scope: requireAllChatAccess,
+    invoke: (application, _credential, input, options) => application.database.getVector(input, options),
+    resultChatIds: () => undefined,
+  }),
+  'database.vector.set': defineRemoteHandler({
+    input: remoteMethods['database.vector.set'].input,
+    scope: requireAllChatAccess,
+    invoke: (application, _credential, input, options) => application.database.setVector(input, options),
+    resultChatIds: () => undefined,
+  }),
 } satisfies Record<RemoteMethod, RemoteMethodHandler>
 
 function assertResultScope(credential: RemoteCredential, handler: RemoteMethodHandler, input: Record<string, unknown>, result: unknown): void {
@@ -282,7 +319,7 @@ function assertResultScope(credential: RemoteCredential, handler: RemoteMethodHa
 
 function summarizeInput(method: RemoteMethod, input: Record<string, unknown>): Record<string, unknown> {
   const summary: Record<string, unknown> = {}
-  for (const key of ['cursor', 'limit', 'from', 'to', 'fromUserId', 'messageId', 'before', 'after', 'groupBy', 'timeZone', 'useVector']) {
+  for (const key of ['cursor', 'limit', 'from', 'to', 'fromUserId', 'messageId', 'before', 'after', 'groupBy', 'timeZone', 'useVector', 'kind', 'missingOnly', 'enabled']) {
     if (input[key] !== undefined)
       summary[key] = input[key]
   }

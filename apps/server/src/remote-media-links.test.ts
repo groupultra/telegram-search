@@ -52,6 +52,7 @@ async function fixture(options: { access?: typeof access, now?: () => number, ma
     searchLocalMessages: unused,
     getLocalMessageContext: unused,
     getLocalStats: unused,
+    database: { listIndexes: unused, dropIndexes: unused, rebuildIndexes: unused, getVector: unused, setVector: unused },
     async* sync() {},
   } satisfies RemoteApplication
   const resolve = vi.fn((_accountId: string) => application)

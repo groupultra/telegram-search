@@ -76,7 +76,7 @@ tgs --remote https://tgs.example.com messages query --limit 50
 
 Provide the server's access token through `TG_SEARCH_REMOTE_TOKEN` using your secret manager or shell environment. Tokens are not accepted in URLs or command arguments and are not saved in profile configuration. `--remote` overrides `TG_SEARCH_REMOTE_URL`, which overrides the selected profile's saved URL. HTTPS is required except on loopback for development. The server base URL may include a path prefix.
 
-Supported commands: `chats list`, `messages list`, `messages query`, `search`, `context`, and `stats`. Results use `meta.source: "remote"` and preserve pagination and application errors. No local database or Telegram client is opened, including when the request fails. Direct `--remote`/environment use does not create a local profile.
+Supported commands: `chats list`, `messages list`, `messages query`, `search`, `context`, `stats`, and the `db` maintenance commands (see [Database maintenance](#database-maintenance)). Results use `meta.source: "remote"` and preserve pagination and application errors. No local database or Telegram client is opened, including when the request fails. Direct `--remote`/environment use does not create a local profile.
 
 `sync` and `export` are not exposed remotely in this version; run them on the host owning the data. `auth` and `daemon` are local management commands and reject remote profiles. Use a separate local profile for local operation. There is no automatic fallback when the server is unreachable.
 
@@ -223,6 +223,31 @@ The export contains deterministic monthly JSONL files plus `manifest.json` with 
 Reply records keep `replyToId` and also embed a one-level `replyTo` message snapshot so an Agent can read the referenced sender, timestamp, text, forward, media, and link metadata without joining the archive. The snapshot is resolved from the local database even when the target falls outside the selected `--from`/`--to` range. Reply hydration stays within the selected `--chat` values; without a chat selection it uses the active account scope. It is `null` when the target is unavailable locally or outside the selected chat scope, and reply chains are not recursively expanded. This reply-aware output is manifest schema version `2`.
 
 The CLI performs no AI analysis. An Agent can read the JSONL files and produce a monthly or annual summary separately.
+
+## Database maintenance
+
+`db` commands act on the whole database: every account stored in it is affected. They run against the profile's PGlite database (through the daemon when it is running) or, with a remote profile, against the server's database.
+
+```bash
+# Show each schema index with its kind, existence, validity, and size.
+tgs db indexes list --kind all
+
+# Drop vector and/or standard indexes. Unique indexes back sync upserts and are never dropped.
+tgs db indexes drop --kind vector
+
+# Recreate missing or invalid indexes and REINDEX the rest; --missing-only skips the REINDEX.
+tgs db indexes rebuild --kind all --missing-only
+
+# Vector search switch: embedding generation, vector search, and vector indexes.
+tgs db vector status
+tgs db vector disable
+tgs db vector enable
+tgs db indexes rebuild --kind vector --missing-only
+```
+
+Index kinds are `vector` (HNSW indexes for embedding similarity), `standard`, and `unique`. `db vector disable` stores the switch, stops embedding generation and vector search for every account, then drops every vector index; message search falls back to text search. While it is off, startup drops vector indexes that a migration recreates, and `indexes rebuild --kind vector` fails with `VECTOR_DISABLED`. Stored embeddings are kept. Dropping vector indexes with `indexes drop` alone leaves vector search on, so similarity queries then scan every stored vector; prefer `db vector disable`. `db vector enable` lists the vector indexes to build; build them with `indexes rebuild --kind vector`.
+
+Index DDL can run much longer than a read, so `drop`, `rebuild`, `enable`, and `disable` default to `--timeout-ms 3600000`. The deadline and cancellation are checked between statements; a statement that has started runs to completion. If a command stops early, run `db indexes list` to see what ran. On Postgres the server uses `CONCURRENTLY`, so reads and sync continue during index DDL.
 
 ## Privacy boundary
 

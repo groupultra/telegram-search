@@ -49,6 +49,7 @@ async function fixture() {
     searchLocalMessages: unused,
     getLocalMessageContext: unused,
     getLocalStats: unused,
+    database: { listIndexes: unused, dropIndexes: unused, rebuildIndexes: unused, getVector: unused, setVector: unused },
     getMessages: vi.fn<TelegramApplication['getMessages']>(async request => ({ ok: true, data: { source: request.source, items: [], missingIds: request.messageIds } })),
     getReplyContext: vi.fn<TelegramApplication['getReplyContext']>(async request => ({ ok: true, data: { source: request.source, items: [], roots: [], links: [], budget: { maxDepth: request.maxDepth, maxNodes: request.maxNodes }, coverage: { complete: true, resolvedReplies: 0, missingReplies: 0, notRequestedReplies: 0, depthStopped: 0, nodeStopped: 0, cycles: 0 } } })),
     readMessages: vi.fn<TelegramApplication['readMessages']>(async request => ({ ok: true, data: { source: request.source, chatId: request.chatId, items: [], window: {}, nextCursor: null, pagesRead: 1, stopReason: 'exhausted', coverage: { windowExhausted: true, replyContext: 'not_requested', mediaContent: 'not_requested' } } })),

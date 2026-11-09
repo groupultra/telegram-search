@@ -72,6 +72,7 @@ async function fixture(options: { prefix?: string, type?: string, mimeType?: str
     searchLocalMessages: unused,
     getLocalMessageContext: unused,
     getLocalStats: unused,
+    database: { listIndexes: unused, dropIndexes: unused, rebuildIndexes: unused, getVector: unused, setVector: unused },
     async* sync() {},
     listStoredChats: unused,
   } satisfies RemoteApplication

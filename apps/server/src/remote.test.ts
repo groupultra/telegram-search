@@ -1,4 +1,4 @@
-import type { TelegramApplication } from '@tg-search/core'
+import type { DatabaseAdministration, TelegramApplication } from '@tg-search/core'
 
 import type { RemoteAuditEvent } from './remote'
 import type { RemoteApplication } from './remote-application'
@@ -46,6 +46,13 @@ function fixture(options: { access?: ReturnType<typeof access>, messageChatId?: 
     searchLocalMessages: vi.fn(async () => page),
     getLocalMessageContext: vi.fn(async () => ({ ok: true as const, data: { messages: [resultMessage], targetIndex: 0 } })),
     getLocalStats: vi.fn<TelegramApplication['getLocalStats']>(async () => ({ ok: true as const, data: { total: 1, buckets: [] } })),
+    database: {
+      listIndexes: vi.fn<DatabaseAdministration['listIndexes']>(async () => ({ ok: true, data: { vector: { enabled: true }, indexes: [] } })),
+      dropIndexes: vi.fn<DatabaseAdministration['dropIndexes']>(async () => ({ ok: true, data: { dropped: ['chat_messages_content_vector_1536_index'], skipped: [] } })),
+      rebuildIndexes: vi.fn<DatabaseAdministration['rebuildIndexes']>(async () => ({ ok: true, data: { created: [], reindexed: [], skipped: [] } })),
+      getVector: vi.fn<DatabaseAdministration['getVector']>(async () => ({ ok: true, data: { enabled: true } })),
+      setVector: vi.fn<DatabaseAdministration['setVector']>(async input => ({ ok: true, data: { vector: { enabled: input.enabled }, dropped: [], missing: [] } })),
+    },
     async* sync() {},
   } satisfies RemoteApplication
   const resolve = vi.fn(() => application)
@@ -129,6 +136,42 @@ describe('remote access control', () => {
     expect(application.queryLocalMessages).not.toHaveBeenCalled()
     expect(resolve).not.toHaveBeenCalled()
     expect(audit.mock.calls.map(([event]) => event.decision)).toEqual(['denied', 'denied'])
+  })
+
+  it('runs database administration only for an all-chat credential with the matching capability', async () => {
+    const adminCapabilities = ['database.indexes.drop', 'database.vector.set']
+    const allChats = [{ chatId: '*', permissions: ['read'] }]
+
+    // A credential without the capability is denied even with all-chat access.
+    const withoutCapability = fixture({ access: access({ chatPermissions: allChats }) })
+    const deniedFeature = await withoutCapability.app.request('/v1/remote/database.indexes.drop', { method: 'POST', headers: headers(), body: JSON.stringify({ kind: 'vector' }) })
+    expect(deniedFeature.status).toBe(403)
+    expect(withoutCapability.application.database.dropIndexes).not.toHaveBeenCalled()
+
+    // A chat-scoped credential cannot reach database-wide operations even when granted the capability.
+    const chatScoped = fixture({ access: access({ capabilities: adminCapabilities }) })
+    const deniedScope = await chatScoped.app.request('/v1/remote/database.indexes.drop', { method: 'POST', headers: headers(), body: JSON.stringify({ kind: 'vector' }) })
+    expect(deniedScope.status).toBe(403)
+    expect(chatScoped.application.database.dropIndexes).not.toHaveBeenCalled()
+
+    const admin = fixture({ access: access({ capabilities: adminCapabilities, chatPermissions: allChats }) })
+    const dropped = await admin.app.request('/v1/remote/database.indexes.drop', { method: 'POST', headers: headers(), body: JSON.stringify({ kind: 'vector' }) })
+    expect(dropped.status).toBe(200)
+    expect(await dropped.json()).toEqual({ ok: true, data: { dropped: ['chat_messages_content_vector_1536_index'], skipped: [] } })
+    expect(admin.application.database.dropIndexes).toHaveBeenCalledExactlyOnceWith({ kind: 'vector' }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+
+    const disabled = await admin.app.request('/v1/remote/database.vector.set', { method: 'POST', headers: headers(), body: JSON.stringify({ enabled: false }) })
+    expect(disabled.status).toBe(200)
+    expect(admin.application.database.setVector).toHaveBeenCalledExactlyOnceWith({ enabled: false }, expect.anything())
+    expect(admin.audit.mock.calls.map(([event]) => [event.method, event.chatIds, event.requestSummary])).toEqual([
+      ['database.indexes.drop', ['*'], { kind: 'vector' }],
+      ['database.vector.set', ['*'], { enabled: false }],
+    ])
+
+    // Unique indexes are not droppable, so the protocol rejects that kind before the application runs.
+    const invalid = await admin.app.request('/v1/remote/database.indexes.drop', { method: 'POST', headers: headers(), body: JSON.stringify({ kind: 'unique' }) })
+    expect(invalid.status).toBe(400)
+    expect(admin.application.database.dropIndexes).toHaveBeenCalledOnce()
   })
 
   it('scopes omitted chat filters before querying or calculating statistics', async () => {

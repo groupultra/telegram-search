@@ -30,3 +30,5 @@ export function registerApplicationHandlers(context: EventContext<any, any>, app
     }
   }
 }
+
+export { registerDatabaseHandlers } from './database'

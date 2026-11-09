@@ -69,7 +69,7 @@ export function createRemoteRuntime(endpoint: string, token: string): RemoteRunt
   }
 
   function unsupported(_input: unknown): never {
-    throw new ApplicationError({ code: 'REMOTE_OPERATION_UNSUPPORTED', message: 'Remote mode supports read commands only; run sync or export on the server', retryable: false })
+    throw new ApplicationError({ code: 'REMOTE_OPERATION_UNSUPPORTED', message: 'Remote mode does not run sync or export; run them on the server', retryable: false })
   }
 
   const createLink = invoke('media.createLink', remoteMethods['media.createLink'].output)
@@ -96,6 +96,13 @@ export function createRemoteRuntime(endpoint: string, token: string): RemoteRunt
         contextLocal: invoke('messages.context', remoteMethods['messages.context'].output),
       },
       stats: { get: invoke('stats.get', remoteMethods['stats.get'].output) },
+      database: {
+        listIndexes: invoke('database.indexes.list', remoteMethods['database.indexes.list'].output),
+        dropIndexes: invoke('database.indexes.drop', remoteMethods['database.indexes.drop'].output),
+        rebuildIndexes: invoke('database.indexes.rebuild', remoteMethods['database.indexes.rebuild'].output),
+        getVector: invoke('database.vector.get', remoteMethods['database.vector.get'].output),
+        setVector: invoke('database.vector.set', remoteMethods['database.vector.set'].output),
+      },
     },
     streams: { sync: unsupported, export: unsupported },
     close: async () => controller.abort(),

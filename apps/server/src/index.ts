@@ -7,8 +7,8 @@ import figlet from 'figlet'
 
 import { initLogger, LoggerFormat, setGlobalHookPostLog, useLogger } from '@guiiai/logg'
 import { createBotRegistry, setBotRegistryInstance } from '@tg-search/bot'
-import { parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
-import { models } from '@tg-search/core'
+import { DatabaseType, parseEnvFlags, parseEnvToConfig } from '@tg-search/common'
+import { createDatabaseAdministration, models } from '@tg-search/core'
 import { emitOtelLog } from '@tg-search/observability'
 import { registerOtel } from '@tg-search/observability/node'
 import { plugin as wsPlugin } from 'crossws/server'
@@ -73,11 +73,16 @@ function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
   const remoteAccess = remoteAccessFromEnv(process.env)
   if (remoteAccess) {
     const applications = new Map<string, ReturnType<typeof createRemoteApplication>>()
+    const database = createDatabaseAdministration({
+      db: getDB(),
+      logger,
+      concurrently: config.database.type === DatabaseType.POSTGRES,
+    })
     const getApplication = (accountId: string) => {
       const existing = applications.get(accountId)
       if (existing)
         return existing
-      const application = createRemoteApplication(getDB(), accountId)
+      const application = createRemoteApplication(getDB(), accountId, database)
       applications.set(accountId, application)
       return application
     }
