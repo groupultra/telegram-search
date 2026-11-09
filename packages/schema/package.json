@@ -1,7 +1,7 @@
 {
   "name": "@tg-search/schema",
   "type": "module",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
