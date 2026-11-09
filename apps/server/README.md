@@ -29,9 +29,27 @@ Generate each token with `openssl rand -hex 32`. `id` and `accountId` are databa
 
 Each client supplies its own token through `TG_SEARCH_REMOTE_TOKEN` and passes the HTTPS server base URL through `--remote`, `TG_SEARCH_REMOTE_URL`, or `profile remote <url>`. Remove or expire a credential to revoke it; use a new credential ID and token when rotating access.
 
-`POST /v1/remote/:method` accepts JSON and `Authorization: Bearer <token>`. Methods are `chats.list`, `messages.get`, `messages.replies`, `messages.read`, `messages.list`, `media.read`, `media.createLink`, `messages.query`, `messages.search`, `messages.context`, and `stats.get`. Requests reuse protocol validation and the Core application. The server selects the account from configuration, never from request input. No sync, arbitrary RPC, filesystem export, or account-management endpoint is exposed.
+`POST /v1/remote/:method` accepts JSON and `Authorization: Bearer <token>`. Methods are `chats.list`, `messages.get`, `messages.replies`, `messages.read`, `messages.list`, `media.read`, `media.createLink`, `messages.query`, `messages.search`, `messages.context`, `stats.get`, and the database maintenance methods below. Requests reuse protocol validation and the Core application. The server selects the account from configuration, never from request input. No sync, arbitrary RPC, filesystem export, or account-management endpoint is exposed.
 
 Indexed queries and selected-chat discovery use the existing server database even after restart. Listing every chat and reading live Telegram messages require an active, authorized account runtime on this server and return `TELEGRAM_NOT_CONNECTED` otherwise. This API does not restore Telegram sessions after restart or migrate/merge local data. Use HTTPS termination and an ingress request-rate limit; responses must not be cached.
+
+### Database maintenance
+
+`database.indexes.list`, `database.indexes.drop`, `database.indexes.rebuild`, `database.vector.get`, and `database.vector.set` back the CLI's `db` commands. They act on the whole server database, not one account, so a credential needs both the method in `capabilities` and `{ "chatId": "*", "permissions": ["read"] }`; a chat-scoped credential is denied. Issue a separate, short-lived credential for maintenance instead of adding these capabilities to a reader:
+
+```json
+{
+  "id": "6f1d1a52-3c2e-4b7e-9d55-0b6a1f0e2c11",
+  "name": "db-maintenance",
+  "token": "replace-with-at-least-32-random-characters",
+  "accountId": "20eff9ca-a2f9-4556-a5f8-39bca8f61951",
+  "expiresAt": 1798761600000,
+  "capabilities": ["database.indexes.list", "database.indexes.drop", "database.indexes.rebuild", "database.vector.get", "database.vector.set"],
+  "chatPermissions": [{ "chatId": "*", "permissions": ["read"] }]
+}
+```
+
+The vector switch is stored in the `system_settings` table and defaults to enabled. While it is disabled, the server skips embedding and photo-embedding generation, serves vector search requests with text search, and drops vector indexes after migrations at startup. Index DDL runs with `CONCURRENTLY` on Postgres. A long `rebuild` can outlast HTTP client and ingress timeouts while Postgres keeps building; check progress with `database.indexes.list`.
 
 ### Temporary media links
 

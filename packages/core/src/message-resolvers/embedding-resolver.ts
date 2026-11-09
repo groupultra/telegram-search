@@ -6,6 +6,7 @@ import type { ProcessedCoreMessage } from '../types/message'
 
 import { Ok } from '@unbird/result'
 
+import { systemSettingsModels } from '../models/system-settings'
 import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
 
@@ -14,6 +15,13 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
 
   return {
     run: async (opts: MessageResolverOpts) => {
+      // The database-wide vector switch wins over per-account embedding settings.
+      const vector = (await systemSettingsModels.getVectorSettings(ctx.getDB())).expect('Failed to read vector settings')
+      if (!vector.enabled) {
+        logger.debug('skipping embedding: vector search is disabled')
+        return Ok([])
+      }
+
       // TODO: should we store the account settings into ctx, to avoid fetching it from db every time?
       const embeddingSettings = (await ctx.getAccountSettings()).embedding
       logger.withFields({ embeddingSettings }).verbose('Executing embedding resolver')

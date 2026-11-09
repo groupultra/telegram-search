@@ -1,5 +1,6 @@
 export * from './chats'
 export * from './daemon'
+export * from './database'
 export * from './errors'
 export * from './export'
 export * from './media'

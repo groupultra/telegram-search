@@ -18,11 +18,13 @@ import {
   appResult,
   CoreEventType,
   createCoreInstance,
+  createDatabaseAdministration,
   createTelegramApplicationRuntime,
   destroyCoreInstance,
   initDrizzle,
   models,
   registerApplicationHandlers,
+  registerDatabaseHandlers,
   retryTelegramOperation,
   toAppError,
 } from '@tg-search/core'
@@ -385,6 +387,8 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     stopLogMaintenance = await startDaemonLogMaintenance(paths, logger)
     await removeIfExists(socket)
     database = await initDrizzle(logger, config, { dbPath: paths.database })
+    // The daemon owns the PGlite file, so database maintenance from the CLI runs here.
+    const databaseAdministration = createDatabaseAdministration({ db: database.db, logger })
     await replaceRuntime(await readSession(paths))
 
     const stop = async () => {
@@ -400,6 +404,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
 
     const server = await createIpcServer(socket, (connection) => {
       const unregisterApplication = registerApplicationHandlers(connection.context, applicationProxy)
+      const unregisterDatabase = registerDatabaseHandlers(connection.context, databaseAdministration)
       const unregisterDaemon = defineInvokeHandlers(connection.context, daemonContracts, {
         reload,
         recover: () => appResult(recover),
@@ -412,6 +417,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       })
       connection.context.signal.addEventListener('abort', () => {
         unregisterApplication()
+        unregisterDatabase()
         for (const unregister of Object.values(unregisterDaemon))
           unregister()
       }, { once: true })

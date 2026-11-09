@@ -7,6 +7,8 @@ import type { PgliteDB } from './pglite'
 
 import { DatabaseType, isBrowser } from '@tg-search/common'
 
+import { enforceVectorSettings } from '../application/database'
+
 export type CoreDB = PostgresDB | PgliteDB
 
 // Reference: https://github.com/drizzle-team/drizzle-orm/issues/2851#issuecomment-2517850853
@@ -49,13 +51,16 @@ export async function initDrizzle(
         isDatabaseDebugMode: options?.isDatabaseDebugMode,
         disableMigrations: options?.disableMigrations,
       })
+      if (!options?.disableMigrations)
+        await enforceVectorSettings(db, logger, { concurrently: true })
       return { db }
     }
 
     case DatabaseType.PGLITE: {
+      let result: InitDrizzleResult
       if (isBrowser()) {
         const { initPgliteDrizzleInBrowser } = await import('./pglite.browser')
-        return await initPgliteDrizzleInBrowser(logger, {
+        result = await initPgliteDrizzleInBrowser(logger, {
           debuggerWebSocketUrl: options?.debuggerWebSocketUrl,
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
           disableMigrations: options?.disableMigrations,
@@ -63,11 +68,14 @@ export async function initDrizzle(
       }
       else {
         const { initPgliteDrizzleInNode } = await import('./pglite')
-        return await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
+        result = await initPgliteDrizzleInNode(logger, config, options?.dbPath, {
           isDatabaseDebugMode: options?.isDatabaseDebugMode,
           disableMigrations: options?.disableMigrations,
         })
       }
+      if (!options?.disableMigrations)
+        await enforceVectorSettings(result.db, logger, { concurrently: false })
+      return result
     }
 
     default:

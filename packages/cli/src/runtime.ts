@@ -12,14 +12,17 @@ import { createContext, defineInvokes, defineStreamInvoke } from '@moeru/eventa'
 import { generateDefaultConfig } from '@tg-search/common'
 import {
   createCoreContext,
+  createDatabaseAdministration,
   createTelegramApplicationRuntime,
   initDrizzle,
   models,
   registerApplicationHandlers,
+  registerDatabaseHandlers,
   retryTelegramOperation,
 } from '@tg-search/core'
 import {
   chatContracts,
+  databaseContracts,
   exportContracts,
   mediaContracts,
   messageContracts,
@@ -137,6 +140,7 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
   })
   const eventContext = createContext()
   const unregister = registerApplicationHandlers(eventContext, application)
+  const unregisterDatabase = registerDatabaseHandlers(eventContext, createDatabaseAdministration({ db, logger }))
 
   return {
     execution: { mode: 'direct' as const, cli: runtimeBuildInfo(import.meta.url) },
@@ -145,6 +149,7 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
       chats: defineInvokes(eventContext, chatContracts),
       messages: defineInvokes(eventContext, messageContracts),
       stats: defineInvokes(eventContext, statsContracts),
+      database: defineInvokes(eventContext, databaseContracts),
     },
     streams: {
       sync: defineStreamInvoke(eventContext, syncContracts.run),
@@ -152,6 +157,7 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
     },
     close: async () => {
       unregister()
+      unregisterDatabase()
       eventContext.abort()
       await application.dispose()
       context.cleanup()

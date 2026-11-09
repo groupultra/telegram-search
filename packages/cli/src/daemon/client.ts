@@ -10,6 +10,7 @@ import {
   chatContracts,
   daemonContracts,
   daemonStatusSchema,
+  databaseContracts,
   exportContracts,
   mediaContracts,
   messageContracts,
@@ -93,6 +94,7 @@ export async function connectDaemon(paths: ProfilePaths): Promise<DaemonClientRu
         chats: defineInvokes(connection.context, chatContracts),
         messages: defineInvokes(connection.context, messageContracts),
         stats: defineInvokes(connection.context, statsContracts),
+        database: defineInvokes(connection.context, databaseContracts),
         daemon,
       },
       streams: {

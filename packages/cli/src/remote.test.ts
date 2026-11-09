@@ -1,4 +1,4 @@
-import type { TelegramApplication } from '@tg-search/core'
+import type { DatabaseAdministration, TelegramApplication } from '@tg-search/core'
 
 import type { RemoteApplication } from '../../../apps/server/src/remote-application'
 
@@ -30,10 +30,23 @@ const serverAccess = remoteAccessFromEnv({
     }],
   }),
 })!
+const adminToken = 'test-only-admin-'.repeat(4)
+const adminAccess = remoteAccessFromEnv({
+  TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
+    credentials: [{
+      id: '33333333-3333-4333-8333-333333333333',
+      name: 'cli-admin',
+      token: adminToken,
+      accountId: access.accountId,
+      capabilities: ['database.indexes.list', 'database.indexes.drop', 'database.indexes.rebuild', 'database.vector.get', 'database.vector.set'],
+      chatPermissions: [{ chatId: '*', permissions: ['read'] }],
+    }],
+  }),
+})!
 const message = { id: '42', chatId: '7', senderId: '3', senderName: 'Test', timestamp: 1700000000, text: 'project progress', forward: { isForward: false }, media: [], links: [] }
 const page = { ok: true as const, data: { items: [message], nextCursor: 'next-page', total: 37 } }
 
-function fixture() {
+function fixture(remoteAccess = serverAccess) {
   const unusedMediaDownload = vi.fn(async (): Promise<never> => {
     throw new Error('Unexpected attachment download operation')
   })
@@ -51,12 +64,19 @@ function fixture() {
     searchLocalMessages: vi.fn(async () => page),
     getLocalMessageContext: vi.fn(async () => ({ ok: true as const, data: { messages: [message], targetIndex: 0 } })),
     getLocalStats: vi.fn(async () => ({ ok: true as const, data: { total: 1, buckets: [] } })),
+    database: {
+      listIndexes: vi.fn<DatabaseAdministration['listIndexes']>(async () => ({ ok: true, data: { vector: { enabled: true }, indexes: [] } })),
+      dropIndexes: vi.fn<DatabaseAdministration['dropIndexes']>(async () => ({ ok: true, data: { dropped: [], skipped: [] } })),
+      rebuildIndexes: vi.fn<DatabaseAdministration['rebuildIndexes']>(async () => ({ ok: true, data: { created: [], reindexed: [], skipped: [] } })),
+      getVector: vi.fn<DatabaseAdministration['getVector']>(async () => ({ ok: true, data: { enabled: true } })),
+      setVector: vi.fn<DatabaseAdministration['setVector']>(async input => ({ ok: true, data: { vector: { enabled: input.enabled }, dropped: input.enabled ? [] : ['chat_messages_content_vector_1536_index'], missing: [] } })),
+    },
     async* sync() {},
   } satisfies RemoteApplication
   const resolve = vi.fn(() => application)
   const app = new H3()
   app.mount('/v1', new H3())
-  app.mount('/v1/remote', createRemoteApi(serverAccess, resolve, vi.fn(async () => {})))
+  app.mount('/v1/remote', createRemoteApi(remoteAccess, resolve, vi.fn(async () => {})))
   return { app, application, resolve }
 }
 
@@ -91,6 +111,42 @@ describe('remote CLI', () => {
     }
     finally {
       await server.close()
+    }
+  })
+
+  it('runs database maintenance commands against a remote server with a long default deadline', async () => {
+    const { app, application } = fixture(adminAccess)
+    const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
+    await server.ready()
+    const home = await mkdtemp(join(tmpdir(), 'tg-db-remote-'))
+    vi.stubEnv('TG_SEARCH_HOME', home)
+    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', adminToken)
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    const output = () => JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
+    try {
+      const startedAt = Date.now()
+      await runCli(['db', 'vector', 'disable', '--remote', server.url!, '--json'])
+      expect(output()).toMatchObject({ ok: true, data: { vector: { enabled: false }, dropped: ['chat_messages_content_vector_1536_index'] } })
+      // Index DDL outlives the 60 s read default; maintenance commands default to one hour.
+      const [input] = application.database.setVector.mock.calls[0]
+      expect(input).toEqual({ enabled: false, operation: { deadlineAt: expect.any(Number) } })
+      expect(input.operation!.deadlineAt - startedAt).toBeGreaterThanOrEqual(3_600_000 - 5_000)
+
+      stdout.mockClear()
+      await runCli(['db', 'indexes', 'rebuild', '--kind', 'standard', '--missing-only', '--remote', server.url!, '--json'])
+      expect(output()).toMatchObject({ ok: true, data: { created: [], reindexed: [], skipped: [] } })
+      expect(application.database.rebuildIndexes).toHaveBeenCalledWith({ kind: 'standard', missingOnly: true, operation: { deadlineAt: expect.any(Number) } }, expect.anything())
+
+      stdout.mockClear()
+      await runCli(['db', 'indexes', 'drop', '--kind', 'unique', '--remote', server.url!, '--json'])
+      expect(output()).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
+      expect(application.database.dropIndexes).not.toHaveBeenCalled()
+      expect(process.exitCode).toBe(1)
+      expect(await readdir(home)).toEqual([])
+    }
+    finally {
+      await server.close()
+      await rm(home, { recursive: true, force: true })
     }
   })
 

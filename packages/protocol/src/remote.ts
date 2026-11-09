@@ -3,6 +3,7 @@ import type { GenericSchema } from 'valibot'
 import { array, literal, nullable, number, object, optional, pipe, string, toLowerCase, union, uuid } from 'valibot'
 
 import { chatRecordSchema, listChatsInputSchema } from './chats'
+import { databaseIndexListSchema, dropDatabaseIndexesInputSchema, dropDatabaseIndexesResultSchema, getVectorSettingsInputSchema, listDatabaseIndexesInputSchema, rebuildDatabaseIndexesInputSchema, rebuildDatabaseIndexesResultSchema, setVectorSettingsInputSchema, setVectorSettingsResultSchema, vectorSettingsSchema } from './database'
 import { appErrorSchema } from './errors'
 import { createMediaLinkInputSchema, mediaDownloadLinkSchema, messageMediaChunkSchema, readMessageMediaInputSchema } from './media'
 import { getMessagesInputSchema, getMessagesResultSchema, listRemoteMessagesInputSchema, messageContextInputSchema, messageRecordSchema, queryLocalMessagesInputSchema, readMessagesInputSchema, readMessagesResultSchema, replyContextInputSchema, replyContextResultSchema, searchMessagesInputSchema } from './messages'
@@ -24,6 +25,12 @@ export const remoteMethods = {
   'messages.search': { input: searchMessagesInputSchema, output: messagePageSchema },
   'messages.context': { input: messageContextInputSchema, output: object({ messages: array(object({ ...messageRecordSchema.entries, similarity: optional(number()), combinedScore: optional(number()) })), targetIndex: number() }) },
   'stats.get': { input: statsInputSchema, output: object({ total: number(), buckets: array(object({ key: string(), count: number(), firstTimestamp: number(), lastTimestamp: number() })) }) },
+  // Database administration acts on the whole server database, not one account or chat.
+  'database.indexes.list': { input: listDatabaseIndexesInputSchema, output: databaseIndexListSchema },
+  'database.indexes.drop': { input: dropDatabaseIndexesInputSchema, output: dropDatabaseIndexesResultSchema },
+  'database.indexes.rebuild': { input: rebuildDatabaseIndexesInputSchema, output: rebuildDatabaseIndexesResultSchema },
+  'database.vector.get': { input: getVectorSettingsInputSchema, output: vectorSettingsSchema },
+  'database.vector.set': { input: setVectorSettingsInputSchema, output: setVectorSettingsResultSchema },
 } as const
 
 export type RemoteMethod = keyof typeof remoteMethods

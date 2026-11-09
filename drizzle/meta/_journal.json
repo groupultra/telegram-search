@@ -274,6 +274,13 @@
       "when": 1792241408161,
       "tag": "0038_remote-access-audit-log",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794241898330,
+      "tag": "0039_system-settings",
+      "breakpoints": true
     }
   ]
 }

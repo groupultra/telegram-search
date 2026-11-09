@@ -162,8 +162,11 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       ? { ...params.pagination, limit: requestedLimit + 1 }
       : { limit: requestedLimit + 1, offset: 0 }
 
+    // Without vector indexes a similarity query scans every stored vector, so fall back to text search.
+    const vector = (await dbModels.systemSettingsModels.getVectorSettings(ctx.getDB())).expect('Failed to read vector settings')
+
     let dbMessages: DBRetrievalMessages[] = []
-    if (params.useVector) {
+    if (params.useVector && vector.enabled) {
       let embedding: number[] = []
       const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()
       ctx.metrics?.embeddingApiCall.inc({ status: embeddingResult != null ? 'success' : 'error' })
@@ -230,7 +233,8 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
         similarity?: number
       }> = []
 
-      if (params.useVector) {
+      const vector = (await dbModels.systemSettingsModels.getVectorSettings(ctx.getDB())).expect('Failed to read vector settings')
+      if (params.useVector && vector.enabled) {
         // Vector search
         logger.verbose('Starting vector search for photos')
         const embeddingResult = (await embedContents([params.content], embeddingSettings)).orUndefined()

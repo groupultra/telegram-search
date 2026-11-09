@@ -6,6 +6,7 @@ import type { CoreContext } from '../context'
 import { Ok } from '@unbird/result'
 
 import { photoModels } from '../models/photos'
+import { systemSettingsModels } from '../models/system-settings'
 import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
 import { describeImage } from '../utils/vision'
@@ -28,6 +29,12 @@ export function createPhotoEmbeddingResolver(ctx: CoreContext, logger: Logger): 
 
       // Skip expensive vision/embedding calls unless photo embedding is explicitly enabled.
       if (!messageProcessing?.enablePhotoEmbedding) {
+        return Ok([])
+      }
+
+      // The database-wide vector switch wins over per-account photo embedding settings.
+      const vector = (await systemSettingsModels.getVectorSettings(ctx.getDB())).expect('Failed to read vector settings')
+      if (!vector.enabled) {
         return Ok([])
       }
 

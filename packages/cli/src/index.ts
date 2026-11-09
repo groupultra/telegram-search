@@ -739,6 +739,89 @@ const exportCommand = defineCommand({
   },
 })
 
+// Index DDL can run far longer than a read; the deadline is checked between statements.
+const maintenanceArgs = {
+  ...profileArg,
+  'timeout-ms': { type: 'string' as const, default: '3600000', description: 'Maintenance deadline in milliseconds, checked between statements' },
+}
+
+const indexKindDescription = 'vector (embedding similarity), standard, unique, or all'
+
+const dbCommand = defineCommand({
+  meta: { name: 'db', description: 'Maintain the database shared by every account (local profile or remote server)' },
+  subCommands: {
+    indexes: defineCommand({
+      meta: { name: 'indexes', description: 'List, drop, or rebuild schema indexes' },
+      subCommands: {
+        list: defineCommand({
+          meta: { name: 'list', description: 'Show each schema index with its existence, validity, and size' },
+          args: { kind: { type: 'string', default: 'all', description: indexKindDescription }, ...profileArg },
+          async run(context) {
+            const profile = profileFrom(context)
+            await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.database.listIndexes({
+              kind: context.args.kind as 'all',
+            }), outputMeta(profile, 'local', runtime)))
+          },
+        }),
+        drop: defineCommand({
+          meta: { name: 'drop', description: 'Drop vector and/or standard indexes; unique indexes are never dropped' },
+          args: { kind: { type: 'string', required: true, description: 'vector, standard, or all' }, ...maintenanceArgs },
+          async run(context) {
+            const profile = profileFrom(context)
+            await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.database.dropIndexes({
+              kind: context.args.kind as 'all',
+            }), outputMeta(profile, 'local', runtime)))
+          },
+        }),
+        rebuild: defineCommand({
+          meta: { name: 'rebuild', description: 'Create missing or invalid indexes and REINDEX the rest; vector indexes require vector search enabled' },
+          args: {
+            'kind': { type: 'string', required: true, description: indexKindDescription },
+            'missing-only': { type: 'boolean', default: false, description: 'Only create missing or invalid indexes' },
+            ...maintenanceArgs,
+          },
+          async run(context) {
+            const profile = profileFrom(context)
+            await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.database.rebuildIndexes({
+              kind: context.args.kind as 'all',
+              missingOnly: context.args['missing-only'] === true,
+            }), outputMeta(profile, 'local', runtime)))
+          },
+        }),
+      },
+    }),
+    vector: defineCommand({
+      meta: { name: 'vector', description: 'Switch embedding generation, vector search, and vector indexes on or off' },
+      subCommands: {
+        status: defineCommand({
+          meta: { name: 'status', description: 'Show whether vector search is enabled' },
+          args: profileArg,
+          async run(context) {
+            const profile = profileFrom(context)
+            await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.database.getVector({}), outputMeta(profile, 'local', runtime)))
+          },
+        }),
+        enable: defineCommand({
+          meta: { name: 'enable', description: 'Enable vector search; run db indexes rebuild --kind vector to build the indexes' },
+          args: maintenanceArgs,
+          async run(context) {
+            const profile = profileFrom(context)
+            await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.database.setVector({ enabled: true }), outputMeta(profile, 'local', runtime)))
+          },
+        }),
+        disable: defineCommand({
+          meta: { name: 'disable', description: 'Stop embedding generation and vector search, and drop every vector index' },
+          args: maintenanceArgs,
+          async run(context) {
+            const profile = profileFrom(context)
+            await withRuntime(context, false, async runtime => emitResult(await runtime.invokes.database.setVector({ enabled: false }), outputMeta(profile, 'local', runtime)))
+          },
+        }),
+      },
+    }),
+  },
+})
+
 export const main = defineCommand({
   meta: { name: 'tgs', version: CLI_VERSION, description: 'Agent-friendly local Telegram search and export CLI' },
   args: profileArg,
@@ -754,6 +837,7 @@ export const main = defineCommand({
     stats: statsCommand,
     sync: syncCommand,
     export: exportCommand,
+    db: dbCommand,
   },
 })
 

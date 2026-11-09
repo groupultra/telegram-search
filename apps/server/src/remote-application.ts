@@ -1,4 +1,4 @@
-import type { CoreDB, ReadOperationOptions, TelegramApplication } from '@tg-search/core'
+import type { CoreDB, DatabaseAdministration, ReadOperationOptions, TelegramApplication } from '@tg-search/core'
 import type { ListChatsInput, ListChatsResult } from '@tg-search/protocol'
 
 import { useLogger } from '@guiiai/logg'
@@ -9,9 +9,11 @@ import { getMediaStorage } from './storage/media'
 
 export interface RemoteApplication extends TelegramApplication {
   listStoredChats: (input: ListChatsInput, chatIds: string[], options?: ReadOperationOptions) => Promise<ListChatsResult>
+  /** Shared by every account: index and vector operations act on the whole database. */
+  database: DatabaseAdministration
 }
 
-export function createRemoteApplication(db: CoreDB, accountId: string): RemoteApplication {
+export function createRemoteApplication(db: CoreDB, accountId: string, database: DatabaseAdministration): RemoteApplication {
   const logger = useLogger('server:remote')
   const context = createCoreContext(() => db, models, logger)
   context.setCurrentAccountId(accountId)
@@ -25,6 +27,7 @@ export function createRemoteApplication(db: CoreDB, accountId: string): RemoteAp
   const unavailable = { ok: false as const, error: { code: 'TELEGRAM_NOT_CONNECTED', message: 'Sign in to Telegram on the server to read live messages; indexed queries remain available', retryable: false } }
   return {
     ...stored,
+    database,
     inspectMessageMedia: (input, options) => input.source === 'local'
       ? stored.inspectMessageMedia(input, options)
       : connected()?.inspectMessageMedia(input, options) ?? Promise.resolve(unavailable),
