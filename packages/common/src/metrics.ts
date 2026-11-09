@@ -93,6 +93,12 @@ export interface CoreMetrics {
   visionApiCall: CoreCounter
 
   /**
+   * Total number of Firecrawl scrape API calls.
+   * - `status`: 'success' | 'error'
+   */
+  firecrawlApiCall: CoreCounter
+
+  /**
    * Total number of entity resolution outcomes.
    * - `source`: 'cache' | 'db' | 'api'
    * - `outcome`: 'hit' | 'miss'

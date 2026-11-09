@@ -21,6 +21,7 @@ import { chatMessageStatsModels } from '../models/chat-message-stats'
 import { photoModels } from '../models/photos'
 import { stickerModels } from '../models/stickers'
 import { userModels } from '../models/users'
+import { webPageModels } from '../models/web-pages'
 import { createAccountService } from '../services/account'
 import { createAccountSettingsService } from '../services/account-settings'
 import { createConnectionService } from '../services/connection'
@@ -67,7 +68,8 @@ export function basicEventHandler(ctx: CoreContext, config: Config, mediaBinaryP
   // on-demand via frontend events; the resolver remains available to enable
   // server-side prefetch in the future if desired.
   registry.register('avatar', createAvatarResolver(ctx, logger))
-  registry.register('link', createLinkResolver(logger))
+  // Link resolver: must run BEFORE embedding and jieba so crawled page text is indexed
+  registry.register('link', createLinkResolver(ctx, logger, webPageModels))
   // Photo embedding resolver: must run AFTER media resolver to ensure photos are downloaded
   registry.register('photo-embedding', createPhotoEmbeddingResolver(ctx, logger))
   registry.register('embedding', createEmbeddingResolver(ctx, logger))

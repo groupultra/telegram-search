@@ -4,6 +4,10 @@ Telegram Search domain services, persistence models, and application handlers.
 
 `createTelegramApplicationRuntime()` composes direct business services. `registerApplicationHandlers()` exposes validated unary and streaming Eventa contracts without making the internal database and Telegram orchestration event-driven.
 
+### Link indexing
+
+The `link` resolver crawls the URLs in a message (text entities and the web page preview, at most three, Telegram links skipped) through the Firecrawl v2 scrape API once the account's `firecrawl.apiKey` is set. Pages are cached by URL in `web_pages`, so a link shared in many chats is fetched once; successful pages are never fetched again, and failed fetches are cached and retried after 24 hours. The resolver fills `message.links` and passes up to 2,000 characters of page title, description and Markdown to the embedding and jieba resolvers, which index it with the message content. The message resolver service therefore runs `media` and `link` before the other resolvers.
+
 Remote message reads do not persist. Structured forward, media, and link metadata is stored only through explicit synchronization paths.
 
 Message relationships use the canonical `MessageRecord` Valibot schema in `@tg-search/protocol`. Native reply peer/top/topic/quote, album and forwarding facts survive the application transports. Explicit sync persists the optional native relationship metadata; existing indexed messages have no invented metadata.

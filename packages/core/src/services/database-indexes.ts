@@ -19,6 +19,7 @@ import { stickerPacksTable } from '../schemas/sticker-packs'
 import { stickersTable } from '../schemas/stickers'
 import { systemSettingsTable } from '../schemas/system-settings'
 import { usersTable } from '../schemas/users'
+import { webPagesTable } from '../schemas/web-pages'
 
 // Every table whose drizzle-declared indexes can be listed, dropped and rebuilt.
 // Primary keys and table-level `unique()` constraints are not indexes here: they belong to constraints.
@@ -35,6 +36,7 @@ const MANAGED_TABLES: PgTable[] = [
   stickersTable,
   systemSettingsTable,
   usersTable,
+  webPagesTable,
 ]
 
 const VECTOR_INDEX_METHODS = new Set(['hnsw', 'ivfflat'])

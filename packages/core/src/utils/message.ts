@@ -11,6 +11,23 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { parseMediaId, parseMediaType } from './media'
 
+/**
+ * Chat ID used by `CoreMessage.chatId` for a Telegram peer.
+ */
+export function getPeerChatId(peerId: Api.TypePeer | undefined): string {
+  if (peerId instanceof Api.PeerUser) {
+    return String(peerId.userId.toJSNumber())
+  }
+  if (peerId instanceof Api.PeerChat) {
+    return String(peerId.chatId.toJSNumber())
+  }
+  if (peerId instanceof Api.PeerChannel) {
+    return String(peerId.channelId.toJSNumber())
+  }
+
+  return ''
+}
+
 export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> {
   const messageUUID = uuidv4()
 
@@ -34,16 +51,7 @@ export function convertToCoreMessage(message: Api.Message): Result<CoreMessage> 
     fromName = sender?.title ?? String(senderId)
   }
 
-  let chatId = ''
-  if (message.peerId instanceof Api.PeerUser) {
-    chatId = String(message.peerId.userId.toJSNumber())
-  }
-  else if (message.peerId instanceof Api.PeerChat) {
-    chatId = String(message.peerId.chatId.toJSNumber())
-  }
-  else if (message.peerId instanceof Api.PeerChannel) {
-    chatId = String(message.peerId.channelId.toJSNumber())
-  }
+  const chatId = getPeerChatId(message.peerId)
 
   const messageId = String(message.id)
   const fromId = String(senderId?.toJSNumber())

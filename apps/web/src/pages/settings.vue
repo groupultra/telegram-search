@@ -507,6 +507,44 @@ async function updateConfig() {
                 </div>
               </div>
             </div>
+
+            <!-- Firecrawl link indexing settings -->
+            <div class="md:border md:rounded-xl md:bg-card md:p-6 md:shadow-sm md:transition-all md:hover:shadow-md">
+              <div class="mb-6 flex items-center gap-3 border-b pb-4">
+                <div class="h-10 w-10 flex items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span class="i-lucide-link h-6 w-6" />
+                </div>
+                <div>
+                  <h3 class="font-medium leading-none">
+                    {{ t('settings.firecrawl') }}
+                  </h3>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    {{ t('settings.firecrawlDescription') }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div class="space-y-2">
+                  <label class="text-sm font-medium">{{ t('settings.apiBaseUrl') }}</label>
+                  <input
+                    v-model="accountSettings.firecrawl.apiBase"
+                    type="text"
+                    placeholder="https://api.firecrawl.dev"
+                    class="h-10 w-full flex border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed file:border-0 file:bg-transparent file:text-sm placeholder:text-muted-foreground file:font-medium disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
+                  >
+                </div>
+                <div class="space-y-2">
+                  <label class="text-sm font-medium">{{ t('settings.apiKey') }}</label>
+                  <input
+                    v-model="accountSettings.firecrawl.apiKey"
+                    type="password"
+                    placeholder="fc-..."
+                    class="h-10 w-full flex border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed file:border-0 file:bg-transparent file:text-sm placeholder:text-muted-foreground file:font-medium disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
+                  >
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

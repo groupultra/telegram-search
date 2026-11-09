@@ -13,6 +13,8 @@ import { convertToCoreMessage } from '../utils/message'
 
 export type MessageResolverService = ReturnType<typeof createMessageResolverService>
 
+const PREREQUISITE_RESOLVERS = new Set(['media', 'link'])
+
 export function createMessageResolverService(
   ctx: CoreContext,
   logger: Logger,
@@ -182,14 +184,13 @@ export function createMessageResolverService(
       }, { resolver: name, messageCount: coreMessages.length })
     }
 
-    // Run media first to satisfy downstream resolvers that depend on persisted media records.
-    const mediaResolver = allResolvers.find(([name]) => name === 'media')
-    if (mediaResolver) {
-      await executeResolver(mediaResolver[0], mediaResolver[1])
-    }
+    // Run media and link first to satisfy downstream resolvers: photo-embedding reads
+    // persisted media records, embedding and jieba index the crawled link text.
+    const prerequisiteResolvers = allResolvers.filter(([name]) => PREREQUISITE_RESOLVERS.has(name))
+    await Promise.allSettled(prerequisiteResolvers.map(([name, resolver]) => executeResolver(name, resolver)))
 
-    // Run remaining resolvers concurrently after media is complete.
-    const otherResolvers = allResolvers.filter(([name]) => name !== 'media' && name !== 'user')
+    // Run remaining resolvers concurrently after the prerequisites are complete.
+    const otherResolvers = allResolvers.filter(([name]) => !PREREQUISITE_RESOLVERS.has(name) && name !== 'user')
     const promises = otherResolvers.map(([name, resolver]) => executeResolver(name, resolver))
 
     await Promise.allSettled(promises)
