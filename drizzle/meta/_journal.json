@@ -281,6 +281,13 @@
       "when": 1794241898330,
       "tag": "0039_system-settings",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794244694451,
+      "tag": "0040_add-web-pages",
+      "breakpoints": true
     }
   ]
 }

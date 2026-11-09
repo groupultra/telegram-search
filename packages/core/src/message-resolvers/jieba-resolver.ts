@@ -6,6 +6,7 @@ import type { ProcessedCoreMessage } from '../types/message'
 import { Err, Ok } from '@unbird/result'
 
 import { ensureJieba } from '../utils/jieba'
+import { getIndexableContent } from '../utils/links'
 
 export function createJiebaResolver(logger: Logger): MessageResolver {
   logger = logger.withContext('core:resolver:jieba')
@@ -14,7 +15,7 @@ export function createJiebaResolver(logger: Logger): MessageResolver {
     run: async (opts: MessageResolverOpts) => {
       logger.verbose('Executing jieba resolver')
 
-      const messages: ProcessedCoreMessage[] = opts.messages.filter(message => message.content)
+      const messages: ProcessedCoreMessage[] = opts.messages.filter(message => getIndexableContent(message))
 
       if (messages.length === 0)
         return Ok([])
@@ -28,7 +29,7 @@ export function createJiebaResolver(logger: Logger): MessageResolver {
 
       const jiebaMessages = messages.map((message) => {
         // Token without empty strings
-        const tokens = jieba.cut(message.content).filter(token => !!token)
+        const tokens = jieba.cut(getIndexableContent(message)).filter(token => !!token)
         logger.withFields({ message: message.content, tokens }).debug('Jieba tokens')
 
         return {

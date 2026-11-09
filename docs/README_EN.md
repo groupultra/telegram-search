@@ -119,6 +119,7 @@ pnpm cli auth login
 
 - [x] Bulk history sync via Takeout; the daemon saves new messages, edits, and deletions
 - [x] Word-segmented search; the server adds vector semantic search and text-to-image search
+- [x] Link indexing: with [Firecrawl](https://firecrawl.dev) configured, links in messages are crawled and their page content joins word-segmented and vector search
 - [x] Monthly JSONL export with a SHA-256 manifest
 - [x] RAG Q&A and AI summaries of unread messages
 - [x] Search and export through a Telegram bot
@@ -129,7 +130,7 @@ pnpm cli auth login
 - [ ] Automatic chat summaries
 - [ ] "Super brain": a knowledge graph of people and events from your history
 - [ ] Automatic organization of Saved Messages
-- [ ] Link and image indexing: page summaries, OCR, image descriptions
+- [ ] Image OCR
 - [ ] Discord and other platforms
 
 ## 🖥️ Web Interface (optional)
@@ -152,7 +153,9 @@ docker run -d -p 3333:3333 ghcr.io/groupultra/telegram-search:latest
 
 ### Environment Variables
 
-All optional. AI embedding / LLM settings are per account in the app (Settings → API).
+All optional. AI embedding / LLM / Firecrawl settings are per account in the app (Settings → API).
+
+Link indexing starts once a Firecrawl API key is set; change the API base URL to use a self-hosted instance. Each URL is crawled once and cached in the `web_pages` table; failed links are retried after 24 hours. Turn off the link resolver under Message Processing if you do not need it.
 
 | Variable            | Description                                                                  | Example                                               |
 | ------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |

@@ -10,6 +10,7 @@ import type { PhotoModels } from './photos'
 import type { StickerModels } from './stickers'
 import type { SystemSettingsModels } from './system-settings'
 import type { UserModels } from './users'
+import type { WebPageModels } from './web-pages'
 
 import { accountJoinedChatModels } from './account-joined-chats'
 import { accountSettingsModels } from './account-settings'
@@ -23,6 +24,7 @@ import { photoModels } from './photos'
 import { stickerModels } from './stickers'
 import { systemSettingsModels } from './system-settings'
 import { userModels } from './users'
+import { webPageModels } from './web-pages'
 
 export const models = {
   chatMessageModels,
@@ -37,6 +39,7 @@ export const models = {
   accountModels,
   botScheduledTaskModels,
   systemSettingsModels,
+  webPageModels,
 }
 
 export type Models = typeof models
@@ -54,4 +57,5 @@ export type {
   StickerModels,
   SystemSettingsModels,
   UserModels,
+  WebPageModels,
 }

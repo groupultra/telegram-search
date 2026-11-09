@@ -157,6 +157,10 @@ export const coreVisionApiCallTotal = meter.createCounter('core.vision.api.call.
   description: 'Total number of vision LLM API calls',
 })
 
+export const coreFirecrawlApiCallTotal = meter.createCounter('core.firecrawl.api.call.total', {
+  description: 'Total number of Firecrawl scrape API calls',
+})
+
 /**
  * Core entity resolve total
  */
@@ -212,6 +216,7 @@ export const coreMetrics: CoreMetrics = {
   embeddingTokens: createOtelCounter(coreEmbeddingTokensTotal),
   mediaDownload: createOtelCounter(coreMediaDownloadTotal),
   visionApiCall: createOtelCounter(coreVisionApiCallTotal),
+  firecrawlApiCall: createOtelCounter(coreFirecrawlApiCallTotal),
   entityResolve: createOtelCounter(coreEntityResolveTotal),
   takeoutPageMessages: createOtelHistogram(coreTakeoutPageMessages),
 }

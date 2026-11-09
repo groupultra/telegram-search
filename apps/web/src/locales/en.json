@@ -234,6 +234,8 @@
     "llmProvider": "LLM Provider",
     "visionLLM": "Vision LLM (Multimodal)",
     "visionLLMDescription": "Multimodal large language model for image understanding. Used to generate image descriptions for semantic search.",
+    "firecrawl": "Link Indexing (Firecrawl)",
+    "firecrawlDescription": "Crawls links in messages with Firecrawl and indexes the page content, so searches match what a link is about. Leave the API key empty to turn it off.",
     "login": "Login",
     "logout": "Logout",
     "logoutCurrentAccount": "Logout Current Account",
@@ -256,7 +258,7 @@
       "user": "User Resolver",
       "userDescription": "Resolves user information including sender, forward source, etc.",
       "link": "Link Resolver",
-      "linkDescription": "Resolves links in messages and extracts metadata.",
+      "linkDescription": "Resolves links in messages. Crawls and indexes linked pages when a Firecrawl API key is set.",
       "embedding": "Embedding Resolver",
       "embeddingDescription": "Converts message content into vectors for semantic search."
     },

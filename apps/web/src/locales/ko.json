@@ -234,6 +234,8 @@
     "llmProvider": "LLM 제공자",
     "visionLLM": "비전 LLM (멀티모달)",
     "visionLLMDescription": "이미지 이해를 위한 멀티모달 대규모 언어 모델입니다. 의미 검색을 위한 이미지 설명 생성에 사용됩니다.",
+    "firecrawl": "링크 인덱싱 (Firecrawl)",
+    "firecrawlDescription": "Firecrawl로 메시지의 링크를 크롤링하고 페이지 내용을 인덱싱하여, 링크가 다루는 내용으로도 검색할 수 있습니다. API 키를 비워 두면 꺼집니다.",
     "login": "로그인",
     "logout": "로그아웃",
     "logoutCurrentAccount": "현재 계정 로그아웃",
@@ -256,7 +258,7 @@
       "user": "사용자 리졸버",
       "userDescription": "발신자, 전달 출처 등 사용자 정보를 처리합니다.",
       "link": "링크 리졸버",
-      "linkDescription": "메시지의 링크를 처리하고 메타데이터를 추출합니다.",
+      "linkDescription": "메시지의 링크를 처리합니다. Firecrawl API 키가 설정되면 링크된 페이지를 크롤링하고 인덱싱합니다.",
       "embedding": "임베딩 리졸버",
       "embeddingDescription": "메시지 내용을 의미 검색을 위한 벡터로 변환합니다."
     },

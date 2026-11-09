@@ -9,6 +9,7 @@ import { Ok } from '@unbird/result'
 import { systemSettingsModels } from '../models/system-settings'
 import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
+import { getIndexableContent } from '../utils/links'
 
 export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): MessageResolver {
   logger = logger.withContext('core:resolver:embedding')
@@ -32,7 +33,7 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
         return Ok([])
       }
 
-      const messages: ProcessedCoreMessage[] = opts.messages.filter(message => message.content)
+      const messages: ProcessedCoreMessage[] = opts.messages.filter(message => getIndexableContent(message))
 
       if (messages.length === 0)
         return Ok([])
@@ -47,7 +48,7 @@ export function createEmbeddingResolver(ctx: CoreContext, logger: Logger): Messa
 
       for (let i = 0; i < messages.length; i += batchSize) {
         const batchMessages = messages.slice(i, i + batchSize)
-        const batchContents = batchMessages.map(message => message.content)
+        const batchContents = batchMessages.map(message => getIndexableContent(message))
 
         logger.withFields({
           batch: Math.floor(i / batchSize) + 1,

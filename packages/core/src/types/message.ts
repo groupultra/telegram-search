@@ -31,6 +31,11 @@ export interface CoreMessage {
 export type ProcessedCoreMessage = CoreMessage & {
   vectors?: CoreMessageVector
   jiebaTokens?: string[]
+  /**
+   * Crawled text of linked pages, set by the link resolver for the embedding
+   * and jieba resolvers. It is indexed but not stored on the message row.
+   */
+  linkText?: string
 }
 
 export interface CoreMessageReply {

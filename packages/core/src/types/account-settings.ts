@@ -32,6 +32,12 @@ export const visionLLMConfigSchema = object({
   maxTokens: optional(number(), 1024),
 })
 
+export const firecrawlConfigSchema = object({
+  apiKey: optional(string(), ''),
+  // Override to point at a self-hosted Firecrawl instance.
+  apiBase: optional(string(), 'https://api.firecrawl.dev'),
+})
+
 export const resolversConfigSchema = object({
   // Avatar resolver is disabled by default: client-driven, on-demand fetching
   disabledResolvers: optional(array(string()), ['avatar']),
@@ -67,6 +73,7 @@ export const accountSettingsSchema = object({
   embedding: optional(embeddingConfigSchema, {}),
   llm: optional(llmConfigSchema, {}),
   visionLLM: optional(visionLLMConfigSchema, {}),
+  firecrawl: optional(firecrawlConfigSchema, {}),
   resolvers: optional(resolversConfigSchema, {}),
   receiveMessages: optional(receiveMessagesConfigSchema, {}),
   bot: optional(botConfigSchema, {}),
@@ -76,4 +83,5 @@ export const accountSettingsSchema = object({
 export type EmbeddingConfig = InferOutput<typeof embeddingConfigSchema>
 export type LLMConfig = InferOutput<typeof llmConfigSchema>
 export type VisionLLMConfig = InferOutput<typeof visionLLMConfigSchema>
+export type FirecrawlConfig = InferOutput<typeof firecrawlConfigSchema>
 export type AccountSettings = InferOutput<typeof accountSettingsSchema>

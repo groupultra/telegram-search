@@ -232,6 +232,8 @@
     "llmProvider": "LLM 提供商",
     "visionLLM": "视觉大模型（多模态）",
     "visionLLMDescription": "多模态大语言模型，用于图片理解。用于生成图片描述以支持语义搜索。",
+    "firecrawl": "链接索引（Firecrawl）",
+    "firecrawlDescription": "使用 Firecrawl 抓取消息中的链接并索引页面内容，搜索时可以命中链接所讲的内容。API 密钥留空即关闭。",
     "login": "登录",
     "logout": "退出登录",
     "logoutCurrentAccount": "退出当前账号",
@@ -254,7 +256,7 @@
       "user": "用户解析器",
       "userDescription": "解析消息中的用户信息，包括发送者、转发来源等。",
       "link": "链接解析器",
-      "linkDescription": "解析消息中的链接，提取元数据。",
+      "linkDescription": "解析消息中的链接。配置 Firecrawl API 密钥后会抓取并索引链接页面。",
       "embedding": "嵌入向量解析器",
       "embeddingDescription": "将消息内容转换为向量，用于语义搜索。"
     },
