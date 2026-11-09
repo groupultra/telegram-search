@@ -2,33 +2,85 @@ import type { Logger } from '@guiiai/logg'
 
 import type { MessageResolver, MessageResolverOpts } from '.'
 import type { CoreContext } from '../context'
+import type { PhotoModels } from '../models/photos'
+import type { DBSelectPhoto } from '../models/utils/types'
+import type { VisionLLMConfig } from '../types/account-settings'
+import type { MediaBinaryProvider } from '../types/storage'
 
+import { newQueue } from '@henrygd/queue'
 import { Ok } from '@unbird/result'
 
-import { photoModels } from '../models/photos'
 import { systemSettingsModels } from '../models/system-settings'
-import { EmbeddingDimension } from '../types/account-settings'
 import { embedContents } from '../utils/embed'
 import { describeImage } from '../utils/vision'
 
-type SupportedVectorDimension = 768 | 1024 | 1536
+const VISION_CONCURRENCY = 3
 
-const EMBEDDING_DIMENSION_TO_VECTOR_DIMENSION: Record<EmbeddingDimension, SupportedVectorDimension> = {
-  [EmbeddingDimension.DIMENSION_1536]: 1536,
-  [EmbeddingDimension.DIMENSION_1024]: 1024,
-  [EmbeddingDimension.DIMENSION_768]: 768,
+function hasDescriptionVector(photo: DBSelectPhoto): boolean {
+  return Boolean(
+    photo.description_vector_1536?.length
+    || photo.description_vector_1024?.length
+    || photo.description_vector_768?.length,
+  )
 }
 
-export function createPhotoEmbeddingResolver(ctx: CoreContext, logger: Logger): MessageResolver {
+/**
+ * Describes photos with a vision model and embeds the descriptions for semantic image search.
+ *
+ * Must run after the media resolver, which persists the photos (see message-resolver service).
+ */
+export function createPhotoEmbeddingResolver(
+  ctx: CoreContext,
+  logger: Logger,
+  photoModels: PhotoModels,
+  mediaBinaryProvider: MediaBinaryProvider | undefined,
+): MessageResolver {
   logger = logger.withContext('core:resolver:photo-embedding')
+
+  const visionQueue = newQueue(VISION_CONCURRENCY)
+
+  // Photos live inline in the database or behind the media storage provider (MinIO, local disk, OPFS).
+  async function loadImageBytes(photo: DBSelectPhoto): Promise<Uint8Array | undefined> {
+    if (photo.image_bytes) {
+      return photo.image_bytes
+    }
+
+    if (photo.image_path && mediaBinaryProvider) {
+      return await mediaBinaryProvider.load({ kind: 'photo', path: photo.image_path }) ?? undefined
+    }
+
+    return undefined
+  }
+
+  async function describePhoto(photo: DBSelectPhoto, visionLLM: VisionLLMConfig, forceRefetch: boolean): Promise<string | undefined> {
+    // Reuse existing description unless forceRefetch is requested.
+    if (photo.description.trim() && !forceRefetch) {
+      return photo.description
+    }
+
+    const bytes = await loadImageBytes(photo)
+    if (!bytes) {
+      logger.withFields({ photoId: photo.id }).debug('Photo bytes are not available, skipping')
+      return undefined
+    }
+
+    const description = (await describeImage({ bytes, mimeType: photo.image_mime_type }, visionLLM)).orUndefined()
+    ctx.metrics?.visionApiCall.inc({ status: description != null ? 'success' : 'error' })
+    if (description == null) {
+      logger.withFields({ photoId: photo.id }).warn('Failed to describe photo')
+      return undefined
+    }
+
+    (await photoModels.updatePhotoEmbedding(ctx.getDB(), photo.id, { description })).expect('Failed to save photo description')
+    return description
+  }
 
   return {
     run: async (opts: MessageResolverOpts) => {
-      const accountSettings = await ctx.getAccountSettings()
-      const { visionLLM, embedding, messageProcessing } = accountSettings
+      const { visionLLM, embedding, messageProcessing } = await ctx.getAccountSettings()
 
-      // Skip expensive vision/embedding calls unless photo embedding is explicitly enabled.
-      if (!messageProcessing?.enablePhotoEmbedding) {
+      // Skip expensive vision/embedding calls unless photo embedding is enabled and both APIs are configured.
+      if (!messageProcessing?.enablePhotoEmbedding || !visionLLM.apiKey.trim() || !embedding.apiKey.trim()) {
         return Ok([])
       }
 
@@ -38,109 +90,56 @@ export function createPhotoEmbeddingResolver(ctx: CoreContext, logger: Logger): 
         return Ok([])
       }
 
-      // Guard against misconfiguration before hitting remote APIs.
-      if (!visionLLM.apiKey || visionLLM.apiKey.trim() === '') {
-        return Ok([])
-      }
-
-      // Guard against misconfiguration before hitting remote APIs.
-      if (!embedding.apiKey || embedding.apiKey.trim() === '') {
-        return Ok([])
-      }
-
-      const db = ctx.getDB()
-      const messageUUIDs = opts.messages.map(m => m.uuid)
-
+      const messageUUIDs = opts.messages.map(message => message.uuid)
       if (messageUUIDs.length === 0) {
         return Ok([])
       }
 
+      const db = ctx.getDB()
+
       // Media resolver runs first, so target photos should already be persisted.
-      const photosToProcess = await photoModels.findPhotosByMessageUUIDs(db, messageUUIDs)
-        .then(result => result.orDefault([]))
-
-      if (photosToProcess.length === 0) {
-        return Ok([])
-      }
-
       // Re-process only when forced or when no vector exists yet.
-      const photosNeedProcessing = photosToProcess.filter((photo) => {
-        const hasEmbedding = photo.description_vector_1536?.length
-          || photo.description_vector_1024?.length
-          || photo.description_vector_768?.length
+      const photos = (await photoModels.findPhotosByMessageUUIDs(db, messageUUIDs)).orDefault([]).filter(photo => opts.forceRefetch || !hasDescriptionVector(photo))
 
-        return opts.forceRefetch || !hasEmbedding
-      })
-
-      if (photosNeedProcessing.length === 0) {
+      if (photos.length === 0) {
         return Ok([])
       }
 
-      // Build descriptions first so embedding can be batched in one request.
-      const descriptionsToEmbed: Array<{ photoId: string, description: string }> = []
-
-      for (const photo of photosNeedProcessing) {
+      const described = (await Promise.all(photos.map(photo => visionQueue.add(async () => {
         try {
-          const hasDescription = photo.description && photo.description.trim() !== ''
-
-          let description: string
-
-          // Reuse existing description unless forceRefetch is requested.
-          if (hasDescription && !opts.forceRefetch) {
-            description = photo.description
-          }
-          else {
-            if (!photo.image_bytes) {
-              continue
-            }
-
-            const descriptionResult = await describeImage(photo.image_bytes, visionLLM)
-            ctx.metrics?.visionApiCall.inc({ status: descriptionResult.orUndefined() != null ? 'success' : 'error' })
-            const desc = descriptionResult.expect('Failed to generate description')
-
-            description = desc.description
-          }
-
-          descriptionsToEmbed.push({ photoId: photo.id, description })
+          return { photo, description: await describePhoto(photo, visionLLM, opts.forceRefetch ?? false) }
         }
         catch (error) {
-          logger.withFields({ photoId: photo.id }).withError(error as Error).warn('Failed to process photo')
+          logger.withFields({ photoId: photo.id }).withError(error).warn('Failed to process photo')
+          return { photo, description: undefined }
         }
-      }
+      }))))
+        .filter((item): item is { photo: DBSelectPhoto, description: string } => item.description != null)
 
-      if (descriptionsToEmbed.length === 0) {
-        return Ok([])
-      }
+      for (let i = 0; i < described.length; i += embedding.batchSize) {
+        const batch = described.slice(i, i + embedding.batchSize)
+        const embedResult = await embedContents(batch.map(item => item.description), embedding)
+        ctx.metrics?.embeddingApiCall.inc({ status: embedResult.orUndefined() != null ? 'success' : 'error' })
+        const { embeddings } = embedResult.expect('Failed to embed photo descriptions')
 
-      // Batch embedding reduces latency and request overhead.
-      const descriptions = descriptionsToEmbed.map(d => d.description)
-      const embedResult = await embedContents(descriptions, embedding)
-      ctx.metrics?.embeddingApiCall.inc({ status: embedResult.orUndefined() != null ? 'success' : 'error' })
-      const { embeddings } = embedResult.expect('Failed to generate embeddings')
-      const validDimension = EMBEDDING_DIMENSION_TO_VECTOR_DIMENSION[embedding.dimension]
+        await Promise.all(batch.map(async ({ photo, description }, index) => {
+          const vector = embeddings[index]
+          if (!vector) {
+            return
+          }
 
-      // Persist generated descriptions and vectors.
-      for (let i = 0; i < descriptionsToEmbed.length; i++) {
-        const { photoId, description } = descriptionsToEmbed[i]
-        const vector = embeddings[i]
-
-        if (!vector) {
-          continue
-        }
-
-        try {
-          await photoModels.updatePhotoEmbedding(db, photoId, {
+          const result = await photoModels.updatePhotoEmbedding(db, photo.id, {
             description,
-            vector,
-            dimension: validDimension,
+            embedding: { vector, dimension: embedding.dimension },
           })
-        }
-        catch (error) {
-          logger.withFields({ photoId }).withError(error as Error).warn('Failed to update photo embedding')
-        }
+          if (result.orUndefined() == null) {
+            logger.withFields({ photoId: photo.id }).warn('Failed to update photo embedding')
+          }
+        }))
       }
 
-      return Ok(opts.messages)
+      // Vectors are stored on the photos table; the messages themselves are unchanged.
+      return Ok([])
     },
   }
 }

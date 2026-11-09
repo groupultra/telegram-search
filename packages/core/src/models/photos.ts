@@ -14,6 +14,7 @@ import { and, cosineDistance, eq, gt, inArray, sql } from 'drizzle-orm'
 import { chatMessagesTable } from '../schemas/chat-messages'
 import { joinedChatsTable } from '../schemas/joined-chats'
 import { photosTable } from '../schemas/photos'
+import { EmbeddingDimension } from '../types/account-settings'
 import { withResult } from '../utils/result'
 import { must0 } from './utils/must'
 
@@ -312,15 +313,20 @@ async function searchPhotosByText(
 }
 
 /**
- * Update photo description and embedding vectors
+ * Update photo description, and its embedding vector when one is given.
+ *
+ * Descriptions are saved before embedding so a failed embedding call does not
+ * waste the vision call: the next run reuses the stored description.
  */
 async function updatePhotoEmbedding(
   db: CoreDB,
   photoId: string,
   data: {
     description: string
-    vector: number[]
-    dimension: 768 | 1024 | 1536
+    embedding?: {
+      vector: number[]
+      dimension: EmbeddingDimension
+    }
   },
 ): PromiseResult<DBSelectPhoto> {
   return withResult(async () => {
@@ -330,18 +336,21 @@ async function updatePhotoEmbedding(
     }
 
     // Persist vector into the column that matches the embedding dimension.
-    switch (data.dimension) {
-      case 1536:
-        updateData.description_vector_1536 = data.vector
-        break
-      case 1024:
-        updateData.description_vector_1024 = data.vector
-        break
-      case 768:
-        updateData.description_vector_768 = data.vector
-        break
-      default:
-        throw new Error(`Unsupported vector dimension: ${data.dimension}`)
+    if (data.embedding) {
+      const { vector, dimension } = data.embedding
+      switch (dimension) {
+        case EmbeddingDimension.DIMENSION_1536:
+          updateData.description_vector_1536 = vector
+          break
+        case EmbeddingDimension.DIMENSION_1024:
+          updateData.description_vector_1024 = vector
+          break
+        case EmbeddingDimension.DIMENSION_768:
+          updateData.description_vector_768 = vector
+          break
+        default:
+          throw new Error(`Unsupported vector dimension: ${dimension}`)
+      }
     }
 
     const result = await db
