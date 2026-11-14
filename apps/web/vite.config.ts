@@ -28,6 +28,7 @@ export default defineConfig({
         '@iconify-json/lucide',
         '@node-rs/jieba-wasm32-wasi',
         '@valibot/to-json-schema',
+        'stream-diffs', // Loaded by markstream-vue as an optional peer.
       ],
     }),
 

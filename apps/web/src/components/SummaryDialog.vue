@@ -7,7 +7,7 @@ import MarkdownRender from 'markstream-vue'
 
 import { useAccountStore, useBridge } from '@tg-search/client'
 import { CoreEventType } from '@tg-search/core'
-import { useDateFormat } from '@vueuse/core'
+import { useDark, useDateFormat } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -32,6 +32,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const isDark = useDark()
 const router = useRouter()
 
 const isOpen = ref(false)
@@ -142,12 +143,7 @@ async function generateSummary(
     summarizeStore.setSummary(props.chatId, '', messages, meta)
     summarizeStore.setLoading(props.chatId, true)
 
-    let receivedFirstDelta = false
     await aiChatLogic.streamSimpleText(llmConfig, llmMessages, (delta) => {
-      if (!receivedFirstDelta) {
-        receivedFirstDelta = true
-        summarizeStore.setLoading(props.chatId, false)
-      }
       summarizeStore.appendSummary(props.chatId, delta)
     })
     summarizeStore.setLoading(props.chatId, false)
@@ -250,6 +246,8 @@ const canMarkRead = computed(() => {
               <MarkdownRender
                 :custom-id="`unread-summary-${props.chatId}`"
                 :content="session.content"
+                :final="!session.isLoading"
+                :is-dark="isDark"
                 :smooth-streaming="true"
               />
             </div>

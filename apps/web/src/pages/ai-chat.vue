@@ -7,6 +7,7 @@ import MarkdownRender from 'markstream-vue'
 
 import { useLogger } from '@guiiai/logg'
 import { useAccountStore, useAIChatStore, useChatStore } from '@tg-search/client'
+import { useDark } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -36,6 +37,7 @@ const props = withDefaults(defineProps<{
 })
 
 const { t } = useI18n()
+const isDark = useDark()
 const router = useRouter()
 const route = useRoute()
 
@@ -436,6 +438,7 @@ onMounted(() => {
               :custom-id="`ai-chat-${message.id}`"
               :content="message.content"
               :final="!message.isStreaming"
+              :is-dark="isDark"
               :smooth-streaming="true"
             />
           </div>
