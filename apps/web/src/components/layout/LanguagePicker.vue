@@ -4,6 +4,8 @@ import { storeToRefs } from 'pinia'
 import { watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { ListItem } from '../ui/ListItem'
+
 const { t, locale } = useI18n()
 
 const settingsStore = useSettingsStore()
@@ -23,20 +25,21 @@ watch(language, (newValue) => {
 <template>
   <div class="flex flex-col gap-2">
     <span class="eyebrow">{{ t('settings.language') }}</span>
-    <div class="flex flex-col gap-0.5" role="radiogroup" :aria-label="t('settings.language')">
-      <button
+    <div class="flex flex-col gap-0.5 -mx-1" role="radiogroup" :aria-label="t('settings.language')">
+      <ListItem
         v-for="option in LANGUAGE_OPTIONS"
         :key="option.value"
-        type="button"
         role="radio"
         :aria-checked="language === option.value"
-        class="h-8 flex items-center justify-between rounded-md px-2 text-sm transition-colors hover:bg-accent"
-        :class="language === option.value ? 'text-foreground font-medium' : 'text-muted-foreground'"
+        class="px-2"
+        :class="language === option.value ? 'text-fg' : ''"
         @click="language = option.value"
       >
-        <span>{{ option.label }}</span>
-        <span v-if="language === option.value" class="i-lucide-check h-3.5 w-3.5" />
-      </button>
+        {{ option.label }}
+        <template v-if="language === option.value" #suffix>
+          <span class="i-lucide-check h-4 w-4 shrink-0" />
+        </template>
+      </ListItem>
     </div>
   </div>
 </template>

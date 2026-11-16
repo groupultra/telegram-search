@@ -15,7 +15,7 @@ const { auth } = storeToRefs(accountStore)
 <template>
   <div class="flex items-center justify-center px-6 py-8">
     <div
-      class="max-w-2xl w-full border border-primary/20 rounded-2xl bg-primary/5 p-6 transition-all"
+      class="max-w-2xl w-full border border-primary/20 rounded-lg bg-primary/5 p-6 transition-all"
     >
       <div class="flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
         <div class="flex items-center gap-4">
@@ -30,26 +30,26 @@ const { auth } = storeToRefs(accountStore)
             />
           </div>
           <div v-if="auth.isLoading" class="flex flex-col gap-1">
-            <span class="text-sm text-foreground font-semibold">
+            <span class="text-sm text-fg font-semibold">
               {{ t('loginPromptBanner.loggingIn') }}
             </span>
-            <span class="text-xs text-muted-foreground">
+            <span class="text-xs text-fg-3">
               {{ t('loginPromptBanner.loggingInSubtitle') }}
             </span>
           </div>
 
           <div v-else-if="!auth.needCode && !auth.needPassword" class="flex flex-col gap-1">
-            <span class="text-sm text-foreground font-semibold">
+            <span class="text-sm text-fg font-semibold">
               {{ t('loginPromptBanner.pleaseLoginToUseFullFeatures') }}
             </span>
-            <span class="text-xs text-muted-foreground">
+            <span class="text-xs text-fg-3">
               {{ t('loginPromptBanner.subtitle') }}
             </span>
           </div>
         </div>
         <Button
           v-if="!auth.isLoading"
-          size="default"
+          variant="primary"
           icon="i-lucide-log-in"
           class="shrink-0"
           @click="$router.push({ path: '/login', query: { redirect: route.fullPath } })"

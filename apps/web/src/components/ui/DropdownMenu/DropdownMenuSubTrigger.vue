@@ -6,6 +6,8 @@ import { computed } from 'vue'
 
 import { cn } from '@/lib/utils'
 
+import { MENU_ITEM_CLASS } from '../styles'
+
 const props = defineProps<DropdownMenuSubTriggerProps & { class?: string, inset?: boolean }>()
 
 const delegatedProps = computed(() => {
@@ -20,7 +22,7 @@ const forwarded = useForwardProps(delegatedProps)
   <DropdownMenuSubTrigger
     v-bind="forwarded"
     :class="cn(
-      'flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent data-[state=open]:bg-accent',
+      MENU_ITEM_CLASS,
       inset && 'pl-8',
       props.class,
     )"

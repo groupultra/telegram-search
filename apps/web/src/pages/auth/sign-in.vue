@@ -8,10 +8,10 @@ import { useRoute, useRouter } from 'vue-router'
 
 import AuthCard from '../../components/auth/AuthCard.vue'
 
+import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
 import { currentOAuthQuery, getPublicClientBeforeSignIn, safeRedirectPath } from '../../lib/server-auth'
 import { useServerAuthStore } from '../../stores/server-auth'
-import { LOGIN_DESKTOP_PRIMARY_BUTTON_CLASS } from '../login/styles'
 
 defineOptions({ layout: false })
 
@@ -66,23 +66,21 @@ onMounted(async () => {
     :title="t('serverAuth.signIn.title')"
     :description="client ? t('serverAuth.signIn.continueTo', { client: client.name ?? client.clientId }) : t('serverAuth.signIn.description')"
   >
-    <div class="space-y-6">
-      <p v-if="error" role="alert" class="border border-destructive/30 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+    <div class="flex flex-col gap-4">
+      <Alert v-if="error">
         {{ error }}
-      </p>
+      </Alert>
       <Button
-        as="button"
+        variant="primary" :loading="isLoading"
         type="button"
         size="lg"
-        :class="LOGIN_DESKTOP_PRIMARY_BUTTON_CLASS"
+        block
         :disabled="isLoading"
         @click="accountStore.isReady ? continueSignIn() : logInToTelegram()"
       >
-        <span v-if="isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
-        <span v-else class="i-lucide-send mr-2 h-5 w-5" />
         {{ isLoading ? t('login.processing') : accountStore.isReady ? t('serverAuth.signIn.continue') : t('serverAuth.signIn.withTelegram') }}
       </Button>
-      <p class="text-center text-xs text-muted-foreground">
+      <p class="text-center text-xs text-fg-3">
         {{ t('serverAuth.signIn.notice') }}
       </p>
     </div>

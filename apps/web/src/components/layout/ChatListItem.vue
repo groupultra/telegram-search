@@ -4,6 +4,9 @@ import type { CoreDialog } from '@tg-search/core/types'
 import EntityAvatar from '../avatar/EntityAvatar.vue'
 
 import { formatChatTimestamp } from '../../utils/chat-list'
+import { Badge } from '../ui/Badge'
+import { Checkbox } from '../ui/Checkbox'
+import { LIST_ITEM_ACTIVE_CLASS, LIST_ITEM_CLASS } from '../ui/styles'
 
 defineProps<{
   chat: CoreDialog
@@ -17,12 +20,8 @@ defineProps<{
 
 <template>
   <div
-    :class="[
-      active
-        ? 'bg-foreground/8'
-        : inAiContext ? 'bg-primary/6' : 'hover:bg-foreground/4',
-    ]"
-    class="chat-list-item group mx-2 mb-0.5 flex cursor-pointer items-center gap-3 overflow-hidden rounded-lg px-2.5 py-2 transition-colors duration-150"
+    :class="[LIST_ITEM_CLASS, active || inAiContext ? LIST_ITEM_ACTIVE_CLASS : '']"
+    class="chat-list-item mb-0.5 h-14 overflow-hidden px-2!"
   >
     <EntityAvatar
       :id="chat.id"
@@ -33,56 +32,37 @@ defineProps<{
       size="md"
       class="shrink-0"
     />
-    <div class="min-w-0 flex flex-1 flex-col gap-1">
-      <div class="flex items-baseline justify-between gap-2">
-        <span class="truncate text-sm text-foreground font-medium leading-tight">
+    <div class="min-w-0 flex flex-1 flex-col gap-0.5 font-normal">
+      <div class="flex items-center justify-between gap-2">
+        <span class="truncate text-sm text-fg font-medium leading-5">
           {{ chat.name }}
         </span>
         <span
           v-if="chat.lastMessageDate"
-          class="shrink-0 text-[10px] text-muted-foreground leading-none font-mono tabular-nums"
+          class="shrink-0 text-[11px] text-fg-3 leading-none"
         >
           {{ formatChatTimestamp(chat.lastMessageDate) }}
         </span>
       </div>
 
-      <div class="h-4 flex items-center justify-between gap-2">
-        <div class="min-w-0 truncate text-xs text-muted-foreground leading-tight">
+      <div class="h-4.5 flex items-center justify-between gap-2">
+        <div class="min-w-0 truncate text-xs text-fg-3 leading-4.5">
           <template v-if="preview?.text">
-            <span
-              v-if="preview.sender"
-              class="text-foreground/75 font-medium"
-            >
-              {{ preview.sender }}:
-            </span>
+            <span v-if="preview.sender" class="text-fg-2">{{ preview.sender }}: </span>
             <span>{{ preview.text }}</span>
           </template>
         </div>
 
-        <div
+        <!-- Display only: the whole row toggles the selection. -->
+        <Checkbox
           v-if="selectionMode"
-          class="h-4 w-4 flex shrink-0 items-center justify-center border rounded transition-colors"
-          :class="inAiContext ? 'border-primary bg-primary text-primary-foreground' : 'border-input text-transparent'"
-        >
-          <span class="i-lucide-check h-3 w-3" />
-        </div>
-
-        <span
-          v-else-if="(chat.unreadCount ?? 0) > 0"
-          class="h-4 min-w-4 inline-flex shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground font-semibold leading-none tabular-nums"
-        >
-          {{ chat.unreadCount! > 99 ? '99+' : chat.unreadCount }}
-        </span>
-
-        <span
-          v-else-if="pinned"
-          class="i-lucide-pin h-3 w-3 shrink-0 rotate-45 text-muted-foreground/60"
+          :model-value="inAiContext"
+          tabindex="-1"
+          class="pointer-events-none"
         />
-
-        <span
-          v-else-if="inAiContext"
-          class="i-lucide-sparkles h-3 w-3 shrink-0 text-primary"
-        />
+        <Badge v-else-if="(chat.unreadCount ?? 0) > 0" :count="chat.unreadCount ?? 0" />
+        <span v-else-if="pinned" class="i-lucide-pin h-3.5 w-3.5 shrink-0 rotate-45 text-fg-4" />
+        <span v-else-if="inAiContext" class="i-lucide-sparkles h-3.5 w-3.5 shrink-0 text-fg-2" />
       </div>
     </div>
   </div>

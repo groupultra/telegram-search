@@ -8,9 +8,9 @@ import { useRoute, useRouter } from 'vue-router'
 import AuthCard from '../../components/auth/AuthCard.vue'
 import ScopeList from '../../components/auth/ScopeList.vue'
 
+import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
 import { currentOAuthQuery, getPublicClient, ServerAuthError, SIGN_IN_PATH, submitConsent } from '../../lib/server-auth'
-import { LOGIN_DESKTOP_PRIMARY_BUTTON_CLASS } from '../login/styles'
 
 defineOptions({ layout: false })
 
@@ -68,33 +68,31 @@ async function decide(accept: boolean) {
     :title="t('serverAuth.consent.title', { client: client?.name ?? clientId })"
     :description="clientHost ? t('serverAuth.consent.from', { host: clientHost }) : t('serverAuth.consent.description')"
   >
-    <div class="space-y-6">
-      <p v-if="error" role="alert" class="border border-destructive/30 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+    <div class="flex flex-col gap-4">
+      <Alert v-if="error">
         {{ error }}
-      </p>
+      </Alert>
       <template v-if="client">
         <ScopeList :scopes="scopes" />
-        <p class="text-xs text-muted-foreground">
+        <p class="text-xs text-fg-3">
           {{ t('serverAuth.consent.notice') }}
         </p>
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-2">
           <Button
-            as="button"
+            variant="primary" :loading="submitting === 'accept'"
             type="button"
             size="lg"
-            :class="LOGIN_DESKTOP_PRIMARY_BUTTON_CLASS"
+            block
             :disabled="submitting !== undefined"
             @click="decide(true)"
           >
-            <span v-if="submitting === 'accept'" class="i-lucide-loader-2 mr-2 animate-spin" />
             {{ t('serverAuth.consent.allow') }}
           </Button>
           <Button
-            as="button"
             type="button"
-            variant="ghost"
+            variant="text"
             size="lg"
-            class="w-full rounded-xl"
+            block
             :disabled="submitting !== undefined"
             @click="decide(false)"
           >

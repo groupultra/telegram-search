@@ -7,12 +7,5 @@ const props = defineProps<{
 </script>
 
 <template>
-  <h3
-    :class="cn(
-      'text-2xl font-semibold leading-none tracking-tight',
-      props.class,
-    )"
-  >
-    <slot />
-  </h3>
+  <span role="status" :class="cn('i-lucide-loader-circle inline-block h-4 w-4 animate-spin text-fg-3', props.class)" />
 </template>

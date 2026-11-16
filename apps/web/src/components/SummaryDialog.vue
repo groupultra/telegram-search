@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/Dialog'
+import { Segmented } from './ui/Segmented'
 
 type SummaryMode = 'unread' | 'today' | 'last24h'
 
@@ -191,56 +192,38 @@ const canMarkRead = computed(() => {
     <slot :open="open" />
 
     <DialogContent class="h-[80vh] max-w-5xl flex flex-col gap-0 overflow-hidden p-0">
-      <DialogHeader class="border-b px-6 py-4">
+      <DialogHeader class="min-h-12 justify-center border-b border-line-2 px-4 py-2">
         <DialogTitle>{{ t('summaryDialog.title') }}</DialogTitle>
         <DialogDescription class="hidden">
           {{ t('summaryDialog.title') }}
         </DialogDescription>
       </DialogHeader>
 
-      <div class="flex flex-1 flex-col gap-4 overflow-hidden p-6">
+      <div class="flex flex-1 flex-col gap-4 overflow-hidden p-4">
         <!-- Mode Tabs -->
-        <div class="flex items-center gap-2">
-          <Button
-            :disabled="session.isLoading"
-            :variant="activeMode === 'unread' ? 'default' : 'ghost'"
-            size="sm"
-            @click="triggerGenerate('unread')"
-          >
-            <span class="i-lucide-mail-open mr-2 h-4 w-4" />
-            <span>{{ t('summaryDialog.tabUnread') }}</span>
-          </Button>
-          <Button
-            :disabled="session.isLoading"
-            :variant="activeMode === 'today' ? 'default' : 'ghost'"
-            size="sm"
-            @click="triggerGenerate('today')"
-          >
-            <span class="i-lucide-calendar-days mr-2 h-4 w-4" />
-            <span>{{ t('summaryDialog.tabToday') }}</span>
-          </Button>
-          <Button
-            :disabled="session.isLoading"
-            :variant="activeMode === 'last24h' ? 'default' : 'ghost'"
-            size="sm"
-            @click="triggerGenerate('last24h')"
-          >
-            <span class="i-lucide-clock-3 mr-2 h-4 w-4" />
-            <span>{{ t('summaryDialog.tabLast24h') }}</span>
-          </Button>
-        </div>
+        <Segmented
+          :model-value="activeMode"
+          :disabled="session.isLoading"
+          :options="[
+            { value: 'unread', label: t('summaryDialog.tabUnread'), icon: 'i-lucide-mail-open' },
+            { value: 'today', label: t('summaryDialog.tabToday'), icon: 'i-lucide-calendar-days' },
+            { value: 'last24h', label: t('summaryDialog.tabLast24h'), icon: 'i-lucide-clock-3' },
+          ]"
+          class="self-start"
+          @select="mode => triggerGenerate(mode)"
+        />
 
         <div class="min-h-0 flex flex-1 flex-col gap-4 md:flex-row">
           <!-- Summary Section -->
-          <div class="flex flex-1 flex-col overflow-hidden border rounded-lg bg-muted/30 p-4">
-            <h3 class="mb-2 flex items-center gap-2 text-muted-foreground font-medium">
+          <div class="flex flex-1 flex-col overflow-hidden rounded-lg bg-fill-3 p-4">
+            <h3 class="mb-3 flex items-center gap-2 eyebrow">
               <span class="i-lucide-sparkles h-4 w-4" />
               {{ t('summaryDialog.summary') || 'Summary' }}
             </h3>
             <div v-if="session.isLoading && !session.content" class="animate-pulse space-y-3">
-              <div class="h-4 w-3/4 rounded bg-muted" />
-              <div class="h-4 w-1/2 rounded bg-muted" />
-              <div class="h-4 w-5/6 rounded bg-muted" />
+              <div class="h-4 w-3/4 rounded-xs bg-fill-2" />
+              <div class="h-4 w-1/2 rounded-xs bg-fill-2" />
+              <div class="h-4 w-5/6 rounded-xs bg-fill-2" />
             </div>
             <div v-else class="max-w-none overflow-y-auto pr-2">
               <MarkdownRender
@@ -254,25 +237,25 @@ const canMarkRead = computed(() => {
           </div>
 
           <!-- Sources Section -->
-          <div class="w-full flex flex-col overflow-hidden border rounded-lg bg-background md:w-80">
-            <div class="border-b bg-muted/30 px-4 py-2 text-sm text-muted-foreground font-medium">
+          <div class="w-full flex flex-col overflow-hidden rounded-lg bg-fill-3 md:w-80">
+            <div class="px-4 pb-2 pt-4 eyebrow">
               {{ t('summaryDialog.sources') || 'Sources' }} ({{ session.sourceMessages.length }})
             </div>
             <div class="flex-1 overflow-y-auto p-2">
-              <div v-if="session.sourceMessages.length === 0" class="py-8 text-center text-sm text-muted-foreground">
+              <div v-if="session.sourceMessages.length === 0" class="py-8 text-center text-sm text-fg-3">
                 {{ t('summaryDialog.noSources') || 'No messages' }}
               </div>
               <div
                 v-for="msg in session.sourceMessages"
                 :key="msg.uuid"
-                class="cursor-pointer rounded p-2 text-sm transition-colors hover:bg-muted/50"
+                class="cursor-pointer rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-fill-2"
                 @click="goToMessage(msg)"
               >
-                <div class="flex justify-between text-xs text-muted-foreground">
-                  <span class="text-foreground font-medium">{{ msg.fromName || msg.fromId }}</span>
+                <div class="flex justify-between text-xs text-fg-3">
+                  <span class="text-fg font-medium">{{ msg.fromName || msg.fromId }}</span>
                   <span>{{ formatTime(msg.platformTimestamp) }}</span>
                 </div>
-                <div class="line-clamp-2 mt-1 text-muted-foreground">
+                <div class="line-clamp-2 mt-0.5 text-fg-2">
                   {{ msg.content }}
                 </div>
               </div>
@@ -281,18 +264,18 @@ const canMarkRead = computed(() => {
         </div>
       </div>
 
-      <DialogFooter class="border-t bg-muted/10 px-6 py-4">
+      <DialogFooter class="border-t border-line-2 px-4 py-3">
         <Button
-          variant="outline"
           @click="isOpen = false"
         >
           {{ t('summaryDialog.close') }}
         </Button>
         <Button
+          variant="primary"
           :disabled="!canMarkRead"
           @click="markRead"
         >
-          <span class="i-lucide-check mr-2 h-4 w-4" />
+          <span class="i-lucide-check h-4 w-4" />
           {{ t('summaryDialog.markAsRead', { count: session.sourceMessages.length }) }}
         </Button>
       </DialogFooter>

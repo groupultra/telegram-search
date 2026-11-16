@@ -57,7 +57,7 @@ function handleUpdate(value: boolean) {
     role="switch"
     type="button"
     :class="cn(
-      'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-[background-color,box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',
+      'peer inline-flex h-[22px] w-9 shrink-0 cursor-pointer items-center rounded-full p-0.5 shadow-[inset_0_1.5px_2px_rgb(0_0_0/8%)] transition-colors duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-45 data-[state=checked]:bg-primary data-[state=unchecked]:bg-fill-2 data-[state=checked]:hover:bg-primary-hover data-[state=unchecked]:hover:bg-fill',
       props.class,
     )"
     @click="handleUpdate(!checkedValue)"
@@ -65,7 +65,7 @@ function handleUpdate(value: boolean) {
     <span
       aria-hidden="true"
       :data-state="checkedValue ? 'checked' : 'unchecked'"
-      :class="cn('pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ease-out will-change-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0')"
+      :class="cn('pointer-events-none block h-[18px] w-[18px] rounded-full bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/4%),0_1px_1px_rgb(0_0_0/6%),0_3px_8px_rgb(0_30_80/16%)] transition-transform duration-200 ease-out will-change-transform data-[state=checked]:translate-x-3.5 data-[state=unchecked]:translate-x-0')"
     />
   </button>
 </template>

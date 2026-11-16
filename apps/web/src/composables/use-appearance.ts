@@ -7,7 +7,7 @@ export type AppearanceMode = typeof APPEARANCE_MODES[number]
 // `swatch` is only used to paint the picker; the real colors live in
 // styles/main.css under `[data-accent="…"]`.
 export const ACCENT_THEMES = [
-  { key: 'mono', swatch: 'hsl(var(--foreground))' },
+  { key: 'mono', swatch: 'hsl(var(--fg))' },
   { key: 'blue', swatch: 'hsl(217 91% 53%)' },
   { key: 'violet', swatch: 'hsl(258 84% 60%)' },
   { key: 'green', swatch: 'hsl(152 69% 31%)' },

@@ -25,22 +25,23 @@ const activePath = computed(() => {
   <!-- Hidden on a specific chat route (e.g. /chat/123), but NOT on /chats (the list) -->
   <nav
     v-if="!route.path.startsWith('/chat/')"
-    class="fixed bottom-0 left-0 right-0 z-40 flex items-stretch border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg md:hidden"
+    class="fixed bottom-0 left-0 right-0 z-40 flex items-stretch gap-1 border-t border-line-2 bg-container px-2 pb-[env(safe-area-inset-bottom)] md:hidden"
   >
     <RouterLink
       v-for="item in navItems"
       :key="item.path"
       :to="item.path"
       :aria-current="activePath === item.path ? 'page' : undefined"
-      class="relative h-14 flex flex-1 flex-col items-center justify-center gap-1 transition-colors active:bg-accent"
-      :class="activePath === item.path ? 'text-foreground' : 'text-muted-foreground'"
+      class="h-14 flex flex-1 flex-col items-center justify-center gap-1 transition-colors"
+      :class="activePath === item.path ? 'text-fg' : 'text-fg-3'"
     >
       <span
-        v-if="activePath === item.path"
-        class="absolute top-0 h-0.5 w-8 rounded-b-full bg-primary"
-      />
-      <span :class="NAV_ICON_CLASS[item.icon]" class="h-5 w-5" />
-      <span class="text-[10px] leading-none" :class="activePath === item.path ? 'font-semibold' : 'font-medium'">{{ item.label }}</span>
+        class="h-7 w-12 flex items-center justify-center rounded-md transition-colors"
+        :class="activePath === item.path ? 'bg-fill-2' : ''"
+      >
+        <span :class="NAV_ICON_CLASS[item.icon]" class="h-5 w-5" />
+      </span>
+      <span class="text-[11px] font-medium leading-none">{{ item.label }}</span>
     </RouterLink>
   </nav>
 </template>

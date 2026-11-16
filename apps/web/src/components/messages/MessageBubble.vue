@@ -120,18 +120,18 @@ const messageSpacingClass = computed(() => {
 const bubbleShapeClass = computed(() => {
   if (isOwnMessage.value) {
     return [
-      isGroupedWithPrevious.value ? 'rounded-tr-md' : 'rounded-tr-2xl',
-      isGroupedWithNext.value ? 'rounded-br-md' : 'rounded-br-2xl',
-      'rounded-tl-2xl',
-      'rounded-bl-2xl',
+      isGroupedWithPrevious.value ? 'rounded-tr-xs' : 'rounded-tr-lg',
+      isGroupedWithNext.value ? 'rounded-br-xs' : 'rounded-br-lg',
+      'rounded-tl-lg',
+      'rounded-bl-lg',
     ]
   }
 
   return [
-    isGroupedWithPrevious.value ? 'rounded-tl-md' : 'rounded-tl-2xl',
-    isGroupedWithNext.value ? 'rounded-bl-md' : 'rounded-bl-2xl',
-    'rounded-tr-2xl',
-    'rounded-br-2xl',
+    isGroupedWithPrevious.value ? 'rounded-tl-xs' : 'rounded-tl-lg',
+    isGroupedWithNext.value ? 'rounded-bl-xs' : 'rounded-bl-lg',
+    'rounded-tr-lg',
+    'rounded-br-lg',
   ]
 })
 
@@ -342,13 +342,13 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
           >
             <div
               v-if="showSenderName"
-              class="relative z-10 mb-0.5 flex items-center gap-2 text-[13px] font-semibold leading-[1.2]"
+              class="relative z-10 mb-0.5 flex items-center gap-2 text-[13px] font-medium leading-5"
             >
               <span class="truncate" :class="senderAccentClass">{{ message.fromName }}</span>
             </div>
 
             <div
-              class="relative z-10 max-w-full min-w-0 text-[14px] leading-[1.35]"
+              class="relative z-10 max-w-full min-w-0 text-sm leading-[1.5]"
               :class="[
                 messageBodyPaddingClass,
               ]"
@@ -358,7 +358,7 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
 
             <div
               v-if="usesBubbleShell"
-              class="message-bubble-meta pointer-events-none z-10 flex items-center gap-1.5 text-[10px] leading-none font-mono tabular-nums"
+              class="message-bubble-meta pointer-events-none z-10 flex items-center gap-1.5 text-[11px] leading-none"
               :class="bubbleMetaClass"
             >
               <span v-if="isUpdatedMessage">{{ t('messages.updated') }}</span>
@@ -368,7 +368,7 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
 
           <div
             v-if="!usesBubbleShell"
-            class="message-bubble-meta mt-1 px-1 text-[10px] leading-none font-mono tabular-nums"
+            class="message-bubble-meta mt-1 px-1 text-[11px] leading-none"
           >
             {{ bubbleTime }}
           </div>
@@ -376,7 +376,7 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
           <div
             class="pointer-events-none absolute left-full top-1/2 z-10 ml-2 flex items-center gap-2 opacity-0 transition-opacity duration-150 -translate-y-1/2 group-hover:opacity-100"
           >
-            <span class="inline-flex items-center text-[10px] text-muted-foreground/70 font-mono tabular-nums">
+            <span class="inline-flex items-center text-[11px] text-fg-4">
               <span class="i-lucide-hash h-3 w-3" />
               {{ message.platformMessageId }}
             </span>
@@ -419,27 +419,32 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
 }
 
 /*
- * Bubble colors come from the design tokens in styles/main.css, so they follow
- * light/dark mode and the accent theme without their own palette.
+ * Bubble surfaces use the design tokens in styles/main.css: incoming messages
+ * are an outlined container, own messages a soft fill. Neither uses the accent
+ * color, so long conversations stay calm in every theme.
  */
 .message-bubble-shell {
-  background: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  --message-bubble-meta-fg: hsl(var(--muted-foreground));
+  background: hsl(var(--bg-container));
+  color: hsl(var(--fg));
+  box-shadow: inset 0 0 0 1px hsl(var(--line-secondary));
 }
 
-.message-bubble-shell--own {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  --message-bubble-meta-fg: hsl(var(--primary-foreground) / 0.65);
+html.dark .message-bubble-shell {
+  background: var(--fill-tertiary);
+  box-shadow: none;
+}
+
+.message-bubble-shell.message-bubble-shell--own {
+  background: var(--fill-secondary);
+  box-shadow: none;
 }
 
 .message-bubble-meta {
-  color: var(--message-bubble-meta-fg, hsl(var(--muted-foreground)));
+  color: hsl(var(--fg-3));
 }
 
 .message-bubble-plain {
-  color: hsl(var(--foreground));
+  color: hsl(var(--fg));
 }
 
 .message-sender-accent-0 {

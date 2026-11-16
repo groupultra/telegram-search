@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import SyncStatsSummaryPanel from './SyncStatsSummaryPanel.vue'
 
-import { Button } from './ui/Button'
+import { ActionIcon } from './ui/ActionIcon'
+import { Segmented } from './ui/Segmented'
 
 interface Props {
   open: boolean
@@ -42,104 +43,56 @@ function closeDrawer() {
 <template>
   <div v-if="props.open">
     <div
-      class="fixed inset-0 z-40 bg-black/35 backdrop-blur-[2px]"
+      class="fixed inset-0 z-40 bg-mask"
       @click="closeDrawer"
     />
 
     <div
-      class="fixed inset-x-3 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-50 max-h-[62vh] overflow-hidden border rounded-[28px] bg-background/96 shadow-2xl ring-1 ring-border backdrop-blur-xl"
+      class="fixed inset-x-0 bottom-0 z-50 max-h-[70vh] flex flex-col gap-3 overflow-hidden rounded-t-lg bg-elevated p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-fg shadow-modal"
     >
-      <div class="flex items-center justify-center px-4 pt-3">
-        <div class="h-1.5 w-12 rounded-full bg-muted-foreground/20" />
+      <div class="mx-auto h-1 w-9 shrink-0 rounded-full bg-fill" />
+
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-sm text-fg font-semibold leading-6">
+          {{ $t('sync.showStats') }}
+        </h3>
+        <ActionIcon icon="i-lucide-x" @click="closeDrawer" />
       </div>
 
-      <div class="flex items-center justify-between gap-3 px-4 pb-3 pt-2">
-        <div>
-          <p class="text-[11px] text-muted-foreground tracking-wider uppercase">
-            {{ $t('sync.showStats') }}
-          </p>
-          <h3 class="pt-1 text-base text-foreground font-semibold">
-            {{ props.selectedTab === 'selected' ? props.selectedLabel : props.currentLabel }}
-          </h3>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          class="h-9 w-9 shrink-0 rounded-full text-muted-foreground"
-          @click="closeDrawer"
-        >
-          <span class="i-lucide-x h-4 w-4" />
-        </Button>
-      </div>
-
-      <div
+      <Segmented
         v-if="props.hasSelectedStatusPanel && props.hasCurrentStatusPanel"
-        class="grid grid-cols-2 gap-2 px-4 pb-3"
-      >
-        <button
-          type="button"
-          class="h-10 rounded-full px-4 text-sm font-medium transition-colors"
-          :class="props.selectedTab === 'selected'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-muted-foreground'"
-          @click="emit('update:selectedTab', 'selected')"
-        >
-          {{ props.selectedLabel }}
-        </button>
-        <button
-          type="button"
-          class="h-10 rounded-full px-4 text-sm font-medium transition-colors"
-          :class="props.selectedTab === 'current'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-muted-foreground'"
-          @click="emit('update:selectedTab', 'current')"
-        >
-          {{ props.currentLabel }}
-        </button>
-      </div>
+        :model-value="props.selectedTab"
+        :options="[
+          { value: 'selected', label: props.selectedLabel },
+          { value: 'current', label: props.currentLabel },
+        ]"
+        block
+        @update:model-value="emit('update:selectedTab', $event)"
+      />
 
-      <div class="max-h-[calc(62vh-8.5rem)] overflow-y-auto px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <div
+      <div class="min-h-0 overflow-y-auto">
+        <SyncStatsSummaryPanel
           v-if="props.selectedTab === 'selected' && props.hasSelectedStatusPanel"
-        >
-          <SyncStatsSummaryPanel
-            :label="props.selectedLabel"
-            :title="props.selectedTitle"
-            :progress="props.selectedProgress"
-            :total-count="props.selectedTotalCount"
-            :synced-count="props.selectedSyncedCount"
-            :unsynced-count="props.selectedUnsyncedCount"
-            :has-error="props.selectedHasError"
-          />
-        </div>
+          :label="props.selectedLabel"
+          :title="props.selectedTitle"
+          :progress="props.selectedProgress"
+          :total-count="props.selectedTotalCount"
+          :synced-count="props.selectedSyncedCount"
+          :unsynced-count="props.selectedUnsyncedCount"
+          :has-error="props.selectedHasError"
+        />
 
-        <div
+        <SyncStatsSummaryPanel
           v-else-if="props.selectedTab === 'current' && props.hasCurrentStatusPanel"
-          class="space-y-3"
-        >
-          <div v-if="props.currentLoading" class="space-y-3">
-            <div class="h-6 w-40 animate-pulse rounded bg-muted" />
-            <div class="h-10 w-24 animate-pulse rounded-full bg-muted" />
-            <div class="h-12 animate-pulse rounded-lg bg-muted" />
-            <div class="grid grid-cols-2 gap-2.5">
-              <div class="col-span-2 h-28 animate-pulse rounded-lg bg-muted" />
-              <div class="h-28 animate-pulse rounded-lg bg-muted" />
-              <div class="h-28 animate-pulse rounded-lg bg-muted" />
-            </div>
-          </div>
-
-          <SyncStatsSummaryPanel
-            v-else
-            :label="props.currentLabel"
-            :title="props.currentTitle"
-            :subtitle="props.currentSubtitle"
-            :progress="props.currentProgress"
-            :total-count="props.currentTotalCount"
-            :synced-count="props.currentSyncedCount"
-            :unsynced-count="props.currentUnsyncedCount"
-          />
-        </div>
+          :label="props.currentLabel"
+          :title="props.currentTitle"
+          :subtitle="props.currentSubtitle"
+          :progress="props.currentProgress"
+          :total-count="props.currentTotalCount"
+          :synced-count="props.currentSyncedCount"
+          :unsynced-count="props.currentUnsyncedCount"
+          :loading="props.currentLoading"
+        />
       </div>
     </div>
   </div>

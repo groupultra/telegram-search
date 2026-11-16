@@ -6,12 +6,12 @@ defineProps<{
 </script>
 
 <template>
-  <header class="h-14 flex shrink-0 items-center justify-between gap-3 border-b bg-background px-4 md:px-6">
+  <header class="h-14 flex shrink-0 items-center justify-between gap-3 border-b border-line-2 bg-container px-4">
     <div class="min-w-0 flex items-baseline gap-3">
-      <h1 class="shrink-0 text-base font-semibold tracking-tight">
+      <h1 class="shrink-0 text-base text-fg font-semibold leading-6">
         {{ title }}
       </h1>
-      <p v-if="description" class="truncate text-xs text-muted-foreground hidden lg:block">
+      <p v-if="description" class="truncate text-xs text-fg-3 hidden lg:block">
         {{ description }}
       </p>
     </div>

@@ -56,10 +56,21 @@ const initials = computed(() => {
   return props.name.trim().charAt(0).toUpperCase()
 })
 
+// Fallback tint: a stable hue per name, drawn as a soft fill with same-hue
+// text so letter avatars are distinguishable without shouting.
+const fallbackHue = computed(() => {
+  const name = props.name?.trim()
+  if (!name)
+    return undefined
+
+  const seed = Array.from(name).reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  return (seed * 47) % 360
+})
+
 const sizeClass = computed(() => {
   switch (props.size) {
-    case 'sm': return 'h-8 w-8 text-xs'
-    case 'lg': return 'h-12 w-12 text-lg'
+    case 'sm': return 'h-8 w-8 text-[13px]'
+    case 'lg': return 'h-12 w-12 text-base'
     default: return 'h-10 w-10 text-sm'
   }
 })
@@ -76,7 +87,12 @@ const sizeClass = computed(() => {
         animated ? 'animate-in fade-in zoom-in-95 duration-300' : '',
       )"
     />
-    <AvatarFallback class="border rounded-full bg-muted text-foreground/70 font-medium">
+    <AvatarFallback
+      :style="fallbackHue === undefined ? undefined : { '--avatar-hue': fallbackHue }"
+      :class="fallbackHue === undefined
+        ? 'bg-fill-2 text-fg-3 font-medium'
+        : 'bg-[hsl(var(--avatar-hue)_70%_50%/0.16)] text-[hsl(var(--avatar-hue)_65%_36%)] font-medium dark:text-[hsl(var(--avatar-hue)_75%_74%)]'"
+    >
       {{ initials }}
     </AvatarFallback>
   </Avatar>

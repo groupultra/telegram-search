@@ -40,15 +40,34 @@ export default defineConfig({
       color: 'zinc',
     }),
   ],
-  shortcuts: {
-    // Shared look for native form controls that cannot use the Input component
-    // (selects, `v-model.number` inputs).
-    'form-field': 'h-9 w-full flex border border-input rounded-md bg-background px-3 text-sm transition-colors placeholder:text-muted-foreground/70 hover:border-foreground/30 focus-visible:border-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
-    // Small uppercase caption used for section labels and metadata.
-    'eyebrow': 'text-[11px] text-muted-foreground font-medium tracking-wider uppercase',
-  },
   theme: {
     colors: {
+      // Design tokens (styles/main.css). Prefer these in new markup.
+      layout: 'hsl(var(--bg-layout))',
+      container: 'hsl(var(--bg-container))',
+      elevated: 'hsl(var(--bg-elevated))',
+      fill: {
+        DEFAULT: 'var(--fill)',
+        2: 'var(--fill-secondary)',
+        3: 'var(--fill-tertiary)',
+        4: 'var(--fill-quaternary)',
+      },
+      line: {
+        DEFAULT: 'hsl(var(--line))',
+        2: 'hsl(var(--line-secondary))',
+      },
+      fg: {
+        DEFAULT: 'hsl(var(--fg))',
+        2: 'hsl(var(--fg-2))',
+        3: 'hsl(var(--fg-3))',
+        4: 'hsl(var(--fg-4))',
+      },
+      info: 'hsl(var(--info))',
+      success: 'hsl(var(--success))',
+      warning: 'hsl(var(--warning))',
+      mask: 'var(--mask)',
+
+      // shadcn-style aliases kept for existing markup.
       sidebar: 'hsl(var(--sidebar))',
       border: 'hsl(var(--border))',
       input: 'hsl(var(--input))',
@@ -57,6 +76,8 @@ export default defineConfig({
       foreground: 'hsl(var(--foreground))',
       primary: {
         DEFAULT: 'hsl(var(--primary))',
+        hover: 'hsl(var(--primary-hover))',
+        active: 'hsl(var(--primary-active))',
         foreground: 'hsl(var(--primary-foreground))',
       },
       secondary: {
@@ -84,10 +105,25 @@ export default defineConfig({
         foreground: 'hsl(var(--card-foreground))',
       },
     },
-    borderRadius: {
-      lg: 'var(--radius)',
-      md: 'calc(var(--radius) - 2px)',
-      sm: 'calc(var(--radius) - 4px)',
+    boxShadow: {
+      sm: 'var(--shadow-sm)',
+      md: 'var(--shadow-md)',
+      lg: 'var(--shadow-lg)',
+      // Popup surfaces: soft shadow plus a hairline instead of a border.
+      popup: 'var(--shadow-md), var(--ring-line)',
+      modal: 'var(--shadow-lg), var(--ring-line)',
     },
+    // 4 / 6 / 8 / 12: checkbox and tags, buttons and menu items, inputs and
+    // popups, modals and grouped containers.
+    borderRadius: {
+      xs: '4px',
+      sm: '6px',
+      md: '8px',
+      lg: '12px',
+    },
+  },
+  shortcuts: {
+    // Small uppercase caption for group labels.
+    eyebrow: 'text-[11px] text-fg-3 font-semibold tracking-[0.6px] uppercase leading-none',
   },
 })

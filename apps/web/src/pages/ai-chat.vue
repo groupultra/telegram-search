@@ -16,8 +16,10 @@ import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
 import PageHeader from '../components/layout/PageHeader.vue'
+import MessageComposer from '../components/MessageComposer.vue'
 import PhotoSearchResults from '../components/PhotoSearchResults.vue'
 
+import { ActionIcon } from '../components/ui/ActionIcon'
 import { Button } from '../components/ui/Button'
 import {
   Dialog,
@@ -27,7 +29,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/ui/Dialog'
-import { Textarea } from '../components/ui/Textarea'
+import { Empty } from '../components/ui/Empty'
+import { Spinner } from '../components/ui/Spinner'
+import { Tag } from '../components/ui/Tag'
 import { useAIChatToolExecutors } from '../composables/use-ai-chat-tool-executors'
 import { useAIChatLogic } from '../composables/useAIChat'
 
@@ -354,23 +358,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col bg-container">
     <!-- Header -->
     <PageHeader :title="t('aiChat.aiChat')">
-      <Button
-        variant="outline"
-        size="sm"
-        class="gap-2"
-        :class="filteredChatsCount > 0 ? 'border-primary text-foreground' : 'text-muted-foreground'"
-        @click="isScopeSelectorOpen = true"
-      >
-        <span class="i-lucide-list-filter h-3.5 w-3.5" />
-        <span v-if="filteredChatsCount > 0">
-          {{ t('aiChat.selectedScopeCount', { count: filteredChatsCount }) }}
-        </span>
-        <span v-else>
-          {{ t('aiChat.selectScope') }}
-        </span>
+      <Button icon="i-lucide-list-filter" @click="isScopeSelectorOpen = true">
+        {{ filteredChatsCount > 0 ? t('aiChat.selectedScopeCount', { count: filteredChatsCount }) : t('aiChat.selectScope') }}
       </Button>
     </PageHeader>
 
@@ -381,17 +373,7 @@ onMounted(() => {
     >
       <div class="mx-auto max-w-3xl min-h-full flex flex-col gap-6 px-4 py-6 md:px-6">
         <!-- Empty state -->
-        <div
-          v-if="messages.length === 0"
-          class="flex flex-1 flex-col items-center justify-center gap-4 text-muted-foreground"
-        >
-          <span class="h-10 w-10 flex items-center justify-center border rounded-xl text-foreground">
-            <span class="i-lucide-sparkles h-5 w-5" />
-          </span>
-          <p class="text-center text-sm">
-            {{ t('aiChat.typeYourMessage') }}
-          </p>
-        </div>
+        <Empty v-if="messages.length === 0" icon="i-lucide-sparkles" :title="t('aiChat.typeYourMessage')" class="flex-1" />
 
         <!-- Messages -->
         <div
@@ -403,7 +385,7 @@ onMounted(() => {
           <div
             class="min-w-0 space-y-2"
             :class="message.role === 'user'
-              ? 'max-w-[85%] rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-primary-foreground'
+              ? 'max-w-[85%] rounded-lg bg-fill-2 px-3 py-2 text-fg'
               : 'w-full'
             "
           >
@@ -419,17 +401,13 @@ onMounted(() => {
               class="assistant-message max-w-none overflow-x-auto text-sm"
             >
               <!-- Thinking animation -->
-              <div v-if="isSearching && message.isStreaming" class="animate-pulse space-y-2">
-                <div class="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
-                  <span class="font-medium">{{ searchStage || t('aiChat.searchingContext') }}</span>
-                </div>
+              <div v-if="isSearching && message.isStreaming" class="flex items-center gap-2 text-sm text-fg-3">
+                <Spinner />
+                <span>{{ searchStage || t('aiChat.searchingContext') }}</span>
               </div>
-              <div v-else-if="isLoading && message.isStreaming" class="animate-pulse space-y-2">
-                <div class="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span class="i-lucide-loader-circle h-4 w-4 animate-spin" />
-                  <span class="font-medium">{{ t('aiChat.aiThinking') }}</span>
-                </div>
+              <div v-else-if="isLoading && message.isStreaming" class="flex items-center gap-2 text-sm text-fg-3">
+                <Spinner />
+                <span>{{ t('aiChat.aiThinking') }}</span>
               </div>
               <MarkdownRender
                 :custom-id="`ai-chat-${message.id}`"
@@ -443,7 +421,7 @@ onMounted(() => {
             <!-- Retrieved messages (only for assistant messages) -->
             <div
               v-if="message.role === 'assistant' && message.retrievedMessages && message.retrievedMessages.length > 0"
-              class="mt-3 border-t border-border pt-3 space-y-2"
+              class="mt-3 space-y-2"
             >
               <div class="flex items-center gap-2 eyebrow">
                 <span class="i-lucide-quote h-3 w-3" />
@@ -454,26 +432,23 @@ onMounted(() => {
                 <div
                   v-for="(retrieved, idx) in message.retrievedMessages"
                   :key="`${message.id}-retrieved-${idx}`"
-                  class="cursor-pointer border rounded-lg p-2.5 text-xs transition-colors hover:bg-accent/60"
+                  class="cursor-pointer rounded-md bg-fill-3 px-3 py-2 text-xs transition-colors hover:bg-fill-2"
                   @click="viewMessageInChat(retrieved.chatId, retrieved.platformMessageId)"
                 >
                   <div class="mb-1 flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
-                      <span v-if="retrieved.chatName" class="text-foreground font-semibold">
+                      <span v-if="retrieved.chatName" class="text-fg font-medium">
                         {{ retrieved.chatName }}
                       </span>
-                      <span class="font-mono opacity-60">
+                      <span class="text-fg-3">
                         {{ new Date(retrieved.platformTimestamp * 1000).toLocaleString() }}
                       </span>
                     </div>
-                    <span
-                      v-if="retrieved.similarity"
-                      class="rounded bg-accent px-1.5 py-0.5 text-[10px] font-mono"
-                    >
+                    <Tag v-if="retrieved.similarity" size="sm">
                       {{ (retrieved.similarity * 100).toFixed(0) }}%
-                    </span>
+                    </Tag>
                   </div>
-                  <div class="line-clamp-2 opacity-70">
+                  <div class="line-clamp-2 text-fg-2">
                     {{ retrieved.content || '[Media]' }}
                   </div>
                 </div>
@@ -483,7 +458,7 @@ onMounted(() => {
             <!-- Retrieved photos (only for assistant messages) -->
             <div
               v-if="message.role === 'assistant' && message.retrievedPhotos && message.retrievedPhotos.length > 0"
-              class="mt-3 border-t border-border pt-3 space-y-2"
+              class="mt-3 space-y-2"
             >
               <div class="flex items-center gap-2 eyebrow">
                 <span class="i-lucide-image h-3 w-3" />
@@ -496,7 +471,7 @@ onMounted(() => {
             <!-- Debug Info (collapsible) - only for assistant messages with debug info -->
             <div
               v-if="message.role === 'assistant' && message.debugInfo"
-              class="mt-3 border-t border-border pt-3"
+              class="mt-3"
             >
               <details class="text-xs">
                 <summary class="flex cursor-pointer items-center gap-2 font-medium opacity-60 hover:opacity-100">
@@ -520,7 +495,7 @@ onMounted(() => {
                       {{ message.debugInfo.timeRange.end ? new Date(message.debugInfo.timeRange.end * 1000).toLocaleDateString() : '?' }}
                     </span>
                   </div>
-                  <div v-if="message.debugInfo.deepSearch" class="mt-1.5 border-t border-border/50 pt-1.5">
+                  <div v-if="message.debugInfo.deepSearch" class="mt-1.5 border-t border-line-2 pt-1.5">
                     <div class="mb-1 font-medium">
                       {{ t('aiChat.deepSearch') }}:
                     </div>
@@ -530,7 +505,7 @@ onMounted(() => {
                       <div>{{ t('aiChat.totalMessages') }}: {{ message.debugInfo.deepSearch.totalMessages }}</div>
                     </div>
                   </div>
-                  <div v-if="message.debugInfo.toolCalls && message.debugInfo.toolCalls.length > 0" class="mt-1.5 border-t border-border/50 pt-1.5">
+                  <div v-if="message.debugInfo.toolCalls && message.debugInfo.toolCalls.length > 0" class="mt-1.5 border-t border-line-2 pt-1.5">
                     <div class="mb-1 flex items-center justify-between">
                       <span class="font-medium">{{ t('aiChat.toolCalls') }}:</span>
                       <div class="flex items-center gap-2 text-[9px] opacity-60">
@@ -544,13 +519,13 @@ onMounted(() => {
                       <details
                         v-for="(tool, idx) in message.debugInfo.toolCalls"
                         :key="`tool-${idx}`"
-                        class="border border-border/30 rounded bg-muted/20 p-1.5"
+                        class="border border-line-2 rounded bg-fill-3 p-1.5"
                       >
                         <summary class="flex cursor-pointer items-center justify-between gap-2 text-[10px] font-medium opacity-80 hover:opacity-100">
                           <div class="flex items-center gap-1.5">
                             <span class="i-lucide-zap h-2.5 w-2.5" />
                             <span class="font-mono">{{ tool.name }}</span>
-                            <span v-if="tool.duration" class="rounded bg-accent/30 px-1 py-0.5 text-[9px] opacity-70">
+                            <span v-if="tool.duration" class="rounded bg-fill-2 px-1 py-0.5 text-[9px] opacity-70">
                               {{ tool.duration }}ms
                             </span>
                           </div>
@@ -571,13 +546,13 @@ onMounted(() => {
                             <span class="opacity-60">{{ t('aiChat.completion') }}: {{ tool.usage.completionTokens || 0 }}</span>
                             <span class="font-medium opacity-70">{{ t('aiChat.total') }}: {{ tool.usage.totalTokens || 0 }}</span>
                           </div>
-                          <div v-if="tool.input" class="rounded bg-muted/50 p-1">
+                          <div v-if="tool.input" class="rounded bg-fill-3 p-1">
                             <div class="mb-0.5 font-medium opacity-70">
                               {{ t('aiChat.input') }}:
                             </div>
                             <pre class="whitespace-pre-wrap break-all font-mono opacity-60">{{ JSON.stringify(tool.input, null, 2) }}</pre>
                           </div>
-                          <div v-if="tool.output" class="rounded bg-muted/50 p-1">
+                          <div v-if="tool.output" class="rounded bg-fill-3 p-1">
                             <div class="mb-0.5 font-medium opacity-70">
                               {{ t('aiChat.output') }}:
                             </div>
@@ -593,30 +568,9 @@ onMounted(() => {
 
             <!-- Tool bar -->
             <div v-if="message.role === 'assistant' && message.content.length !== 0" class="flex gap-1 -ml-1.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                class="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-                @click="copyMessage(message.content)"
-              >
-                <span class="i-lucide-copy h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-                @click="regenerateMessage(message.id)"
-              >
-                <span class="i-lucide-rotate-ccw h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                @click="deleteMessage(message.id)"
-              >
-                <span class="i-lucide-trash-2 h-3.5 w-3.5" />
-              </Button>
+              <ActionIcon icon="i-lucide-copy" size="sm" @click="copyMessage(message.content)" />
+              <ActionIcon icon="i-lucide-rotate-ccw" size="sm" @click="regenerateMessage(message.id)" />
+              <ActionIcon icon="i-lucide-trash-2" size="sm" danger @click="deleteMessage(message.id)" />
             </div>
           </div>
         </div>
@@ -624,45 +578,30 @@ onMounted(() => {
         <!-- Error message -->
         <div
           v-if="error"
-          class="flex justify-center"
+          class="flex items-center gap-2 rounded-md bg-destructive/12 px-3 py-2 text-sm text-destructive"
         >
-          <div class="max-w-[85%] border border-destructive/40 rounded-lg bg-destructive/8 px-3.5 py-2.5 text-sm text-destructive">
-            <div class="flex items-center gap-2">
-              <span class="i-lucide-alert-circle h-4 w-4" />
-              <span>{{ error }}</span>
-            </div>
-          </div>
+          <span class="i-lucide-alert-circle h-4 w-4 shrink-0" />
+          <span>{{ error }}</span>
         </div>
       </div>
     </div>
 
     <!-- Input Area -->
-    <div class="shrink-0 px-3 pb-4 pt-1 md:px-6 md:pb-5">
-      <div class="mx-auto max-w-3xl">
-        <div class="flex items-end gap-1 border border-input rounded-xl bg-background p-1.5 shadow-black/5 shadow-lg transition-colors focus-within:border-ring">
-          <Textarea
-            v-model="messageInput"
-            :placeholder="t('aiChat.typeYourMessage')"
-            class="max-h-32 min-h-9 flex-1 resize-none border-transparent bg-transparent px-2.5 py-2 text-sm shadow-none focus-visible:border-transparent hover:border-transparent focus-visible:ring-0"
-            rows="1"
-            @keydown="handleKeyPress"
-          />
-          <Button
-            :disabled="!messageInput.trim() || isLoading"
-            size="icon"
-            class="h-9 w-9 shrink-0"
-            @click="sendMessage"
-          >
-            <span class="i-lucide-arrow-up h-4.5 w-4.5" />
-          </Button>
-        </div>
-      </div>
+    <div class="shrink-0 px-3 pb-4 pt-1 md:px-4">
+      <MessageComposer
+        v-model="messageInput"
+        multiline
+        :placeholder="t('aiChat.typeYourMessage')"
+        :send-disabled="isLoading"
+        @keydown="handleKeyPress"
+        @send="sendMessage"
+      />
     </div>
   </div>
 
   <!-- Chat Scope Selector Dialog -->
   <Dialog v-model:open="isScopeSelectorOpen">
-    <DialogContent class="h-[80vh] max-w-[calc(100%-2rem)] flex flex-col gap-0 overflow-hidden rounded-xl p-0 sm:max-w-4xl" :show-close-button="false">
+    <DialogContent class="h-[80vh] max-w-[calc(100%-2rem)] flex flex-col gap-0 overflow-hidden rounded-lg p-0 sm:max-w-4xl" :show-close-button="false">
       <DialogHeader class="shrink-0 border-b px-6 py-4">
         <DialogTitle>{{ t('aiChat.selectScope') }}</DialogTitle>
         <DialogDescription>
@@ -680,12 +619,11 @@ onMounted(() => {
           <template #actions>
             <Button
               v-if="tempSelectedChatIds.length > 0"
-              variant="ghost"
-              size="sm"
+              variant="text"
               class="text-destructive hover:text-destructive"
               @click="clearFilter"
             >
-              <span class="i-lucide-trash-2 mr-1 h-4 w-4" />
+              <span class="i-lucide-trash-2 h-4 w-4" />
               {{ t('common.clear') }}
             </Button>
           </template>
@@ -694,12 +632,13 @@ onMounted(() => {
 
       <DialogFooter class="shrink-0 border-t px-6 py-3">
         <Button
-          variant="ghost"
+          variant="text"
           @click="cancelFilter"
         >
           {{ t('common.cancel') }}
         </Button>
         <Button
+          variant="primary"
           @click="confirmFilter"
         >
           {{ t('common.confirm') }}

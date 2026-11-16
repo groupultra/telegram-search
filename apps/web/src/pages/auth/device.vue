@@ -8,10 +8,11 @@ import { useRoute, useRouter } from 'vue-router'
 import AuthCard from '../../components/auth/AuthCard.vue'
 import ScopeList from '../../components/auth/ScopeList.vue'
 
+import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
+import { FormItem } from '../../components/ui/FormItem'
 import { Input } from '../../components/ui/Input'
 import { decideDeviceAuthorization, getDeviceAuthorization, getPublicClient, normalizeUserCode, ServerAuthError, SIGN_IN_PATH } from '../../lib/server-auth'
-import { LOGIN_DESKTOP_INPUT_CLASS, LOGIN_DESKTOP_PRIMARY_BUTTON_CLASS } from '../login/styles'
 
 defineOptions({ layout: false })
 
@@ -83,14 +84,14 @@ onMounted(() => {
     :title="t('serverAuth.device.title')"
     :description="decided ? undefined : authorization ? t('serverAuth.device.confirm', { client: client?.name ?? client?.clientId ?? '' }) : t('serverAuth.device.description')"
   >
-    <div class="space-y-6">
-      <p v-if="error" role="alert" class="border border-destructive/30 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+    <div class="flex flex-col gap-4">
+      <Alert v-if="error">
         {{ error }}
-      </p>
+      </Alert>
 
       <div v-if="decided" class="text-center">
-        <span :class="decided === 'approved' ? 'i-lucide-circle-check text-primary' : 'i-lucide-circle-x text-muted-foreground'" class="mx-auto mb-4 block h-12 w-12" />
-        <p class="text-base">
+        <span :class="decided === 'approved' ? 'i-lucide-circle-check text-success' : 'i-lucide-circle-x text-fg-3'" class="mx-auto mb-3 block h-8 w-8" />
+        <p class="text-sm text-fg">
           {{ decided === 'approved' ? t('serverAuth.device.approved') : t('serverAuth.device.denied') }}
         </p>
       </div>
@@ -100,38 +101,32 @@ onMounted(() => {
           {{ authorization.userCode }}
         </p>
         <ScopeList :scopes="authorization.scopes" />
-        <div class="flex flex-col gap-3">
-          <Button as="button" type="button" size="lg" :class="LOGIN_DESKTOP_PRIMARY_BUTTON_CLASS" :disabled="isLoading" @click="decide(true)">
-            <span v-if="isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
+        <div class="flex flex-col gap-2">
+          <Button variant="primary" :loading="isLoading" type="button" size="lg" block :disabled="isLoading" @click="decide(true)">
             {{ t('serverAuth.device.approve') }}
           </Button>
-          <Button as="button" type="button" variant="ghost" size="lg" class="w-full rounded-xl" :disabled="isLoading" @click="decide(false)">
+          <Button type="button" variant="text" size="lg" block :disabled="isLoading" @click="decide(false)">
             {{ t('serverAuth.device.deny') }}
           </Button>
         </div>
       </template>
 
-      <form v-else class="space-y-6" @submit.prevent="lookUp">
-        <div class="space-y-3">
-          <label for="userCode" class="text-sm font-medium">{{ t('serverAuth.device.code') }}</label>
-          <div class="group relative">
-            <div class="absolute left-3 top-1/2 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-primary">
-              <span class="i-lucide-key-round h-5 w-5" />
-            </div>
-            <Input
-              id="userCode"
-              v-model="userCode"
-              type="text"
-              autocomplete="one-time-code"
-              autocapitalize="characters"
-              :class="`${LOGIN_DESKTOP_INPUT_CLASS} font-mono uppercase tracking-widest`"
-              required
-              :disabled="isLoading"
-            />
-          </div>
-        </div>
-        <Button as="button" type="submit" size="lg" :class="LOGIN_DESKTOP_PRIMARY_BUTTON_CLASS" :disabled="isLoading">
-          <span v-if="isLoading" class="i-lucide-loader-2 mr-2 animate-spin" />
+      <form v-else class="flex flex-col gap-4" @submit.prevent="lookUp">
+        <FormItem :label="t('serverAuth.device.code')" for="userCode">
+          <Input
+            id="userCode"
+            v-model="userCode"
+            type="text"
+            size="lg"
+            prefix-icon="i-lucide-key-round"
+            autocomplete="one-time-code"
+            autocapitalize="characters"
+            class="tracking-widest font-mono uppercase"
+            required
+            :disabled="isLoading"
+          />
+        </FormItem>
+        <Button variant="primary" :loading="isLoading" type="submit" size="lg" block :disabled="isLoading">
           {{ t('login.continue') }}
         </Button>
       </form>

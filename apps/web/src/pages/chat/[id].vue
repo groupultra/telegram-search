@@ -10,9 +10,11 @@ import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import EntityAvatar from '../../components/avatar/EntityAvatar.vue'
+import MessageComposer from '../../components/MessageComposer.vue'
 import SummaryDialog from '../../components/SummaryDialog.vue'
 import VirtualMessageList from '../../components/VirtualMessageList.vue'
 
+import { ActionIcon } from '../../components/ui/ActionIcon'
 import { Button } from '../../components/ui/Button'
 import {
   ContextMenu,
@@ -20,7 +22,6 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '../../components/ui/ContextMenu'
-import { Input } from '../../components/ui/Input'
 import { getChatLink } from '../../utils/telegram-links'
 
 const { t } = useI18n()
@@ -220,9 +221,9 @@ watch(
 </script>
 
 <template>
-  <div class="relative h-full flex flex-col bg-background">
+  <div class="relative h-full flex flex-col bg-container">
     <!-- Debug Panel -->
-    <div v-if="debugMode" class="absolute right-4 top-18 z-30 w-1/4 flex flex-col justify-left gap-2 border rounded-lg bg-card p-2 text-xs text-muted-foreground font-mono shadow-lg">
+    <div v-if="debugMode" class="absolute right-4 top-18 z-30 w-1/4 flex flex-col justify-left gap-2 rounded-md bg-elevated p-3 text-xs text-fg-2 font-mono shadow-popup">
       <span>
         Messages: {{ sortedMessageArray.length }}
       </span>
@@ -236,15 +237,14 @@ watch(
         Loading: {{ isLoadingMessages }} / Older: {{ isLoadingOlder }} / Newer: {{ isLoadingNewer }}
       </span>
       <Button
-        size="sm"
+        variant="primary"
         :disabled="isLoadingOlder || isLoadingMessages"
         @click="loadOlderMessages"
       >
         {{ t('chat.forceLoadOlder') }}
       </Button>
       <Button
-        size="sm"
-        variant="secondary"
+        variant="fill"
         :disabled="isLoadingNewer || isLoadingMessages"
         @click="loadNewerMessages"
       >
@@ -253,17 +253,14 @@ watch(
     </div>
 
     <!-- Chat Header -->
-    <div class="sticky top-0 z-20 h-14 flex shrink-0 items-center justify-between gap-2 border-b bg-background/85 px-2 backdrop-blur-md md:px-6">
+    <div class="sticky top-0 z-20 h-14 flex shrink-0 items-center justify-between gap-2 border-b border-line-2 bg-container px-3 md:px-4">
       <div class="min-w-0 flex flex-1 items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
+        <ActionIcon
+          icon="i-lucide-chevron-left"
           class="shrink-0 md:hidden"
-          :aria-label="t('common.back')"
+          :title="t('common.back')"
           @click="$router.push('/chats')"
-        >
-          <span class="i-lucide-chevron-left h-5 w-5" />
-        </Button>
+        />
         <ContextMenu v-if="currentChat && currentChat.id != null">
           <ContextMenuTrigger>
             <div :class="chatTelegramLink ? 'cursor-context-menu' : ''">
@@ -279,39 +276,30 @@ watch(
           </ContextMenuTrigger>
           <ContextMenuContent v-if="chatTelegramLink">
             <ContextMenuItem @select="openTelegram">
-              <span class="i-lucide-external-link mr-2 h-4 w-4" />
+              <span class="i-lucide-external-link h-4 w-4 text-fg-2" />
               {{ t('messages.openInTelegram') }}
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
         <div class="min-w-0">
-          <h2 class="truncate text-sm font-semibold leading-tight tracking-tight">
+          <h2 class="truncate text-sm text-fg font-semibold leading-5">
             {{ currentChat?.name }}
           </h2>
-          <p v-if="currentChat?.id" class="truncate text-[11px] text-muted-foreground leading-tight font-mono">
-            {{ currentChat?.id }}
+          <p v-if="currentChat?.id" class="truncate text-xs text-fg-3 leading-4">
+            ID {{ currentChat?.id }}
           </p>
         </div>
       </div>
       <div class="flex shrink-0 items-center gap-1">
         <SummaryDialog :chat-id="id.toString()">
           <template #default="{ open }">
-            <Button
-              icon="i-lucide-sparkles"
-              variant="outline"
-              size="sm"
-              @click="open"
-            >
+            <Button icon="i-lucide-sparkles" @click="open">
               {{ t('chat.summarize') }}
             </Button>
           </template>
         </SummaryDialog>
-        <Button
+        <ActionIcon
           icon="i-lucide-search"
-          variant="ghost"
-          size="icon"
-          class="h-8 w-8"
-          :aria-label="t('chat.search')"
           :title="t('chat.search')"
           data-search-button
           @click="openGlobalSearch"
@@ -331,49 +319,20 @@ watch(
     </div>
 
     <!-- Message Input -->
-    <div class="absolute bottom-4 left-0 right-0 z-20 px-3 md:bottom-5 md:px-6">
-      <div class="mx-auto max-w-3xl flex items-center gap-1 border border-input rounded-xl bg-background/95 p-1.5 shadow-black/5 shadow-lg backdrop-blur-xl transition-colors focus-within:border-ring">
-        <!-- Input container -->
-        <div class="relative flex flex-1 items-center">
-          <div class="absolute left-0 flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-9 w-9 text-muted-foreground hover:text-foreground"
-              title="Emoji"
-            >
-              <span class="i-lucide-smile h-4.5 w-4.5" />
-            </Button>
-          </div>
-          <Input
-            v-model="messageInput"
-            type="text"
-            :placeholder="t('chat.typeAMessage')"
-            class="h-9 w-full border-transparent bg-transparent pl-10 pr-10 text-sm text-foreground shadow-none focus-visible:border-transparent hover:border-transparent focus-visible:ring-0"
-            @keyup.shift.enter="sendMessage"
-          />
-          <div class="absolute right-0 flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-9 w-9 text-muted-foreground hover:text-foreground"
-              title="Attachment"
-            >
-              <span class="i-lucide-paperclip h-4.5 w-4.5" />
-            </Button>
-          </div>
-        </div>
-
-        <!-- Send button -->
-        <Button
-          :disabled="!messageInput.trim()"
-          size="icon"
-          class="h-9 w-9 shrink-0"
-          @click="sendMessage"
-        >
-          <span class="i-lucide-arrow-up h-4.5 w-4.5" />
-        </Button>
-      </div>
+    <div class="absolute bottom-4 left-0 right-0 z-20 px-3 md:px-4">
+      <MessageComposer
+        v-model="messageInput"
+        :placeholder="t('chat.typeAMessage')"
+        @keyup.shift.enter="sendMessage"
+        @send="sendMessage"
+      >
+        <template #prefix>
+          <ActionIcon icon="i-lucide-smile" title="Emoji" />
+        </template>
+        <template #actions>
+          <ActionIcon icon="i-lucide-paperclip" title="Attachment" />
+        </template>
+      </MessageComposer>
     </div>
   </div>
 </template>

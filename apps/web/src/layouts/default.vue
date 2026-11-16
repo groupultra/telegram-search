@@ -110,11 +110,11 @@ watch(isAIChatDrawerOpen, (open) => {
 </script>
 
 <template>
-  <div class="w-full flex overflow-hidden bg-background text-sm h-dvh">
+  <div class="w-full flex overflow-hidden bg-layout text-sm text-fg h-dvh">
     <!-- Login Overlay -->
     <div
       v-if="$route.path === '/login'"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-background"
+      class="fixed inset-0 z-50 overflow-y-auto bg-layout"
     >
       <RouterView />
     </div>
@@ -128,12 +128,12 @@ watch(isAIChatDrawerOpen, (open) => {
       <template v-if="!isMobile">
         <AppRail @open-search="openGlobalSearch" />
         <!-- v-show keeps the list scroll position and AI context selection while hidden -->
-        <ChatPanel v-show="isChatPanelOpen" class="w-80 shrink-0 border-r" />
+        <ChatPanel v-show="isChatPanelOpen" class="w-80 shrink-0 border-r border-line-2" />
       </template>
 
       <!-- Main content -->
       <main
-        class="relative min-w-0 flex flex-1 flex-col overflow-auto bg-background"
+        class="relative min-w-0 flex flex-1 flex-col overflow-auto bg-container"
         :class="{ 'pb-[calc(3.5rem+env(safe-area-inset-bottom))]': isMobile && !$route.path.startsWith('/chat/') }"
       >
         <RouterView :key="$route.fullPath" />
@@ -141,7 +141,7 @@ watch(isAIChatDrawerOpen, (open) => {
         <!-- Version info -->
         <div
           v-if="!$route.path.startsWith('/chat/')"
-          class="pointer-events-none fixed bottom-3 right-3 z-10 items-center gap-2 text-[10px] text-muted-foreground/60 font-mono hidden md:flex"
+          class="pointer-events-none fixed bottom-3 right-3 z-10 items-center gap-2 text-[11px] text-fg-4 hidden md:flex"
         >
           <span class="truncate">{{ buildVersionLabel }}</span>
           <span
@@ -157,7 +157,7 @@ watch(isAIChatDrawerOpen, (open) => {
 
   <Dialog v-model:open="isAIChatDrawerOpen">
     <DialogContent
-      class="left-auto right-0 top-0 max-w-[min(720px,100vw)] w-full translate-x-0 translate-y-0 border-0 border-l rounded-none p-0 shadow-2xl h-dvh sm:rounded-none"
+      class="left-auto right-0 top-0 max-h-none max-w-[min(720px,100vw)] w-full translate-x-0 translate-y-0 rounded-none p-0 h-dvh"
       :show-close-button="true"
     >
       <AIChatPage :chat-ids="aiChatDrawerChatIds" />

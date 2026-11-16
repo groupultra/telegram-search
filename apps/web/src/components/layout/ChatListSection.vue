@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { ChatGroup } from '@tg-search/client'
 import type { CoreDialog } from '@tg-search/core/types'
-import type { ComponentPublicInstance } from 'vue'
 
 import { useLogger } from '@guiiai/logg'
 import { prefillChatAvatarIntoStore, useChatStore, useSettingsStore } from '@tg-search/client'
@@ -16,12 +15,14 @@ import ChatListItem from './ChatListItem.vue'
 
 import { useChatListSelection } from '../../composables/use-chat-list-selection'
 import { filterChatsByQuery, getChatPreview, matchesFolder, sortChatsForFolder } from '../../utils/chat-list'
+import { Button } from '../ui/Button'
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from '../ui/ContextMenu'
+import { Empty } from '../ui/Empty'
 import { Input } from '../ui/Input'
 
 const props = defineProps<{
@@ -180,28 +181,10 @@ watch(activeGroupChats, (list) => {
   void prioritizeVisibleAvatars(list)
 }, { immediate: true })
 
-// Smooth sliding background for folder tabs
+// Folder tabs scroll horizontally when they overflow. The sliding highlight
+// that used to follow the active tab was removed: tabs now share the Segmented
+// look, where the active item carries its own background.
 const containerRef = ref<HTMLElement | null>(null)
-// We use a Map or logic to collect refs because mixing static and v-for refs is tricky
-const allTabs = ref<Map<string, HTMLElement>>(new Map())
-
-function setAllTabRef(el: Element | ComponentPublicInstance | null) {
-  if (el) {
-    allTabs.value.set('all', el as HTMLElement)
-  }
-}
-
-function setFolderTabRef(el: Element | ComponentPublicInstance | null, id: number) {
-  if (el) {
-    allTabs.value.set(`folder-${id}`, el as HTMLElement)
-  }
-}
-
-const gliderStyle = ref({
-  width: '0px',
-  transform: 'translateX(0px)',
-  opacity: 0,
-})
 const canDragTabs = ref(false)
 
 function updateTabScrollability() {
@@ -209,72 +192,26 @@ function updateTabScrollability() {
   canDragTabs.value = container !== null && container.scrollWidth > container.clientWidth
 }
 
-function updateGlider() {
-  if (!containerRef.value) {
-    canDragTabs.value = false
-    return
-  }
-
-  updateTabScrollability()
-
-  const containerRect = containerRef.value.getBoundingClientRect()
-  let activeEl: HTMLElement | undefined
-
-  if (activeChatGroup.value === undefined) {
-    activeEl = allTabs.value.get('all')
-  }
-  else if (activeChatGroup.value === 'folder' && normalizedSelectedFolderId.value !== undefined) {
-    activeEl = allTabs.value.get(`folder-${normalizedSelectedFolderId.value}`)
-  }
-
-  if (activeEl) {
-    const elRect = activeEl.getBoundingClientRect()
-    // Calculate relative position within the scrollable container
-    const scrollLeft = containerRef.value.scrollLeft
-    // Account for the padding/left-3 offset (12px)
-    const relativeLeft = elRect.left - containerRect.left + scrollLeft - 12
-
-    gliderStyle.value = {
-      width: `${elRect.width}px`,
-      transform: `translateX(${relativeLeft}px)`,
-      opacity: 1,
-    }
-  }
-  else {
-    gliderStyle.value = {
-      ...gliderStyle.value,
-      opacity: 0,
-    }
-  }
-}
-
-// Update glider when selection changes
-watch(
-  [activeChatGroup, normalizedSelectedFolderId, folders],
-  () => {
-    nextTick(() => {
-      updateGlider()
-    })
-  },
-  { immediate: true },
-)
-
-// Update glider on resize
 // Use ResizeObserver for more robustness
 let resizeObserver: ResizeObserver | undefined
 watch(containerRef, (el) => {
+  resizeObserver?.disconnect()
   if (el) {
-    resizeObserver = new ResizeObserver(() => updateGlider())
+    resizeObserver = new ResizeObserver(() => updateTabScrollability())
     resizeObserver.observe(el)
   }
-  else {
-    resizeObserver?.disconnect()
-  }
 })
+
+watch(() => chatStore.folders, () => nextTick(updateTabScrollability))
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect()
 })
+
+// @unocss-include
+// Same metrics as a small Segmented item, in a scrollable row.
+const FOLDER_TAB_CLASS = 'h-7 inline-flex shrink-0 items-center whitespace-nowrap rounded-md px-2.5 text-[13px] text-fg-2 font-medium leading-none transition-colors duration-200 hover:text-fg'
+const FOLDER_TAB_ACTIVE_CLASS = 'bg-fill-2 text-fg!'
 
 const isDraggingTabs = ref(false)
 let dragPointerId: number | undefined
@@ -322,7 +259,6 @@ function handleTabWheel(event: WheelEvent) {
 
   event.preventDefault()
   container.scrollLeft = nextScrollLeft
-  updateGlider()
 }
 
 function handleTabPointerDown(event: PointerEvent) {
@@ -355,7 +291,6 @@ function handleTabPointerMove(event: PointerEvent) {
 
   event.preventDefault()
   container.scrollLeft = dragStartScrollLeft - deltaX
-  updateGlider()
 }
 
 function endTabDrag(event?: PointerEvent) {
@@ -386,23 +321,20 @@ function handleTabClickCapture(event: MouseEvent) {
 
 <template>
   <div class="relative min-h-0 flex flex-1 flex-col">
-    <div class="flex flex-col gap-2 px-3 pb-2 pt-1">
-      <div class="relative">
-        <div
-          class="i-lucide-search pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 text-muted-foreground -translate-y-1/2"
-        />
-        <Input
-          v-model="searchValue"
-          type="text"
-          class="h-8 border-transparent rounded-lg bg-foreground/5 pl-8 pr-3 text-sm transition-colors focus-visible:border-ring focus-visible:bg-background hover:bg-foreground/8 placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
-          :placeholder="t('search.search')"
-        />
-      </div>
+    <div class="flex flex-col gap-2 px-3 pb-2">
+      <Input
+        v-model="searchValue"
+        type="text"
+        variant="filled"
+        prefix-icon="i-lucide-search"
+        :placeholder="t('search.search')"
+      />
 
       <div
         ref="containerRef"
+        role="tablist"
         :class="isDraggingTabs ? 'cursor-grabbing select-none' : canDragTabs ? 'cursor-grab' : ''"
-        class="no-scrollbar relative flex items-center gap-1 overflow-x-auto px-3 -mx-3"
+        class="no-scrollbar flex items-center gap-1 overflow-x-auto px-3 -mx-3"
         @click.capture="handleTabClickCapture"
         @pointercancel="endTabDrag"
         @pointerdown="handleTabPointerDown"
@@ -410,56 +342,44 @@ function handleTabClickCapture(event: MouseEvent) {
         @pointerup="endTabDrag"
         @wheel="handleTabWheel"
       >
-        <div
-          aria-hidden="true"
-          class="pointer-events-none absolute left-3 top-0 h-7 rounded-md bg-primary transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-          :style="gliderStyle"
-        />
-
         <button
-          :ref="(el) => setAllTabRef(el as Element | ComponentPublicInstance | null)"
-          :class="[
-            activeChatGroup === undefined
-              ? 'text-primary-foreground font-medium'
-              : 'text-muted-foreground hover:text-foreground',
-          ]"
-          class="relative z-10 h-7 flex shrink-0 items-center rounded-md px-2.5 text-xs transition-colors duration-200"
+          type="button"
+          role="tab"
+          :aria-selected="activeChatGroup === undefined"
+          :class="[FOLDER_TAB_CLASS, activeChatGroup === undefined ? FOLDER_TAB_ACTIVE_CLASS : '']"
           @click="toggleActiveChatGroup(undefined)"
         >
-          <span>{{ t('chatGroups.all') }}</span>
+          {{ t('chatGroups.all') }}
         </button>
 
         <button
           v-for="folder in folders"
           :key="folder.id"
-          :ref="(el) => setFolderTabRef(el as Element | ComponentPublicInstance | null, folder.id)"
-          :class="[
-            activeChatGroup === 'folder' && normalizedSelectedFolderId === folder.id
-              ? 'text-primary-foreground font-medium'
-              : 'text-muted-foreground hover:text-foreground',
-          ]"
-          class="relative z-10 h-7 flex shrink-0 items-center rounded-md px-2.5 text-xs transition-colors duration-200"
+          type="button"
+          role="tab"
+          :aria-selected="activeChatGroup === 'folder' && normalizedSelectedFolderId === folder.id"
+          :class="[FOLDER_TAB_CLASS, activeChatGroup === 'folder' && normalizedSelectedFolderId === folder.id ? FOLDER_TAB_ACTIVE_CLASS : '']"
           @click="selectFolder(folder.id)"
         >
-          <span>{{ folder.title }}</span>
+          {{ folder.title }}
         </button>
       </div>
 
       <div
         v-if="showAIContextHint && aiContextCount === 0"
-        class="flex items-center gap-2 border rounded-lg border-dashed px-2.5 py-2 text-xs text-muted-foreground"
+        class="flex items-center gap-2 rounded-md bg-fill-3 px-3 py-2 text-xs text-fg-2"
       >
-        <span class="i-lucide-sparkles h-3.5 w-3.5 shrink-0 text-foreground" />
+        <span class="i-lucide-sparkles h-3.5 w-3.5 shrink-0" />
         <span>{{ t('chatList.aiContextHint') }}</span>
       </div>
     </div>
 
     <!-- Chat list -->
-    <div class="min-h-0 flex-1 overflow-hidden border-t">
+    <div class="min-h-0 flex-1 overflow-hidden">
       <VList
         v-if="activeGroupChats.length > 0"
         :data="activeGroupChats"
-        class="chat-list h-full py-2"
+        class="chat-list h-full px-2 pb-2"
       >
         <template #default="{ item: chat }">
           <ContextMenu v-if="chat && !isCoarsePointer">
@@ -481,7 +401,7 @@ function handleTabClickCapture(event: MouseEvent) {
             </ContextMenuTrigger>
             <ContextMenuContent class="min-w-[180px]">
               <ContextMenuItem @select="handleDesktopAddToAI(chat.id)">
-                <span class="i-lucide-sparkles mr-2 h-4 w-4" />
+                <span class="i-lucide-sparkles h-4 w-4" />
                 {{ t('chatList.addToAIContext') }}
               </ContextMenuItem>
             </ContextMenuContent>
@@ -507,12 +427,7 @@ function handleTabClickCapture(event: MouseEvent) {
       </VList>
 
       <!-- Empty State -->
-      <div v-else class="h-full flex flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground">
-        <span class="i-lucide-message-square-dashed h-6 w-6 opacity-50" />
-        <p class="text-xs">
-          {{ t('chatList.noChatsFound') }}
-        </p>
-      </div>
+      <Empty v-else icon="i-lucide-message-square-dashed" :title="t('chatList.noChatsFound')" />
     </div>
   </div>
 
@@ -522,30 +437,24 @@ function handleTabClickCapture(event: MouseEvent) {
       class="pointer-events-none fixed left-1/2 z-40 w-[min(calc(100vw-1.5rem),26rem)] md:bottom-8 md:left-[calc(var(--app-sidebar-width)+(100vw-var(--app-sidebar-width))/2)] md:w-[min(28rem,calc(100vw-var(--app-sidebar-width)-4rem))] -translate-x-1/2"
       :class="isAIChatDrawerOpen ? 'bottom-32' : 'bottom-20'"
     >
-      <div class="pointer-events-auto flex items-center gap-2 border rounded-xl bg-popover p-1.5 pl-3 text-popover-foreground shadow-lg">
-        <span class="i-lucide-sparkles h-4 w-4 shrink-0" />
+      <div class="pointer-events-auto flex items-center gap-2 rounded-lg bg-elevated p-2 pl-3 text-fg shadow-popup">
+        <span class="i-lucide-sparkles h-4 w-4 shrink-0 text-fg-2" />
         <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium leading-tight">
+          <p class="truncate text-sm font-medium leading-5">
             {{ t('chatList.aiContextReady') }}
           </p>
-          <p class="truncate text-xs text-muted-foreground leading-tight">
+          <p class="truncate text-xs text-fg-3 leading-4">
             {{ isSelectionMode ? t('chatList.selectionModeCount', { count: aiContextCount }) : t('chatList.aiContextCount', { count: aiContextCount }) }}
           </p>
         </div>
 
-        <button
-          class="h-8 inline-flex shrink-0 items-center rounded-lg px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          @click="clearAIContextChats"
-        >
+        <Button variant="text" @click="clearAIContextChats">
           {{ t('common.cancel') }}
-        </button>
-        <button
-          class="h-8 inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs text-primary-foreground font-medium transition-opacity hover:opacity-90"
-          @click="openAIChatWithSelectedChats"
-        >
-          <span>{{ t('aiChat.aiChat') }}</span>
+        </Button>
+        <Button variant="primary" @click="openAIChatWithSelectedChats">
+          {{ t('aiChat.aiChat') }}
           <span class="i-lucide-arrow-right h-3.5 w-3.5" />
-        </button>
+        </Button>
       </div>
     </div>
   </Teleport>

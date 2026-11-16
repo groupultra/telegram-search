@@ -6,6 +6,8 @@ import { computed } from 'vue'
 
 import { cn } from '@/lib/utils'
 
+import { FIELD_BASE_CLASS, FIELD_SIZE_CLASS, FIELD_VARIANT_CLASS } from '../styles'
+
 const props = defineProps<SelectTriggerProps & { class?: string }>()
 
 const delegatedProps = computed(() => {
@@ -20,11 +22,14 @@ const forwarded = useForwardProps(delegatedProps)
   <SelectTrigger
     v-bind="forwarded"
     :class="cn(
-      'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+      FIELD_BASE_CLASS,
+      FIELD_SIZE_CLASS.md,
+      FIELD_VARIANT_CLASS.outlined,
+      'justify-between outline-none data-[state=open]:bg-fill-3 data-[placeholder]:text-fg-4 [&>span]:line-clamp-1',
       props.class,
     )"
   >
     <slot />
-    <span class="i-lucide-chevron-down h-4 w-4 opacity-50" />
+    <span class="i-lucide-chevron-down h-4 w-4 shrink-0 text-fg-3" />
   </SelectTrigger>
 </template>

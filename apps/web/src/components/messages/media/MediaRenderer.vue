@@ -262,7 +262,7 @@ function handlePlaceholderClick() {
   <!-- Loading state with dynamic placeholder sizing based on actual image dimensions -->
   <div v-if="isLoading" class="flex items-center">
     <div
-      class="max-w-xs w-full animate-pulse rounded-lg bg-muted"
+      class="max-w-xs w-full animate-pulse rounded-lg bg-fill-3"
       :style="processedMedia.width && processedMedia.height
         ? { aspectRatio: `${processedMedia.width} / ${processedMedia.height}`, height: 'auto' }
         : { height: '12rem' }"
@@ -321,7 +321,7 @@ function handlePlaceholderClick() {
     <!-- Fallback placeholder when media has permanently failed -->
     <div
       v-else-if="hasPermanentError"
-      class="h-48 max-w-xs flex cursor-pointer items-center justify-center border border-border rounded-lg border-dashed bg-muted text-muted-foreground"
+      class="h-48 max-w-xs flex cursor-pointer items-center justify-center border border-line-2 rounded-lg border-dashed bg-fill-3 text-fg-3"
       @click="handlePlaceholderClick"
     >
       <div class="flex flex-col items-center gap-1">
