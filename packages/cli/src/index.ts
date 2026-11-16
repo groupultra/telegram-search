@@ -21,6 +21,7 @@ import { CLI_VERSION, runtimeBuildInfo } from './build-info'
 import { cliError, toCliError } from './cli-errors'
 import { connectDaemon, runDaemon, stopDaemon } from './daemon'
 import { createGramJsStderrLogger } from './gramjs-logger'
+import { openLocalRuntime } from './local-runtime'
 import { hasWrittenOutput, isJsonOutput, resetOutputState, writeFailure, writeOutput, writeProgress } from './output'
 import {
   ensureProfile,
@@ -31,7 +32,6 @@ import {
   writeSession,
 } from './profile'
 import { inspectProfile } from './profile-inspection'
-import { openLocalRuntime } from './local-runtime'
 import { initialOutputFormat, readOutputArgs, readOutputOptions } from './read-output'
 import { bindReadOperations } from './read-runtime'
 import { createRemoteRuntime } from './remote'

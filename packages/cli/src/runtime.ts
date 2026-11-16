@@ -134,7 +134,6 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
         await updateProfileConfig(paths, latest => ({ ...latest, accountId: resolvedAccountId }))
       }
     }
-
   }
   catch (error) {
     // A failed start must not leave the Telegram connection or the database open.

@@ -209,15 +209,15 @@ async function removeStaleLock(paths: ProfilePaths, staleRaw: string): Promise<v
 
 function waitForLockPoll(signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    const onAbort = () => {
-      clearTimeout(timer)
-      reject(signal!.reason)
-    }
+    const controller = new AbortController()
     const timer = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort)
+      controller.abort()
       resolve()
     }, PROFILE_LOCK_POLL_MS)
-    signal?.addEventListener('abort', onAbort, { once: true })
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer)
+      reject(signal.reason)
+    }, { once: true, signal: controller.signal })
   })
 }
 
