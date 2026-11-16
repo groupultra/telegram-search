@@ -78,7 +78,7 @@ tgs --profile cloud search "project progress"
 
 The login requests `chats:read messages:read media:read offline_access`. Add `--admin` to also request `database:admin` for the `db` commands; the server grants it only to its configured administrators. A token is stored with the server URL it was issued for and is never sent to another server: changing the endpoint requires a new login.
 
-`--remote` overrides `TG_SEARCH_REMOTE_URL`, which overrides the selected profile's saved URL. HTTPS is required except on loopback for development. The server base URL may include a path prefix.
+`--remote` overrides `TG_SEARCH_REMOTE_URL`, which overrides the selected profile's saved URL. HTTPS is required except on loopback for development. Use the server's public origin (its `TGS_PUBLIC_URL`) without a path: access tokens are issued for `<origin>/mcp`, and a URL such as `https://host/api` asks for a resource the server does not know (`invalid_target`).
 
 Supported commands: `chats list`, `messages list`, `messages query`, `search`, `context`, `stats`, and the `db` maintenance commands (see [Database maintenance](#database-maintenance)). Results use `meta.source: "remote"` and preserve pagination and application errors. No local database or Telegram client is opened, including when the request fails. Remote mode keeps only the OAuth tokens in the profile directory; it creates no session, database, or exports.
 
