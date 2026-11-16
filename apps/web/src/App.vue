@@ -4,10 +4,10 @@ import { evictExpiredOrOversized, useAccountStore, useAvatarStore, useBridge, us
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
 import { onBeforeUnmount, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterView, useRouter } from 'vue-router'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 import { toast, Toaster } from 'vue-sonner'
 
-import { hasPendingSignIn } from './lib/server-auth'
+import { isServerAuthRoute, safeRedirectPath } from './lib/server-auth'
 import { usePWAStore } from './stores/pwa'
 import { useServerAuthStore } from './stores/server-auth'
 
@@ -24,20 +24,24 @@ onMounted(() => {
   })
 })
 
-// With OAuth on the server, the Telegram login is the sign-in: once the account is ready,
-// exchange it for a server session and continue a pending authorization request.
+// With OAuth on the server, the Telegram login is the sign-in. Once the account is ready, an
+// authorization flow continues on its own page; otherwise sign in to the server here.
 const accountStore = useAccountStore()
 const serverAuth = useServerAuthStore()
 const router = useRouter()
+const route = useRoute()
 watch(() => accountStore.isReady, async (ready) => {
-  if (!ready || (await serverAuth.check() !== 'signed-out' && !hasPendingSignIn()))
+  if (!ready)
+    return
+  const redirect = safeRedirectPath(route.query.redirect, '')
+  if (route.path === '/login' && isServerAuthRoute(redirect.split('?')[0])) {
+    await router.replace(redirect)
+    return
+  }
+  if (await serverAuth.check() !== 'signed-out')
     return
   try {
-    const outcome = await serverAuth.completeSignIn()
-    if (outcome.kind === 'navigate')
-      window.location.assign(outcome.url)
-    else if (outcome.kind === 'route')
-      await router.replace(outcome.path)
+    await serverAuth.completeSignIn()
   }
   catch (error) {
     useLogger('server-auth').withError(error).warn('Failed to sign in to the server')

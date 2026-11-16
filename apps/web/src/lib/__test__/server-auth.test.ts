@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { decideDeviceAuthorization, exchangeSignInTicket, getDeviceAuthorization, getServerAuthStatus, hasPendingSignIn, isServerAuthRoute, safeRedirectPath, savePendingSignIn, ServerAuthError, submitConsent, takePendingSignIn } from '../server-auth'
+import { decideDeviceAuthorization, exchangeSignInTicket, getDeviceAuthorization, getServerAuthStatus, isServerAuthRoute, safeRedirectPath, ServerAuthError, submitConsent } from '../server-auth'
 
 function mockFetch(handler: (url: string, init: RequestInit) => Response) {
   const calls: Array<{ url: string, init: RequestInit }> = []
@@ -65,18 +65,6 @@ describe('authorization calls', () => {
 
     mockFetch(() => Response.json({ userId: 'user-1' }))
     expect(await exchangeSignInTicket('ticket-value')).toEqual({ redirectUrl: undefined })
-  })
-
-  it('keeps a pending sign-in for one use and drops unsafe redirects', () => {
-    savePendingSignIn({ oauthQuery: 'client_id=c&sig=s' })
-    expect(hasPendingSignIn()).toBe(true)
-    expect(takePendingSignIn()).toEqual({ oauthQuery: 'client_id=c&sig=s', redirect: undefined })
-    expect(hasPendingSignIn()).toBe(false)
-    expect(takePendingSignIn()).toEqual({})
-
-    // A tampered session value must not turn into an off-site redirect.
-    sessionStorage.setItem('server-auth/pending-sign-in', JSON.stringify({ redirect: '//evil.example' }))
-    expect(takePendingSignIn()).toEqual({ oauthQuery: undefined, redirect: '/' })
   })
 
   it('submits consent with the signed query and returns the client redirect', async () => {

@@ -6,13 +6,10 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import { IS_CORE_MODE } from '../constants'
-import { exchangeSignInTicket, getServerAuthStatus, takePendingSignIn } from '../lib/server-auth'
+import { exchangeSignInTicket, getServerAuthStatus } from '../lib/server-auth'
 
-/** What the caller should do after a completed sign-in. */
-export type SignInOutcome
-  = | { kind: 'navigate', url: string } // leave the app: consent page or the OAuth client
-    | { kind: 'route', path: string } // continue inside the app
-    | { kind: 'done' }
+/** Where a completed sign-in continues: the next authorization step, or nowhere in particular. */
+export type SignInOutcome = { kind: 'navigate', url: string } | { kind: 'done' }
 
 /**
  * Sign-in state for a server running with OAuth (`TGS_AUTH=oauth`). Logging in
@@ -55,18 +52,16 @@ export const useServerAuthStore = defineStore('server-auth', () => {
 
   /**
    * Signs in to the server with the Telegram account the bridge is logged in
-   * to, then continues where the sign-in was requested. Call only once the
-   * account is ready; concurrent calls share one attempt.
+   * to. With `oauthQuery` (the signed request on `/auth/sign-in`) the server
+   * resumes that authorization request. Call only once the account is ready;
+   * concurrent calls share one attempt.
    */
-  function completeSignIn(): Promise<SignInOutcome> {
+  function completeSignIn(oauthQuery?: string): Promise<SignInOutcome> {
     signingIn ??= (async () => {
       const ticket = await requestTicket()
-      const next = takePendingSignIn()
-      const { redirectUrl } = await exchangeSignInTicket(ticket, next.oauthQuery)
+      const { redirectUrl } = await exchangeSignInTicket(ticket, oauthQuery)
       status.value = 'signed-in'
-      if (redirectUrl)
-        return { kind: 'navigate', url: redirectUrl } as const
-      return next.redirect ? { kind: 'route', path: next.redirect } as const : { kind: 'done' } as const
+      return redirectUrl ? { kind: 'navigate', url: redirectUrl } as const : { kind: 'done' } as const
     })().finally(() => {
       signingIn = undefined
     })

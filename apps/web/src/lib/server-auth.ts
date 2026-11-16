@@ -85,37 +85,6 @@ export async function exchangeSignInTicket(ticket: string, oauthQuery?: string):
   return { redirectUrl: result.redirect && result.url ? result.url : undefined }
 }
 
-const PENDING_SIGN_IN_KEY = 'server-auth/pending-sign-in'
-
-/** Where to continue after the Telegram login; kept across the `/login` detour for this tab only. */
-export interface PendingSignIn {
-  oauthQuery?: string
-  redirect?: string
-}
-
-export function savePendingSignIn(pending: PendingSignIn): void {
-  sessionStorage.setItem(PENDING_SIGN_IN_KEY, JSON.stringify(pending))
-}
-
-export function hasPendingSignIn(): boolean {
-  return sessionStorage.getItem(PENDING_SIGN_IN_KEY) !== null
-}
-
-export function takePendingSignIn(): PendingSignIn {
-  const raw = sessionStorage.getItem(PENDING_SIGN_IN_KEY)
-  sessionStorage.removeItem(PENDING_SIGN_IN_KEY)
-  try {
-    const value = raw ? JSON.parse(raw) as PendingSignIn : {}
-    return {
-      oauthQuery: typeof value.oauthQuery === 'string' ? value.oauthQuery : undefined,
-      redirect: typeof value.redirect === 'string' ? safeRedirectPath(value.redirect) : undefined,
-    }
-  }
-  catch {
-    return {}
-  }
-}
-
 interface PublicClientResponse {
   client_id: string
   client_name?: string
