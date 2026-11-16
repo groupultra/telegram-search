@@ -138,7 +138,9 @@ async function fixture() {
     const form = (values: Record<string, string>) => ({ method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(values).toString() })
     const issued = await request('/api/auth/device/code', form({ client_id: CLI_CLIENT_ID, scope, resource }))
     expect(issued.status).toBe(200)
-    const device = await issued.json() as { device_code: string, user_code: string }
+    const device = await issued.json() as { device_code: string, user_code: string, verification_uri: string }
+    // The Web UI serves the approval page; `/login` is the Telegram MTProto login.
+    expect(device.verification_uri).toBe(`${publicUrl}/auth/device`)
     const bound = await request(`/api/auth/device?user_code=${device.user_code}`, { headers: { cookie: jar.header() } })
     expect(bound.status).toBe(200)
     const approved = await request('/api/auth/device/approve', { method: 'POST', headers: { 'content-type': 'application/json', 'cookie': jar.header(), 'origin': publicUrl }, body: JSON.stringify({ userCode: device.user_code }) })

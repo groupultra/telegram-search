@@ -46,7 +46,7 @@ The server removes `database:admin` from every token whose user is not listed in
 - **Codex** adds the same URL as a remote MCP server and signs in with `codex mcp login <name>`.
 - **The CLI** uses the public `tgs-cli` client and the device authorization grant: `tgs remote login` prints a verification URL and code to approve in a browser that is signed in to this server. See the CLI README.
 
-The login (`/login`), consent (`/consent`), and device approval (`/device`) pages belong to the Web UI and are not part of this release yet. Until they ship, `TGS_AUTH=oauth` cannot complete a browser sign-in: do not enable it on a production server. Third-party MCP clients cannot request `database:admin`; only the `tgs-cli` client can.
+The sign-in (`/auth/sign-in`), consent (`/auth/consent`), and device approval (`/auth/device`) pages belong to the Web UI. `TGS_PUBLIC_URL` is the origin that serves both the Web UI and these routes, so a proxy in front of the server must forward `/api/auth/` without stripping its prefix, and `/mcp` and `/.well-known/oauth-*` unchanged. Until a Web UI release with these pages is deployed, `TGS_AUTH=oauth` cannot complete a browser sign-in. Third-party MCP clients cannot request `database:admin`; only the `tgs-cli` client can.
 
 Run the server behind a proxy that preserves the `Host` header (for nginx, `proxy_set_header Host $host;`). `/mcp` rejects requests whose host differs from `TGS_PUBLIC_URL`, and browser requests whose `Origin` names another host.
 

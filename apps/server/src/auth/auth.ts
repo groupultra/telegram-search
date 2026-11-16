@@ -68,8 +68,8 @@ export function createAuth({ db, config }: CreateAuthOptions): Auth {
       jwt(),
       mcp({
         resource,
-        loginPage: '/login',
-        consentPage: '/consent',
+        loginPage: '/auth/sign-in',
+        consentPage: '/auth/consent',
         scopes: ['openid', 'profile', 'offline_access', ...remoteScopes],
         clientRegistrationDefaultScopes: ['offline_access', ...ownerScopes],
         // Third-party clients register themselves (CIMD), so they can never ask for database administration; only `tgs-cli` can.
@@ -88,7 +88,7 @@ export function createAuth({ db, config }: CreateAuthOptions): Auth {
         },
       }),
       cimd({ fetchClientMetadataResource, metadataProfile: 'mcp-2026-07-28' }),
-      oauthDeviceAuthorization({ verificationUri: '/device' }),
+      oauthDeviceAuthorization({ verificationUri: '/auth/device' }),
       genericOAuth({
         config: [{
           providerId: 'telegram',
