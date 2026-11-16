@@ -53,5 +53,5 @@ export async function mountOAuth(app: H3, { db, config, getApplication }: MountO
   return createSessionGuard(async (headers) => {
     const session = await auth.api.getSession({ headers })
     return session?.user ? { id: session.user.id } : undefined
-  })
+  }, { publicUrl: config.publicUrl })
 }

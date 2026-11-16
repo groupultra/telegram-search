@@ -46,7 +46,9 @@ The server removes `database:admin` from every token whose user is not listed in
 - **Codex** adds the same URL as a remote MCP server and signs in with `codex mcp login <name>`.
 - **The CLI** uses the public `tgs-cli` client and the device authorization grant: `tgs remote login` prints a verification URL and code to approve in a browser that is signed in to this server. See the CLI README.
 
-The login (`/login`), consent (`/consent`), and device approval (`/device`) pages are served by the Web UI.
+The login (`/login`), consent (`/consent`), and device approval (`/device`) pages belong to the Web UI and are not part of this release yet. Until they ship, `TGS_AUTH=oauth` cannot complete a browser sign-in: do not enable it on a production server. Third-party MCP clients cannot request `database:admin`; only the `tgs-cli` client can.
+
+Run the server behind a proxy that preserves the `Host` header (for nginx, `proxy_set_header Host $host;`). `/mcp` rejects requests whose host differs from `TGS_PUBLIC_URL`, and browser requests whose `Origin` names another host.
 
 ### MCP tools
 
@@ -82,6 +84,6 @@ Access is denied by default. A request needs both the exact method capability an
 
 Every authenticated request writes an append-only row to `remote_audit_events` before its response is returned. The row records the OAuth client ID (`credential_id`), user, account, method, chat scope, authorization decision, outcome, timing, and sanitized request/result summaries. Search text is stored only as its length and SHA-256 hash. Tokens and message contents are never written to the audit table. If audit persistence fails, the remote request fails closed.
 
-With `TGS_AUTH=oauth`, `/mcp` and `/v1/remote/*` require an access token, and `/ws`, `/v1/photos/*`, and `/v1/stickers/*` require a signed-in session. Each WebSocket `sessionId` belongs to the first user that opens it; another user's upgrade is refused with 403. Photo and sticker routes check the session, not the photo's account, so a signed-in user who knows another account's media ID can fetch it. The server process and database administrators remain trusted: the server can read every account it serves. Do not log request bodies, tokens, or query text in production; set an appropriate production log level.
+With `TGS_AUTH=oauth`, `/mcp` and `/v1/remote/*` require an access token, and `/ws`, `/v1/photos/*`, and `/v1/stickers/*` require a signed-in session. Each WebSocket `sessionId` belongs to the first user that opens it; another user's upgrade, and any upgrade whose `Origin` is not `TGS_PUBLIC_URL`, is refused with 403. Any Telegram user can sign up. Photo and sticker routes check the session, not the photo's account, so a signed-in user who knows another account's media ID can fetch it. The server process and database administrators remain trusted: the server can read every account it serves. Do not log request bodies, tokens, or query text in production; set an appropriate production log level.
 
 The `/ws` route creates account-scoped Eventa peer contexts and keeps HTTP for health checks and binary photo/sticker delivery. During the UI migration, true realtime domain notifications continue to share the same WebSocket connection.

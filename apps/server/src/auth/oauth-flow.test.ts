@@ -232,6 +232,38 @@ describe('oAuth authorization, MCP, and remote API', () => {
     expect(denied.status).toBe(403)
   })
 
+  it('hides internal failures from MCP clients', async () => {
+    const f = await fixture()
+    const jar = await f.signIn(987654321)
+    const accessToken = await f.deviceToken(jar, 'messages:read')
+    await models.accountModels.recordAccount(f.db, 'telegram', '987654321')
+    // The SDK forwards a thrown error's message; a database error can carry SQL and account IDs.
+    f.searchLocalMessages.mockRejectedValueOnce(new Error('select * from chat_messages where account_id = $1'))
+    const { client, connect } = f.mcpClient(accessToken)
+    await connect()
+    const result = await client.callTool({ name: 'messages_search', arguments: { query: 'progress' } })
+    expect(result.isError).toBe(true)
+    expect(result.structuredContent).toMatchObject({ ok: false, error: { code: 'INTERNAL_ERROR' } })
+    expect(JSON.stringify(result)).not.toContain('chat_messages')
+    await client.close()
+  })
+
+  it('keeps device login working after TGS_PUBLIC_URL changes', async () => {
+    // The CLI client's resource link used one fixed row; after a URL change it pointed at the old resource
+    // and every device login failed with invalid_target.
+    const f = await fixture()
+    const movedUrl = 'http://localhost:3001'
+    const moved = { ...config, publicUrl: movedUrl }
+    const app = new H3()
+    await mountOAuth(app, { db: f.db, config: moved, getApplication: f.getApplication })
+    const issued = await app.fetch(new Request(`${movedUrl}/api/auth/device/code`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: CLI_CLIENT_ID, scope: 'messages:read', resource: oauthUrls(moved).resource }).toString(),
+    }))
+    expect(issued.status).toBe(200)
+  })
+
   it('refuses a token whose Telegram user has not connected an account on this server', async () => {
     const f = await fixture()
     const jar = await f.signIn(111111111)
@@ -271,5 +303,11 @@ describe('oAuth authorization, MCP, and remote API', () => {
     await f.guard.authorizeWebSocket(ws(alice), 's1')
     await f.guard.authorizeWebSocket(ws(alice), 's1')
     await expect(f.guard.authorizeWebSocket(ws(bob), 's1')).rejects.toMatchObject({ status: 403 })
+
+    // A page on another origin (for example a sibling subdomain) carries the cookie but not the server's Origin.
+    const crossOrigin = new Request(`${publicUrl}/ws?sessionId=s1`, { headers: { cookie: alice.header(), origin: 'https://evil.localhost:3000' } })
+    await expect(f.guard.authorizeWebSocket(crossOrigin, 's1')).rejects.toMatchObject({ status: 403 })
+    const sameOrigin = new Request(`${publicUrl}/ws?sessionId=s1`, { headers: { cookie: alice.header(), origin: publicUrl } })
+    await f.guard.authorizeWebSocket(sameOrigin, 's1')
   })
 })

@@ -72,7 +72,8 @@ export function createAuth({ db, config }: CreateAuthOptions): Auth {
         consentPage: '/consent',
         scopes: ['openid', 'profile', 'offline_access', ...remoteScopes],
         clientRegistrationDefaultScopes: ['offline_access', ...ownerScopes],
-        clientRegistrationAllowedScopes: ['openid', 'profile', 'offline_access', ...remoteScopes],
+        // Third-party clients register themselves (CIMD), so they can never ask for database administration; only `tgs-cli` can.
+        clientRegistrationAllowedScopes: ['openid', 'profile', 'offline_access', ...ownerScopes],
         customAccessTokenClaims: async ({ user }) => {
           if (!user || !instance.context)
             return {}
@@ -135,9 +136,7 @@ export async function ensureCliClient(db: CoreDB, auth: Auth, config: OAuthConfi
   // Wait for the provider to seed the configured protected resource that the client links to.
   await auth.$context
   const now = new Date()
-  await db.insert(authOauthClientTable).values({
-    id: CLI_CLIENT_ID,
-    clientId: CLI_CLIENT_ID,
+  const policy = {
     name: 'Telegram Search CLI',
     redirectUris: [],
     tokenEndpointAuthMethod: 'none',
@@ -147,13 +146,17 @@ export async function ensureCliClient(db: CoreDB, auth: Auth, config: OAuthConfi
     scopes: ['offline_access', ...remoteScopes],
     disabled: false,
     skipConsent: false,
-    createdAt: now,
     updatedAt: now,
-  }).onConflictDoNothing({ target: authOauthClientTable.clientId })
+  }
+  // Upsert so a changed client policy applies on the next start instead of keeping the first row forever.
+  await db.insert(authOauthClientTable).values({ id: CLI_CLIENT_ID, clientId: CLI_CLIENT_ID, createdAt: now, ...policy }).onConflictDoUpdate({ target: authOauthClientTable.clientId, set: policy })
+  // Link the client to the current resource. A row per resource survives a TGS_PUBLIC_URL change,
+  // where a fixed link would keep pointing at the old resource and fail every device login with invalid_target.
+  const resourceId = oauthUrls(config).resource
   await db.insert(authOauthClientResourceTable).values({
-    id: `${CLI_CLIENT_ID}:resource`,
+    id: `${CLI_CLIENT_ID}:${resourceId}`,
     clientId: CLI_CLIENT_ID,
-    resourceId: oauthUrls(config).resource,
+    resourceId,
     createdAt: now,
   }).onConflictDoNothing()
 }

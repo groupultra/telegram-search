@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -100,6 +100,14 @@ describe('remote access tokens', () => {
     }) as unknown as typeof globalThis.fetch
     expect(await remoteAccessToken(paths, endpoint, { fetch, now: () => 3_560_000 })).toBe('access-2')
     expect(JSON.parse(await readFile(paths.remoteToken, 'utf8'))).toMatchObject({ accessToken: 'access-2', refreshToken: 'refresh-1' })
+  })
+
+  it('treats a damaged token file as missing credentials', async () => {
+    // A truncated file from an interrupted write threw a raw SyntaxError and broke the output contract.
+    const paths = await profilePaths()
+    await writeFile(paths.remoteToken, '{"endpoint": "https://tgs.exa')
+    expect(await readRemoteToken(paths)).toBeUndefined()
+    await expect(remoteAccessToken(paths, endpoint)).rejects.toMatchObject({ appError: { code: 'REMOTE_CREDENTIALS_MISSING' } })
   })
 
   it('asks for a new login when the refresh token is rejected or missing', async () => {

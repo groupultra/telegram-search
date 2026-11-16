@@ -72,12 +72,19 @@ export function createMcpServerForPrincipal(principal: RemotePrincipal, executor
       inputSchema: inputSchemas.get(method),
       annotations: { readOnlyHint: readOnly, destructiveHint: !readOnly, openWorldHint: false },
     }, async (args: unknown, ctx) => {
-      const execution = await executor.execute(principal, method, {
-        requestId: randomUUID(),
-        signal: ctx.mcpReq.signal,
-        userAgent: 'mcp',
-        readInput: async () => args ?? {},
-      })
+      let execution: Awaited<ReturnType<RemoteExecutor['execute']>>
+      try {
+        execution = await executor.execute(principal, method, {
+          requestId: randomUUID(),
+          signal: ctx.mcpReq.signal,
+          userAgent: 'mcp',
+          readInput: async () => args ?? {},
+        })
+      }
+      catch {
+        // The SDK would send the error message to the client; database errors can carry SQL and IDs.
+        return toolResult({ ok: false, error: { code: 'INTERNAL_ERROR', message: 'Remote request failed', retryable: false } }, true)
+      }
       if (execution.kind === 'rejected')
         return toolResult({ ok: false, error: { code: execution.code, message: execution.message, retryable: false } }, true)
       const result = execution.result as { ok?: boolean, data?: unknown }

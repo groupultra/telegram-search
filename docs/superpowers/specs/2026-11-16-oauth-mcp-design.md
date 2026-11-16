@@ -88,7 +88,7 @@ interface RemotePrincipal {
 | `/.well-known/oauth-authorization-server`, `/.well-known/openid-configuration`, `/.well-known/oauth-protected-resource` | Served by Better Auth at the origin root |
 | `/mcp` | `requireMcpAuth` with the MCP resource as audience |
 | `/v1/remote/:method` | Same verifier and the same `/mcp` audience; used by the CLI. A second resource would need its own protected-resource metadata and client linking for no isolation gain, since both surfaces expose the same methods with the same checks |
-| `/v1/remote/media.download` | Ticket capability as today, key now derived from `BETTER_AUTH_SECRET` with an HKDF purpose label; the ticket binds `accountId` and `clientId` |
+| `/v1/remote/media.download` | Ticket capability as today, key now derived from `BETTER_AUTH_SECRET` with an HMAC purpose label; the ticket binds `accountId`. Binding `clientId` so a revoked client's links stop at once is a follow-up |
 | `/ws` | Better Auth session cookie; each `sessionId` belongs to the first user that opens it |
 | `/v1/photos/*`, `/v1/stickers/*` | Better Auth session cookie. Per-account ownership of a media ID is a follow-up |
 
@@ -106,7 +106,7 @@ New environment variables:
 
 - `TGS_PUBLIC_URL`: canonical HTTPS origin; issuer and resource identifiers derive from it.
 - `BETTER_AUTH_SECRET`: at least 32 random bytes.
-- `TELEGRAM_LOGIN_CLIENT_ID`, `TELEGRAM_LOGIN_CLIENT_SECRET`: from BotFather Login Widget; register `<TGS_PUBLIC_URL>/api/auth/oauth2/callback/telegram`.
+- `TELEGRAM_LOGIN_CLIENT_ID`, `TELEGRAM_LOGIN_CLIENT_SECRET`: from BotFather Login Widget; register `<TGS_PUBLIC_URL>/api/auth/callback/telegram`.
 - `TGS_ADMIN_TELEGRAM_IDS`: optional comma-separated list.
 - `TGS_AUTH`: `none` (default) or `oauth`.
 

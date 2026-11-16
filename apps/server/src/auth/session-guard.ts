@@ -6,12 +6,17 @@ export type SessionUserLookup = (headers: Headers) => Promise<{ id: string } | u
  * Web UI authorization: a Better Auth session cookie is required, and each
  * WebSocket `sessionId` belongs to the first user that opened it.
  */
-export function createSessionGuard(getSessionUser: SessionUserLookup) {
+export function createSessionGuard(getSessionUser: SessionUserLookup, options: { publicUrl: string }) {
+  const allowedOrigin = new URL(options.publicUrl).origin
   // WebSocket session IDs are client-chosen and key the in-memory account state, so bind each one to its user.
   const sessionOwners = new Map<string, string>()
 
   /** Throws a `Response`: crossws aborts an upgrade only on a thrown Response and turns other errors into 500. */
   async function authorizeWebSocket(request: Request, sessionId: string): Promise<void> {
+    // Browsers send cookies on cross-origin WebSocket upgrades (same-site siblings included), so pin the Origin.
+    const origin = request.headers.get('origin')
+    if (origin !== null && origin !== allowedOrigin)
+      throw new Response('Cross-origin WebSocket upgrades are not allowed', { status: 403 })
     const user = await getSessionUser(request.headers)
     if (!user)
       throw new Response('Sign in is required', { status: 401 })

@@ -2,7 +2,8 @@ import type { InferOutput } from 'valibot'
 
 import type { ProfilePaths } from './profile'
 
-import { chmod, readFile, rm, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { chmod, readFile, rename, rm, writeFile } from 'node:fs/promises'
 
 import { ApplicationError } from '@tg-search/core'
 import { normalizeRemoteUrl } from '@tg-search/protocol'
@@ -100,13 +101,29 @@ export async function readRemoteToken(paths: ProfilePaths): Promise<StoredRemote
       return undefined
     throw error
   }
-  const parsed = safeParse(storedTokenSchema, JSON.parse(raw))
+  let value: unknown
+  try {
+    value = JSON.parse(raw)
+  }
+  catch {
+    // A damaged file means the sign-in is unusable; report missing credentials instead of a raw SyntaxError.
+    return undefined
+  }
+  const parsed = safeParse(storedTokenSchema, value)
   return parsed.success ? parsed.output : undefined
 }
 
 async function writeRemoteToken(paths: ProfilePaths, token: StoredRemoteToken): Promise<void> {
-  await writeFile(paths.remoteToken, `${JSON.stringify(token, null, 2)}\n`, { mode: 0o600 })
-  await chmod(paths.remoteToken, 0o600)
+  // Write then rename so a concurrent `tgs` process never reads a half-written token file.
+  const temporary = `${paths.remoteToken}.${randomUUID()}.tmp`
+  try {
+    await writeFile(temporary, `${JSON.stringify(token, null, 2)}\n`, { mode: 0o600 })
+    await chmod(temporary, 0o600)
+    await rename(temporary, paths.remoteToken)
+  }
+  finally {
+    await rm(temporary, { force: true })
+  }
 }
 
 export async function deleteRemoteToken(paths: ProfilePaths): Promise<void> {
