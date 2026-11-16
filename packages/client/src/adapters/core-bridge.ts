@@ -103,6 +103,10 @@ export function createCoreBridgeAdapter(createRuntime = createCoreRuntime) {
           ctx.emitter.on(eventName, fn as (...args: unknown[]) => void)
         }
       }
+      else if (event === 'server:sign-in-ticket') {
+        // Browser-only mode has no server, so there is no server session to sign in to.
+        sendWsEvent({ type: 'server:sign-in-ticket', data: { error: 'OAUTH_DISABLED' } })
+      }
       else {
         logger.withFields({ event, data }).debug('Emit event to core')
         ctx.emitter.emit(event, deepClone(data) as ExtractData<keyof ToCoreEvent>)

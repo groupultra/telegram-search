@@ -10,10 +10,14 @@ export interface WsEventMeta {
 
 export interface WsEventFromServer {
   'server:connected': (data: { sessionId: string, accountReady: boolean }) => void
+  /** A single-use ticket for `POST /api/auth/sign-in/telegram-session`, or why none was issued. */
+  'server:sign-in-ticket': (data: { ticket: string } | { error: 'OAUTH_DISABLED' | 'ACCOUNT_NOT_READY' | 'TICKET_FAILED' }) => void
 }
 
 export interface WsEventFromClient {
   'server:event:register': (data: { event: keyof WsEventToClient }) => void
+  /** Requests a sign-in ticket for the Telegram account this session is logged in to. */
+  'server:sign-in-ticket': (data: undefined) => void
 }
 
 export type WsEventToServer = ToCoreEvent & WsEventFromClient

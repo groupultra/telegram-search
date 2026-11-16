@@ -8,7 +8,7 @@ Node/H3 server for Telegram Search.
 |---|---|
 | `src/index.ts` | Bootstrap: config, database, media storage, routes by `TGS_AUTH` mode |
 | `src/oauth.ts` | OAuth mode wiring: mounts the authorization server, `/mcp`, and `/v1/remote`, and returns the Web session guard |
-| `src/auth/` | Better Auth instance (`better-auth.ts`), `TGS_AUTH` config, Telegram ID token verification, token-to-principal resolution, Web session guard |
+| `src/auth/` | Better Auth instance (`better-auth.ts`), `TGS_AUTH` config, Telegram session sign-in (`telegram-session.ts`), token-to-principal resolution, Web session guard |
 | `src/remote/` | Remote methods shared by REST and MCP: executor (scopes, chat scope, audit), REST transport (`http.ts`), scopes, audit recorder, media links, account application |
 | `src/mcp/` | Streamable HTTP MCP endpoint and tool registration |
 | `src/app.ts`, `src/account.ts`, `src/events.ts` | WebSocket bridge and per-account Core state |
@@ -19,7 +19,7 @@ Node/H3 server for Telegram Search.
 `TGS_AUTH` selects the mode:
 
 - `none` (default): a single-user server. The Web UI, `/ws`, and media routes have no authentication, and the remote API and MCP endpoint do not exist. Run it only where the network already restricts access.
-- `oauth`: TGS is an OAuth 2.1 authorization server. Users sign in with Telegram; ChatGPT, Codex, and the CLI obtain access tokens; `/ws` and the Web media routes require a signed-in session.
+- `oauth`: TGS is an OAuth 2.1 authorization server. Users sign in by logging in to Telegram in the Web UI; ChatGPT, Codex, and the CLI obtain access tokens; the Web media routes require a signed-in session.
 
 `oauth` requires every variable below and refuses to start without them:
 
@@ -27,19 +27,19 @@ Node/H3 server for Telegram Search.
 |---|---|
 | `TGS_PUBLIC_URL` | Canonical HTTPS origin without a path, for example `https://tgs.example.com`. HTTP is accepted only on loopback. The token issuer is `<TGS_PUBLIC_URL>/api/auth` and the protected resource is `<TGS_PUBLIC_URL>/mcp`. |
 | `BETTER_AUTH_SECRET` | At least 32 random characters (`openssl rand -hex 32`). It also derives the media link key. |
-| `TELEGRAM_LOGIN_CLIENT_ID` | Bot ID from @BotFather, **Login Widget**. |
-| `TELEGRAM_LOGIN_CLIENT_SECRET` | Client secret from the same screen. |
 | `TGS_ADMIN_TELEGRAM_IDS` | Optional comma-separated Telegram user IDs that may use `database:admin`. |
-
-In @BotFather **Login Widget**, add `<TGS_PUBLIC_URL>` to the allowed URLs and register `<TGS_PUBLIC_URL>/api/auth/callback/telegram` as the redirect URI.
 
 `TG_SEARCH_REMOTE_ACCESS` and `TG_SEARCH_REMOTE_TOKEN` were removed. The server refuses to start while `TG_SEARCH_REMOTE_ACCESS` or `TG_SEARCH_REMOTE_TOKEN` is set, so an old access policy cannot be silently ignored. Migrate by setting `TGS_AUTH=oauth` and signing each client in again.
 
 ### Identity and tenancy
 
-A user signs in with Telegram OpenID Connect (scopes `openid profile`). Telegram publishes no UserInfo endpoint, so the server verifies the ID token against Telegram's JWKS and reads the Telegram user ID from its `id` claim. Better Auth requires an email address and Telegram provides none, so each user gets a synthetic `tg-<id>@users.telegram.invalid` address; email sign-in and linking by email are disabled.
+Logging in to Telegram is the sign-in. The Web UI logs in over the WebSocket as before (phone code, two-step password, or a saved session). Once that account is ready, the browser sends `server:sign-in-ticket`, and the server answers with a ticket for the Telegram user the runtime is logged in as; the identity never comes from the request. The browser exchanges the ticket at `POST /api/auth/sign-in/telegram-session` for a session cookie. Tickets are random, stored only as a SHA-256 hash, expire after two minutes, and are consumed atomically on first use.
 
-An access token may act only on the TGS account whose `platform_user_id` equals the signed-in user's Telegram ID. That account exists after the same Telegram user signs in to Telegram on this server. Until then every call returns `403 TELEGRAM_NOT_CONNECTED`; a token never falls back to another account.
+The linked account (`providerId: "telegram"`) is keyed by the Telegram user ID, which access tokens carry as `telegram_id`. Better Auth requires an email address and Telegram provides none, so each user gets a synthetic `tg-<id>@users.telegram.invalid` address; email sign-in and linking by email are disabled.
+
+When an authorization request sent the user to `/auth/sign-in`, the page passes the signed request back as `oauth_query`. Better Auth verifies its signature before the ticket is consumed and, once the session is set, answers `{ redirect: true, url }` with the next step (consent or the client).
+
+An access token may act only on the TGS account whose `platform_user_id` equals the signed-in user's Telegram ID. That account exists after the same Telegram user logs in to Telegram on this server. Until then every call returns `403 TELEGRAM_NOT_CONNECTED`; a token never falls back to another account.
 
 ### Scopes
 
@@ -56,7 +56,7 @@ The server removes `database:admin` from every token whose user is not listed in
 
 - **ChatGPT and other MCP clients** connect to `<TGS_PUBLIC_URL>/mcp` (Streamable HTTP). They discover the authorization server from `/.well-known/oauth-protected-resource/mcp` and register through Client ID Metadata Documents. Dynamic client registration is disabled.
 - **Codex** adds the same URL as a remote MCP server and signs in with `codex mcp login <name>`.
-- **The CLI** uses the public `tgs-cli` client and the device authorization grant: `tgs remote login` prints a verification URL and code to approve in a browser that is signed in to this server. See the CLI README.
+- **The CLI** uses the public `tgs-cli` client and the device authorization grant: `tgs remote login` prints a verification URL and code to approve in a browser signed in to this server's Web UI. See the CLI README.
 
 The sign-in (`/auth/sign-in`), consent (`/auth/consent`), and device approval (`/auth/device`) pages belong to the Web UI. `TGS_PUBLIC_URL` is the origin that serves both the Web UI and these routes, so a proxy in front of the server must forward `/api/auth/` without stripping its prefix, and `/mcp` and `/.well-known/oauth-*` unchanged. Until a Web UI release with these pages is deployed, `TGS_AUTH=oauth` cannot complete a browser sign-in. Third-party MCP clients cannot request `database:admin`; only the `tgs-cli` client can.
 
@@ -96,6 +96,6 @@ Access is denied by default. A request needs both the exact method capability an
 
 Every authenticated request writes an append-only row to `remote_audit_events` before its response is returned. The row records the OAuth client ID (`credential_id`), user, account, method, chat scope, authorization decision, outcome, timing, and sanitized request/result summaries. Search text is stored only as its length and SHA-256 hash. Tokens and message contents are never written to the audit table. If audit persistence fails, the remote request fails closed.
 
-With `TGS_AUTH=oauth`, `/mcp` and `/v1/remote/*` require an access token, and `/ws`, `/v1/photos/*`, and `/v1/stickers/*` require a signed-in session. Each WebSocket `sessionId` belongs to the first user that opens it; another user's upgrade, and any upgrade whose `Origin` is not `TGS_PUBLIC_URL`, is refused with 403. Any Telegram user can sign up. Photo and sticker routes check the session, not the photo's account, so a signed-in user who knows another account's media ID can fetch it. The server process and database administrators remain trusted: the server can read every account it serves. Do not log request bodies, tokens, or query text in production; set an appropriate production log level.
+With `TGS_AUTH=oauth`, `/mcp` and `/v1/remote/*` require an access token, and `/v1/photos/*` and `/v1/stickers/*` require a signed-in session. `/ws` stays open to signed-out browsers because the Telegram login runs over it; as in the single-user mode, its unguessable client-chosen `sessionId` scopes the account runtime. Upgrades whose `Origin` is not `TGS_PUBLIC_URL` are refused with 403. Anyone who can log in to a Telegram account can sign up. Photo and sticker routes check the session, not the photo's account, so a signed-in user who knows another account's media ID can fetch it. The server process and database administrators remain trusted: the server can read every account it serves. Do not log request bodies, tokens, or query text in production; set an appropriate production log level.
 
 The `/ws` route creates account-scoped Eventa peer contexts and keeps HTTP for health checks and binary photo/sticker delivery. During the UI migration, true realtime domain notifications continue to share the same WebSocket connection.

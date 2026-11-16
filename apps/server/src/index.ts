@@ -90,10 +90,10 @@ async function configureServer(logger: Logger, flags: RuntimeFlags, config: Conf
     applications.set(accountId, application)
     return application
   }
-  const guard = await mountOAuth(app, { db: getDB(), config: authConfig, getApplication })
+  const { guard, issueSignInTicket } = await mountOAuth(app, { db: getDB(), config: authConfig, getApplication })
   app.use(guard.requireSession(['/v1/photos/', '/v1/stickers/']))
   app.mount('/v1', v1api(getDB(), models, getMediaStorage()))
-  setupWsRoutes(app, config, { authorize: guard.authorizeWebSocket })
+  setupWsRoutes(app, config, { authorize: guard.authorizeWebSocket, issueSignInTicket })
   logger.withFields({ publicUrl: authConfig.publicUrl }).log('OAuth authorization, MCP, and remote API enabled')
 
   return app

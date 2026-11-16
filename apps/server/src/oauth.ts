@@ -9,6 +9,7 @@ import { models } from '@tg-search/core'
 import { createAuth, ensureCliClient, oauthUrls } from './auth/better-auth'
 import { createClaimsVerifier, createOAuthRemoteAuthenticator, createPrincipalResolver } from './auth/principal'
 import { createSessionGuard } from './auth/session-guard'
+import { issueTelegramSessionTicket } from './auth/telegram-session'
 import { createMcpEndpoint } from './mcp/server'
 import { createRemoteAuditRecorder } from './remote/audit'
 import { createRemoteExecutor } from './remote/executor'
@@ -23,7 +24,7 @@ export interface MountOAuthOptions {
 
 /**
  * Mounts the authorization server, the MCP endpoint, and the REST remote API,
- * and returns the session guard that protects the Web UI routes.
+ * and returns the Web route guard and the sign-in ticket issuer for the WebSocket bridge.
  */
 export async function mountOAuth(app: H3, { db, config, getApplication }: MountOAuthOptions) {
   const auth = createAuth({ db, config })
@@ -51,8 +52,12 @@ export async function mountOAuth(app: H3, { db, config, getApplication }: MountO
   app.all('/mcp', event => mcp(event.req))
   app.mount('/v1/remote', createRemoteApi(createOAuthRemoteAuthenticator(verify, resolvePrincipal), executor, media))
 
-  return createSessionGuard(async (headers) => {
+  const guard = createSessionGuard(async (headers) => {
     const session = await auth.api.getSession({ headers })
     return session?.user ? { id: session.user.id } : undefined
   }, { publicUrl: config.publicUrl })
+  return {
+    guard,
+    issueSignInTicket: (identity: { telegramId: string, name?: string }) => issueTelegramSessionTicket(auth, identity),
+  }
 }

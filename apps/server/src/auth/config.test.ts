@@ -6,8 +6,6 @@ const oauthEnv = {
   TGS_AUTH: 'oauth',
   TGS_PUBLIC_URL: 'https://tgs.example.com/',
   BETTER_AUTH_SECRET: 'synthetic-secret-'.repeat(3),
-  TELEGRAM_LOGIN_CLIENT_ID: '123456789',
-  TELEGRAM_LOGIN_CLIENT_SECRET: 'synthetic-client-secret',
 }
 
 describe('authorization configuration', () => {
@@ -20,12 +18,11 @@ describe('authorization configuration', () => {
     expect(config).toMatchObject({
       mode: 'oauth',
       publicUrl: 'https://tgs.example.com',
-      telegram: { clientId: '123456789', clientSecret: 'synthetic-client-secret' },
     })
     expect(config.mode === 'oauth' && [...config.adminTelegramIds]).toEqual(['42', '7'])
   })
 
-  it.each(['TGS_PUBLIC_URL', 'BETTER_AUTH_SECRET', 'TELEGRAM_LOGIN_CLIENT_ID', 'TELEGRAM_LOGIN_CLIENT_SECRET'])('refuses OAuth without %s', (name) => {
+  it.each(['TGS_PUBLIC_URL', 'BETTER_AUTH_SECRET'])('refuses OAuth without %s', (name) => {
     expect(() => authConfigFromEnv({ ...oauthEnv, [name]: undefined })).toThrow(name)
   })
 

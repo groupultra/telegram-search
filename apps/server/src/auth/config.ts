@@ -8,14 +8,13 @@ export type AuthConfig
       /** Canonical origin without a trailing slash; issuer and resource identifiers derive from it. */
       publicUrl: string
       secret: string
-      telegram: { clientId: string, clientSecret: string }
       /** Telegram user IDs that may grant the `database:admin` scope. */
       adminTelegramIds: ReadonlySet<string>
     }
 
 const telegramId = pipe(string(), regex(/^\d{1,20}$/, 'Telegram IDs are decimal numbers'))
 
-const oauthEnvSchema = pipe(
+const adminTelegramIdsSchema = pipe(
   optional(string(), ''),
   transform(value => value.split(',').map(item => item.trim()).filter(Boolean)),
   array(telegramId),
@@ -53,10 +52,6 @@ export function authConfigFromEnv(env: Record<string, string | undefined>): Auth
     mode,
     publicUrl,
     secret: parse(pipe(string(), minLength(32, 'BETTER_AUTH_SECRET must contain at least 32 characters')), required('BETTER_AUTH_SECRET')),
-    telegram: {
-      clientId: parse(telegramId, required('TELEGRAM_LOGIN_CLIENT_ID')),
-      clientSecret: required('TELEGRAM_LOGIN_CLIENT_SECRET'),
-    },
-    adminTelegramIds: new Set(parse(oauthEnvSchema, env.TGS_ADMIN_TELEGRAM_IDS)),
+    adminTelegramIds: new Set(parse(adminTelegramIdsSchema, env.TGS_ADMIN_TELEGRAM_IDS)),
   }
 }

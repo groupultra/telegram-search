@@ -3,27 +3,21 @@ import type { Middleware } from 'h3'
 export type SessionUserLookup = (headers: Headers) => Promise<{ id: string } | undefined>
 
 /**
- * Web UI authorization: a Better Auth session cookie is required, and each
- * WebSocket `sessionId` belongs to the first user that opened it.
+ * Web UI authorization. Media routes need a Better Auth session. The
+ * WebSocket stays open to signed-out browsers: logging in to Telegram over it
+ * is how a user signs in (see telegram-session.ts), and its client-chosen,
+ * unguessable `sessionId` already scopes the account runtime as in the
+ * single-user mode.
  */
 export function createSessionGuard(getSessionUser: SessionUserLookup, options: { publicUrl: string }) {
   const allowedOrigin = new URL(options.publicUrl).origin
-  // WebSocket session IDs are client-chosen and key the in-memory account state, so bind each one to its user.
-  const sessionOwners = new Map<string, string>()
 
   /** Throws a `Response`: crossws aborts an upgrade only on a thrown Response and turns other errors into 500. */
-  async function authorizeWebSocket(request: Request, sessionId: string): Promise<void> {
-    // Browsers send cookies on cross-origin WebSocket upgrades (same-site siblings included), so pin the Origin.
+  async function authorizeWebSocket(request: Request): Promise<void> {
+    // Another origin's page must not drive a user's Telegram runtime from their browser.
     const origin = request.headers.get('origin')
     if (origin !== null && origin !== allowedOrigin)
       throw new Response('Cross-origin WebSocket upgrades are not allowed', { status: 403 })
-    const user = await getSessionUser(request.headers)
-    if (!user)
-      throw new Response('Sign in is required', { status: 401 })
-    const owner = sessionOwners.get(sessionId)
-    if (owner !== undefined && owner !== user.id)
-      throw new Response('This session belongs to another user', { status: 403 })
-    sessionOwners.set(sessionId, user.id)
   }
 
   /** Requires a signed-in user for the given path prefixes. */
