@@ -1,5 +1,10 @@
 import type { DialogType } from '@tg-search/core/types'
 
+// NOTICE: UnoCSS does not scan plain .ts files by default. Without this marker
+// the icon classes below only work while some template happens to use the same
+// icon, and silently disappear when that template changes.
+// @unocss-include
+
 export type SearchMode = 'all' | 'messages' | 'photos' | 'commands'
 export type SearchScope = 'current' | 'all'
 export type SearchDialogChatTypeFilter = 'all' | DialogType
@@ -29,7 +34,7 @@ export function createSearchModes(t: (key: string) => string): SearchModeMeta[] 
     { key: 'all', label: t('searchDialog.modeAll'), icon: 'i-lucide-layers' },
     { key: 'messages', label: t('searchDialog.modeMessages'), icon: 'i-lucide-message-circle' },
     { key: 'photos', label: t('searchDialog.modePhotos'), icon: 'i-lucide-image' },
-    { key: 'commands', label: t('searchDialog.modeCommands'), icon: 'i-lucide-settings' },
+    { key: 'commands', label: t('searchDialog.modeCommands'), icon: 'i-lucide-command' },
   ]
 }
 
@@ -66,7 +71,7 @@ export function createSearchDialogCommands({
   return [
     {
       id: 'ai-chat',
-      icon: 'i-lucide-message-square-text',
+      icon: 'i-lucide-sparkles',
       title: t('searchDialog.commandOpenAI'),
       description: t('searchDialog.commandOpenAIDesc'),
       action: () => {
@@ -86,7 +91,7 @@ export function createSearchDialogCommands({
     },
     {
       id: 'chats',
-      icon: 'i-lucide-message-circle',
+      icon: 'i-lucide-messages-square',
       title: t('searchDialog.commandChats'),
       description: t('searchDialog.commandChatsDesc'),
       action: () => {
@@ -96,7 +101,7 @@ export function createSearchDialogCommands({
     },
     {
       id: 'settings',
-      icon: 'i-lucide-settings',
+      icon: 'i-lucide-settings-2',
       title: t('searchDialog.commandSettings'),
       description: t('searchDialog.commandSettingsDesc'),
       action: () => {

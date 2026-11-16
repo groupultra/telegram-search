@@ -28,6 +28,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import ChatSelector from '../components/ChatSelector.vue'
+import PageHeader from '../components/layout/PageHeader.vue'
 import MobileSyncStatsDrawer from '../components/MobileSyncStatsDrawer.vue'
 import SyncSelectedSummaryPanel from '../components/SyncSelectedSummaryPanel.vue'
 import SyncVisualization from '../components/SyncVisualization.vue'
@@ -632,53 +633,45 @@ function startSync() {
 
 <template>
   <div class="h-full flex flex-col bg-background">
-    <!-- Header: Hidden on mobile to save space, actions moved to bottom sheet or other menu if needed -->
-    <!-- Or simplified for mobile -->
-    <header class="h-14 flex items-center justify-between gap-3 border-b bg-card/50 px-4 py-0 backdrop-blur-sm md:h-16 md:px-6">
-      <div class="flex items-center gap-3">
-        <h1 class="text-lg font-semibold">
-          {{ t('sync.sync') }}
-        </h1>
-      </div>
-
-      <div class="no-scrollbar min-w-0 flex items-center justify-end gap-2 overflow-x-auto md:w-auto md:justify-start md:overflow-visible">
+    <PageHeader :title="t('sync.sync')">
+      <div class="no-scrollbar min-w-0 flex items-center justify-end gap-2 overflow-x-auto">
         <Button
-          icon="i-lucide-refresh-cw"
-          variant="outline"
-          size="sm"
-          class="h-9 shrink-0 rounded-full px-3 text-xs md:h-9"
-          :disabled="isButtonDisabled"
-          @click="handleSync"
+          variant="ghost"
+          size="icon"
+          class="h-8 w-8 shrink-0 text-muted-foreground"
+          :title="t('sync.syncOptions')"
+          :aria-label="t('sync.syncOptions')"
+          @click="isSyncOptionsDialogOpen = true"
         >
-          <span>{{ t('sync.incrementalSync') }}</span>
+          <span class="i-lucide-sliders-horizontal h-4 w-4" />
         </Button>
         <Button
           icon="i-lucide-rotate-ccw"
           variant="outline"
           size="sm"
-          class="h-9 shrink-0 rounded-full px-3 text-xs md:h-9"
+          class="shrink-0"
           :disabled="isButtonDisabled"
           @click="handleResync"
         >
           <span>{{ t('sync.resync') }}</span>
         </Button>
         <Button
-          variant="outline"
+          icon="i-lucide-refresh-cw"
           size="sm"
-          class="h-9 shrink-0 rounded-full px-3 text-xs md:h-9 md:w-auto"
-          @click="isSyncOptionsDialogOpen = true"
+          class="shrink-0"
+          :disabled="isButtonDisabled"
+          @click="handleSync"
         >
-          <span class="i-lucide-sliders-horizontal mr-2 h-4 w-4" />
-          <span>{{ t('sync.syncOptions') }}</span>
+          <span>{{ t('sync.incrementalSync') }}</span>
         </Button>
       </div>
-    </header>
+    </PageHeader>
 
     <div class="flex flex-1 flex-col overflow-hidden">
       <!-- Main Content: Chat Selector -->
       <div class="min-w-0 flex flex-1 flex-col">
         <!-- Chat List Area -->
-        <div class="min-h-0 flex-1 p-3 md:p-4">
+        <div class="min-h-0 flex-1 p-3 md:p-6">
           <ChatSelector
             v-model:selected-chats="selectedChats"
             v-model:visible-chat-ids="visibleChatIds"
@@ -692,7 +685,7 @@ function startSync() {
                 v-if="hasMobileStatusContent"
                 variant="outline"
                 size="sm"
-                class="h-8 rounded-full px-3 text-xs md:hidden"
+                class="md:hidden"
                 @click="isMobileStatusOpen = true"
               >
                 <span class="i-lucide-panel-bottom mr-2 h-3.5 w-3.5" />
@@ -705,7 +698,7 @@ function startSync() {
               <div class="flex items-center gap-2">
                 <div
                   v-if="selectedChats.length > 0"
-                  class="flex shrink-0 items-center gap-2 rounded-md bg-primary/10 px-2 py-1 text-xs text-primary font-medium"
+                  class="flex shrink-0 items-center gap-1.5 text-xs text-foreground font-medium tabular-nums"
                 >
                   <span class="i-lucide-check-circle h-3.5 w-3.5" />
                   <span class="hidden sm:inline">{{ t('sync.selectedChats', { count: selectedChats.length }) }}</span>
@@ -727,7 +720,7 @@ function startSync() {
           </ChatSelector>
         </div>
 
-        <div v-if="!isBottomPanelOpen" class="justify-end px-3 pb-3 hidden md:flex md:px-4">
+        <div v-if="!isBottomPanelOpen" class="justify-end px-3 pb-3 hidden md:flex md:px-6">
           <Button
             variant="ghost"
             size="icon"
@@ -742,7 +735,7 @@ function startSync() {
 
       <!-- Bottom Panel: Status & Info -->
       <div
-        class="shrink-0 overflow-hidden border-t bg-background/95 backdrop-blur-sm transition-all duration-300 ease-in-out hidden md:block"
+        class="shrink-0 overflow-hidden border-t bg-sidebar transition-all duration-300 ease-in-out hidden md:block"
         :class="[
           isBottomPanelOpen ? 'max-h-[58vh] opacity-100 md:max-h-[24rem]' : 'max-h-0 opacity-0',
         ]"
@@ -820,7 +813,7 @@ function startSync() {
 
     <!-- Sync Options Dialog -->
     <Dialog v-model:open="isSyncOptionsDialogOpen">
-      <DialogContent class="max-h-[90vh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl outline-none ring-0 sm:max-w-[500px] focus-visible:outline-none focus-visible:ring-0">
+      <DialogContent class="max-h-[90vh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl outline-none ring-0 sm:max-w-[500px] focus-visible:outline-none focus-visible:ring-0">
         <DialogHeader>
           <DialogTitle>{{ t('sync.syncOptions') }}</DialogTitle>
           <DialogDescription>
@@ -894,7 +887,7 @@ function startSync() {
                     </template>
                   </Button>
                 </DateRangePickerTrigger>
-                <DateRangePickerContent class="z-50 w-auto border rounded-md bg-popover p-0 shadow-md" align="start">
+                <DateRangePickerContent class="z-50 w-auto border rounded-xl bg-popover p-0 shadow-lg" align="start">
                   <DateRangePickerCalendar v-slot="{ weekDays, grid }" class="p-3">
                     <DateRangePickerHeader class="flex items-center justify-between">
                       <DateRangePickerPrev>
@@ -960,11 +953,11 @@ function startSync() {
     </Dialog>
 
     <Dialog :open="takeoutConfirmNeeded" @update:open="handleTakeoutDialogOpen">
-      <DialogContent class="max-w-[calc(100%-2rem)] rounded-2xl sm:max-w-[560px]" :show-close-button="false">
+      <DialogContent class="max-w-[calc(100%-2rem)] rounded-xl sm:max-w-[520px]" :show-close-button="false">
         <DialogHeader>
           <div class="flex items-start gap-4 text-left">
-            <div class="h-12 w-12 flex shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/30">
-              <span class="i-lucide-shield-check h-6 w-6 text-primary" />
+            <div class="h-10 w-10 flex shrink-0 items-center justify-center border rounded-lg">
+              <span class="i-lucide-shield-check h-5 w-5" />
             </div>
             <div class="min-w-0 flex-1">
               <DialogTitle>{{ t('sync.takeoutConfirmTitle') }}</DialogTitle>
@@ -995,12 +988,12 @@ function startSync() {
 
     <!-- Select All Reminder Dialog -->
     <Dialog v-model:open="isSelectAllDialogOpen">
-      <DialogContent class="max-w-[calc(100%-2rem)] rounded-2xl sm:max-w-[425px]" :show-close-button="false">
+      <DialogContent class="max-w-[calc(100%-2rem)] rounded-xl sm:max-w-[425px]" :show-close-button="false">
         <DialogHeader>
           <div class="flex items-center gap-4">
             <div
               class="h-10 w-10 flex shrink-0 items-center justify-center rounded-full"
-              :class="isSelectAllWarning ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'"
+              :class="isSelectAllWarning ? 'bg-orange-500/12 text-orange-600 dark:text-orange-400' : 'bg-muted text-foreground'"
             >
               <span
                 class="h-5 w-5"

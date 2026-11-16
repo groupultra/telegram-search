@@ -222,7 +222,7 @@ watch(
 <template>
   <div class="relative h-full flex flex-col bg-background">
     <!-- Debug Panel -->
-    <div v-if="debugMode" class="absolute right-4 top-24 z-10 w-1/4 flex flex-col justify-left gap-2 border rounded-lg bg-card p-2 text-sm text-muted-foreground font-mono shadow-lg">
+    <div v-if="debugMode" class="absolute right-4 top-18 z-30 w-1/4 flex flex-col justify-left gap-2 border rounded-lg bg-card p-2 text-xs text-muted-foreground font-mono shadow-lg">
       <span>
         Messages: {{ sortedMessageArray.length }}
       </span>
@@ -253,8 +253,17 @@ watch(
     </div>
 
     <!-- Chat Header -->
-    <div class="sticky top-0 z-20 h-14 flex items-center justify-between gap-2 border-b bg-background/80 px-4 py-0 backdrop-blur-md md:h-16 supports-[backdrop-filter]:bg-background/60 md:px-6">
+    <div class="sticky top-0 z-20 h-14 flex shrink-0 items-center justify-between gap-2 border-b bg-background/85 px-2 backdrop-blur-md md:px-6">
       <div class="min-w-0 flex flex-1 items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          class="shrink-0 md:hidden"
+          :aria-label="t('common.back')"
+          @click="$router.push('/chats')"
+        >
+          <span class="i-lucide-chevron-left h-5 w-5" />
+        </Button>
         <ContextMenu v-if="currentChat && currentChat.id != null">
           <ContextMenuTrigger>
             <div :class="chatTelegramLink ? 'cursor-context-menu' : ''">
@@ -264,7 +273,7 @@ watch(
                 entity-type="chat"
                 :file-id="currentChat?.avatarFileId"
                 :name="currentChat?.name"
-                size="md"
+                size="sm"
               />
             </div>
           </ContextMenuTrigger>
@@ -276,11 +285,11 @@ watch(
           </ContextMenuContent>
         </ContextMenu>
         <div class="min-w-0">
-          <h2 class="truncate text-lg font-semibold">
+          <h2 class="truncate text-sm font-semibold leading-tight tracking-tight">
             {{ currentChat?.name }}
           </h2>
-          <p v-if="currentChat?.id" class="truncate text-xs text-muted-foreground">
-            ID: {{ currentChat?.id }}
+          <p v-if="currentChat?.id" class="truncate text-[11px] text-muted-foreground leading-tight font-mono">
+            {{ currentChat?.id }}
           </p>
         </div>
       </div>
@@ -289,7 +298,7 @@ watch(
           <template #default="{ open }">
             <Button
               icon="i-lucide-sparkles"
-              variant="ghost"
+              variant="outline"
               size="sm"
               @click="open"
             >
@@ -301,7 +310,7 @@ watch(
           icon="i-lucide-search"
           variant="ghost"
           size="icon"
-          class="h-9 w-9"
+          class="h-8 w-8"
           :aria-label="t('chat.search')"
           :title="t('chat.search')"
           data-search-button
@@ -322,47 +331,47 @@ watch(
     </div>
 
     <!-- Message Input -->
-    <div class="absolute bottom-6 left-0 right-0 z-20 px-4 md:bottom-6 md:px-6">
-      <div class="mx-auto max-w-4xl flex items-end gap-3 border border-border/65 rounded-2xl bg-background/90 p-2 shadow-sm backdrop-blur-xl transition-all duration-200 focus-within:border-primary/35 hover:border-border focus-within:bg-background hover:bg-background focus-within:ring-2 focus-within:ring-primary/15">
-        <!-- Input container with modern design -->
+    <div class="absolute bottom-4 left-0 right-0 z-20 px-3 md:bottom-5 md:px-6">
+      <div class="mx-auto max-w-3xl flex items-center gap-1 border border-input rounded-xl bg-background/95 p-1.5 shadow-black/5 shadow-lg backdrop-blur-xl transition-colors focus-within:border-ring">
+        <!-- Input container -->
         <div class="relative flex flex-1 items-center">
-          <div class="absolute left-2 flex items-center gap-2">
+          <div class="absolute left-0 flex items-center">
             <Button
               variant="ghost"
               size="icon"
-              class="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
+              class="h-9 w-9 text-muted-foreground hover:text-foreground"
               title="Emoji"
             >
-              <span class="i-lucide-smile h-5 w-5" />
+              <span class="i-lucide-smile h-4.5 w-4.5" />
             </Button>
           </div>
           <Input
             v-model="messageInput"
             type="text"
             :placeholder="t('chat.typeAMessage')"
-            class="h-10 w-full border-transparent bg-transparent pl-14 pr-14 text-base text-foreground shadow-none transition-all md:h-14 placeholder:text-foreground/45 focus-visible:ring-0"
+            class="h-9 w-full border-transparent bg-transparent pl-10 pr-10 text-sm text-foreground shadow-none focus-visible:border-transparent hover:border-transparent focus-visible:ring-0"
             @keyup.shift.enter="sendMessage"
           />
-          <div class="absolute right-2 flex items-center gap-1">
+          <div class="absolute right-0 flex items-center">
             <Button
               variant="ghost"
               size="icon"
-              class="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
+              class="h-9 w-9 text-muted-foreground hover:text-foreground"
               title="Attachment"
             >
-              <span class="i-lucide-paperclip h-5 w-5" />
+              <span class="i-lucide-paperclip h-4.5 w-4.5" />
             </Button>
           </div>
         </div>
 
-        <!-- Send button with modern design -->
+        <!-- Send button -->
         <Button
           :disabled="!messageInput.trim()"
           size="icon"
-          class="h-10 w-10 shrink-0 rounded-xl shadow-sm transition-transform md:h-14 md:w-14 active:scale-95 hover:scale-105"
+          class="h-9 w-9 shrink-0"
           @click="sendMessage"
         >
-          <span class="i-lucide-send ml-0.5 mt-0.5 h-5 w-5 md:h-6 md:w-6" />
+          <span class="i-lucide-arrow-up h-4.5 w-4.5" />
         </Button>
       </div>
     </div>

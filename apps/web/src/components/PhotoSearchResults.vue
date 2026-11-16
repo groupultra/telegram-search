@@ -117,7 +117,7 @@ onUnmounted(() => {
       <li
         v-for="photo in processedPhotos"
         :key="photo.id"
-        class="group relative flex cursor-pointer items-start gap-3 border-b p-3 transition-all duration-200 ease-in-out last:border-b-0 dark:border-gray-700 active:bg-neutral-200/50 hover:bg-neutral-100/50 dark:active:bg-gray-700/50 dark:hover:bg-gray-800/50"
+        class="group relative flex cursor-pointer items-start gap-3 border-b p-3 transition-all duration-200 ease-in-out last:border-b-0 active:bg-accent hover:bg-accent/60"
         tabindex="0"
         @keydown.enter="navigateToPhoto(photo)"
         @click="navigateToPhoto(photo)"
@@ -148,21 +148,21 @@ onUnmounted(() => {
         <div class="min-w-0 flex-1">
           <!-- Title row -->
           <div class="flex items-baseline gap-2">
-            <span class="truncate text-sm text-gray-900 font-semibold dark:text-gray-100">
+            <span class="truncate text-sm text-foreground font-semibold">
               {{ photo.chatName || t('common.unknownChat') }}
             </span>
-            <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">
+            <span class="shrink-0 text-xs text-muted-foreground">
               {{ getPhotoTimestamp(photo) }}
             </span>
           </div>
 
           <!-- Description -->
-          <div v-if="photo.description" class="mt-1 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-400">
+          <div v-if="photo.description" class="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">
             {{ photo.description }}
           </div>
 
           <!-- Footer metadata -->
-          <div v-if="photo.platformMessageId" class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+          <div v-if="photo.platformMessageId" class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
             <span class="i-lucide-hash h-3 w-3" />
             <span>{{ photo.platformMessageId }}</span>
           </div>

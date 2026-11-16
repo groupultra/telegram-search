@@ -12,10 +12,10 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
-import EntityAvatar from '../avatar/EntityAvatar.vue'
+import ChatListItem from './ChatListItem.vue'
 
 import { useChatListSelection } from '../../composables/use-chat-list-selection'
-import { filterChatsByQuery, formatChatTimestamp, getChatPreview, matchesFolder, sortChatsForFolder } from '../../utils/chat-list'
+import { filterChatsByQuery, getChatPreview, matchesFolder, sortChatsForFolder } from '../../utils/chat-list'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -386,165 +386,98 @@ function handleTabClickCapture(event: MouseEvent) {
 
 <template>
   <div class="relative min-h-0 flex flex-1 flex-col">
-    <div class="sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
-      <div class="flex flex-col">
+    <div class="flex flex-col gap-2 px-3 pb-2 pt-1">
+      <div class="relative">
         <div
-          ref="containerRef"
-          :class="isDraggingTabs ? 'cursor-grabbing select-none' : canDragTabs ? 'cursor-grab' : ''"
-          class="no-scrollbar relative flex items-center gap-2 overflow-x-auto px-3 py-2"
-          @click.capture="handleTabClickCapture"
-          @pointercancel="endTabDrag"
-          @pointerdown="handleTabPointerDown"
-          @pointermove="handleTabPointerMove"
-          @pointerup="endTabDrag"
-          @wheel="handleTabWheel"
+          class="i-lucide-search pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 text-muted-foreground -translate-y-1/2"
+        />
+        <Input
+          v-model="searchValue"
+          type="text"
+          class="h-8 border-transparent rounded-lg bg-foreground/5 pl-8 pr-3 text-sm transition-colors focus-visible:border-ring focus-visible:bg-background hover:bg-foreground/8 placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+          :placeholder="t('search.search')"
+        />
+      </div>
+
+      <div
+        ref="containerRef"
+        :class="isDraggingTabs ? 'cursor-grabbing select-none' : canDragTabs ? 'cursor-grab' : ''"
+        class="no-scrollbar relative flex items-center gap-1 overflow-x-auto px-3 -mx-3"
+        @click.capture="handleTabClickCapture"
+        @pointercancel="endTabDrag"
+        @pointerdown="handleTabPointerDown"
+        @pointermove="handleTabPointerMove"
+        @pointerup="endTabDrag"
+        @wheel="handleTabWheel"
+      >
+        <div
+          aria-hidden="true"
+          class="pointer-events-none absolute left-3 top-0 h-7 rounded-md bg-primary transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          :style="gliderStyle"
+        />
+
+        <button
+          :ref="(el) => setAllTabRef(el as Element | ComponentPublicInstance | null)"
+          :class="[
+            activeChatGroup === undefined
+              ? 'text-primary-foreground font-medium'
+              : 'text-muted-foreground hover:text-foreground',
+          ]"
+          class="relative z-10 h-7 flex shrink-0 items-center rounded-md px-2.5 text-xs transition-colors duration-200"
+          @click="toggleActiveChatGroup(undefined)"
         >
-          <div
-            aria-hidden="true"
-            class="pointer-events-none absolute left-3 top-2 h-8 rounded-full bg-primary shadow-sm transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-            :style="gliderStyle"
-          />
+          <span>{{ t('chatGroups.all') }}</span>
+        </button>
 
-          <button
-            :ref="(el) => setAllTabRef(el as Element | ComponentPublicInstance | null)"
-            :class="[
-              activeChatGroup === undefined
-                ? 'text-primary-foreground font-semibold'
-                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-            ]"
-            class="relative z-10 h-8 flex shrink-0 items-center gap-2 rounded-full px-4 text-xs transition-colors duration-200"
-            @click="toggleActiveChatGroup(undefined)"
-          >
-            <span class="i-lucide-layers h-3.5 w-3.5" />
-            <span>{{ t('chatGroups.all') }}</span>
-          </button>
+        <button
+          v-for="folder in folders"
+          :key="folder.id"
+          :ref="(el) => setFolderTabRef(el as Element | ComponentPublicInstance | null, folder.id)"
+          :class="[
+            activeChatGroup === 'folder' && normalizedSelectedFolderId === folder.id
+              ? 'text-primary-foreground font-medium'
+              : 'text-muted-foreground hover:text-foreground',
+          ]"
+          class="relative z-10 h-7 flex shrink-0 items-center rounded-md px-2.5 text-xs transition-colors duration-200"
+          @click="selectFolder(folder.id)"
+        >
+          <span>{{ folder.title }}</span>
+        </button>
+      </div>
 
-          <button
-            v-for="folder in folders"
-            :key="folder.id"
-            :ref="(el) => setFolderTabRef(el as Element | ComponentPublicInstance | null, folder.id)"
-            :class="[
-              activeChatGroup === 'folder' && normalizedSelectedFolderId === folder.id
-                ? 'text-primary-foreground font-semibold'
-                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-            ]"
-            class="relative z-10 h-8 flex shrink-0 items-center gap-2 rounded-full px-4 text-xs transition-colors duration-200"
-            @click="selectFolder(folder.id)"
-          >
-            <span>{{ folder.title }}</span>
-          </button>
-        </div>
-
-        <div class="px-3 pb-2">
-          <div class="relative">
-            <div
-              class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transition-colors -translate-y-1/2"
-            />
-            <Input
-              v-model="searchValue"
-              type="text"
-              class="h-10 border-border/60 rounded-xl bg-background/80 pl-9 pr-4 text-foreground shadow-sm transition-all focus:border-primary/35 hover:border-border focus:bg-background hover:bg-background placeholder:text-foreground/45 focus:ring-2 focus:ring-primary/15"
-              :placeholder="t('search.search')"
-            />
-          </div>
-
-          <div
-            v-if="showAIContextHint && aiContextCount === 0"
-            class="mx-3 mb-2 mt-2 flex items-center gap-2 border border-primary/25 rounded-xl border-dashed bg-primary/5 px-3 py-2 text-xs text-muted-foreground"
-          >
-            <span class="i-lucide-sparkles h-3.5 w-3.5 shrink-0 text-primary" />
-            <span>{{ t('chatList.aiContextHint') }}</span>
-          </div>
-        </div>
+      <div
+        v-if="showAIContextHint && aiContextCount === 0"
+        class="flex items-center gap-2 border rounded-lg border-dashed px-2.5 py-2 text-xs text-muted-foreground"
+      >
+        <span class="i-lucide-sparkles h-3.5 w-3.5 shrink-0 text-foreground" />
+        <span>{{ t('chatList.aiContextHint') }}</span>
       </div>
     </div>
 
     <!-- Chat list -->
-    <div class="min-h-0 flex-1 overflow-hidden">
+    <div class="min-h-0 flex-1 overflow-hidden border-t">
       <VList
         v-if="activeGroupChats.length > 0"
         :data="activeGroupChats"
-        class="chat-list h-full px-2 pb-2 pt-1.5"
+        class="chat-list h-full py-2"
       >
         <template #default="{ item: chat }">
           <ContextMenu v-if="chat && !isCoarsePointer">
             <ContextMenuTrigger as-child>
-              <div
+              <ChatListItem
                 :key="chat.id"
-                :class="[
-                  isChatInAIContext(chat.id)
-                    ? 'bg-primary/8 text-foreground ring-1 ring-primary/20'
-                    : '',
-                  $route.params.id === chat.id.toString()
-                    ? 'bg-accent/80 text-accent-foreground shadow-sm ring-1 ring-border/50'
-                    : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground',
-                ]"
-                class="group mx-1 mb-1 flex cursor-pointer items-center gap-3 overflow-hidden rounded-xl p-2.5 transition-all duration-200"
+                :chat="chat"
+                :preview="chatPreviews.get(chat.id)"
+                :active="$route.params.id === chat.id.toString()"
+                :pinned="isChatPinned(chat)"
+                :in-ai-context="isChatInAIContext(chat.id)"
+                :selection-mode="isSelectionMode"
                 @pointerdown="startLongPress(chat.id)"
                 @pointerup="cancelLongPress"
                 @pointerleave="cancelLongPress"
                 @pointercancel="cancelLongPress"
                 @click="handleChatClick(chat.id)"
-              >
-                <EntityAvatar
-                  :id="chat.id"
-                  entity="other"
-                  entity-type="chat"
-                  :file-id="chat.avatarFileId"
-                  :name="chat.name"
-                  size="md"
-                  class="shrink-0 shadow-sm transition-transform duration-200 group-hover:scale-105"
-                />
-                <div class="min-w-0 flex flex-1 flex-col gap-0.5">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="truncate text-sm text-foreground font-semibold">
-                      {{ chat.name }}
-                    </span>
-                  </div>
-
-                  <div
-                    v-if="chatPreviews.get(chat.id)?.text"
-                    class="truncate text-xs opacity-70"
-                  >
-                    <span
-                      v-if="chatPreviews.get(chat.id)?.sender"
-                      class="text-sky-400 font-semibold"
-                    >
-                      {{ chatPreviews.get(chat.id)?.sender }}:
-                    </span>
-                    <span>{{ chatPreviews.get(chat.id)?.text }}</span>
-                  </div>
-                </div>
-
-                <div class="ml-auto w-14 flex shrink-0 flex-col items-end justify-between gap-1 text-right md:w-16">
-                  <span
-                    v-if="chat.lastMessageDate"
-                    class="shrink-0 text-[10px] leading-none opacity-60"
-                  >
-                    {{ formatChatTimestamp(chat.lastMessageDate) }}
-                  </span>
-
-                  <span
-                    v-if="!isSelectionMode && (chat.unreadCount ?? 0) > 0"
-                    class="h-5 min-w-5 inline-flex items-center justify-center rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground font-semibold leading-none shadow-sm"
-                  >
-                    {{ chat.unreadCount! > 99 ? '99+' : chat.unreadCount }}
-                  </span>
-
-                  <span
-                    v-else-if="isChatPinned(chat) && !isSelectionMode"
-                    class="i-lucide-pin h-3.5 w-3.5 rotate-45 text-primary/60"
-                  />
-
-                  <div
-                    v-if="isSelectionMode"
-                    class="h-5 w-5 flex items-center justify-center border rounded-md transition-colors"
-                    :class="isChatInAIContext(chat.id) ? 'border-primary bg-primary text-primary-foreground' : 'border-border/70 text-transparent'"
-                  >
-                    <span class="i-lucide-check h-3 w-3" />
-                  </div>
-                </div>
-              </div>
+              />
             </ContextMenuTrigger>
             <ContextMenuContent class="min-w-[180px]">
               <ContextMenuItem @select="handleDesktopAddToAI(chat.id)">
@@ -554,93 +487,29 @@ function handleTabClickCapture(event: MouseEvent) {
             </ContextMenuContent>
           </ContextMenu>
 
-          <div
+          <ChatListItem
             v-else-if="chat"
             :key="chat.id"
-            :class="[
-              isChatInAIContext(chat.id)
-                ? 'bg-primary/8 text-foreground ring-1 ring-primary/20'
-                : '',
-              $route.params.id === chat.id.toString()
-                ? 'bg-accent/80 text-accent-foreground shadow-sm ring-1 ring-border/50'
-                : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground',
-            ]"
-            class="group mx-1 mb-1 flex cursor-pointer items-center gap-3 overflow-hidden rounded-xl p-2.5 transition-all duration-200"
+            :chat="chat"
+            :preview="chatPreviews.get(chat.id)"
+            :active="$route.params.id === chat.id.toString()"
+            :pinned="isChatPinned(chat)"
+            :in-ai-context="isChatInAIContext(chat.id)"
+            :selection-mode="isSelectionMode"
             @pointerdown="startLongPress(chat.id)"
             @pointerup="cancelLongPress"
             @pointerleave="cancelLongPress"
             @pointercancel="cancelLongPress"
             @contextmenu.prevent
             @click="handleChatClick(chat.id)"
-          >
-            <EntityAvatar
-              :id="chat.id"
-              entity="other"
-              entity-type="chat"
-              :file-id="chat.avatarFileId"
-              :name="chat.name"
-              size="md"
-              class="shrink-0 shadow-sm transition-transform duration-200 group-hover:scale-105"
-            />
-            <div class="min-w-0 flex flex-1 flex-col gap-0.5">
-              <div class="flex items-center justify-between gap-2">
-                <span class="truncate text-sm text-foreground font-semibold">
-                  {{ chat.name }}
-                </span>
-              </div>
-
-              <div
-                v-if="chatPreviews.get(chat.id)?.text"
-                class="truncate text-xs opacity-70"
-              >
-                <span
-                  v-if="chatPreviews.get(chat.id)?.sender"
-                  class="text-sky-400 font-semibold"
-                >
-                  {{ chatPreviews.get(chat.id)?.sender }}:
-                </span>
-                <span>{{ chatPreviews.get(chat.id)?.text }}</span>
-              </div>
-            </div>
-
-            <div class="ml-auto w-14 flex shrink-0 flex-col items-end justify-between gap-1 text-right md:w-16">
-              <span
-                v-if="chat.lastMessageDate"
-                class="shrink-0 text-[10px] leading-none opacity-60"
-              >
-                {{ formatChatTimestamp(chat.lastMessageDate) }}
-              </span>
-
-              <span
-                v-if="!isSelectionMode && (chat.unreadCount ?? 0) > 0"
-                class="h-5 min-w-5 inline-flex items-center justify-center rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground font-semibold leading-none shadow-sm"
-              >
-                {{ chat.unreadCount! > 99 ? '99+' : chat.unreadCount }}
-              </span>
-
-              <span
-                v-else-if="isChatPinned(chat) && !isSelectionMode"
-                class="i-lucide-pin h-3.5 w-3.5 rotate-45 text-primary/60"
-              />
-
-              <div
-                v-if="isSelectionMode"
-                class="h-5 w-5 flex items-center justify-center border rounded-md transition-colors"
-                :class="isChatInAIContext(chat.id) ? 'border-primary bg-primary text-primary-foreground' : 'border-border/70 text-transparent'"
-              >
-                <span class="i-lucide-check h-3 w-3" />
-              </div>
-            </div>
-          </div>
+          />
         </template>
       </VList>
 
       <!-- Empty State -->
-      <div v-else class="h-full flex flex-col items-center justify-center p-4 text-center text-muted-foreground">
-        <div class="mb-3 rounded-full bg-muted/50 p-4">
-          <span class="i-lucide-message-square-off h-8 w-8 opacity-50" />
-        </div>
-        <p class="text-sm font-medium">
+      <div v-else class="h-full flex flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground">
+        <span class="i-lucide-message-square-dashed h-6 w-6 opacity-50" />
+        <p class="text-xs">
           {{ t('chatList.noChatsFound') }}
         </p>
       </div>
@@ -650,36 +519,32 @@ function handleTabClickCapture(event: MouseEvent) {
   <Teleport to="body">
     <div
       v-if="aiContextCount > 0"
-      class="pointer-events-none fixed left-1/2 z-40 w-[min(calc(100vw-1.5rem),26rem)] md:bottom-8 md:left-[calc(20rem+(100vw-20rem)/2)] md:w-[min(30rem,calc(100vw-24rem))] -translate-x-1/2"
-      :class="isAIChatDrawerOpen ? 'bottom-32' : 'bottom-24'"
+      class="pointer-events-none fixed left-1/2 z-40 w-[min(calc(100vw-1.5rem),26rem)] md:bottom-8 md:left-[calc(var(--app-sidebar-width)+(100vw-var(--app-sidebar-width))/2)] md:w-[min(28rem,calc(100vw-var(--app-sidebar-width)-4rem))] -translate-x-1/2"
+      :class="isAIChatDrawerOpen ? 'bottom-32' : 'bottom-20'"
     >
-      <div class="pointer-events-auto flex items-center gap-2 border border-primary/20 rounded-2xl bg-card/95 p-2 shadow-lg backdrop-blur-sm">
-        <div class="min-w-0 flex flex-1 items-center gap-2 px-1">
-          <div class="h-9 w-9 flex shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
-            <span class="i-lucide-message-square-text h-4 w-4" />
-          </div>
-          <div class="min-w-0">
-            <p class="truncate text-sm font-semibold">
-              {{ t('chatList.aiContextReady') }}
-            </p>
-            <p class="truncate text-xs text-muted-foreground">
-              {{ isSelectionMode ? t('chatList.selectionModeCount', { count: aiContextCount }) : t('chatList.aiContextCount', { count: aiContextCount }) }}
-            </p>
-          </div>
+      <div class="pointer-events-auto flex items-center gap-2 border rounded-xl bg-popover p-1.5 pl-3 text-popover-foreground shadow-lg">
+        <span class="i-lucide-sparkles h-4 w-4 shrink-0" />
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium leading-tight">
+            {{ t('chatList.aiContextReady') }}
+          </p>
+          <p class="truncate text-xs text-muted-foreground leading-tight">
+            {{ isSelectionMode ? t('chatList.selectionModeCount', { count: aiContextCount }) : t('chatList.aiContextCount', { count: aiContextCount }) }}
+          </p>
         </div>
 
         <button
-          class="h-9 inline-flex shrink-0 items-center rounded-xl px-2.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          class="h-8 inline-flex shrink-0 items-center rounded-lg px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           @click="clearAIContextChats"
         >
           {{ t('common.cancel') }}
         </button>
         <button
-          class="h-9 inline-flex shrink-0 items-center gap-1 rounded-xl bg-primary px-3 text-xs text-primary-foreground transition-opacity hover:opacity-90"
+          class="h-8 inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs text-primary-foreground font-medium transition-opacity hover:opacity-90"
           @click="openAIChatWithSelectedChats"
         >
-          <span class="i-lucide-sparkles h-3.5 w-3.5" />
           <span>{{ t('aiChat.aiChat') }}</span>
+          <span class="i-lucide-arrow-right h-3.5 w-3.5" />
         </button>
       </div>
     </div>
@@ -687,33 +552,7 @@ function handleTabClickCapture(event: MouseEvent) {
 </template>
 
 <style scoped>
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.chat-list {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.chat-list::-webkit-scrollbar {
-  display: none;
-}
-
-.chat-list :deep(*) {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.chat-list :deep(div::-webkit-scrollbar) {
-  display: none;
-}
-
-.chat-list :deep(.group) {
+.chat-list :deep(.chat-list-item) {
   -webkit-touch-callout: none;
   user-select: none;
 }

@@ -7,12 +7,14 @@ import { version as pkgVersion } from '~build/package'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 
-import AppSidebar from '../components/layout/AppSidebar.vue'
+import AppRail from '../components/layout/AppRail.vue'
+import ChatPanel from '../components/layout/ChatPanel.vue'
 import MobileNav from '../components/layout/MobileNav.vue'
 import SearchDialog from '../components/SearchDialog.vue'
 import AIChatPage from '../pages/ai-chat.vue'
 
 import { Dialog, DialogContent } from '../components/ui/Dialog'
+import { useChatPanel } from '../composables/use-chat-panel'
 import { useGlobalSearchDialog } from '../composables/use-global-search-dialog'
 
 const route = useRoute()
@@ -42,12 +44,13 @@ const buildTimeLabel = computed(() => {
 const breakpoints = useBreakpoints(breakpointsTailwind)
 const isMobile = breakpoints.smaller('md') // < 768px
 
-// Computed classes for responsive design
-const sidebarClasses = computed(() => {
-  return {
-    container: isMobile.value ? 'hidden' : 'w-80',
-  }
-})
+const { isOpen: isChatPanelOpen, sidebarWidthRem } = useChatPanel()
+
+// Fixed overlays teleported to <body> (e.g. the AI context bar) read this to
+// center themselves over the content area instead of the whole viewport.
+watch([isMobile, sidebarWidthRem], ([mobile, width]) => {
+  document.documentElement.style.setProperty('--app-sidebar-width', mobile ? '0rem' : `${width}rem`)
+}, { immediate: true })
 
 const OPEN_GLOBAL_SEARCH_EVENT = 'tg-search:open-global-search'
 const OPEN_AI_CHAT_EVENT = 'tg-search:open-ai-chat'
@@ -107,52 +110,38 @@ watch(isAIChatDrawerOpen, (open) => {
 </script>
 
 <template>
-  <div
-    class="h-screen w-full flex overflow-hidden bg-background text-sm font-medium"
-  >
+  <div class="w-full flex overflow-hidden bg-background text-sm h-dvh">
     <!-- Login Overlay -->
     <div
       v-if="$route.path === '/login'"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-background/20 backdrop-blur-[2px]"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-background"
     >
       <RouterView />
     </div>
 
-    <!-- Main Application Structure (Always Rendered) -->
-    <div class="h-full w-full flex overflow-hidden">
+    <!-- Main Application Structure -->
+    <template v-else>
       <!-- Mobile Nav -->
-      <MobileNav v-if="isMobile && $route.path !== '/login' && !$route.path.startsWith('/chat/')" />
+      <MobileNav v-if="isMobile" />
 
-      <!-- Sidebar -->
-      <div
-        v-if="!isMobile"
-        :class="sidebarClasses.container"
-        class="flex flex-col border-r bg-card h-dvh"
-      >
-        <AppSidebar />
-      </div>
+      <!-- Desktop: navigation rail + chat list panel -->
+      <template v-if="!isMobile">
+        <AppRail @open-search="openGlobalSearch" />
+        <!-- v-show keeps the list scroll position and AI context selection while hidden -->
+        <ChatPanel v-show="isChatPanelOpen" class="w-80 shrink-0 border-r" />
+      </template>
 
       <!-- Main content -->
-      <div
-        class="relative flex flex-1 flex-col overflow-auto bg-background"
-        :class="{ 'ml-0': isMobile, 'pb-24': isMobile && !$route.path.startsWith('/chat/') && $route.path !== '/chats' }"
+      <main
+        class="relative min-w-0 flex flex-1 flex-col overflow-auto bg-background"
+        :class="{ 'pb-[calc(3.5rem+env(safe-area-inset-bottom))]': isMobile && !$route.path.startsWith('/chat/') }"
       >
-        <!-- Only render main content router-view if NOT login page to avoid duplicate views -->
-        <RouterView v-if="$route.path !== '/login'" :key="$route.fullPath" />
-
-        <!-- Placeholder for main content when login overlay is active -->
-        <div v-else class="pointer-events-none flex flex-1 flex-col gap-4 overflow-hidden p-4 opacity-100 blur-[2px] filter md:p-6">
-          <div class="h-14 w-full rounded-xl bg-muted/60" />
-          <div class="grid grid-cols-1 flex-1 gap-4 md:grid-cols-3">
-            <div class="rounded-xl bg-muted/50 md:col-span-1" />
-            <div class="rounded-xl bg-muted/40 md:col-span-2" />
-          </div>
-        </div>
+        <RouterView :key="$route.fullPath" />
 
         <!-- Version info -->
         <div
           v-if="!$route.path.startsWith('/chat/')"
-          class="pointer-events-none fixed bottom-3 right-3 z-10 flex items-center gap-2 text-xs text-muted-foreground opacity-50"
+          class="pointer-events-none fixed bottom-3 right-3 z-10 items-center gap-2 text-[10px] text-muted-foreground/60 font-mono hidden md:flex"
         >
           <span class="truncate">{{ buildVersionLabel }}</span>
           <span
@@ -160,15 +149,15 @@ watch(isAIChatDrawerOpen, (open) => {
             class="truncate"
           >{{ buildTimeLabel }}</span>
         </div>
-      </div>
-    </div>
+      </main>
+    </template>
   </div>
 
   <SearchDialog v-model:open="isGlobalSearchOpen" :chat-id="searchChatId" />
 
   <Dialog v-model:open="isAIChatDrawerOpen">
     <DialogContent
-      class="left-auto right-0 top-0 h-screen max-w-[min(760px,100vw)] w-full translate-x-0 translate-y-0 border-0 border-l rounded-none p-0"
+      class="left-auto right-0 top-0 max-w-[min(720px,100vw)] w-full translate-x-0 translate-y-0 border-0 border-l rounded-none p-0 shadow-2xl h-dvh sm:rounded-none"
       :show-close-button="true"
     >
       <AIChatPage :chat-ids="aiChatDrawerChatIds" />

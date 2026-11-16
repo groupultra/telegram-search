@@ -83,7 +83,7 @@ onUnmounted(() => {
     <li
       v-for="item in props.messages"
       :key="item.uuid"
-      class="group animate-slide-in relative flex cursor-pointer items-start gap-3 border-b p-3 transition-all duration-200 ease-in-out last:border-b-0 dark:border-gray-700 active:bg-neutral-200/50 hover:bg-neutral-100/50 dark:active:bg-gray-700/50 dark:hover:bg-gray-800/50"
+      class="group animate-slide-in relative flex cursor-pointer items-start gap-3 border-b p-3 transition-all duration-200 ease-in-out last:border-b-0 active:bg-accent hover:bg-accent/60"
       tabindex="0"
       @mouseenter="hoveredMessage = item"
       @mouseleave="hoveredMessage = null"
@@ -101,15 +101,15 @@ onUnmounted(() => {
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-baseline gap-2">
-          <span class="truncate text-sm text-gray-900 font-semibold dark:text-gray-100">
+          <span class="truncate text-sm text-foreground font-semibold">
             {{ item.fromName }}
           </span>
-          <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">
+          <span class="shrink-0 text-xs text-muted-foreground">
             {{ formatMessageTimestamp(item.platformTimestamp) }}
           </span>
         </div>
-        <div class="mt-1 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-400" v-html="highlightKeyword(item.content, props.keyword)" />
-        <div class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+        <div class="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground" v-html="highlightKeyword(item.content, props.keyword)" />
+        <div class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
           <span class="i-lucide-hash h-3 w-3" />
           <span>{{ item.platformMessageId }}</span>
         </div>

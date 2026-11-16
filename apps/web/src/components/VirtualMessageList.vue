@@ -383,7 +383,7 @@ defineExpose({
   <div class="relative h-full overflow-hidden">
     <div
       ref="scrollContainerRef"
-      class="h-full overflow-y-auto pb-32"
+      class="h-full overflow-y-auto pb-24 pt-3"
       style="overflow-anchor: auto;"
     >
       <div ref="topSentinelRef" class="h-px w-full shrink-0" style="overflow-anchor: none;" />
@@ -402,7 +402,7 @@ defineExpose({
     <!-- Scrolling indicator -->
     <div
       v-if="isScrolling"
-      class="absolute right-2 top-4 z-20 flex items-center gap-1.5 border rounded-full bg-card/90 px-3 py-1.5 text-xs text-muted-foreground font-medium leading-none shadow-lg backdrop-blur-sm -translate-x-1/2"
+      class="absolute right-4 top-3 z-20 flex items-center gap-1.5 border rounded-full bg-popover px-2.5 py-1.5 text-[11px] text-muted-foreground leading-none shadow-sm"
     >
       <span class="i-lucide-loader-2 inline-block h-3 w-3 animate-spin" />
       {{ t('virtualMessageList.scrolling') }}
@@ -419,10 +419,10 @@ defineExpose({
     >
       <button
         v-if="!isAtBottom && !isScrolling"
-        class="absolute bottom-6 right-6 h-12 w-12 flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all hover:scale-110 hover:shadow-2xl"
+        class="absolute bottom-20 right-4 z-20 h-9 w-9 flex items-center justify-center border rounded-full bg-popover text-foreground shadow-md transition-colors md:right-6 hover:bg-accent"
         @click="scrollToBottom"
       >
-        <i class="i-lucide-chevron-down h-5 w-5" />
+        <i class="i-lucide-arrow-down h-4 w-4" />
       </button>
     </Transition>
   </div>

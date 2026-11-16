@@ -40,8 +40,16 @@ export default defineConfig({
       color: 'zinc',
     }),
   ],
+  shortcuts: {
+    // Shared look for native form controls that cannot use the Input component
+    // (selects, `v-model.number` inputs).
+    'form-field': 'h-9 w-full flex border border-input rounded-md bg-background px-3 text-sm transition-colors placeholder:text-muted-foreground/70 hover:border-foreground/30 focus-visible:border-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+    // Small uppercase caption used for section labels and metadata.
+    'eyebrow': 'text-[11px] text-muted-foreground font-medium tracking-wider uppercase',
+  },
   theme: {
     colors: {
+      sidebar: 'hsl(var(--sidebar))',
       border: 'hsl(var(--border))',
       input: 'hsl(var(--input))',
       ring: 'hsl(var(--ring))',

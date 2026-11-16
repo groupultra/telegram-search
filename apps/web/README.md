@@ -35,3 +35,10 @@ Pages under `src/pages/auth/` serve the authorization server's flow:
 | `/auth/device` | Approves a `tgs remote login` device code. |
 
 The client for these endpoints is `src/lib/server-auth.ts`; the sign-in state and the ticket exchange live in `src/stores/server-auth.ts`, and the return from `/login` is in `src/App.vue`.
+
+## Layout and appearance
+
+- **Shell** (`src/layouts/default.vue`): on desktop a navigation rail (`components/layout/AppRail.vue`), a collapsible chat list (`ChatPanel.vue`), then the page. On mobile a bottom tab bar (`MobileNav.vue`). Pages start with `components/layout/PageHeader.vue`.
+- **Design tokens** (`src/styles/main.css`): the palette is neutral; components use the token utilities (`bg-background`, `text-muted-foreground`, `bg-primary`, `bg-sidebar`) and never a fixed palette color for surfaces or text.
+- **Themes** (`src/composables/use-appearance.ts`): light, dark, or system mode, plus an accent theme (`mono` by default). An accent only overrides `--primary` and `--ring` through `[data-accent="…"]` on `<html>`. To add one, add its key and swatch to `ACCENT_THEMES`, its two rules (light and dark) to `main.css`, and its name under `appearance.accents` in each locale.
+- Both choices are stored in `localStorage` (`vueuse-color-scheme`, `tg-search/accent`); the inline script in `index.html` applies them before first paint.

@@ -21,7 +21,7 @@ const { t } = useI18n()
   <div class="space-y-3">
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
-        <p class="text-[11px] text-muted-foreground tracking-[0.16em] uppercase">
+        <p class="text-[11px] text-muted-foreground tracking-wider uppercase">
           {{ props.label }}
         </p>
         <h3 class="truncate pt-1 text-lg text-foreground font-semibold">
@@ -36,10 +36,10 @@ const { t } = useI18n()
       </div>
     </div>
 
-    <div class="relative overflow-hidden rounded-[24px] bg-foreground/8 p-3 ring-1 ring-border/55">
-      <div class="relative h-12 w-full flex overflow-hidden rounded-[20px]">
+    <div class="relative overflow-hidden rounded-lg bg-foreground/8 p-3 ring-1 ring-border">
+      <div class="relative h-12 w-full flex overflow-hidden rounded-lg">
         <div
-          class="min-w-0 flex items-center justify-center bg-emerald-500/75 px-3 text-sm text-emerald-950 font-semibold transition-all duration-500 ease-out dark:text-emerald-50"
+          class="min-w-0 flex items-center justify-center bg-primary px-3 text-sm text-primary-foreground font-semibold transition-all duration-500 ease-out"
           :style="{ width: `${props.progress}%` }"
         >
           <span v-if="props.syncedCount > 0" class="truncate tabular-nums">
@@ -47,7 +47,7 @@ const { t } = useI18n()
           </span>
         </div>
         <div
-          class="min-w-0 flex items-center justify-center bg-slate-300/80 px-3 text-sm text-slate-700 font-semibold transition-all duration-500 ease-out dark:bg-slate-200/70 dark:text-slate-900"
+          class="min-w-0 flex items-center justify-center bg-muted px-3 text-sm text-muted-foreground font-semibold transition-all duration-500 ease-out"
           :style="{ width: `${Math.max(0, 100 - props.progress)}%` }"
         >
           <span v-if="props.unsyncedCount > 0" class="truncate tabular-nums">
@@ -58,8 +58,8 @@ const { t } = useI18n()
     </div>
 
     <div class="grid grid-cols-2 gap-2.5">
-      <div class="col-span-2 rounded-2xl bg-background/55 px-4 py-3 ring-1 ring-border/55">
-        <div class="text-[11px] text-muted-foreground tracking-[0.16em] uppercase">
+      <div class="col-span-2 rounded-lg bg-transparent px-4 py-3 ring-1 ring-border">
+        <div class="text-[11px] text-muted-foreground tracking-wider uppercase">
           {{ t('sync.totalMessages') }}
         </div>
         <div class="pt-2 text-[2rem] text-foreground font-semibold leading-none tabular-nums">
@@ -68,30 +68,30 @@ const { t } = useI18n()
       </div>
 
       <div
-        class="rounded-2xl px-4 py-3 ring-1"
+        class="rounded-lg px-4 py-3 ring-1"
         :class="props.hasError
           ? 'bg-destructive/8 ring-destructive/20'
-          : 'bg-emerald-500/8 ring-emerald-500/20'"
+          : 'bg-transparent ring-border'"
       >
         <div
-          class="text-[11px] tracking-[0.16em] uppercase"
-          :class="props.hasError ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'"
+          class="text-[11px] tracking-wider uppercase"
+          :class="props.hasError ? 'text-destructive' : 'text-foreground '"
         >
           {{ t('sync.syncedMessages') }}
         </div>
         <div
           class="pt-2 text-[1.8rem] font-semibold leading-none tabular-nums"
-          :class="props.hasError ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'"
+          :class="props.hasError ? 'text-destructive' : 'text-foreground '"
         >
           {{ props.syncedCount }}
         </div>
       </div>
 
-      <div class="rounded-2xl bg-slate-300/10 px-4 py-3 ring-1 ring-slate-300/20 dark:bg-slate-500/8 dark:ring-slate-400/20">
-        <div class="text-[11px] text-slate-500 tracking-[0.16em] uppercase dark:text-slate-400">
+      <div class="rounded-lg bg-transparent px-4 py-3 ring-1 ring-border">
+        <div class="text-[11px] text-muted-foreground tracking-wider uppercase">
           {{ t('sync.unsyncedMessages') }}
         </div>
-        <div class="pt-2 text-[1.8rem] text-slate-500 font-semibold leading-none tabular-nums dark:text-slate-300">
+        <div class="pt-2 text-[1.8rem] text-muted-foreground font-semibold leading-none tabular-nums">
           {{ props.unsyncedCount }}
         </div>
       </div>

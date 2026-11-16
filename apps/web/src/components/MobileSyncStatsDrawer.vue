@@ -47,7 +47,7 @@ function closeDrawer() {
     />
 
     <div
-      class="fixed inset-x-3 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-50 max-h-[62vh] overflow-hidden border rounded-[28px] bg-background/96 shadow-2xl ring-1 ring-border/55 backdrop-blur-xl"
+      class="fixed inset-x-3 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-50 max-h-[62vh] overflow-hidden border rounded-[28px] bg-background/96 shadow-2xl ring-1 ring-border backdrop-blur-xl"
     >
       <div class="flex items-center justify-center px-4 pt-3">
         <div class="h-1.5 w-12 rounded-full bg-muted-foreground/20" />
@@ -55,7 +55,7 @@ function closeDrawer() {
 
       <div class="flex items-center justify-between gap-3 px-4 pb-3 pt-2">
         <div>
-          <p class="text-[11px] text-muted-foreground tracking-[0.16em] uppercase">
+          <p class="text-[11px] text-muted-foreground tracking-wider uppercase">
             {{ $t('sync.showStats') }}
           </p>
           <h3 class="pt-1 text-base text-foreground font-semibold">
@@ -121,11 +121,11 @@ function closeDrawer() {
           <div v-if="props.currentLoading" class="space-y-3">
             <div class="h-6 w-40 animate-pulse rounded bg-muted" />
             <div class="h-10 w-24 animate-pulse rounded-full bg-muted" />
-            <div class="h-12 animate-pulse rounded-[24px] bg-muted" />
+            <div class="h-12 animate-pulse rounded-lg bg-muted" />
             <div class="grid grid-cols-2 gap-2.5">
-              <div class="col-span-2 h-28 animate-pulse rounded-2xl bg-muted" />
-              <div class="h-28 animate-pulse rounded-2xl bg-muted" />
-              <div class="h-28 animate-pulse rounded-2xl bg-muted" />
+              <div class="col-span-2 h-28 animate-pulse rounded-lg bg-muted" />
+              <div class="h-28 animate-pulse rounded-lg bg-muted" />
+              <div class="h-28 animate-pulse rounded-lg bg-muted" />
             </div>
           </div>
 

@@ -5,11 +5,11 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useLoginFlow } from '../../composables/useLoginFlow'
 import {
-  LOGIN_GRADIENT_TITLE_CLASS,
   LOGIN_MOBILE_INPUT_CLASS,
   LOGIN_MOBILE_PRIMARY_BUTTON_CLASS,
   LOGIN_MOBILE_SUCCESS_BADGE_CLASS,
   LOGIN_MOBILE_SUCCESS_BUTTON_CLASS,
+  LOGIN_TITLE_CLASS,
   LOGIN_TRANSITION_ENTER_ACTIVE_CLASS,
   LOGIN_TRANSITION_ENTER_FROM_CLASS,
   LOGIN_TRANSITION_ENTER_TO_CLASS,
@@ -25,38 +25,34 @@ const { accountStore, state, steps, handleLogin, redirectRoot } = useLoginFlow()
 <template>
   <div class="relative h-[100dvh] w-full flex flex-col overflow-hidden text-foreground font-sans">
     <!-- Main Container -->
-    <div class="relative z-10 w-full flex flex-1 flex-col items-center justify-end p-0">
-      <!-- Card / Bottom Sheet -->
-      <div
-        class="min-h-[58dvh] w-full animate-in rounded-t-[32px] bg-background/88 px-5 pb-6 pt-5 shadow-2xl backdrop-blur-2xl transition-all duration-500 fade-in slide-in-from-bottom-10"
-      >
-        <!-- Mobile Handle -->
-        <div class="mx-auto mb-6 h-1.5 w-12 rounded-full bg-muted" />
-
+    <div class="relative z-10 w-full flex flex-1 flex-col p-0">
+      <div class="w-full flex flex-1 flex-col animate-in px-6 pb-8 pt-16 duration-500 fade-in slide-in-from-bottom-2">
         <!-- Header -->
-        <div class="mb-8 text-center">
-          <div class="mx-auto mb-6 h-15 w-15 flex items-center justify-center rounded-2xl from-primary/20 to-primary/5 bg-gradient-to-br text-primary shadow-inner ring-1 ring-border/50">
-            <span class="i-lucide-search h-7 w-7" />
+        <div class="mb-8">
+          <div class="mb-8 h-10 w-10 flex items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <span class="i-lucide-search h-5 w-5" />
           </div>
-          <h1 :class="`text-3xl ${LOGIN_GRADIENT_TITLE_CLASS}`">
+          <h1 :class="`text-2xl ${LOGIN_TITLE_CLASS}`">
             {{ t('login.telegramLogin') }}
           </h1>
-          <p class="mt-3 text-base text-muted-foreground/80">
+          <p class="mt-2 text-sm text-muted-foreground">
             {{ steps.find(s => s.value === state.currentStep)?.description }}
           </p>
         </div>
 
         <!-- Step Indicator -->
-        <div class="mb-10 flex justify-center gap-2">
-          <div
-            v-for="(step, idx) in steps"
-            :key="step.value"
-            class="h-1.5 flex-1 rounded-full transition-all duration-500"
-            :class="[
-              state.currentStep === step.value ? 'bg-primary shadow-sm'
-              : idx < steps.findIndex(s => s.value === state.currentStep) ? 'bg-primary/40' : 'bg-muted/30',
-            ]"
-          />
+        <div class="mb-8 flex items-center gap-3">
+          <span class="text-xs text-muted-foreground font-mono tabular-nums">
+            {{ String(Math.max(steps.findIndex(s => s.value === state.currentStep), 0) + 1).padStart(2, '0') }} / {{ String(steps.length).padStart(2, '0') }}
+          </span>
+          <div class="flex flex-1 gap-1">
+            <div
+              v-for="(step, idx) in steps"
+              :key="step.value"
+              class="h-0.5 flex-1 rounded-full transition-colors duration-300"
+              :class="idx <= steps.findIndex(s => s.value === state.currentStep) ? 'bg-primary' : 'bg-border'"
+            />
+          </div>
         </div>
 
         <!-- Forms Container -->
@@ -76,7 +72,7 @@ const { accountStore, state, steps, handleLogin, redirectRoot } = useLoginFlow()
                   {{ t('login.phoneNumber') }}
                 </label>
                 <div class="group relative">
-                  <div class="absolute left-4 top-1/2 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-primary">
+                  <div class="absolute left-4 top-1/2 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-foreground">
                     <span class="i-lucide-phone h-5 w-5" />
                   </div>
                   <Input
@@ -112,7 +108,7 @@ const { accountStore, state, steps, handleLogin, redirectRoot } = useLoginFlow()
                   {{ t('login.verificationCode') }}
                 </label>
                 <div class="group relative">
-                  <div class="absolute left-4 top-1/2 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-primary">
+                  <div class="absolute left-4 top-1/2 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-foreground">
                     <span class="i-lucide-key-round h-5 w-5" />
                   </div>
                   <Input
@@ -144,7 +140,7 @@ const { accountStore, state, steps, handleLogin, redirectRoot } = useLoginFlow()
                   variant="ghost"
                   size="sm"
                   type="button"
-                  class="gap-2 text-muted-foreground hover:text-primary"
+                  class="gap-2 text-muted-foreground hover:text-foreground"
                   @click="state.currentStep = 'phone'"
                 >
                   <span class="i-lucide-arrow-left h-4 w-4" />
@@ -160,7 +156,7 @@ const { accountStore, state, steps, handleLogin, redirectRoot } = useLoginFlow()
                   {{ t('login.twoFactorPassword') }}
                 </label>
                 <div class="group relative">
-                  <div class="absolute left-4 top-1/2 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-primary">
+                  <div class="absolute left-4 top-1/2 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-foreground">
                     <span class="i-lucide-lock h-5 w-5" />
                   </div>
                   <Input
@@ -191,9 +187,9 @@ const { accountStore, state, steps, handleLogin, redirectRoot } = useLoginFlow()
             <!-- Complete -->
             <div v-else-if="state.currentStep === 'complete'" key="complete" class="flex flex-col items-center justify-center text-center space-y-6">
               <div :class="LOGIN_MOBILE_SUCCESS_BADGE_CLASS">
-                <span class="i-lucide-check h-10 w-10" />
+                <span class="i-lucide-check h-7 w-7" />
               </div>
-              <h2 :class="`text-2xl ${LOGIN_GRADIENT_TITLE_CLASS}`">
+              <h2 :class="`text-xl ${LOGIN_TITLE_CLASS}`">
                 {{ t('login.loginSuccess') }}
               </h2>
               <Button

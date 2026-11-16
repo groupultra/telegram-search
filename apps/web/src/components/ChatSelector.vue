@@ -137,19 +137,18 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
 <template>
   <div class="h-full flex flex-col gap-3 md:flex-row md:gap-6">
     <!-- Left Sidebar: Filter Groups (Desktop) -->
-    <div class="w-32 flex-shrink-0 flex-col gap-1 border-r pr-4 hidden lg:flex">
-      <div class="mb-2 px-2 text-xs text-muted-foreground font-semibold tracking-wider uppercase">
+    <div class="w-36 flex-shrink-0 flex-col gap-0.5 hidden lg:flex">
+      <div class="mb-2 px-2.5 eyebrow">
         {{ t('chatSelector.filters') }}
       </div>
       <button
         v-for="option in filterOptions"
         :key="option.value"
-        class="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-all"
-        :class="selectedFilter === option.value ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+        class="h-8 w-full flex items-center justify-between rounded-lg px-2.5 text-left text-sm transition-colors"
+        :class="selectedFilter === option.value ? 'bg-foreground/8 text-foreground font-medium' : 'text-muted-foreground hover:bg-foreground/4 hover:text-foreground'"
         @click="selectedFilter = option.value"
       >
         <span class="truncate">{{ option.label }}</span>
-        <span v-if="selectedFilter === option.value" class="i-lucide-chevron-right h-4 w-4 opacity-50" />
       </button>
     </div>
 
@@ -158,10 +157,10 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
       <button
         v-for="option in filterOptions"
         :key="option.value"
-        class="flex shrink-0 items-center gap-2 border rounded-full px-3 py-1.5 text-xs font-medium transition-all"
+        class="h-7 flex shrink-0 items-center gap-2 rounded-md px-2.5 text-xs transition-colors"
         :class="selectedFilter === option.value
-          ? 'bg-primary text-primary-foreground border-primary'
-          : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'"
+          ? 'bg-primary text-primary-foreground font-medium'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
         @click="selectedFilter = option.value"
       >
         <span>{{ option.label }}</span>
@@ -169,18 +168,18 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
     </div>
 
     <!-- Right Content: Search & List -->
-    <div class="min-w-0 flex flex-1 flex-col space-y-3 md:space-y-4">
+    <div class="min-w-0 flex flex-1 flex-col space-y-3">
       <!-- Search Input -->
       <div class="flex flex-col gap-3">
         <div class="group relative w-full">
           <div
-            class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-primary"
+            class="i-lucide-search pointer-events-none absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-foreground"
           />
           <Input
             v-model="searchQuery"
             type="text"
             :placeholder="t('chatSelector.searchPlaceholder')"
-            class="h-10 border-border/60 rounded-xl bg-background/80 pl-9 text-foreground shadow-sm transition-all focus:border-primary/35 hover:border-border focus:bg-background hover:bg-background placeholder:text-foreground/45 focus:ring-2 focus:ring-primary/15"
+            class="pl-9"
           />
         </div>
 
@@ -191,13 +190,13 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
       </div>
 
       <!-- Chat List Container -->
-      <div class="min-h-0 flex-1 overflow-hidden border rounded-2xl bg-card">
+      <div class="min-h-0 flex-1 overflow-hidden border rounded-xl">
         <!-- No Results Message -->
         <div v-if="filteredChats.length === 0" class="h-full flex flex-col items-center justify-center py-16">
-          <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
-            <span class="i-lucide-search-x h-8 w-8 text-muted-foreground" />
+          <div class="mb-3">
+            <span class="i-lucide-search-x h-6 w-6 text-muted-foreground/60" />
           </div>
-          <p class="text-base text-muted-foreground font-medium">
+          <p class="text-sm text-muted-foreground">
             {{ t('chatSelector.noChatsFound') }}
           </p>
         </div>
@@ -211,9 +210,9 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
           <template #default="{ item: chat }">
             <div
               :key="`${chat.id}-${isSelected(chat.id) ? 'checked' : 'unchecked'}`"
-              class="group flex cursor-pointer items-center gap-3 border-b px-3 py-3 transition-all hover:bg-accent/50 md:px-4"
+              class="group flex cursor-pointer items-center gap-3 border-b px-3 py-2.5 transition-colors hover:bg-foreground/4 md:px-4"
               :class="{
-                'bg-primary/5': isSelected(chat.id),
+                'bg-foreground/5': isSelected(chat.id),
               }"
               role="button"
               tabindex="0"
@@ -242,8 +241,8 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
               </div>
 
               <div
-                class="h-5 w-5 flex shrink-0 items-center justify-center border rounded-md transition-colors"
-                :class="isSelected(chat.id) ? 'border-primary bg-primary text-primary-foreground' : 'border-border/70 text-transparent'"
+                class="h-4.5 w-4.5 flex shrink-0 items-center justify-center border rounded transition-colors"
+                :class="isSelected(chat.id) ? 'border-primary bg-primary text-primary-foreground' : 'border-input text-transparent'"
               >
                 <span class="i-lucide-check h-3 w-3" />
               </div>
@@ -254,13 +253,3 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>
