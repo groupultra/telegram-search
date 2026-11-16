@@ -162,8 +162,9 @@ export function createTelegramApplicationRuntime(options: {
     const name = isUser
       ? [entity.firstName, entity.lastName].filter(Boolean).join(' ') || entity.username || String(entity.id)
       : entity.title
+    // GramJS decodes an absent username as null; the protocol field is optional and rejects null.
     const username = entity instanceof Api.User || entity instanceof Api.Channel
-      ? entity.username
+      ? entity.username ?? undefined
       : undefined
     const accessHash = entity instanceof Api.User || entity instanceof Api.Channel
       ? entity.accessHash?.toString()

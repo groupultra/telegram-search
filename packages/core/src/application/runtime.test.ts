@@ -12,9 +12,10 @@ import { Buffer } from 'node:buffer'
 
 import bigInt from 'big-integer'
 
-import { MEDIA_CHUNK_BYTES } from '@tg-search/protocol'
+import { MEDIA_CHUNK_BYTES, remoteMethods, remoteResultSchema } from '@tg-search/protocol'
 import { Ok } from '@unbird/result'
 import { Api } from 'telegram'
+import { safeParse } from 'valibot'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createTelegramApplicationRuntime } from './runtime'
@@ -223,6 +224,19 @@ describe('telegram application runtime remote boundaries', () => {
       [expect.objectContaining({ id: 42, accessHash: '99', type: 'channel' })],
       'account-1',
     )
+  })
+
+  it('omits a missing username so live chat records match the protocol', async () => {
+    // GramJS decodes an absent username as null. The record passed it through, and remote clients
+    // rejected every page with such a chat as REMOTE_PROTOCOL_MISMATCH.
+    const harness = createHarness()
+    harness.channel.username = null as unknown as string
+    const runtime = createTelegramApplicationRuntime(harness)
+
+    const result = await runtime.listChats({ limit: 1 })
+
+    expect(result.ok && result.data.items[0]).not.toHaveProperty('username', null)
+    expect(safeParse(remoteResultSchema(remoteMethods['chats.list'].output), result).success).toBe(true)
   })
 
   it('stops dialog iteration after cancellation before requesting another page (issue #682)', async () => {
