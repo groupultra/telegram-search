@@ -13,11 +13,10 @@ import { routes as generatedRoutes } from 'vue-router/auto-routes'
 import App from './App.vue'
 
 import { LOG_LEVEL } from './constants'
-import { isServerAuthRoute, SIGN_IN_PATH } from './lib/server-auth'
+import { isServerAuthRoute } from './lib/server-auth'
 import { i18n } from './modules/i18n'
 import { initPosthog } from './modules/posthog'
 import { createPGliteDevtoolsPlugin } from './plugins/pglite-devtools'
-import { useServerAuthStore } from './stores/server-auth'
 
 import '@unocss/reset/tailwind.css'
 import 'nprogress/nprogress.css'
@@ -53,20 +52,12 @@ const router = createRouter({
 NProgress.configure({ showSpinner: false })
 
 // Add router navigation guards for NProgress
-router.beforeEach(async (to) => {
+router.beforeEach((to) => {
   NProgress.start()
 
   // The OAuth pages run before any Telegram account is ready.
   if (isServerAuthRoute(to.path))
     return true
-
-  // With OAuth enabled on the server, the WebSocket needs a signed-in session first.
-  if (await useServerAuthStore().check() === 'signed-out') {
-    return {
-      path: SIGN_IN_PATH,
-      query: { redirect: to.fullPath },
-    }
-  }
 
   const accountStore = useAccountStore()
   const isLoginRoute = to.path === '/login'

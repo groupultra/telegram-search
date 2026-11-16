@@ -373,11 +373,12 @@
   "serverAuth": {
     "signIn": {
       "title": "登录 Telegram Search",
-      "description": "使用你的 Telegram 账号登录这台服务器。",
-      "continueTo": "登录后继续前往 {client}。",
-      "withTelegram": "使用 Telegram 继续",
-      "notice": "Telegram 只负责确认你的身份。连接 Telegram 账号用于搜索是单独的一步。",
-      "failed": "Telegram 登录失败，请重试。"
+      "description": "在这台服务器上登录你的 Telegram 账号以继续。",
+      "continueTo": "登录 Telegram 后继续前往 {client}。",
+      "withTelegram": "登录 Telegram",
+      "notice": "登录 Telegram 的同时会连接账号用于搜索，只需登录一次。",
+      "failed": "登录失败，请重试。",
+      "continue": "继续"
     },
     "consent": {
       "title": "允许 {client} 访问你的数据吗？",

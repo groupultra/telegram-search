@@ -21,18 +21,17 @@ The proxy must preserve the `Host` header for `/mcp`.
 
 ## Server sign-in (`TGS_AUTH=oauth`)
 
-When the server runs with OAuth, the WebSocket needs a signed-in session. On start the app reads `GET /api/auth/get-session`:
+Logging in to Telegram at `/login` is the sign-in. On start the app reads `GET /api/auth/get-session`:
 
-- `404`: the server runs without OAuth; the app starts as before.
-- No session: every route except `/auth/*` redirects to `/auth/sign-in`, and the WebSocket bridge does not start.
-- A session: the app starts; the Telegram account login at `/login` follows as before.
+- `404`: the server runs without OAuth; nothing else happens.
+- No session: once the Telegram account is ready (after `/login`, or right away with a saved session), the app sends `server:sign-in-ticket` over the WebSocket and exchanges the ticket at `POST /api/auth/sign-in/telegram-session` for a session cookie.
 
 Pages under `src/pages/auth/` serve the authorization server's flow:
 
 | Page | Purpose |
 |---|---|
-| `/auth/sign-in` | Telegram sign-in. With a signed authorization request in the query, it resumes that request after Telegram returns. |
+| `/auth/sign-in` | Where the server sends a client's authorization request. When Telegram is not logged in yet, it sends the user to `/login` with itself as `redirect`; once the account is ready the app returns here, and the page resumes the signed request from its own URL. Nothing about the request is stored in the browser. |
 | `/auth/consent` | Shows the requesting client and scopes; Allow or Deny returns to the client. |
 | `/auth/device` | Approves a `tgs remote login` device code. |
 
-The client for these endpoints is `src/lib/server-auth.ts`; the sign-in state lives in `src/stores/server-auth.ts`.
+The client for these endpoints is `src/lib/server-auth.ts`; the sign-in state and the ticket exchange live in `src/stores/server-auth.ts`, and the return from `/login` is in `src/App.vue`.

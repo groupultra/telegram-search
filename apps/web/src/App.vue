@@ -2,26 +2,52 @@
 import { useLogger } from '@guiiai/logg'
 import { evictExpiredOrOversized, useAccountStore, useAvatarStore, useBridge, useSessionStore } from '@tg-search/client'
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
-import { onBeforeUnmount, onMounted } from 'vue'
-import { RouterView } from 'vue-router'
-import { Toaster } from 'vue-sonner'
+import { onBeforeUnmount, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { RouterView, useRoute, useRouter } from 'vue-router'
+import { toast, Toaster } from 'vue-sonner'
 
+import { isServerAuthRoute, safeRedirectPath } from './lib/server-auth'
 import { usePWAStore } from './stores/pwa'
 import { useServerAuthStore } from './stores/server-auth'
 
-onMounted(async () => {
+const { t } = useI18n()
+
+onMounted(() => {
   usePWAStore().init()
 
   hideSplashScreen()
 
   useSessionStore().init()
-  // A signed-out OAuth server refuses the WebSocket upgrade; the router sends the user to sign in instead.
-  if (await useServerAuthStore().check() === 'signed-out')
-    return
   useBridge().init().then(() => {
     useAccountStore().init()
   })
 })
+
+// With OAuth on the server, the Telegram login is the sign-in. Once the account is ready, an
+// authorization flow continues on its own page; otherwise sign in to the server here.
+const accountStore = useAccountStore()
+const serverAuth = useServerAuthStore()
+const router = useRouter()
+const route = useRoute()
+watch(() => accountStore.isReady, async (ready) => {
+  if (!ready)
+    return
+  const redirect = safeRedirectPath(route.query.redirect, '')
+  if (route.path === '/login' && isServerAuthRoute(redirect.split('?')[0])) {
+    await router.replace(redirect)
+    return
+  }
+  if (await serverAuth.check() !== 'signed-out')
+    return
+  try {
+    await serverAuth.completeSignIn()
+  }
+  catch (error) {
+    useLogger('server-auth').withError(error).warn('Failed to sign in to the server')
+    toast.error(t('serverAuth.signIn.failed'))
+  }
+}, { immediate: true })
 
 const avatarStore = useAvatarStore()
 let avatarCleanupTimer: number | undefined
