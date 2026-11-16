@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { authConfigFromEnv } from './auth-config'
+import { authConfigFromEnv } from './config'
 
 const oauthEnv = {
   TGS_AUTH: 'oauth',

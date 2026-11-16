@@ -1,6 +1,6 @@
 import type { RemoteMethod } from '@tg-search/protocol'
 
-import type { RemoteAuthenticator, RemotePrincipal } from './remote'
+import type { RemoteAuthenticator, RemotePrincipal } from './executor'
 
 /** Test-only principal builder that mirrors the scope shapes OAuth tokens produce. */
 export function testPrincipal(options: {

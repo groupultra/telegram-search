@@ -1,12 +1,12 @@
 import type { JWTPayload } from 'jose'
 
-import type { RemoteAuthenticator, RemotePrincipal } from '../remote'
-import type { Auth } from './auth'
+import type { RemoteAuthenticator, RemotePrincipal } from '../remote/executor'
+import type { Auth } from './better-auth'
 
 import { requireMcpAuth } from '@better-auth/mcp'
 
-import { capabilitiesFromScopes } from '../remote-scopes'
-import { TELEGRAM_ID_CLAIM } from './auth'
+import { capabilitiesFromScopes } from '../remote/scopes'
+import { TELEGRAM_ID_CLAIM } from './better-auth'
 
 export interface PrincipalResolverOptions {
   /** Maps a Telegram user ID to the TGS account recorded when that user signed in to Telegram on this server. */

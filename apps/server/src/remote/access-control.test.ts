@@ -1,15 +1,16 @@
 import type { DatabaseAdministration, TelegramApplication } from '@tg-search/core'
 import type { RemoteMethod } from '@tg-search/protocol'
 
-import type { RemoteAuditEvent, RemotePrincipal } from './remote'
-import type { RemoteApplication } from './remote-application'
+import type { RemoteApplication } from './application'
+import type { RemoteAuditEvent, RemotePrincipal } from './executor'
 
 import { H3 } from 'h3'
 import { describe, expect, it, vi } from 'vitest'
 
-import { createRemoteApi, createRemoteExecutor } from './remote'
-import { createRemoteMediaLinks } from './remote-media-links'
-import { bearerTestAuthenticator, testPrincipal } from './remote-test-utils'
+import { createRemoteExecutor } from './executor'
+import { createRemoteApi } from './http'
+import { createRemoteMediaLinks } from './media-links'
+import { bearerTestAuthenticator, testPrincipal } from './test-utils'
 
 const accountId = '11111111-1111-4111-8111-111111111111'
 const credentialId = 'https://client.example/metadata.json'

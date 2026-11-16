@@ -2,8 +2,8 @@ import type { CallToolResult, StandardSchemaWithJSON } from '@modelcontextprotoc
 import type { RemoteMethod } from '@tg-search/protocol'
 import type { GenericSchema } from 'valibot'
 
-import type { ClaimsVerifier, createPrincipalResolver } from './auth/remote-authenticator'
-import type { RemoteExecutor, RemotePrincipal } from './remote'
+import type { ClaimsVerifier, createPrincipalResolver } from '../auth/principal'
+import type { RemoteExecutor, RemotePrincipal } from '../remote/executor'
 
 import { randomUUID } from 'node:crypto'
 
@@ -11,7 +11,7 @@ import { createMcpHandler, McpServer, originValidationResponse } from '@modelcon
 import { remoteMethods } from '@tg-search/protocol'
 import { toJsonSchema } from '@valibot/to-json-schema'
 
-import pkg from '../package.json' with { type: 'json' }
+import pkg from '../../package.json' with { type: 'json' }
 
 const toolDescriptions: Record<RemoteMethod, { description: string, readOnly: boolean }> = {
   'chats.list': { description: 'List the chats of the connected Telegram account.', readOnly: true },

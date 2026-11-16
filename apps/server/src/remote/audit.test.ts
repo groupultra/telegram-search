@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { mockDB } from '../../../packages/core/src/db/mock'
-import { remoteAuditEventsTable } from '../../../packages/core/src/schemas/remote-audit-events'
-import { createRemoteAuditRecorder } from './remote-audit'
+import { mockDB } from '../../../../packages/core/src/db/mock'
+import { remoteAuditEventsTable } from '../../../../packages/core/src/schemas/remote-audit-events'
+import { createRemoteAuditRecorder } from './audit'
 
 describe('remote audit recorder', () => {
   it('persists an append-only, sanitized operation record', async () => {

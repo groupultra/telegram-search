@@ -1,18 +1,19 @@
 import type { CoreDB } from '@tg-search/core'
 import type { H3 } from 'h3'
 
-import type { RemoteApplication } from '../remote-application'
-import type { OAuthConfig } from './auth'
+import type { OAuthConfig } from './auth/better-auth'
+import type { RemoteApplication } from './remote/application'
 
 import { models } from '@tg-search/core'
 
-import { createMcpEndpoint } from '../mcp'
-import { createRemoteApi, createRemoteExecutor } from '../remote'
-import { createRemoteAuditRecorder } from '../remote-audit'
-import { createRemoteMediaLinks } from '../remote-media-links'
-import { createAuth, ensureCliClient, oauthUrls } from './auth'
-import { createClaimsVerifier, createOAuthRemoteAuthenticator, createPrincipalResolver } from './remote-authenticator'
-import { createSessionGuard } from './session-guard'
+import { createAuth, ensureCliClient, oauthUrls } from './auth/better-auth'
+import { createClaimsVerifier, createOAuthRemoteAuthenticator, createPrincipalResolver } from './auth/principal'
+import { createSessionGuard } from './auth/session-guard'
+import { createMcpEndpoint } from './mcp/server'
+import { createRemoteAuditRecorder } from './remote/audit'
+import { createRemoteExecutor } from './remote/executor'
+import { createRemoteApi } from './remote/http'
+import { createRemoteMediaLinks } from './remote/media-links'
 
 export interface MountOAuthOptions {
   db: CoreDB
@@ -39,7 +40,7 @@ export async function mountOAuth(app: H3, { db, config, getApplication }: MountO
     },
     adminTelegramIds: config.adminTelegramIds,
   })
-  // Media tickets derive their own key from the server secret; see remote-media-links.
+  // Media tickets derive their own key from the server secret; see remote/media-links.ts.
   const media = createRemoteMediaLinks({ secret: config.secret }, getApplication)
   const executor = createRemoteExecutor({ getApplication, recordAudit: createRemoteAuditRecorder(db), media })
 

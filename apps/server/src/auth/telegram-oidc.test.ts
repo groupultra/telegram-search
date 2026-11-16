@@ -3,7 +3,7 @@ import type { JWTPayload } from 'jose'
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose'
 import { describe, expect, it } from 'vitest'
 
-import { createTelegramIdTokenVerifier, TELEGRAM_OIDC_ISSUER } from './telegram-login'
+import { createTelegramIdTokenVerifier, TELEGRAM_OIDC_ISSUER } from './telegram-oidc'
 
 const clientId = '123456789'
 

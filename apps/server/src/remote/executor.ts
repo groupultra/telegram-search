@@ -2,13 +2,13 @@ import type { ReadOperationOptions } from '@tg-search/core'
 import type { RemoteMethod } from '@tg-search/protocol'
 import type { GenericSchema, InferOutput } from 'valibot'
 
-import type { RemoteApplication } from './remote-application'
-import type { RemoteMediaLinks } from './remote-media-links'
+import type { RemoteApplication } from './application'
+import type { RemoteMediaLinks } from './media-links'
 
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash } from 'node:crypto'
 
 import { remoteMethods } from '@tg-search/protocol'
-import { assertBodySize, H3, HTTPError, readBody, setResponseHeader } from 'h3'
+import { HTTPError } from 'h3'
 import { safeParse } from 'valibot'
 
 const remoteMethodNames = Object.keys(remoteMethods) as [RemoteMethod, ...RemoteMethod[]]
@@ -283,11 +283,7 @@ function inputChatIds(input: Record<string, unknown>): string[] {
   return typeof input.chatId === 'string' ? [input.chatId] : []
 }
 
-function errorResponse(code: string, message: string, status: number, requestId: string): Response {
-  return Response.json({ ok: false, error: { code, message, retryable: false } }, { status, headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } })
-}
-
-class RemoteInputError extends Error {
+export class RemoteInputError extends Error {
   constructor(public code: 'UNSUPPORTED_MEDIA_TYPE' | 'INVALID_ARGUMENT', public status: 400 | 415) {
     super(code === 'INVALID_ARGUMENT' ? 'Invalid request parameters' : 'Unsupported media type')
     this.name = 'RemoteInputError'
@@ -407,46 +403,4 @@ export function createRemoteExecutor({ getApplication, recordAudit, media }: Rem
   }
 
   return { execute }
-}
-
-/** REST transport for remote methods: `POST /:method` with a bearer access token. */
-export function createRemoteApi(authenticate: RemoteAuthenticator, executor: RemoteExecutor, media: RemoteMediaLinks): H3 {
-  const app = new H3()
-  app.get('/media.download', event => media.download(event))
-  app.head('/media.download', event => media.download(event))
-  app.post('/:method', async (event) => {
-    const authentication = await authenticate(event.req)
-    if ('response' in authentication)
-      return authentication.response
-
-    const requestId = randomUUID()
-    setResponseHeader(event, 'X-Request-Id', requestId)
-    try {
-      const execution = await executor.execute(authentication.principal, event.context.params?.method ?? '', {
-        requestId,
-        signal: event.req.signal,
-        userAgent: event.req.headers.get('user-agent') ?? undefined,
-        readInput: async () => {
-          if (!event.req.headers.get('content-type')?.startsWith('application/json'))
-            throw new RemoteInputError('UNSUPPORTED_MEDIA_TYPE', 415)
-          assertBodySize(event, 65_536)
-          return await readBody(event)
-        },
-      })
-      if (execution.kind === 'result')
-        return Response.json(execution.result, { headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } })
-      if (execution.status === 404 || execution.status === 415)
-        return new Response(null, { status: execution.status, headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } })
-      return errorResponse(execution.code, execution.message, execution.status, requestId)
-    }
-    catch (error) {
-      throw new HTTPError(error instanceof Error ? error.message : 'Remote request failed', {
-        status: error instanceof HTTPError ? error.status : 500,
-        cause: error,
-        headers: { 'X-Request-Id': requestId },
-        unhandled: true,
-      })
-    }
-  })
-  return app
 }

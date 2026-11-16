@@ -1,8 +1,8 @@
 import type { TelegramApplication } from '@tg-search/core'
 import type { JWTPayload } from 'jose'
 
-import type { RemoteApplication } from '../remote-application'
-import type { OAuthConfig } from './auth'
+import type { OAuthConfig } from './auth/better-auth'
+import type { RemoteApplication } from './remote/application'
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { authSchema, models, remoteAuditEventsTable } from '@tg-search/core'
@@ -10,11 +10,11 @@ import { H3 } from 'h3'
 import { decodeJwt, exportJWK, generateKeyPair, SignJWT } from 'jose'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { mockDB } from '../../../../packages/core/src/db/mock'
-import { accountsTable } from '../../../../packages/core/src/schemas/accounts'
-import { TELEGRAM_OIDC_ISSUER } from '../telegram-login'
-import { CLI_CLIENT_ID, oauthUrls } from './auth'
-import { mountOAuth } from './routes'
+import { mockDB } from '../../../packages/core/src/db/mock'
+import { accountsTable } from '../../../packages/core/src/schemas/accounts'
+import { CLI_CLIENT_ID, oauthUrls } from './auth/better-auth'
+import { TELEGRAM_OIDC_ISSUER } from './auth/telegram-oidc'
+import { mountOAuth } from './oauth'
 
 const publicUrl = 'http://localhost:3000'
 const telegramClientId = '123456789'

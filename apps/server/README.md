@@ -2,6 +2,18 @@
 
 Node/H3 server for Telegram Search.
 
+## Source layout
+
+| Path | Contents |
+|---|---|
+| `src/index.ts` | Bootstrap: config, database, media storage, routes by `TGS_AUTH` mode |
+| `src/oauth.ts` | OAuth mode wiring: mounts the authorization server, `/mcp`, and `/v1/remote`, and returns the Web session guard |
+| `src/auth/` | Better Auth instance (`better-auth.ts`), `TGS_AUTH` config, Telegram ID token verification, token-to-principal resolution, Web session guard |
+| `src/remote/` | Remote methods shared by REST and MCP: executor (scopes, chat scope, audit), REST transport (`http.ts`), scopes, audit recorder, media links, account application |
+| `src/mcp/` | Streamable HTTP MCP endpoint and tool registration |
+| `src/app.ts`, `src/account.ts`, `src/events.ts` | WebSocket bridge and per-account Core state |
+| `src/apis/`, `src/storage/` | Web photo/sticker routes and media storage |
+
 ## Authorization modes
 
 `TGS_AUTH` selects the mode:

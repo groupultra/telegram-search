@@ -1,7 +1,7 @@
 import type { CoreDB } from '@tg-search/core'
 import type { Auth as BetterAuth } from 'better-auth'
 
-import type { AuthConfig } from '../auth-config'
+import type { AuthConfig } from './config'
 
 import { cimd } from '@better-auth/cimd'
 import { fetchClientMetadataResource } from '@better-auth/cimd/node'
@@ -12,8 +12,8 @@ import { authOauthClientResourceTable, authOauthClientTable, authSchema } from '
 import { betterAuth } from 'better-auth'
 import { genericOAuth, jwt } from 'better-auth/plugins'
 
-import { ownerScopes, remoteScopes } from '../remote-scopes'
-import { createTelegramIdTokenVerifier, TELEGRAM_OIDC_DISCOVERY_URL } from '../telegram-login'
+import { ownerScopes, remoteScopes } from '../remote/scopes'
+import { createTelegramIdTokenVerifier, TELEGRAM_OIDC_DISCOVERY_URL } from './telegram-oidc'
 
 export type OAuthConfig = Extract<AuthConfig, { mode: 'oauth' }>
 

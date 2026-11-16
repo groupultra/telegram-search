@@ -1,6 +1,6 @@
 import type { TelegramApplication } from '@tg-search/core'
 
-import type { RemoteApplication } from '../../../apps/server/src/remote-application'
+import type { RemoteApplication } from '../../../apps/server/src/remote/application'
 
 import process from 'node:process'
 
@@ -12,9 +12,10 @@ import { join } from 'node:path'
 import { H3, serve } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createRemoteApi, createRemoteExecutor } from '../../../apps/server/src/remote'
-import { createRemoteMediaLinks } from '../../../apps/server/src/remote-media-links'
-import { bearerTestAuthenticator, testPrincipal } from '../../../apps/server/src/remote-test-utils'
+import { createRemoteExecutor } from '../../../apps/server/src/remote/executor'
+import { createRemoteApi } from '../../../apps/server/src/remote/http'
+import { createRemoteMediaLinks } from '../../../apps/server/src/remote/media-links'
+import { bearerTestAuthenticator, testPrincipal } from '../../../apps/server/src/remote/test-utils'
 import { runCli } from './index'
 import { createRemoteRuntime } from './remote'
 import { useRemoteToken } from './remote-test-utils'

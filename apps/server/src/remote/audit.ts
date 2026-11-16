@@ -1,6 +1,6 @@
 import type { CoreDB } from '@tg-search/core'
 
-import type { RemoteAuditEvent } from './remote'
+import type { RemoteAuditEvent } from './executor'
 
 import { remoteAuditEventsTable } from '@tg-search/core'
 

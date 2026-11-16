@@ -1,18 +1,19 @@
 import type { TelegramApplication } from '@tg-search/core'
 
-import type { RemoteApplication } from './remote-application'
+import type { RemoteApplication } from './application'
 
 import { Buffer } from 'node:buffer'
 
 import { H3, serve } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { appResult } from '../../../packages/core/src/application/errors'
-import { withReadOperation } from '../../../packages/core/src/application/read-operation'
-import { createMessageMediaReader } from '../../../packages/core/src/services/message-media'
-import { createRemoteApi, createRemoteExecutor } from './remote'
-import { createRemoteMediaLinks } from './remote-media-links'
-import { bearerTestAuthenticator, testPrincipal } from './remote-test-utils'
+import { appResult } from '../../../../packages/core/src/application/errors'
+import { withReadOperation } from '../../../../packages/core/src/application/read-operation'
+import { createMessageMediaReader } from '../../../../packages/core/src/services/message-media'
+import { createRemoteExecutor } from './executor'
+import { createRemoteApi } from './http'
+import { createRemoteMediaLinks } from './media-links'
+import { bearerTestAuthenticator, testPrincipal } from './test-utils'
 
 const access = { token: 'synthetic-reader-token-'.repeat(3), accountId: '11111111-1111-4111-8111-111111111111' }
 const principal = testPrincipal({ accountId: access.accountId, capabilities: ['media.read', 'messages.get', 'messages.replies', 'messages.read'], chatIds: ['42'] })

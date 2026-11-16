@@ -1,15 +1,16 @@
 import type { MessageMediaContent, MessageMediaDescriptor, ReadOperationOptions, TelegramApplication } from '@tg-search/core'
 
-import type { RemoteApplication } from './remote-application'
+import type { RemoteApplication } from './application'
 
 import { Buffer } from 'node:buffer'
 
 import { H3, serve } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createRemoteApi, createRemoteExecutor } from './remote'
-import { createRemoteMediaLinks } from './remote-media-links'
-import { bearerTestAuthenticator, testPrincipal } from './remote-test-utils'
+import { createRemoteExecutor } from './executor'
+import { createRemoteApi } from './http'
+import { createRemoteMediaLinks } from './media-links'
+import { bearerTestAuthenticator, testPrincipal } from './test-utils'
 
 const access = { token: 'synthetic-media-link-token-'.repeat(3), secret: 'synthetic-media-link-secret-'.repeat(3), accountId: '11111111-1111-4111-8111-111111111111' }
 const input = { source: 'local' as const, chatId: '4242424242', messageId: '700000001', mediaIndex: 0, maxBytes: 10 * 1024 * 1024 }
