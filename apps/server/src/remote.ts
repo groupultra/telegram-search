@@ -3,53 +3,42 @@ import type { RemoteMethod } from '@tg-search/protocol'
 import type { GenericSchema, InferOutput } from 'valibot'
 
 import type { RemoteApplication } from './remote-application'
-import type { RemoteMediaOptions } from './remote-media-links'
+import type { RemoteMediaLinks } from './remote-media-links'
 
 import { createHash, randomUUID } from 'node:crypto'
 
-import { accountIdSchema, remoteMethods } from '@tg-search/protocol'
-import { assertBodySize, H3, HTTPError, readValidatedBody, setResponseHeader } from 'h3'
-import { array, integer, maxLength, minLength, number, object, optional, parse, picklist, pipe, regex, string, toLowerCase, uuid } from 'valibot'
-
-import { createRemoteMediaLinks } from './remote-media-links'
+import { remoteMethods } from '@tg-search/protocol'
+import { assertBodySize, H3, HTTPError, readBody, setResponseHeader } from 'h3'
+import { safeParse } from 'valibot'
 
 const remoteMethodNames = Object.keys(remoteMethods) as [RemoteMethod, ...RemoteMethod[]]
 
-const remoteCredentialSchema = object({
-  id: pipe(string(), uuid(), toLowerCase()),
-  name: pipe(string(), minLength(1), maxLength(128)),
-  token: pipe(string(), minLength(32, 'remote access tokens must contain at least 32 characters'), regex(/^\S+$/, 'remote access tokens must not contain whitespace')),
-  accountId: accountIdSchema,
-  expiresAt: optional(pipe(number(), integer())),
-  capabilities: array(picklist(remoteMethodNames)),
-  chatPermissions: array(object({
-    chatId: pipe(string(), minLength(1), maxLength(128)),
-    permissions: array(picklist(['read'])),
-  })),
-})
-
-const remoteAccessSchema = object({
-  credentials: pipe(array(remoteCredentialSchema), minLength(1)),
-})
-
-export interface RemoteCredential {
-  id: string
-  name: string
+/**
+ * The caller of one remote request, resolved from a verified OAuth access
+ * token. Request input can never choose the account.
+ */
+export interface RemotePrincipal {
+  /** OAuth client ID (token `azp`); recorded as the audit principal. */
+  clientId: string
+  clientName: string
+  /** Authorization-server user ID (token `sub`). */
+  userId: string
   accountId: string
-  expiresAt?: number
   capabilities: ReadonlySet<RemoteMethod>
+  /** Undefined when the principal may read every chat of its account. */
   readableChatIds?: readonly string[]
-  tokenHash: string
 }
 
-export interface RemoteAccess {
-  credentialsByTokenHash: ReadonlyMap<string, RemoteCredential>
-}
+export type RemoteAuthentication = { principal: RemotePrincipal } | { response: Response }
+
+/** Verifies the request credentials; returns the challenge response when they are missing or invalid. */
+export type RemoteAuthenticator = (request: Request) => Promise<RemoteAuthentication>
 
 export interface RemoteAuditEvent {
   requestId: string
   credentialId: string
   credentialName: string
+  userId: string
   accountId: string
   method: string
   chatIds: string[]
@@ -60,62 +49,6 @@ export interface RemoteAuditEvent {
   resultSummary: Record<string, unknown>
   durationMs: number
   userAgent?: string
-}
-
-export function remoteAccessFromEnv(env: Record<string, string | undefined>): RemoteAccess | undefined {
-  const raw = env.TG_SEARCH_REMOTE_ACCESS
-  if (raw === undefined)
-    return undefined
-
-  let value: unknown
-  try {
-    value = JSON.parse(raw)
-  }
-  catch (error) {
-    throw new Error('TG_SEARCH_REMOTE_ACCESS must contain valid JSON', { cause: error })
-  }
-
-  const parsed = parse(remoteAccessSchema, value)
-  const credentialsByTokenHash = new Map<string, RemoteCredential>()
-  const credentialIds = new Set<string>()
-  for (const credential of parsed.credentials) {
-    if (credentialIds.has(credential.id))
-      throw new Error(`TG_SEARCH_REMOTE_ACCESS contains duplicate credential id ${credential.id}`)
-    credentialIds.add(credential.id)
-
-    const tokenHash = hashToken(credential.token)
-    if (credentialsByTokenHash.has(tokenHash))
-      throw new Error('TG_SEARCH_REMOTE_ACCESS contains a duplicate token')
-
-    const readAll = credential.chatPermissions.some(grant => grant.chatId === '*' && grant.permissions.includes('read'))
-    credentialsByTokenHash.set(tokenHash, {
-      id: credential.id,
-      name: credential.name,
-      accountId: credential.accountId,
-      expiresAt: credential.expiresAt,
-      capabilities: new Set(credential.capabilities),
-      readableChatIds: readAll ? undefined : uniqueSortedChatIds(credential.chatPermissions),
-      tokenHash,
-    })
-  }
-  return { credentialsByTokenHash }
-}
-
-function hashToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex')
-}
-
-function uniqueSortedChatIds(grants: Array<{ chatId: string, permissions: 'read'[] }>): string[] {
-  return [...new Set(grants.filter(grant => grant.chatId !== '*' && grant.permissions.includes('read')).map(grant => grant.chatId))].sort()
-}
-
-function authenticate(access: RemoteAccess, authorization: string | null): RemoteCredential | undefined {
-  if (!authorization?.startsWith('Bearer '))
-    return undefined
-  const credential = access.credentialsByTokenHash.get(hashToken(authorization.slice('Bearer '.length)))
-  if (!credential || (credential.expiresAt !== undefined && credential.expiresAt <= Date.now()))
-    return undefined
-  return credential
 }
 
 class RemotePermissionError extends Error {
@@ -132,33 +65,33 @@ class RemoteScopeViolationError extends Error {
   }
 }
 
-function requireCapability(credential: RemoteCredential, method: RemoteMethod): void {
-  if (!credential.capabilities.has(method))
+function requireCapability(principal: RemotePrincipal, method: RemoteMethod): void {
+  if (!principal.capabilities.has(method))
     throw new RemotePermissionError('This credential cannot use the requested feature')
 }
 
-function scopeChatIds(credential: RemoteCredential, requested?: string[]): string[] | undefined {
-  if (credential.readableChatIds === undefined)
+function scopeChatIds(principal: RemotePrincipal, requested?: string[]): string[] | undefined {
+  if (principal.readableChatIds === undefined)
     return requested
-  if (credential.readableChatIds.length === 0)
+  if (principal.readableChatIds.length === 0)
     throw new RemotePermissionError('This credential cannot read any chats')
   if (!requested?.length)
-    return [...credential.readableChatIds]
-  const allowed = new Set(credential.readableChatIds)
+    return [...principal.readableChatIds]
+  const allowed = new Set(principal.readableChatIds)
   if (requested.some(chatId => !allowed.has(chatId)))
     throw new RemotePermissionError('This credential cannot read one or more requested chats')
   return requested
 }
 
-function requireReadableChat(credential: RemoteCredential, chatId: string): void {
-  if (credential.readableChatIds !== undefined && !credential.readableChatIds.includes(chatId))
+function requireReadableChat(principal: RemotePrincipal, chatId: string): void {
+  if (principal.readableChatIds !== undefined && !principal.readableChatIds.includes(chatId))
     throw new RemotePermissionError('This credential cannot read the requested chat')
 }
 
 interface RemoteMethodHandler {
   input: GenericSchema
-  scope: (credential: RemoteCredential, input: unknown) => Record<string, unknown>
-  invoke: (application: RemoteApplication, credential: RemoteCredential, input: Record<string, unknown>, options: ReadOperationOptions) => Promise<unknown>
+  scope: (principal: RemotePrincipal, input: unknown) => Record<string, unknown>
+  invoke: (application: RemoteApplication, principal: RemotePrincipal, input: Record<string, unknown>, options: ReadOperationOptions) => Promise<unknown>
   resultChatIds: (input: Record<string, unknown>, data: Record<string, unknown>) => Array<string | undefined> | undefined
 }
 
@@ -166,31 +99,31 @@ type HandlerInput<Schema extends GenericSchema> = InferOutput<Schema> & Record<s
 
 function defineRemoteHandler<Schema extends GenericSchema>(definition: {
   input: Schema
-  scope: (credential: RemoteCredential, input: HandlerInput<Schema>) => HandlerInput<Schema>
-  invoke: (application: RemoteApplication, credential: RemoteCredential, input: HandlerInput<Schema>, options: ReadOperationOptions) => Promise<unknown>
+  scope: (principal: RemotePrincipal, input: HandlerInput<Schema>) => HandlerInput<Schema>
+  invoke: (application: RemoteApplication, principal: RemotePrincipal, input: HandlerInput<Schema>, options: ReadOperationOptions) => Promise<unknown>
   resultChatIds: (input: HandlerInput<Schema>, data: Record<string, unknown>) => Array<string | undefined> | undefined
 }): RemoteMethodHandler {
   return {
     input: definition.input,
-    scope: (credential, input) => definition.scope(credential, input as HandlerInput<Schema>),
-    invoke: (application, credential, input, options) => definition.invoke(application, credential, input as HandlerInput<Schema>, options),
+    scope: (principal, input) => definition.scope(principal, input as HandlerInput<Schema>),
+    invoke: (application, principal, input, options) => definition.invoke(application, principal, input as HandlerInput<Schema>, options),
     resultChatIds: (input, data) => definition.resultChatIds(input as HandlerInput<Schema>, data),
   }
 }
 
-function scopeMultipleChats<Input extends { chatIds?: string[] } & Record<string, unknown>>(credential: RemoteCredential, input: Input): Input {
-  const chatIds = scopeChatIds(credential, input.chatIds)
+function scopeMultipleChats<Input extends { chatIds?: string[] } & Record<string, unknown>>(principal: RemotePrincipal, input: Input): Input {
+  const chatIds = scopeChatIds(principal, input.chatIds)
   return chatIds === undefined ? input : { ...input, chatIds }
 }
 
-function scopeSingleChat<Input extends { chatId: string } & Record<string, unknown>>(credential: RemoteCredential, input: Input): Input {
-  requireReadableChat(credential, input.chatId)
+function scopeSingleChat<Input extends { chatId: string } & Record<string, unknown>>(principal: RemotePrincipal, input: Input): Input {
+  requireReadableChat(principal, input.chatId)
   return input
 }
 
 // Database administration is not chat-scoped, so a credential limited to some chats must not reach it.
-function requireAllChatAccess<Input extends Record<string, unknown>>(credential: RemoteCredential, input: Input): Input {
-  if (credential.readableChatIds !== undefined)
+function requireAllChatAccess<Input extends Record<string, unknown>>(principal: RemotePrincipal, input: Input): Input {
+  if (principal.readableChatIds !== undefined)
     throw new RemotePermissionError('Database administration requires a credential that can read all chats')
   return input
 }
@@ -209,66 +142,66 @@ const remoteHandlers = {
   'media.read': defineRemoteHandler({
     input: remoteMethods['media.read'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input, options) => application.readMessageMedia(input, options),
+    invoke: (application, _principal, input, options) => application.readMessageMedia(input, options),
     resultChatIds: (_input, data) => [data.chatId as string | undefined],
   }),
   'chats.list': defineRemoteHandler({
     input: remoteMethods['chats.list'].input,
-    scope: (credential, input) => {
-      scopeChatIds(credential)
+    scope: (principal, input) => {
+      scopeChatIds(principal)
       return input
     },
-    invoke: (application, credential, input, options) => credential.readableChatIds === undefined
+    invoke: (application, principal, input, options) => principal.readableChatIds === undefined
       ? application.listChats(input, options)
-      : application.listStoredChats(input, [...credential.readableChatIds], options),
+      : application.listStoredChats(input, [...principal.readableChatIds], options),
     resultChatIds: (_input, data) => (data.items as Array<{ id?: string }> | undefined)?.map(item => item.id),
   }),
   'messages.get': defineRemoteHandler({
     input: remoteMethods['messages.get'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input, options) => application.getMessages(input, options),
+    invoke: (application, _principal, input, options) => application.getMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.replies': defineRemoteHandler({
     input: remoteMethods['messages.replies'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input, options) => application.getReplyContext(input, options),
+    invoke: (application, _principal, input, options) => application.getReplyContext(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.read': defineRemoteHandler({
     input: remoteMethods['messages.read'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input, options) => application.readMessages(input, options),
+    invoke: (application, _principal, input, options) => application.readMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.list': defineRemoteHandler({
     input: remoteMethods['messages.list'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input, options) => application.listRemoteMessages(input, options),
+    invoke: (application, _principal, input, options) => application.listRemoteMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.query': defineRemoteHandler({
     input: remoteMethods['messages.query'].input,
     scope: scopeMultipleChats,
-    invoke: (application, _credential, input, options) => application.queryLocalMessages(input, options),
+    invoke: (application, _principal, input, options) => application.queryLocalMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.search': defineRemoteHandler({
     input: remoteMethods['messages.search'].input,
     scope: scopeMultipleChats,
-    invoke: (application, _credential, input, options) => application.searchLocalMessages(input, options),
+    invoke: (application, _principal, input, options) => application.searchLocalMessages(input, options),
     resultChatIds: (_input, data) => itemChatIds(data),
   }),
   'messages.context': defineRemoteHandler({
     input: remoteMethods['messages.context'].input,
     scope: scopeSingleChat,
-    invoke: (application, _credential, input, options) => application.getLocalMessageContext(input, options),
+    invoke: (application, _principal, input, options) => application.getLocalMessageContext(input, options),
     resultChatIds: (_input, data) => (data.messages as Array<{ chatId?: string }> | undefined)?.map(item => item.chatId),
   }),
   'stats.get': defineRemoteHandler({
     input: remoteMethods['stats.get'].input,
     scope: scopeMultipleChats,
-    invoke: (application, _credential, input, options) => application.getLocalStats(input, options),
+    invoke: (application, _principal, input, options) => application.getLocalStats(input, options),
     resultChatIds: (input, data) => input.groupBy === 'chat'
       ? (data.buckets as Array<{ key?: string }> | undefined)?.map(bucket => bucket.key)
       : undefined,
@@ -276,42 +209,42 @@ const remoteHandlers = {
   'database.indexes.list': defineRemoteHandler({
     input: remoteMethods['database.indexes.list'].input,
     scope: requireAllChatAccess,
-    invoke: (application, _credential, input, options) => application.database.listIndexes(input, options),
+    invoke: (application, _principal, input, options) => application.database.listIndexes(input, options),
     resultChatIds: () => undefined,
   }),
   'database.indexes.drop': defineRemoteHandler({
     input: remoteMethods['database.indexes.drop'].input,
     scope: requireAllChatAccess,
-    invoke: (application, _credential, input, options) => application.database.dropIndexes(input, options),
+    invoke: (application, _principal, input, options) => application.database.dropIndexes(input, options),
     resultChatIds: () => undefined,
   }),
   'database.indexes.rebuild': defineRemoteHandler({
     input: remoteMethods['database.indexes.rebuild'].input,
     scope: requireAllChatAccess,
-    invoke: (application, _credential, input, options) => application.database.rebuildIndexes(input, options),
+    invoke: (application, _principal, input, options) => application.database.rebuildIndexes(input, options),
     resultChatIds: () => undefined,
   }),
   'database.vector.get': defineRemoteHandler({
     input: remoteMethods['database.vector.get'].input,
     scope: requireAllChatAccess,
-    invoke: (application, _credential, input, options) => application.database.getVector(input, options),
+    invoke: (application, _principal, input, options) => application.database.getVector(input, options),
     resultChatIds: () => undefined,
   }),
   'database.vector.set': defineRemoteHandler({
     input: remoteMethods['database.vector.set'].input,
     scope: requireAllChatAccess,
-    invoke: (application, _credential, input, options) => application.database.setVector(input, options),
+    invoke: (application, _principal, input, options) => application.database.setVector(input, options),
     resultChatIds: () => undefined,
   }),
 } satisfies Record<RemoteMethod, RemoteMethodHandler>
 
-function assertResultScope(credential: RemoteCredential, handler: RemoteMethodHandler, input: Record<string, unknown>, result: unknown): void {
-  if (credential.readableChatIds === undefined)
+function assertResultScope(principal: RemotePrincipal, handler: RemoteMethodHandler, input: Record<string, unknown>, result: unknown): void {
+  if (principal.readableChatIds === undefined)
     return
   const response = result as { ok?: boolean, data?: Record<string, unknown> }
   if (!response.ok || !response.data)
     return
-  const allowed = new Set(credential.readableChatIds)
+  const allowed = new Set(principal.readableChatIds)
   const chatIds = handler.resultChatIds(input, response.data)
   if (chatIds?.some(chatId => chatId === undefined || !allowed.has(chatId)))
     throw new RemoteScopeViolationError()
@@ -354,49 +287,61 @@ function errorResponse(code: string, message: string, status: number, requestId:
   return Response.json({ ok: false, error: { code, message, retryable: false } }, { status, headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } })
 }
 
-export function createRemoteApi(
-  access: RemoteAccess,
-  getApplication: (accountId: string) => RemoteApplication,
-  recordAudit: (event: RemoteAuditEvent) => Promise<void>,
-  mediaOptions?: RemoteMediaOptions,
-): H3 {
-  const mediaByCredentialId = new Map([...access.credentialsByTokenHash.values()].map(credential => [
-    credential.id,
-    createRemoteMediaLinks({ token: credential.tokenHash, accountId: credential.accountId }, getApplication, mediaOptions),
-  ]))
-  const mediaLinks = [...mediaByCredentialId.values()]
-  const app = new H3()
-  const downloadMedia = (event: Parameters<(typeof mediaLinks)[number]['download']>[0]) => {
-    const ticket = event.url.searchParams.get('ticket')
-    return (mediaLinks.find(media => media.accepts(ticket)) ?? mediaLinks[0]!).download(event)
+class RemoteInputError extends Error {
+  constructor(public code: 'UNSUPPORTED_MEDIA_TYPE' | 'INVALID_ARGUMENT', public status: 400 | 415) {
+    super(code === 'INVALID_ARGUMENT' ? 'Invalid request parameters' : 'Unsupported media type')
+    this.name = 'RemoteInputError'
   }
-  app.get('/media.download', downloadMedia)
-  app.head('/media.download', downloadMedia)
-  app.post('/:method', async (event) => {
-    const credential = authenticate(access, event.req.headers.get('authorization'))
-    if (!credential)
-      return new Response(null, { status: 401, headers: { 'WWW-Authenticate': 'Bearer', 'Cache-Control': 'no-store' } })
+}
 
-    const requestId = randomUUID()
-    setResponseHeader(event, 'X-Request-Id', requestId)
+/** The outcome of one remote call, independent of the transport that carried it. */
+export type RemoteExecution
+  = | { kind: 'result', result: unknown }
+    | { kind: 'rejected', status: 400 | 403 | 404 | 415, code: string, message: string }
+
+export interface RemoteCallContext {
+  requestId: string
+  signal: AbortSignal
+  userAgent?: string
+  /** Reads the raw call input after capability checks; may throw {@link RemoteInputError} or an h3 `HTTPError`. */
+  readInput: () => Promise<unknown>
+}
+
+export interface RemoteExecutor {
+  execute: (principal: RemotePrincipal, method: string, context: RemoteCallContext) => Promise<RemoteExecution>
+}
+
+export interface RemoteExecutorOptions {
+  getApplication: (accountId: string) => RemoteApplication
+  recordAudit: (event: RemoteAuditEvent) => Promise<void>
+  media: RemoteMediaLinks
+}
+
+/**
+ * Runs one remote method for a verified principal: capability, chat scope,
+ * invocation, result scope assertion, and fail-closed audit. REST and MCP both
+ * call this so their authorization cannot drift apart.
+ */
+export function createRemoteExecutor({ getApplication, recordAudit, media }: RemoteExecutorOptions): RemoteExecutor {
+  async function execute(principal: RemotePrincipal, method: string, context: RemoteCallContext): Promise<RemoteExecution> {
     const startedAt = performance.now()
-    const method = event.context.params?.method ?? ''
     let parsedInput: Record<string, unknown> = {}
     let scopedInput: Record<string, unknown> = {}
     let auditStarted = false
     const audit = async (fields: Pick<RemoteAuditEvent, 'decision' | 'outcome'> & Partial<Pick<RemoteAuditEvent, 'errorCode' | 'resultSummary'>>) => {
       auditStarted = true
       await recordAudit({
-        requestId,
-        credentialId: credential.id,
-        credentialName: credential.name,
-        accountId: credential.accountId,
+        requestId: context.requestId,
+        credentialId: principal.clientId,
+        credentialName: principal.clientName,
+        userId: principal.userId,
+        accountId: principal.accountId,
         method,
         chatIds: (() => {
           const requested = inputChatIds(Object.keys(scopedInput).length > 0 ? scopedInput : parsedInput)
           if (requested.length > 0)
             return requested
-          return credential.readableChatIds === undefined ? ['*'] : [...credential.readableChatIds]
+          return principal.readableChatIds === undefined ? ['*'] : [...principal.readableChatIds]
         })(),
         decision: fields.decision,
         outcome: fields.outcome,
@@ -404,36 +349,36 @@ export function createRemoteApi(
         requestSummary: summarizeInput(remoteMethodNames.includes(method as RemoteMethod) ? method as RemoteMethod : 'chats.list', parsedInput),
         resultSummary: fields.resultSummary ?? {},
         durationMs: Math.round(performance.now() - startedAt),
-        userAgent: event.req.headers.get('user-agent') ?? undefined,
+        userAgent: context.userAgent,
       })
+    }
+    const reject = async (status: 400 | 403 | 404 | 415, code: string, message: string): Promise<RemoteExecution> => {
+      await audit({ decision: 'denied', outcome: 'failure', errorCode: code })
+      return { kind: 'rejected', status, code, message }
     }
 
     try {
-      if (!remoteMethodNames.includes(method as RemoteMethod)) {
-        await audit({ decision: 'denied', outcome: 'failure', errorCode: 'NOT_FOUND' })
-        return new Response(null, { status: 404, headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } })
-      }
+      if (!remoteMethodNames.includes(method as RemoteMethod))
+        return await reject(404, 'NOT_FOUND', 'Unknown remote method')
       const remoteMethod = method as RemoteMethod
       const handler: RemoteMethodHandler = remoteHandlers[remoteMethod]
-      requireCapability(credential, remoteMethod)
-      if (!event.req.headers.get('content-type')?.startsWith('application/json')) {
-        await audit({ decision: 'denied', outcome: 'failure', errorCode: 'UNSUPPORTED_MEDIA_TYPE' })
-        return new Response(null, { status: 415, headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } })
-      }
-      assertBodySize(event, 65_536)
-
-      parsedInput = await readValidatedBody(event, handler.input) as Record<string, unknown>
-      scopedInput = handler.scope(credential, parsedInput)
+      requireCapability(principal, remoteMethod)
+      const raw = await context.readInput()
+      const parsed = safeParse(handler.input, raw)
+      if (!parsed.success)
+        throw new RemoteInputError('INVALID_ARGUMENT', 400)
+      parsedInput = parsed.output as Record<string, unknown>
+      scopedInput = handler.scope(principal, parsedInput)
       const operation = scopedInput.operation as { deadlineAt?: number } | undefined
       const options: ReadOperationOptions = {
-        signal: event.req.signal,
+        signal: context.signal,
         deadlineAt: operation?.deadlineAt,
       }
-      const application = getApplication(credential.accountId)
+      const application = getApplication(principal.accountId)
       const result = remoteMethod === 'media.createLink'
-        ? await mediaByCredentialId.get(credential.id)!.createLink(scopedInput as InferOutput<(typeof remoteMethods)['media.createLink']['input']>, options, application)
-        : await handler.invoke(application, credential, scopedInput, options)
-      assertResultScope(credential, handler, scopedInput, result)
+        ? await media.createLink(scopedInput as InferOutput<(typeof remoteMethods)['media.createLink']['input']>, options, application, principal.accountId)
+        : await handler.invoke(application, principal, scopedInput, options)
+      assertResultScope(principal, handler, scopedInput, result)
       const resultSummary = summarizeResult(result)
       await audit({
         decision: 'allowed',
@@ -441,24 +386,60 @@ export function createRemoteApi(
         errorCode: typeof resultSummary.errorCode === 'string' ? resultSummary.errorCode : undefined,
         resultSummary,
       })
-      return Response.json(result, { headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } })
+      return { kind: 'result', result }
     }
     catch (error) {
       if (auditStarted)
         throw error
-      if (error instanceof RemotePermissionError) {
-        await audit({ decision: 'denied', outcome: 'failure', errorCode: 'PERMISSION_DENIED' })
-        return errorResponse('PERMISSION_DENIED', error.message, 403, requestId)
-      }
-      if (error instanceof HTTPError && error.status === 400) {
-        await audit({ decision: 'denied', outcome: 'failure', errorCode: 'INVALID_ARGUMENT' })
-        return errorResponse('INVALID_ARGUMENT', 'Invalid request parameters', 400, requestId)
-      }
+      if (error instanceof RemotePermissionError)
+        return await reject(403, 'PERMISSION_DENIED', error.message)
+      if (error instanceof RemoteInputError)
+        return await reject(error.status, error.code, error.message)
+      if (error instanceof HTTPError && error.status === 400)
+        return await reject(400, 'INVALID_ARGUMENT', 'Invalid request parameters')
       await audit({
         decision: 'allowed',
         outcome: 'failure',
         errorCode: error instanceof RemoteScopeViolationError ? 'REMOTE_SCOPE_VIOLATION' : 'INTERNAL_ERROR',
       })
+      throw error
+    }
+  }
+
+  return { execute }
+}
+
+/** REST transport for remote methods: `POST /:method` with a bearer access token. */
+export function createRemoteApi(authenticate: RemoteAuthenticator, executor: RemoteExecutor, media: RemoteMediaLinks): H3 {
+  const app = new H3()
+  app.get('/media.download', event => media.download(event))
+  app.head('/media.download', event => media.download(event))
+  app.post('/:method', async (event) => {
+    const authentication = await authenticate(event.req)
+    if ('response' in authentication)
+      return authentication.response
+
+    const requestId = randomUUID()
+    setResponseHeader(event, 'X-Request-Id', requestId)
+    try {
+      const execution = await executor.execute(authentication.principal, event.context.params?.method ?? '', {
+        requestId,
+        signal: event.req.signal,
+        userAgent: event.req.headers.get('user-agent') ?? undefined,
+        readInput: async () => {
+          if (!event.req.headers.get('content-type')?.startsWith('application/json'))
+            throw new RemoteInputError('UNSUPPORTED_MEDIA_TYPE', 415)
+          assertBodySize(event, 65_536)
+          return await readBody(event)
+        },
+      })
+      if (execution.kind === 'result')
+        return Response.json(execution.result, { headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } })
+      if (execution.status === 404 || execution.status === 415)
+        return new Response(null, { status: execution.status, headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } })
+      return errorResponse(execution.code, execution.message, execution.status, requestId)
+    }
+    catch (error) {
       throw new HTTPError(error instanceof Error ? error.message : 'Remote request failed', {
         status: error instanceof HTTPError ? error.status : 500,
         cause: error,

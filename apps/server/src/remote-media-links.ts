@@ -55,9 +55,14 @@ export interface RemoteMediaOptions {
   downloadTimeoutMs?: number
 }
 
-interface RemoteMediaCredential {
-  token: string
-  accountId: string
+export interface RemoteMediaLinkKey {
+  /** Server secret; the ticket key is derived from it for this purpose only. */
+  secret: string
+}
+
+export interface RemoteMediaLinks {
+  createLink: (input: CreateMediaLinkInput, operation: ReadOperationOptions, application: TelegramApplication, accountId: string) => Promise<AppResult<MediaDownloadLink>>
+  download: (event: H3Event) => Promise<Response>
 }
 
 class MediaDownloadError extends Error {
@@ -220,16 +225,17 @@ function bufferedBody(content: Uint8Array, transfer: ReturnType<typeof createTra
   })
 }
 
-export function createRemoteMediaLinks(access: RemoteMediaCredential, getApplication: (accountId: string) => TelegramApplication, options: RemoteMediaOptions = {}) {
+export function createRemoteMediaLinks(access: RemoteMediaLinkKey, getApplication: (accountId: string) => TelegramApplication, options: RemoteMediaOptions = {}): RemoteMediaLinks {
   const now = options.now ?? Date.now
   const limit = options.maxConcurrentDownloads ?? 2
   const timeoutMs = Math.min(options.downloadTimeoutMs ?? MAX_DOWNLOAD_MS, MAX_DOWNLOAD_MS)
   if (!Number.isInteger(limit) || limit < 1 || limit > 2 || !Number.isFinite(timeoutMs) || timeoutMs <= 0)
     throw new Error('Invalid media transfer test options')
-  // Separate this capability's encryption key from the long-lived bearer and every other API purpose.
-  const key = createHmac('sha256', access.token).update(TICKET_PURPOSE).digest()
+  // Separate this capability's encryption key from the server secret and every other purpose that derives from it.
+  const key = createHmac('sha256', access.secret).update(TICKET_PURPOSE).digest()
   const aad = Buffer.from(TICKET_PURPOSE)
-  let activeDownloads = 0
+  // Transfers are bounded per account, so one account cannot exhaust another account's capacity.
+  const activeDownloads = new Map<string, number>()
 
   function encode(claims: TicketClaims): string {
     const nonce = randomBytes(NONCE_BYTES)
@@ -251,7 +257,7 @@ export function createRemoteMediaLinks(access: RemoteMediaCredential, getApplica
       decipher.setAuthTag(packed.subarray(1 + NONCE_BYTES, 1 + NONCE_BYTES + TAG_BYTES))
       const plaintext = Buffer.concat([decipher.update(packed.subarray(1 + NONCE_BYTES + TAG_BYTES)), decipher.final()])
       const claims = parse(ticketClaimsSchema, JSON.parse(plaintext.toString('utf8')))
-      if (claims.accountId !== access.accountId || claims.size > claims.maxBytes)
+      if (claims.size > claims.maxBytes)
         throw new Error('Invalid ticket scope')
       return claims
     }
@@ -261,17 +267,7 @@ export function createRemoteMediaLinks(access: RemoteMediaCredential, getApplica
     }
   }
 
-  function accepts(value: string | null): boolean {
-    try {
-      decode(value)
-      return true
-    }
-    catch {
-      return false
-    }
-  }
-
-  async function createLink(input: CreateMediaLinkInput, operation: ReadOperationOptions, application: TelegramApplication): Promise<AppResult<MediaDownloadLink>> {
+  async function createLink(input: CreateMediaLinkInput, operation: ReadOperationOptions, application: TelegramApplication, accountId: string): Promise<AppResult<MediaDownloadLink>> {
     const descriptor = await application.inspectMessageMedia(readInput(input), {
       ...operation,
       deadlineAt: Math.min(operation.deadlineAt ?? Date.now() + MAX_DOWNLOAD_MS, Date.now() + MAX_DOWNLOAD_MS),
@@ -284,7 +280,7 @@ export function createRemoteMediaLinks(access: RemoteMediaCredential, getApplica
     const expiresAt = now() + LINK_TTL_MS
     const claims = parse(ticketClaimsSchema, {
       version: TICKET_VERSION,
-      accountId: access.accountId,
+      accountId,
       source: input.source,
       chatId: input.chatId,
       messageId: input.messageId,
@@ -309,16 +305,21 @@ export function createRemoteMediaLinks(access: RemoteMediaCredential, getApplica
       if (now() >= claims.expiresAt)
         throw new MediaDownloadError('MEDIA_LINK_EXPIRED', 'Media download link expired; request a new link', 410)
       const head = event.req.method === 'HEAD'
-      if (activeDownloads >= limit)
+      const active = activeDownloads.get(claims.accountId) ?? 0
+      if (active >= limit)
         throw new MediaDownloadError('MEDIA_DOWNLOAD_BUSY', 'Media download capacity is busy; retry shortly', 503, true)
-      activeDownloads++
+      activeDownloads.set(claims.accountId, active + 1)
       transfer = createTransfer(event.req.signal, timeoutMs, () => {
-        activeDownloads--
+        const remaining = (activeDownloads.get(claims.accountId) ?? 1) - 1
+        if (remaining > 0)
+          activeDownloads.set(claims.accountId, remaining)
+        else
+          activeDownloads.delete(claims.accountId)
       })
       transfer.signal.throwIfAborted()
       const operation = { signal: transfer.signal, deadlineAt: transfer.deadlineAt }
       const input = readInput(claims)
-      const application = getApplication(access.accountId)
+      const application = getApplication(claims.accountId)
       const inspected = await transfer.wait(application.inspectMessageMedia(input, operation))
       if (!inspected.ok)
         return applicationFailure(inspected.error)
@@ -355,5 +356,5 @@ export function createRemoteMediaLinks(access: RemoteMediaCredential, getApplica
     }
   }
 
-  return { accepts, createLink, download }
+  return { createLink, download }
 }

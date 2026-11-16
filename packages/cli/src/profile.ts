@@ -9,6 +9,8 @@ export interface ProfilePaths {
   root: string
   config: string
   session: string
+  /** OAuth tokens for the profile's remote server, mode 0600. */
+  remoteToken: string
   database: string
   exports: string
   daemon: string
@@ -40,6 +42,7 @@ export function resolveProfilePaths(name = 'default'): ProfilePaths {
     root,
     config: join(root, 'config.json'),
     session: join(root, 'session'),
+    remoteToken: join(root, 'remote-token.json'),
     database: join(root, 'pglite'),
     exports: join(root, 'exports'),
     daemon: join(root, 'daemon.json'),

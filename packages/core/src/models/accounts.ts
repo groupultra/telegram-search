@@ -47,6 +47,23 @@ async function findAccountByPlatformId(db: CoreDB, platform: string, platformUse
 }
 
 /**
+ * Find an account ID by platform user ID. Unlike {@link findAccountByPlatformId},
+ * a missing account is `undefined` and database failures still throw, so callers
+ * that authorize requests can tell "not connected" from "unavailable".
+ */
+async function findAccountIdByPlatformUserId(db: CoreDB, platform: string, platformUserId: string): Promise<string | undefined> {
+  const rows = await db
+    .select({ id: accountsTable.id })
+    .from(accountsTable)
+    .where(and(
+      eq(accountsTable.platform, platform),
+      eq(accountsTable.platform_user_id, platformUserId),
+    ))
+    .limit(1)
+  return rows[0]?.id
+}
+
+/**
  * Find an account by UUID
  */
 async function findAccountByUUID(db: CoreDB, uuid: string): PromiseResult<DBSelectAccount> {
@@ -130,6 +147,7 @@ async function forceUpdateAccountState(
 export const accountModels = {
   recordAccount,
   findAccountByPlatformId,
+  findAccountIdByPlatformUserId,
   findAccountByUUID,
   updateAccountState,
   forceUpdateAccountState,

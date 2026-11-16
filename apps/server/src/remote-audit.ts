@@ -10,6 +10,7 @@ export function createRemoteAuditRecorder(db: CoreDB) {
       request_id: event.requestId,
       credential_id: event.credentialId,
       credential_name: event.credentialName,
+      user_id: event.userId,
       account_id: event.accountId,
       method: event.method,
       chat_ids: event.chatIds,

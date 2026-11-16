@@ -70,13 +70,17 @@ Connect to a hosted TGS server without downloading its database or Telegram sess
 
 ```bash
 tgs --profile cloud profile remote https://tgs.example.com
+tgs --profile cloud remote login
 tgs --profile cloud search "project progress"
-tgs --remote https://tgs.example.com messages query --limit 50
 ```
 
-Provide the server's access token through `TG_SEARCH_REMOTE_TOKEN` using your secret manager or shell environment. Tokens are not accepted in URLs or command arguments and are not saved in profile configuration. `--remote` overrides `TG_SEARCH_REMOTE_URL`, which overrides the selected profile's saved URL. HTTPS is required except on loopback for development. The server base URL may include a path prefix.
+`remote login` uses the OAuth device authorization grant. It prints a verification URL and a code on stderr; open the URL in a browser where you are signed in to the server with Telegram and approve the code. The command waits until you approve, deny, or the code expires, then saves the tokens in the profile's `remote-token.json` (mode 0600). Access tokens refresh automatically before they expire; when the refresh token is expired or revoked, commands return `REMOTE_CREDENTIALS_EXPIRED` and you run `remote login` again. `remote logout` deletes the stored tokens.
 
-Supported commands: `chats list`, `messages list`, `messages query`, `search`, `context`, `stats`, and the `db` maintenance commands (see [Database maintenance](#database-maintenance)). Results use `meta.source: "remote"` and preserve pagination and application errors. No local database or Telegram client is opened, including when the request fails. Direct `--remote`/environment use does not create a local profile.
+The login requests `chats:read messages:read media:read offline_access`. Add `--admin` to also request `database:admin` for the `db` commands; the server grants it only to its configured administrators. A token is stored with the server URL it was issued for and is never sent to another server: changing the endpoint requires a new login.
+
+`--remote` overrides `TG_SEARCH_REMOTE_URL`, which overrides the selected profile's saved URL. HTTPS is required except on loopback for development. The server base URL may include a path prefix.
+
+Supported commands: `chats list`, `messages list`, `messages query`, `search`, `context`, `stats`, and the `db` maintenance commands (see [Database maintenance](#database-maintenance)). Results use `meta.source: "remote"` and preserve pagination and application errors. No local database or Telegram client is opened, including when the request fails. Remote mode keeps only the OAuth tokens in the profile directory; it creates no session, database, or exports.
 
 `sync` and `export` are not exposed remotely in this version; run them on the host owning the data. `auth` and `daemon` are local management commands and reject remote profiles. Use a separate local profile for local operation. There is no automatic fallback when the server is unreachable.
 
@@ -167,7 +171,7 @@ output format, output file, or help behavior.
 
 Unknown commands fail even with `--help` and report available subcommands.
 Failures from command parsing use `INVALID_ARGUMENT`; remote setup and transport
-failures distinguish `REMOTE_CREDENTIALS_MISSING`, `REMOTE_AUTHENTICATION_FAILED`,
+failures distinguish `REMOTE_CREDENTIALS_MISSING`, `REMOTE_CREDENTIALS_EXPIRED`, `REMOTE_AUTHENTICATION_FAILED`,
 `REMOTE_PERMISSION_DENIED`, `REQUEST_DEADLINE_EXCEEDED` and `REMOTE_UNREACHABLE`. Structured
 application errors returned by the server retain their original code. JSON
 failures are emitted once on stdout without an additional plain-text error.

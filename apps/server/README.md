@@ -2,73 +2,86 @@
 
 Node/H3 server for Telegram Search.
 
-## Remote CLI access
+## Authorization modes
 
-The authenticated API is disabled by default. Set `TG_SEARCH_REMOTE_ACCESS` to a JSON policy with one or more credentials:
+`TGS_AUTH` selects the mode:
 
-```json
-{
-  "credentials": [
-    {
-      "id": "2ac3a9a8-5b58-4be6-a659-f4b794f54f10",
-      "name": "project-reader",
-      "token": "replace-with-at-least-32-random-characters",
-      "accountId": "20eff9ca-a2f9-4556-a5f8-39bca8f61951",
-      "expiresAt": 1798761600000,
-      "capabilities": ["chats.list", "messages.get", "messages.replies", "messages.read", "messages.list", "media.read", "media.createLink", "messages.query", "messages.search", "messages.context", "stats.get"],
-      "chatPermissions": [
-        { "chatId": "123456", "permissions": ["read"] },
-        { "chatId": "789012", "permissions": ["read"] }
-      ]
-    }
-  ]
-}
-```
+- `none` (default): a single-user server. The Web UI, `/ws`, and media routes have no authentication, and the remote API and MCP endpoint do not exist. Run it only where the network already restricts access.
+- `oauth`: TGS is an OAuth 2.1 authorization server. Users sign in with Telegram; ChatGPT, Codex, and the CLI obtain access tokens; `/ws` and the Web media routes require a signed-in session.
 
-Generate each token with `openssl rand -hex 32`. `id` and `accountId` are database UUIDs; `accountId` is the `accounts.id` reported by `AccountReady`, not a numeric Telegram user ID. `expiresAt` is an optional Unix timestamp in milliseconds. Use `{ "chatId": "*", "permissions": ["read"] }` only when a credential should read every chat.
+`oauth` requires every variable below and refuses to start without them:
 
-Each client supplies its own token through `TG_SEARCH_REMOTE_TOKEN` and passes the HTTPS server base URL through `--remote`, `TG_SEARCH_REMOTE_URL`, or `profile remote <url>`. Remove or expire a credential to revoke it; use a new credential ID and token when rotating access.
+| Variable | Value |
+|---|---|
+| `TGS_PUBLIC_URL` | Canonical HTTPS origin without a path, for example `https://tgs.example.com`. HTTP is accepted only on loopback. The token issuer is `<TGS_PUBLIC_URL>/api/auth` and the protected resource is `<TGS_PUBLIC_URL>/mcp`. |
+| `BETTER_AUTH_SECRET` | At least 32 random characters (`openssl rand -hex 32`). It also derives the media link key. |
+| `TELEGRAM_LOGIN_CLIENT_ID` | Bot ID from @BotFather, **Login Widget**. |
+| `TELEGRAM_LOGIN_CLIENT_SECRET` | Client secret from the same screen. |
+| `TGS_ADMIN_TELEGRAM_IDS` | Optional comma-separated Telegram user IDs that may use `database:admin`. |
 
-`POST /v1/remote/:method` accepts JSON and `Authorization: Bearer <token>`. Methods are `chats.list`, `messages.get`, `messages.replies`, `messages.read`, `messages.list`, `media.read`, `media.createLink`, `messages.query`, `messages.search`, `messages.context`, `stats.get`, and the database maintenance methods below. Requests reuse protocol validation and the Core application. The server selects the account from configuration, never from request input. No sync, arbitrary RPC, filesystem export, or account-management endpoint is exposed.
+In @BotFather **Login Widget**, add `<TGS_PUBLIC_URL>` to the allowed URLs and register `<TGS_PUBLIC_URL>/api/auth/callback/telegram` as the redirect URI.
+
+`TG_SEARCH_REMOTE_ACCESS` and `TG_SEARCH_REMOTE_TOKEN` were removed. The server refuses to start while `TG_SEARCH_REMOTE_ACCESS` or `TG_SEARCH_REMOTE_TOKEN` is set, so an old access policy cannot be silently ignored. Migrate by setting `TGS_AUTH=oauth` and signing each client in again.
+
+### Identity and tenancy
+
+A user signs in with Telegram OpenID Connect (scopes `openid profile`). Telegram publishes no UserInfo endpoint, so the server verifies the ID token against Telegram's JWKS and reads the Telegram user ID from its `id` claim. Better Auth requires an email address and Telegram provides none, so each user gets a synthetic `tg-<id>@users.telegram.invalid` address; email sign-in and linking by email are disabled.
+
+An access token may act only on the TGS account whose `platform_user_id` equals the signed-in user's Telegram ID. That account exists after the same Telegram user signs in to Telegram on this server. Until then every call returns `403 TELEGRAM_NOT_CONNECTED`; a token never falls back to another account.
+
+### Scopes
+
+| Scope | Methods |
+|---|---|
+| `chats:read` | `chats.list` |
+| `messages:read` | `messages.get`, `messages.replies`, `messages.read`, `messages.list`, `messages.query`, `messages.search`, `messages.context`, `stats.get` |
+| `media:read` | `media.read`, `media.createLink` |
+| `database:admin` | `database.indexes.list`, `database.indexes.drop`, `database.indexes.rebuild`, `database.vector.get`, `database.vector.set` |
+
+The server removes `database:admin` from every token whose user is not listed in `TGS_ADMIN_TELEGRAM_IDS`, whatever the consent screen granted. An owner token reads every chat of its own account; chat-level grants are not available yet.
+
+### Clients
+
+- **ChatGPT and other MCP clients** connect to `<TGS_PUBLIC_URL>/mcp` (Streamable HTTP). They discover the authorization server from `/.well-known/oauth-protected-resource/mcp` and register through Client ID Metadata Documents. Dynamic client registration is disabled.
+- **Codex** adds the same URL as a remote MCP server and signs in with `codex mcp login <name>`.
+- **The CLI** uses the public `tgs-cli` client and the device authorization grant: `tgs remote login` prints a verification URL and code to approve in a browser that is signed in to this server. See the CLI README.
+
+The login (`/login`), consent (`/consent`), and device approval (`/device`) pages are served by the Web UI.
+
+### MCP tools
+
+Each remote method is one tool named with `_` instead of `.` (`messages_search`). A client sees only the tools its scopes allow. Tool calls go through the same validation, scope checks, and audit as `POST /v1/remote/:method`, so both transports reject the same input. Tool results carry the method's `data` as structured content; failures return `isError` with the remote error code.
+
+### REST remote API
+
+`POST /v1/remote/:method` accepts JSON and `Authorization: Bearer <access token>`, with the same methods as the MCP tools. The token must be issued for the `<TGS_PUBLIC_URL>/mcp` resource. Requests reuse protocol validation and the Core application. The server selects the account from the token, never from request input. No sync, arbitrary RPC, filesystem export, or account-management endpoint is exposed.
 
 Indexed queries and selected-chat discovery use the existing server database even after restart. Listing every chat and reading live Telegram messages require an active, authorized account runtime on this server and return `TELEGRAM_NOT_CONNECTED` otherwise. This API does not restore Telegram sessions after restart or migrate/merge local data. Use HTTPS termination and an ingress request-rate limit; responses must not be cached.
 
 ### Database maintenance
 
-`database.indexes.list`, `database.indexes.drop`, `database.indexes.rebuild`, `database.vector.get`, and `database.vector.set` back the CLI's `db` commands. They act on the whole server database, not one account, so a credential needs both the method in `capabilities` and `{ "chatId": "*", "permissions": ["read"] }`; a chat-scoped credential is denied. Issue a separate, short-lived credential for maintenance instead of adding these capabilities to a reader:
-
-```json
-{
-  "id": "6f1d1a52-3c2e-4b7e-9d55-0b6a1f0e2c11",
-  "name": "db-maintenance",
-  "token": "replace-with-at-least-32-random-characters",
-  "accountId": "20eff9ca-a2f9-4556-a5f8-39bca8f61951",
-  "expiresAt": 1798761600000,
-  "capabilities": ["database.indexes.list", "database.indexes.drop", "database.indexes.rebuild", "database.vector.get", "database.vector.set"],
-  "chatPermissions": [{ "chatId": "*", "permissions": ["read"] }]
-}
-```
+`database.indexes.list`, `database.indexes.drop`, `database.indexes.rebuild`, `database.vector.get`, and `database.vector.set` back the CLI's `db` commands. They act on the whole server database, not one account, so they need the `database:admin` scope, which only users in `TGS_ADMIN_TELEGRAM_IDS` keep. An administrator signs the CLI in with `tgs remote login --admin`. The indexes of Better Auth's `auth_*` tables are not managed by these commands.
 
 The vector switch is stored in the `system_settings` table and defaults to enabled. While it is disabled, the server skips embedding and photo-embedding generation, serves vector search requests with text search, and drops vector indexes after migrations at startup. Index DDL runs with `CONCURRENTLY` on Postgres. A long `rebuild` can outlast HTTP client and ingress timeouts while Postgres keeps building; check progress with `database.indexes.list`.
 
 ### Temporary media links
 
-`media.createLink` accepts `{ source, chatId, messageId, mediaIndex?, maxBytes? }` and checks both the credential's capability and chat permission before inspecting the attachment. It returns `{ path, expiresAt, media }`; `path` is relative and `expiresAt` is Unix milliseconds. Clients combine the path with their configured, trusted remote endpoint. The server never derives a public hostname from request or forwarded headers.
+`media.createLink` accepts `{ source, chatId, messageId, mediaIndex?, maxBytes? }` and checks both the token's capability and chat permission before inspecting the attachment. It returns `{ path, expiresAt, media }`; `path` is relative and `expiresAt` is Unix milliseconds. Clients combine the path with their configured, trusted remote endpoint. The server never derives a public hostname from request or forwarded headers.
 
-The returned `GET /v1/remote/media.download?ticket=…` URL returns complete binary content without an Authorization header. `HEAD` checks its metadata without downloading bytes. The encrypted, authenticated capability identifies one account attachment and expires after five minutes; requests may reuse it until expiry, including after a server restart or on another replica with the same access policy. Rotating the issuing credential invalidates its issued links. An edited or unavailable attachment requires a new link. Other remote methods retain their bearer authentication.
+The returned `GET /v1/remote/media.download?ticket=…` URL returns complete binary content without an Authorization header. `HEAD` checks its metadata without downloading bytes. The encrypted, authenticated capability identifies one account attachment and expires after five minutes; requests may reuse it until expiry, including after a server restart or on another replica with the same `BETTER_AUTH_SECRET`. Rotating the secret invalidates every issued link; revoking a client stops new links, and links it already issued expire within five minutes. An edited or unavailable attachment requires a new link. Other remote methods retain their bearer authentication.
 
 Treat the complete download URL as a secret: anyone holding it can read that attachment until expiry. Keep tickets out of application and ingress logs, issues, and unrelated output. The response uses `no-store` and `nosniff`; only PNG, JPEG, and WebP render inline, while other formats use a safely encoded attachment filename.
 
-Downloads use a bounded in-memory buffer, with a 10 MiB default limit and 50 MiB maximum. At most two GET/HEAD transfers or buffered response bodies are active per credential in each server process; additional requests return `503 MEDIA_DOWNLOAD_BUSY` with `Retry-After`. A sixty-second absolute deadline includes metadata checks, downloading, and body consumption, so an idle client cannot retain a buffer indefinitely. Links expire for new requests; a transfer admitted before expiry remains subject to its own sixty-second deadline. Responses contain the whole file and do not advertise range support or transcode content.
+Downloads use a bounded in-memory buffer, with a 10 MiB default limit and 50 MiB maximum. At most two GET/HEAD transfers or buffered response bodies are active per account in each server process; additional requests return `503 MEDIA_DOWNLOAD_BUSY` with `Retry-After`. A sixty-second absolute deadline includes metadata checks, downloading, and body consumption, so an idle client cannot retain a buffer indefinitely. Links expire for new requests; a transfer admitted before expiry remains subject to its own sixty-second deadline. Responses contain the whole file and do not advertise range support or transcode content.
 
 The source is explicit. `local` currently serves stored photos and stickers and returns `MEDIA_NOT_STORED` for other indexed attachment types; it never starts a Telegram download automatically. `telegram` fetches the current authorized message and supports photos and document-backed files, including audio, video, and stickers. Downloading a format does not imply a model can interpret it. A temporary link does not change media synchronization or the existing web photo/sticker routes.
 
 ### Security boundary
 
-Credentials are denied by default. A request needs both the exact method capability and read permission for every requested chat. Queries without `chatIds` are restricted to the credential's readable chats; explicit mixed authorized/unauthorized scopes fail with `PERMISSION_DENIED` instead of returning partial results. Request JSON cannot choose the account. Stored query/context reads also check the account's recorded chat membership and existing private-message ownership rules. Membership reflects the local index, not a live revalidation of Telegram permissions. Existing legacy private-message rows with a NULL owner retain the Core compatibility policy; this is not a tenant-isolation guarantee for legacy multi-account databases.
+Access is denied by default. A request needs both the exact method capability and read permission for every requested chat. Queries without `chatIds` are restricted to the token's readable chats; explicit mixed authorized/unauthorized scopes fail with `PERMISSION_DENIED` instead of returning partial results. Request JSON cannot choose the account. Stored query/context reads also check the account's recorded chat membership and existing private-message ownership rules. Membership reflects the local index, not a live revalidation of Telegram permissions. Existing legacy private-message rows with a NULL owner retain the Core compatibility policy; this is not a tenant-isolation guarantee for legacy multi-account databases.
 
-Every authenticated request writes an append-only row to `remote_audit_events` before its response is returned. The row records the credential, account, method, chat scope, authorization decision, outcome, timing, and sanitized request/result summaries. Search text is stored only as its length and SHA-256 hash. Tokens and message contents are never written to the audit table. If audit persistence fails, the remote request fails closed.
+Every authenticated request writes an append-only row to `remote_audit_events` before its response is returned. The row records the OAuth client ID (`credential_id`), user, account, method, chat scope, authorization decision, outcome, timing, and sanitized request/result summaries. Search text is stored only as its length and SHA-256 hash. Tokens and message contents are never written to the audit table. If audit persistence fails, the remote request fails closed.
 
-These checks protect `/v1/remote/*` only. They do not add authorization to the existing `/ws`, `/v1/photos/*`, or `/v1/stickers/*` routes. Publish only the required integration routes on the integration ingress, and keep the existing web/media surface behind its own access control. A configured policy is not a security wrapper around the whole TGS server. The server process and database administrators remain trusted. Do not log request bodies, tokens, or query text in production; set an appropriate production log level.
+With `TGS_AUTH=oauth`, `/mcp` and `/v1/remote/*` require an access token, and `/ws`, `/v1/photos/*`, and `/v1/stickers/*` require a signed-in session. Each WebSocket `sessionId` belongs to the first user that opens it; another user's upgrade is refused with 403. Photo and sticker routes check the session, not the photo's account, so a signed-in user who knows another account's media ID can fetch it. The server process and database administrators remain trusted: the server can read every account it serves. Do not log request bodies, tokens, or query text in production; set an appropriate production log level.
 
 The `/ws` route creates account-scoped Eventa peer contexts and keeps HTTP for health checks and binary photo/sticker delivery. During the UI migration, true realtime domain notifications continue to share the same WebSocket connection.

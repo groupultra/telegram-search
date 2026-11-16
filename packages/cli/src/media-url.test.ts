@@ -12,9 +12,12 @@ import { join } from 'node:path'
 import { H3, serve } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createRemoteApi, remoteAccessFromEnv } from '../../../apps/server/src/remote'
+import { createRemoteApi, createRemoteExecutor } from '../../../apps/server/src/remote'
+import { createRemoteMediaLinks } from '../../../apps/server/src/remote-media-links'
+import { bearerTestAuthenticator, testPrincipal } from '../../../apps/server/src/remote-test-utils'
 import { runCli } from './index'
 import { createRemoteRuntime } from './remote'
+import { useRemoteToken } from './remote-test-utils'
 
 const homes: string[] = []
 const servers: Array<ReturnType<typeof serve>> = []
@@ -35,7 +38,6 @@ async function isolatedHome() {
   homes.push(home)
   vi.stubEnv('TG_SEARCH_HOME', home)
   vi.stubEnv('TG_SEARCH_REMOTE_URL', undefined)
-  vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', undefined)
   return home
 }
 
@@ -77,20 +79,10 @@ async function fixture(options: { prefix?: string, type?: string, mimeType?: str
     listStoredChats: unused,
   } satisfies RemoteApplication
   const resolve = vi.fn((_accountId: string) => application)
-  const serverAccess = remoteAccessFromEnv({
-    TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-      credentials: [{
-        id: '22222222-2222-4222-8222-222222222222',
-        name: 'media-reader',
-        token: access.token,
-        accountId: access.accountId,
-        capabilities: ['media.createLink'],
-        chatPermissions: [{ chatId: '*', permissions: ['read'] }],
-      }],
-    }),
-  })!
+  const principal = testPrincipal({ accountId: access.accountId, capabilities: ['media.createLink'], chatIds: ['*'] })
   const app = new H3()
-  app.mount(`${options.prefix ?? ''}/v1/remote`, createRemoteApi(serverAccess, resolve, vi.fn(async () => {}), { now: () => now }))
+  const media = createRemoteMediaLinks({ secret: 'synthetic-media-secret-'.repeat(3) }, resolve, { now: () => now })
+  app.mount(`${options.prefix ?? ''}/v1/remote`, createRemoteApi(bearerTestAuthenticator(access.token, principal), createRemoteExecutor({ getApplication: resolve, recordAudit: vi.fn(async () => {}), media }), media))
   const origin = await listen(app)
   return { application, resolve, bytes, descriptor, endpoint: `${origin}${options.prefix ?? ''}`, now }
 }
@@ -111,7 +103,7 @@ describe('temporary media URLs', () => {
   it.each(['local', 'telegram'] as const)('signs a %s image over real HTTP and downloads it without an authorization header', async (source) => {
     const home = await isolatedHome()
     const f = await fixture({ prefix: '/gateway' })
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(f.endpoint, access.token)
     const output = captureOutput()
     await runCli(['media', 'url', '--remote', `${f.endpoint}/`, '--chat', '7', '--message', '42', '--source', source, '--timeout-ms', '5000', '--json'])
     const result = JSON.parse(output.text())
@@ -125,7 +117,7 @@ describe('temporary media URLs', () => {
     expect(Buffer.from(await response.arrayBuffer())).toEqual(png)
     expect(f.application.downloadMessageMedia).toHaveBeenCalledWith(expect.objectContaining({ ...input, source }), expect.objectContaining({ signal: expect.any(AbortSignal) }))
     expect(f.resolve.mock.calls.every(([accountId]) => accountId === access.accountId)).toBe(true)
-    expect(await readdir(home)).toEqual([])
+    expect(await readdir(join(home, 'profiles', 'default'))).toEqual(['remote-token.json'])
     expect(output.stderr).not.toHaveBeenCalled()
   })
 
@@ -135,7 +127,7 @@ describe('temporary media URLs', () => {
     const profile = join(home, 'profiles', 'configured')
     await mkdir(profile, { recursive: true, mode: 0o700 })
     await writeFile(join(profile, 'config.json'), JSON.stringify({ remoteUrl: f.endpoint }), { mode: 0o600 })
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(f.endpoint, access.token, 'configured')
     const output = captureOutput()
     await runCli(['media', 'url', '--profile', 'configured', '--chat', '7', '--message', '42', '--source', 'local'])
     expect(output.text()).toContain(`Url: ${f.endpoint}/v1/remote/media.download?ticket=`)
@@ -147,14 +139,14 @@ describe('temporary media URLs', () => {
     const response = await fetch(url)
     expect(response.status).toBe(200)
     expect(Buffer.from(await response.arrayBuffer())).toEqual(f.bytes)
-    expect(await readdir(profile)).toEqual(['config.json'])
+    expect(await readdir(profile)).toEqual(['config.json', 'remote-token.json'])
   })
 
   it('writes a temporary URL to a private result file using an environment endpoint', async () => {
     const home = await isolatedHome()
     const f = await fixture()
     vi.stubEnv('TG_SEARCH_REMOTE_URL', f.endpoint)
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(f.endpoint, access.token)
     const output = captureOutput()
     const destination = join(home, 'private', 'link.json')
     await runCli(['media', 'url', '--chat', '7', '--message', '42', '--source', 'local', '--json', '--output-file', destination])
@@ -163,7 +155,7 @@ describe('temporary media URLs', () => {
     expect(result.data.url).toBe(`${f.endpoint}${result.data.path}`)
     expect(result.data.expiresAt).toBe(f.now + 300_000)
     expect((await stat(destination)).mode & 0o777).toBe(0o600)
-    expect(await readdir(home)).toEqual(['private'])
+    expect(await readdir(home)).toEqual(['private', 'profiles'])
   })
 
   it.each([
@@ -175,7 +167,7 @@ describe('temporary media URLs', () => {
     const app = new H3()
     app.post('/v1/remote/media.createLink', () => Response.json({ ok: true, data: { path, expiresAt: Date.now() + 300_000, media: { type: 'photo', size: png.length } } }))
     const endpoint = await listen(app)
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(endpoint, access.token)
     const output = captureOutput()
     await runCli(['media', 'url', '--remote', endpoint, '--chat', '7', '--message', '42', '--source', 'local', '--json'])
     expect(JSON.parse(output.text())).toMatchObject({ ok: false, error: { code: 'REMOTE_PROTOCOL_MISMATCH', retryable: false } })
@@ -190,13 +182,15 @@ describe('temporary media URLs', () => {
   ])('keeps credential failures stable without creating local state', async (token, code) => {
     const home = await isolatedHome()
     const f = await fixture()
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', token)
+    if (token)
+      await useRemoteToken(f.endpoint, token)
     const output = captureOutput()
     await runCli(['media', 'url', '--remote', f.endpoint, '--chat', '7', '--message', '42', '--source', 'local', '--json'])
     expect(JSON.parse(output.text())).toMatchObject({ ok: false, error: { code, retryable: false } })
     expect(f.application.inspectMessageMedia).not.toHaveBeenCalled()
     expect(f.application.downloadMessageMedia).not.toHaveBeenCalled()
-    expect(await readdir(home)).toEqual([])
+    // Only the stored token exists; a failed remote call creates no session, database, or exports.
+    expect(await readdir(home)).toEqual(token ? ['profiles'] : [])
   })
 
   it('returns INVALID_ARGUMENT for an unknown source', async () => {
@@ -210,7 +204,7 @@ describe('temporary media URLs', () => {
   it('does not issue an HTTP mint after the read deadline has expired', async () => {
     await isolatedHome()
     const f = await fixture()
-    const runtime = createRemoteRuntime(f.endpoint, access.token)
+    const runtime = createRemoteRuntime(f.endpoint, async () => access.token)
     try {
       await expect(runtime.invokes.media.createLink(input, { deadlineAt: Date.now() - 1 })).resolves.toMatchObject({ ok: false, error: { code: 'REQUEST_DEADLINE_EXCEEDED' } })
       expect(f.application.inspectMessageMedia).not.toHaveBeenCalled()
@@ -226,7 +220,7 @@ describe('temporary media URLs', () => {
     // JSON parser errors can echo a response containing a temporary credential.
     app.post('/v1/remote/media.createLink', () => new Response('synthetic-secret: malformed JSON', { headers: { 'content-type': 'application/json' } }))
     const endpoint = await listen(app)
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(endpoint, access.token)
     const output = captureOutput()
     await runCli(['media', 'url', '--remote', endpoint, '--chat', '7', '--message', '42', '--source', 'local', '--json'])
     expect(JSON.parse(output.text())).toMatchObject({ ok: false, error: { code: 'REMOTE_PROTOCOL_MISMATCH', retryable: false } })
@@ -247,7 +241,7 @@ describe('temporary media URLs', () => {
       observedSignal.addEventListener('abort', () => reject(observedSignal.reason), { once: true })
       started()
     }))
-    const runtime = createRemoteRuntime(f.endpoint, access.token)
+    const runtime = createRemoteRuntime(f.endpoint, async () => access.token)
     try {
       const controller = new AbortController()
       const pending = runtime.invokes.media.createLink(input, { signal: controller.signal, deadlineAt: Date.now() + 5000 })

@@ -1,3 +1,4 @@
+export * from './auth'
 export * from './chat-messages'
 export * from './joined-chats'
 export * from './remote-audit-events'

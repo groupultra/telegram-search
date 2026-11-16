@@ -7,9 +7,11 @@ import { Buffer } from 'node:buffer'
 import { H3, serve } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createRemoteApi, remoteAccessFromEnv } from './remote'
+import { createRemoteApi, createRemoteExecutor } from './remote'
+import { createRemoteMediaLinks } from './remote-media-links'
+import { bearerTestAuthenticator, testPrincipal } from './remote-test-utils'
 
-const access = { token: 'synthetic-media-link-token-'.repeat(3), accountId: '11111111-1111-4111-8111-111111111111' }
+const access = { token: 'synthetic-media-link-token-'.repeat(3), secret: 'synthetic-media-link-secret-'.repeat(3), accountId: '11111111-1111-4111-8111-111111111111' }
 const input = { source: 'local' as const, chatId: '4242424242', messageId: '700000001', mediaIndex: 0, maxBytes: 10 * 1024 * 1024 }
 const servers: Array<ReturnType<typeof serve>> = []
 
@@ -19,18 +21,7 @@ afterEach(async () => {
 
 async function fixture(options: { access?: typeof access, now?: () => number, maxConcurrentDownloads?: number, downloadTimeoutMs?: number } = {}) {
   const configured = options.access ?? access
-  const serverAccess = remoteAccessFromEnv({
-    TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-      credentials: [{
-        id: '22222222-2222-4222-8222-222222222222',
-        name: 'media-reader',
-        token: configured.token,
-        accountId: configured.accountId,
-        capabilities: ['media.createLink'],
-        chatPermissions: [{ chatId: '*', permissions: ['read'] }],
-      }],
-    }),
-  })!
+  const principal = testPrincipal({ accountId: configured.accountId, capabilities: ['media.createLink'], chatIds: ['*'] })
   const bytes = Buffer.from('synthetic attachment bytes')
   const descriptor: MessageMediaDescriptor = { fileId: 'synthetic-file-id', type: 'photo', size: bytes.length, mimeType: 'image/png', fileName: 'synthetic.png' }
   const inspect = vi.fn<TelegramApplication['inspectMessageMedia']>(async () => ({ ok: true, data: descriptor }))
@@ -57,7 +48,8 @@ async function fixture(options: { access?: typeof access, now?: () => number, ma
   } satisfies RemoteApplication
   const resolve = vi.fn((_accountId: string) => application)
   const app = new H3()
-  app.mount('/v1/remote', createRemoteApi(serverAccess, resolve, vi.fn(async () => {}), options))
+  const media = createRemoteMediaLinks({ secret: configured.secret }, resolve, options)
+  app.mount('/v1/remote', createRemoteApi(bearerTestAuthenticator(configured.token, principal), createRemoteExecutor({ getApplication: resolve, recordAudit: vi.fn(async () => {}), media }), media))
   const server = serve(app, { hostname: '127.0.0.1', port: 0, silent: true })
   servers.push(server)
   await server.ready()
@@ -168,7 +160,7 @@ describe('temporary account-bound media download links over HTTP', () => {
     expect(f.download).not.toHaveBeenCalled()
   })
 
-  it('keeps links valid across application instances with the same configured credentials', async () => {
+  it('keeps links valid across application instances with the same server secret', async () => {
     const first = await fixture()
     const link = await first.link()
     const restarted = await fixture()
@@ -198,7 +190,7 @@ describe('temporary account-bound media download links over HTTP', () => {
     expect(f.download).not.toHaveBeenCalled()
   })
 
-  it('expires links at the fixed deadline and rejects tickets after token rotation or account changes', async () => {
+  it('expires links at the fixed deadline and rejects tickets after secret rotation', async () => {
     let now = Date.now()
     const f = await fixture({ now: () => now })
     const link = await f.link()
@@ -206,14 +198,20 @@ describe('temporary account-bound media download links over HTTP', () => {
     const expired = await fetch(link.url)
     expect(expired.status).toBe(410)
     expect(await expired.json()).toMatchObject({ ok: false, error: { code: 'MEDIA_LINK_EXPIRED' } })
-    const rotated = await fixture({ access: { ...access, token: 'rotated-synthetic-token-'.repeat(3) } })
-    const wrongToken = await fetch(new URL(link.path, rotated.origin))
-    expect(wrongToken.status).toBe(403)
+    const rotated = await fixture({ access: { ...access, secret: 'rotated-synthetic-secret-'.repeat(3) } })
+    const wrongSecret = await fetch(new URL(link.path, rotated.origin))
+    expect(wrongSecret.status).toBe(403)
     expect(rotated.resolve).not.toHaveBeenCalled()
-    const otherAccount = await fixture({ access: { ...access, accountId: '22222222-2222-4222-8222-222222222222' } })
-    const wrongAccount = await fetch(new URL(link.path, otherAccount.origin))
-    expect(wrongAccount.status).toBe(403)
-    expect(otherAccount.resolve).not.toHaveBeenCalled()
+  })
+
+  it('resolves the account from the authenticated ticket claims', async () => {
+    // The server key is shared by every account, so the encrypted ticket claims must carry and enforce the issuing account.
+    const issuer = await fixture()
+    const link = await issuer.link()
+    const otherAccount = await fixture({ access: { ...access, token: 'other-synthetic-token-'.repeat(3), accountId: '22222222-2222-4222-8222-222222222222' } })
+    const response = await fetch(new URL(link.path, otherAccount.origin))
+    expect(response.status).toBe(200)
+    expect(otherAccount.resolve.mock.calls.every(([accountId]) => accountId === access.accountId)).toBe(true)
   })
 
   it('uses HEAD to inspect an existing capability without downloading bytes', async () => {

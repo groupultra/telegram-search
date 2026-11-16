@@ -34,6 +34,7 @@ import { inspectProfile } from './profile-inspection'
 import { initialOutputFormat, readOutputArgs, readOutputOptions } from './read-output'
 import { bindReadOperations } from './read-runtime'
 import { createRemoteRuntime } from './remote'
+import { deleteRemoteToken, loginRemote, remoteAccessToken } from './remote-auth'
 import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 import { resolveCliTelegramCredentials } from './telegram-credentials'
@@ -102,7 +103,7 @@ async function withRuntime<T>(command: { args: object }, remote: boolean, operat
     const config = await readProfileConfig(paths)
     const endpoint = args.remote ?? process.env.TG_SEARCH_REMOTE_URL ?? config.remoteUrl
     if (endpoint !== undefined) {
-      const runtime = createRemoteRuntime(endpoint, process.env.TG_SEARCH_REMOTE_TOKEN ?? '')
+      const runtime = createRemoteRuntime(endpoint, signal => remoteAccessToken(paths, endpoint, { signal }))
       try {
         return await run(runtime)
       }
@@ -822,6 +823,52 @@ const dbCommand = defineCommand({
   },
 })
 
+async function remoteEndpoint(context: { args: object }): Promise<{ profile: string, paths: Awaited<ReturnType<typeof ensureProfile>>, endpoint: string }> {
+  const profile = profileFrom(context)
+  const paths = await ensureProfile(profile)
+  const endpoint = (context.args as { remote?: string }).remote ?? process.env.TG_SEARCH_REMOTE_URL ?? (await readProfileConfig(paths)).remoteUrl
+  if (endpoint === undefined)
+    throw cliError({ code: 'REMOTE_URL_MISSING', message: 'Configure a remote server with `tgs profile remote <url>` or --remote', retryable: false })
+  return { profile, paths, endpoint: normalizeRemoteUrl(endpoint) }
+}
+
+const remoteCommand = defineCommand({
+  meta: { name: 'remote', description: 'Sign this profile in to a remote TGS server with OAuth' },
+  subCommands: {
+    login: defineCommand({
+      meta: { name: 'login', description: 'Approve this CLI in a browser signed in to the remote server (device authorization)' },
+      args: { admin: { type: 'boolean', default: false, description: 'Also request database administration (granted only to server administrators)' }, ...profileArg },
+      async run(context) {
+        const { profile, paths, endpoint } = await remoteEndpoint(context)
+        const controller = new AbortController()
+        const cancel = () => controller.abort()
+        process.once('SIGINT', cancel)
+        try {
+          const token = await loginRemote(paths, endpoint, {
+            admin: context.args.admin === true,
+            signal: controller.signal,
+            // The approval prompt goes to stderr so stdout stays a single machine-readable result.
+            onVerification: verification => writeProgress({ action: 'open_verification_uri', verificationUri: verification.verificationUriComplete ?? verification.verificationUri, userCode: verification.userCode, expiresAt: verification.expiresAt }),
+          })
+          writeOutput({ profile, endpoint, scopes: token.scopes, expiresAt: token.expiresAt }, outputMeta(profile, 'remote'))
+        }
+        finally {
+          process.off('SIGINT', cancel)
+        }
+      },
+    }),
+    logout: defineCommand({
+      meta: { name: 'logout', description: 'Delete the stored remote access token for this profile' },
+      args: profileArg,
+      async run(context) {
+        const profile = profileFrom(context)
+        await deleteRemoteToken(resolveProfilePaths(profile))
+        writeOutput({ profile, signedOut: true }, outputMeta(profile, 'local'))
+      },
+    }),
+  },
+})
+
 export const main = defineCommand({
   meta: { name: 'tgs', version: CLI_VERSION, description: 'Agent-friendly local Telegram search and export CLI' },
   args: profileArg,
@@ -829,6 +876,7 @@ export const main = defineCommand({
     profile: profileCommand,
     daemon: daemonCommand,
     auth: authCommand,
+    remote: remoteCommand,
     chats: chatsCommand,
     messages: messagesCommand,
     media: mediaCommand,

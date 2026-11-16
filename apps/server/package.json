@@ -53,8 +53,13 @@
     }
   },
   "dependencies": {
+    "@better-auth/cimd": "1.7.25",
+    "@better-auth/drizzle-adapter": "1.7.25",
+    "@better-auth/mcp": "1.7.25",
+    "@better-auth/oauth-provider": "1.7.25",
     "@electric-sql/pglite": "^0.3.16",
     "@guiiai/logg": "catalog:",
+    "@modelcontextprotocol/server": "2.4.0",
     "@moeru/eventa": "1.0.0",
     "@node-rs/jieba": "^2.0.1",
     "@tg-search/bot": "workspace:*",
@@ -62,15 +67,19 @@
     "@tg-search/core": "workspace:*",
     "@tg-search/protocol": "workspace:*",
     "@unbird/result": "catalog:",
+    "@valibot/to-json-schema": "^1.7.1",
+    "better-auth": "1.7.25",
     "crossws": "^0.4.10",
     "figlet": "^1.11.4",
     "file-type": "^21.3.4",
     "h3": "^2.0.1-rc.26",
+    "jose": "^6.2.17",
     "minio": "^8.0.7",
     "uuid": "^13.0.2",
     "valibot": "^1.4.2"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
     "pathe": "^2.0.3",
     "vite-node": "^5.3.0"
   }

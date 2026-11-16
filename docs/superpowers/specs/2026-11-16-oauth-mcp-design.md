@@ -1,7 +1,7 @@
 # OAuth Authorization and MCP Server Design
 
 Date: 2026-11-16
-Status: Draft, awaiting review
+Status: Implemented in the server pull request; Web pages pending
 
 ## 1. Context
 
@@ -51,7 +51,8 @@ We do not implement OAuth endpoints ourselves: PKCE, redirect URI matching, sing
 1. The user signs in with Telegram OIDC, scopes `openid profile`.
 2. Telegram has no UserInfo endpoint. `getUserInfo` verifies the ID token with `jose` against Telegram's JWKS (`iss = https://oauth.telegram.org`, `aud = <bot id>`, `exp`) and reads the Telegram user ID from the `id` claim. `sub` is not the Telegram user ID.
 3. Better Auth requires an email and Telegram returns none. The mapped user gets `tg-<id>@users.telegram.invalid` with `emailVerified: false`, marked `// NOTICE:` in code. Email sign-in and account linking by email stay disabled, so the synthetic address can never match a real one.
-4. The tenancy rule: a principal may act on the `accounts` row where `platform = 'telegram'` and `platform_user_id = <Telegram id>`. The row is created when that user completes the MTProto login on this server. No row means `TELEGRAM_NOT_CONNECTED`.
+4. The linked `auth_accounts` row is keyed by the Telegram user ID (`accountSubject`), and the access token carries it as the `telegram_id` claim. It is not a user field: Better Auth user fields marked `input: false` are also dropped from the OAuth profile mapping, and a user-editable field would let a user claim another Telegram ID.
+5. The tenancy rule: a principal may act on the `accounts` row where `platform = 'telegram'` and `platform_user_id = <Telegram id>`. The row is created when that user completes the MTProto login on this server. No row means `TELEGRAM_NOT_CONNECTED`.
 
 ## 6. Scopes and principal
 
@@ -86,10 +87,10 @@ interface RemotePrincipal {
 | `/api/auth/*` | Better Auth handler: OAuth endpoints, Telegram callback, device flow, JWKS, discovery |
 | `/.well-known/oauth-authorization-server`, `/.well-known/openid-configuration`, `/.well-known/oauth-protected-resource` | Served by Better Auth at the origin root |
 | `/mcp` | `requireMcpAuth` with the MCP resource as audience |
-| `/v1/remote/:method` | Same verifier, accepts the remote resource as audience; used by the CLI |
+| `/v1/remote/:method` | Same verifier and the same `/mcp` audience; used by the CLI. A second resource would need its own protected-resource metadata and client linking for no isolation gain, since both surfaces expose the same methods with the same checks |
 | `/v1/remote/media.download` | Ticket capability as today, key now derived from `BETTER_AUTH_SECRET` with an HKDF purpose label; the ticket binds `accountId` and `clientId` |
-| `/ws` | Better Auth session cookie; the `sessionId` must name an account the session user owns |
-| `/v1/photos/*`, `/v1/stickers/*` | Better Auth session cookie plus the same account ownership check |
+| `/ws` | Better Auth session cookie; each `sessionId` belongs to the first user that opens it |
+| `/v1/photos/*`, `/v1/stickers/*` | Better Auth session cookie. Per-account ownership of a media ID is a follow-up |
 
 Media tickets currently derive their key from the static credential's token hash, so rotating a credential revokes its links. With OAuth the key is server-wide; revoking a client stops new links, and issued links still expire after five minutes.
 

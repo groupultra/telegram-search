@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -9,12 +9,13 @@ import { inspectProfile } from './profile-inspection'
 
 it('reports credential presence and source without returning secret values', async () => {
   const root = await mkdtemp(join(tmpdir(), 'tg-profile-inspect-'))
-  const paths = { ...resolveProfilePaths('test'), root, config: join(root, 'config.json'), session: join(root, 'session') }
+  const paths = { ...resolveProfilePaths('test'), root, config: join(root, 'config.json'), session: join(root, 'session'), remoteToken: join(root, 'remote-token.json') }
   try {
     await writeProfileConfig(paths, { apiId: '123', apiHash: 'private-profile-hash', remoteUrl: 'https://private.example.test' })
     await writeSession(paths, 'private-session-value')
-    const result = await inspectProfile(paths, { TELEGRAM_API_HASH: 'unused-env-hash', TG_SEARCH_REMOTE_TOKEN: 'private-remote-token' })
-    expect(result).toMatchObject({ mode: 'remote', credentials: { apiId: { present: true, source: 'profile' }, apiHash: { present: true, source: 'profile' }, remoteToken: { present: true, source: 'environment' }, session: { present: true, source: 'profile' } }, configured: { telegramRead: true, remoteRead: true }, verification: 'configuration-only' })
+    await writeFile(paths.remoteToken, JSON.stringify({ endpoint: 'https://private.example.test', accessToken: 'private-access-token', refreshToken: 'private-refresh-token', expiresAt: 1, scopes: ['messages:read'] }))
+    const result = await inspectProfile(paths, { TELEGRAM_API_HASH: 'unused-env-hash' })
+    expect(result).toMatchObject({ mode: 'remote', credentials: { apiId: { present: true, source: 'profile' }, apiHash: { present: true, source: 'profile' }, remoteToken: { present: true, source: 'profile' }, session: { present: true, source: 'profile' } }, configured: { telegramRead: true, remoteRead: true }, verification: 'configuration-only' })
     expect(JSON.stringify(result)).not.toMatch(/private-|123|example\.test|unused-env/)
   }
   finally {
@@ -26,7 +27,7 @@ describe('profile inspection configuration gaps', () => {
   it('reports the built-in Telegram app when neither profile nor environment provides a full pair', async () => {
     const root = await mkdtemp(join(tmpdir(), 'tg-profile-inspect-'))
     try {
-      const result = await inspectProfile({ ...resolveProfilePaths('test'), root, config: join(root, 'missing-config'), session: join(root, 'missing-session') }, { TELEGRAM_API_ID: '123' })
+      const result = await inspectProfile({ ...resolveProfilePaths('test'), root, config: join(root, 'missing-config'), session: join(root, 'missing-session'), remoteToken: join(root, 'missing-token') }, { TELEGRAM_API_ID: '123' })
       expect(result).toMatchObject({ mode: 'local', credentials: { apiId: { present: true, source: 'builtin' }, apiHash: { present: true, source: 'builtin' } }, configured: { telegramRead: false }, findings: [{ code: 'AUTH_REQUIRED', action: 'auth_login' }] })
     }
     finally {
@@ -37,8 +38,22 @@ describe('profile inspection configuration gaps', () => {
   it('names missing remote credentials without claiming the endpoint is reachable', async () => {
     const root = await mkdtemp(join(tmpdir(), 'tg-profile-inspect-'))
     try {
-      const result = await inspectProfile({ ...resolveProfilePaths('test'), root, config: join(root, 'missing-config'), session: join(root, 'missing-session') }, { TG_SEARCH_REMOTE_URL: 'https://remote.example.test' })
-      expect(result).toMatchObject({ mode: 'remote', configured: { remoteRead: false }, findings: [{ code: 'REMOTE_CREDENTIALS_MISSING', action: 'set_remote_token' }], verification: 'configuration-only' })
+      const result = await inspectProfile({ ...resolveProfilePaths('test'), root, config: join(root, 'missing-config'), session: join(root, 'missing-session'), remoteToken: join(root, 'missing-token') }, { TG_SEARCH_REMOTE_URL: 'https://remote.example.test' })
+      expect(result).toMatchObject({ mode: 'remote', configured: { remoteRead: false }, findings: [{ code: 'REMOTE_CREDENTIALS_MISSING', action: 'remote_login' }], verification: 'configuration-only' })
+    }
+    finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('ignores a token issued by another server', async () => {
+    // Tokens are bound to their issuing server; switching the endpoint must not reuse one.
+    const root = await mkdtemp(join(tmpdir(), 'tg-profile-inspect-'))
+    try {
+      const paths = { ...resolveProfilePaths('test'), root, config: join(root, 'missing-config'), session: join(root, 'missing-session'), remoteToken: join(root, 'remote-token.json') }
+      await writeFile(paths.remoteToken, JSON.stringify({ endpoint: 'https://old.example.test', accessToken: 'a', expiresAt: 1, scopes: [] }))
+      const result = await inspectProfile(paths, { TG_SEARCH_REMOTE_URL: 'https://remote.example.test' })
+      expect(result).toMatchObject({ configured: { remoteRead: false }, findings: [{ code: 'REMOTE_CREDENTIALS_MISSING' }] })
     }
     finally {
       await rm(root, { recursive: true, force: true })

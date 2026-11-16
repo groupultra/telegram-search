@@ -1,32 +1,24 @@
 import type { DatabaseAdministration, TelegramApplication } from '@tg-search/core'
+import type { RemoteMethod } from '@tg-search/protocol'
 
-import type { RemoteAuditEvent } from './remote'
+import type { RemoteAuditEvent, RemotePrincipal } from './remote'
 import type { RemoteApplication } from './remote-application'
 
 import { H3 } from 'h3'
 import { describe, expect, it, vi } from 'vitest'
 
-import { createRemoteApi, remoteAccessFromEnv } from './remote'
+import { createRemoteApi, createRemoteExecutor } from './remote'
+import { createRemoteMediaLinks } from './remote-media-links'
+import { bearerTestAuthenticator, testPrincipal } from './remote-test-utils'
 
 const accountId = '11111111-1111-4111-8111-111111111111'
-const credentialId = '22222222-2222-4222-8222-222222222222'
+const credentialId = 'https://client.example/metadata.json'
 const token = 'test-only-token-'.repeat(4)
 const message = { id: '42', chatId: '7', senderId: '3', senderName: 'Test', timestamp: 1700000000, text: 'project progress', forward: { isForward: false }, media: [], links: [] }
+const readerCapabilities: RemoteMethod[] = ['media.createLink', 'media.read', 'chats.list', 'messages.get', 'messages.replies', 'messages.read', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get']
 
-function access(overrides: Record<string, unknown> = {}) {
-  return remoteAccessFromEnv({
-    TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-      credentials: [{
-        id: credentialId,
-        name: 'project-reader',
-        token,
-        accountId,
-        capabilities: ['media.createLink', 'media.read', 'chats.list', 'messages.get', 'messages.replies', 'messages.read', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
-        chatPermissions: [{ chatId: '7', permissions: ['read'] }],
-        ...overrides,
-      }],
-    }),
-  })!
+function access(overrides: { capabilities?: RemoteMethod[], chatIds?: string[] } = {}): RemotePrincipal {
+  return testPrincipal({ accountId, clientId: credentialId, capabilities: overrides.capabilities ?? readerCapabilities, chatIds: overrides.chatIds ?? ['7'] })
 }
 
 function fixture(options: { access?: ReturnType<typeof access>, messageChatId?: string, auditFailure?: Error } = {}) {
@@ -60,8 +52,9 @@ function fixture(options: { access?: ReturnType<typeof access>, messageChatId?: 
     if (options.auditFailure)
       throw options.auditFailure
   })
+  const media = createRemoteMediaLinks({ secret: 'test-only-media-secret' }, resolve)
   const app = new H3()
-  app.mount('/v1/remote', createRemoteApi(options.access ?? access(), resolve, audit))
+  app.mount('/v1/remote', createRemoteApi(bearerTestAuthenticator(token, options.access ?? access()), createRemoteExecutor({ getApplication: resolve, recordAudit: audit, media }), media))
   return { app, application, resolve, audit }
 }
 
@@ -139,11 +132,10 @@ describe('remote access control', () => {
   })
 
   it('runs database administration only for an all-chat credential with the matching capability', async () => {
-    const adminCapabilities = ['database.indexes.drop', 'database.vector.set']
-    const allChats = [{ chatId: '*', permissions: ['read'] }]
+    const adminCapabilities: RemoteMethod[] = ['database.indexes.drop', 'database.vector.set']
 
     // A credential without the capability is denied even with all-chat access.
-    const withoutCapability = fixture({ access: access({ chatPermissions: allChats }) })
+    const withoutCapability = fixture({ access: access({ chatIds: ['*'] }) })
     const deniedFeature = await withoutCapability.app.request('/v1/remote/database.indexes.drop', { method: 'POST', headers: headers(), body: JSON.stringify({ kind: 'vector' }) })
     expect(deniedFeature.status).toBe(403)
     expect(withoutCapability.application.database.dropIndexes).not.toHaveBeenCalled()
@@ -154,7 +146,7 @@ describe('remote access control', () => {
     expect(deniedScope.status).toBe(403)
     expect(chatScoped.application.database.dropIndexes).not.toHaveBeenCalled()
 
-    const admin = fixture({ access: access({ capabilities: adminCapabilities, chatPermissions: allChats }) })
+    const admin = fixture({ access: access({ capabilities: adminCapabilities, chatIds: ['*'] }) })
     const dropped = await admin.app.request('/v1/remote/database.indexes.drop', { method: 'POST', headers: headers(), body: JSON.stringify({ kind: 'vector' }) })
     expect(dropped.status).toBe(200)
     expect(await dropped.json()).toEqual({ ok: true, data: { dropped: ['chat_messages_content_vector_1536_index'], skipped: [] } })
@@ -258,7 +250,7 @@ describe('remote access control', () => {
   })
 
   it('records wildcard scope explicitly and rejects invalid chat cursors', async () => {
-    const wildcard = fixture({ access: access({ chatPermissions: [{ chatId: '*', permissions: ['read'] }] }) })
+    const wildcard = fixture({ access: access({ chatIds: ['*'] }) })
     const search = await wildcard.app.request('/v1/remote/messages.search', {
       method: 'POST',
       headers: headers(),
@@ -291,22 +283,11 @@ describe('remote access control', () => {
     expect(audit).toHaveBeenCalledOnce()
   })
 
-  it('rejects expired credentials and invalid access configuration', async () => {
-    const expired = access({ expiresAt: Date.now() - 1 })
-    const { app, resolve } = fixture({ access: expired })
-    const response = await app.request('/v1/remote/messages.query', { method: 'POST', headers: headers(), body: '{}' })
+  it('rejects a request without a valid access token before resolving the account', async () => {
+    const { app, resolve, audit } = fixture()
+    const response = await app.request('/v1/remote/messages.query', { method: 'POST', headers: { ...headers(), authorization: 'Bearer wrong-token' }, body: '{}' })
     expect(response.status).toBe(401)
     expect(resolve).not.toHaveBeenCalled()
-
-    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_ACCESS: '{' })).toThrow('JSON')
-    expect(() => access({ chatPermissions: [{ chatId: '7', permissions: ['write'] }] })).toThrow()
-    expect(() => remoteAccessFromEnv({
-      TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-        credentials: [
-          { id: credentialId, name: 'one', token, accountId, capabilities: ['messages.query'], chatPermissions: [{ chatId: '7', permissions: ['read'] }] },
-          { id: '33333333-3333-4333-8333-333333333333', name: 'two', token, accountId, capabilities: ['messages.query'], chatPermissions: [{ chatId: '8', permissions: ['read'] }] },
-        ],
-      }),
-    })).toThrow('duplicate token')
+    expect(audit).not.toHaveBeenCalled()
   })
 })
