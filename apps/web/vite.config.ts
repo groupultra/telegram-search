@@ -100,6 +100,8 @@ export default defineConfig({
         navigateFallbackDenylist: [
           /^\/api\//,
           /^\/ws\//,
+          /^\/mcp/,
+          /^\/\.well-known\//,
         ],
       },
     }),
@@ -150,6 +152,20 @@ export default defineConfig({
   // Proxy API requests to local development server
   server: {
     proxy: {
+      // OAuth routes keep their path: the server's issuer and redirects are `<origin>/api/auth/...`.
+      // Listed before `/api`, which strips its prefix; the first matching entry wins.
+      '/api/auth': {
+        target: env.BACKEND_URL ?? 'http://localhost:3000',
+      },
+      '/mcp': {
+        target: env.BACKEND_URL ?? 'http://localhost:3000',
+      },
+      '/.well-known/oauth-': {
+        target: env.BACKEND_URL ?? 'http://localhost:3000',
+      },
+      '/.well-known/openid-configuration': {
+        target: env.BACKEND_URL ?? 'http://localhost:3000',
+      },
       '/api': {
         target: env.BACKEND_URL ?? 'http://localhost:3000',
         changeOrigin: true,

@@ -7,13 +7,17 @@ import { RouterView } from 'vue-router'
 import { Toaster } from 'vue-sonner'
 
 import { usePWAStore } from './stores/pwa'
+import { useServerAuthStore } from './stores/server-auth'
 
-onMounted(() => {
+onMounted(async () => {
   usePWAStore().init()
 
   hideSplashScreen()
 
   useSessionStore().init()
+  // A signed-out OAuth server refuses the WebSocket upgrade; the router sends the user to sign in instead.
+  if (await useServerAuthStore().check() === 'signed-out')
+    return
   useBridge().init().then(() => {
     useAccountStore().init()
   })
