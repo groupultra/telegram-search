@@ -63,8 +63,12 @@ async function decide(approve: boolean) {
     await decideDeviceAuthorization(authorization.value.userCode, approve)
     decided.value = approve ? 'approved' : 'denied'
   }
-  catch {
-    error.value = t('serverAuth.device.failed')
+  catch (cause) {
+    // The session expired after the lookup; sign in again and come back to this code.
+    if (cause instanceof ServerAuthError && cause.status === 401)
+      await signInAndReturn()
+    else
+      error.value = t('serverAuth.device.failed')
   }
   finally {
     isLoading.value = false

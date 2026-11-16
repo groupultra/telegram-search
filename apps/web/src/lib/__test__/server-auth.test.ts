@@ -74,16 +74,26 @@ describe('authorization calls', () => {
     expect(JSON.parse(calls[0].init.body as string)).toEqual({ accept: true, oauth_query: 'client_id=c&sig=s' })
   })
 
+  it('requires a sign-in before looking up a device code', async () => {
+    // The server answers the lookup without a session but binds the code to no one, so the page showed
+    // Approve and the approval then failed with 401 ("Could not save your decision").
+    const calls = mockFetch(url => url === '/api/auth/get-session' ? Response.json(null) : Response.json({ user_code: 'ABCDEFGH', status: 'pending' }))
+    await expect(getDeviceAuthorization('ABCDEFGH')).rejects.toMatchObject({ status: 401 })
+    expect(calls.map(call => call.url)).toEqual(['/api/auth/get-session'])
+  })
+
   it('normalizes device codes and maps the requested scopes', async () => {
-    const calls = mockFetch(url => url.startsWith('/api/auth/device?')
-      ? Response.json({ user_code: 'ABCDEFGH', status: 'pending', client_id: 'tgs-cli', scope: 'messages:read offline_access' })
-      : Response.json({ success: true }))
+    const calls = mockFetch(url => url === '/api/auth/get-session'
+      ? Response.json({ user: { id: 'user-1' } })
+      : url.startsWith('/api/auth/device?')
+        ? Response.json({ user_code: 'ABCDEFGH', status: 'pending', client_id: 'tgs-cli', scope: 'messages:read offline_access' })
+        : Response.json({ success: true }))
     expect(await getDeviceAuthorization(' abcd-efgh ')).toEqual({ userCode: 'ABCDEFGH', status: 'pending', clientId: 'tgs-cli', scopes: ['messages:read', 'offline_access'] })
-    expect(calls[0].url).toBe('/api/auth/device?user_code=ABCDEFGH')
+    expect(calls[1].url).toBe('/api/auth/device?user_code=ABCDEFGH')
 
     await decideDeviceAuthorization('abcd-efgh', false)
-    expect(calls[1]).toMatchObject({ url: '/api/auth/device/deny' })
-    expect(JSON.parse(calls[1].init.body as string)).toEqual({ userCode: 'ABCDEFGH' })
+    expect(calls[2]).toMatchObject({ url: '/api/auth/device/deny' })
+    expect(JSON.parse(calls[2].init.body as string)).toEqual({ userCode: 'ABCDEFGH' })
   })
 
   it('surfaces the status of a rejected call so pages can send the user to sign in', async () => {
