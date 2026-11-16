@@ -373,11 +373,12 @@
   "serverAuth": {
     "signIn": {
       "title": "Telegram Search에 로그인",
-      "description": "Telegram 계정으로 이 서버에 로그인합니다.",
-      "continueTo": "로그인하고 {client}(으)로 계속합니다.",
-      "withTelegram": "Telegram으로 계속",
-      "notice": "Telegram은 본인 확인만 합니다. 검색에 쓸 Telegram 계정 연결은 별도 단계입니다.",
-      "failed": "Telegram 로그인에 실패했습니다. 다시 시도하세요."
+      "description": "계속하려면 이 서버에서 Telegram 계정에 로그인하세요.",
+      "continueTo": "Telegram에 로그인하고 {client}(으)로 계속합니다.",
+      "withTelegram": "Telegram으로 로그인",
+      "notice": "Telegram 로그인과 동시에 검색용 계정이 연결됩니다. 한 번만 로그인하면 됩니다.",
+      "failed": "로그인에 실패했습니다. 다시 시도하세요.",
+      "continue": "계속"
     },
     "consent": {
       "title": "{client}에 데이터 접근을 허용할까요?",

@@ -373,11 +373,12 @@
   "serverAuth": {
     "signIn": {
       "title": "Sign in to Telegram Search",
-      "description": "Use your Telegram account to sign in to this server.",
-      "continueTo": "Sign in to continue to {client}.",
-      "withTelegram": "Continue with Telegram",
-      "notice": "Telegram confirms who you are. Connecting your Telegram account for search is a separate step.",
-      "failed": "Telegram sign-in failed. Try again."
+      "description": "Log in to your Telegram account on this server to continue.",
+      "continueTo": "Log in to Telegram to continue to {client}.",
+      "withTelegram": "Log in with Telegram",
+      "notice": "Your Telegram login also connects the account for search. You only log in once.",
+      "failed": "Sign-in failed. Try again.",
+      "continue": "Continue"
     },
     "consent": {
       "title": "Allow {client} to access your data?",

@@ -2,26 +2,48 @@
 import { useLogger } from '@guiiai/logg'
 import { evictExpiredOrOversized, useAccountStore, useAvatarStore, useBridge, useSessionStore } from '@tg-search/client'
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
-import { onBeforeUnmount, onMounted } from 'vue'
-import { RouterView } from 'vue-router'
-import { Toaster } from 'vue-sonner'
+import { onBeforeUnmount, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { RouterView, useRouter } from 'vue-router'
+import { toast, Toaster } from 'vue-sonner'
 
+import { hasPendingSignIn } from './lib/server-auth'
 import { usePWAStore } from './stores/pwa'
 import { useServerAuthStore } from './stores/server-auth'
 
-onMounted(async () => {
+const { t } = useI18n()
+
+onMounted(() => {
   usePWAStore().init()
 
   hideSplashScreen()
 
   useSessionStore().init()
-  // A signed-out OAuth server refuses the WebSocket upgrade; the router sends the user to sign in instead.
-  if (await useServerAuthStore().check() === 'signed-out')
-    return
   useBridge().init().then(() => {
     useAccountStore().init()
   })
 })
+
+// With OAuth on the server, the Telegram login is the sign-in: once the account is ready,
+// exchange it for a server session and continue a pending authorization request.
+const accountStore = useAccountStore()
+const serverAuth = useServerAuthStore()
+const router = useRouter()
+watch(() => accountStore.isReady, async (ready) => {
+  if (!ready || (await serverAuth.check() !== 'signed-out' && !hasPendingSignIn()))
+    return
+  try {
+    const outcome = await serverAuth.completeSignIn()
+    if (outcome.kind === 'navigate')
+      window.location.assign(outcome.url)
+    else if (outcome.kind === 'route')
+      await router.replace(outcome.path)
+  }
+  catch (error) {
+    useLogger('server-auth').withError(error).warn('Failed to sign in to the server')
+    toast.error(t('serverAuth.signIn.failed'))
+  }
+}, { immediate: true })
 
 const avatarStore = useAvatarStore()
 let avatarCleanupTimer: number | undefined

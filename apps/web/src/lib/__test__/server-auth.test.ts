@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { decideDeviceAuthorization, getDeviceAuthorization, getServerAuthStatus, isServerAuthRoute, safeRedirectPath, ServerAuthError, startTelegramSignIn, submitConsent } from '../server-auth'
+import { decideDeviceAuthorization, exchangeSignInTicket, getDeviceAuthorization, getServerAuthStatus, hasPendingSignIn, isServerAuthRoute, safeRedirectPath, savePendingSignIn, ServerAuthError, submitConsent, takePendingSignIn } from '../server-auth'
 
 function mockFetch(handler: (url: string, init: RequestInit) => Response) {
   const calls: Array<{ url: string, init: RequestInit }> = []
@@ -57,13 +57,26 @@ describe('redirect handling', () => {
 })
 
 describe('authorization calls', () => {
-  it('starts Telegram sign-in with a safe callback and resumes a signed authorization request', async () => {
-    const calls = mockFetch(() => Response.json({ url: 'https://oauth.telegram.org/auth?state=s', redirect: true }))
-    expect(await startTelegramSignIn({ callbackPath: '//evil.example' })).toBe('https://oauth.telegram.org/auth?state=s')
-    expect(JSON.parse(calls[0].init.body as string)).toEqual({ provider: 'telegram', callbackURL: '/', errorCallbackURL: '/auth/sign-in' })
+  it('exchanges a sign-in ticket and returns the resumed authorization step', async () => {
+    const calls = mockFetch(() => Response.json({ redirect: true, url: '/auth/consent?client_id=c&sig=s2' }))
+    expect(await exchangeSignInTicket('ticket-value', 'client_id=c&sig=s')).toEqual({ redirectUrl: '/auth/consent?client_id=c&sig=s2' })
+    expect(calls[0]).toMatchObject({ url: '/api/auth/sign-in/telegram-session', init: { method: 'POST' } })
+    expect(JSON.parse(calls[0].init.body as string)).toEqual({ ticket: 'ticket-value', oauth_query: 'client_id=c&sig=s' })
 
-    await startTelegramSignIn({ callbackPath: '/', oauthQuery: 'client_id=c&sig=s' })
-    expect(JSON.parse(calls[1].init.body as string)).toMatchObject({ oauth_query: 'client_id=c&sig=s' })
+    mockFetch(() => Response.json({ userId: 'user-1' }))
+    expect(await exchangeSignInTicket('ticket-value')).toEqual({ redirectUrl: undefined })
+  })
+
+  it('keeps a pending sign-in for one use and drops unsafe redirects', () => {
+    savePendingSignIn({ oauthQuery: 'client_id=c&sig=s' })
+    expect(hasPendingSignIn()).toBe(true)
+    expect(takePendingSignIn()).toEqual({ oauthQuery: 'client_id=c&sig=s', redirect: undefined })
+    expect(hasPendingSignIn()).toBe(false)
+    expect(takePendingSignIn()).toEqual({})
+
+    // A tampered session value must not turn into an off-site redirect.
+    sessionStorage.setItem('server-auth/pending-sign-in', JSON.stringify({ redirect: '//evil.example' }))
+    expect(takePendingSignIn()).toEqual({ oauthQuery: undefined, redirect: '/' })
   })
 
   it('submits consent with the signed query and returns the client redirect', async () => {

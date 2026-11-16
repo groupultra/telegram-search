@@ -73,23 +73,47 @@ export function safeRedirectPath(value: unknown, fallback = '/'): string {
 }
 
 /**
- * Starts Telegram sign-in. `oauthQuery` is the signed authorization request the
- * server appended to the sign-in URL; passing it back resumes that request
- * after Telegram returns.
+ * Exchanges a sign-in ticket from the WebSocket bridge for a session cookie.
+ * With `oauthQuery` (the signed authorization request the server sent to the
+ * sign-in page) the server resumes that request and returns where to go next.
  */
-export async function startTelegramSignIn(options: { callbackPath: string, oauthQuery?: string }): Promise<string> {
-  const result = await request<{ url?: string }>('/sign-in/social', {
+export async function exchangeSignInTicket(ticket: string, oauthQuery?: string): Promise<{ redirectUrl?: string }> {
+  const result = await request<{ redirect?: boolean, url?: string }>('/sign-in/telegram-session', {
     method: 'POST',
-    body: JSON.stringify({
-      provider: 'telegram',
-      callbackURL: safeRedirectPath(options.callbackPath),
-      errorCallbackURL: SIGN_IN_PATH,
-      ...(options.oauthQuery ? { oauth_query: options.oauthQuery } : {}),
-    }),
+    body: JSON.stringify({ ticket, ...(oauthQuery ? { oauth_query: oauthQuery } : {}) }),
   })
-  if (!result.url)
-    throw new ServerAuthError(500, undefined, 'The server did not return a Telegram sign-in URL')
-  return result.url
+  return { redirectUrl: result.redirect && result.url ? result.url : undefined }
+}
+
+const PENDING_SIGN_IN_KEY = 'server-auth/pending-sign-in'
+
+/** Where to continue after the Telegram login; kept across the `/login` detour for this tab only. */
+export interface PendingSignIn {
+  oauthQuery?: string
+  redirect?: string
+}
+
+export function savePendingSignIn(pending: PendingSignIn): void {
+  sessionStorage.setItem(PENDING_SIGN_IN_KEY, JSON.stringify(pending))
+}
+
+export function hasPendingSignIn(): boolean {
+  return sessionStorage.getItem(PENDING_SIGN_IN_KEY) !== null
+}
+
+export function takePendingSignIn(): PendingSignIn {
+  const raw = sessionStorage.getItem(PENDING_SIGN_IN_KEY)
+  sessionStorage.removeItem(PENDING_SIGN_IN_KEY)
+  try {
+    const value = raw ? JSON.parse(raw) as PendingSignIn : {}
+    return {
+      oauthQuery: typeof value.oauthQuery === 'string' ? value.oauthQuery : undefined,
+      redirect: typeof value.redirect === 'string' ? safeRedirectPath(value.redirect) : undefined,
+    }
+  }
+  catch {
+    return {}
+  }
 }
 
 interface PublicClientResponse {
