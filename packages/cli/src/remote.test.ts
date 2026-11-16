@@ -1,6 +1,6 @@
 import type { DatabaseAdministration, TelegramApplication } from '@tg-search/core'
 
-import type { RemoteApplication } from '../../../apps/server/src/remote-application'
+import type { RemoteApplication } from '../../../apps/server/src/remote/application'
 
 import process from 'node:process'
 
@@ -13,36 +13,18 @@ import { normalizeRemoteUrl } from '@tg-search/protocol'
 import { H3, serve } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createRemoteApi, remoteAccessFromEnv } from '../../../apps/server/src/remote'
+import { createRemoteExecutor } from '../../../apps/server/src/remote/executor'
+import { createRemoteApi } from '../../../apps/server/src/remote/http'
+import { createRemoteMediaLinks } from '../../../apps/server/src/remote/media-links'
+import { bearerTestAuthenticator, testPrincipal } from '../../../apps/server/src/remote/test-utils'
 import { normalizeRawArgs, runCli } from './index'
 import { createRemoteRuntime } from './remote'
+import { useRemoteToken } from './remote-test-utils'
 
 const access = { token: 'test-only-token-'.repeat(4), accountId: '11111111-1111-4111-8111-111111111111' }
-const serverAccess = remoteAccessFromEnv({
-  TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-    credentials: [{
-      id: '22222222-2222-4222-8222-222222222222',
-      name: 'cli-reader',
-      token: access.token,
-      accountId: access.accountId,
-      capabilities: ['media.read', 'chats.list', 'messages.get', 'messages.replies', 'messages.read', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'],
-      chatPermissions: [{ chatId: '7', permissions: ['read'] }],
-    }],
-  }),
-})!
+const serverAccess = { token: access.token, principal: testPrincipal({ accountId: access.accountId, capabilities: ['media.read', 'chats.list', 'messages.get', 'messages.replies', 'messages.read', 'messages.list', 'messages.query', 'messages.search', 'messages.context', 'stats.get'], chatIds: ['7'] }) }
 const adminToken = 'test-only-admin-'.repeat(4)
-const adminAccess = remoteAccessFromEnv({
-  TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-    credentials: [{
-      id: '33333333-3333-4333-8333-333333333333',
-      name: 'cli-admin',
-      token: adminToken,
-      accountId: access.accountId,
-      capabilities: ['database.indexes.list', 'database.indexes.drop', 'database.indexes.rebuild', 'database.vector.get', 'database.vector.set'],
-      chatPermissions: [{ chatId: '*', permissions: ['read'] }],
-    }],
-  }),
-})!
+const adminAccess = { token: adminToken, principal: testPrincipal({ accountId: access.accountId, capabilities: ['database.indexes.list', 'database.indexes.drop', 'database.indexes.rebuild', 'database.vector.get', 'database.vector.set'], chatIds: ['*'] }) }
 const message = { id: '42', chatId: '7', senderId: '3', senderName: 'Test', timestamp: 1700000000, text: 'project progress', forward: { isForward: false }, media: [], links: [] }
 const page = { ok: true as const, data: { items: [message], nextCursor: 'next-page', total: 37 } }
 
@@ -76,8 +58,14 @@ function fixture(remoteAccess = serverAccess) {
   const resolve = vi.fn(() => application)
   const app = new H3()
   app.mount('/v1', new H3())
-  app.mount('/v1/remote', createRemoteApi(remoteAccess, resolve, vi.fn(async () => {})))
+  const media = createRemoteMediaLinks({ secret: 'test-only-media-secret' }, resolve)
+  app.mount('/v1/remote', createRemoteApi(bearerTestAuthenticator(remoteAccess.token, remoteAccess.principal), createRemoteExecutor({ getApplication: resolve, recordAudit: vi.fn(async () => {}), media }), media))
   return { app, application, resolve }
+}
+
+/** Remote mode keeps only the OAuth token in the profile: no session, database, or exports. */
+async function expectOnlyRemoteToken(home: string) {
+  expect(await readdir(join(home, 'profiles', 'default'))).toEqual(['remote-token.json'])
 }
 
 afterEach(() => {
@@ -91,7 +79,7 @@ describe('remote CLI', () => {
     const { app, application } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
     await server.ready()
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(server.url!, access.token)
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
       for (const command of ['get', 'replies', 'read']) {
@@ -120,7 +108,7 @@ describe('remote CLI', () => {
     await server.ready()
     const home = await mkdtemp(join(tmpdir(), 'tg-db-remote-'))
     vi.stubEnv('TG_SEARCH_HOME', home)
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', adminToken)
+    await useRemoteToken(server.url!, adminToken)
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     const output = () => JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))
     try {
@@ -142,7 +130,7 @@ describe('remote CLI', () => {
       expect(output()).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } })
       expect(application.database.dropIndexes).not.toHaveBeenCalled()
       expect(process.exitCode).toBe(1)
-      expect(await readdir(home)).toEqual([])
+      await expectOnlyRemoteToken(home)
     }
     finally {
       await server.close()
@@ -156,14 +144,14 @@ describe('remote CLI', () => {
     await server.ready()
     const home = await mkdtemp(join(tmpdir(), 'tg-media-remote-'))
     vi.stubEnv('TG_SEARCH_HOME', home)
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(server.url!, access.token)
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
       await runCli(['media', 'read', '--chat', '7', '--message', '42', '--source', 'telegram', '--remote', server.url!, '--format', 'jsonl'])
       const records = stdout.mock.calls.map(call => String(call[0])).join('').trim().split('\n').map(line => JSON.parse(line))
       expect(records[0]).toMatchObject({ ok: true, data: { chatId: '7', messageId: '42', data: 'dGVzdA==', contentStatus: 'complete' } })
       expect(application.readMessageMedia).toHaveBeenCalledWith(expect.objectContaining({ source: 'telegram', operation: { deadlineAt: expect.any(Number) } }), expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
-      expect(await readdir(home)).toEqual([])
+      await expectOnlyRemoteToken(home)
     }
     finally {
       await server.close()
@@ -175,7 +163,7 @@ describe('remote CLI', () => {
     const { app } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
     await server.ready()
-    const runtime = createRemoteRuntime(server.url!, access.token)
+    const runtime = createRemoteRuntime(server.url!, async () => access.token)
     try {
       await expect(runtime.invokes.messages.queryLocal({ limit: 0 })).resolves.toEqual({ ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Invalid request parameters', retryable: false } })
     }
@@ -208,7 +196,7 @@ describe('remote CLI', () => {
     })
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
     await server.ready()
-    const runtime = createRemoteRuntime(server.url!, access.token)
+    const runtime = createRemoteRuntime(server.url!, async () => access.token)
     try {
       const controller = new AbortController()
       const pending = runtime.invokes.messages.queryLocal({ limit: 1 }, { signal: controller.signal })
@@ -231,7 +219,7 @@ describe('remote CLI', () => {
     await server.ready()
     const home = await mkdtemp(join(tmpdir(), 'tg-remote-test-'))
     vi.stubEnv('TG_SEARCH_HOME', home)
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(server.url!, access.token)
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
       await runCli(['--remote', server.url!, 'search', 'project', '--limit', '2', '--json'])
@@ -239,7 +227,7 @@ describe('remote CLI', () => {
       expect(result).toMatchObject({ ok: true, data: page.data, next_cursor: 'next-page', meta: { source: 'remote' } })
       expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: 'project', chatIds: ['7'], limit: 2, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(resolve).toHaveBeenCalledWith(access.accountId)
-      expect(await readdir(home)).toEqual([])
+      await expectOnlyRemoteToken(home)
     }
     finally {
       await server.close()
@@ -254,13 +242,13 @@ describe('remote CLI', () => {
     const home = await mkdtemp(join(tmpdir(), 'tg-output-literal-'))
     const literal = `--output-file=${join(home, 'unexpected.jsonl')}`
     vi.stubEnv('TG_SEARCH_HOME', home)
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(server.url!, access.token)
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
       await runCli(['--remote', server.url!, '--json', 'search', '--', literal])
       expect(application.searchLocalMessages).toHaveBeenCalledWith({ query: literal, chatIds: ['7'], limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
       expect(JSON.parse(stdout.mock.calls.map(call => String(call[0])).join(''))).toMatchObject({ ok: true, data: page.data, meta: { source: 'remote' } })
-      expect(await readdir(home)).toEqual([])
+      await expectOnlyRemoteToken(home)
       stdout.mockClear()
       await runCli(['--remote', server.url!, '--json', 'search', '--', '--help'])
       expect(application.searchLocalMessages).toHaveBeenLastCalledWith({ query: '--help', chatIds: ['7'], limit: 100, useVector: false, operation: { deadlineAt: expect.any(Number) } }, expect.objectContaining({ signal: expect.any(AbortSignal), deadlineAt: expect.any(Number) }))
@@ -283,7 +271,7 @@ describe('remote CLI', () => {
     const home = await mkdtemp(join(tmpdir(), 'tg-output-remote-'))
     const outputFile = join(home, 'private', 'result.jsonl')
     vi.stubEnv('TG_SEARCH_HOME', home)
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', access.token)
+    await useRemoteToken(server.url!, access.token)
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
       await runCli(['--remote', server.url!, 'messages', 'query', '--output-file', outputFile])
@@ -299,7 +287,8 @@ describe('remote CLI', () => {
       ])
       expect(receipt.data.bytes).toBe(Buffer.byteLength(content))
       expect((await stat(outputFile)).mode & 0o777).toBe(0o600)
-      expect(await readdir(home)).toEqual(['private'])
+      expect(await readdir(home)).toEqual(['private', 'profiles'])
+      await expectOnlyRemoteToken(home)
     }
     finally {
       await server.close()
@@ -314,7 +303,7 @@ describe('remote CLI', () => {
     const endpoint = server.url!
     const home = await mkdtemp(join(tmpdir(), 'tg-output-errors-'))
     vi.stubEnv('TG_SEARCH_HOME', home)
-    vi.stubEnv('TG_SEARCH_REMOTE_TOKEN', 'wrong-token')
+    await useRemoteToken(server.url!, 'wrong-token')
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     try {
@@ -357,7 +346,7 @@ describe('remote CLI', () => {
     const { app, application } = fixture()
     const server = serve(app, { port: 0, hostname: '127.0.0.1', silent: true })
     await server.ready()
-    const runtime = createRemoteRuntime(server.url!, access.token)
+    const runtime = createRemoteRuntime(server.url!, async () => access.token)
     try {
       expect(await runtime.invokes.messages.queryLocal({ cursor: '2', limit: 2 })).toEqual(page)
       expect(await runtime.invokes.messages.contextLocal({ chatId: '7', messageId: '42', before: 1, after: 1 })).toEqual({ ok: true, data: { messages: [message], targetIndex: 0 } })
@@ -372,7 +361,7 @@ describe('remote CLI', () => {
         throw new Error('failure')
       })
       await expect(runtime.invokes.messages.queryLocal({ limit: 2 })).resolves.toMatchObject({ ok: false, error: { code: 'REMOTE_UNAVAILABLE' } })
-      const unauthorized = createRemoteRuntime(server.url!, 'wrong-token')
+      const unauthorized = createRemoteRuntime(server.url!, async () => 'wrong-token')
       await expect(unauthorized.invokes.messages.queryLocal({ limit: 2 })).resolves.toMatchObject({ ok: false, error: { code: 'REMOTE_AUTHENTICATION_FAILED' } })
       await unauthorized.close()
       expect(() => runtime.streams.sync({ chatIds: [], all: true, takeout: false, limit: 1 })).toThrow('does not run sync or export')
@@ -383,14 +372,11 @@ describe('remote CLI', () => {
     }
   })
 
-  it('requires secure URLs and complete server access configuration', () => {
+  it('requires secure URLs', () => {
     expect(normalizeRemoteUrl('https://example.com/')).toBe('https://example.com')
     expect(() => normalizeRemoteUrl('http://example.com')).toThrow('HTTPS')
     expect(() => normalizeRemoteUrl('https://user:password@example.com')).toThrow('credentials')
     expect(() => normalizeRemoteUrl('https://example.com?token=secret')).toThrow('query')
-    expect(remoteAccessFromEnv({})).toBeUndefined()
-    expect(remoteAccessFromEnv({ TG_SEARCH_REMOTE_TOKEN: access.token, TG_SEARCH_REMOTE_ACCOUNT_ID: access.accountId })).toBeUndefined()
-    expect(() => remoteAccessFromEnv({ TG_SEARCH_REMOTE_ACCESS: '{}' })).toThrow()
     expect(normalizeRawArgs(['--remote', 'https://example.com', 'messages', 'query'])).toEqual(['messages', 'query', '--remote=https://example.com'])
   })
 })

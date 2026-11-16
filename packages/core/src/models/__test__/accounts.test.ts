@@ -47,6 +47,15 @@ describe('models/accounts', () => {
     expect(found.platform_user_id).toBe('user-1')
   })
 
+  it('findAccountIdByPlatformUserId returns the account ID or undefined', async () => {
+    const db = await setupDb()
+
+    const created = await accountModels.recordAccount(db, 'telegram', 'user-1')
+
+    expect(await accountModels.findAccountIdByPlatformUserId(db, 'telegram', 'user-1')).toBe(created.id)
+    expect(await accountModels.findAccountIdByPlatformUserId(db, 'telegram', 'user-2')).toBeUndefined()
+  })
+
   it('findAccountByUUID returns the correct account', async () => {
     const db = await setupDb()
 

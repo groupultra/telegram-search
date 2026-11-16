@@ -25,10 +25,11 @@ function protocolMismatch(): ApplicationError {
   return new ApplicationError({ code: 'REMOTE_PROTOCOL_MISMATCH', message: 'Remote server returned an invalid response', retryable: false })
 }
 
-export function createRemoteRuntime(endpoint: string, token: string): RemoteRuntime {
+/** Supplies a current OAuth access token for each request; it may refresh the stored token. */
+export type RemoteTokenSource = (signal: AbortSignal) => Promise<string>
+
+export function createRemoteRuntime(endpoint: string, accessToken: RemoteTokenSource): RemoteRuntime {
   const url = normalizeRemoteUrl(endpoint)
-  if (!token || /\s/.test(token))
-    throw new ApplicationError({ code: 'REMOTE_CREDENTIALS_MISSING', message: 'Set TG_SEARCH_REMOTE_TOKEN to the server access token', retryable: false })
   const controller = new AbortController()
 
   function invoke<Schema extends GenericSchema>(method: RemoteMethod, schema: Schema) {
@@ -39,6 +40,7 @@ export function createRemoteRuntime(endpoint: string, token: string): RemoteRunt
         const deadlineAt = options?.deadlineAt ?? request.operation?.deadlineAt ?? Date.now() + 60_000
         const payload = options?.deadlineAt === undefined ? input : { ...request, operation: { ...request.operation, deadlineAt } }
         return await withReadOperation({ signal: options?.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal, deadlineAt }, async (scope) => {
+          const token = await accessToken(scope.signal)
           const response = await fetch(`${url}/v1/remote/${method}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },

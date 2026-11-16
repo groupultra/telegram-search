@@ -1,30 +1,22 @@
 import type { TelegramApplication } from '@tg-search/core'
 
-import type { RemoteApplication } from './remote-application'
+import type { RemoteApplication } from './application'
 
 import { Buffer } from 'node:buffer'
 
 import { H3, serve } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { appResult } from '../../../packages/core/src/application/errors'
-import { withReadOperation } from '../../../packages/core/src/application/read-operation'
-import { createMessageMediaReader } from '../../../packages/core/src/services/message-media'
-import { createRemoteApi, remoteAccessFromEnv } from './remote'
+import { appResult } from '../../../../packages/core/src/application/errors'
+import { withReadOperation } from '../../../../packages/core/src/application/read-operation'
+import { createMessageMediaReader } from '../../../../packages/core/src/services/message-media'
+import { createRemoteExecutor } from './executor'
+import { createRemoteApi } from './http'
+import { createRemoteMediaLinks } from './media-links'
+import { bearerTestAuthenticator, testPrincipal } from './test-utils'
 
 const access = { token: 'synthetic-reader-token-'.repeat(3), accountId: '11111111-1111-4111-8111-111111111111' }
-const serverAccess = remoteAccessFromEnv({
-  TG_SEARCH_REMOTE_ACCESS: JSON.stringify({
-    credentials: [{
-      id: '22222222-2222-4222-8222-222222222222',
-      name: 'media-reader',
-      token: access.token,
-      accountId: access.accountId,
-      capabilities: ['media.read', 'messages.get', 'messages.replies', 'messages.read'],
-      chatPermissions: [{ chatId: '42', permissions: ['read'] }],
-    }],
-  }),
-})!
+const principal = testPrincipal({ accountId: access.accountId, capabilities: ['media.read', 'messages.get', 'messages.replies', 'messages.read'], chatIds: ['42'] })
 const servers: Array<ReturnType<typeof serve>> = []
 const input = { source: 'local', chatId: '42', messageId: '7', length: 4, maxBytes: 8 }
 
@@ -58,7 +50,8 @@ async function fixture() {
   } satisfies RemoteApplication
   const resolve = vi.fn(() => application)
   const app = new H3()
-  app.mount('/v1/remote', createRemoteApi(serverAccess, resolve, vi.fn(async () => {})))
+  const media = createRemoteMediaLinks({ secret: 'synthetic-media-secret-'.repeat(3) }, resolve)
+  app.mount('/v1/remote', createRemoteApi(bearerTestAuthenticator(access.token, principal), createRemoteExecutor({ getApplication: resolve, recordAudit: vi.fn(async () => {}), media }), media))
   const server = serve(app, { hostname: '127.0.0.1', port: 0, silent: true })
   servers.push(server)
   await server.ready()

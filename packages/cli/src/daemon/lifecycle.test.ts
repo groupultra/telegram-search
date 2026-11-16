@@ -35,6 +35,7 @@ async function createPaths(): Promise<ProfilePaths> {
     root,
     config: join(root, 'config.json'),
     session: join(root, 'session'),
+    remoteToken: join(root, 'remote-token.json'),
     database: join(root, 'pglite'),
     exports: join(root, 'exports'),
     daemon: join(root, 'daemon.json'),

@@ -18,7 +18,6 @@ async function invoke(args: string[], overrides: NodeJS.ProcessEnv = {}) {
   directories.push(home)
   const environment: NodeJS.ProcessEnv = { ...process.env, TG_SEARCH_HOME: home }
   delete environment.TG_SEARCH_REMOTE_URL
-  delete environment.TG_SEARCH_REMOTE_TOKEN
   Object.assign(environment, overrides)
   return spawnSync(process.execPath, [fileURLToPath(new URL('../dist/index.mjs', import.meta.url)), ...args], {
     encoding: 'utf8',
@@ -71,7 +70,7 @@ describe('installed CLI output contract', () => {
     const literal = await invoke(['search', '--', '--format=jsonl'], { TG_SEARCH_REMOTE_URL: 'https://example.invalid' })
     expect(literal.status).toBe(1)
     expect(literal.stdout).toBe('')
-    expect(literal.stderr).toBe('REMOTE_CREDENTIALS_MISSING: Set TG_SEARCH_REMOTE_TOKEN to the server access token\n')
+    expect(literal.stderr).toBe('REMOTE_CREDENTIALS_MISSING: Run `tgs remote login` to sign in to this remote server\n')
   })
 
   it('uses INVALID_ARGUMENT for parser failures', async () => {

@@ -103,8 +103,8 @@ Set both together; the profile wins. Run `profile configure` with no flags to re
 ### Remote read-only mode
 
 ```bash
-export TG_SEARCH_REMOTE_TOKEN=...
 tgs --profile cloud profile remote https://tgs.example.com
+tgs --profile cloud remote login
 tgs --profile cloud search "project progress"
 ```
 

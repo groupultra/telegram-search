@@ -288,6 +288,13 @@
       "when": 1794244694451,
       "tag": "0040_add-web-pages",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794826025630,
+      "tag": "0041_oauth-authorization",
+      "breakpoints": true
     }
   ]
 }

@@ -19,9 +19,9 @@ import pkg from '../package.json' with { type: 'json' }
 import { getAccountContext } from './account'
 import { v1api } from './apis/v1'
 import { setupWsRoutes } from './app'
-import { createRemoteApi, remoteAccessFromEnv } from './remote'
-import { createRemoteApplication } from './remote-application'
-import { createRemoteAuditRecorder } from './remote-audit'
+import { authConfigFromEnv } from './auth/config'
+import { mountOAuth } from './oauth'
+import { createRemoteApplication } from './remote/application'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMediaStorage, initMediaStorage } from './storage/media'
 import { removeHyperLinks, toSnakeCaseFields } from './utils/fields'
@@ -35,7 +35,7 @@ function setupErrorHandlers(logger: Logger): void {
   process.on('unhandledRejection', error => handleError(error, 'Unhandled rejection'))
 }
 
-function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
+async function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
   const app = new H3({
     debug: flags.isDebugMode,
     onRequest(event) {
@@ -68,28 +68,33 @@ function configureServer(logger: Logger, flags: RuntimeFlags, config: Config) {
     return Response.json({ success: true })
   }))
 
-  app.mount('/v1', v1api(getDB(), models, getMediaStorage()))
-
-  const remoteAccess = remoteAccessFromEnv(process.env)
-  if (remoteAccess) {
-    const applications = new Map<string, ReturnType<typeof createRemoteApplication>>()
-    const database = createDatabaseAdministration({
-      db: getDB(),
-      logger,
-      concurrently: config.database.type === DatabaseType.POSTGRES,
-    })
-    const getApplication = (accountId: string) => {
-      const existing = applications.get(accountId)
-      if (existing)
-        return existing
-      const application = createRemoteApplication(getDB(), accountId, database)
-      applications.set(accountId, application)
-      return application
-    }
-    app.mount('/v1/remote', createRemoteApi(remoteAccess, getApplication, createRemoteAuditRecorder(getDB())))
+  const authConfig = authConfigFromEnv(process.env)
+  if (authConfig.mode === 'none') {
+    // Single-user mode: the Web UI and media routes stay open and no remote API or MCP endpoint exists.
+    app.mount('/v1', v1api(getDB(), models, getMediaStorage()))
+    setupWsRoutes(app, config)
+    return app
   }
 
-  setupWsRoutes(app, config)
+  const applications = new Map<string, ReturnType<typeof createRemoteApplication>>()
+  const database = createDatabaseAdministration({
+    db: getDB(),
+    logger,
+    concurrently: config.database.type === DatabaseType.POSTGRES,
+  })
+  const getApplication = (accountId: string) => {
+    const existing = applications.get(accountId)
+    if (existing)
+      return existing
+    const application = createRemoteApplication(getDB(), accountId, database)
+    applications.set(accountId, application)
+    return application
+  }
+  const guard = await mountOAuth(app, { db: getDB(), config: authConfig, getApplication })
+  app.use(guard.requireSession(['/v1/photos/', '/v1/stickers/']))
+  app.mount('/v1', v1api(getDB(), models, getMediaStorage()))
+  setupWsRoutes(app, config, { authorize: guard.authorizeWebSocket })
+  logger.withFields({ publicUrl: authConfig.publicUrl }).log('OAuth authorization, MCP, and remote API enabled')
 
   return app
 }
@@ -144,7 +149,7 @@ async function bootstrap() {
   setBotRegistryInstance(botRegistry)
   await botRegistry.start()
 
-  const app = configureServer(logger, flags, config)
+  const app = await configureServer(logger, flags, config)
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000
   const hostname = process.env.HOST || '0.0.0.0'

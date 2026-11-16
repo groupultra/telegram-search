@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { mockDB } from '../../../packages/core/src/db/mock'
-import { remoteAuditEventsTable } from '../../../packages/core/src/schemas/remote-audit-events'
-import { createRemoteAuditRecorder } from './remote-audit'
+import { mockDB } from '../../../../packages/core/src/db/mock'
+import { remoteAuditEventsTable } from '../../../../packages/core/src/schemas/remote-audit-events'
+import { createRemoteAuditRecorder } from './audit'
 
 describe('remote audit recorder', () => {
   it('persists an append-only, sanitized operation record', async () => {
@@ -11,8 +11,9 @@ describe('remote audit recorder', () => {
 
     await record({
       requestId: 'request-1',
-      credentialId: '22222222-2222-4222-8222-222222222222',
+      credentialId: 'https://client.example/metadata.json',
       credentialName: 'project-reader',
+      userId: 'user-1',
       accountId: '11111111-1111-4111-8111-111111111111',
       method: 'messages.search',
       chatIds: ['7'],

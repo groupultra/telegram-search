@@ -103,8 +103,8 @@ export TELEGRAM_API_ID=YOUR_API_ID TELEGRAM_API_HASH=YOUR_API_HASH          # �
 ### 远程只读模式
 
 ```bash
-export TG_SEARCH_REMOTE_TOKEN=...
 tgs --profile cloud profile remote https://tgs.example.com
+tgs --profile cloud remote login
 tgs --profile cloud search "项目进展"
 ```
 

@@ -3,7 +3,10 @@ import { bigint, index, integer, jsonb, pgTable, text, uuid } from 'drizzle-orm/
 export const remoteAuditEventsTable = pgTable('remote_audit_events', {
   id: uuid().primaryKey().defaultRandom(),
   request_id: text().notNull(),
-  credential_id: uuid().notNull(),
+  /** OAuth client ID; a URL for clients that register with a Client ID Metadata Document. */
+  credential_id: text().notNull(),
+  /** Authorization-server user ID. Null on rows written before OAuth. */
+  user_id: text(),
   credential_name: text().notNull(),
   account_id: uuid().notNull(),
   method: text().notNull(),

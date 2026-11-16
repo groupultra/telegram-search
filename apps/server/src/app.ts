@@ -22,7 +22,7 @@ import { useLogger } from '@guiiai/logg'
 import { createPeerContext } from '@moeru/eventa/adapters/websocket/h3'
 import { CoreEventType, createTelegramApplicationRuntime, destroyCoreInstance, registerApplicationHandlers } from '@tg-search/core'
 import { coreEventsInTotal, wsConnectionsActive } from '@tg-search/observability'
-import { defineWebSocketHandler, HTTPError } from 'h3'
+import { defineWebSocketHandler } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
 
 import { accountStates, getOrCreateAccount, peerObjects, peerToAccountId } from './account'
@@ -111,7 +111,12 @@ export async function updateAccountState(logger: Logger, account: AccountState, 
   })
 }
 
-export function setupWsRoutes(app: H3, config: Config) {
+export interface WsRouteOptions {
+  /** Rejects the upgrade by throwing a `Response`; unset in the single-user mode. */
+  authorize?: (request: Request, sessionId: string) => Promise<void>
+}
+
+export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions = {}) {
   const logger = useLogger('server:ws')
 
   app.get('/ws', defineWebSocketHandler({
@@ -119,9 +124,12 @@ export function setupWsRoutes(app: H3, config: Config) {
       const url = new URL(req.url)
       const urlSessionId = url.searchParams.get('sessionId')
 
+      // crossws aborts an upgrade only on a thrown Response; an HTTPError became a 500.
       if (!urlSessionId || urlSessionId === '') {
-        throw new HTTPError('Session ID is required', { status: 400 })
+        throw new Response('Session ID is required', { status: 400 })
       }
+
+      await options.authorize?.(req, urlSessionId)
     },
 
     async open(peer) {

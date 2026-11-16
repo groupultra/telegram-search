@@ -4,8 +4,8 @@ import type { ListChatsInput, ListChatsResult } from '@tg-search/protocol'
 import { useLogger } from '@guiiai/logg'
 import { appResult, createCoreContext, createTelegramApplicationRuntime, models, withReadOperation } from '@tg-search/core'
 
-import { accountStates } from './account'
-import { getMediaStorage } from './storage/media'
+import { accountStates } from '../account'
+import { getMediaStorage } from '../storage/media'
 
 export interface RemoteApplication extends TelegramApplication {
   listStoredChats: (input: ListChatsInput, chatIds: string[], options?: ReadOperationOptions) => Promise<ListChatsResult>

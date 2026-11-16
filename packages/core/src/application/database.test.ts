@@ -37,13 +37,16 @@ afterEach(async () => {
 })
 
 describe('database index administration', () => {
-  it('manages exactly the indexes the migrations create, excluding constraint indexes', async () => {
+  it('manages exactly the indexes the migrations create, excluding constraint and authorization indexes', async () => {
+    // Better Auth owns the `auth_*` tables; `db indexes drop --kind all` must never remove their lookup indexes.
     const result = await db.execute(sql`
       SELECT c.relname AS name
       FROM pg_index i
       JOIN pg_class c ON c.oid = i.indexrelid
+      JOIN pg_class t ON t.oid = i.indrelid
       JOIN pg_namespace n ON n.oid = c.relnamespace
       WHERE n.nspname = current_schema()
+        AND t.relname NOT LIKE 'auth\\_%'
         AND NOT EXISTS (SELECT 1 FROM pg_constraint con WHERE con.conindid = i.indexrelid)
     `)
     const migrated = (result.rows as Array<{ name: string }>).map(row => row.name).sort()
