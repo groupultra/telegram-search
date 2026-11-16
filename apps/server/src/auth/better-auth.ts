@@ -66,6 +66,9 @@ export function createAuth({ db, config }: CreateAuthOptions): Auth {
         loginPage: '/auth/sign-in',
         consentPage: '/auth/consent',
         scopes: ['openid', 'profile', 'offline_access', ...remoteScopes],
+        // Clients such as ChatGPT request every scope the discovery documents list. List only what a
+        // self-registered client may hold; `tgs-cli` still requests `database:admin` explicitly.
+        advertisedMetadata: { scopes_supported: ['openid', 'profile', 'offline_access', ...ownerScopes] },
         clientRegistrationDefaultScopes: ['offline_access', ...ownerScopes],
         // Third-party clients register themselves (CIMD), so they can never ask for database administration; only `tgs-cli` can.
         clientRegistrationAllowedScopes: ['openid', 'profile', 'offline_access', ...ownerScopes],

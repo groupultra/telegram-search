@@ -109,7 +109,11 @@ describe('oAuth authorization, MCP, and remote API', () => {
     const f = await fixture()
     const metadata = await f.request('/.well-known/oauth-protected-resource/mcp')
     expect(metadata.status).toBe(200)
-    expect(await metadata.json()).toMatchObject({ resource, authorization_servers: [`${publicUrl}/api/auth`], scopes_supported: expect.arrayContaining(['messages:read', 'chats:read']) })
+    // ChatGPT requested every listed scope; listing `database:admin`, which self-registered clients may not
+    // hold, failed its authorization with invalid_scope before the sign-in page.
+    expect(await metadata.json()).toMatchObject({ resource, authorization_servers: [`${publicUrl}/api/auth`], scopes_supported: ['chats:read', 'messages:read', 'media:read'] })
+    const serverMetadata = await (await f.request('/.well-known/oauth-authorization-server/api/auth')).json() as { scopes_supported: string[] }
+    expect(serverMetadata.scopes_supported).not.toContain('database:admin')
 
     const unauthorized = await f.request('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'accept': 'application/json, text/event-stream' }, body: '{}' })
     expect(unauthorized.status).toBe(401)
