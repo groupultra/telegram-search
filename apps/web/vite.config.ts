@@ -152,12 +152,15 @@ export default defineConfig({
   // Proxy API requests to local development server
   server: {
     proxy: {
-      // OAuth routes keep their path: the server's issuer and redirects are `<origin>/api/auth/...`.
+      // OAuth, MCP, and the CLI's remote API keep their path: the server's issuer and resource are `<origin>/api/auth` and `<origin>/mcp`.
       // Listed before `/api`, which strips its prefix; the first matching entry wins.
       '/api/auth': {
         target: env.BACKEND_URL ?? 'http://localhost:3000',
       },
       '/mcp': {
+        target: env.BACKEND_URL ?? 'http://localhost:3000',
+      },
+      '/v1/remote': {
         target: env.BACKEND_URL ?? 'http://localhost:3000',
       },
       '/.well-known/oauth-': {

@@ -14,7 +14,7 @@ The dev server (`vite.config.ts`) and the production nginx (`docker/nginx.conf`)
 | Path | Forwarded as |
 |---|---|
 | `/ws` | unchanged, WebSocket |
-| `/api/auth/*`, `/mcp`, `/.well-known/oauth-*`, `/.well-known/openid-configuration*` | unchanged: OAuth issuer and MCP resource identifiers include these paths |
+| `/api/auth/*`, `/mcp`, `/v1/remote/*`, `/.well-known/oauth-*`, `/.well-known/openid-configuration*` | unchanged: OAuth issuer and MCP resource identifiers include these paths, and `tgs` calls `/v1/remote/*` with tokens for that resource |
 | `/api/*` (everything else) | with the `/api` prefix removed |
 
 The proxy must preserve the `Host` header for `/mcp`.
