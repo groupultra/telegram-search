@@ -7,8 +7,6 @@ import type { DaemonDescriptor } from './profile-state'
 
 import process from 'node:process'
 
-import { chmod, writeFile } from 'node:fs/promises'
-
 import { LogLevel, setGlobalLogLevel } from '@guiiai/logg'
 import { defineInvokeHandlers } from '@moeru/eventa'
 import { createServer as createIpcServer } from '@moeru/eventa/adapters/unix-socket'
@@ -30,14 +28,15 @@ import {
 } from '@tg-search/core'
 import { daemonContracts } from '@tg-search/protocol'
 
+import { writeFileAtomic } from '../atomic-file'
 import { runtimeBuildInfo } from '../build-info'
-import { readProfileConfig, readSession, writeProfileConfig, writeSession } from '../profile'
+import { readProfileConfig, readSession, updateProfileConfig, writeSession } from '../profile'
 import { createDaemonLogger, profileScopeId } from '../runtime'
 import { resolveCliTelegramCredentials } from '../telegram-credentials'
 import { registerDaemonAuthorizationHandlers } from './authorization-events'
 import { createDaemonDiagnostics } from './diagnostics'
 import { startDaemonLogMaintenance } from './log-maintenance'
-import { acquireProfileLock, processIdentity, removeIfExists, socketPathFor } from './profile-state'
+import { acquireProfileLock, DAEMON_STARTUP_TIMEOUT_MS, processIdentity, removeIfExists, socketPathFor } from './profile-state'
 
 export interface DaemonHost {
   status: () => DaemonStatus
@@ -96,13 +95,6 @@ export function createAccountReadyWait(
   return { promise, cancel }
 }
 
-export async function persistProfileAccountId(paths: ProfilePaths, accountId: string) {
-  const latest = await readProfileConfig(paths)
-  const next = { ...latest, accountId }
-  await writeProfileConfig(paths, next)
-  return next
-}
-
 export function createDaemonApplicationProxy(getApplication: () => TelegramApplicationRuntime, onRead?: (source: 'local' | 'telegram', result: AppResult<unknown>) => void): TelegramApplication {
   const observe = async <T>(source: 'local' | 'telegram', request: () => Promise<AppResult<T>>) => {
     const result = await Promise.resolve().then(request).catch(error => ({ ok: false as const, error: toAppError(error) }))
@@ -127,7 +119,9 @@ export function createDaemonApplicationProxy(getApplication: () => TelegramAppli
   }
 }
 
-export async function createDaemonHost(paths: ProfilePaths, profile: string): Promise<DaemonHost> {
+const STARTUP_INTERRUPTED = new Error('Daemon startup was interrupted by a stop request')
+
+export async function createDaemonHost(paths: ProfilePaths, profile: string, options: { signal?: AbortSignal } = {}): Promise<DaemonHost> {
   setGlobalLogLevel(LogLevel.Log)
   const startedAt = Date.now()
   const diagnostics = createDaemonDiagnostics()
@@ -143,7 +137,12 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   let closeServer: (() => Promise<void>) | undefined
   let database: Awaited<ReturnType<typeof initDrizzle>> | undefined
   let activeRuntime: { context: ReturnType<typeof createCoreInstance>, application: TelegramApplicationRuntime } | undefined
-  let reloadInFlight: Promise<DaemonStatus> | undefined
+  let started = false
+  // Runtime replacements run one at a time, in request order.
+  let runtimeQueue: Promise<unknown> = Promise.resolve()
+  let queuedReload: Promise<DaemonStatus> | undefined
+  let queuedRecover: Promise<DaemonStatus> | undefined
+  let sessionWrites: Promise<void> = Promise.resolve()
   let accountReadyWait: ReturnType<typeof createAccountReadyWait> | undefined
   let releaseLock: (() => Promise<void>) | undefined
   let transportConnected = false
@@ -196,6 +195,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     closeServer = undefined
     await cleanup('close IPC server', serverCloser)
     await cleanup('dispose application runtime', disposeActiveRuntime)
+    await sessionWrites
 
     const pglite = database?.pglite
     database = undefined
@@ -213,7 +213,11 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     context.emitter.on(CoreEventType.SessionUpdate, ({ session }) => {
       if (!isActiveContext())
         return
-      void writeSession(paths, session).catch(error => logger.withError(error).warn('Failed to persist daemon session'))
+      // Write in emission order, and skip a write that a replaced runtime
+      // queued: it would put the previous session back over a new login.
+      sessionWrites = sessionWrites
+        .then(() => isActiveContext() ? writeSession(paths, session) : undefined)
+        .catch(error => logger.withError(error).warn('Failed to persist daemon session'))
     })
     registerDaemonAuthorizationHandlers(context, {
       isActiveContext,
@@ -271,6 +275,8 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
   }
 
   const replaceRuntime = async (session: string | undefined): Promise<DaemonStatus> => {
+    if (stopping)
+      return status()
     transportConnected = false
     state = session ? 'starting' : 'unauthorized'
     diagnostics.transport(session ? 'starting' : 'disconnected')
@@ -313,7 +319,8 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       accountId = await ready.promise
       if (stopping)
         return status()
-      profileConfig = await persistProfileAccountId(paths, accountId)
+      const readyAccountId = accountId
+      profileConfig = await updateProfileConfig(paths, latest => ({ ...latest, accountId: readyAccountId }))
       if (stopping)
         return status()
 
@@ -333,11 +340,25 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     return status()
   }
 
-  const reload = (): Promise<DaemonStatus> => {
-    if (reloadInFlight)
-      return reloadInFlight
+  const enqueueRuntime = <T>(operation: () => Promise<T>): Promise<T> => {
+    const run = runtimeQueue.then(operation)
+    runtimeQueue = run.catch(() => undefined)
+    return run
+  }
 
-    reloadInFlight = (async () => {
+  // A request joins a reload or recovery that has not started yet. One that is
+  // already running may have read an older session file, so a later request
+  // (for example `auth login` after it wrote a new session) queues its own.
+  const reload = (): Promise<DaemonStatus> => {
+    if (stopping)
+      return Promise.resolve(status())
+    if (queuedReload)
+      return queuedReload
+
+    queuedReload = enqueueRuntime(async () => {
+      queuedReload = undefined
+      if (stopping)
+        return status()
       const session = await readSession(paths)
       if (!session)
         return replaceRuntime(undefined)
@@ -353,16 +374,22 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       }
 
       return replaceRuntime(session)
-    })().finally(() => {
-      reloadInFlight = undefined
     })
-    return reloadInFlight
+    return queuedReload
   }
 
+  // Recovery always rebuilds the runtime, so it never joins a reload: a reload
+  // may return early without replacing anything.
   const recover = (): Promise<DaemonStatus> => {
-    if (reloadInFlight)
-      return reloadInFlight
-    reloadInFlight = (async () => {
+    if (stopping)
+      return Promise.resolve(status())
+    if (queuedRecover)
+      return queuedRecover
+
+    queuedRecover = enqueueRuntime(async () => {
+      queuedRecover = undefined
+      if (stopping)
+        return status()
       const session = await readSession(paths)
       if (!session)
         throw new ApplicationError({ code: 'AUTH_REQUIRED', message: 'Saved Telegram session is missing; run auth login before recovery', retryable: false })
@@ -376,31 +403,66 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
         diagnostics.recoveryFinished(false)
         throw error
       }
-    })().finally(() => {
-      reloadInFlight = undefined
     })
-    return reloadInFlight
+    return queuedRecover
   }
 
-  releaseLock = await acquireProfileLock(paths, startedAt)
-  try {
-    stopLogMaintenance = await startDaemonLogMaintenance(paths, logger)
-    await removeIfExists(socket)
-    database = await initDrizzle(logger, config, { dbPath: paths.database })
-    // The daemon owns the PGlite file, so database maintenance from the CLI runs here.
-    const databaseAdministration = createDatabaseAdministration({ db: database.db, logger })
-    await replaceRuntime(await readSession(paths))
-
-    const stop = async () => {
-      if (stopping)
-        return
+  const finishStop = async () => {
+    await runtimeQueue
+    await cleanupResources()
+    resolveStopped?.()
+  }
+  const stop = (): Promise<void> => {
+    if (!stopping) {
       stopping = true
       state = 'stopping'
       accountReadyWait?.cancel(new Error('Daemon is stopping'))
-      await reloadInFlight?.catch(() => undefined)
-      await cleanupResources()
-      resolveStopped?.()
+      // Before startup completes, the startup path below owns the cleanup.
+      if (started)
+        void finishStop()
     }
+    return stopped
+  }
+  const host: DaemonHost = { status, reload, recover, stop, wait: () => stopped }
+  const interruptStartup = () => {
+    if (stopping)
+      throw STARTUP_INTERRUPTED
+  }
+
+  // A stop signal can arrive during startup, which waits up to a minute for
+  // Telegram. Without this the process died with the lock and database open.
+  if (options.signal?.aborted)
+    void stop()
+  else
+    options.signal?.addEventListener('abort', () => void stop(), { once: true })
+
+  try {
+    interruptStartup()
+    // A one-shot command may hold the database for a moment; a daemon fails at once.
+    releaseLock = await acquireProfileLock(paths, {
+      role: 'daemon',
+      startedAt,
+      wait: { deadlineAt: startedAt + DAEMON_STARTUP_TIMEOUT_MS, signal: options.signal },
+    })
+  }
+  catch (error) {
+    // Nothing is owned yet: do not clean up another daemon's descriptor or socket.
+    if (!stopping)
+      throw error
+    resolveStopped?.()
+    return host
+  }
+
+  try {
+    interruptStartup()
+    stopLogMaintenance = await startDaemonLogMaintenance(paths, logger)
+    await removeIfExists(socket)
+    database = await initDrizzle(logger, config, { dbPath: paths.database })
+    interruptStartup()
+    // The daemon owns the PGlite file, so database maintenance from the CLI runs here.
+    const databaseAdministration = createDatabaseAdministration({ db: database.db, logger })
+    await enqueueRuntime(async () => replaceRuntime(await readSession(paths)))
+    interruptStartup()
 
     const server = await createIpcServer(socket, (connection) => {
       const unregisterApplication = registerApplicationHandlers(connection.context, applicationProxy)
@@ -424,6 +486,7 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
     })
 
     closeServer = server.close
+    interruptStartup()
 
     const descriptor: DaemonDescriptor = {
       pid: process.pid,
@@ -432,23 +495,30 @@ export async function createDaemonHost(paths: ProfilePaths, profile: string): Pr
       socket,
       startedAt,
     }
-    await writeFile(paths.daemon, `${JSON.stringify(descriptor)}\n`, { mode: 0o600 })
-    await chmod(paths.daemon, 0o600)
+    // Clients poll for this file; publish it complete, never half-written.
+    await writeFileAtomic(paths.daemon, `${JSON.stringify(descriptor)}\n`)
+    interruptStartup()
 
-    return { status, reload, recover, stop, wait: () => stopped }
+    started = true
+    return host
   }
   catch (error) {
     await cleanupResources()
+    resolveStopped?.()
+    if (error === STARTUP_INTERRUPTED)
+      return host
     throw error
   }
 }
 
 export async function runDaemon(paths: ProfilePaths, profile: string): Promise<void> {
-  const host = await createDaemonHost(paths, profile)
-  const stop = () => void host.stop()
+  // Listen before startup: a signal during startup must still release the lock.
+  const controller = new AbortController()
+  const stop = () => controller.abort()
   process.once('SIGINT', stop)
   process.once('SIGTERM', stop)
   try {
+    const host = await createDaemonHost(paths, profile, { signal: controller.signal })
     await host.wait()
   }
   finally {

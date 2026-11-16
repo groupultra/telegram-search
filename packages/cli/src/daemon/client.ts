@@ -27,7 +27,10 @@ import {
   isLockOwnerActive,
   readDescriptor,
   readLock,
+  waitForProfileLockRelease,
 } from './profile-state'
+
+const DAEMON_STOP_TIMEOUT_MS = 15_000
 
 type CliRuntime = Awaited<ReturnType<typeof createCliRuntime>>
 
@@ -57,7 +60,8 @@ async function connectDaemonSocket(paths: ProfilePaths) {
       }
     }
     const lock = await readLock(paths)
-    if (!lock || !await isLockOwnerActive(paths, lock))
+    // A lock held by a one-shot command is not a daemon that will publish a socket.
+    if (!lock || lock.role === 'cli' || !await isLockOwnerActive(paths, lock))
       return undefined
     if (Date.now() >= deadline)
       throw new Error(`Daemon startup timed out for profile root ${paths.root}`)
@@ -71,7 +75,12 @@ export async function stopDaemon(paths: ProfilePaths): Promise<Pick<DaemonStatus
   if (!connection)
     return undefined
   try {
-    return await defineInvokes(connection.context, daemonContracts).stop({}, { signal: AbortSignal.timeout(5_000) })
+    const stopping = await defineInvokes(connection.context, daemonContracts).stop({}, { signal: AbortSignal.timeout(5_000) })
+    // The daemon answers before it closes the database and releases the lock.
+    // Return after that, so `daemon stop` followed by `daemon run` or a direct
+    // command does not meet a daemon that is still shutting down.
+    await waitForProfileLockRelease(paths, stopping.pid, DAEMON_STOP_TIMEOUT_MS)
+    return stopping
   }
   finally {
     connection.dispose()

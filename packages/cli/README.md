@@ -124,7 +124,7 @@ tgs --profile work auth login
 tgs --profile work daemon status
 ```
 
-`daemon run` is intentionally foreground-only in this first version. Run it under Docker, a `systemd --user` unit on Linux, or a `launchd` LaunchAgent on macOS when it should survive terminal closure. The daemon listens on a profile-scoped Unix socket under a user-only temporary directory; it holds an exclusive profile lock, so other CLI commands automatically use the daemon instead of opening a second Telegram/PGlite runtime.
+`daemon run` is intentionally foreground-only in this first version. Run it under Docker, a `systemd --user` unit on Linux, or a `launchd` LaunchAgent on macOS when it should survive terminal closure. The daemon listens on a profile-scoped Unix socket under a user-only temporary directory; it holds an exclusive profile lock, so other CLI commands automatically use the daemon instead of opening a second Telegram/PGlite runtime. Without a daemon, a command takes the same lock while it has the database open: a second command waits for it until its own `--timeout-ms` deadline and then fails with the retryable `PROFILE_BUSY`, and `daemon run` waits up to 30 seconds. `daemon stop` returns after the daemon has released the lock.
 
 As with the server, realtime persistence receives all new, edited, and deleted messages after login. Bulk history remains a separate `sync --takeout` action and still requires explicit Takeout approval.
 

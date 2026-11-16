@@ -4,8 +4,11 @@ import type { ProfilePaths } from '../profile'
 
 import process from 'node:process'
 
-import { appendFile, chmod, readdir, readFile, stat, truncate, unlink, writeFile } from 'node:fs/promises'
+import { appendFileSync, chmodSync, readFileSync, truncateSync } from 'node:fs'
+import { readdir, readFile, stat, unlink } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
+
+import { writeFileAtomic } from '../atomic-file'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const MAINTENANCE_INTERVAL_MS = 6 * 60 * 60 * 1000
@@ -42,9 +45,7 @@ async function readActiveDate(path: string, fallback: string): Promise<string> {
 }
 
 async function writeActiveDate(path: string, activeDate: string): Promise<void> {
-  const statePath = rotationStatePath(path)
-  await writeFile(statePath, `${JSON.stringify({ activeDate })}\n`, { mode: 0o600 })
-  await chmod(statePath, 0o600)
+  await writeFileAtomic(rotationStatePath(path), `${JSON.stringify({ activeDate })}\n`)
 }
 
 async function rotateLog(path: string, now: Date): Promise<void> {
@@ -74,13 +75,16 @@ async function rotateLog(path: string, now: Date): Promise<void> {
   // rotation would keep future output in the archived file. Copy then truncate
   // keeps the active inode in place for launchd and other supervisors.
   const archive = `${path}.${sourceDate}`
-  const contents = await readFile(path)
+  // The copy and the truncate run without yielding to the event loop: this
+  // process writes the log, and a line written between an awaited read and the
+  // truncate would be in neither the archive nor the active file.
+  const contents = readFileSync(path)
   if (contents.length === 0)
     return
 
-  await appendFile(archive, contents, { mode: 0o600 })
-  await chmod(archive, 0o600)
-  await truncate(path, 0)
+  appendFileSync(archive, contents, { mode: 0o600 })
+  chmodSync(archive, 0o600)
+  truncateSync(path, 0)
   await writeActiveDate(path, today)
 }
 

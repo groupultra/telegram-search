@@ -27,15 +27,15 @@ import {
   listProfiles,
   readProfileConfig,
   resolveProfilePaths,
-  writeProfileConfig,
+  updateProfileConfig,
   writeSession,
 } from './profile'
 import { inspectProfile } from './profile-inspection'
+import { openLocalRuntime } from './local-runtime'
 import { initialOutputFormat, readOutputArgs, readOutputOptions } from './read-output'
 import { bindReadOperations } from './read-runtime'
 import { createRemoteRuntime } from './remote'
 import { deleteRemoteToken, loginRemote, remoteAccessToken } from './remote-auth'
-import { createCliRuntime } from './runtime'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 import { resolveCliTelegramCredentials } from './telegram-credentials'
 
@@ -80,7 +80,7 @@ export function resolveExportOutputPath(output: string | undefined, defaultPath:
   return output ? resolve(output) : defaultPath
 }
 
-type CommandRuntime = ReturnType<typeof createRemoteRuntime> | Awaited<ReturnType<typeof createCliRuntime>> | NonNullable<Awaited<ReturnType<typeof connectDaemon>>>
+type CommandRuntime = ReturnType<typeof createRemoteRuntime> | Awaited<ReturnType<typeof openLocalRuntime>>
 
 async function withRuntime<T>(command: { args: object }, remote: boolean, operation: (runtime: CommandRuntime) => Promise<T>, remoteOnly = false): Promise<T | undefined> {
   const profile = profileFrom(command)
@@ -116,7 +116,7 @@ async function withRuntime<T>(command: { args: object }, remote: boolean, operat
     await ensureProfile(profile)
     let runtime: CommandRuntime
     try {
-      runtime = await connectDaemon(paths) ?? await createCliRuntime(paths, { remote })
+      runtime = await openLocalRuntime(paths, { remote, ...options })
     }
     catch (error) {
       if (!remote)
@@ -199,7 +199,7 @@ const profileCommand = defineCommand({
         const remoteUrl = normalizeRemoteUrl(stringArg(context.args.url))
         const profile = profileFrom(context)
         const paths = await ensureProfile(profile)
-        await writeProfileConfig(paths, { ...await readProfileConfig(paths), remoteUrl })
+        await updateProfileConfig(paths, latest => ({ ...latest, remoteUrl }))
         writeOutput({ profile, remoteUrl }, outputMeta(profile, 'local'))
       },
     }),
@@ -263,7 +263,7 @@ const profileCommand = defineCommand({
           throw cliError({ code: 'INVALID_ARGUMENT', message: 'Pass --apiId and --apiHash together, or neither to use the built-in credentials', retryable: false })
         const paths = await ensureProfile(profile)
         // Undefined fields are dropped on write, so omitting both flags clears custom credentials.
-        await writeProfileConfig(paths, { ...await readProfileConfig(paths), apiId: apiId || undefined, apiHash: apiHash || undefined })
+        await updateProfileConfig(paths, latest => ({ ...latest, apiId: apiId || undefined, apiHash: apiHash || undefined }))
         writeOutput({ profile, configured: true, credentials: resolveCliTelegramCredentials({ apiId, apiHash }).source }, outputMeta(profile, 'local'))
       },
     }),

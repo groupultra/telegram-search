@@ -123,4 +123,31 @@ describe('remote access tokens', () => {
     await deleteRemoteToken(paths)
     expect(await readRemoteToken(paths)).toBeUndefined()
   })
+
+  it('shares one refresh between parallel requests of a command', async () => {
+    // Cause: every request refreshed on its own; a rotating refresh token is
+    // accepted once, so the second refresh was rejected and the command failed.
+    const paths = await profilePaths()
+    await stored(paths, 3_600_000)
+    const fetch = vi.fn(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10))
+      return json({ access_token: 'access-2', refresh_token: 'refresh-2', expires_in: 3600 })
+    })
+    const options = { fetch: fetch as unknown as typeof globalThis.fetch, now: () => 3_560_000 }
+
+    await expect(Promise.all([remoteAccessToken(paths, endpoint, options), remoteAccessToken(paths, endpoint, options), remoteAccessToken(paths, endpoint, options)])).resolves.toEqual(['access-2', 'access-2', 'access-2'])
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses the token another process stored when its refresh won the rotation', async () => {
+    const paths = await profilePaths()
+    await stored(paths, 3_600_000)
+    const rejected = vi.fn(async () => {
+      // The other process finished its refresh while this request was in flight.
+      await writeFile(paths.remoteToken, JSON.stringify({ endpoint, accessToken: 'access-other', refreshToken: 'refresh-2', expiresAt: 9_000_000, scopes: [] }))
+      return json({ error: 'invalid_grant' }, 400)
+    }) as unknown as typeof globalThis.fetch
+
+    await expect(remoteAccessToken(paths, endpoint, { fetch: rejected, now: () => 3_560_000 })).resolves.toBe('access-other')
+  })
 })

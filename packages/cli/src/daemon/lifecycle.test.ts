@@ -16,10 +16,10 @@ import { daemonContracts } from '@tg-search/protocol'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { runtimeBuildInfo } from '../build-info'
-import { readProfileConfig, writeProfileConfig } from '../profile'
+import { readProfileConfig, updateProfileConfig, writeProfileConfig } from '../profile'
 import { connectDaemon } from './client'
 import { createDaemonDiagnostics } from './diagnostics'
-import { createAccountReadyWait, createDaemonApplicationProxy, persistProfileAccountId } from './host'
+import { createAccountReadyWait, createDaemonApplicationProxy } from './host'
 
 const directories: string[] = []
 
@@ -68,7 +68,7 @@ describe('daemon lifecycle boundaries', () => {
     const paths = await createPaths()
     await writeProfileConfig(paths, { apiId: 'new-id', apiHash: 'new-hash' })
 
-    await persistProfileAccountId(paths, 'account-1')
+    await updateProfileConfig(paths, latest => ({ ...latest, accountId: 'account-1' }))
 
     await expect(readProfileConfig(paths)).resolves.toEqual({
       apiId: 'new-id',
