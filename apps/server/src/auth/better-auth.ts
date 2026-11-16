@@ -10,10 +10,10 @@ import { mcp } from '@better-auth/mcp'
 import { DEVICE_CODE_GRANT_TYPE, oauthDeviceAuthorization } from '@better-auth/oauth-provider'
 import { authOauthClientResourceTable, authOauthClientTable, authSchema } from '@tg-search/core'
 import { betterAuth } from 'better-auth'
-import { genericOAuth, jwt } from 'better-auth/plugins'
+import { jwt } from 'better-auth/plugins'
 
 import { ownerScopes, remoteScopes } from '../remote/scopes'
-import { createTelegramIdTokenVerifier, TELEGRAM_OIDC_DISCOVERY_URL } from './telegram-oidc'
+import { TELEGRAM_PROVIDER_ID, telegramSessionSignIn } from './telegram-session'
 
 export type OAuthConfig = Extract<AuthConfig, { mode: 'oauth' }>
 
@@ -34,10 +34,6 @@ export function oauthUrls(config: OAuthConfig) {
   }
 }
 
-interface TelegramProfile extends Record<string, unknown> {
-  telegramId: string
-}
-
 export interface CreateAuthOptions {
   db: CoreDB
   config: OAuthConfig
@@ -52,7 +48,6 @@ export type Auth = BetterAuth
 
 export function createAuth({ db, config }: CreateAuthOptions): Auth {
   const { resource } = oauthUrls(config)
-  const verifyTelegramIdToken = createTelegramIdTokenVerifier({ clientId: config.telegram.clientId })
   // Token claims are issued after the instance exists, so the callback reads the context through this holder.
   const instance: { context?: Auth['$context'] } = {}
   const auth = betterAuth({
@@ -62,7 +57,7 @@ export function createAuth({ db, config }: CreateAuthOptions): Auth {
     secret: config.secret,
     trustedOrigins: [config.publicUrl],
     database: drizzleAdapter(db, { provider: 'pg', schema: authSchema }),
-    // Telegram returns no email, so every user carries a synthetic address; linking by email must never match one.
+    // Users carry a synthetic email (see telegram-session.ts); linking by email must never match one.
     account: { accountLinking: { enabled: false } },
     plugins: [
       jwt(),
@@ -77,47 +72,19 @@ export function createAuth({ db, config }: CreateAuthOptions): Auth {
         customAccessTokenClaims: async ({ user }) => {
           if (!user || !instance.context)
             return {}
-          // The linked Telegram account is keyed by the verified ID token's `id` claim (see `accountSubject`).
-          // It is never user-editable, unlike a user field.
+          // The linked Telegram account is keyed by the Telegram user ID proven by the MTProto login
+          // (see telegram-session.ts). It is never user-editable, unlike a user field.
           const { adapter } = await instance.context
           const account = await adapter.findOne<{ accountId: string }>({
             model: 'account',
-            where: [{ field: 'userId', value: user.id }, { field: 'providerId', value: 'telegram' }],
+            where: [{ field: 'userId', value: user.id }, { field: 'providerId', value: TELEGRAM_PROVIDER_ID }],
           })
           return account ? { [TELEGRAM_ID_CLAIM]: account.accountId } : {}
         },
       }),
       cimd({ fetchClientMetadataResource, metadataProfile: 'mcp-2026-07-28' }),
       oauthDeviceAuthorization({ verificationUri: '/auth/device' }),
-      genericOAuth({
-        config: [{
-          providerId: 'telegram',
-          name: 'Telegram',
-          clientId: config.telegram.clientId,
-          clientSecret: config.telegram.clientSecret,
-          discoveryUrl: TELEGRAM_OIDC_DISCOVERY_URL,
-          authentication: 'basic',
-          pkce: true,
-          scopes: ['openid', 'profile'],
-          // Telegram has no UserInfo endpoint; the ID token is the only identity source.
-          getUserInfo: async (tokens) => {
-            if (!tokens.idToken)
-              return null
-            const identity = await verifyTelegramIdToken(tokens.idToken)
-            return {
-              telegramId: identity.telegramId,
-              // NOTICE: Better Auth requires an email and Telegram returns none. The `.invalid` TLD
-              // (RFC 2606) can never receive mail or match a real address; email sign-in and linking stay disabled.
-              email: `tg-${identity.telegramId}@users.telegram.invalid`,
-              emailVerified: false,
-              name: identity.name ?? identity.username ?? `Telegram ${identity.telegramId}`,
-              image: identity.picture,
-            }
-          },
-          // Key the linked account by the Telegram user ID instead of the opaque OIDC `sub`.
-          accountSubject: ({ profile }) => (profile as unknown as TelegramProfile).telegramId,
-        }],
-      }),
+      telegramSessionSignIn(),
     ],
   })
   // NOTICE: the plugin-specific instance type is too large for declaration emit (TS7056), and its

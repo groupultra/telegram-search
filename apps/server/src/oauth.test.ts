@@ -4,25 +4,24 @@ import type { JWTPayload } from 'jose'
 import type { OAuthConfig } from './auth/better-auth'
 import type { RemoteApplication } from './remote/application'
 
+import { createHash } from 'node:crypto'
+
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { authSchema, models, remoteAuditEventsTable } from '@tg-search/core'
 import { H3 } from 'h3'
-import { decodeJwt, exportJWK, generateKeyPair, SignJWT } from 'jose'
+import { decodeJwt } from 'jose'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { mockDB } from '../../../packages/core/src/db/mock'
 import { accountsTable } from '../../../packages/core/src/schemas/accounts'
 import { CLI_CLIENT_ID, oauthUrls } from './auth/better-auth'
-import { TELEGRAM_OIDC_ISSUER } from './auth/telegram-oidc'
 import { mountOAuth } from './oauth'
 
 const publicUrl = 'http://localhost:3000'
-const telegramClientId = '123456789'
 const config: OAuthConfig = {
   mode: 'oauth',
   publicUrl,
   secret: 'synthetic-better-auth-secret-'.repeat(2),
-  telegram: { clientId: telegramClientId, clientSecret: 'synthetic-telegram-secret' },
   adminTelegramIds: new Set(),
 }
 const { resource } = oauthUrls(config)
@@ -43,94 +42,30 @@ function cookieJar() {
   }
 }
 
-/** Stands in for oauth.telegram.org: discovery, JWKS, and a token endpoint that issues signed ID tokens. */
-async function fakeTelegram() {
-  const { privateKey, publicKey } = await generateKeyPair('RS256')
-  const jwk = { ...await exportJWK(publicKey), kid: 'telegram-test', alg: 'RS256', use: 'sig' }
-  const pending = new Map<string, { nonce?: string, telegramId: number }>()
-  const tokenRequests: Request[] = []
-  const realFetch = globalThis.fetch
-  vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
-    const request = new Request(input, init)
-    const url = new URL(request.url)
-    if (url.origin !== TELEGRAM_OIDC_ISSUER)
-      return realFetch(input, init)
-    if (url.pathname === '/.well-known/openid-configuration') {
-      return Response.json({
-        issuer: TELEGRAM_OIDC_ISSUER,
-        authorization_endpoint: `${TELEGRAM_OIDC_ISSUER}/auth`,
-        token_endpoint: `${TELEGRAM_OIDC_ISSUER}/token`,
-        jwks_uri: `${TELEGRAM_OIDC_ISSUER}/.well-known/jwks.json`,
-        response_types_supported: ['code'],
-        subject_types_supported: ['public'],
-        id_token_signing_alg_values_supported: ['RS256'],
-        scopes_supported: ['openid', 'profile', 'phone'],
-        code_challenge_methods_supported: ['S256'],
-        token_endpoint_auth_methods_supported: ['client_secret_basic'],
-        claims_supported: ['sub', 'iss', 'aud', 'exp', 'iat'],
-      })
-    }
-    if (url.pathname === '/.well-known/jwks.json')
-      return Response.json({ keys: [jwk] })
-    if (url.pathname === '/token') {
-      tokenRequests.push(request.clone())
-      const code = new URLSearchParams(await request.text()).get('code') ?? ''
-      const grant = pending.get(code)
-      if (!grant)
-        return Response.json({ error: 'invalid_grant' }, { status: 400 })
-      pending.delete(code)
-      const idToken = await new SignJWT({ id: grant.telegramId, name: 'Test User', preferred_username: 'test_user', ...(grant.nonce ? { nonce: grant.nonce } : {}) })
-        .setProtectedHeader({ alg: 'RS256', kid: 'telegram-test' })
-        .setIssuer(TELEGRAM_OIDC_ISSUER)
-        .setAudience(telegramClientId)
-        .setSubject(`opaque-${grant.telegramId}`)
-        .setIssuedAt()
-        .setExpirationTime('5m')
-        .sign(privateKey)
-      return Response.json({ access_token: 'telegram-access-token', token_type: 'Bearer', expires_in: 300, id_token: idToken })
-    }
-    return new Response(null, { status: 404 })
-  })
-  return {
-    /** Records what Telegram would issue for the authorization request at `authorizeUrl`. */
-    approve(authorizeUrl: URL, telegramId: number) {
-      const code = `code-${pending.size}-${telegramId}`
-      pending.set(code, { nonce: authorizeUrl.searchParams.get('nonce') ?? undefined, telegramId })
-      return code
-    },
-    tokenRequests,
-  }
-}
-
 async function fixture() {
   const db = await mockDB({ ...authSchema, accountsTable, remoteAuditEventsTable })
-  const telegram = await fakeTelegram()
   const searchLocalMessages = vi.fn<TelegramApplication['searchLocalMessages']>(async () => ({ ok: true, data: { items: [message], nextCursor: null } }))
   const application = { searchLocalMessages } as unknown as RemoteApplication
   const getApplication = vi.fn((_accountId: string) => application)
   const app = new H3()
-  const guard = await mountOAuth(app, { db, config, getApplication })
+  const { guard, issueSignInTicket } = await mountOAuth(app, { db, config, getApplication })
   const request = (path: string, init: RequestInit = {}) => app.fetch(new Request(new URL(path, publicUrl), init))
 
-  /** Signs in through the Telegram OIDC flow and returns the session cookies. */
-  async function signIn(telegramId: number) {
-    const jar = cookieJar()
-    const started = await request('/api/auth/sign-in/social', {
+  /** Exchanges a sign-in ticket, as the Web UI does after its MTProto login, and returns the session cookies. */
+  async function exchange(ticket: string, oauthQuery?: string) {
+    return request('/api/auth/sign-in/telegram-session', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'origin': publicUrl },
-      body: JSON.stringify({ provider: 'telegram', callbackURL: '/' }),
+      body: JSON.stringify({ ticket, ...(oauthQuery ? { oauth_query: oauthQuery } : {}) }),
     })
-    expect(started.status).toBe(200)
-    jar.store(started)
-    const authorizeUrl = new URL((await started.json() as { url: string }).url)
-    expect(authorizeUrl.origin + authorizeUrl.pathname).toBe(`${TELEGRAM_OIDC_ISSUER}/auth`)
-    expect(authorizeUrl.searchParams.get('code_challenge_method')).toBe('S256')
-    const code = telegram.approve(authorizeUrl, telegramId)
-    const callback = await request(`/api/auth/callback/telegram?code=${code}&state=${authorizeUrl.searchParams.get('state')}`, { headers: { cookie: jar.header() } })
-    expect(callback.status).toBe(302)
-    expect(callback.headers.get('location')).not.toContain('error')
-    jar.store(callback)
-    return jar
+  }
+
+  async function signIn(telegramId: number, oauthQuery?: string) {
+    const jar = cookieJar()
+    const response = await exchange(await issueSignInTicket({ telegramId: String(telegramId), name: 'Test User' }), oauthQuery)
+    expect(response.status).toBe(200)
+    jar.store(response)
+    return { jar, body: await response.json() as { userId?: string, redirect?: boolean, url?: string } }
   }
 
   /** Runs the device authorization grant for the CLI client as the signed-in user. */
@@ -159,7 +94,7 @@ async function fixture() {
     return { client, connect: () => client.connect(transport) }
   }
 
-  return { db, app, telegram, request, guard, signIn, deviceToken, mcpClient, getApplication, searchLocalMessages }
+  return { db, app, request, guard, issueSignInTicket, exchange, signIn, deviceToken, mcpClient, getApplication, searchLocalMessages }
 }
 
 describe('oAuth authorization, MCP, and remote API', () => {
@@ -185,20 +120,85 @@ describe('oAuth authorization, MCP, and remote API', () => {
     expect(f.getApplication).not.toHaveBeenCalled()
   })
 
-  it('signs in with Telegram, binds the Telegram ID, and authenticates Telegram with HTTP Basic', async () => {
+  it('signs in with a ticket from the MTProto login and keys the account by the Telegram ID', async () => {
     const f = await fixture()
-    await f.signIn(987654321)
+    const first = await f.signIn(987654321)
     const [user] = await f.db.select().from(authSchema.user)
-    expect(user).toMatchObject({ email: 'tg-987654321@users.telegram.invalid', emailVerified: false, name: 'Test User' })
+    expect(user).toMatchObject({ id: first.body.userId, email: 'tg-987654321@users.telegram.invalid', emailVerified: false, name: 'Test User' })
     const [account] = await f.db.select().from(authSchema.account)
-    // The linked account is keyed by the Telegram user ID, not the opaque OIDC subject.
     expect(account).toMatchObject({ providerId: 'telegram', accountId: '987654321', userId: user.id })
-    expect(f.telegram.tokenRequests[0]!.headers.get('authorization')).toBe(`Basic ${btoa(`${telegramClientId}:synthetic-telegram-secret`)}`)
+    expect(first.jar.header()).toContain('session_token')
+    expect(await (await f.request('/api/auth/get-session', { headers: { cookie: first.jar.header() } })).json()).toMatchObject({ user: { id: user.id } })
+
+    // A later login of the same Telegram account signs in to the same user.
+    const second = await f.signIn(987654321)
+    expect(second.body.userId).toBe(user.id)
+    expect(await f.db.select().from(authSchema.user)).toHaveLength(1)
+  })
+
+  it('accepts each ticket once and rejects forged or expired tickets', async () => {
+    const f = await fixture()
+    const ticket = await f.issueSignInTicket({ telegramId: '987654321' })
+    expect((await f.exchange(ticket)).status).toBe(200)
+    // A replayed ticket would let anyone who saw it sign in as that Telegram user.
+    expect((await f.exchange(ticket)).status).toBe(401)
+    expect((await f.exchange('A'.repeat(43))).status).toBe(401)
+
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      const stale = await f.issueSignInTicket({ telegramId: '987654321' })
+      vi.setSystemTime(Date.now() + 121_000)
+      expect((await f.exchange(stale)).status).toBe(401)
+    }
+    finally {
+      vi.useRealTimers()
+    }
+    // Only a hash of the ticket is stored, so a database reader cannot replay it.
+    const rows = await f.db.select().from(authSchema.verification)
+    expect(rows.every(row => !row.identifier.includes(ticket))).toBe(true)
+  })
+
+  it('resumes an MCP client authorization after sign-in and issues a token through consent', async () => {
+    const f = await fixture()
+    // A public client like ChatGPT, registered directly instead of through a metadata document.
+    const now = new Date()
+    await f.db.insert(authSchema.oauthClient).values({ id: 'chat-client', clientId: 'chat-client', name: 'Chat Client', redirectUris: ['https://client.example/callback'], tokenEndpointAuthMethod: 'none', grantTypes: ['authorization_code', 'refresh_token'], responseTypes: ['code'], scopes: ['offline_access', 'messages:read'], createdAt: now, updatedAt: now })
+    await f.db.insert(authSchema.oauthClientResource).values({ id: 'chat-client:mcp', clientId: 'chat-client', resourceId: resource, createdAt: now })
+    const verifier = 'v'.repeat(64)
+    const challenge = createHash('sha256').update(verifier).digest('base64url')
+    const authorize = new URLSearchParams({ response_type: 'code', client_id: 'chat-client', redirect_uri: 'https://client.example/callback', scope: 'messages:read', state: 'client-state', code_challenge: challenge, code_challenge_method: 'S256', resource })
+
+    const toSignIn = await f.request(`/api/auth/oauth2/authorize?${authorize}`)
+    expect(toSignIn.status).toBe(302)
+    const signInUrl = new URL(toSignIn.headers.get('location')!, publicUrl)
+    expect(signInUrl.pathname).toBe('/auth/sign-in')
+
+    // The provider resumes the authorization request once the ticket sign-in sets the session cookie.
+    const { jar, body } = await f.signIn(987654321, signInUrl.search.slice(1))
+    expect(body.redirect).toBe(true)
+    const consentUrl = new URL(body.url!, publicUrl)
+    expect(consentUrl.pathname).toBe('/auth/consent')
+
+    const consent = await f.request('/api/auth/oauth2/consent', { method: 'POST', headers: { 'content-type': 'application/json', 'cookie': jar.header(), 'origin': publicUrl }, body: JSON.stringify({ accept: true, oauth_query: consentUrl.search.slice(1) }) })
+    expect(consent.status).toBe(200)
+    const callback = new URL((await consent.json() as { url: string }).url)
+    expect(callback.origin + callback.pathname).toBe('https://client.example/callback')
+    expect(callback.searchParams.get('state')).toBe('client-state')
+
+    // A tampered authorization request fails the provider's signature check before the ticket is spent.
+    const forged = signInUrl.search.slice(1).replace('scope=messages%3Aread', 'scope=database%3Aadmin')
+    const ticket = await f.issueSignInTicket({ telegramId: '987654321' })
+    expect((await f.exchange(ticket, forged)).status).toBe(400)
+    expect((await f.exchange(ticket)).status).toBe(200)
+
+    const token = await f.request('/api/auth/oauth2/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', code: callback.searchParams.get('code')!, redirect_uri: 'https://client.example/callback', client_id: 'chat-client', code_verifier: verifier, resource }).toString() })
+    expect(token.status).toBe(200)
+    expect(decodeJwt((await token.json() as { access_token: string }).access_token)).toMatchObject({ aud: resource, azp: 'chat-client', telegram_id: '987654321' })
   })
 
   it('issues an audience-bound JWT through the device grant and serves MCP tools for the owner account', async () => {
     const f = await fixture()
-    const jar = await f.signIn(987654321)
+    const { jar } = await f.signIn(987654321)
     const accessToken = await f.deviceToken(jar, 'messages:read offline_access')
     const claims: JWTPayload = decodeJwt(accessToken)
     expect(claims).toMatchObject({ aud: resource, azp: CLI_CLIENT_ID, telegram_id: '987654321', scope: 'messages:read offline_access' })
@@ -236,7 +236,7 @@ describe('oAuth authorization, MCP, and remote API', () => {
 
   it('hides internal failures from MCP clients', async () => {
     const f = await fixture()
-    const jar = await f.signIn(987654321)
+    const { jar } = await f.signIn(987654321)
     const accessToken = await f.deviceToken(jar, 'messages:read')
     await models.accountModels.recordAccount(f.db, 'telegram', '987654321')
     // The SDK forwards a thrown error's message; a database error can carry SQL and account IDs.
@@ -268,7 +268,7 @@ describe('oAuth authorization, MCP, and remote API', () => {
 
   it('refuses a token whose Telegram user has not connected an account on this server', async () => {
     const f = await fixture()
-    const jar = await f.signIn(111111111)
+    const { jar } = await f.signIn(111111111)
     const accessToken = await f.deviceToken(jar, 'messages:read')
     // Another user's account exists; the tenancy rule must not fall back to it.
     await models.accountModels.recordAccount(f.db, 'telegram', '987654321')
@@ -280,36 +280,29 @@ describe('oAuth authorization, MCP, and remote API', () => {
 
   it('drops database administration from a non-administrator token', async () => {
     const f = await fixture()
-    const jar = await f.signIn(987654321)
+    const { jar } = await f.signIn(987654321)
     const accessToken = await f.deviceToken(jar, 'messages:read database:admin')
     await models.accountModels.recordAccount(f.db, 'telegram', '987654321')
     const response = await f.request('/v1/remote/database.vector.get', { method: 'POST', headers: { 'authorization': `Bearer ${accessToken}`, 'content-type': 'application/json' }, body: '{}' })
     expect(response.status).toBe(403)
   })
 
-  it('requires a session for Web media routes and binds WebSocket sessions to their first user', async () => {
+  it('requires a session for Web media routes and keeps the WebSocket open for the Telegram login', async () => {
     const f = await fixture()
     const guard = f.guard.requireSession(['/v1/photos/'])
     const app = new H3().use(guard).get('/v1/photos/:id', () => 'photo')
     expect((await app.fetch(new Request(`${publicUrl}/v1/photos/1`))).status).toBe(401)
 
-    const alice = await f.signIn(987654321)
-    const bob = await f.signIn(222222222)
+    const { jar: alice } = await f.signIn(987654321)
     const photo = await app.fetch(new Request(`${publicUrl}/v1/photos/1`, { headers: { cookie: alice.header() } }))
     expect(photo.status).toBe(200)
 
-    const ws = (jar?: ReturnType<typeof cookieJar>) => new Request(`${publicUrl}/ws?sessionId=s1`, { headers: jar ? { cookie: jar.header() } : {} })
-    // crossws only honors a thrown Response; an HTTPError made the rejected upgrade a 500.
-    await expect(f.guard.authorizeWebSocket(ws(), 's1')).rejects.toBeInstanceOf(Response)
-    await expect(f.guard.authorizeWebSocket(ws(), 's1')).rejects.toMatchObject({ status: 401 })
-    await f.guard.authorizeWebSocket(ws(alice), 's1')
-    await f.guard.authorizeWebSocket(ws(alice), 's1')
-    await expect(f.guard.authorizeWebSocket(ws(bob), 's1')).rejects.toMatchObject({ status: 403 })
-
-    // A page on another origin (for example a sibling subdomain) carries the cookie but not the server's Origin.
-    const crossOrigin = new Request(`${publicUrl}/ws?sessionId=s1`, { headers: { cookie: alice.header(), origin: 'https://evil.localhost:3000' } })
-    await expect(f.guard.authorizeWebSocket(crossOrigin, 's1')).rejects.toMatchObject({ status: 403 })
-    const sameOrigin = new Request(`${publicUrl}/ws?sessionId=s1`, { headers: { cookie: alice.header(), origin: publicUrl } })
-    await f.guard.authorizeWebSocket(sameOrigin, 's1')
+    // Signing in happens over the WebSocket, so a signed-out browser must be able to open it.
+    await f.guard.authorizeWebSocket(new Request(`${publicUrl}/ws?sessionId=s1`))
+    await f.guard.authorizeWebSocket(new Request(`${publicUrl}/ws?sessionId=s1`, { headers: { origin: publicUrl } }))
+    // A page on another origin must not drive a user's Telegram runtime; crossws only honors a thrown Response.
+    const crossOrigin = f.guard.authorizeWebSocket(new Request(`${publicUrl}/ws?sessionId=s1`, { headers: { origin: 'https://evil.localhost:3000' } }))
+    await expect(crossOrigin).rejects.toBeInstanceOf(Response)
+    await expect(f.guard.authorizeWebSocket(new Request(`${publicUrl}/ws?sessionId=s1`, { headers: { origin: 'https://evil.localhost:3000' } }))).rejects.toMatchObject({ status: 403 })
   })
 })

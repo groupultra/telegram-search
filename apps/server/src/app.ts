@@ -113,7 +113,33 @@ export async function updateAccountState(logger: Logger, account: AccountState, 
 
 export interface WsRouteOptions {
   /** Rejects the upgrade by throwing a `Response`; unset in the single-user mode. */
-  authorize?: (request: Request, sessionId: string) => Promise<void>
+  authorize?: (request: Request) => Promise<void>
+  /** Issues a sign-in ticket for a Telegram account logged in on this server; unset in the single-user mode. */
+  issueSignInTicket?: (identity: { telegramId: string, name?: string }) => Promise<string>
+}
+
+/**
+ * Answers a sign-in ticket request. Only a session whose Telegram account is
+ * logged in and ready gets one; the ticket names that account's own user.
+ */
+export async function respondToSignInTicketRequest(peer: Peer, account: AccountState | undefined, issue: WsRouteOptions['issueSignInTicket'], logger: Logger) {
+  if (!issue) {
+    sendWsEvent(peer, 'server:sign-in-ticket', { error: 'OAUTH_DISABLED' })
+    return
+  }
+  if (!account?.accountReady) {
+    sendWsEvent(peer, 'server:sign-in-ticket', { error: 'ACCOUNT_NOT_READY' })
+    return
+  }
+  try {
+    const me = account.ctx.getMyUser()
+    const ticket = await issue({ telegramId: String(me.id), name: me.name || me.username || undefined })
+    sendWsEvent(peer, 'server:sign-in-ticket', { ticket })
+  }
+  catch (error) {
+    logger.withError(error).error('Failed to issue a sign-in ticket')
+    sendWsEvent(peer, 'server:sign-in-ticket', { error: 'TICKET_FAILED' })
+  }
 }
 
 export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions = {}) {
@@ -129,7 +155,7 @@ export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions =
         throw new Response('Session ID is required', { status: 400 })
       }
 
-      await options.authorize?.(req, urlSessionId)
+      await options.authorize?.(req)
     },
 
     async open(peer) {
@@ -182,6 +208,11 @@ export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions =
           if (rpcState) {
             await rpcState.eventa.hooks.message(asEventaPeer(peer), message as never)
           }
+          return
+        }
+
+        if (event.type === 'server:sign-in-ticket') {
+          await respondToSignInTicketRequest(peer, account, options.issueSignInTicket, logger)
           return
         }
 

@@ -74,7 +74,7 @@ tgs --profile cloud remote login
 tgs --profile cloud search "project progress"
 ```
 
-`remote login` uses the OAuth device authorization grant. It prints a verification URL and a code on stderr; open the URL in a browser where you are signed in to the server with Telegram and approve the code. The command waits until you approve, deny, or the code expires, then saves the tokens in the profile's `remote-token.json` (mode 0600). Access tokens refresh automatically before they expire; when the refresh token is expired or revoked, commands return `REMOTE_CREDENTIALS_EXPIRED` and you run `remote login` again. `remote logout` deletes the stored tokens.
+`remote login` uses the OAuth device authorization grant. It prints a verification URL and a code on stderr; open the URL in a browser, log in to Telegram in the server's Web UI if asked, and approve the code. The command waits until you approve, deny, or the code expires, then saves the tokens in the profile's `remote-token.json` (mode 0600). Access tokens refresh automatically before they expire; when the refresh token is expired or revoked, commands return `REMOTE_CREDENTIALS_EXPIRED` and you run `remote login` again. `remote logout` deletes the stored tokens.
 
 The login requests `chats:read messages:read media:read offline_access`. Add `--admin` to also request `database:admin` for the `db` commands; the server grants it only to its configured administrators. A token is stored with the server URL it was issued for and is never sent to another server: changing the endpoint requires a new login.
 

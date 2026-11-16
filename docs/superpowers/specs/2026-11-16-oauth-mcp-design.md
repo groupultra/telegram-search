@@ -38,7 +38,7 @@ Verified against installed packages on 2026-11-16:
 |---|---|---|
 | Authorization server | `better-auth@1.7.25`, `@better-auth/mcp@1.7.25` (built on `@better-auth/oauth-provider`) | `mcp({ resource, loginPage, consentPage, scopes })` binds tokens to the MCP resource and serves `/.well-known/oauth-protected-resource`. Registration is opt-in. Access tokens are JWTs signed by the `jwt()` plugin. |
 | Client registration | `@better-auth/cimd@1.7.25` | `metadataProfile: "mcp-2026-07-28"`. DCR (`allowDynamicClientRegistration`) stays off unless a client needs it. |
-| Telegram sign-in | `better-auth` `genericOAuth()` | Telegram OIDC: discovery at `https://oauth.telegram.org/.well-known/openid-configuration`, code flow with PKCE, Basic client authentication, client ID is the bot ID from BotFather. |
+| Telegram sign-in | `telegram-session.ts` (custom Better Auth plugin) | The MTProto login over the WebSocket is the identity proof; the server issues a single-use ticket that the browser exchanges for a session. See §5. |
 | CLI sign-in | `better-auth` `deviceAuthorization()` | RFC 8628 device flow replaces `TG_SEARCH_REMOTE_TOKEN`. |
 | Token verification | `@better-auth/mcp` `requireMcpAuth` | Verifies signature, issuer, audience, expiry, `azp`; answers 401 with the RFC 9728 challenge and 403 `insufficient_scope`. |
 | MCP protocol | `@modelcontextprotocol/server@2.4.0` | `createMcpHandler(factory).fetch(request, { authInfo })` is fetch-native and mounts on h3 v2. Stateless per request; the factory builds a server for the request's principal. |
@@ -48,10 +48,12 @@ We do not implement OAuth endpoints ourselves: PKCE, redirect URI matching, sing
 
 ## 5. Identity and tenancy
 
-1. The user signs in with Telegram OIDC, scopes `openid profile`.
-2. Telegram has no UserInfo endpoint. `getUserInfo` verifies the ID token with `jose` against Telegram's JWKS (`iss = https://oauth.telegram.org`, `aud = <bot id>`, `exp`) and reads the Telegram user ID from the `id` claim. `sub` is not the Telegram user ID.
-3. Better Auth requires an email and Telegram returns none. The mapped user gets `tg-<id>@users.telegram.invalid` with `emailVerified: false`, marked `// NOTICE:` in code. Email sign-in and account linking by email stay disabled, so the synthetic address can never match a real one.
-4. The linked `auth_accounts` row is keyed by the Telegram user ID (`accountSubject`), and the access token carries it as the `telegram_id` claim. It is not a user field: Better Auth user fields marked `input: false` are also dropped from the OAuth profile mapping, and a user-editable field would let a user claim another Telegram ID.
+Revised 2026-11-17: the first implementation signed users in with Telegram OpenID Connect, which needed a BotFather Login Widget registration and made users log in twice (OIDC, then MTProto to connect the account). The MTProto login already proves control of the account, so it is now the only sign-in.
+
+1. The user logs in to Telegram in the Web UI over the WebSocket (phone code, two-step password, or a saved session), as in the single-user mode.
+2. Once that account runtime is ready, the browser sends `server:sign-in-ticket`. The server issues a ticket for the Telegram user the runtime is logged in as (`ctx.getMyUser().id`); the request carries no identity. Tickets are 32 random bytes, stored as a SHA-256 hash in Better Auth's `verification` table, expire after two minutes, and are consumed atomically.
+3. `POST /api/auth/sign-in/telegram-session` consumes the ticket, finds or creates the user linked to `{ providerId: 'telegram', accountId: <Telegram id> }`, and sets the session cookie. Better Auth requires an email and Telegram has none, so new users get `tg-<id>@users.telegram.invalid` (`// NOTICE:` in code); email sign-in and linking by email stay disabled. With `oauth_query`, Better Auth's OAuth provider hooks verify the signed authorization request first and resume `authorize` after the cookie is set.
+4. Access tokens carry the linked account's `accountId` as `telegram_id`. It is not a user field, so users cannot edit it.
 5. The tenancy rule: a principal may act on the `accounts` row where `platform = 'telegram'` and `platform_user_id = <Telegram id>`. The row is created when that user completes the MTProto login on this server. No row means `TELEGRAM_NOT_CONNECTED`.
 
 ## 6. Scopes and principal
@@ -84,7 +86,7 @@ interface RemotePrincipal {
 
 | Route | Authorization after this change |
 |---|---|
-| `/api/auth/*` | Better Auth handler: OAuth endpoints, Telegram callback, device flow, JWKS, discovery |
+| `/api/auth/*` | Better Auth handler: OAuth endpoints, ticket sign-in, device flow, JWKS, discovery |
 | `/.well-known/oauth-authorization-server`, `/.well-known/openid-configuration`, `/.well-known/oauth-protected-resource` | Served by Better Auth at the origin root |
 | `/mcp` | `requireMcpAuth` with the MCP resource as audience |
 | `/v1/remote/:method` | Same verifier and the same `/mcp` audience; used by the CLI. A second resource would need its own protected-resource metadata and client linking for no isolation gain, since both surfaces expose the same methods with the same checks |
@@ -106,7 +108,6 @@ New environment variables:
 
 - `TGS_PUBLIC_URL`: canonical HTTPS origin; issuer and resource identifiers derive from it.
 - `BETTER_AUTH_SECRET`: at least 32 random bytes.
-- `TELEGRAM_LOGIN_CLIENT_ID`, `TELEGRAM_LOGIN_CLIENT_SECRET`: from BotFather Login Widget; register `<TGS_PUBLIC_URL>/api/auth/callback/telegram`.
 - `TGS_ADMIN_TELEGRAM_IDS`: optional comma-separated list.
 - `TGS_AUTH`: `none` (default) or `oauth`.
 
@@ -127,7 +128,7 @@ A shared service has to restore MTProto sessions after a restart. The follow-up 
 
 Run in rc:
 
-- Unit: scope expansion, tenancy resolution, Telegram ID token verification (signature, issuer, audience, expiry, missing `id`), media ticket binding.
+- Unit: scope expansion, tenancy resolution, sign-in tickets (single use, expiry, forged tickets, hash-only storage, forged `oauth_query`), media ticket binding.
 - Integration on PGlite with migrations: discovery documents, 401 challenge on `/mcp` without a token, 403 `insufficient_scope`, a token for user A denied on account B, audit row written for MCP calls, audit failure fails closed.
 - Device flow against `/v1/remote` from the CLI.
 - Manual after the Web pull request: ChatGPT developer mode and `codex mcp login` against a staging URL.
