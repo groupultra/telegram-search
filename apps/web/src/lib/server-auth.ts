@@ -130,8 +130,15 @@ export function normalizeUserCode(value: string): string {
   return value.replace(/[\s-]/g, '').toUpperCase()
 }
 
-/** Binds a device code to the signed-in user and returns what it requests. */
+/**
+ * Binds a device code to the signed-in user and returns what it requests.
+ * Throws a 401 `ServerAuthError` when no one is signed in.
+ */
 export async function getDeviceAuthorization(userCode: string): Promise<DeviceAuthorization> {
+  // The server answers this lookup without a session too, but then binds the code to no one and
+  // refuses the approval with 401. Require the sign-in before showing Approve.
+  if (await getServerAuthStatus() === 'signed-out')
+    throw new ServerAuthError(401, 'UNAUTHORIZED', 'Sign in to approve this device')
   const result = await request<{ user_code: string, status: DeviceAuthorization['status'], client_id?: string, scope?: string }>(`/device?${new URLSearchParams({ user_code: normalizeUserCode(userCode) })}`)
   return {
     userCode: result.user_code,
