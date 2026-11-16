@@ -369,5 +369,59 @@
   },
   "virtualMessageList": {
     "scrolling": "加载中"
+  },
+  "serverAuth": {
+    "signIn": {
+      "title": "登录 Telegram Search",
+      "description": "使用你的 Telegram 账号登录这台服务器。",
+      "continueTo": "登录后继续前往 {client}。",
+      "withTelegram": "使用 Telegram 继续",
+      "notice": "Telegram 只负责确认你的身份。连接 Telegram 账号用于搜索是单独的一步。",
+      "failed": "Telegram 登录失败，请重试。"
+    },
+    "consent": {
+      "title": "允许 {client} 访问你的数据吗？",
+      "description": "这个应用请求访问你连接到这台服务器的 Telegram 账号。",
+      "from": "请求来自 {host}。",
+      "notice": "你可以随时撤销授权。只授权你信任的应用。",
+      "allow": "允许",
+      "deny": "拒绝",
+      "invalidRequest": "这个授权请求无效或已过期。",
+      "failed": "无法完成授权，请重试。"
+    },
+    "device": {
+      "title": "连接设备",
+      "description": "输入终端里显示的代码。",
+      "confirm": "请确认 {client} 显示的是这个代码。",
+      "code": "设备代码",
+      "approve": "批准",
+      "deny": "拒绝",
+      "approved": "已批准，可以回到终端了。",
+      "denied": "已拒绝，设备没有连接。",
+      "invalidCode": "这个代码无效或已过期。",
+      "failed": "无法保存你的选择，请重试。"
+    },
+    "scopes": {
+      "chatsRead": {
+        "title": "列出你的聊天",
+        "description": "已连接账号中聊天的名称和类型。"
+      },
+      "messagesRead": {
+        "title": "读取和搜索消息",
+        "description": "已连接账号中的消息正文、回复和统计。"
+      },
+      "mediaRead": {
+        "title": "读取附件",
+        "description": "图片、文件和临时下载链接。"
+      },
+      "databaseAdmin": {
+        "title": "管理服务器数据库",
+        "description": "为所有账号删除和重建搜索索引。只授予服务器管理员。"
+      },
+      "offlineAccess": {
+        "title": "保持连接",
+        "description": "无需重新登录即可继续访问。"
+      }
+    }
   }
 }

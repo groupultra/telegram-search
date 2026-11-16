@@ -369,5 +369,59 @@
   },
   "virtualMessageList": {
     "scrolling": "Loading..."
+  },
+  "serverAuth": {
+    "signIn": {
+      "title": "Sign in to Telegram Search",
+      "description": "Use your Telegram account to sign in to this server.",
+      "continueTo": "Sign in to continue to {client}.",
+      "withTelegram": "Continue with Telegram",
+      "notice": "Telegram confirms who you are. Connecting your Telegram account for search is a separate step.",
+      "failed": "Telegram sign-in failed. Try again."
+    },
+    "consent": {
+      "title": "Allow {client} to access your data?",
+      "description": "This application asks for access to the Telegram account you connected to this server.",
+      "from": "Requested by {host}.",
+      "notice": "You can revoke access at any time. Only grant access to applications you trust.",
+      "allow": "Allow",
+      "deny": "Deny",
+      "invalidRequest": "This authorization request is invalid or has expired.",
+      "failed": "Could not complete the authorization. Try again."
+    },
+    "device": {
+      "title": "Connect a device",
+      "description": "Enter the code shown in your terminal.",
+      "confirm": "Confirm that {client} shows this code.",
+      "code": "Device code",
+      "approve": "Approve",
+      "deny": "Deny",
+      "approved": "Approved. You can return to your terminal.",
+      "denied": "Denied. The device was not connected.",
+      "invalidCode": "This code is invalid or has expired.",
+      "failed": "Could not save your decision. Try again."
+    },
+    "scopes": {
+      "chatsRead": {
+        "title": "List your chats",
+        "description": "Names and types of the chats in your connected account."
+      },
+      "messagesRead": {
+        "title": "Read and search messages",
+        "description": "Message text, replies, and statistics from your connected account."
+      },
+      "mediaRead": {
+        "title": "Read attachments",
+        "description": "Photos, files, and temporary download links."
+      },
+      "databaseAdmin": {
+        "title": "Manage the server database",
+        "description": "Drop and rebuild search indexes for every account. Granted only to server administrators."
+      },
+      "offlineAccess": {
+        "title": "Stay connected",
+        "description": "Keep access without asking you to sign in again."
+      }
+    }
   }
 }

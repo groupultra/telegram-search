@@ -369,5 +369,59 @@
   },
   "virtualMessageList": {
     "scrolling": "불러오는 중..."
+  },
+  "serverAuth": {
+    "signIn": {
+      "title": "Telegram Search에 로그인",
+      "description": "Telegram 계정으로 이 서버에 로그인합니다.",
+      "continueTo": "로그인하고 {client}(으)로 계속합니다.",
+      "withTelegram": "Telegram으로 계속",
+      "notice": "Telegram은 본인 확인만 합니다. 검색에 쓸 Telegram 계정 연결은 별도 단계입니다.",
+      "failed": "Telegram 로그인에 실패했습니다. 다시 시도하세요."
+    },
+    "consent": {
+      "title": "{client}에 데이터 접근을 허용할까요?",
+      "description": "이 애플리케이션이 이 서버에 연결한 Telegram 계정에 대한 접근을 요청합니다.",
+      "from": "{host}에서 요청했습니다.",
+      "notice": "언제든지 접근 권한을 취소할 수 있습니다. 신뢰하는 애플리케이션에만 허용하세요.",
+      "allow": "허용",
+      "deny": "거부",
+      "invalidRequest": "이 인증 요청이 잘못되었거나 만료되었습니다.",
+      "failed": "인증을 완료하지 못했습니다. 다시 시도하세요."
+    },
+    "device": {
+      "title": "기기 연결",
+      "description": "터미널에 표시된 코드를 입력하세요.",
+      "confirm": "{client}에 이 코드가 표시되는지 확인하세요.",
+      "code": "기기 코드",
+      "approve": "승인",
+      "deny": "거부",
+      "approved": "승인되었습니다. 터미널로 돌아가세요.",
+      "denied": "거부되었습니다. 기기가 연결되지 않았습니다.",
+      "invalidCode": "이 코드가 잘못되었거나 만료되었습니다.",
+      "failed": "선택을 저장하지 못했습니다. 다시 시도하세요."
+    },
+    "scopes": {
+      "chatsRead": {
+        "title": "채팅 목록 보기",
+        "description": "연결된 계정에 있는 채팅의 이름과 유형."
+      },
+      "messagesRead": {
+        "title": "메시지 읽기 및 검색",
+        "description": "연결된 계정의 메시지 본문, 답장, 통계."
+      },
+      "mediaRead": {
+        "title": "첨부 파일 읽기",
+        "description": "사진, 파일, 임시 다운로드 링크."
+      },
+      "databaseAdmin": {
+        "title": "서버 데이터베이스 관리",
+        "description": "모든 계정의 검색 색인을 삭제하고 다시 빌드합니다. 서버 관리자에게만 부여됩니다."
+      },
+      "offlineAccess": {
+        "title": "연결 유지",
+        "description": "다시 로그인하지 않아도 접근을 유지합니다."
+      }
+    }
   }
 }
