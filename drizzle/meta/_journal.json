@@ -295,6 +295,13 @@
       "when": 1794826025630,
       "tag": "0041_oauth-authorization",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1794909925284,
+      "tag": "0042_telegram-session-storage",
+      "breakpoints": true
     }
   ]
 }

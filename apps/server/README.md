@@ -11,6 +11,7 @@ Node/H3 server for Telegram Search.
 | `src/auth/` | Better Auth instance (`better-auth.ts`), `TGS_AUTH` config, Telegram session sign-in (`telegram-session.ts`), token-to-principal resolution, Web session guard |
 | `src/remote/` | Remote methods shared by REST and MCP: executor (scopes, chat scope, audit), REST transport (`http.ts`), scopes, audit recorder, media links, account application |
 | `src/mcp/` | Streamable HTTP MCP endpoint and tool registration |
+| `src/sessions/` | Encrypted Telegram session storage and its restoration at startup (OAuth mode) |
 | `src/app.ts`, `src/account.ts`, `src/events.ts` | WebSocket bridge and per-account Core state |
 | `src/apis/`, `src/storage/` | Web photo/sticker routes and media storage |
 
@@ -70,7 +71,7 @@ Each remote method is one tool named with `_` instead of `.` (`messages_search`)
 
 `POST /v1/remote/:method` accepts JSON and `Authorization: Bearer <access token>`, with the same methods as the MCP tools. The token must be issued for the `<TGS_PUBLIC_URL>/mcp` resource. Requests reuse protocol validation and the Core application. The server selects the account from the token, never from request input. No sync, arbitrary RPC, filesystem export, or account-management endpoint is exposed.
 
-Indexed queries and selected-chat discovery use the existing server database even after restart. Listing every chat and reading live Telegram messages require an active, authorized account runtime on this server and return `TELEGRAM_NOT_CONNECTED` otherwise. This API does not restore Telegram sessions after restart or migrate/merge local data. Use HTTPS termination and an ingress request-rate limit; responses must not be cached.
+Indexed queries and selected-chat discovery use the existing server database even after restart. Listing every chat and reading live Telegram messages require an active, authorized account runtime on this server and return `TELEGRAM_NOT_CONNECTED` otherwise. With `TGS_AUTH=oauth`, the server reconnects the stored Telegram sessions after a restart (see [Telegram session storage](#telegram-session-storage)); until an account's runtime is ready again, it returns `TELEGRAM_NOT_CONNECTED`. This API does not migrate or merge local data. Use HTTPS termination and an ingress request-rate limit; responses must not be cached.
 
 ### Database maintenance
 
@@ -97,5 +98,18 @@ Access is denied by default. A request needs both the exact method capability an
 Every authenticated request writes an append-only row to `remote_audit_events` before its response is returned. The row records the OAuth client ID (`credential_id`), user, account, method, chat scope, authorization decision, outcome, timing, and sanitized request/result summaries. Search text is stored only as its length and SHA-256 hash. Tokens and message contents are never written to the audit table. If audit persistence fails, the remote request fails closed.
 
 With `TGS_AUTH=oauth`, `/mcp` and `/v1/remote/*` require an access token, and `/v1/photos/*` and `/v1/stickers/*` require a signed-in session. `/ws` stays open to signed-out browsers because the Telegram login runs over it; as in the single-user mode, its unguessable client-chosen `sessionId` scopes the account runtime. Upgrades whose `Origin` is not `TGS_PUBLIC_URL` are refused with 403. Anyone who can log in to a Telegram account can sign up. Photo and sticker routes check the session, not the photo's account, so a signed-in user who knows another account's media ID can fetch it. The server process and database administrators remain trusted: the server can read every account it serves. Do not log request bodies, tokens, or query text in production; set an appropriate production log level.
+
+### Telegram session storage
+
+With `TGS_AUTH=oauth`, the server stores the Telegram session of each account whose runtime becomes ready, so it can reconnect the account after a restart. Without it, every deployment disconnected all accounts until each user opened the Web UI again, and MCP and CLI clients could not read live data in between.
+
+- **Table**: `account_telegram_sessions`, one row per account (the latest login wins); deleting the account deletes the row.
+- **Encryption**: AES-256-GCM with a key derived from `BETTER_AUTH_SECRET` (HKDF-SHA256, used only for this purpose). The account ID is authenticated data, so a row moved to another account does not decrypt. The ciphertext holds the session string and the Web UI's `sessionId`.
+- **Restoration**: after the server starts listening, it logs in each stored session in the background, four at a time, under the `sessionId` its browser used. A browser that reconnects with that `sessionId` reattaches to the restored runtime instead of starting a second client with the same authorization key.
+- **One instance at a time**: Telegram invalidates an authorization key that sends requests over two connections at once (`AUTH_KEY_DUPLICATED`), and a deployment can run the old and new instance side by side. A lease in `runtime_leases` serializes them: the new instance restores only after the old one has disconnected its clients and released the lease on `SIGTERM`, or after a crashed instance's lease expires (30 seconds without renewal). Run one replica per database; the account runtimes are per process.
+- **Removal**: a logout from the Web UI deletes the row. A session that Telegram rejects at restoration (logged out elsewhere, or `AUTH_KEY_DUPLICATED`) is deleted. A network failure or a timeout keeps the row for the next start.
+- **Secret rotation**: a row sealed with another secret is skipped and logged, not deleted; the account's next login replaces it.
+
+This protects sessions against a reader of the database or its backups who does not have `BETTER_AUTH_SECRET`. It does not protect against the server process or anyone who holds the secret: the server must decrypt sessions to connect to Telegram. The single-user mode stores no session on the server.
 
 The `/ws` route creates account-scoped Eventa peer contexts and keeps HTTP for health checks and binary photo/sticker delivery. During the UI migration, true realtime domain notifications continue to share the same WebSocket connection.

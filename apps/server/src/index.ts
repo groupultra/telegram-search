@@ -16,12 +16,15 @@ import { defineEventHandler, H3, serve } from 'h3'
 
 import pkg from '../package.json' with { type: 'json' }
 
-import { getAccountContext } from './account'
+import { disconnectAllAccounts, getAccountContext, getOrCreateAccount } from './account'
 import { v1api } from './apis/v1'
 import { setupWsRoutes } from './app'
 import { authConfigFromEnv } from './auth/config'
 import { mountOAuth } from './oauth'
 import { createRemoteApplication } from './remote/application'
+import { createRuntimeLease } from './sessions/lease'
+import { restoreTelegramSessions } from './sessions/restore'
+import { createTelegramSessionStore } from './sessions/store'
 import { getDB, initDrizzle } from './storage/drizzle'
 import { getMediaStorage, initMediaStorage } from './storage/media'
 import { removeHyperLinks, toSnakeCaseFields } from './utils/fields'
@@ -73,7 +76,7 @@ async function configureServer(logger: Logger, flags: RuntimeFlags, config: Conf
     // Single-user mode: the Web UI and media routes stay open and no remote API or MCP endpoint exists.
     app.mount('/v1', v1api(getDB(), models, getMediaStorage()))
     setupWsRoutes(app, config)
-    return app
+    return { app }
   }
 
   const applications = new Map<string, ReturnType<typeof createRemoteApplication>>()
@@ -93,10 +96,24 @@ async function configureServer(logger: Logger, flags: RuntimeFlags, config: Conf
   const { guard, issueSignInTicket } = await mountOAuth(app, { db: getDB(), config: authConfig, getApplication })
   app.use(guard.requireSession(['/v1/photos/', '/v1/stickers/']))
   app.mount('/v1', v1api(getDB(), models, getMediaStorage()))
-  setupWsRoutes(app, config, { authorize: guard.authorizeWebSocket, issueSignInTicket })
+  const sessions = createTelegramSessionStore({ db: getDB(), secret: authConfig.secret, logger })
+  setupWsRoutes(app, config, { authorize: guard.authorizeWebSocket, issueSignInTicket, sessions })
   logger.withFields({ publicUrl: authConfig.publicUrl }).log('OAuth authorization, MCP, and remote API enabled')
 
-  return app
+  // Reconnects the accounts that were logged in before this start, so MCP and remote clients do not wait for a browser.
+  // The lease keeps a still-running previous instance and this one from using the same Telegram keys at once.
+  const lease = createRuntimeLease({ db: getDB(), logger })
+  let stopping = false
+  const restoreSessions = async () => {
+    if (await lease.acquire())
+      await restoreTelegramSessions({ sessions, getAccount: runtimeKey => getOrCreateAccount(runtimeKey, config, sessions), logger, isStopping: () => stopping })
+  }
+  const releaseRuntime = async () => {
+    stopping = true
+    await disconnectAllAccounts()
+    await lease.release()
+  }
+  return { app, restoreSessions, releaseRuntime }
 }
 
 async function bootstrap() {
@@ -149,7 +166,7 @@ async function bootstrap() {
   setBotRegistryInstance(botRegistry)
   await botRegistry.start()
 
-  const app = await configureServer(logger, flags, config)
+  const { app, restoreSessions, releaseRuntime } = await configureServer(logger, flags, config)
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000
   const hostname = process.env.HOST || '0.0.0.0'
@@ -174,9 +191,14 @@ async function bootstrap() {
 
   logger.withFields({ port, hostname }).log('Server started')
 
+  // In the background: a browser that reconnects meanwhile joins the runtime being restored.
+  void restoreSessions?.().catch(error => logger.withError(error).error('Failed to restore Telegram sessions'))
+
   const shutdown = async () => {
     logger.log('Shutting down server gracefully...')
     await botRegistry.stop()
+    // Disconnect Telegram before the next instance may restore the same sessions.
+    await releaseRuntime?.().catch(error => logger.withError(error).error('Failed to release the Telegram runtime'))
     server.close()
     process.exit(0)
   }
