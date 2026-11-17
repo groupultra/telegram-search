@@ -2,9 +2,11 @@ import type { Config } from '@tg-search/common'
 import type { CoreContext, CoreEmitter, FromCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
+import type { TelegramSessionStore } from './sessions/store'
+
 import { useLogger } from '@guiiai/logg'
 import { attachBotToContext, getBotRegistry } from '@tg-search/bot'
-import { CoreEventType, createCoreInstance } from '@tg-search/core'
+import { CoreEventType, createCoreInstance, destroyCoreInstance } from '@tg-search/core'
 import { coreMessageBatchesProcessedTotal, coreMessagesProcessedTotal, coreMetrics, withSpan } from '@tg-search/observability'
 
 import { getDB } from './storage/drizzle'
@@ -40,6 +42,11 @@ export interface AccountState {
    */
   activePeers: Set<string>
 
+  /**
+   * Encrypted session storage; set in the OAuth mode, where the server restores accounts after a restart.
+   */
+  sessions?: TelegramSessionStore
+
   createdAt: number
 
   lastActive: number
@@ -71,7 +78,7 @@ function bindTracingMetaToSpan(emitter: CoreEmitter) {
   }) as CoreEmitter['once']
 }
 
-export function getOrCreateAccount(accountId: string, config: Config): AccountState {
+export function getOrCreateAccount(accountId: string, config: Config, sessions?: TelegramSessionStore): AccountState {
   const logger = useLogger('server:account')
 
   if (!accountStates.has(accountId)) {
@@ -86,12 +93,15 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
       accountReady: false,
       coreEventListeners: new Map(),
       activePeers: new Set(),
+      sessions,
       createdAt: Date.now(),
       lastActive: Date.now(),
     }
 
-    ctx.emitter.once(CoreEventType.AccountReady, () => {
+    ctx.emitter.once(CoreEventType.AccountReady, ({ accountId: dbAccountId }) => {
       account.accountReady = true
+      if (sessions)
+        void storeAccountSession(account, sessions, accountId, dbAccountId, logger)
     })
 
     // Instrument core message processing for this account
@@ -116,6 +126,32 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
   return account
 }
 
+/**
+ * Stores the ready account's Telegram session under its runtime key, so a
+ * restart can reconnect it and the browser that owns the key reattaches.
+ */
+export async function storeAccountSession(account: AccountState, sessions: TelegramSessionStore, runtimeKey: string, dbAccountId: string, logger: ReturnType<typeof useLogger>) {
+  try {
+    const session = String(await account.ctx.getClient().session.save())
+    if (!session)
+      return
+    await sessions.save({ accountId: dbAccountId, runtimeKey, session })
+  }
+  catch (error) {
+    logger.withFields({ accountId: dbAccountId }).withError(error).warn('Failed to store the Telegram session; this account will not reconnect after a restart')
+  }
+}
+
 export function getAccountContext(accountId: string): CoreContext | undefined {
   return accountStates.get(accountId)?.ctx
+}
+
+/**
+ * Disconnects every account's Telegram client at shutdown. The stored
+ * sessions stay, so the next instance reconnects them.
+ */
+export async function disconnectAllAccounts(): Promise<void> {
+  const accounts = [...accountStates.values()]
+  accountStates.clear()
+  await Promise.allSettled(accounts.map(account => destroyCoreInstance(account.ctx)))
 }

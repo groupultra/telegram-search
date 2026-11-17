@@ -17,6 +17,7 @@ import type { H3 } from 'h3'
 
 import type { AccountState, CoreEventListener } from './account'
 import type { WsEventToClientData, WsMessageToServer } from './events'
+import type { TelegramSessionStore } from './sessions/store'
 
 import { useLogger } from '@guiiai/logg'
 import { createPeerContext } from '@moeru/eventa/adapters/websocket/h3'
@@ -101,8 +102,14 @@ export async function updateAccountState(logger: Logger, account: AccountState, 
   if (eventName !== CoreEventType.AuthLogout)
     return
 
+  // Read before cleanup: a logout before the account was ready has no stored session.
+  const dbAccountId = account.accountReady ? account.ctx.getCurrentAccountId() : undefined
   account.accountReady = false
   logger.withFields({ accountId }).log('User logged out, destroying account')
+  if (dbAccountId && account.sessions) {
+    // A logged-out session must not come back on the next restart.
+    await account.sessions.remove(dbAccountId).catch(error => logger.withFields({ accountId: dbAccountId }).withError(error).error('Failed to delete the stored Telegram session'))
+  }
   await destroyCoreInstance(account.ctx)
   accountStates.delete(accountId)
 
@@ -116,6 +123,8 @@ export interface WsRouteOptions {
   authorize?: (request: Request) => Promise<void>
   /** Issues a sign-in ticket for a Telegram account logged in on this server; unset in the single-user mode. */
   issueSignInTicket?: (identity: { telegramId: string, name?: string }) => Promise<string>
+  /** Stores ready accounts' sessions for restoration after a restart; unset in the single-user mode. */
+  sessions?: TelegramSessionStore
 }
 
 /**
@@ -166,7 +175,7 @@ export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions =
       wsConnectionsActive.add(1, { mode: WS_MODE_LABEL })
 
       // Get or create account state (reuses existing if available)
-      const account = getOrCreateAccount(accountId, config)
+      const account = getOrCreateAccount(accountId, config, options.sessions)
 
       // Track this peer
       peerToAccountId.set(peer.id, accountId)
