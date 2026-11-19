@@ -1,9 +1,11 @@
 import process from 'node:process'
 
-import { chmod, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import envPaths from 'env-paths'
+
+import { writeFileAtomic } from './atomic-file'
 
 export interface ProfilePaths {
   root: string
@@ -83,8 +85,29 @@ export async function readProfileConfig(paths: ProfilePaths): Promise<ProfileCon
 }
 
 export async function writeProfileConfig(paths: ProfilePaths, config: ProfileConfig): Promise<void> {
-  await writeFile(paths.config, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 })
-  await chmod(paths.config, 0o600)
+  await writeFileAtomic(paths.config, `${JSON.stringify(config, null, 2)}\n`)
+}
+
+const configUpdates = new Map<string, Promise<unknown>>()
+
+/**
+ * Applies `update` to the config as it is on disk now, not to a snapshot read
+ * earlier in the command. Updates in this process run one after another.
+ */
+export async function updateProfileConfig(paths: ProfilePaths, update: (latest: ProfileConfig) => ProfileConfig): Promise<ProfileConfig> {
+  const run = (configUpdates.get(paths.config) ?? Promise.resolve()).catch(() => undefined).then(async () => {
+    const next = update(await readProfileConfig(paths))
+    await writeProfileConfig(paths, next)
+    return next
+  })
+  configUpdates.set(paths.config, run)
+  try {
+    return await run
+  }
+  finally {
+    if (configUpdates.get(paths.config) === run)
+      configUpdates.delete(paths.config)
+  }
 }
 
 export async function readSession(paths: ProfilePaths): Promise<string> {
@@ -99,6 +122,5 @@ export async function readSession(paths: ProfilePaths): Promise<string> {
 }
 
 export async function writeSession(paths: ProfilePaths, session: string): Promise<void> {
-  await writeFile(paths.session, session, { mode: 0o600 })
-  await chmod(paths.session, 0o600)
+  await writeFileAtomic(paths.session, session)
 }

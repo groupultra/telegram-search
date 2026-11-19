@@ -2,12 +2,13 @@ import type { InferOutput } from 'valibot'
 
 import type { ProfilePaths } from './profile'
 
-import { randomUUID } from 'node:crypto'
-import { chmod, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { readFile, rm } from 'node:fs/promises'
 
 import { ApplicationError } from '@tg-search/core'
 import { normalizeRemoteUrl } from '@tg-search/protocol'
 import { array, integer, number, object, optional, pipe, safeParse, string } from 'valibot'
+
+import { writeFileAtomic } from './atomic-file'
 
 /** Public OAuth client registered by every TGS server for the device authorization grant. */
 export const CLI_CLIENT_ID = 'tgs-cli'
@@ -115,15 +116,7 @@ export async function readRemoteToken(paths: ProfilePaths): Promise<StoredRemote
 
 async function writeRemoteToken(paths: ProfilePaths, token: StoredRemoteToken): Promise<void> {
   // Write then rename so a concurrent `tgs` process never reads a half-written token file.
-  const temporary = `${paths.remoteToken}.${randomUUID()}.tmp`
-  try {
-    await writeFile(temporary, `${JSON.stringify(token, null, 2)}\n`, { mode: 0o600 })
-    await chmod(temporary, 0o600)
-    await rename(temporary, paths.remoteToken)
-  }
-  finally {
-    await rm(temporary, { force: true })
-  }
+  await writeFileAtomic(paths.remoteToken, `${JSON.stringify(token, null, 2)}\n`)
 }
 
 export async function deleteRemoteToken(paths: ProfilePaths): Promise<void> {
@@ -199,12 +192,13 @@ export async function loginRemote(paths: ProfilePaths, endpoint: string, options
   throw authError('REMOTE_AUTHORIZATION_EXPIRED', 'The device code expired; run remote login again')
 }
 
+const tokenRefreshes = new Map<string, Promise<string>>()
+
 /**
  * Returns a valid access token for `endpoint`, refreshing it when it is about
  * to expire. Tokens issued for another server are never sent.
  */
 export async function remoteAccessToken(paths: ProfilePaths, endpoint: string, options: RemoteAuthOptions & { signal?: AbortSignal } = {}): Promise<string> {
-  const doFetch = options.fetch ?? fetch
   const now = options.now ?? Date.now
   const urls = oauthEndpoints(endpoint)
   const stored = await readRemoteToken(paths)
@@ -215,11 +209,31 @@ export async function remoteAccessToken(paths: ProfilePaths, endpoint: string, o
   if (!stored.refreshToken)
     throw authError('REMOTE_CREDENTIALS_EXPIRED', 'The remote access token expired; run `tgs remote login` again')
 
+  // Requests of one command share a refresh: a rotating refresh token is
+  // accepted once, so a second parallel refresh would be rejected.
+  const key = `${paths.remoteToken}\n${stored.refreshToken}`
+  const inFlight = tokenRefreshes.get(key)
+  if (inFlight)
+    return inFlight
+  const refresh = refreshRemoteToken(paths, urls, { ...stored, refreshToken: stored.refreshToken }, options).finally(() => tokenRefreshes.delete(key))
+  tokenRefreshes.set(key, refresh)
+  return refresh
+}
+
+async function refreshRemoteToken(paths: ProfilePaths, urls: ReturnType<typeof oauthEndpoints>, stored: StoredRemoteToken & { refreshToken: string }, options: RemoteAuthOptions & { signal?: AbortSignal }): Promise<string> {
+  const doFetch = options.fetch ?? fetch
+  const now = options.now ?? Date.now
   const response = await doFetch(urls.token, { ...form({ grant_type: 'refresh_token', refresh_token: stored.refreshToken, client_id: CLI_CLIENT_ID, resource: urls.resource }), signal: options.signal })
   const body = await response.json().catch(() => undefined)
   if (!response.ok) {
-    if (response.status === 400 || response.status === 401)
+    if (response.status === 400 || response.status === 401) {
+      // Another `tgs` process may have rotated the refresh token first; its
+      // result is on disk and is valid for this request too.
+      const latest = await readRemoteToken(paths)
+      if (latest && latest.endpoint === urls.url && latest.accessToken !== stored.accessToken && latest.expiresAt - REFRESH_MARGIN_MS > now())
+        return latest.accessToken
       throw authError('REMOTE_CREDENTIALS_EXPIRED', 'The remote sign-in expired or was revoked; run `tgs remote login` again')
+    }
     throw authError('REMOTE_UNAVAILABLE', `Remote server could not refresh the access token (HTTP ${response.status})`, true)
   }
   const refreshed = storedToken(urls.url, body, now(), stored)

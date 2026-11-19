@@ -36,7 +36,7 @@ import { closeOwnedTelegramClient } from './auth-support'
 import { runtimeBuildInfo } from './build-info'
 import { createGramJsStderrLogger } from './gramjs-logger'
 import { writeProgress } from './output'
-import { readProfileConfig, readSession, writeProfileConfig } from './profile'
+import { readProfileConfig, readSession, updateProfileConfig } from './profile'
 import { CLI_TELEGRAM_CLIENT_OPTIONS } from './telegram-client-options'
 import { resolveCliTelegramCredentials } from './telegram-credentials'
 
@@ -98,36 +98,50 @@ export async function createCliRuntime(paths: ProfilePaths, options: { remote: b
   context.setCurrentAccountId(accountId)
   let client: TelegramClient | undefined
 
-  if (options.remote) {
-    const session = await readSession(paths)
-    if (!session) {
-      throw new Error('Telegram session is missing; run auth login first')
+  try {
+    if (options.remote) {
+      const session = await readSession(paths)
+      if (!session) {
+        throw new Error('Telegram session is missing; run auth login first')
+      }
+      client = new GramJsClient(
+        new StringSession(session),
+        Number(credentials.apiId),
+        credentials.apiHash,
+        { ...CLI_TELEGRAM_CLIENT_OPTIONS, baseLogger: createGramJsStderrLogger() },
+      )
+      await client.connect()
+      if (!await client.isUserAuthorized()) {
+        throw new Error('Telegram session is no longer authorized; run auth login again')
+      }
+      const me = await client.getMe()
+      const account = await models.accountModels.recordAccount(db, 'telegram', String(me.id))
+      accountId = account.id
+      context.setCurrentAccountId(accountId)
+      context.setClient(client)
+      context.setMyUser({
+        id: String(me.id),
+        name: [me.firstName, me.lastName].filter(Boolean).join(' ') || me.username || String(me.id),
+        username: me.username ?? String(me.id),
+        accessHash: me.accessHash?.toString(),
+        type: 'user',
+      })
+      if (profileConfig.accountId !== accountId) {
+        // Merge into the config on disk now: the snapshot above predates the
+        // Telegram connection, and writing it back would undo a concurrent
+        // `profile configure` or `profile remote`.
+        const resolvedAccountId = accountId
+        await updateProfileConfig(paths, latest => ({ ...latest, accountId: resolvedAccountId }))
+      }
     }
-    client = new GramJsClient(
-      new StringSession(session),
-      Number(credentials.apiId),
-      credentials.apiHash,
-      { ...CLI_TELEGRAM_CLIENT_OPTIONS, baseLogger: createGramJsStderrLogger() },
-    )
-    await client.connect()
-    if (!await client.isUserAuthorized()) {
-      throw new Error('Telegram session is no longer authorized; run auth login again')
-    }
-    const me = await client.getMe()
-    const account = await models.accountModels.recordAccount(db, 'telegram', String(me.id))
-    accountId = account.id
-    context.setCurrentAccountId(accountId)
-    context.setClient(client)
-    context.setMyUser({
-      id: String(me.id),
-      name: [me.firstName, me.lastName].filter(Boolean).join(' ') || me.username || String(me.id),
-      username: me.username ?? String(me.id),
-      accessHash: me.accessHash?.toString(),
-      type: 'user',
-    })
-    if (profileConfig.accountId !== accountId) {
-      await writeProfileConfig(paths, { ...profileConfig, accountId })
-    }
+  }
+  catch (error) {
+    // A failed start must not leave the Telegram connection or the database open.
+    context.cleanup()
+    if (client)
+      await closeOwnedTelegramClient(client).catch(() => undefined)
+    await pglite?.close().catch(() => undefined)
+    throw error
   }
 
   const application = createTelegramApplicationRuntime({
