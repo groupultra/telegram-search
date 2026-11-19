@@ -11,7 +11,7 @@ const props = defineProps<DialogCloseProps & { class?: string }>()
 <template>
   <DialogClose
     v-bind="props"
-    :class="cn('absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground', props.class)"
+    :class="cn('absolute right-3 top-3 h-8 w-8 inline-flex items-center justify-center rounded-sm text-fg-3 transition-colors hover:bg-fill-2 hover:text-fg-2 disabled:pointer-events-none', props.class)"
   >
     <span class="i-lucide-x h-4 w-4" />
     <span class="sr-only">Close</span>

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { DialogType } from '@tg-search/core/types'
 
+import type { SearchScope } from '../utils/search-dialog'
+import type { SegmentedOption } from './ui/Segmented'
+
 import { useChatStore } from '@tg-search/client'
 import { onKeyStroke, useDebounce, useMediaQuery } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
@@ -19,15 +22,19 @@ import {
   filterSearchDialogCommands,
   matchesSearchChatTypeFilter,
 } from '../utils/search-dialog'
+import { Button } from './ui/Button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/DropdownMenu'
+import { Empty } from './ui/Empty'
 import { Input } from './ui/Input'
+import { ListItem } from './ui/ListItem'
+import { Segmented } from './ui/Segmented'
+import { Spinner } from './ui/Spinner'
 
 const props = defineProps<{
   chatId?: string
@@ -55,6 +62,11 @@ const keywordDebounced = useDebounce(keyword, 1000)
 const OPEN_AI_CHAT_EVENT = 'tg-search:open-ai-chat'
 
 const activeModeMeta = computed(() => createSearchModes(t))
+const modeOptions = computed(() => activeModeMeta.value.map(mode => ({ value: mode.key, label: mode.label, icon: mode.icon })))
+const scopeOptions = computed<SegmentedOption<SearchScope>[]>(() => [
+  { value: 'current', label: t('searchDialog.scopeCurrent'), icon: 'i-lucide-message-circle' },
+  { value: 'all', label: t('searchDialog.scopeAll'), icon: 'i-lucide-globe' },
+])
 const chatTypeFilterMeta = computed(() => createSearchChatTypeFilters(t))
 const activeChatTypeFilterMeta = computed(() => {
   return chatTypeFilterMeta.value.find(item => item.key === chatTypeFilter.value)
@@ -196,8 +208,7 @@ onKeyStroke('Escape', () => {
 watch(isOpen, (open) => {
   if (open) {
     requestAnimationFrame(() => {
-      const el = inputRef.value?.$el as HTMLElement | undefined
-      el?.focus()
+      inputRef.value?.focus()
     })
   }
 })
@@ -216,7 +227,7 @@ watch(isOpen, (open) => {
     >
       <div
         v-show="isOpen"
-        class="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px]"
+        class="fixed inset-0 z-50 bg-mask"
         @click="isOpen = false"
       />
     </Transition>
@@ -227,131 +238,68 @@ watch(isOpen, (open) => {
       class="fixed z-50"
       :class="isMobile
         ? 'bottom-0 left-0 right-0 h-[86vh] max-h-[86vh]'
-        : 'left-1/2 top-1/2 h-[85vh] max-w-3xl w-full -translate-x-1/2 -translate-y-1/2'"
+        : 'left-1/2 top-[10vh] h-[76vh] max-w-2xl w-[calc(100%-2rem)] -translate-x-1/2'"
       role="dialog"
       aria-modal="true"
     >
       <div
-        class="h-full min-h-0 flex flex-col overflow-hidden bg-background/95 outline-none"
-        :class="isMobile
-          ? 'rounded-t-2xl'
-          : 'border-0 rounded-none backdrop-blur-xl md:border md:rounded-2xl'"
+        class="h-full min-h-0 flex flex-col overflow-hidden bg-elevated text-fg shadow-modal outline-none"
+        :class="isMobile ? 'rounded-t-lg' : 'rounded-lg'"
       >
         <!-- Mobile drawer handle -->
-        <div v-if="isMobile" class="mx-auto mt-2 h-1.5 w-10 rounded-full bg-muted" />
+        <div v-if="isMobile" class="mx-auto mt-2 h-1 w-9 rounded-full bg-fill" />
 
         <!-- Search input header -->
-        <div class="border-b bg-background/50 backdrop-blur-sm" :class="isMobile ? 'p-4' : 'p-4 md:p-6'">
-          <div class="flex flex-col gap-2" :class="!isMobile && 'md:flex-row md:items-center md:gap-3'">
-            <div class="min-w-0 flex items-center" :class="!isMobile && 'gap-3 md:flex-1'">
-              <div class="relative min-w-0 flex flex-1 items-center">
-                <div class="pointer-events-none absolute left-4 z-10 flex items-center justify-center">
-                  <span class="i-lucide-search h-5 w-5 text-muted-foreground" />
-                </div>
-                <Input
-                  ref="inputRef"
-                  v-model="keyword"
-                  class="w-full border-input rounded-xl bg-muted/50 pl-12 pr-4 text-base transition-colors focus-visible:bg-background"
-                  :class="isMobile ? 'h-12' : 'h-12 md:h-14'"
-                  :placeholder="t('searchDialog.searchMessages')"
-                />
-              </div>
-            </div>
-
-            <div
-              v-if="hasCurrentChatScope"
-              :class="isMobile && 'flex items-center justify-end'"
-            >
-              <div
-                class="no-scrollbar inline-flex items-center gap-1 overflow-x-auto border border-border/60 rounded-xl bg-muted/30 p-1"
-                :class="isMobile ? 'h-9 rounded-lg' : 'h-10 md:h-14 md:shrink-0'"
-              >
-                <button
-                  class="inline-flex items-center gap-1 whitespace-nowrap transition-colors"
-                  :class="[
-                    searchScope === 'current'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                    isMobile
-                      ? 'h-7 rounded-md px-2 text-[11px]'
-                      : 'h-8 rounded-lg px-2 text-xs md:h-12 md:rounded-xl md:px-3',
-                  ]"
-                  @click="searchScope = 'current'"
-                >
-                  <span class="i-lucide-message-circle h-3.5 w-3.5" />
-                  <span>{{ t('searchDialog.scopeCurrent') }}</span>
-                </button>
-                <button
-                  class="inline-flex items-center gap-1 whitespace-nowrap transition-colors"
-                  :class="[
-                    searchScope === 'all'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                    isMobile
-                      ? 'h-7 rounded-md px-2 text-[11px]'
-                      : 'h-8 rounded-lg px-2 text-xs md:h-12 md:rounded-xl md:px-3',
-                  ]"
-                  @click="searchScope = 'all'"
-                >
-                  <span class="i-lucide-globe h-3.5 w-3.5" />
-                  <span>{{ t('searchDialog.scopeAll') }}</span>
-                </button>
-              </div>
-            </div>
-          </div>
+        <div class="flex items-center gap-2 border-b border-line-2 p-2">
+          <Input
+            ref="inputRef"
+            v-model="keyword"
+            size="lg"
+            variant="borderless"
+            prefix-icon="i-lucide-search"
+            class="min-w-0 flex-1 text-base"
+            :placeholder="t('searchDialog.searchMessages')"
+          />
+          <Segmented
+            v-if="hasCurrentChatScope"
+            v-model="searchScope"
+            :options="scopeOptions"
+            size="sm"
+            class="shrink-0"
+          />
         </div>
 
         <!-- Mode tabs -->
-        <div class="border-b">
-          <div class="flex items-center justify-between gap-3 px-3 py-2">
-            <div class="no-scrollbar min-w-0 flex items-center gap-1 overflow-x-auto">
-              <button
-                v-for="mode in activeModeMeta"
-                :key="mode.key"
-                class="h-8 inline-flex items-center gap-1.5 border rounded-full px-3 text-xs transition-colors"
-                :class="activeMode === mode.key
-                  ? 'border-primary/20 bg-primary/10 text-primary'
-                  : 'border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground'"
-                @click="activeMode = mode.key"
-              >
-                <span :class="mode.icon" class="h-3.5 w-3.5" />
-                <span>{{ mode.label }}</span>
-              </button>
-            </div>
-
-            <DropdownMenu v-if="activeMode !== 'commands'">
-              <DropdownMenuTrigger as-child>
-                <button
-                  class="h-8 inline-flex shrink-0 items-center gap-2 border rounded-full px-3 text-xs transition-colors"
-                  :class="hasCustomChatTypeFilter
-                    ? 'border-primary/20 bg-primary/10 text-primary'
-                    : 'border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground'"
-                >
-                  <span class="i-lucide-filter h-3.5 w-3.5" />
-                  <span>{{ activeChatTypeFilterMeta?.label }}</span>
-                  <span class="i-lucide-chevron-down h-3.5 w-3.5 opacity-70" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" class="min-w-[220px] border-border/60 rounded-2xl bg-background/95 p-2 backdrop-blur-xl">
-                <DropdownMenuLabel class="px-2 py-1.5 text-xs text-muted-foreground">
-                  {{ t('searchDialog.filters') }}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator class="my-1" />
-                <DropdownMenuItem
-                  v-for="chatType in chatTypeFilterMeta"
-                  :key="chatType.key"
-                  class="flex items-center justify-between rounded-xl px-3 py-2"
-                  @select="selectChatTypeFilter(chatType.key)"
-                >
-                  <span>{{ chatType.label }}</span>
-                  <span
-                    v-if="chatTypeFilter === chatType.key"
-                    class="i-lucide-check h-4 w-4 text-primary"
-                  />
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        <div class="flex items-center justify-between gap-3 border-b border-line-2 px-2 py-2">
+          <div class="no-scrollbar min-w-0 overflow-x-auto">
+            <Segmented v-model="activeMode" :options="modeOptions" size="sm" />
           </div>
+
+          <DropdownMenu v-if="activeMode !== 'commands'">
+            <DropdownMenuTrigger as-child>
+              <Button size="sm" icon="i-lucide-filter" class="shrink-0" :class="hasCustomChatTypeFilter ? 'border-primary' : ''">
+                {{ activeChatTypeFilterMeta?.label }}
+                <span class="i-lucide-chevron-down h-3.5 w-3.5 text-fg-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>
+                {{ t('searchDialog.filters') }}
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                v-for="chatType in chatTypeFilterMeta"
+                :key="chatType.key"
+                class="justify-between"
+                @select="selectChatTypeFilter(chatType.key)"
+              >
+                <span>{{ chatType.label }}</span>
+                <span
+                  v-if="chatTypeFilter === chatType.key"
+                  class="i-lucide-check h-4 w-4"
+                />
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <!-- Results area -->
@@ -366,48 +314,36 @@ watch(isOpen, (open) => {
             mode="out-in"
           >
             <div v-if="activeMode === 'commands'" class="h-full">
-              <div :class="isMobile ? 'p-4' : 'p-4 md:p-6'">
-                <p class="mb-3 text-xs text-muted-foreground">
+              <div class="p-2">
+                <p class="px-3 pb-1.5 pt-2 eyebrow">
                   {{ t('searchDialog.quickActions') }}
                 </p>
-                <div v-if="filteredCommandItems.length > 0" class="space-y-2">
-                  <button
+                <div v-if="filteredCommandItems.length > 0" class="flex flex-col gap-0.5">
+                  <ListItem
                     v-for="item in filteredCommandItems"
                     :key="item.id"
-                    class="w-full flex items-center gap-3 border border-border/60 rounded-xl bg-card/40 p-3 text-left transition-colors hover:bg-muted/40"
+                    :icon="item.icon"
+                    :description="item.description"
                     @click="item.action()"
                   >
-                    <span :class="item.icon" class="h-4 w-4 shrink-0 text-primary" />
-                    <div class="min-w-0 flex-1">
-                      <p class="truncate text-sm font-medium">
-                        {{ item.title }}
-                      </p>
-                      <p class="truncate text-xs text-muted-foreground">
-                        {{ item.description }}
-                      </p>
-                    </div>
-                  </button>
+                    <span class="text-fg">{{ item.title }}</span>
+                  </ListItem>
                 </div>
-                <div v-else class="py-10 text-center text-sm text-muted-foreground">
-                  {{ t('searchDialog.noCommands') }}
-                </div>
+                <Empty v-else :title="t('searchDialog.noCommands')" />
               </div>
             </div>
             <div v-else-if="shouldRunSearch" class="h-full">
               <template v-if="isLoading">
-                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <div class="relative mb-4">
-                    <span class="i-lucide-loader-circle animate-spin text-5xl text-primary" />
-                  </div>
-                  <span class="text-base font-medium">{{ t('searchDialog.searching') }}</span>
+                <div class="h-full flex items-center justify-center gap-2 py-16 text-sm text-fg-3">
+                  <Spinner />
+                  <span>{{ t('searchDialog.searching') }}</span>
                 </div>
               </template>
               <template v-else-if="hasFilteredResults">
                 <div v-if="showMessagesPanel && filteredMessages.length > 0" class="h-full">
                   <div
                     v-if="activeMode === 'all'"
-                    class="sticky top-0 z-10 border-b bg-background/80 px-4 py-2 text-xs text-muted-foreground backdrop-blur"
-                    :class="!isMobile && 'md:px-6'"
+                    class="sticky top-0 z-10 border-b bg-elevated px-4 py-2 eyebrow"
                   >
                     {{ t('searchDialog.messages') }} ({{ filteredMessages.length }}{{ messagesHasMore ? '+' : '' }})
                   </div>
@@ -424,8 +360,7 @@ watch(isOpen, (open) => {
                 <div v-if="showPhotosPanel && filteredPhotos.length > 0" class="h-full">
                   <div
                     v-if="activeMode === 'all'"
-                    class="sticky top-0 z-10 border-b bg-background/80 px-4 py-2 text-xs text-muted-foreground backdrop-blur"
-                    :class="!isMobile && 'md:px-6'"
+                    class="sticky top-0 z-10 border-b bg-elevated px-4 py-2 eyebrow"
                   >
                     {{ t('searchDialog.photos') }} ({{ filteredPhotos.length }}{{ photosHasMore ? '+' : '' }})
                   </div>
@@ -439,50 +374,29 @@ watch(isOpen, (open) => {
                 </div>
               </template>
               <template v-else-if="isAutoLoadingForFilter">
-                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <div class="relative mb-4">
-                    <span class="i-lucide-loader-circle animate-spin text-5xl text-primary" />
-                  </div>
-                  <span class="text-base font-medium">{{ t('searchDialog.searching') }}</span>
+                <div class="h-full flex items-center justify-center gap-2 py-16 text-sm text-fg-3">
+                  <Spinner />
+                  <span>{{ t('searchDialog.searching') }}</span>
                 </div>
               </template>
               <template v-else-if="hasResults && hasCustomChatTypeFilter">
-                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <div class="relative mb-4">
-                    <span class="i-lucide-filter-x text-5xl text-muted" />
-                  </div>
-                  <span class="text-base font-medium">{{ t('searchDialog.noFilteredResults') }}</span>
-                </div>
+                <Empty icon="i-lucide-filter-x" :title="t('searchDialog.noFilteredResults')" />
               </template>
               <template v-else>
-                <div class="h-full flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <div class="relative mb-4">
-                    <span class="i-lucide-search-x text-5xl text-muted" />
-                  </div>
-                  <span class="text-base font-medium">{{ t('searchDialog.noResults') }}</span>
-                </div>
+                <Empty icon="i-lucide-search-x" :title="t('searchDialog.noResults')" />
               </template>
             </div>
-            <div v-else class="h-full flex flex-col items-center justify-center text-muted-foreground">
-              <div class="relative mb-4">
-                <span class="i-lucide-search text-5xl text-muted/50" />
-              </div>
-              <p class="text-base font-medium">
-                {{ t('searchDialog.startTyping') }}
-              </p>
-              <p class="text-sm text-muted-foreground/60">
-                {{ t('searchDialog.searchDescription') }}
-              </p>
-              <div class="mt-6 max-w-md w-full px-4 space-y-2">
-                <button
+            <div v-else class="h-full flex flex-col items-center justify-center">
+              <Empty icon="i-lucide-search" :title="t('searchDialog.startTyping')" :description="t('searchDialog.searchDescription')" class="h-auto" />
+              <div class="max-w-xs w-full flex flex-col gap-0.5 px-4">
+                <ListItem
                   v-for="item in commandItems.slice(0, 3)"
                   :key="item.id"
-                  class="w-full flex items-center gap-2 border border-border/60 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40"
+                  :icon="item.icon"
                   @click="item.action()"
                 >
-                  <span :class="item.icon" class="h-4 w-4 text-primary" />
-                  <span>{{ item.title }}</span>
-                </button>
+                  {{ item.title }}
+                </ListItem>
               </div>
             </div>
           </Transition>
@@ -491,14 +405,3 @@ watch(isOpen, (open) => {
     </div>
   </Teleport>
 </template>
-
-<style scoped>
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>

@@ -6,6 +6,10 @@ import { useI18n } from 'vue-i18n'
 
 import MessageBubble from './messages/MessageBubble.vue'
 
+import { ActionIcon } from './ui/ActionIcon'
+import { Spinner } from './ui/Spinner'
+import { Tag } from './ui/Tag'
+
 type LoadStatus = 'fetched' | 'skipped' | void
 
 interface Props {
@@ -383,7 +387,7 @@ defineExpose({
   <div class="relative h-full overflow-hidden">
     <div
       ref="scrollContainerRef"
-      class="h-full overflow-y-auto pb-32"
+      class="h-full overflow-y-auto pb-24 pt-3"
       style="overflow-anchor: auto;"
     >
       <div ref="topSentinelRef" class="h-px w-full shrink-0" style="overflow-anchor: none;" />
@@ -400,13 +404,10 @@ defineExpose({
     </div>
 
     <!-- Scrolling indicator -->
-    <div
-      v-if="isScrolling"
-      class="absolute right-2 top-4 z-20 flex items-center gap-1.5 border rounded-full bg-card/90 px-3 py-1.5 text-xs text-muted-foreground font-medium leading-none shadow-lg backdrop-blur-sm -translate-x-1/2"
-    >
-      <span class="i-lucide-loader-2 inline-block h-3 w-3 animate-spin" />
+    <Tag v-if="isScrolling" class="absolute right-4 top-3 z-20 bg-elevated shadow-popup">
+      <Spinner class="h-3 w-3" />
       {{ t('virtualMessageList.scrolling') }}
-    </div>
+    </Tag>
 
     <!-- Scroll to bottom button -->
     <Transition
@@ -417,13 +418,12 @@ defineExpose({
       leave-from-class="opacity-100 scale-100 translate-y-0"
       leave-to-class="opacity-0 scale-90 translate-y-2"
     >
-      <button
+      <ActionIcon
         v-if="!isAtBottom && !isScrolling"
-        class="absolute bottom-6 right-6 h-12 w-12 flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all hover:scale-110 hover:shadow-2xl"
+        icon="i-lucide-arrow-down"
+        class="absolute bottom-20 right-4 z-20 rounded-full bg-elevated shadow-popup hover:bg-elevated"
         @click="scrollToBottom"
-      >
-        <i class="i-lucide-chevron-down h-5 w-5" />
-      </button>
+      />
     </Transition>
   </div>
 </template>

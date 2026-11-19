@@ -1,78 +1,36 @@
 <script setup lang="ts">
-import { useSettingsStore } from '@tg-search/client'
-import { useDark } from '@vueuse/core'
-import { storeToRefs } from 'pinia'
-import { computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { runThemeAppearanceTransition } from '../../lib/utils'
-import { Button } from '../ui/Button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/DropdownMenu'
+import AppearancePicker from '../appearance/AppearancePicker.vue'
+import LanguagePicker from './LanguagePicker.vue'
 
-const { t, locale } = useI18n()
-const isDark = useDark()
+import { ActionIcon } from '../ui/ActionIcon'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover'
 
-const settingsStore = useSettingsStore()
-const { language } = storeToRefs(settingsStore)
+withDefaults(defineProps<{
+  side?: 'top' | 'right' | 'bottom' | 'left'
+  align?: 'start' | 'center' | 'end'
+  size?: 'sm' | 'md' | 'lg'
+}>(), {
+  side: 'bottom',
+  align: 'end',
+  size: 'md',
+})
 
-const languageOptions = computed(() => [
-  { label: '简体中文', value: 'zh-CN' },
-  { label: 'English', value: 'en' },
-  { label: '한국어', value: 'ko' },
-])
-
-watch(language, (newValue) => {
-  locale.value = newValue
-}, { immediate: true })
-
-function selectLanguage(value: string) {
-  language.value = value
-}
-
-function toggleTheme(event: Event) {
-  void runThemeAppearanceTransition(event, async () => {
-    isDark.value = !isDark.value
-    await nextTick()
-  })
-}
+const { t } = useI18n()
 </script>
 
 <template>
-  <DropdownMenu>
-    <DropdownMenuTrigger as-child>
-      <slot>
-        <Button variant="ghost" size="icon" class="h-8 w-8 rounded-full">
-          <span class="i-lucide-more-vertical h-4 w-4" />
-        </Button>
-      </slot>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" class="min-w-[180px]">
+  <Popover>
+    <PopoverTrigger as-child>
+      <ActionIcon icon="i-lucide-palette" :size="size" :title="t('appearance.title')" :tooltip-side="side === 'right' ? 'right' : undefined" />
+    </PopoverTrigger>
+    <PopoverContent :side="side" :align="align" class="w-68 flex flex-col gap-4 p-4">
       <!-- Theme Switcher -->
-      <DropdownMenuItem class="cursor-pointer gap-2" @select="toggleTheme">
-        <span :class="isDark ? 'i-lucide-moon' : 'i-lucide-sun'" class="h-4 w-4" />
-        <span>{{ isDark ? t('settings.switchToLightMode') : t('settings.switchToDarkMode') }}</span>
-      </DropdownMenuItem>
-
-      <DropdownMenuSeparator />
-
+      <AppearancePicker />
+      <div class="h-px bg-line-2" />
       <!-- Language Switcher -->
-      <DropdownMenuLabel>{{ t('settings.language') }}</DropdownMenuLabel>
-      <DropdownMenuItem
-        v-for="option in languageOptions"
-        :key="option.value"
-        class="cursor-pointer justify-between"
-        @select="selectLanguage(option.value)"
-      >
-        <span>{{ option.label }}</span>
-        <span v-if="language === option.value" class="i-lucide-check h-4 w-4" />
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
+      <LanguagePicker />
+    </PopoverContent>
+  </Popover>
 </template>

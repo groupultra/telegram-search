@@ -11,6 +11,8 @@ import { computed } from 'vue'
 
 import { cn } from '@/lib/utils'
 
+import { MENU_ITEM_CLASS } from '../styles'
+
 const props = defineProps<DropdownMenuRadioItemProps & { class?: string }>()
 const emits = defineEmits<DropdownMenuRadioItemEmits>()
 
@@ -26,7 +28,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   <DropdownMenuRadioItem
     v-bind="forwarded"
     :class="cn(
-      'relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      `${MENU_ITEM_CLASS} pl-8`,
       props.class,
     )"
   >

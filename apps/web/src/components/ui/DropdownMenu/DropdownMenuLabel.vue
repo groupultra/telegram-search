@@ -6,6 +6,8 @@ import { computed } from 'vue'
 
 import { cn } from '@/lib/utils'
 
+import { MENU_LABEL_CLASS } from '../styles'
+
 const props = defineProps<DropdownMenuLabelProps & { class?: string, inset?: boolean }>()
 
 const delegatedProps = computed(() => {
@@ -18,7 +20,7 @@ const delegatedProps = computed(() => {
   <DropdownMenuLabel
     v-bind="delegatedProps"
     :class="cn(
-      'px-2 py-1.5 text-sm font-semibold',
+      MENU_LABEL_CLASS,
       inset && 'pl-8',
       props.class,
     )"

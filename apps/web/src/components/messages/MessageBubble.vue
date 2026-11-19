@@ -120,28 +120,23 @@ const messageSpacingClass = computed(() => {
 const bubbleShapeClass = computed(() => {
   if (isOwnMessage.value) {
     return [
-      isGroupedWithPrevious.value ? 'rounded-tr-sm' : 'rounded-tr-[1.35rem]',
-      isGroupedWithNext.value ? 'rounded-br-xl' : 'rounded-br-md',
-      'rounded-tl-[1.35rem]',
-      'rounded-bl-[1.35rem]',
+      isGroupedWithPrevious.value ? 'rounded-tr-xs' : 'rounded-tr-lg',
+      isGroupedWithNext.value ? 'rounded-br-xs' : 'rounded-br-lg',
+      'rounded-tl-lg',
+      'rounded-bl-lg',
     ]
   }
 
   return [
-    isGroupedWithPrevious.value ? 'rounded-tl-sm' : 'rounded-tl-[1.35rem]',
-    isGroupedWithNext.value ? 'rounded-bl-xl' : 'rounded-bl-md',
-    'rounded-tr-[1.35rem]',
-    'rounded-br-[1.35rem]',
+    isGroupedWithPrevious.value ? 'rounded-tl-xs' : 'rounded-tl-lg',
+    isGroupedWithNext.value ? 'rounded-bl-xs' : 'rounded-bl-lg',
+    'rounded-tr-lg',
+    'rounded-br-lg',
   ]
 })
 
-const tailClass = computed(() => {
-  if (isOwnMessage.value) {
-    return 'message-bubble-tail--own'
-  }
-
-  return 'message-bubble-tail--incoming'
-})
+// The bubble tail was removed with the flat redesign: grouped corners above
+// already show where a run of messages starts and ends.
 
 const bubbleTime = computed(() => {
   const date = new Date(props.message.platformTimestamp * 1000)
@@ -296,7 +291,7 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
   <ContextMenu :press-open-delay="500">
     <ContextMenuTrigger as-child>
       <div
-        class="group mx-1.5 flex items-end gap-2 px-3 py-0 md:mx-3"
+        class="group mx-auto max-w-4xl flex items-end gap-2 px-3 py-0 md:px-6"
         :class="[
           isOwnMessage ? 'justify-end' : 'justify-start',
           isDeletingMessage ? 'pointer-events-none opacity-0 scale-[0.96] blur-[1px] transition-all duration-300 ease-out' : '',
@@ -304,7 +299,7 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
       >
         <div
           v-if="!isOwnMessage"
-          class="h-10 w-10 shrink-0"
+          class="h-8 w-8 shrink-0"
         >
           <a
             v-if="showAvatar"
@@ -320,7 +315,7 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
               entity="other"
               entity-type="user"
               :name="message.fromName"
-              size="md"
+              size="sm"
             />
           </a>
         </div>
@@ -330,12 +325,12 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
           :class="[isOwnMessage ? 'items-end' : 'items-start', messageSpacingClass]"
         >
           <div
-            class="relative max-w-full min-w-0 w-fit transition-transform duration-150 group-hover:translate-y-[-1px]"
+            class="relative max-w-full min-w-0 w-fit"
             :class="[
               bubbleStretchClass,
               usesBubbleShell
                 ? [
-                  'message-bubble-shell px-3.5 py-1.5 shadow-sm',
+                  'message-bubble-shell px-3 py-1.5',
                   bubbleShapeClass,
                   isOwnMessage
                     ? 'message-bubble-shell--own'
@@ -345,27 +340,15 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
                 : 'message-bubble-plain px-0 py-0 shadow-none',
             ]"
           >
-            <span
-              v-if="usesBubbleShell && !isOwnMessage && !isGroupedWithNext"
-              class="message-bubble-tail [clip-path:polygon(100%_0,100%_100%,0_100%)] absolute bottom-[0.18rem] left-0 z-0 h-3.5 w-3.5 rounded-bl-[0.95rem] -translate-x-[0.52rem]"
-              :class="tailClass"
-            />
-
-            <span
-              v-if="usesBubbleShell && isOwnMessage && !isGroupedWithNext"
-              class="message-bubble-tail [clip-path:polygon(0_0,100%_100%,0_100%)] absolute bottom-[0.18rem] right-0 z-0 h-3.5 w-3.5 translate-x-[0.52rem] rounded-br-[0.95rem]"
-              :class="tailClass"
-            />
-
             <div
               v-if="showSenderName"
-              class="relative z-10 mb-0.5 flex items-center gap-2 text-[14px] font-semibold leading-[1.15]"
+              class="relative z-10 mb-0.5 flex items-center gap-2 text-[13px] font-medium leading-5"
             >
               <span class="truncate" :class="senderAccentClass">{{ message.fromName }}</span>
             </div>
 
             <div
-              class="relative z-10 max-w-full min-w-0 text-[14px] leading-[1.35]"
+              class="relative z-10 max-w-full min-w-0 text-sm leading-[1.5]"
               :class="[
                 messageBodyPaddingClass,
               ]"
@@ -375,7 +358,7 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
 
             <div
               v-if="usesBubbleShell"
-              class="message-bubble-meta pointer-events-none z-10 flex items-center gap-1.5 text-[10px] leading-none opacity-80"
+              class="message-bubble-meta pointer-events-none z-10 flex items-center gap-1.5 text-[11px] leading-none"
               :class="bubbleMetaClass"
             >
               <span v-if="isUpdatedMessage">{{ t('messages.updated') }}</span>
@@ -385,7 +368,7 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
 
           <div
             v-if="!usesBubbleShell"
-            class="message-bubble-meta mt-1 px-1 text-[11px] leading-none opacity-80"
+            class="message-bubble-meta mt-1 px-1 text-[11px] leading-none"
           >
             {{ bubbleTime }}
           </div>
@@ -393,8 +376,8 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
           <div
             class="pointer-events-none absolute left-full top-1/2 z-10 ml-2 flex items-center gap-2 opacity-0 transition-opacity duration-150 -translate-y-1/2 group-hover:opacity-100"
           >
-            <span class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              <span class="i-lucide-hash mr-1 h-3 w-3" />
+            <span class="inline-flex items-center text-[11px] text-fg-4">
+              <span class="i-lucide-hash h-3 w-3" />
               {{ message.platformMessageId }}
             </span>
           </div>
@@ -435,97 +418,80 @@ const contextMenuItems = computed<ContextMenuActionItem[]>(() => {
   animation: message-bubble-stretch 260ms ease-out;
 }
 
-:global(:root) {
-  --message-bubble-own-bg: #bcdfff;
-  --message-bubble-own-fg: #0f2740;
-  --message-bubble-own-shadow: 0 10px 24px rgba(97, 135, 179, 0.22);
-  --message-bubble-incoming-bg: #dbe8f7;
-  --message-bubble-incoming-fg: #14263a;
-  --message-bubble-incoming-shadow: 0 10px 24px rgba(125, 146, 175, 0.18);
-  --message-bubble-meta-fg: #526171;
-  --message-bubble-plain-fg: #1f2a37;
-}
-
-:global(html.dark) {
-  --message-bubble-own-bg: #254966;
-  --message-bubble-own-fg: #f5fbff;
-  --message-bubble-own-shadow: 0 12px 30px rgba(10, 22, 34, 0.34);
-  --message-bubble-incoming-bg: #1a2430;
-  --message-bubble-incoming-fg: #edf5ff;
-  --message-bubble-incoming-shadow: 0 12px 30px rgba(4, 12, 22, 0.3);
-  --message-bubble-meta-fg: rgb(255 255 255 / 0.7);
-  --message-bubble-plain-fg: #edf5ff;
-}
-
+/*
+ * Bubble surfaces use the design tokens in styles/main.css: incoming messages
+ * are an outlined container, own messages a soft fill. Neither uses the accent
+ * color, so long conversations stay calm in every theme.
+ */
 .message-bubble-shell {
-  --message-bubble-bg: var(--message-bubble-incoming-bg);
-  --message-bubble-fg: var(--message-bubble-incoming-fg);
-  --message-bubble-shadow: var(--message-bubble-incoming-shadow);
-  background: var(--message-bubble-bg);
-  color: var(--message-bubble-fg);
-  box-shadow: var(--message-bubble-shadow);
-  transition:
-    background-color 180ms ease,
-    color 180ms ease,
-    box-shadow 180ms ease;
+  background: hsl(var(--bg-container));
+  color: hsl(var(--fg));
+  box-shadow: inset 0 0 0 1px hsl(var(--line-secondary));
 }
 
-.message-bubble-shell--own {
-  --message-bubble-bg: var(--message-bubble-own-bg);
-  --message-bubble-fg: var(--message-bubble-own-fg);
-  --message-bubble-shadow: var(--message-bubble-own-shadow);
+html.dark .message-bubble-shell {
+  background: var(--fill-tertiary);
+  box-shadow: none;
 }
 
-.message-bubble-shell--incoming {
-  --message-bubble-bg: var(--message-bubble-incoming-bg);
-  --message-bubble-fg: var(--message-bubble-incoming-fg);
-  --message-bubble-shadow: var(--message-bubble-incoming-shadow);
-}
-
-.message-bubble-tail {
-  background: var(--message-bubble-bg);
-  transition: background-color 180ms ease;
-}
-
-.message-bubble-tail--own {
-  --message-bubble-bg: var(--message-bubble-own-bg);
-}
-
-.message-bubble-tail--incoming {
-  --message-bubble-bg: var(--message-bubble-incoming-bg);
+.message-bubble-shell.message-bubble-shell--own {
+  background: var(--fill-secondary);
+  box-shadow: none;
 }
 
 .message-bubble-meta {
-  color: var(--message-bubble-meta-fg);
-  transition: color 180ms ease;
+  color: hsl(var(--fg-3));
 }
 
 .message-bubble-plain {
-  color: var(--message-bubble-plain-fg);
-  transition: color 180ms ease;
+  color: hsl(var(--fg));
 }
 
 .message-sender-accent-0 {
+  color: #0369a1;
+}
+
+html.dark .message-sender-accent-0 {
   color: #38bdf8;
 }
 
 .message-sender-accent-1 {
+  color: #047857;
+}
+
+html.dark .message-sender-accent-1 {
   color: #34d399;
 }
 
 .message-sender-accent-2 {
+  color: #6d28d9;
+}
+
+html.dark .message-sender-accent-2 {
   color: #a78bfa;
 }
 
 .message-sender-accent-3 {
+  color: #b45309;
+}
+
+html.dark .message-sender-accent-3 {
   color: #fbbf24;
 }
 
 .message-sender-accent-4 {
+  color: #be123c;
+}
+
+html.dark .message-sender-accent-4 {
   color: #fb7185;
 }
 
 .message-sender-accent-5 {
+  color: #0e7490;
+}
+
+html.dark .message-sender-accent-5 {
   color: #22d3ee;
 }
 </style>

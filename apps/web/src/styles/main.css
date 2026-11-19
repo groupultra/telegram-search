@@ -3,73 +3,130 @@
 @import './view-transition.css';
 
 :root {
-  /* Base - Light Mode (Zinc) */
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
-  
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
-  
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-  
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
+  /*
+   * Design tokens, ported from LobeUI's default (monochrome) theme so every
+   * component draws from one scale. Solid colors are HSL triplets (usable with
+   * UnoCSS opacity modifiers); fills are alpha overlays and are used as-is.
+   * An accent theme only overrides the --primary* group.
+   */
 
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
-  
+  /* Surfaces */
+  --bg-layout: 0 0% 97%;
+  --bg-container: 0 0% 100%;
+  --bg-elevated: 0 0% 100%;
+
+  /* Overlay fills: hover, active, filled controls */
+  --fill: rgb(0 0 0 / 0.12);
+  --fill-secondary: rgb(0 0 0 / 0.06);
+  --fill-tertiary: rgb(0 0 0 / 0.03);
+  --fill-quaternary: rgb(0 0 0 / 0.015);
+
+  /* Lines */
+  --line: 0 0% 89%;
+  --line-secondary: 0 0% 93%;
+
+  /* Text ladder */
+  --fg: 0 0% 12%;
+  --fg-2: 0 0% 40%;
+  --fg-3: 0 0% 54%;
+  --fg-4: 0 0% 69%;
+
+  /* Brand and status */
+  --primary: 0 0% 13%;
+  --primary-hover: 0 0% 20%;
+  --primary-active: 0 0% 7%;
+  --primary-foreground: 0 0% 100%;
+  --info: 209 100% 45%;
+  --success: 144 100% 31%;
+  --warning: 42 100% 50%;
+  --destructive: 11 89% 58%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Elevation. --ring-line is the hairline that replaces borders on popups. */
+  --ring-line: 0 0 0 1px rgb(0 0 0 / 5%);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 4%), 0 2px 4px rgb(0 0 0 / 2%);
+  --shadow-md: 0 17.5px 23.4px rgb(0 0 0 / 4%), 0 9.4px 12.5px rgb(0 0 0 / 3%), 0 5.25px 7px rgb(0 0 0 / 2%), 0 2.8px 3.7px -2px rgb(0 0 0 / 1%), 0 1.2px 1.5px rgb(0 0 0 / 1%);
+  --shadow-lg: 0 40px 80px rgb(0 0 0 / 6%), 0 20px 40px rgb(0 0 0 / 5%), 0 10px 20px rgb(0 0 0 / 4%), 0 5px 10px rgb(0 0 0 / 3%), 0 2px 4px rgb(0 0 0 / 2%);
+  --mask: rgb(0 0 0 / 0.44);
+
+  /* Aliases for the shadcn-style utility names used by older markup. */
+  --background: var(--bg-container);
+  --foreground: var(--fg);
+  --card: var(--bg-container);
+  --card-foreground: var(--fg);
+  --popover: var(--bg-elevated);
+  --popover-foreground: var(--fg);
+  --secondary: 0 0% 96%;
+  --secondary-foreground: var(--fg);
+  --muted: 0 0% 96%;
+  --muted-foreground: var(--fg-2);
+  --accent: 0 0% 95%;
+  --accent-foreground: var(--fg);
+  --border: var(--line-secondary);
+  --input: var(--line);
+  --ring: var(--info);
+  --sidebar: var(--bg-layout);
+
   --radius: 0.5rem;
 
-  /* Modern Font Stack */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, "HarmonyOS Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, "Cascadia Code", Consolas, monospace;
+
   text-autospace: normal;
 }
 
 .dark {
-  /* Base - Dark Mode (Zinc) */
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  
-  --primary: 0 0% 98%;
-  --primary-foreground: 240 5.9% 10%;
-  
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
-  
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
+  --bg-layout: 0 0% 0%;
+  --bg-container: 0 0% 5%;
+  --bg-elevated: 0 0% 10%;
+
+  --fill: rgb(255 255 255 / 0.16);
+  --fill-secondary: rgb(255 255 255 / 0.1);
+  --fill-tertiary: rgb(255 255 255 / 0.06);
+  --fill-quaternary: rgb(255 255 255 / 0.02);
+
+  --line: 0 0% 15%;
+  --line-secondary: 0 0% 11%;
+
+  --fg: 0 0% 90%;
+  --fg-2: 0 0% 71%;
+  --fg-3: 0 0% 56%;
+  --fg-4: 0 0% 42%;
+
+  --primary: 0 0% 93%;
+  --primary-hover: 0 0% 100%;
+  --primary-active: 0 0% 80%;
+  --primary-foreground: 0 0% 0%;
+  --info: 205 100% 65%;
+  --success: 89 60% 49%;
+  --warning: 39 100% 64%;
+  --destructive: 1 77% 61%;
+
+  --ring-line: 0 0 0 1px rgb(255 255 255 / 18%);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 24%), 0 2px 4px rgb(0 0 0 / 16%);
+  --shadow-md: 0 17.5px 23.4px rgb(0 0 0 / 28%), 0 9.4px 12.5px rgb(0 0 0 / 22%), 0 5.25px 7px rgb(0 0 0 / 16%), 0 1.2px 1.5px rgb(0 0 0 / 10%);
+  --shadow-lg: 0 40px 80px rgb(0 0 0 / 36%), 0 20px 40px rgb(0 0 0 / 30%), 0 10px 20px rgb(0 0 0 / 24%), 0 5px 10px rgb(0 0 0 / 18%), 0 2px 4px rgb(0 0 0 / 12%);
+
+  --secondary: 0 0% 10%;
+  --muted: 0 0% 10%;
+  --accent: 0 0% 13%;
 }
+
+/*
+ * Accent themes. `data-accent` is set on <html> by useAppearance(); the
+ * default ("mono") needs no rule because it is the base palette above.
+ */
+[data-accent="blue"] { --primary: 217 91% 53%; --primary-hover: 217 91% 60%; --primary-active: 217 91% 46%; --primary-foreground: 0 0% 100%; }
+[data-accent="violet"] { --primary: 258 84% 60%; --primary-hover: 258 84% 67%; --primary-active: 258 84% 53%; --primary-foreground: 0 0% 100%; }
+[data-accent="green"] { --primary: 152 69% 31%; --primary-hover: 152 69% 37%; --primary-active: 152 69% 26%; --primary-foreground: 0 0% 100%; }
+[data-accent="orange"] { --primary: 21 90% 48%; --primary-hover: 21 90% 54%; --primary-active: 21 90% 42%; --primary-foreground: 0 0% 100%; }
+[data-accent="rose"] { --primary: 343 80% 50%; --primary-hover: 343 80% 57%; --primary-active: 343 80% 43%; --primary-foreground: 0 0% 100%; }
+
+.dark[data-accent="blue"] { --primary: 213 94% 62%; --primary-hover: 213 94% 70%; --primary-active: 213 94% 55%; --primary-foreground: 0 0% 0%; }
+.dark[data-accent="violet"] { --primary: 255 92% 74%; --primary-hover: 255 92% 80%; --primary-active: 255 92% 67%; --primary-foreground: 0 0% 0%; }
+.dark[data-accent="green"] { --primary: 150 60% 52%; --primary-hover: 150 60% 60%; --primary-active: 150 60% 45%; --primary-foreground: 0 0% 0%; }
+.dark[data-accent="orange"] { --primary: 27 96% 58%; --primary-hover: 27 96% 65%; --primary-active: 27 96% 51%; --primary-foreground: 0 0% 0%; }
+.dark[data-accent="rose"] { --primary: 347 90% 66%; --primary-hover: 347 90% 73%; --primary-active: 347 90% 59%; --primary-foreground: 0 0% 0%; }
 
 * {
   border-color: hsl(var(--border));
@@ -85,18 +142,61 @@ body,
   box-sizing: border-box;
   overscroll-behavior: none;
   font-family: var(--font-sans);
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background-color: hsl(var(--bg-layout));
+  color: hsl(var(--fg));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-html {
-  transition: background-color 0.3s ease, color 0.3s ease;
+/* Base type: 14px / 22px. Set on body, not html, so rem stays 16px. */
+body {
+  font-size: 14px;
+  line-height: 1.5714;
+  font-variant-numeric: tabular-nums;
+}
+
+/* One focus ring for every focusable element; components do not draw their own. */
+/* :where() keeps specificity at zero so a field can opt out with `outline-none`
+   when its box already shows the focus state. */
+:where(:focus-visible) {
+  outline: 2px solid hsl(var(--info) / 0.9);
+  outline-offset: 2px;
+}
+
+::selection {
+  background-color: hsl(var(--info) / 0.22);
+}
+
+/* Thin, unobtrusive scrollbars everywhere. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--fg-4)) transparent;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 html.dark {
   color-scheme: dark;
+}
+
+/* Toasts (vue-sonner) share the popup surface of menus and popovers. */
+[data-sonner-toaster] {
+  --normal-bg: hsl(var(--bg-elevated));
+  --normal-text: hsl(var(--fg));
+  --normal-border: transparent;
+  --border-radius: 12px;
+  font-family: var(--font-sans);
+}
+
+[data-sonner-toast] {
+  box-shadow: var(--shadow-md), var(--ring-line);
 }
 
 /* NProgress Customization */
@@ -112,8 +212,7 @@ html.dark {
   top: 0;
   left: 0;
   width: 100%;
-  height: 3px;
-  box-shadow: 0 0 10px hsl(var(--primary));
+  height: 2px;
 }
 
 @media (display-mode: standalone) {

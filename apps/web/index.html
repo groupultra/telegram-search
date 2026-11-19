@@ -5,9 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Telegram Search</title>
+    <script>
+      // Apply the saved appearance before first paint to avoid a theme flash.
+      // Keys match useAppearance() in src/composables/use-appearance.ts.
+      (function () {
+        try {
+          var mode = localStorage.getItem('vueuse-color-scheme') || 'auto'
+          var dark = mode === 'dark' || (mode !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.classList.toggle('dark', dark)
+          var accent = localStorage.getItem('tg-search/accent')
+          if (accent) document.documentElement.dataset.accent = accent
+        } catch (e) {}
+      })()
+    </script>
     <meta name="description" content="Telegram Search" />
   </head>
-  <body class="font-sans dark:text-white dark:bg-hex-121212">
+  <body class="font-sans">
     <div id="app"></div>
     <noscript>
       <div>Please enable JavaScript to use this application.</div>

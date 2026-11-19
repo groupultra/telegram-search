@@ -424,5 +424,31 @@
         "description": "다시 로그인하지 않아도 접근을 유지합니다."
       }
     }
+  },
+  "appearance": {
+    "title": "화면 스타일",
+    "description": "이 브라우저에만 저장됩니다.",
+    "mode": "모드",
+    "modes": {
+      "light": "라이트",
+      "dark": "다크",
+      "auto": "시스템"
+    },
+    "accent": "강조 색상",
+    "accents": {
+      "mono": "모노크롬",
+      "blue": "블루",
+      "violet": "바이올렛",
+      "green": "그린",
+      "orange": "오렌지",
+      "rose": "로즈"
+    }
+  },
+  "layout": {
+    "chats": "채팅",
+    "hideChatList": "채팅 목록 숨기기",
+    "showChatList": "채팅 목록 표시",
+    "searchEverything": "메시지 검색",
+    "noChatSelected": "채팅을 선택하면 메시지를 볼 수 있습니다"
   }
 }

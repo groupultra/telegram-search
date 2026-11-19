@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { LOGIN_GRADIENT_TITLE_CLASS } from '../../pages/login/styles'
-
 defineProps<{
   icon: string
   title: string
@@ -9,20 +7,21 @@ defineProps<{
 </script>
 
 <template>
-  <div class="relative isolate min-h-[100dvh] flex items-center justify-center overflow-hidden p-4 font-sans">
-    <div
-      class="[animation-duration:800ms] [animation-timing-function:cubic-bezier(0.16,1,0.3,1)] relative z-10 max-w-md w-full animate-in overflow-hidden border border-border/60 rounded-3xl bg-card/95 px-6 py-10 shadow-2xl backdrop-blur-xl fade-in zoom-in-95 slide-in-from-bottom-4 md:px-12 md:py-12"
-    >
-      <div class="mb-8 text-center">
-        <div class="mx-auto mb-6 h-16 w-16 flex items-center justify-center rounded-2xl from-primary/20 to-primary/5 bg-gradient-to-br text-primary shadow-inner ring-1 ring-border/50">
-          <span :class="icon" class="h-8 w-8" />
+  <!-- Shared frame for every signed-out screen: Telegram login and the server-auth pages. -->
+  <div class="min-h-[100dvh] w-full flex items-center justify-center bg-layout p-4 font-sans">
+    <div class="max-w-sm w-full flex flex-col animate-in gap-6 rounded-lg bg-container p-6 shadow-[var(--shadow-sm),var(--ring-line)] duration-300 fade-in slide-in-from-bottom-2">
+      <div class="flex flex-col gap-4">
+        <div class="h-10 w-10 flex items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <span :class="icon" class="h-5 w-5" />
         </div>
-        <h1 :class="`text-2xl md:text-3xl ${LOGIN_GRADIENT_TITLE_CLASS}`">
-          {{ title }}
-        </h1>
-        <p v-if="description" class="mt-3 text-base text-muted-foreground/80">
-          {{ description }}
-        </p>
+        <div class="flex flex-col gap-1">
+          <h1 class="text-xl text-fg font-semibold leading-7">
+            {{ title }}
+          </h1>
+          <p v-if="description" class="text-sm text-fg-2">
+            {{ description }}
+          </p>
+        </div>
       </div>
       <slot />
     </div>

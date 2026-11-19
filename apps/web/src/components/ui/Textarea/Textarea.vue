@@ -1,29 +1,28 @@
 <script setup lang="ts">
-import { useVModel } from '@vueuse/core'
+import type { FieldVariant } from '../styles'
 
 import { cn } from '@/lib/utils'
 
-const props = defineProps<{
+import { CONTROL_TRANSITION, FIELD_VARIANT_CLASS } from '../styles'
+
+const props = withDefaults(defineProps<{
+  variant?: FieldVariant
   class?: string
-  defaultValue?: string | number
-  modelValue?: string | number
-}>()
-
-const emits = defineEmits<{
-  (e: 'update:modelValue', payload: string | number): void
-}>()
-
-const modelValue = useVModel(props, 'modelValue', emits, {
-  passive: true,
-  defaultValue: props.defaultValue,
+}>(), {
+  variant: 'outlined',
 })
+
+const model = defineModel<string | number>()
 </script>
 
 <template>
   <textarea
-    v-model="modelValue"
+    v-model="model"
     :class="cn(
-      'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+      'min-h-20 w-full flex rounded-md px-3 py-1.5 text-sm text-fg outline-none disabled:cursor-not-allowed placeholder:text-fg-4 disabled:opacity-60',
+      CONTROL_TRANSITION,
+      // The textarea is the focus target itself, so mirror the field's focus-within look.
+      FIELD_VARIANT_CLASS[variant].replaceAll('focus-within:', 'focus:'),
       props.class,
     )"
   />

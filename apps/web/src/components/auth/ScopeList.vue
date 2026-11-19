@@ -22,13 +22,13 @@ const items = computed(() => props.scopes
 
 <template>
   <ul class="space-y-3">
-    <li v-for="item in items" :key="item.scope" class="flex items-start gap-3 border border-border/50 rounded-xl bg-muted/40 px-4 py-3">
+    <li v-for="item in items" :key="item.scope" class="flex items-start gap-3 border border-line-2 rounded-lg bg-fill-3 px-4 py-3">
       <span :class="item.icon" class="mt-0.5 h-5 w-5 shrink-0 text-primary" />
       <div class="min-w-0">
         <p class="text-sm font-medium">
           {{ t(`${item.key}.title`) }}
         </p>
-        <p class="text-sm text-muted-foreground">
+        <p class="text-sm text-fg-3">
           {{ t(`${item.key}.description`) }}
         </p>
       </div>

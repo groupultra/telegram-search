@@ -23,34 +23,16 @@ function handleNotNow() {
 </script>
 
 <template>
-  <div
-    w-full flex flex-col gap-1 rounded-xl
-  >
-    <div mb-1 text-nowrap>
+  <div class="w-full flex flex-col gap-3">
+    <div class="text-nowrap text-sm text-fg font-medium">
       {{ t('base.toaster.pwaUpdateReady.message') }}
     </div>
-    <div w-full flex items-center gap-2>
-      <Button
-        icon="i-lucide-x-circle"
-        w-full
-        size="sm"
-        aria-label="Not now"
-        @click="() => handleNotNow()"
-      >
-        <div text-nowrap>
-          {{ t('base.toaster.pwaUpdateReady.action.notNow') }}
-        </div>
+    <div class="flex items-center justify-end gap-2">
+      <Button size="sm" @click="() => handleNotNow()">
+        {{ t('base.toaster.pwaUpdateReady.action.notNow') }}
       </Button>
-      <Button
-        icon="i-lucide-check-circle"
-        w-full
-        size="sm"
-        aria-label="Update"
-        @click="() => handleUpdate()"
-      >
-        <div text-nowrap>
-          {{ t('base.toaster.pwaUpdateReady.action.ok') }}
-        </div>
+      <Button variant="primary" size="sm" @click="() => handleUpdate()">
+        {{ t('base.toaster.pwaUpdateReady.action.ok') }}
       </Button>
     </div>
   </div>

@@ -1,45 +1,33 @@
 <script setup lang="ts">
-import { useSessionStore } from '@tg-search/client'
-import { storeToRefs } from 'pinia'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-import EntityAvatar from '../components/avatar/EntityAvatar.vue'
 import ChatListSection from '../components/layout/ChatListSection.vue'
 import OptionsDropdown from '../components/layout/OptionsDropdown.vue'
 import UserDropdown from '../components/layout/UserDropdown.vue'
 
-const searchParams = ref('')
-const { activeSession } = storeToRefs(useSessionStore())
+import { ActionIcon } from '../components/ui/ActionIcon'
 
-const username = computed(() => activeSession.value?.me?.name)
+const { t } = useI18n()
+const searchParams = ref('')
+
+function openGlobalSearch() {
+  window.dispatchEvent(new Event('tg-search:open-global-search'))
+}
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-background">
+  <div class="h-full flex flex-col bg-layout">
     <!-- Header -->
-    <header class="h-14 flex items-center border-b bg-card/50 px-4 py-0 backdrop-blur-sm md:h-16 md:px-6">
-      <UserDropdown class="md:hidden">
-        <div class="flex items-center gap-2 md:hidden">
-          <EntityAvatar
-            v-if="activeSession?.me?.id != null"
-            :id="activeSession?.me?.id"
-            entity="self"
-            entity-type="user"
-            :name="username"
-            size="sm"
-            class="ring-2 ring-background"
-          />
-          <div
-            v-else
-            class="h-8 w-8 flex items-center justify-center rounded-full bg-muted text-muted-foreground ring-2 ring-background"
-          >
-            <span class="i-lucide-user h-4 w-4" />
-          </div>
-          <span class="text-sm font-semibold hidden sm:inline">{{ username }}</span>
-        </div>
-      </UserDropdown>
+    <header class="h-14 flex shrink-0 items-center gap-3 px-3">
+      <UserDropdown class="md:hidden" />
 
-      <div class="ml-auto flex items-center md:hidden">
+      <h1 class="text-base text-fg font-semibold leading-6">
+        {{ t('layout.chats') }}
+      </h1>
+
+      <div class="ml-auto flex items-center gap-1">
+        <ActionIcon icon="i-lucide-search" :title="t('layout.searchEverything')" @click="openGlobalSearch" />
         <OptionsDropdown />
       </div>
     </header>

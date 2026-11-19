@@ -7,7 +7,11 @@ import { useI18n } from 'vue-i18n'
 
 import EntityAvatar from './avatar/EntityAvatar.vue'
 
+import { Checkbox } from './ui/Checkbox'
+import { Empty } from './ui/Empty'
 import { Input } from './ui/Input'
+import { ListItem } from './ui/ListItem'
+import { Segmented } from './ui/Segmented'
 
 const props = defineProps<{
   chats: CoreDialog[]
@@ -135,132 +139,88 @@ function handleChatRowKeydown(event: KeyboardEvent, id: number) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-3 md:flex-row md:gap-6">
+  <div class="h-full flex flex-col gap-3 lg:flex-row lg:gap-4">
     <!-- Left Sidebar: Filter Groups (Desktop) -->
-    <div class="w-32 flex-shrink-0 flex-col gap-1 border-r pr-4 hidden lg:flex">
-      <div class="mb-2 px-2 text-xs text-muted-foreground font-semibold tracking-wider uppercase">
+    <div class="w-40 flex-shrink-0 flex-col gap-0.5 hidden lg:flex">
+      <div class="px-3 pb-1.5 pt-2 eyebrow">
         {{ t('chatSelector.filters') }}
       </div>
-      <button
+      <ListItem
         v-for="option in filterOptions"
         :key="option.value"
-        class="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-all"
-        :class="selectedFilter === option.value ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+        :active="selectedFilter === option.value"
         @click="selectedFilter = option.value"
       >
-        <span class="truncate">{{ option.label }}</span>
-        <span v-if="selectedFilter === option.value" class="i-lucide-chevron-right h-4 w-4 opacity-50" />
-      </button>
+        {{ option.label }}
+      </ListItem>
     </div>
 
     <!-- Mobile Filters (Top Bar) -->
-    <div class="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1 md:hidden">
-      <button
-        v-for="option in filterOptions"
-        :key="option.value"
-        class="flex shrink-0 items-center gap-2 border rounded-full px-3 py-1.5 text-xs font-medium transition-all"
-        :class="selectedFilter === option.value
-          ? 'bg-primary text-primary-foreground border-primary'
-          : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'"
-        @click="selectedFilter = option.value"
-      >
-        <span>{{ option.label }}</span>
-      </button>
+    <div class="no-scrollbar shrink-0 overflow-x-auto lg:hidden">
+      <Segmented v-model="selectedFilter" :options="filterOptions" size="sm" />
     </div>
 
     <!-- Right Content: Search & List -->
-    <div class="min-w-0 flex flex-1 flex-col space-y-3 md:space-y-4">
-      <!-- Search Input -->
-      <div class="flex flex-col gap-3">
-        <div class="group relative w-full">
-          <div
-            class="i-lucide-search absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transition-colors -translate-y-1/2 group-focus-within:text-primary"
-          />
-          <Input
-            v-model="searchQuery"
-            type="text"
-            :placeholder="t('chatSelector.searchPlaceholder')"
-            class="h-10 border-border/60 rounded-xl bg-background/80 pl-9 text-foreground shadow-sm transition-all focus:border-primary/35 hover:border-border focus:bg-background hover:bg-background placeholder:text-foreground/45 focus:ring-2 focus:ring-primary/15"
-          />
-        </div>
+    <div class="min-w-0 flex flex-1 flex-col gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Search Input -->
+        <Input
+          v-model="searchQuery"
+          type="text"
+          prefix-icon="i-lucide-search"
+          :placeholder="t('chatSelector.searchPlaceholder')"
+          class="min-w-48 flex-1"
+        />
 
-        <!-- Actions Area (Below Search) -->
-        <div class="flex flex-wrap items-center justify-between gap-2">
+        <!-- Actions Area -->
+        <div class="flex shrink-0 items-center gap-2">
           <slot name="actions" />
         </div>
       </div>
 
       <!-- Chat List Container -->
-      <div class="min-h-0 flex-1 overflow-hidden border rounded-2xl bg-card">
+      <div class="min-h-0 flex-1 overflow-hidden rounded-lg bg-container shadow-[inset_0_0_0_1px_hsl(var(--line-secondary))] dark:bg-fill-4">
         <!-- No Results Message -->
-        <div v-if="filteredChats.length === 0" class="h-full flex flex-col items-center justify-center py-16">
-          <div class="mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-muted">
-            <span class="i-lucide-search-x h-8 w-8 text-muted-foreground" />
-          </div>
-          <p class="text-base text-muted-foreground font-medium">
-            {{ t('chatSelector.noChatsFound') }}
-          </p>
-        </div>
+        <Empty v-if="filteredChats.length === 0" icon="i-lucide-search-x" :title="t('chatSelector.noChatsFound')" />
 
         <!-- Virtual Chat List -->
         <VList
           v-else
           :data="filteredChats"
-          class="no-scrollbar h-full"
+          class="h-full p-1"
         >
           <template #default="{ item: chat }">
-            <div
+            <ListItem
               :key="`${chat.id}-${isSelected(chat.id) ? 'checked' : 'unchecked'}`"
-              class="group flex cursor-pointer items-center gap-3 border-b px-3 py-3 transition-all hover:bg-accent/50 md:px-4"
-              :class="{
-                'bg-primary/5': isSelected(chat.id),
-              }"
+              as="div"
               role="button"
               tabindex="0"
+              :description="chat.subtitle"
+              :active="isSelected(chat.id)"
+              class="mb-0.5 font-normal!"
               @click="toggleSelection(chat.id)"
               @keydown="handleChatRowKeydown($event, chat.id)"
             >
-              <EntityAvatar
-                :id="chat.id"
-                entity="other"
-                entity-type="chat"
-                :file-id="chat.avatarFileId"
-                :name="chat.name"
-                size="sm"
-                class="shrink-0"
-              />
-
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center justify-between gap-2">
-                  <p class="truncate text-sm text-foreground font-medium">
-                    {{ chat.title }}
-                  </p>
-                </div>
-                <p class="truncate text-xs text-muted-foreground">
-                  {{ chat.subtitle }}
-                </p>
-              </div>
-
-              <div
-                class="h-5 w-5 flex shrink-0 items-center justify-center border rounded-md transition-colors"
-                :class="isSelected(chat.id) ? 'border-primary bg-primary text-primary-foreground' : 'border-border/70 text-transparent'"
-              >
-                <span class="i-lucide-check h-3 w-3" />
-              </div>
-            </div>
+              <template #prefix>
+                <EntityAvatar
+                  :id="chat.id"
+                  entity="other"
+                  entity-type="chat"
+                  :file-id="chat.avatarFileId"
+                  :name="chat.name"
+                  size="sm"
+                  class="shrink-0"
+                />
+              </template>
+              <span class="text-fg">{{ chat.title }}</span>
+              <template #suffix>
+                <!-- Display only: the whole row toggles the selection. -->
+                <Checkbox :model-value="isSelected(chat.id)" tabindex="-1" class="pointer-events-none" />
+              </template>
+            </ListItem>
           </template>
         </VList>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>

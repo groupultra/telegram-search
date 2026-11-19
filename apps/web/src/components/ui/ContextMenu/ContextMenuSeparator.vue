@@ -6,6 +6,8 @@ import { computed } from 'vue'
 
 import { cn } from '@/lib/utils'
 
+import { MENU_SEPARATOR_CLASS } from '../styles'
+
 const props = defineProps<ContextMenuSeparatorProps & { class?: string }>()
 
 const delegatedProps = computed(() => {
@@ -17,6 +19,6 @@ const delegatedProps = computed(() => {
 <template>
   <ContextMenuSeparator
     v-bind="delegatedProps"
-    :class="cn('-mx-1 my-1 h-px bg-border', props.class)"
+    :class="cn(MENU_SEPARATOR_CLASS, props.class)"
   />
 </template>

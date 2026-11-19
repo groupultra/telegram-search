@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { useLogger } from '@guiiai/logg'
 import { evictExpiredOrOversized, useAccountStore, useAvatarStore, useBridge, useSessionStore } from '@tg-search/client'
+import { TooltipProvider } from 'reka-ui'
 import { hideSplashScreen } from 'vite-plugin-splash-screen/runtime'
 import { onBeforeUnmount, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { toast, Toaster } from 'vue-sonner'
 
+import { useAppearance } from './composables/use-appearance'
 import { isServerAuthRoute, safeRedirectPath } from './lib/server-auth'
 import { usePWAStore } from './stores/pwa'
 import { useServerAuthStore } from './stores/server-auth'
+
+// Applies the saved accent theme on every route, including layout-less auth pages.
+const { isDark } = useAppearance()
 
 const { t } = useI18n()
 
@@ -86,15 +91,17 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground transition-all duration-300 ease-in-out">
-    <Toaster position="top-right" :expand="true" :rich-colors="true" />
+  <TooltipProvider :delay-duration="400" :skip-delay-duration="200">
+    <div class="min-h-screen bg-layout text-fg">
+      <Toaster position="top-right" :expand="true" :rich-colors="true" :theme="isDark ? 'dark' : 'light'" />
 
-    <RouterView v-slot="{ Component }">
-      <Transition>
-        <KeepAlive>
-          <component :is="Component" />
-        </KeepAlive>
-      </Transition>
-    </RouterView>
-  </div>
+      <RouterView v-slot="{ Component }">
+        <Transition>
+          <KeepAlive>
+            <component :is="Component" />
+          </KeepAlive>
+        </Transition>
+      </RouterView>
+    </div>
+  </TooltipProvider>
 </template>

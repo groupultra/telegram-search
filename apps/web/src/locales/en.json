@@ -424,5 +424,31 @@
         "description": "Keep access without asking you to sign in again."
       }
     }
+  },
+  "appearance": {
+    "title": "Appearance",
+    "description": "Stored in this browser only.",
+    "mode": "Mode",
+    "modes": {
+      "light": "Light",
+      "dark": "Dark",
+      "auto": "System"
+    },
+    "accent": "Accent color",
+    "accents": {
+      "mono": "Monochrome",
+      "blue": "Blue",
+      "violet": "Violet",
+      "green": "Green",
+      "orange": "Orange",
+      "rose": "Rose"
+    }
+  },
+  "layout": {
+    "chats": "Chats",
+    "hideChatList": "Hide chat list",
+    "showChatList": "Show chat list",
+    "searchEverything": "Search messages",
+    "noChatSelected": "Select a chat to read its messages"
   }
 }
