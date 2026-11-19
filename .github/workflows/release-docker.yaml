@@ -17,7 +17,9 @@ on:
 
 jobs:
   ghcr_build:
-    timeout-minutes: 15
+    # Multi-arch builds (arm64 under QEMU) take 10-15 min with a warm cache and
+    # longer after dependency changes; v1.8.0 hit the old 15 min limit twice.
+    timeout-minutes: 45
     name: Release
     runs-on: ubuntu-latest
 
