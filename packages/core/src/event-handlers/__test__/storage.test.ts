@@ -67,11 +67,12 @@ const models = {
 } as unknown as Models
 
 describe('storage event handlers - dialogs with accounts', () => {
-  it('storage:fetch:dialogs should query dialogs for given account and emit mapped dialogs', async () => {
+  it('storage:fetch:dialogs should query dialogs for the current account and emit mapped dialogs', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
     registerStorageEventHandlers(ctx, logger, models)
 
     const ACCOUNT_ID = 'account-xyz'
+    ctx.setCurrentAccountId(ACCOUNT_ID)
 
     const dialogsPromise = new Promise<CoreDialog[]>((resolve) => {
       ctx.emitter.on(CoreEventType.StorageDialogs, ({ dialogs }) => {
@@ -79,7 +80,7 @@ describe('storage event handlers - dialogs with accounts', () => {
       })
     })
 
-    ctx.emitter.emit(CoreEventType.StorageFetchDialogs, { accountId: ACCOUNT_ID })
+    ctx.emitter.emit(CoreEventType.StorageFetchDialogs)
 
     const dialogs = await dialogsPromise
 
@@ -103,11 +104,12 @@ describe('storage event handlers - dialogs with accounts', () => {
     ])
   })
 
-  it('storage:record:dialogs should call recordChats with dialogs and accountId', async () => {
+  it('storage:record:dialogs should link the dialogs to the current account only', async () => {
     const ctx = createCoreContext(getMockEmptyDB, models, logger)
     registerStorageEventHandlers(ctx, logger, models)
 
     const ACCOUNT_ID = 'account-abc'
+    ctx.setCurrentAccountId(ACCOUNT_ID)
     const dialogs: CoreDialog[] = [
       {
         id: 2001,
@@ -117,7 +119,10 @@ describe('storage event handlers - dialogs with accounts', () => {
       },
     ]
 
-    ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs, accountId: ACCOUNT_ID })
+    // The handler used to take accountId from the event payload,
+    // so a WebSocket client could link any account to any chat. An extra field
+    // in the payload must not change which account is linked.
+    ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs, accountId: 'attacker-chosen' } as { dialogs: CoreDialog[] })
 
     expect(recordChats).toHaveBeenCalledTimes(1)
     expect(recordChats).toHaveBeenCalledWith(expect.anything(), dialogs, ACCOUNT_ID)

@@ -26,7 +26,7 @@ import { defineWebSocketHandler } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
 
 import { accountStates, getOrCreateAccount, peerObjects, peerToAccountId } from './account'
-import { sendWsEvent } from './events'
+import { isClientEmittableCoreEvent, sendWsEvent } from './events'
 
 const WS_MODE_LABEL = 'server' as const
 
@@ -221,6 +221,14 @@ export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions =
           return
         }
 
+        // Internal core events trust their payload (accountId, dialogs, raw
+        // Telegram messages). Forwarding them let a client link its account
+        // to any chat and relabel private chats, so only UI events pass.
+        if (!isClientEmittableCoreEvent(event.type)) {
+          logger.withFields({ type: event.type, accountId }).warn('Rejected WebSocket event that clients may not emit')
+          return
+        }
+
         // An account-scoped context already has an authorized Telegram client.
         // Replaying auth:login from another tab must not create and replace it.
         if (event.type === CoreEventType.AuthLogin && respondToReadyLogin(peer, account)) {
@@ -231,9 +239,7 @@ export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions =
 
         logger.withFields({ type: event.type, accountId, tracingId }).verbose('Message received')
 
-        if (!event.type.startsWith('server:')) {
-          coreEventsInTotal.add(1, { event_name: event.type })
-        }
+        coreEventsInTotal.add(1, { event_name: event.type })
 
         // Emit to core context (meta.tracingId is re-bound via emitter on/once wrappers)
         account.ctx.emitter.emit(event.type, { ...event.data, meta: { tracingId } } as ExtractData<keyof ToCoreEvent>)

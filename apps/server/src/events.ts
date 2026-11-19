@@ -2,6 +2,7 @@ import type { FromCoreEvent, ToCoreEvent } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
+import { CoreEventType } from '@tg-search/core'
 import { wsSendFailTotal } from '@tg-search/observability'
 
 export interface WsEventMeta {
@@ -18,6 +19,51 @@ export interface WsEventFromClient {
   'server:event:register': (data: { event: keyof WsEventToClient }) => void
   /** Requests a sign-in ticket for the Telegram account this session is logged in to. */
   'server:sign-in-ticket': (data: undefined) => void
+}
+
+/**
+ * Core events a WebSocket client may emit. Every other core event is internal:
+ * persistence (`storage:record:*`), Telegram updates (`gram:*`), message
+ * processing, `account:ready`, and cleanup. Those handlers trust their payload
+ * because only core code emits them, so a client must never reach them.
+ * Add an event here only when the UI sends it and its handler scopes all reads
+ * and writes to `ctx.getCurrentAccountId()`.
+ */
+export const CLIENT_EMITTABLE_CORE_EVENTS: ReadonlySet<string> = new Set<keyof ToCoreEvent>([
+  CoreEventType.AuthLogin,
+  CoreEventType.AuthLogout,
+  CoreEventType.AuthCode,
+  CoreEventType.AuthPassword,
+
+  CoreEventType.ConfigFetch,
+  CoreEventType.ConfigUpdate,
+
+  CoreEventType.DialogFoldersFetch,
+  CoreEventType.DialogAvatarFetch,
+
+  CoreEventType.EntityAvatarFetch,
+  CoreEventType.EntityAvatarPrimeCache,
+  CoreEventType.EntityChatAvatarPrimeCache,
+
+  CoreEventType.MessageFetchSummary,
+  CoreEventType.MessageRead,
+  CoreEventType.MessageReprocess,
+  CoreEventType.MessageSend,
+
+  CoreEventType.StorageFetchDialogs,
+  CoreEventType.StorageSearchMessages,
+  CoreEventType.StorageSearchPhotos,
+  CoreEventType.StorageFetchMessageEditMarks,
+  CoreEventType.StorageChatNote,
+
+  CoreEventType.TakeoutRun,
+  CoreEventType.TakeoutTaskAbort,
+  CoreEventType.TakeoutStatsFetch,
+  CoreEventType.TakeoutConfirmResponse,
+])
+
+export function isClientEmittableCoreEvent(type: unknown): type is keyof ToCoreEvent {
+  return typeof type === 'string' && CLIENT_EMITTABLE_CORE_EVENTS.has(type)
 }
 
 export type WsEventToServer = ToCoreEvent & WsEventFromClient

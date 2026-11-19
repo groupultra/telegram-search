@@ -5,7 +5,7 @@ import { isEventaFrame, respondToReadyLogin, respondToSignInTicketRequest } from
 
 const sendWsEvent = vi.hoisted(() => vi.fn())
 
-vi.mock('./events', () => ({ sendWsEvent }))
+vi.mock('./events', async importOriginal => ({ ...await importOriginal<typeof import('./events')>(), sendWsEvent }))
 
 beforeEach(() => {
   sendWsEvent.mockClear()
