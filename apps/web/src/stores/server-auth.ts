@@ -41,10 +41,7 @@ export const useServerAuthStore = defineStore('server-auth', () => {
   }
 
   async function requestTicket(): Promise<string> {
-    const bridge = useBridge()
-    const response = bridge.waitForEvent('server:sign-in-ticket')
-    bridge.sendEvent('server:sign-in-ticket')
-    const result = await response
+    const result = await useBridge().requestSignInTicket()
     if ('error' in result)
       throw new Error(`The server did not issue a sign-in ticket: ${result.error}`)
     return result.ticket

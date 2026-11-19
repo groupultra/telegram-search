@@ -1,15 +1,9 @@
-import type {
-  WsEventToClient,
-  WsEventToClientData,
-  WsEventToServer,
-  WsEventToServerData,
-  WsMessageToClient,
-  WsMessageToServer,
-} from '@tg-search/server/types'
+import type { UiCommandInput, UiCommandType, UiNotificationData, UiNotificationType } from '@tg-search/core'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 
 import { useLogger } from '@guiiai/logg'
+import { UI_HEARTBEAT_PING, UI_HEARTBEAT_PONG } from '@tg-search/core'
 import { useEventListener, useWebSocket } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { computed, onScopeDispose } from 'vue'
@@ -22,9 +16,7 @@ import { useAccountStore } from '../stores/useAccount'
 import { useSessionStore } from '../stores/useSession'
 import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { createWebSocketApplicationBridge } from './eventa-websocket'
-
-export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
-export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
+import { emitUiCommand, listenUiNotifications } from './ui-eventa'
 
 // Renamed to 'adapter' to signify it's not the main store anymore
 export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
@@ -45,31 +37,36 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
 
   const eventHandlers: ClientEventHandlerMap = new Map()
   const eventHandlersQueue: ClientEventHandlerQueueMap = new Map()
+  const registerEventHandler = getRegisterEventHandler(eventHandlers)
 
   // Explicit type to allow undefined URL to pause connection
-  let wsSocket: ReturnType<typeof useWebSocket<keyof WsMessageToClient>>
+  let wsSocket: ReturnType<typeof useWebSocket<string>>
 
-  const createWsMessage: ClientCreateWsMessageFn = (type, data) => {
-    return { type, data } as WsMessageToServer
+  const application = createWebSocketApplicationBridge(() => wsSocket.ws.value, {
+    onBind: context => listenUiNotifications(context, (type, data) => {
+      if (!disposed)
+        handleNotification(type, data)
+    }),
+  })
+
+  function sendEvent<T extends UiCommandType>(event: T, data?: UiCommandInput<T>) {
+    logger.debug('Sending event', event, data)
+    // getContext throws when the socket is not open, as the legacy send did.
+    void emitUiCommand(application.getContext(), event, data)
   }
 
-  function sendEvent<T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) {
-    if (event !== 'server:event:register')
-      logger.debug('Sending event', event, data)
-
-    if (!wsSocket.send(JSON.stringify(createWsMessage(event, data)), false))
-      throw new Error('WebSocket is not connected')
-  }
-
-  const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
-
-  function handleWsConnected() {
+  function handleWsConnected(socket: WebSocket) {
     logger.log('Connected')
+    if (disposed || socket !== wsSocket.ws.value)
+      return
     registerAllEventHandlers(registerEventHandler)
+    // Bind the Eventa context now: the server sends server:connected as soon
+    // as the socket opens, and the listeners must exist before that frame.
+    application.getContext()
   }
 
   // useWebSocket automatically handles reconnection when url changes
-  wsSocket = useWebSocket<keyof WsMessageToClient>(wsUrlComputed, {
+  wsSocket = useWebSocket<string>(wsUrlComputed, {
     onConnected: handleWsConnected,
     onDisconnected: (socket) => {
       if (disposed || socket !== wsSocket.ws.value)
@@ -80,19 +77,14 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     },
     autoReconnect: { retries: -1, delay: 2000 },
     heartbeat: {
-      message: '{"type":"server:ping"}',
-      responseMessage: '{"type":"server:pong"}',
+      message: UI_HEARTBEAT_PING,
+      responseMessage: UI_HEARTBEAT_PONG,
       interval: 30000,
       pongTimeout: 10000,
-    },
-    onMessage: (socket, event) => {
-      if (!disposed && socket === wsSocket.ws.value && wsSocket.status.value === 'OPEN')
-        handleMessage(event.data)
     },
     // Only connect when URL is defined
     immediate: !!wsUrlComputed.value,
   })
-  const application = createWebSocketApplicationBridge(() => wsSocket.ws.value)
   onScopeDispose(() => {
     disposed = true
     void application.dispose?.()
@@ -110,45 +102,34 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     })
   }
 
-  function waitForEvent<T extends keyof WsEventToClient>(
+  function waitForEvent<T extends UiNotificationType>(
     event: T,
-    predicate?: (data: WsEventToClientData<T>) => boolean,
+    predicate?: (data: UiNotificationData<T>) => boolean,
   ) {
     logger.withFields({ event }).debug('Waiting for event')
-    return new Promise<WsEventToClientData<T>>((resolve) => {
-      enqueueEventHandler(eventHandlersQueue, event, (data: WsEventToClientData<T>) => {
+    return new Promise<UiNotificationData<T>>((resolve) => {
+      enqueueEventHandler(eventHandlersQueue, event, (data: UiNotificationData<T>) => {
         logger.withFields({ event, data }).debug('Resolving event')
         resolve(data)
       }, predicate)
     })
   }
 
-  function handleMessage(rawMessage: string) {
-    if (!rawMessage)
-      return
-    try {
-      const message = JSON.parse(rawMessage) as WsMessageToClient
-      if (eventHandlers.has(message.type)) {
-        logger.debug('Message received', message)
+  function handleNotification<T extends UiNotificationType>(type: T, data: UiNotificationData<T>) {
+    const fn = eventHandlers.get(type)
+    if (fn) {
+      logger.debug('Message received', type, data)
+      try {
+        fn(data as UiNotificationData<UiNotificationType>)
       }
-      if (eventHandlers.has(message.type)) {
-        const fn = eventHandlers.get(message.type)
-        try {
-          if (fn)
-            fn(message.data)
-        }
-        catch (error) {
-          logger.withError(error).withFields({ message }).error('Error handling event')
-        }
-      }
-      if (eventHandlersQueue.has(message.type)) {
-        drainEventQueue(eventHandlersQueue, message.type, message.data, (error) => {
-          logger.withError(error).withFields({ message }).error('Error handling queued event')
-        })
+      catch (error) {
+        logger.withError(error).withFields({ type }).error('Error handling event')
       }
     }
-    catch (error) {
-      logger.error('Invalid message', rawMessage, error)
+    if (eventHandlersQueue.has(type)) {
+      drainEventQueue(eventHandlersQueue, type, data, (error) => {
+        logger.withError(error).withFields({ type }).error('Error handling queued event')
+      })
     }
   }
 
@@ -157,6 +138,7 @@ export const useWebsocketAdapter = defineStore('websocket-adapter', () => {
     init,
     sendEvent,
     waitForEvent,
+    requestSignInTicket: () => application.requestSignInTicket(),
   }
 })
 

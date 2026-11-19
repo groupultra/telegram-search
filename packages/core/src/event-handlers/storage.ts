@@ -45,10 +45,12 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     logger.withFields({ count: messages.length }).verbose('Messages recorded')
   })
 
-  ctx.emitter.on(CoreEventType.StorageFetchDialogs, async (data) => {
+  ctx.emitter.on(CoreEventType.StorageFetchDialogs, async () => {
     logger.verbose('Fetching dialogs')
 
-    const accountId = data?.accountId || ctx.getCurrentAccountId()
+    // The account always comes from the context; a client-sent accountId would
+    // let one session read another account's chat list.
+    const accountId = ctx.getCurrentAccountId()
 
     const dbChats = (await dbModels.chatModels.fetchChatsByAccountId(ctx.getDB(), accountId))?.unwrap()
     const chatsMessageStats = (await dbModels.chatMessageStatsModels.getChatMessagesStats(ctx.getDB(), accountId))?.unwrap()
@@ -75,7 +77,7 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
     ctx.emitter.emit(CoreEventType.StorageDialogs, { dialogs })
   })
 
-  ctx.emitter.on(CoreEventType.StorageRecordDialogs, async ({ dialogs, accountId }) => {
+  ctx.emitter.on(CoreEventType.StorageRecordDialogs, async ({ dialogs }) => {
     logger.withFields({
       size: dialogs.length,
       users: dialogs.filter(d => d.type === 'user').length,
@@ -88,14 +90,15 @@ export function registerStorageEventHandlers(ctx: CoreContext, logger: Logger, d
       return
     }
 
-    const result = await dbModels.chatModels.recordChats(ctx.getDB(), dialogs, accountId)
+    const result = await dbModels.chatModels.recordChats(ctx.getDB(), dialogs, ctx.getCurrentAccountId())
     logger.withFields({ count: result.length }).verbose('Successfully recorded dialogs')
   })
 
-  ctx.emitter.on(CoreEventType.StorageRecordChatFolders, async ({ folders, accountId }) => {
+  ctx.emitter.on(CoreEventType.StorageRecordChatFolders, async ({ folders }) => {
     logger.withFields({ count: folders.length }).verbose('Recording chat folders')
 
     const db = ctx.getDB()
+    const accountId = ctx.getCurrentAccountId()
 
     // Update folder mapping in account_joined_chats
     await dbModels.chatFolderModels.updateChatFolders(db, accountId, folders)

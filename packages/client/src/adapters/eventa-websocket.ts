@@ -1,12 +1,28 @@
 import type { EventContext } from '@moeru/eventa'
+import type { SignInTicketResult } from '@tg-search/core'
 
 import type { ApplicationBridge } from '../types/bridge'
 
-import { defineInvokes } from '@moeru/eventa'
+import { defineInvoke, defineInvokes } from '@moeru/eventa'
 import { createContext } from '@moeru/eventa/adapters/websocket/native'
+import { signInTicketContract, UI_HEARTBEAT_PONG } from '@tg-search/core'
 import { chatContracts, messageContracts, statsContracts } from '@tg-search/protocol'
 
-export function createWebSocketApplicationBridge(getSocket: () => WebSocket | undefined): ApplicationBridge {
+export interface WebSocketEventaBridge extends ApplicationBridge {
+  /** The Eventa context bound to the current socket; binds it on first use. */
+  getContext: () => EventContext<any, any>
+  requestSignInTicket: () => Promise<SignInTicketResult>
+}
+
+/**
+ * One Eventa context per socket, shared by UI contracts and application
+ * invokes. `onBind` runs for each new context, before any frame on that
+ * socket is delivered, so listeners added there see the first notification.
+ */
+export function createWebSocketApplicationBridge(
+  getSocket: () => WebSocket | undefined,
+  options: { onBind?: (context: EventContext<any, any>) => void } = {},
+): WebSocketEventaBridge {
   let binding: { socket: WebSocket, context: EventContext<any, any>, dispose: () => void } | undefined
 
   function bindSocket(socket: WebSocket) {
@@ -24,7 +40,7 @@ export function createWebSocketApplicationBridge(getSocket: () => WebSocket | un
       onopen: null,
     }
     const forwardMessage = (event: MessageEvent) => {
-      if (event.data === '{"type":"server:pong"}')
+      if (event.data === UI_HEARTBEAT_PONG)
         return
       facade.onmessage?.call(socket, event)
     }
@@ -34,6 +50,7 @@ export function createWebSocketApplicationBridge(getSocket: () => WebSocket | un
     socket.addEventListener('close', forwardClose)
     socket.addEventListener('error', forwardError)
     const context = createContext(facade as WebSocket).context
+    options.onBind?.(context)
     return {
       socket,
       context,
@@ -46,7 +63,7 @@ export function createWebSocketApplicationBridge(getSocket: () => WebSocket | un
     }
   }
 
-  function getInvokes() {
+  function getContext() {
     const socket = getSocket()
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket is not connected')
@@ -55,7 +72,11 @@ export function createWebSocketApplicationBridge(getSocket: () => WebSocket | un
       binding?.dispose()
       binding = bindSocket(socket)
     }
-    const eventContext = binding.context
+    return binding.context
+  }
+
+  function getInvokes() {
+    const eventContext = getContext()
     return {
       chats: defineInvokes(eventContext, chatContracts),
       messages: defineInvokes(eventContext, messageContracts),
@@ -64,6 +85,8 @@ export function createWebSocketApplicationBridge(getSocket: () => WebSocket | un
   }
 
   return {
+    getContext,
+    requestSignInTicket: () => defineInvoke(getContext(), signInTicketContract)(),
     listChats: input => getInvokes().chats.list(input),
     listRemoteMessages: input => getInvokes().messages.listRemote(input),
     queryLocalMessages: input => getInvokes().messages.queryLocal(input),

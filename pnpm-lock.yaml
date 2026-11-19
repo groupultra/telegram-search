@@ -458,9 +458,6 @@ importers:
       '@tg-search/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@tg-search/server':
-        specifier: workspace:*
-        version: link:../../apps/server
       '@vueuse/core':
         specifier: ^14.4.0
         version: 14.4.0(vue@3.5.40(typescript@5.9.3))

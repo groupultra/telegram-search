@@ -1,3 +1,4 @@
+import type { SignInTicketResult, UiCommandInput, UiCommandType, UiNotificationData, UiNotificationType } from '@tg-search/core'
 import type {
   AppResult,
   ChatRecord,
@@ -13,16 +14,8 @@ import type {
   StatsInput,
   StatsResult,
 } from '@tg-search/protocol'
-import type {
-  WsEventToClient,
-  WsEventToClientData,
-  WsEventToServer,
-  WsEventToServerData,
-  WsMessageToServer,
-} from '@tg-search/server/types'
 
-export type ClientSendEventFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => void
-export type ClientCreateWsMessageFn = <T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) => WsMessageToServer
+export type ClientSendEventFn = <T extends UiCommandType>(event: T, data?: UiCommandInput<T>) => void
 
 export interface BridgeAdapter {
   /**
@@ -30,10 +23,12 @@ export interface BridgeAdapter {
    */
   init: () => Promise<void>
   sendEvent: ClientSendEventFn
-  waitForEvent: <T extends keyof WsEventToClient>(
+  waitForEvent: <T extends UiNotificationType>(
     event: T,
-    predicate?: (data: WsEventToClientData<T>) => boolean,
-  ) => Promise<WsEventToClientData<T>>
+    predicate?: (data: UiNotificationData<T>) => boolean,
+  ) => Promise<UiNotificationData<T>>
+  /** Requests a sign-in ticket for the Telegram account this session is logged in to. */
+  requestSignInTicket: () => Promise<SignInTicketResult>
   application: ApplicationBridge
 }
 

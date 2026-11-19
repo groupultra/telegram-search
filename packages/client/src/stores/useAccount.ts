@@ -130,9 +130,9 @@ export const useAccountStore = defineStore('account', () => {
       return
 
     logger.verbose('Marking account as ready')
-    // NOTICE: config:data forwarding depends on websocket event registration.
-    // Requesting immediately here can race with server:event:register on fresh
-    // reconnects, so view layers also issue an explicit fetch when needed.
+    // NOTICE: the short delay lets a fresh reconnect finish binding its
+    // notification listeners before config:data comes back; view layers also
+    // issue an explicit fetch when needed.
     configTimer = window.setTimeout(() => {
       configTimer = undefined
       logger.verbose('Fetching config for new session')

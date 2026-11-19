@@ -1,5 +1,5 @@
 import type { Config } from '@tg-search/common'
-import type { CoreContext, CoreEmitter, FromCoreEvent } from '@tg-search/core'
+import type { CoreContext, CoreEmitter } from '@tg-search/core'
 import type { Peer } from 'crossws'
 
 import { useLogger } from '@guiiai/logg'
@@ -20,8 +20,6 @@ import { getMediaStorage } from './storage/media'
  * Risks:
  * - Long-lived accounts increase memory usage; monitor active account count.
  */
-export type CoreEventListener = (...args: unknown[]) => void
-
 export interface AccountState {
   ctx: CoreContext
 
@@ -29,11 +27,6 @@ export interface AccountState {
    * Whether the account is ready to be used
    */
   accountReady: boolean
-
-  /**
-   * Core event listeners (registered once, shared by all WebSocket connections)
-   */
-  coreEventListeners: Map<keyof FromCoreEvent, CoreEventListener>
 
   /**
    * Active WebSocket peers for this account
@@ -84,7 +77,6 @@ export function getOrCreateAccount(accountId: string, config: Config): AccountSt
     const account: AccountState = {
       ctx,
       accountReady: false,
-      coreEventListeners: new Map(),
       activePeers: new Set(),
       createdAt: Date.now(),
       lastActive: Date.now(),

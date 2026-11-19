@@ -2,7 +2,7 @@
 
 import { useLogger } from '@guiiai/logg'
 import { generateDefaultConfig } from '@tg-search/common'
-import { CoreEventType, destroyCoreInstance } from '@tg-search/core'
+import { CoreEventType, destroyCoreInstance, uiNotificationContracts } from '@tg-search/core'
 import { plugin as wsPlugin } from 'crossws/server'
 import { H3, serve } from 'h3'
 import { expect, it } from 'vitest'
@@ -37,7 +37,10 @@ it('answers heartbeats over a real WebSocket and retains the account across reco
     const socket = new WebSocket(url)
     sockets.push(socket)
     const handshake = JSON.parse(await nextMessage(socket))
-    expect(handshake).toEqual({ type: 'server:connected', data: { sessionId: 'recovery-test', accountReady: false } })
+    expect(handshake.eventa).toMatchObject({
+      id: uiNotificationContracts['server:connected'].id,
+      body: { sessionId: 'recovery-test', accountReady: false },
+    })
     return socket
   }
 

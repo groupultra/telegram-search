@@ -10,6 +10,7 @@ import { accountJoinedChatsTable } from '../../schemas/account-joined-chats'
 import { chatMessagesTable } from '../../schemas/chat-messages'
 import { joinedChatsTable } from '../../schemas/joined-chats'
 import { ensureJieba } from '../../utils/jieba'
+import { ownerScopedCondition } from './message-acl'
 
 export async function retrieveJieba(
   db: CoreDB,
@@ -49,12 +50,7 @@ export async function retrieveJieba(
     filters?.fromUserId ? eq(chatMessagesTable.from_id, filters.fromUserId) : undefined,
     filters?.timeRange?.start ? sql`${chatMessagesTable.platform_timestamp} >= ${filters.timeRange.start}` : undefined,
     filters?.timeRange?.end ? sql`${chatMessagesTable.platform_timestamp} <= ${filters.timeRange.end}` : undefined,
-    // ACL: for private dialogs, only return messages owned by this account (or legacy NULL owner).
-    sql`(
-      ${joinedChatsTable.chat_type} != 'user'
-      OR ${chatMessagesTable.owner_account_id} = ${accountId}
-      OR ${chatMessagesTable.owner_account_id} IS NULL
-    )`,
+    ownerScopedCondition(accountId),
   ].filter(Boolean)
 
   return await db

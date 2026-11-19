@@ -1,78 +1,69 @@
-import { CoreEventType } from '@tg-search/core'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { CoreEventType, uiNotificationContracts } from '@tg-search/core'
+import { describe, expect, it, vi } from 'vitest'
 
-import { isEventaFrame, respondToReadyLogin, respondToSignInTicketRequest } from './app'
-
-const sendWsEvent = vi.hoisted(() => vi.fn())
-
-vi.mock('./events', () => ({ sendWsEvent }))
-
-beforeEach(() => {
-  sendWsEvent.mockClear()
-})
+import { isEventaFrameText, issueSignInTicketFor, limitNotificationSize, respondToReadyLogin } from './app'
 
 describe('respondToReadyLogin', () => {
   it('replays account readiness without emitting a new auth login', () => {
-    const peer = {} as never
+    const eventa = { emit: vi.fn(async () => {}) }
     const account = {
       accountReady: true,
       ctx: { getCurrentAccountId: () => 'telegram-account-id' },
     } as never
 
-    expect(respondToReadyLogin(peer, account)).toBe(true)
-    expect(sendWsEvent).toHaveBeenCalledWith(peer, CoreEventType.AccountReady, { accountId: 'telegram-account-id' })
+    expect(respondToReadyLogin(eventa as never, account)).toBe(true)
+    expect(eventa.emit).toHaveBeenCalledWith(uiNotificationContracts[CoreEventType.AccountReady], { accountId: 'telegram-account-id' })
   })
 
   it('does not respond until the account is ready', () => {
-    const peer = {} as never
-    const account = { accountReady: false } as never
+    const eventa = { emit: vi.fn(async () => {}) }
 
-    expect(respondToReadyLogin(peer, account)).toBe(false)
-    expect(sendWsEvent).not.toHaveBeenCalled()
+    expect(respondToReadyLogin(eventa as never, { accountReady: false } as never)).toBe(false)
+    expect(eventa.emit).not.toHaveBeenCalled()
   })
 })
 
-describe('isEventaFrame', () => {
-  it('keeps legacy UI type/data messages out of the Eventa decoder', () => {
-    // Before this guard, Eventa rejected this auth event and the login button
-    // remained stuck in its loading state because the legacy handler was skipped.
-    expect(isEventaFrame({ type: CoreEventType.AuthLogin, data: { phoneNumber: '123456' } })).toBe(false)
-  })
-
-  it('recognizes Eventa envelopes', () => {
-    expect(isEventaFrame({ id: 'tg.v1.chats.list', body: {} })).toBe(true)
+describe('isEventaFrameText', () => {
+  it('accepts Eventa frames and rejects legacy and malformed frames', () => {
+    expect(isEventaFrameText('{"deliveryId":"d1","hopsRemaining":32,"eventa":{"id":"tg.ui.v1.command.message:read","body":{}}}')).toBe(true)
+    // The legacy type/data envelope no longer has a path to core.
+    expect(isEventaFrameText('{"type":"storage:record:dialogs","data":{"accountId":"","dialogs":[]}}')).toBe(false)
+    expect(isEventaFrameText('not json')).toBe(false)
+    expect(isEventaFrameText('null')).toBe(false)
   })
 })
 
-describe('respondToSignInTicketRequest', () => {
+describe('limitNotificationSize', () => {
+  it('keeps small payloads and drops oversized ones', () => {
+    const small = { messages: [] }
+    expect(limitNotificationSize(CoreEventType.MessageData, small)).toBe(small)
+    const large = { messages: [{ content: 'x'.repeat(1024 * 1024) }] } as never
+    expect(limitNotificationSize(CoreEventType.MessageData, large)).toBeUndefined()
+  })
+})
+
+describe('issueSignInTicketFor', () => {
   const logger = { withError: () => ({ error: vi.fn() }) } as never
   const readyAccount = { accountReady: true, ctx: { getMyUser: () => ({ id: '987654321', name: 'Test User', username: 'test_user' }) } } as never
 
   it('issues a ticket for the Telegram user this session is logged in as', async () => {
     const issue = vi.fn(async () => 'ticket-value')
-    await respondToSignInTicketRequest({} as never, readyAccount, issue, logger)
     // The identity comes from the authorized MTProto runtime, never from the request.
+    expect(await issueSignInTicketFor(readyAccount, issue, logger)).toEqual({ ticket: 'ticket-value' })
     expect(issue).toHaveBeenCalledWith({ telegramId: '987654321', name: 'Test User' })
-    expect(sendWsEvent).toHaveBeenCalledWith(expect.anything(), 'server:sign-in-ticket', { ticket: 'ticket-value' })
   })
 
   it('refuses before the Telegram login completes and when OAuth is off', async () => {
     const issue = vi.fn(async () => 'ticket-value')
-    await respondToSignInTicketRequest({} as never, { accountReady: false } as never, issue, logger)
-    await respondToSignInTicketRequest({} as never, undefined, issue, logger)
-    await respondToSignInTicketRequest({} as never, readyAccount, undefined, logger)
+    expect(await issueSignInTicketFor({ accountReady: false } as never, issue, logger)).toEqual({ error: 'ACCOUNT_NOT_READY' })
+    expect(await issueSignInTicketFor(undefined, issue, logger)).toEqual({ error: 'ACCOUNT_NOT_READY' })
+    expect(await issueSignInTicketFor(readyAccount, undefined, logger)).toEqual({ error: 'OAUTH_DISABLED' })
     expect(issue).not.toHaveBeenCalled()
-    expect(sendWsEvent.mock.calls.map(([, , data]) => data)).toEqual([
-      { error: 'ACCOUNT_NOT_READY' },
-      { error: 'ACCOUNT_NOT_READY' },
-      { error: 'OAUTH_DISABLED' },
-    ])
   })
 
   it('reports a failed issue without exposing the cause', async () => {
-    await respondToSignInTicketRequest({} as never, readyAccount, vi.fn(async () => {
+    expect(await issueSignInTicketFor(readyAccount, vi.fn(async () => {
       throw new Error('database unavailable')
-    }), logger)
-    expect(sendWsEvent).toHaveBeenCalledWith(expect.anything(), 'server:sign-in-ticket', { error: 'TICKET_FAILED' })
+    }), logger)).toEqual({ error: 'TICKET_FAILED' })
   })
 })

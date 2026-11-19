@@ -31,15 +31,11 @@ it('signals a new unready local runtime after switching accounts', async () => {
   const bridge = useCoreBridgeAdapter()
   const connected = vi.fn()
   void bridge.waitForEvent('server:connected').then(connected)
-  try {
-    const nextId = sessions.addNewAccount()
-    await nextTick()
-    await vi.advanceTimersByTimeAsync(200)
-    expect(connected).toHaveBeenCalledWith({ sessionId: nextId, accountReady: false })
-  }
-  finally {
-    bridge.sendEvent(CoreEventType.CoreCleanup)
-  }
+  // disposePinia in afterEach destroys the runtime, which emits core:cleanup.
+  const nextId = sessions.addNewAccount()
+  await nextTick()
+  await vi.advanceTimersByTimeAsync(200)
+  expect(connected).toHaveBeenCalledWith({ sessionId: nextId, accountReady: false })
 })
 
 function createDelayedRuntime() {
@@ -69,12 +65,14 @@ function createDelayedRuntime() {
       activeDestructions--
     },
   })))!
-  bridge.sendEvent('server:event:register', { event: CoreEventType.AuthDisconnected })
+  // Any UI command binds the first runtime to the bridge. Takeout handlers
+  // exist only after account:ready, so this one has no effect in core.
+  bridge.sendEvent(CoreEventType.TakeoutTaskAbort, { taskId: 'none' })
   return { bridge, scope, contexts, maxDestructions: () => maxDestructions }
 }
 
 it('ignores late logout events from the previous local account', async () => {
-  const { bridge, scope, contexts } = createDelayedRuntime()
+  const { scope, contexts } = createDelayedRuntime()
   const account = useAccountStore()
   const oldContext = contexts[0]
   useSessionStore().addNewAccount()
@@ -85,7 +83,6 @@ it('ignores late logout events from the previous local account', async () => {
   account.isReady = true
   contexts.at(-1)!.emitter.emit(CoreEventType.AuthDisconnected)
   expect(account.isReady).toBe(false)
-  bridge.sendEvent(CoreEventType.CoreCleanup)
   scope.stop()
 })
 

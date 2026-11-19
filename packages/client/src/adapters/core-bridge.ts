@@ -1,11 +1,12 @@
 import type { Config } from '@tg-search/common'
-import type { ExtractData, FromCoreEvent, ToCoreEvent } from '@tg-search/core'
-import type { WsEventToClient, WsEventToClientData, WsEventToServer, WsEventToServerData, WsMessageToClient } from '@tg-search/server/types'
+import type { SignInTicketResult, UiCommandInput, UiCommandType, UiNotificationData, UiNotificationType } from '@tg-search/core'
 
 import type { ClientEventHandlerMap, ClientEventHandlerQueueMap } from '../event-handlers'
 
 import { useLogger } from '@guiiai/logg'
+import { createContext } from '@moeru/eventa'
 import { deepClone, generateDefaultConfig } from '@tg-search/common'
+import { registerUiHandlers } from '@tg-search/core'
 import { useLocalStorage } from '@vueuse/core'
 import { acceptHMRUpdate, defineStore, storeToRefs } from 'pinia'
 import { onScopeDispose, ref, watch } from 'vue'
@@ -19,6 +20,7 @@ import { drainEventQueue, enqueueEventHandler } from '../utils/event-queue'
 import { initDB } from './core-db'
 import { createCoreRuntime } from './core-runtime'
 import { createLocalApplicationBridge } from './eventa-local'
+import { emitUiCommand, listenUiNotifications } from './ui-eventa'
 
 export function createCoreBridgeAdapter(createRuntime = createCoreRuntime) {
   const sessionStore = useSessionStore()
@@ -40,7 +42,23 @@ export function createCoreBridgeAdapter(createRuntime = createCoreRuntime) {
     return coreRuntime.getCtx()
   })
 
-  const registerEventHandler = getRegisterEventHandler(eventHandlers, sendEvent)
+  const registerEventHandler = getRegisterEventHandler(eventHandlers)
+
+  // Browser-only mode binds the same UI contracts as the server, on an
+  // in-memory Eventa context, so both modes validate commands the same way.
+  const uiContext = createContext()
+  let unbindCore: (() => void) | undefined
+  listenUiNotifications(uiContext, dispatch)
+
+  function bindCore() {
+    unbindCore?.()
+    unbindCore = registerUiHandlers(uiContext, coreRuntime.getCtx(), { logger })
+  }
+
+  function releaseCore() {
+    unbindCore?.()
+    unbindCore = undefined
+  }
 
   // React to session switches: Destroy old context, create new one
   watch(activeSessionId, (newId, oldId) => {
@@ -50,6 +68,9 @@ export function createCoreBridgeAdapter(createRuntime = createCoreRuntime) {
     logger.withFields({ oldId, newId }).debug('Active session changed, destroying CoreContext')
     const nextGeneration = ++generation
     switching = true
+    // Stop forwarding the old context's events now; late events from it
+    // (for example a logout) must not reach the new account's UI.
+    releaseCore()
     transition = transition.then(async () => {
       await application.reset()
       await coreRuntime.destroy()
@@ -57,8 +78,9 @@ export function createCoreBridgeAdapter(createRuntime = createCoreRuntime) {
         return
       // Re-register handlers for the new context
       registerAllEventHandlers(registerEventHandler)
+      bindCore()
       switching = false
-      sendWsEvent({ type: 'server:connected', data: { sessionId: newId || '', accountReady: false } })
+      dispatch('server:connected', { sessionId: newId || '', accountReady: false })
     }).catch((error) => {
       logger.withError(error).error('Failed to destroy CoreContext on account switch')
     })
@@ -67,54 +89,20 @@ export function createCoreBridgeAdapter(createRuntime = createCoreRuntime) {
   onScopeDispose(() => {
     disposed = true
     generation++
+    releaseCore()
     transition = transition.then(async () => {
       await application.dispose()
       await coreRuntime.destroy()
     }).catch(error => logger.withError(error).error('Failed to dispose CoreContext'))
   })
 
-  function ensureCtx() {
-    return coreRuntime.getCtx()
-  }
-
-  function sendEvent<T extends keyof WsEventToServer>(event: T, data?: WsEventToServerData<T>) {
-    if (disposed || (switching && event !== 'server:event:register'))
+  function sendEvent<T extends UiCommandType>(event: T, data?: UiCommandInput<T>) {
+    if (disposed || switching)
       throw new Error('Core account is switching or disposed')
-    const ctx = ensureCtx()!
-    logger.withFields({ event, data }).debug('Receive event from client')
-
-    try {
-      if (event === 'server:event:register') {
-        data = data as WsEventToServerData<'server:event:register'>
-        const eventName = data.event as keyof FromCoreEvent
-        const eventGeneration = generation
-
-        if (!eventName.startsWith('server:')) {
-          const fn = (payload: WsEventToClientData<keyof FromCoreEvent>) => {
-            if (disposed || eventGeneration !== generation)
-              return
-            logger.withFields({ eventName }).debug('Sending event to client')
-            const message = {
-              type: eventName as unknown as WsMessageToClient['type'],
-              data: payload,
-            } as WsMessageToClient
-            sendWsEvent(message)
-          }
-          ctx.emitter.on(eventName, fn as (...args: unknown[]) => void)
-        }
-      }
-      else if (event === 'server:sign-in-ticket') {
-        // Browser-only mode has no server, so there is no server session to sign in to.
-        sendWsEvent({ type: 'server:sign-in-ticket', data: { error: 'OAUTH_DISABLED' } })
-      }
-      else {
-        logger.withFields({ event, data }).debug('Emit event to core')
-        ctx.emitter.emit(event, deepClone(data) as ExtractData<keyof ToCoreEvent>)
-      }
-    }
-    catch (error) {
-      logger.withError(error).error('Failed to send event to core')
-    }
+    if (!unbindCore)
+      bindCore()
+    logger.withFields({ event, data }).debug('Emit event to core')
+    void emitUiCommand(uiContext, event, deepClone(data))
   }
 
   async function init() {
@@ -146,39 +134,44 @@ export function createCoreBridgeAdapter(createRuntime = createCoreRuntime) {
     }
 
     registerAllEventHandlers(registerEventHandler)
+    bindCore()
 
     // Initial connection event
-    sendWsEvent({ type: 'server:connected', data: { sessionId: activeSessionId.value || '', accountReady: false } })
+    dispatch('server:connected', { sessionId: activeSessionId.value || '', accountReady: false })
     isInitialized.value = true
   }
 
-  function waitForEvent<T extends keyof WsEventToClient>(
+  function waitForEvent<T extends UiNotificationType>(
     event: T,
-    predicate?: (data: WsEventToClientData<T>) => boolean,
+    predicate?: (data: UiNotificationData<T>) => boolean,
   ) {
     logger.withFields({ event }).debug('Waiting for event from core')
-    return new Promise<WsEventToClientData<T>>((resolve) => {
-      enqueueEventHandler(eventHandlersQueue, event, (data: WsEventToClientData<T>) => {
-        resolve(deepClone(data) as WsEventToClientData<T>)
+    return new Promise<UiNotificationData<T>>((resolve) => {
+      enqueueEventHandler(eventHandlersQueue, event, (data: UiNotificationData<T>) => {
+        resolve(deepClone(data) as UiNotificationData<T>)
       }, predicate)
     })
   }
 
-  function sendWsEvent(event: WsMessageToClient) {
-    logger.withFields({ event }).debug('Event send to bridge')
-    if (eventHandlers.has(event.type)) {
+  function dispatch<T extends UiNotificationType>(type: T, data: UiNotificationData<T>) {
+    logger.withFields({ type }).debug('Event send to bridge')
+    const fn = eventHandlers.get(type)
+    if (fn) {
       try {
-        const fn = eventHandlers.get(event.type)
-        if (fn)
-          fn(deepClone(event.data) as any)
+        fn(deepClone(data) as UiNotificationData<UiNotificationType>)
       }
       catch (error) { logger.withError(error).error('Failed to handle event') }
     }
-    if (eventHandlersQueue.has(event.type)) {
-      drainEventQueue(eventHandlersQueue, event.type as any, deepClone(event.data) as any, (error) => {
+    if (eventHandlersQueue.has(type)) {
+      drainEventQueue(eventHandlersQueue, type, deepClone(data) as UiNotificationData<T>, (error) => {
         logger.withError(error).error('Failed to handle queued event')
       })
     }
+  }
+
+  // Browser-only mode has no server, so there is no server session to sign in to.
+  async function requestSignInTicket(): Promise<SignInTicketResult> {
+    return { error: 'OAUTH_DISABLED' }
   }
 
   return {
@@ -186,6 +179,7 @@ export function createCoreBridgeAdapter(createRuntime = createCoreRuntime) {
     init,
     sendEvent,
     waitForEvent,
+    requestSignInTicket,
   }
 }
 

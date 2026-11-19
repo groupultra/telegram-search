@@ -7,6 +7,7 @@ import { and, count, eq, max, min, sql } from 'drizzle-orm'
 import { chatMessagesTable } from '../schemas/chat-messages'
 import { joinedChatsTable } from '../schemas/joined-chats'
 import { withResult } from '../utils/result'
+import { ownerScopedCondition } from './utils/message-acl'
 import { must0 } from './utils/must'
 
 function normalizeNullableNumber(value: unknown): number | null {
@@ -57,10 +58,10 @@ const latestNumericMessageId = sql<number | null>`max(case when ${chatMessagesTa
 /**
  * Get per-chat message stats for a specific logical account.
  *
- * - For private chats (chat_type = 'user'), only messages owned by this account
- *   (or legacy NULL owner) are counted.
- * - For group/channel chats, messages are shared across accounts and the count
- *   is global (owner_account_id is NULL by design).
+ * - Private-dialog messages count only for the account that owns them
+ *   (or legacy NULL owner); see `ownerScopedCondition`.
+ * - Group/channel messages are shared across accounts and the count is global
+ *   (owner_account_id is NULL by design).
  */
 async function getChatMessagesStats(db: CoreDB, accountId: string): PromiseResult<DBSelectChatMessageStats[]> {
   return withResult(async () => {
@@ -82,11 +83,7 @@ async function getChatMessagesStats(db: CoreDB, accountId: string): PromiseResul
           eq(joinedChatsTable.chat_id, chatMessagesTable.in_chat_id),
           eq(chatMessagesTable.platform, 'telegram'),
           eq(chatMessagesTable.deleted_at, 0),
-          sql`(
-            ${joinedChatsTable.chat_type} != 'user'
-            OR ${chatMessagesTable.owner_account_id} = ${accountId}
-            OR ${chatMessagesTable.owner_account_id} IS NULL
-          )`,
+          ownerScopedCondition(accountId),
         ),
       )
       .where(eq(joinedChatsTable.platform, 'telegram'))
@@ -123,11 +120,7 @@ async function getChatMessageStatsByChatId(db: CoreDB, accountId: string, chatId
           eq(joinedChatsTable.chat_id, chatMessagesTable.in_chat_id),
           eq(chatMessagesTable.platform, 'telegram'),
           eq(chatMessagesTable.deleted_at, 0),
-          sql`(
-          ${joinedChatsTable.chat_type} != 'user'
-          OR ${chatMessagesTable.owner_account_id} = ${accountId}
-          OR ${chatMessagesTable.owner_account_id} IS NULL
-        )`,
+          ownerScopedCondition(accountId),
         ),
       )
       .where(

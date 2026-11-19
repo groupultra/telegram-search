@@ -299,9 +299,9 @@ export type CoreEntity = CoreUserEntity | CoreChatEntity | CoreChannelEntity
 export interface StorageEventToCore {
   [CoreEventType.StorageRecordMessages]: (data: { messages: CoreMessage[] }) => void
 
-  [CoreEventType.StorageFetchDialogs]: (data: { accountId: string }) => void
-  [CoreEventType.StorageRecordDialogs]: (data: { dialogs: CoreDialog[], accountId: string }) => void
-  [CoreEventType.StorageRecordChatFolders]: (data: { folders: CoreChatFolder[], accountId: string }) => void
+  [CoreEventType.StorageFetchDialogs]: () => void
+  [CoreEventType.StorageRecordDialogs]: (data: { dialogs: CoreDialog[] }) => void
+  [CoreEventType.StorageRecordChatFolders]: (data: { folders: CoreChatFolder[] }) => void
 
   [CoreEventType.StorageSearchMessages]: (data: CoreMessageSearchParams) => void
   [CoreEventType.StorageSearchPhotos]: (data: CorePhotoSearchParams) => void

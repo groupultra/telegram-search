@@ -1,4 +1,4 @@
-import type { WsEventToClient, WsEventToClientData } from '@tg-search/server/types'
+import type { UiNotificationData, UiNotificationType } from '@tg-search/core'
 
 import type { ClientEventHandler, ClientEventHandlerQueueMap, ClientQueuedEventHandler } from '../event-handlers'
 
@@ -24,18 +24,18 @@ export function waitForEventWithTimeout<T>(
  * Queue a one-shot event handler for a specific event type.
  * Handlers are stored in FIFO order and drained by `drainEventQueue`.
  */
-export function enqueueEventHandler<T extends keyof WsEventToClient>(
+export function enqueueEventHandler<T extends UiNotificationType>(
   eventHandlersQueue: ClientEventHandlerQueueMap,
   event: T,
-  handler: (data: WsEventToClientData<T>) => void,
-  predicate?: (data: WsEventToClientData<T>) => boolean,
+  handler: (data: UiNotificationData<T>) => void,
+  predicate?: (data: UiNotificationData<T>) => boolean,
 ) {
   const queue = eventHandlersQueue.get(event) ?? []
   queue.push({
-    handler: handler as unknown as ClientEventHandler<keyof WsEventToClient>,
-    predicate: predicate as ((data: WsEventToClientData<keyof WsEventToClient>) => boolean) | undefined,
+    handler: handler as unknown as ClientEventHandler<UiNotificationType>,
+    predicate: predicate as ((data: UiNotificationData<UiNotificationType>) => boolean) | undefined,
     createdAt: Date.now(),
-  } satisfies ClientQueuedEventHandler<keyof WsEventToClient>)
+  } satisfies ClientQueuedEventHandler<UiNotificationType>)
   eventHandlersQueue.set(event, queue)
 }
 
@@ -43,18 +43,18 @@ export function enqueueEventHandler<T extends keyof WsEventToClient>(
  * Drain and invoke all queued handlers for an event type in FIFO order.
  * Any error is delegated to the provided onError callback.
  */
-export function drainEventQueue<T extends keyof WsEventToClient>(
+export function drainEventQueue<T extends UiNotificationType>(
   eventHandlersQueue: ClientEventHandlerQueueMap,
   event: T,
-  data: WsEventToClientData<T>,
+  data: UiNotificationData<T>,
   onError: (error: unknown) => void,
 ) {
-  const queue = eventHandlersQueue.get(event) as ClientQueuedEventHandler<keyof WsEventToClient>[] | undefined
+  const queue = eventHandlersQueue.get(event) as ClientQueuedEventHandler<UiNotificationType>[] | undefined
   if (!queue || queue.length === 0)
     return
 
   const now = Date.now()
-  const remaining: ClientQueuedEventHandler<keyof WsEventToClient>[] = []
+  const remaining: ClientQueuedEventHandler<UiNotificationType>[] = []
   while (queue.length > 0) {
     const queued = queue.shift()
     if (!queued) {
@@ -66,13 +66,13 @@ export function drainEventQueue<T extends keyof WsEventToClient>(
       continue
     }
 
-    if (queued.predicate && !queued.predicate(data as WsEventToClientData<keyof WsEventToClient>)) {
+    if (queued.predicate && !queued.predicate(data as UiNotificationData<UiNotificationType>)) {
       remaining.push(queued)
       continue
     }
 
     try {
-      queued.handler(data as WsEventToClientData<keyof WsEventToClient>)
+      queued.handler(data as UiNotificationData<UiNotificationType>)
     }
     catch (error) {
       onError(error)

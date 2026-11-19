@@ -36,7 +36,7 @@ export async function fetchDialogs(ctx: CoreContext, logger: Logger, dbModels: M
   }
 
   ctx.emitter.emit(CoreEventType.DialogData, { dialogs, pinnedDialogIds })
-  ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs, accountId })
+  ctx.emitter.emit(CoreEventType.StorageRecordDialogs, { dialogs })
 }
 
 export function registerDialogEventHandlers(ctx: CoreContext, logger: Logger) {
@@ -47,9 +47,8 @@ export function registerDialogEventHandlers(ctx: CoreContext, logger: Logger) {
       logger.verbose('Fetching chat folders')
 
       const folders = (await dialogService.fetchChatFolders()).expect('Failed to fetch chat folders')
-      const accountId = ctx.getCurrentAccountId()
 
-      ctx.emitter.emit(CoreEventType.StorageRecordChatFolders, { folders, accountId })
+      ctx.emitter.emit(CoreEventType.StorageRecordChatFolders, { folders })
     })
 
     // Prioritized single-avatar fetch for viewport-visible items

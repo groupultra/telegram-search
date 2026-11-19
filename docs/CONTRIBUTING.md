@@ -68,7 +68,7 @@ graph TB
     end
 
     subgraph "🌐 Communication Layer"
-        WS["WebSocket Event Bridge<br/>Real-time Bidirectional<br/>• Event Registration<br/>• Event Forwarding<br/>• Session Management"]
+        WS["WebSocket Event Bridge<br/>Real-time Bidirectional<br/>• Eventa UI Contracts<br/>• Notification Forwarding<br/>• Session Management"]
     end
 
     subgraph "🚀 Backend Service Layer"
@@ -130,8 +130,8 @@ graph TB
     end
 
     %% WebSocket Event Flow
-    Frontend -.->|"WsEventToServer<br/>• auth:login<br/>• message:query<br/>• dialog:fetch"| WS
-    WS -.->|"WsEventToClient<br/>• message:data<br/>• auth:status<br/>• storage:progress"| Frontend
+    Frontend -.->|"UI commands (Eventa)<br/>• auth:login<br/>• storage:search:messages<br/>• takeout:run"| WS
+    WS -.->|"UI notifications (Eventa)<br/>• message:data<br/>• auth:connected<br/>• takeout:task:progress"| Frontend
 
     Electron -.->|"WebSocket Events"| WS
     WS -.->|"Real-time Updates"| Electron
@@ -271,13 +271,13 @@ Stream-based message processing through multiple resolvers:
 #### 📡 Event Flow
 
 1. **Frontend** → User interaction triggers an action in Vue component
-2. **Client Store** → Store dispatches an event via WebSocket Adapter
-3. **WebSocket** → Event is sent to backend server
-4. **CoreContext** → Event bus routes to appropriate event handler
+2. **Client Store** → Store sends a UI command (an Eventa contract in `packages/core/src/ui/contracts.ts`) via the bridge adapter
+3. **WebSocket** → The command is sent to the backend server as an Eventa frame
+4. **CoreContext** → The server validates the command against its Valibot schema and emits it on the core event bus; events without a contract cannot be sent by a client
 5. **Event Handler** → Processes event and calls corresponding service
 6. **Service** → Executes business logic (may call Telegram API or database)
 7. **Service** → Emits result event back through CoreContext
-8. **WebSocket** → Forwards event to frontend client
+8. **WebSocket** → Forwards listed core events to the frontend client as UI notifications
 9. **Client Event Handler** → Updates client store with new data
 10. **Frontend** → Vue components reactively update UI
 

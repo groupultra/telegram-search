@@ -20,6 +20,7 @@ import { chatMessagesTable } from '../schemas/chat-messages'
 import { joinedChatsTable } from '../schemas/joined-chats'
 import { withResult } from '../utils/result'
 import { convertToCoreMessageFromDB, convertToDBInsertMessage } from './utils/message'
+import { ownerScopedCondition } from './utils/message-acl'
 import { convertDBPhotoToCoreMessageMedia } from './utils/photos'
 import { retrieveJieba } from './utils/retrieve-jieba'
 import { retrieveVector } from './utils/retrieve-vector'
@@ -33,13 +34,6 @@ function accountChatCondition(accountId: string) {
     SELECT 1 FROM ${accountJoinedChatsTable}
     WHERE ${accountJoinedChatsTable.joined_chat_id} = ${joinedChatsTable.id}
       AND ${accountJoinedChatsTable.account_id} = ${accountId}
-  )`
-}
-
-function ownerScopedCondition(accountId: string) {
-  return sql`(
-    ${chatMessagesTable.owner_account_id} = ${accountId}
-    OR ${chatMessagesTable.owner_account_id} IS NULL
   )`
 }
 
@@ -202,12 +196,7 @@ async function fetchMessages(
       .where(and(
         eq(chatMessagesTable.in_chat_id, chatId),
         notDeletedCondition(),
-        // ACL: for private dialogs, only return messages owned by this account (or legacy NULL owner).
-        sql`(
-        ${joinedChatsTable.chat_type} != 'user'
-        OR ${chatMessagesTable.owner_account_id} = ${accountId}
-        OR ${chatMessagesTable.owner_account_id} IS NULL
-      )`,
+        ownerScopedCondition(accountId),
       ))
       .orderBy(desc(chatMessagesTable.created_at))
       .limit(pagination.limit)
@@ -274,11 +263,7 @@ async function fetchMessageContextWithPhotos(
         eq(chatMessagesTable.platform_message_id, messageId),
         notDeletedCondition(),
         accountChatCondition(accountId),
-        sql`(
-        ${joinedChatsTable.chat_type} != 'user'
-        OR ${chatMessagesTable.owner_account_id} = ${accountId}
-        OR ${chatMessagesTable.owner_account_id} IS NULL
-      )`,
+        ownerScopedCondition(accountId),
       ))
       .limit(1)
 
@@ -299,11 +284,7 @@ async function fetchMessageContextWithPhotos(
         lt(chatMessagesTable.platform_timestamp, targetMessage.platform_timestamp),
         notDeletedCondition(),
         accountChatCondition(accountId),
-        sql`(
-        ${joinedChatsTable.chat_type} != 'user'
-        OR ${chatMessagesTable.owner_account_id} = ${accountId}
-        OR ${chatMessagesTable.owner_account_id} IS NULL
-      )`,
+        ownerScopedCondition(accountId),
       ))
       .orderBy(desc(chatMessagesTable.platform_timestamp))
       .limit(before)
@@ -320,11 +301,7 @@ async function fetchMessageContextWithPhotos(
         gt(chatMessagesTable.platform_timestamp, targetMessage.platform_timestamp),
         notDeletedCondition(),
         accountChatCondition(accountId),
-        sql`(
-        ${joinedChatsTable.chat_type} != 'user'
-        OR ${chatMessagesTable.owner_account_id} = ${accountId}
-        OR ${chatMessagesTable.owner_account_id} IS NULL
-      )`,
+        ownerScopedCondition(accountId),
       ))
       .orderBy(
         asc(chatMessagesTable.platform_timestamp),
@@ -375,12 +352,7 @@ async function fetchMessagesByTimeRange(
       lte(chatMessagesTable.platform_timestamp, timeRange.end),
       notDeletedCondition(),
       accountChatCondition(accountId),
-      // ACL: same pattern as fetchMessages
-      sql`(
-        ${joinedChatsTable.chat_type} != 'user'
-        OR ${chatMessagesTable.owner_account_id} = ${accountId}
-        OR ${chatMessagesTable.owner_account_id} IS NULL
-      )`,
+      ownerScopedCondition(accountId),
     ]
 
     if (chatIds && chatIds.length > 0) {
@@ -444,11 +416,7 @@ async function fetchMessagesByChatAndPlatformIds(
         referenceCondition,
         accountChatCondition(accountId),
         notDeletedCondition(),
-        sql`(
-          ${joinedChatsTable.chat_type} != 'user'
-          OR ${chatMessagesTable.owner_account_id} = ${accountId}
-          OR ${chatMessagesTable.owner_account_id} IS NULL
-        )`,
+        ownerScopedCondition(accountId),
       ))
 
     return results.map(row => row.chat_messages)
