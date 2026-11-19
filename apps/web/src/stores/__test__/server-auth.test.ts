@@ -4,14 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useServerAuthStore } from '../server-auth'
 
-const bridge = vi.hoisted(() => ({ sendEvent: vi.fn(), waitForEvent: vi.fn() }))
+const bridge = vi.hoisted(() => ({ requestSignInTicket: vi.fn() }))
 vi.mock('@tg-search/client', () => ({ useBridge: () => bridge }))
 
 beforeEach(() => {
   setActivePinia(createPinia())
   sessionStorage.clear()
-  bridge.sendEvent.mockReset()
-  bridge.waitForEvent.mockReset()
+  bridge.requestSignInTicket.mockReset()
 })
 
 afterEach(() => {
@@ -37,18 +36,18 @@ describe('server sign-in store', () => {
   })
 
   it('signs in with a ticket from the bridge and resumes a pending authorization request', async () => {
-    bridge.waitForEvent.mockResolvedValue({ ticket: 'ticket-value' })
+    bridge.requestSignInTicket.mockResolvedValue({ ticket: 'ticket-value' })
     const fetch = vi.fn(async () => Response.json({ redirect: true, url: '/auth/consent?sig=s2' }))
     vi.stubGlobal('fetch', fetch)
     const store = useServerAuthStore()
     expect(await store.completeSignIn('client_id=c&sig=s')).toEqual({ kind: 'navigate', url: '/auth/consent?sig=s2' })
-    expect(bridge.sendEvent).toHaveBeenCalledWith('server:sign-in-ticket')
+    expect(bridge.requestSignInTicket).toHaveBeenCalledOnce()
     expect(JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)).toEqual({ ticket: 'ticket-value', oauth_query: 'client_id=c&sig=s' })
     expect(store.status).toBe('signed-in')
   })
 
   it('signs in without an authorization request and fails when the server issues no ticket', async () => {
-    bridge.waitForEvent.mockResolvedValueOnce({ ticket: 'ticket-value' })
+    bridge.requestSignInTicket.mockResolvedValueOnce({ ticket: 'ticket-value' })
     const fetch = vi.fn(async () => Response.json({ userId: 'user-1' }))
     vi.stubGlobal('fetch', fetch)
     const store = useServerAuthStore()
@@ -58,7 +57,7 @@ describe('server sign-in store', () => {
     expect(sessionStorage.length).toBe(0)
 
     // The server answers before the Telegram account is ready; nothing is exchanged.
-    bridge.waitForEvent.mockResolvedValueOnce({ error: 'ACCOUNT_NOT_READY' })
+    bridge.requestSignInTicket.mockResolvedValueOnce({ error: 'ACCOUNT_NOT_READY' })
     await expect(store.completeSignIn()).rejects.toThrow('ACCOUNT_NOT_READY')
   })
 })

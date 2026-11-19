@@ -1,4 +1,6 @@
-import { CoreEventType } from '@tg-search/core'
+import type { UiCommandType, UiNotificationType } from '@tg-search/core'
+
+import { CoreEventType, uiCommandContracts, uiNotificationContracts } from '@tg-search/core'
 import { createPinia, disposePinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
@@ -6,6 +8,8 @@ import { nextTick } from 'vue'
 import { useAccountStore } from '../../stores/useAccount'
 import { useSessionStore } from '../../stores/useSession'
 import { useWebsocketAdapter } from '../websocket'
+
+let deliveryId = 0
 
 class TestSocket extends EventTarget {
   static readonly OPEN = 1
@@ -35,13 +39,32 @@ class TestSocket extends EventTarget {
     this.sent.push(data)
   }
 
-  async receive(type: string, data?: unknown) {
-    this.onmessage?.({ data: JSON.stringify({ type, data }) })
+  /** Delivers a UI notification the way the server sends it: as an Eventa frame. */
+  async receive(type: UiNotificationType, data?: unknown) {
+    await this.receiveRaw(JSON.stringify({
+      deliveryId: `test-${++deliveryId}`,
+      hopsRemaining: 32,
+      eventa: { id: uiNotificationContracts[type].id, type: 'event', body: data },
+    }))
+  }
+
+  async receiveRaw(data: string) {
+    this.onmessage?.({ data })
+    this.dispatchEvent(new MessageEvent('message', { data }))
     await nextTick()
   }
 
+  /** Bodies of the UI commands of one type this socket sent. */
+  commands(type: UiCommandType) {
+    return this.sent
+      .filter(data => data !== '{"type":"server:ping"}')
+      .map(data => JSON.parse(data) as { eventa: { id: string, body?: unknown } })
+      .filter(frame => frame.eventa.id === uiCommandContracts[type].eventa.id)
+      .map(frame => frame.eventa.body)
+  }
+
   logins() {
-    return this.sent.map(data => JSON.parse(data)).filter(event => event.type === CoreEventType.AuthLogin)
+    return this.commands(CoreEventType.AuthLogin).map(data => ({ type: CoreEventType.AuthLogin, data }))
   }
 }
 
@@ -95,8 +118,9 @@ describe('webSocket session recovery', () => {
     const socket = await connect()
     useAccountStore().init()
     expect(socket.logins()).toHaveLength(1)
-    expect(socket.sent.findIndex(data => JSON.parse(data).type === 'server:event:register'))
-      .toBeLessThan(socket.sent.findIndex(data => JSON.parse(data).type === CoreEventType.AuthLogin))
+    // Every frame except the heartbeat is an Eventa frame; the legacy
+    // type/data envelope and server:event:register are gone.
+    expect(socket.sent.filter(data => data !== '{"type":"server:ping"}').every(data => 'deliveryId' in JSON.parse(data))).toBe(true)
   })
 
   it('replaces a silent connection after a missed heartbeat', async () => {
@@ -110,7 +134,7 @@ describe('webSocket session recovery', () => {
   it('keeps a responsive connection and resumes immediately when the network returns', async () => {
     const socket = await connect()
     await vi.advanceTimersByTimeAsync(30000)
-    await socket.receive('server:pong')
+    await socket.receiveRaw('{"type":"server:pong"}')
     await vi.advanceTimersByTimeAsync(10000)
     expect(TestSocket.sockets).toHaveLength(1)
     socket.close()
@@ -169,7 +193,7 @@ describe('webSocket session recovery', () => {
       .toThrow('WebSocket is not connected')
     await vi.advanceTimersByTimeAsync(2000)
     const recovered = await connect()
-    expect(recovered.sent.some(data => JSON.parse(data).type === CoreEventType.AuthLogout)).toBe(false)
+    expect(recovered.commands(CoreEventType.AuthLogout)).toEqual([])
   })
 
   it('removes the local session even when logout cannot reach the server', async () => {

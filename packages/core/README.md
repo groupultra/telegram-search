@@ -4,6 +4,8 @@ Telegram Search domain services, persistence models, and application handlers.
 
 `createTelegramApplicationRuntime()` composes direct business services. `registerApplicationHandlers()` exposes validated unary and streaming Eventa contracts without making the internal database and Telegram orchestration event-driven.
 
+`src/ui/contracts.ts` lists the UI commands a client may send and the core events forwarded back as UI notifications. `registerUiHandlers()` binds them to one Eventa context and one account's `CoreContext`; it validates each command with Valibot before emitting it on the core event bus. Core events without a command contract (storage writes, message processing, Telegram updates, account setup) are internal: no transport can deliver them from a client. Add a command only when its handler reads the account from `ctx.getCurrentAccountId()`.
+
 ### Link indexing
 
 The `link` resolver crawls the URLs in a message (text entities and the web page preview, at most three, Telegram links skipped) through the Firecrawl v2 scrape API once the account's `firecrawl.apiKey` is set. Pages are cached by URL in `web_pages`, so a link shared in many chats is fetched once; successful pages are never fetched again, and failed fetches are cached and retried after 24 hours. The resolver fills `message.links` and passes up to 2,000 characters of page title, description and Markdown to the embedding and jieba resolvers, which index it with the message content. The message resolver service therefore runs `media` and `link` before the other resolvers.

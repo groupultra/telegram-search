@@ -1,25 +1,22 @@
-import type { WsEventToClient, WsEventToClientData } from '@tg-search/server/types'
+import type { UiNotificationData, UiNotificationType } from '@tg-search/core'
 
-import type { ClientSendEventFn } from '../types/bridge'
-
-export type ClientEventHandler<T extends keyof WsEventToClient> = (data: WsEventToClientData<T>) => void
-export interface ClientQueuedEventHandler<T extends keyof WsEventToClient> {
+export type ClientEventHandler<T extends UiNotificationType> = (data: UiNotificationData<T>) => void
+export interface ClientQueuedEventHandler<T extends UiNotificationType> {
   handler: ClientEventHandler<T>
-  predicate?: (data: WsEventToClientData<T>) => boolean
+  predicate?: (data: UiNotificationData<T>) => boolean
   createdAt?: number
 }
-export type ClientRegisterEventHandler = <T extends keyof WsEventToClient>(event: T, handler: ClientEventHandler<T>) => void
-export type ClientEventHandlerMap = Map<keyof WsEventToClient, ClientEventHandler<keyof WsEventToClient>>
-export type ClientEventHandlerQueueMap = Map<keyof WsEventToClient, ClientQueuedEventHandler<keyof WsEventToClient>[]>
+export type ClientRegisterEventHandler = <T extends UiNotificationType>(event: T, handler: ClientEventHandler<T>) => void
+export type ClientEventHandlerMap = Map<UiNotificationType, ClientEventHandler<UiNotificationType>>
+export type ClientEventHandlerQueueMap = Map<UiNotificationType, ClientQueuedEventHandler<UiNotificationType>[]>
 
-export function getRegisterEventHandler(
-  eventHandlersMap: ClientEventHandlerMap,
-  sendEvent: ClientSendEventFn,
-) {
+/**
+ * Notifications reach the client on its Eventa context, which listens to
+ * every UI notification contract; registering only selects the handler.
+ */
+export function getRegisterEventHandler(eventHandlersMap: ClientEventHandlerMap) {
   const registerEventHandler: ClientRegisterEventHandler = (event, handler) => {
-    eventHandlersMap.set(event, handler)
-
-    sendEvent('server:event:register', { event })
+    eventHandlersMap.set(event, handler as ClientEventHandler<UiNotificationType>)
   }
 
   return registerEventHandler

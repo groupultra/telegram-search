@@ -3,6 +3,9 @@
  *
  * Decision:
  * - Route all peers with the same sessionId to one account state.
+ * - Every frame is an Eventa frame. The UI reaches core only through the
+ *   contracts in `@tg-search/core` `ui/contracts`; there is no generic path
+ *   from a client frame to the core event emitter.
  * Constraints:
  * - Keep account state alive across reconnects and tab closures.
  * Risks:
@@ -11,43 +14,46 @@
 
 import type { Logger } from '@guiiai/logg'
 import type { Config } from '@tg-search/common'
-import type { ExtractData, FromCoreEvent, TelegramApplicationRuntime, ToCoreEvent } from '@tg-search/core'
+import type { SignInTicketResult, TelegramApplicationRuntime, UiCoreNotificationType, UiNotificationData } from '@tg-search/core'
 import type { Peer } from 'crossws'
 import type { H3 } from 'h3'
 
-import type { AccountState, CoreEventListener } from './account'
-import type { WsEventToClientData, WsMessageToServer } from './events'
+import type { AccountState } from './account'
 
 import { useLogger } from '@guiiai/logg'
+import { defineInvokeHandler } from '@moeru/eventa'
 import { createPeerContext } from '@moeru/eventa/adapters/websocket/h3'
-import { CoreEventType, createTelegramApplicationRuntime, destroyCoreInstance, registerApplicationHandlers } from '@tg-search/core'
-import { coreEventsInTotal, wsConnectionsActive } from '@tg-search/observability'
+import {
+  CoreEventType,
+  createTelegramApplicationRuntime,
+  destroyCoreInstance,
+  registerApplicationHandlers,
+  registerUiHandlers,
+  signInTicketContract,
+  UI_HEARTBEAT_PING,
+  UI_HEARTBEAT_PONG,
+  uiNotificationContracts,
+} from '@tg-search/core'
+import { coreEventsInTotal, wsConnectionsActive, wsSendFailTotal } from '@tg-search/observability'
 import { defineWebSocketHandler } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
 
 import { accountStates, getOrCreateAccount, peerObjects, peerToAccountId } from './account'
-import { isClientEmittableCoreEvent, sendWsEvent } from './events'
 
 const WS_MODE_LABEL = 'server' as const
+const MAX_NOTIFICATION_BYTES = 1024 * 1024
+
+type EventaPeer = Parameters<typeof createPeerContext>[0]
+type PeerEventa = ReturnType<typeof createPeerContext>
 
 interface PeerRpcState {
-  eventa: ReturnType<typeof createPeerContext>
+  eventa: PeerEventa
+  unregisterUi: () => void
   runtime?: TelegramApplicationRuntime
   unregister?: () => void
 }
 
-/**
- * Eventa uses an id/body envelope, while the remaining UI events still use
- * the legacy type/data envelope. Only Eventa frames may enter its decoder:
- * it throws on legacy frames and would otherwise prevent the UI event from
- * reaching the core event emitter.
- */
-export function isEventaFrame(message: unknown): message is { id: unknown } {
-  return typeof message === 'object' && message !== null && 'id' in message
-}
-
 const peerRpcStates = new Map<string, PeerRpcState>()
-type EventaPeer = Parameters<typeof createPeerContext>[0]
 
 // NOTICE: H3 and Eventa resolve nominally distinct crossws Peer declarations
 // from the same runtime version. The objects are runtime-compatible, but the
@@ -56,48 +62,30 @@ function asEventaPeer(peer: Peer): EventaPeer {
   return peer as unknown as EventaPeer
 }
 
-function ensurePeerApplication(account: AccountState, peerId: string, logger: Logger) {
+function ensurePeerApplication(account: AccountState, peerId: string) {
   const state = peerRpcStates.get(peerId)
   if (!state || state.runtime || !account.accountReady)
     return
 
-  state.runtime = createTelegramApplicationRuntime({ context: account.ctx, logger })
+  state.runtime = createTelegramApplicationRuntime({ context: account.ctx, logger: useLogger('server:application') })
   state.unregister = registerApplicationHandlers(state.eventa.context, state.runtime)
 }
 
-export function respondToReadyLogin(peer: Peer, account: AccountState): boolean {
+/**
+ * An account-scoped context already has an authorized Telegram client.
+ * Replaying auth:login from another tab must not create and replace it, so a
+ * ready account answers with account:ready instead.
+ */
+export function respondToReadyLogin(eventa: PeerEventa['context'], account: AccountState): boolean {
   if (!account.accountReady) {
     return false
   }
 
-  sendWsEvent(peer, CoreEventType.AccountReady, { accountId: account.ctx.getCurrentAccountId() })
+  void eventa.emit(uiNotificationContracts[CoreEventType.AccountReady], { accountId: account.ctx.getCurrentAccountId() })
   return true
 }
 
-export function registerCoreEventListeners(logger: Logger, account: AccountState, accountId: string, eventName: keyof FromCoreEvent) {
-  if (eventName.startsWith('server:')) {
-    return
-  }
-
-  if (!account.coreEventListeners.has(eventName)) {
-    const listener: CoreEventListener = (...args: unknown[]) => {
-      const data = args[0] as WsEventToClientData<typeof eventName>
-      account.activePeers.forEach((peerId) => {
-        const targetPeer = peerObjects.get(peerId)
-        if (targetPeer) {
-          sendWsEvent(targetPeer, eventName, data)
-        }
-      })
-    }
-
-    account.ctx.emitter.on(eventName, listener)
-    account.coreEventListeners.set(eventName, listener)
-
-    logger.withFields({ eventName, accountId }).debug('Registered shared core event listener')
-  }
-}
-
-export async function updateAccountState(logger: Logger, account: AccountState, accountId: string, eventName: keyof ToCoreEvent) {
+export async function updateAccountState(logger: Logger, account: AccountState, accountId: string, eventName: string) {
   if (eventName !== CoreEventType.AuthLogout)
     return
 
@@ -111,6 +99,44 @@ export async function updateAccountState(logger: Logger, account: AccountState, 
   })
 }
 
+/**
+ * Drops notification data that is too large or cannot be serialized, so a
+ * single oversized payload cannot stall the socket. The client still gets
+ * the event, without data.
+ */
+export function limitNotificationSize<T extends UiCoreNotificationType>(type: T, data: UiNotificationData<T>): UiNotificationData<T> {
+  if (data === undefined)
+    return data
+  const logger = useLogger('server:ws')
+  try {
+    const size = JSON.stringify(data)?.length ?? 0
+    if (size <= MAX_NOTIFICATION_BYTES)
+      return data
+    logger.withFields({ type, size }).warn('Dropped event data')
+    wsSendFailTotal.add(1, { reason: 'payload_too_large' })
+  }
+  catch (error) {
+    logger.withFields({ type }).withError(error).warn('Dropped event data')
+    wsSendFailTotal.add(1, { reason: 'stringify_error' })
+  }
+  return undefined as UiNotificationData<T>
+}
+
+/**
+ * Accepts only Eventa frames. The Eventa peer adapter answers a frame it
+ * cannot parse by logging it and emitting its own error event, which it then
+ * sends back to the client; drop such frames here instead.
+ */
+export function isEventaFrameText(text: string): boolean {
+  try {
+    const frame = JSON.parse(text) as { deliveryId?: unknown, eventa?: { id?: unknown } } | null
+    return typeof frame?.deliveryId === 'string' && typeof frame.eventa?.id === 'string'
+  }
+  catch {
+    return false
+  }
+}
+
 export interface WsRouteOptions {
   /** Rejects the upgrade by throwing a `Response`; unset in the single-user mode. */
   authorize?: (request: Request) => Promise<void>
@@ -122,23 +148,19 @@ export interface WsRouteOptions {
  * Answers a sign-in ticket request. Only a session whose Telegram account is
  * logged in and ready gets one; the ticket names that account's own user.
  */
-export async function respondToSignInTicketRequest(peer: Peer, account: AccountState | undefined, issue: WsRouteOptions['issueSignInTicket'], logger: Logger) {
-  if (!issue) {
-    sendWsEvent(peer, 'server:sign-in-ticket', { error: 'OAUTH_DISABLED' })
-    return
-  }
-  if (!account?.accountReady) {
-    sendWsEvent(peer, 'server:sign-in-ticket', { error: 'ACCOUNT_NOT_READY' })
-    return
-  }
+export async function issueSignInTicketFor(account: AccountState | undefined, issue: WsRouteOptions['issueSignInTicket'], logger: Logger): Promise<SignInTicketResult> {
+  if (!issue)
+    return { error: 'OAUTH_DISABLED' }
+  if (!account?.accountReady)
+    return { error: 'ACCOUNT_NOT_READY' }
   try {
     const me = account.ctx.getMyUser()
     const ticket = await issue({ telegramId: String(me.id), name: me.name || me.username || undefined })
-    sendWsEvent(peer, 'server:sign-in-ticket', { ticket })
+    return { ticket }
   }
   catch (error) {
     logger.withError(error).error('Failed to issue a sign-in ticket')
-    sendWsEvent(peer, 'server:sign-in-ticket', { error: 'TICKET_FAILED' })
+    return { error: 'TICKET_FAILED' }
   }
 }
 
@@ -172,79 +194,51 @@ export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions =
       peerToAccountId.set(peer.id, accountId)
       account.activePeers.add(peer.id)
       peerObjects.set(peer.id, peer)
-      peerRpcStates.set(peer.id, { eventa: createPeerContext(asEventaPeer(peer)) })
+
+      const eventa = createPeerContext(asEventaPeer(peer))
+      const unregisterUi = registerUiHandlers(eventa.context, account.ctx, {
+        logger,
+        onCommand: (type, input, forward) => {
+          if (type === CoreEventType.AuthLogin && respondToReadyLogin(eventa.context, account))
+            return
+
+          logger.withFields({ type, accountId }).verbose('Command received')
+          coreEventsInTotal.add(1, { event_name: type })
+          forward(input)
+          void updateAccountState(logger, account, accountId, type)
+        },
+        prepareNotification: limitNotificationSize,
+      })
+      defineInvokeHandler(eventa.context, signInTicketContract, () => issueSignInTicketFor(accountStates.get(accountId), options.issueSignInTicket, logger))
+      peerRpcStates.set(peer.id, { eventa, unregisterUi })
 
       logger.withFields({ accountId, activePeers: account.activePeers.size }).log('Peer added to account')
 
-      sendWsEvent(peer, 'server:connected', { sessionId: accountId, accountReady: account.accountReady })
+      void eventa.context.emit(uiNotificationContracts['server:connected'], { sessionId: accountId, accountReady: account.accountReady })
     },
 
     async message(peer, message) {
-      if (message.text() === '{"type":"server:ping"}') {
-        peer.send('{"type":"server:pong"}')
+      if (message.text() === UI_HEARTBEAT_PING) {
+        peer.send(UI_HEARTBEAT_PONG)
         return
       }
 
       const accountId = peerToAccountId.get(peer.id)
-      if (!accountId) {
-        logger.withFields({ peerId: peer.id }).warn('Peer not associated with account')
+      const account = accountId ? accountStates.get(accountId) : undefined
+      const rpcState = peerRpcStates.get(peer.id)
+      if (!account || !rpcState) {
+        logger.withFields({ peerId: peer.id, accountId }).warn('Peer not associated with account')
         return
       }
 
-      const account = accountStates.get(accountId)
-      if (!account) {
-        logger.withFields({ accountId }).warn('Account not found')
+      if (!isEventaFrameText(message.text())) {
+        logger.withFields({ peerId: peer.id, accountId }).warn('Dropped a WebSocket frame that is not an Eventa frame')
         return
       }
-
-      const event = message.json<WsMessageToServer>()
 
       try {
-        // Eventa frames use an event id/body envelope. Legacy UI events keep
-        // their type/data envelope until the remaining UI notifications move.
-        if (isEventaFrame(event)) {
-          const rpcState = peerRpcStates.get(peer.id)
-          ensurePeerApplication(account, peer.id, logger)
-          if (rpcState) {
-            await rpcState.eventa.hooks.message(asEventaPeer(peer), message as never)
-          }
-          return
-        }
-
-        if (event.type === 'server:sign-in-ticket') {
-          await respondToSignInTicketRequest(peer, account, options.issueSignInTicket, logger)
-          return
-        }
-
-        if (event.type === 'server:event:register') {
-          registerCoreEventListeners(logger, account, accountId, event.data.event as keyof FromCoreEvent)
-          return
-        }
-
-        // Internal core events trust their payload (accountId, dialogs, raw
-        // Telegram messages). Forwarding them let a client link its account
-        // to any chat and relabel private chats, so only UI events pass.
-        if (!isClientEmittableCoreEvent(event.type)) {
-          logger.withFields({ type: event.type, accountId }).warn('Rejected WebSocket event that clients may not emit')
-          return
-        }
-
-        // An account-scoped context already has an authorized Telegram client.
-        // Replaying auth:login from another tab must not create and replace it.
-        if (event.type === CoreEventType.AuthLogin && respondToReadyLogin(peer, account)) {
-          return
-        }
-
-        const tracingId = event.meta?.tracingId || uuidv4()
-
-        logger.withFields({ type: event.type, accountId, tracingId }).verbose('Message received')
-
-        coreEventsInTotal.add(1, { event_name: event.type })
-
-        // Emit to core context (meta.tracingId is re-bound via emitter on/once wrappers)
-        account.ctx.emitter.emit(event.type, { ...event.data, meta: { tracingId } } as ExtractData<keyof ToCoreEvent>)
-
-        updateAccountState(logger, account, accountId, event.type as keyof ToCoreEvent)
+        ensurePeerApplication(account, peer.id)
+        await rpcState.eventa.hooks.message(asEventaPeer(peer), message as never)
       }
       catch (error) {
         logger.withError(error).error('Handle websocket message failed')
@@ -254,6 +248,15 @@ export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions =
     async close(peer) {
       logger.withFields({ peerId: peer.id }).log('WebSocket connection closed')
       wsConnectionsActive.add(-1, { mode: WS_MODE_LABEL })
+
+      const rpcState = peerRpcStates.get(peer.id)
+      if (rpcState) {
+        peerRpcStates.delete(peer.id)
+        rpcState.unregisterUi()
+        rpcState.unregister?.()
+        await rpcState.runtime?.dispose()
+        await rpcState.eventa.hooks.close(asEventaPeer(peer), {})
+      }
 
       const accountId = peerToAccountId.get(peer.id)
       if (!accountId) {
@@ -269,14 +272,6 @@ export function setupWsRoutes(app: H3, config: Config, options: WsRouteOptions =
       account.activePeers.delete(peer.id)
       peerToAccountId.delete(peer.id)
       peerObjects.delete(peer.id)
-
-      const rpcState = peerRpcStates.get(peer.id)
-      if (rpcState) {
-        rpcState.unregister?.()
-        await rpcState.runtime?.dispose()
-        await rpcState.eventa.hooks.close(asEventaPeer(peer), {})
-        peerRpcStates.delete(peer.id)
-      }
 
       logger.withFields({ accountId, remainingPeers: account.activePeers.size }).log('Peer removed from account')
 

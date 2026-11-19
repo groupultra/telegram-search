@@ -1,5 +1,4 @@
-import type { AccountSettings, CoreEventType } from '@tg-search/core'
-import type { WsEventToClientData } from '@tg-search/server/types'
+import type { AccountSettings, CoreEventType, UiNotificationData } from '@tg-search/core'
 
 import { deepClone } from '@tg-search/common'
 import { normalizeAccountSettings } from '@tg-search/core'
@@ -40,7 +39,7 @@ export function createAccountSettingsSavePayload(settings: AccountSettings): Acc
 }
 
 export function isMatchingAccountSettingsResponse(
-  response: WsEventToClientData<CoreEventType.ConfigData>,
+  response: UiNotificationData<CoreEventType.ConfigData>,
   expectedSettings: AccountSettings,
 ): boolean {
   return JSON.stringify(createAccountSettingsSavePayload(response.accountSettings))

@@ -11,7 +11,7 @@ Node/H3 server for Telegram Search.
 | `src/auth/` | Better Auth instance (`better-auth.ts`), `TGS_AUTH` config, Telegram session sign-in (`telegram-session.ts`), token-to-principal resolution, Web session guard |
 | `src/remote/` | Remote methods shared by REST and MCP: executor (scopes, chat scope, audit), REST transport (`http.ts`), scopes, audit recorder, media links, account application |
 | `src/mcp/` | Streamable HTTP MCP endpoint and tool registration |
-| `src/app.ts`, `src/account.ts`, `src/events.ts` | WebSocket bridge and per-account Core state |
+| `src/app.ts`, `src/account.ts` | WebSocket bridge (Eventa UI contracts and application invokes) and per-account Core state |
 | `src/apis/`, `src/storage/` | Web photo/sticker routes and media storage |
 
 ## Authorization modes
@@ -33,7 +33,7 @@ Node/H3 server for Telegram Search.
 
 ### Identity and tenancy
 
-Logging in to Telegram is the sign-in. The Web UI logs in over the WebSocket as before (phone code, two-step password, or a saved session). Once that account is ready, the browser sends `server:sign-in-ticket`, and the server answers with a ticket for the Telegram user the runtime is logged in as; the identity never comes from the request. The browser exchanges the ticket at `POST /api/auth/sign-in/telegram-session` for a session cookie. Tickets are random, stored only as a SHA-256 hash, expire after two minutes, and are consumed atomically on first use.
+Logging in to Telegram is the sign-in. The Web UI logs in over the WebSocket as before (phone code, two-step password, or a saved session). Once that account is ready, the browser invokes the sign-in ticket contract, and the server answers with a ticket for the Telegram user the runtime is logged in as; the identity never comes from the request. The browser exchanges the ticket at `POST /api/auth/sign-in/telegram-session` for a session cookie. Tickets are random, stored only as a SHA-256 hash, expire after two minutes, and are consumed atomically on first use.
 
 The linked account (`providerId: "telegram"`) is keyed by the Telegram user ID, which access tokens carry as `telegram_id`. Better Auth requires an email address and Telegram provides none, so each user gets a synthetic `tg-<id>@users.telegram.invalid` address; email sign-in and linking by email are disabled.
 
@@ -98,4 +98,4 @@ Every authenticated request writes an append-only row to `remote_audit_events` b
 
 With `TGS_AUTH=oauth`, `/mcp` and `/v1/remote/*` require an access token, and `/v1/photos/*` and `/v1/stickers/*` require a signed-in session. `/ws` stays open to signed-out browsers because the Telegram login runs over it; as in the single-user mode, its unguessable client-chosen `sessionId` scopes the account runtime. Upgrades whose `Origin` is not `TGS_PUBLIC_URL` are refused with 403. Anyone who can log in to a Telegram account can sign up. Photo and sticker routes check the session, not the photo's account, so a signed-in user who knows another account's media ID can fetch it. The server process and database administrators remain trusted: the server can read every account it serves. Do not log request bodies, tokens, or query text in production; set an appropriate production log level.
 
-The `/ws` route creates account-scoped Eventa peer contexts and keeps HTTP for health checks and binary photo/sticker delivery. During the UI migration, true realtime domain notifications continue to share the same WebSocket connection.
+The `/ws` route creates account-scoped Eventa peer contexts and keeps HTTP for health checks and binary photo/sticker delivery. Every WebSocket frame except the heartbeat is an Eventa frame. A client reaches core only through the UI command contracts in `@tg-search/core` (`src/ui/contracts.ts`): each command is validated with Valibot, unknown fields are dropped, and handlers take the account from the server-side context. Internal core events (storage writes, message processing, Telegram updates, account setup) have no contract and cannot be sent by a client. Listed core events are forwarded back as UI notifications; payloads over 1 MB are sent without data.
